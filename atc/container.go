@@ -24,6 +24,8 @@ type Container struct {
 
 	User             string `json:"user,omitempty"`
 	WorkingDirectory string `json:"working_directory,omitempty"`
+
+	ExpiresIn string `json:"expires_in,omitempty"`
 }
 
 const (

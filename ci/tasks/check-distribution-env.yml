@@ -1,0 +1,18 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+inputs:
+- name: concourse
+- name: linux-rc
+- name: distribution
+
+params:
+  # distribution to check (one of 'helm' or 'bosh')
+  DISTRIBUTION: ''
+
+run:
+  path: concourse/ci/tasks/scripts/check-distribution-env/diff

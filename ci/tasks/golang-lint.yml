@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: golang}
+
+inputs:
+- name: concourse
+
+caches:
+- path: gopath
+- path: old-ref
+
+run:
+  path: concourse/ci/tasks/scripts/golang-lint

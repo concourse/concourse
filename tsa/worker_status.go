@@ -2,6 +2,7 @@ package tsa
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -12,14 +13,9 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/tedsuo/rata"
-)
-
-const (
-	ReportContainers      = "report-containers"
-	ReportVolumes         = "report-volumes"
-	ResourceActionMissing = "resource-type-missing"
 )
 
 type WorkerStatus struct {
@@ -29,7 +25,8 @@ type WorkerStatus struct {
 	VolumeHandles    []string
 }
 
-func (l *WorkerStatus) WorkerStatus(logger lager.Logger, worker atc.Worker, resourceAction string) error {
+func (l *WorkerStatus) WorkerStatus(ctx context.Context, worker atc.Worker, resourceAction string) error {
+	logger := lagerctx.FromContext(ctx)
 
 	logger.Debug("start")
 	defer logger.Debug("end")

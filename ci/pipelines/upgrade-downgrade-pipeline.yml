@@ -6,7 +6,7 @@ resources:
     interval: 1m
 
 - name: test-image
-  type: docker-image
+  type: registry-image
   source:
     repository: ubuntu
 

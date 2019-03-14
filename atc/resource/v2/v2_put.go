@@ -1,23 +1,30 @@
 package v2
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
-	"os"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
 )
+
+type DecodeResponseError struct {
+	Err error
+}
+
+func (e DecodeResponseError) Error() string {
+	return fmt.Sprintf("failed to decode response: %s", e.Err.Error())
+}
 
 //go:generate counterfeiter . PutEventHandler
 
 type PutEventHandler interface {
 	CreatedResponse(atc.Space, atc.Version, atc.Metadata, []atc.SpaceVersion) ([]atc.SpaceVersion, error)
 }
-
-const responsePath = "response"
 
 type PutRequest struct {
 	Config       map[string]interface{} `json:"config"`
@@ -31,23 +38,8 @@ func (r *resource) Put(
 	source atc.Source,
 	params atc.Params,
 ) ([]atc.SpaceVersion, error) {
-	var responseFile *os.File
-
-	_, err := os.Stat(responsePath)
-	if err == nil {
-		responseFile, err = os.Open(responsePath)
-	} else if os.IsNotExist(err) {
-		responseFile, err = os.Create(responsePath)
-	}
-
-	defer responseFile.Close()
-
-	if err != nil {
-		return nil, err
-	}
-
 	config := constructConfig(source, params)
-	input := PutRequest{config, responseFile.Name()}
+	input := PutRequest{config, "../" + responseFilename}
 	request, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
@@ -72,7 +64,7 @@ func (r *resource) Put(
 		process, err = r.container.Run(garden.ProcessSpec{
 			ID:   TaskProcessID,
 			Path: r.info.Artifacts.Put,
-			Args: []string{atc.ResourcesDir("put")},
+			Dir:  "put",
 		}, processIO)
 		if err != nil {
 			return nil, err
@@ -98,19 +90,28 @@ func (r *resource) Put(
 		if processStatus != 0 {
 			return nil, atc.ErrResourceScriptFailed{
 				Path:       r.info.Artifacts.Put,
-				Args:       []string{atc.ResourcesDir("put")},
+				Dir:        "put",
 				ExitStatus: processStatus,
 
 				Stderr: stderr.String(),
 			}
 		}
 
-		fileReader, err := os.Open(responseFile.Name())
+		out, err := r.container.StreamOut(garden.StreamOutSpec{Path: responseFilename})
 		if err != nil {
 			return nil, err
 		}
 
-		decoder := json.NewDecoder(fileReader)
+		defer out.Close()
+
+		tarReader := tar.NewReader(out)
+
+		_, err = tarReader.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		decoder := json.NewDecoder(tarReader)
 
 		spaceVersions := []atc.SpaceVersion{}
 		for {
@@ -121,13 +122,13 @@ func (r *resource) Put(
 					break
 				}
 
-				return nil, err
+				return nil, DecodeResponseError{Err: err}
 			}
 
 			if event.Action == "created" {
 				spaceVersions, err = eventHandler.CreatedResponse(event.Space, event.Version, event.Metadata, spaceVersions)
 				if err != nil {
-					return nil, nil
+					return nil, err
 				}
 			} else {
 				return nil, ActionNotFoundError{event.Action}

@@ -58,7 +58,15 @@ func (fake *FakeReadCloser) CloseCallCount() int {
 	return len(fake.closeArgsForCall)
 }
 
+func (fake *FakeReadCloser) CloseCalls(stub func() error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
+	fake.CloseStub = stub
+}
+
 func (fake *FakeReadCloser) CloseReturns(result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	fake.closeReturns = struct {
 		result1 error
@@ -66,6 +74,8 @@ func (fake *FakeReadCloser) CloseReturns(result1 error) {
 }
 
 func (fake *FakeReadCloser) CloseReturnsOnCall(i int, result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	if fake.closeReturnsOnCall == nil {
 		fake.closeReturnsOnCall = make(map[int]struct {
@@ -106,6 +116,12 @@ func (fake *FakeReadCloser) ReadCallCount() int {
 	return len(fake.readArgsForCall)
 }
 
+func (fake *FakeReadCloser) ReadCalls(stub func([]byte) (int, error)) {
+	fake.readMutex.Lock()
+	defer fake.readMutex.Unlock()
+	fake.ReadStub = stub
+}
+
 func (fake *FakeReadCloser) ReadArgsForCall(i int) []byte {
 	fake.readMutex.RLock()
 	defer fake.readMutex.RUnlock()
@@ -114,6 +130,8 @@ func (fake *FakeReadCloser) ReadArgsForCall(i int) []byte {
 }
 
 func (fake *FakeReadCloser) ReadReturns(result1 int, result2 error) {
+	fake.readMutex.Lock()
+	defer fake.readMutex.Unlock()
 	fake.ReadStub = nil
 	fake.readReturns = struct {
 		result1 int
@@ -122,6 +140,8 @@ func (fake *FakeReadCloser) ReadReturns(result1 int, result2 error) {
 }
 
 func (fake *FakeReadCloser) ReadReturnsOnCall(i int, result1 int, result2 error) {
+	fake.readMutex.Lock()
+	defer fake.readMutex.Unlock()
 	fake.ReadStub = nil
 	if fake.readReturnsOnCall == nil {
 		fake.readReturnsOnCall = make(map[int]struct {

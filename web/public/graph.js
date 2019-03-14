@@ -603,15 +603,28 @@ GraphNode.prototype.width = function() {
     })
 
     var textNode = svgNode.select("text").node();
+    var imageNode = svgNode.select("image").node();
 
-    if (textNode) {
+    if (textNode && imageNode) {
+      this._cachedWidth = textNode.getBBox().width + NODE_PADDING + imageNode.getBBox().width;
+    } else if (textNode) {
       this._cachedWidth = textNode.getBBox().width;
+    } else if (imageNode) {
+      this._cachedWidth = imageNode.getBBox().width;
     } else {
       return 0;
     }
   }
 
   return this._cachedWidth + (NODE_PADDING * 2);
+}
+
+GraphNode.prototype.padding = function() {
+  return NODE_PADDING;
+}
+
+GraphNode.prototype.pinned = function() {
+  return this.class.includes("pinned");
 }
 
 GraphNode.prototype.height = function() {

@@ -1,6 +1,7 @@
 package lock_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"sync"
 	"time"
 
@@ -28,7 +29,8 @@ var _ = Describe("Locks", func() {
 		team        db.Team
 		teamFactory db.TeamFactory
 
-		logger *lagertest.TestLogger
+		logger      *lagertest.TestLogger
+		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 	)
 
 	BeforeEach(func() {
@@ -39,7 +41,7 @@ var _ = Describe("Locks", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
+		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
 		dbConn = postgresRunner.OpenConn()
 		teamFactory = db.NewTeamFactory(dbConn, lockFactory)
@@ -84,7 +86,7 @@ var _ = Describe("Locks", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		if dbLock != nil {
-			dbLock.Release()
+			_ = dbLock.Release()
 		}
 	})
 
@@ -145,7 +147,7 @@ var _ = Describe("Locks", func() {
 			var lockFactory2 lock.LockFactory
 
 			BeforeEach(func() {
-				lockFactory2 = lock.NewLockFactory(postgresRunner.OpenSingleton())
+				lockFactory2 = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 			})
 
 			It("does not acquire the lock", func() {
@@ -159,7 +161,8 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
-				dbLock.Release()
+				err = dbLock.Release()
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("acquires the locks once it is released", func() {
@@ -173,13 +176,15 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
-				dbLock.Release()
+				err = dbLock.Release()
+				Expect(err).NotTo(HaveOccurred())
 
 				dbLock2, acquired, err = lockFactory2.Acquire(logger, lock.LockID{42})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				dbLock2.Release()
+				err = dbLock2.Release()
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -273,7 +278,8 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				lock.Release()
+				err = lock.Release()
+				Expect(err).NotTo(HaveOccurred())
 
 				_, acquired, err = pipeline.AcquireSchedulingLock(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
@@ -294,7 +300,8 @@ var _ = Describe("Locks", func() {
 					return acquired
 				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
 
-				lock.Release()
+				err = lock.Release()
+				Expect(err).NotTo(HaveOccurred())
 
 				time.Sleep(time.Second)
 
@@ -302,7 +309,8 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				newLock.Release()
+				err = newLock.Release()
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 	})
@@ -328,7 +336,8 @@ var _ = Describe("Locks", func() {
 				return acquired
 			}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
 
-			lock.Release()
+			err = lock.Release()
+			Expect(err).NotTo(HaveOccurred())
 
 			time.Sleep(time.Second)
 
@@ -336,7 +345,8 @@ var _ = Describe("Locks", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
-			newLock.Release()
+			err = newLock.Release()
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })

@@ -35,8 +35,8 @@ func (tk *tokenGenerator) GenerateTeamToken(teamName string) (string, error) {
 	exp := time.Now().Add(time.Hour)
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"exp":      exp.Unix(),
-		"teamName": teamName,
-		"isAdmin":  false,
+		"teams":    map[string][]string{teamName: []string{"member"}},
+		"is_admin": false,
 	})
 
 	return jwtToken.SignedString(tk.signingKey)

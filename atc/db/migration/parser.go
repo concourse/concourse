@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-var noTxPrefix = regexp.MustCompile("^\\s*--\\s+(NO_TRANSACTION)")
-var migrationDirection = regexp.MustCompile("\\.(up|down)\\.")
-var goMigrationFuncName = regexp.MustCompile("(Up|Down)_[0-9]*")
+var noTxPrefix = regexp.MustCompile(`^\s*--\s+(NO_TRANSACTION)`)
+var migrationDirection = regexp.MustCompile(`\.(up|down)\.`)
+var goMigrationFuncName = regexp.MustCompile(`(Up|Down)_[0-9]*`)
 
 var ErrCouldNotParseDirection = errors.New("could not parse direction for migration")
 
@@ -62,7 +62,11 @@ func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
 	case GoMigration:
 		migration.Name = goMigrationFuncName.FindString(migrationContents)
 	case SQLNoTransaction:
-		migration.Statements = []string{migrationContents}
+		// this used to be []string{migrationContents}, as though we explicitly
+		// wanted there to be only one statement but we can't remember why.
+		// Making it one statement breaks things if your migration has more than
+		// one statement so we're changing it for now.
+		migration.Statements = splitStatements(migrationContents)
 		migration.Name = migrationName
 	case SQLTransaction:
 		migration.Statements = splitStatements(migrationContents)
@@ -109,7 +113,7 @@ func splitStatements(migrationContents string) []string {
 		fileStatements = fileStatements[:len(fileStatements)-1]
 	}
 
-	var isSqlStatement bool = false
+	var isSqlStatement = false
 	var sqlStatement string
 	for _, statement := range fileStatements {
 		statement = strings.TrimSpace(statement)

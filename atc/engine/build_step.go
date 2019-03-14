@@ -25,9 +25,7 @@ func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) e
 func (build *execBuild) buildDoStep(logger lager.Logger, plan atc.Plan) exec.Step {
 	logger = logger.Session("do")
 
-	var step exec.Step
-
-	step = exec.IdentityStep{}
+	var step exec.Step = exec.IdentityStep{}
 
 	for i := len(*plan.Do) - 1; i >= 0; i-- {
 		innerPlan := (*plan.Do)[i]

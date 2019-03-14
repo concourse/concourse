@@ -58,7 +58,15 @@ func (fake *FakeEventSource) CloseCallCount() int {
 	return len(fake.closeArgsForCall)
 }
 
+func (fake *FakeEventSource) CloseCalls(stub func() error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
+	fake.CloseStub = stub
+}
+
 func (fake *FakeEventSource) CloseReturns(result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	fake.closeReturns = struct {
 		result1 error
@@ -66,6 +74,8 @@ func (fake *FakeEventSource) CloseReturns(result1 error) {
 }
 
 func (fake *FakeEventSource) CloseReturnsOnCall(i int, result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	if fake.closeReturnsOnCall == nil {
 		fake.closeReturnsOnCall = make(map[int]struct {
@@ -100,7 +110,15 @@ func (fake *FakeEventSource) NextCallCount() int {
 	return len(fake.nextArgsForCall)
 }
 
+func (fake *FakeEventSource) NextCalls(stub func() (event.Envelope, error)) {
+	fake.nextMutex.Lock()
+	defer fake.nextMutex.Unlock()
+	fake.NextStub = stub
+}
+
 func (fake *FakeEventSource) NextReturns(result1 event.Envelope, result2 error) {
+	fake.nextMutex.Lock()
+	defer fake.nextMutex.Unlock()
 	fake.NextStub = nil
 	fake.nextReturns = struct {
 		result1 event.Envelope
@@ -109,6 +127,8 @@ func (fake *FakeEventSource) NextReturns(result1 event.Envelope, result2 error) 
 }
 
 func (fake *FakeEventSource) NextReturnsOnCall(i int, result1 event.Envelope, result2 error) {
+	fake.nextMutex.Lock()
+	defer fake.nextMutex.Unlock()
 	fake.NextStub = nil
 	if fake.nextReturnsOnCall == nil {
 		fake.nextReturnsOnCall = make(map[int]struct {

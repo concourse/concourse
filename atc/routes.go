@@ -45,10 +45,13 @@ const (
 	EnableResourceVersion         = "EnableResourceVersion"
 	DisableResourceVersion        = "DisableResourceVersion"
 	PinResourceVersion            = "PinResourceVersion"
-	UnpinResourceVersion          = "UnpinResourceVersion"
+	UnpinResource                 = "UnpinResource"
+	SetPinCommentOnResource       = "SetPinCommentOnResource"
 	ListBuildsWithVersionAsInput  = "ListBuildsWithVersionAsInput"
 	ListBuildsWithVersionAsOutput = "ListBuildsWithVersionAsOutput"
 	GetResourceCausality          = "GetResourceCausality"
+
+	GetCC = "GetCC"
 
 	ListAllPipelines    = "ListAllPipelines"
 	ListPipelines       = "ListPipelines"
@@ -162,10 +165,13 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/enable", Method: "PUT", Name: EnableResourceVersion},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/disable", Method: "PUT", Name: DisableResourceVersion},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/pin", Method: "PUT", Name: PinResourceVersion},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/unpin", Method: "PUT", Name: UnpinResourceVersion},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/unpin", Method: "PUT", Name: UnpinResource},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pin_comment", Method: "PUT", Name: SetPinCommentOnResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/input_to", Method: "GET", Name: ListBuildsWithVersionAsInput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/causality", Method: "GET", Name: GetResourceCausality},
+
+	{Path: "/api/v1/teams/:team_name/cc.xml", Method: "GET", Name: GetCC},
 
 	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
 	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},

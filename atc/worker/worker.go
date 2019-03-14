@@ -7,10 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -31,6 +29,8 @@ type Worker interface {
 	Client
 
 	ActiveContainers() int
+	ActiveVolumes() int
+	BuildContainers() int
 
 	Description() string
 	Name() string
@@ -49,50 +49,35 @@ type Worker interface {
 }
 
 type gardenWorker struct {
-	gardenClient       garden.Client
-	baggageclaimClient baggageclaim.Client
-
+	gardenClient      garden.Client
 	volumeClient      VolumeClient
+	imageFactory      ImageFactory
 	containerProvider ContainerProvider
-
-	clock clock.Clock
-
-	activeContainers int
-	resourceTypes    []atc.WorkerResourceType
-	platform         string
-	tags             atc.Tags
-	teamID           int
-	name             string
-	startTime        int64
-	ephemeral        bool
-	version          *string
+	dbWorker          db.Worker
+	buildContainers   int
 }
 
+// NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
+// creation on a specific Garden worker.
+// A Garden Worker is comprised of: db.Worker, garden Client, container provider, and a volume client
 func NewGardenWorker(
 	gardenClient garden.Client,
-	baggageclaimClient baggageclaim.Client,
 	containerProvider ContainerProvider,
 	volumeClient VolumeClient,
+	imageFactory ImageFactory,
 	dbWorker db.Worker,
-	clock clock.Clock,
+	numBuildContainers int,
+	// TODO: numBuildContainers is only needed for placement strategy but this
+	// method is called in ContainerProvider.FindOrCreateContainer as well and
+	// hence we pass in 0 values for numBuildContainers everywhere.
 ) Worker {
-
 	return &gardenWorker{
-		gardenClient:       gardenClient,
-		baggageclaimClient: baggageclaimClient,
-		volumeClient:       volumeClient,
-		containerProvider:  containerProvider,
-
-		clock:            clock,
-		activeContainers: dbWorker.ActiveContainers(),
-		resourceTypes:    dbWorker.ResourceTypes(),
-		platform:         dbWorker.Platform(),
-		tags:             dbWorker.Tags(),
-		teamID:           dbWorker.TeamID(),
-		name:             dbWorker.Name(),
-		startTime:        dbWorker.StartTime(),
-		version:          dbWorker.Version(),
-		ephemeral:        dbWorker.Ephemeral(),
+		gardenClient:      gardenClient,
+		volumeClient:      volumeClient,
+		imageFactory:      imageFactory,
+		containerProvider: containerProvider,
+		dbWorker:          dbWorker,
+		buildContainers:   numBuildContainers,
 	}
 }
 
@@ -101,17 +86,18 @@ func (worker *gardenWorker) GardenClient() garden.Client {
 }
 
 func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVersion version.Version) bool {
+	workerVersion := worker.dbWorker.Version()
 	logger = logger.Session("check-version", lager.Data{
 		"want-worker-version": comparedVersion.String(),
-		"have-worker-version": worker.version,
+		"have-worker-version": workerVersion,
 	})
 
-	if worker.version == nil {
+	if workerVersion == nil {
 		logger.Info("empty-worker-version")
 		return false
 	}
 
-	v, err := version.NewVersionFromString(*worker.version)
+	v, err := version.NewVersionFromString(*workerVersion)
 	if err != nil {
 		logger.Error("failed-to-parse-version", err)
 		return false
@@ -132,7 +118,7 @@ func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVer
 }
 
 func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {
-	for _, rt := range worker.resourceTypes {
+	for _, rt := range worker.dbWorker.ResourceTypes() {
 		if path == rt.Image {
 			return rt, true
 		}
@@ -163,18 +149,33 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	delegate ImageFetchingDelegate,
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
-	spec ContainerSpec,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
 
+	image, err := worker.imageFactory.GetImage(
+		logger,
+		worker,
+		worker.volumeClient,
+		containerSpec.ImageSpec,
+		containerSpec.TeamID,
+		delegate,
+		resourceTypes,
+	)
+	if err != nil {
+		return nil, err
+	}
 	return worker.containerProvider.FindOrCreateContainer(
 		ctx,
 		logger,
 		owner,
 		delegate,
 		metadata,
-		spec,
+		containerSpec,
+		workerSpec,
 		resourceTypes,
+		image,
 	)
 }
 
@@ -182,20 +183,51 @@ func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID in
 	return worker.containerProvider.FindCreatedContainerByHandle(logger, handle, teamID)
 }
 
+// TODO: are these required on the Worker object?
+// does the caller already have the db.Worker available?
 func (worker *gardenWorker) ActiveContainers() int {
-	return worker.activeContainers
+	return worker.dbWorker.ActiveContainers()
 }
 
-func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) (Worker, error) {
-	if spec.TeamID != worker.teamID && worker.teamID != 0 {
+func (worker *gardenWorker) ActiveVolumes() int {
+	return worker.dbWorker.ActiveVolumes()
+}
+
+func (worker *gardenWorker) Name() string {
+	return worker.dbWorker.Name()
+}
+
+func (worker *gardenWorker) ResourceTypes() []atc.WorkerResourceType {
+	return worker.dbWorker.ResourceTypes()
+}
+
+func (worker *gardenWorker) Tags() atc.Tags {
+	return worker.dbWorker.Tags()
+}
+
+func (worker *gardenWorker) Ephemeral() bool {
+	return worker.dbWorker.Ephemeral()
+}
+
+// </TODO>
+
+func (worker *gardenWorker) BuildContainers() int {
+	return worker.buildContainers
+}
+
+func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec) (Worker, error) {
+	workerTeamID := worker.dbWorker.TeamID()
+	workerResourceTypes := worker.dbWorker.ResourceTypes()
+
+	if spec.TeamID != workerTeamID && workerTeamID != 0 {
 		return nil, ErrTeamMismatch
 	}
 
 	if spec.ResourceType != "" {
-		underlyingType := determineUnderlyingTypeName(spec.ResourceType, resourceTypes)
+		underlyingType := determineUnderlyingTypeName(spec.ResourceType, spec.ResourceTypes)
 
 		matchedType := false
-		for _, t := range worker.resourceTypes {
+		for _, t := range workerResourceTypes {
 			if t.Type == underlyingType {
 				matchedType = true
 				break
@@ -208,7 +240,7 @@ func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec, res
 	}
 
 	if spec.Platform != "" {
-		if spec.Platform != worker.platform {
+		if spec.Platform != worker.dbWorker.Platform() {
 			return nil, ErrIncompatiblePlatform
 		}
 	}
@@ -235,58 +267,35 @@ func determineUnderlyingTypeName(typeName string, resourceTypes creds.VersionedR
 	return underlyingTypeName
 }
 
-func (worker *gardenWorker) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) ([]Worker, error) {
-	return nil, ErrNotImplemented
-}
-
-func (worker *gardenWorker) RunningWorkers(logger lager.Logger) ([]Worker, error) {
-	return nil, ErrNotImplemented
-}
-
 func (worker *gardenWorker) Description() string {
 	messages := []string{
-		fmt.Sprintf("platform '%s'", worker.platform),
+		fmt.Sprintf("platform '%s'", worker.dbWorker.Platform()),
 	}
 
-	for _, tag := range worker.tags {
+	for _, tag := range worker.dbWorker.Tags() {
 		messages = append(messages, fmt.Sprintf("tag '%s'", tag))
 	}
 
 	return strings.Join(messages, ", ")
 }
 
-func (worker *gardenWorker) Name() string {
-	return worker.name
-}
-
-func (worker *gardenWorker) ResourceTypes() []atc.WorkerResourceType {
-	return worker.resourceTypes
-}
-
-func (worker *gardenWorker) Tags() atc.Tags {
-	return worker.tags
-}
-
 func (worker *gardenWorker) IsOwnedByTeam() bool {
-	return worker.teamID != 0
+	return worker.dbWorker.TeamID() != 0
 }
 
 func (worker *gardenWorker) Uptime() time.Duration {
-	return worker.clock.Since(time.Unix(worker.startTime, 0))
-}
-
-func (worker *gardenWorker) Ephemeral() bool {
-	return worker.ephemeral
+	return time.Since(time.Unix(worker.dbWorker.StartTime(), 0))
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {
-	if len(worker.tags) > 0 && len(tags) == 0 {
+	workerTags := worker.dbWorker.Tags()
+	if len(workerTags) > 0 && len(tags) == 0 {
 		return false
 	}
 
 insert_coin:
 	for _, stag := range tags {
-		for _, wtag := range worker.tags {
+		for _, wtag := range workerTags {
 			if stag == wtag {
 				continue insert_coin
 			}

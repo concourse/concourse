@@ -107,7 +107,15 @@ func (fake *FakeDestroyingContainer) DestroyCallCount() int {
 	return len(fake.destroyArgsForCall)
 }
 
+func (fake *FakeDestroyingContainer) DestroyCalls(stub func() (bool, error)) {
+	fake.destroyMutex.Lock()
+	defer fake.destroyMutex.Unlock()
+	fake.DestroyStub = stub
+}
+
 func (fake *FakeDestroyingContainer) DestroyReturns(result1 bool, result2 error) {
+	fake.destroyMutex.Lock()
+	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	fake.destroyReturns = struct {
 		result1 bool
@@ -116,6 +124,8 @@ func (fake *FakeDestroyingContainer) DestroyReturns(result1 bool, result2 error)
 }
 
 func (fake *FakeDestroyingContainer) DestroyReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.destroyMutex.Lock()
+	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	if fake.destroyReturnsOnCall == nil {
 		fake.destroyReturnsOnCall = make(map[int]struct {
@@ -152,7 +162,15 @@ func (fake *FakeDestroyingContainer) HandleCallCount() int {
 	return len(fake.handleArgsForCall)
 }
 
+func (fake *FakeDestroyingContainer) HandleCalls(stub func() string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
+	fake.HandleStub = stub
+}
+
 func (fake *FakeDestroyingContainer) HandleReturns(result1 string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
 	fake.HandleStub = nil
 	fake.handleReturns = struct {
 		result1 string
@@ -160,6 +178,8 @@ func (fake *FakeDestroyingContainer) HandleReturns(result1 string) {
 }
 
 func (fake *FakeDestroyingContainer) HandleReturnsOnCall(i int, result1 string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
 	fake.HandleStub = nil
 	if fake.handleReturnsOnCall == nil {
 		fake.handleReturnsOnCall = make(map[int]struct {
@@ -194,7 +214,15 @@ func (fake *FakeDestroyingContainer) IDCallCount() int {
 	return len(fake.iDArgsForCall)
 }
 
+func (fake *FakeDestroyingContainer) IDCalls(stub func() int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = stub
+}
+
 func (fake *FakeDestroyingContainer) IDReturns(result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
 	fake.iDReturns = struct {
 		result1 int
@@ -202,6 +230,8 @@ func (fake *FakeDestroyingContainer) IDReturns(result1 int) {
 }
 
 func (fake *FakeDestroyingContainer) IDReturnsOnCall(i int, result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
 	if fake.iDReturnsOnCall == nil {
 		fake.iDReturnsOnCall = make(map[int]struct {
@@ -236,7 +266,15 @@ func (fake *FakeDestroyingContainer) IsDiscontinuedCallCount() int {
 	return len(fake.isDiscontinuedArgsForCall)
 }
 
+func (fake *FakeDestroyingContainer) IsDiscontinuedCalls(stub func() bool) {
+	fake.isDiscontinuedMutex.Lock()
+	defer fake.isDiscontinuedMutex.Unlock()
+	fake.IsDiscontinuedStub = stub
+}
+
 func (fake *FakeDestroyingContainer) IsDiscontinuedReturns(result1 bool) {
+	fake.isDiscontinuedMutex.Lock()
+	defer fake.isDiscontinuedMutex.Unlock()
 	fake.IsDiscontinuedStub = nil
 	fake.isDiscontinuedReturns = struct {
 		result1 bool
@@ -244,6 +282,8 @@ func (fake *FakeDestroyingContainer) IsDiscontinuedReturns(result1 bool) {
 }
 
 func (fake *FakeDestroyingContainer) IsDiscontinuedReturnsOnCall(i int, result1 bool) {
+	fake.isDiscontinuedMutex.Lock()
+	defer fake.isDiscontinuedMutex.Unlock()
 	fake.IsDiscontinuedStub = nil
 	if fake.isDiscontinuedReturnsOnCall == nil {
 		fake.isDiscontinuedReturnsOnCall = make(map[int]struct {
@@ -278,7 +318,15 @@ func (fake *FakeDestroyingContainer) MetadataCallCount() int {
 	return len(fake.metadataArgsForCall)
 }
 
+func (fake *FakeDestroyingContainer) MetadataCalls(stub func() db.ContainerMetadata) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
+	fake.MetadataStub = stub
+}
+
 func (fake *FakeDestroyingContainer) MetadataReturns(result1 db.ContainerMetadata) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
 	fake.MetadataStub = nil
 	fake.metadataReturns = struct {
 		result1 db.ContainerMetadata
@@ -286,6 +334,8 @@ func (fake *FakeDestroyingContainer) MetadataReturns(result1 db.ContainerMetadat
 }
 
 func (fake *FakeDestroyingContainer) MetadataReturnsOnCall(i int, result1 db.ContainerMetadata) {
+	fake.metadataMutex.Lock()
+	defer fake.metadataMutex.Unlock()
 	fake.MetadataStub = nil
 	if fake.metadataReturnsOnCall == nil {
 		fake.metadataReturnsOnCall = make(map[int]struct {
@@ -320,7 +370,15 @@ func (fake *FakeDestroyingContainer) StateCallCount() int {
 	return len(fake.stateArgsForCall)
 }
 
+func (fake *FakeDestroyingContainer) StateCalls(stub func() string) {
+	fake.stateMutex.Lock()
+	defer fake.stateMutex.Unlock()
+	fake.StateStub = stub
+}
+
 func (fake *FakeDestroyingContainer) StateReturns(result1 string) {
+	fake.stateMutex.Lock()
+	defer fake.stateMutex.Unlock()
 	fake.StateStub = nil
 	fake.stateReturns = struct {
 		result1 string
@@ -328,6 +386,8 @@ func (fake *FakeDestroyingContainer) StateReturns(result1 string) {
 }
 
 func (fake *FakeDestroyingContainer) StateReturnsOnCall(i int, result1 string) {
+	fake.stateMutex.Lock()
+	defer fake.stateMutex.Unlock()
 	fake.StateStub = nil
 	if fake.stateReturnsOnCall == nil {
 		fake.stateReturnsOnCall = make(map[int]struct {
@@ -362,7 +422,15 @@ func (fake *FakeDestroyingContainer) WorkerNameCallCount() int {
 	return len(fake.workerNameArgsForCall)
 }
 
+func (fake *FakeDestroyingContainer) WorkerNameCalls(stub func() string) {
+	fake.workerNameMutex.Lock()
+	defer fake.workerNameMutex.Unlock()
+	fake.WorkerNameStub = stub
+}
+
 func (fake *FakeDestroyingContainer) WorkerNameReturns(result1 string) {
+	fake.workerNameMutex.Lock()
+	defer fake.workerNameMutex.Unlock()
 	fake.WorkerNameStub = nil
 	fake.workerNameReturns = struct {
 		result1 string
@@ -370,6 +438,8 @@ func (fake *FakeDestroyingContainer) WorkerNameReturns(result1 string) {
 }
 
 func (fake *FakeDestroyingContainer) WorkerNameReturnsOnCall(i int, result1 string) {
+	fake.workerNameMutex.Lock()
+	defer fake.workerNameMutex.Unlock()
 	fake.WorkerNameStub = nil
 	if fake.workerNameReturnsOnCall == nil {
 		fake.workerNameReturnsOnCall = make(map[int]struct {

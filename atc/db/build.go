@@ -50,6 +50,9 @@ var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.ma
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id")
 
+var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0)").
+	From("builds as b")
+
 //go:generate counterfeiter . Build
 
 type Build interface {
@@ -90,7 +93,7 @@ type Build interface {
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
 
-	SaveOutput(ResourceConfig, atc.SpaceVersion, string, string) error
+	SaveOutput(lager.Logger, atc.SpaceVersion, string, string) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
@@ -138,8 +141,17 @@ type build struct {
 	drained     bool
 }
 
-var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
-var ErrBuildHasNoPipeline = errors.New("build-has-no-pipeline")
+var ErrBuildDisappeared = errors.New("build disappeared from db")
+var ErrBuildHasNoPipeline = errors.New("build has no pipeline")
+
+type ResourceNotFoundInPipeline struct {
+	Resource string
+	Pipeline string
+}
+
+func (r ResourceNotFoundInPipeline) Error() string {
+	return fmt.Sprintf("resource %s not found in pipeline %s", r.Resource, r.Pipeline)
+}
 
 func (b *build) ID() int                      { return b.id }
 func (b *build) Name() string                 { return b.name }
@@ -774,7 +786,7 @@ func (b *build) SaveEvent(event atc.Event) error {
 }
 
 func (b *build) SaveOutput(
-	rc ResourceConfig,
+	logger lager.Logger,
 	version atc.SpaceVersion,
 	outputName string,
 	resourceName string,
@@ -786,13 +798,12 @@ func (b *build) SaveOutput(
 		return ErrBuildHasNoPipeline
 	}
 
-	var versionJSON string
 	versionBytes, err := json.Marshal(version.Version)
 	if err != nil {
 		return err
 	}
 
-	versionJSON = string(versionBytes)
+	versionJSON := string(versionBytes)
 
 	// Use the Resource Name and the Build's Pipeline ID to find the Resource ID
 	selectResourceID := sq.Select("r.id", strconv.Itoa(b.id), fmt.Sprintf("'%s'", version.Space), fmt.Sprintf("md5('%s')", versionJSON), fmt.Sprintf("'%s'", outputName)).
@@ -857,8 +868,8 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			SELECT 1
 			FROM build_resource_config_version_inputs i, builds b
 			WHERE versions.version_md5 = i.version_md5
+			AND resources.resource_config_scope_id = spaces.resource_config_scope_id
 			AND spaces.id = versions.space_id
-			AND resources.resource_config_id = spaces.resource_config_id
 			AND resources.id = i.resource_id
 			AND b.job_id = builds.job_id
 			AND i.build_id = b.id
@@ -871,15 +882,15 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		Where(sq.NotEq{"versions.check_order": 0}).
 		Where(sq.Expr("inputs.build_id = builds.id")).
 		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
+		Where(sq.Expr("resources.resource_config_scope_id = spaces.resource_config_scope_id")).
 		Where(sq.Expr("spaces.id = versions.space_id")).
-		Where(sq.Expr("resources.resource_config_id = spaces.resource_config_id")).
 		Where(sq.Expr("resources.id = inputs.resource_id")).
 		Where(sq.Expr(`NOT EXISTS (
 			SELECT 1
 			FROM build_resource_config_version_outputs outputs
 			WHERE outputs.version_md5 = versions.version_md5
+			AND spaces.resource_config_scope_id = resources.resource_config_scope_id
 			AND spaces.id = versions.space_id
-			AND spaces.resource_config_id = resources.resource_config_id
 			AND outputs.resource_id = resources.id
 			AND outputs.build_id = inputs.build_id
 		)`)).
@@ -927,8 +938,8 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		Where(sq.Expr("outputs.build_id = builds.id")).
 		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).
+		Where(sq.Expr("resources.resource_config_scope_id = spaces.resource_config_scope_id")).
 		Where(sq.Expr("spaces.id = versions.space_id")).
-		Where(sq.Expr("resources.resource_config_id = spaces.resource_config_id")).
 		RunWith(b.conn).
 		Query()
 

@@ -31,49 +31,6 @@
   margin-left: 24px;
 }
 
-.build-action {
-  background: transparent;
-  border: none;
-  margin: 10px 10px 0 0;
-  padding: 0;
-  text-align: center;
-  cursor: pointer;
-}
-
-.build-action i {
-  width: 40px;
-  line-height: 40px;
-  border-radius: 50%;
-  font-size: 30px;
-}
-
-.build-action:active,
-.build-action:focus {
-  outline: none;
-}
-
-button.build-action[disabled]:hover::before {
-  position: absolute;
-  content: "manual triggering disabled in job config";
-  right: 50px;
-  padding: 15px;
-  padding-top: 13px;
-  overflow: hidden;
-  display: block;
-  text-align: left;
-  font-family: monospace;
-  color: #ecf0f1;
-}
-
-button.build-action[disabled] {
-  opacity: 0.7;
-}
-
-button.build-action[disabled] i {
-  background: none;
-  cursor: default;
-}
-
 .cli-downloads {
   margin: 0;
   padding: 0;
@@ -85,31 +42,8 @@ button.build-action[disabled] i {
   padding-left: 7px;
 }
 
-.display-in-middle .cli-downloads li {
-  margin: 0.5em;
-  border: 1px solid white;
-  padding-left: 0;
-
-  &:hover {
-    background: #242424;
-  }
-}
-
 .cli-downloads a {
   text-decoration: none;
-}
-
-.display-in-middle .cli-downloads a {
-  display: inline-block;
-  padding: 2em;
-
-  .fa-apple {
-    padding: 0 0.07em;
-  }
-
-  .fa-linux {
-    padding: 0 0.03em;
-  }
 }
 
 .lower-right-info {
@@ -258,14 +192,6 @@ li.prep-status {
   color: @base03;
 }
 
-.build-step.inactive.first-occurrence {
-  h3,
-  i,
-  .dictionary {
-    color: @base04;
-  }
-}
-
 .build-step .header {
   cursor: pointer;
   clear: both;
@@ -306,6 +232,10 @@ li.prep-status {
   line-height: 28px;
 }
 
+.step-body .dictionary {
+  max-width: 50%;
+}
+
 .dict-key {
   text-align: right;
   padding: 0 10px 0 0;
@@ -315,6 +245,7 @@ li.prep-status {
 .dict-value {
   padding: 0;
   margin: 0;
+  word-break: break-all;
 }
 
 .resource-check-status .header {
@@ -395,6 +326,13 @@ svg.pipeline-graph {
     text {
       fill: @base04;
     }
+
+    &.pinned {
+      text {
+        fill: #fff;
+        opacity: 0.7;
+      }
+    }
   }
 
   .active path {
@@ -403,6 +341,10 @@ svg.pipeline-graph {
 
   .active.node rect {
     filter: url(#embiggen);
+  }
+
+  .active.node image {
+    transform: scale(1.09) translate(-5px, -1px);
   }
 
   .active.node text {

@@ -26,6 +26,7 @@ func Worker(workerInfo db.Worker) atc.Worker {
 		HTTPSProxyURL:    workerInfo.HTTPSProxyURL(),
 		NoProxy:          workerInfo.NoProxy(),
 		ActiveContainers: workerInfo.ActiveContainers(),
+		ActiveVolumes:    workerInfo.ActiveVolumes(),
 		ResourceTypes:    workerInfo.ResourceTypes(),
 		Platform:         workerInfo.Platform(),
 		Tags:             workerInfo.Tags(),

@@ -16,11 +16,11 @@ func (set BuildSet) Contains(buildID int) bool {
 func (set BuildSet) Union(otherSet BuildSet) BuildSet {
 	newSet := BuildSet{}
 
-	for buildID, _ := range set {
+	for buildID := range set {
 		newSet[buildID] = struct{}{}
 	}
 
-	for buildID, _ := range otherSet {
+	for buildID := range otherSet {
 		newSet[buildID] = struct{}{}
 	}
 
@@ -47,7 +47,7 @@ func (set BuildSet) Overlaps(otherSet BuildSet) bool {
 		check, against = against, check
 	}
 
-	for key, _ := range check {
+	for key := range check {
 		_, found := against[key]
 		if found {
 			return true
@@ -62,7 +62,7 @@ func (set BuildSet) Equal(otherSet BuildSet) bool {
 		return false
 	}
 
-	for x, _ := range set {
+	for x := range set {
 		if !otherSet.Contains(x) {
 			return false
 		}
@@ -73,7 +73,7 @@ func (set BuildSet) Equal(otherSet BuildSet) bool {
 
 func (set BuildSet) String() string {
 	xs := []string{}
-	for x, _ := range set {
+	for x := range set {
 		xs = append(xs, fmt.Sprintf("%v", x))
 	}
 

@@ -1,36 +1,26 @@
 package topgun_test
 
 import (
-	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 )
 
-var _ = Describe(":life [#130495079] Garbage collecting containers for destroyed pipelines", func() {
-	var (
-		gClient gclient.Client
-	)
-
+var _ = Describe("Garbage collecting containers for destroyed pipelines", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml")
-
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("worker").IP)))
 	})
 
 	It("should be removed", func() {
 		By("setting a pipeline")
-		fly("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "pipeline-destroyed-test")
+		fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "pipeline-destroyed-test")
 
 		By("kicking off a build")
-		fly("unpause-pipeline", "-p", "pipeline-destroyed-test")
-		buildSession := spawnFly("trigger-job", "-w", "-j", "pipeline-destroyed-test/simple-job")
+		fly.Run("unpause-pipeline", "-p", "pipeline-destroyed-test")
+		buildSession := fly.Start("trigger-job", "-w", "-j", "pipeline-destroyed-test/simple-job")
 
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))
@@ -43,12 +33,12 @@ var _ = Describe(":life [#130495079] Garbage collecting containers for destroyed
 			err error
 		)
 		for _, c := range containerTable {
-			_, err = gClient.Lookup(c["handle"])
+			_, err = workerGardenClient.Lookup(c["handle"])
 			Expect(err).NotTo(HaveOccurred())
 		}
 
 		By("destroying the pipeline")
-		fly("destroy-pipeline", "-n", "-p", "pipeline-destroyed-test")
+		fly.Run("destroy-pipeline", "-n", "-p", "pipeline-destroyed-test")
 
 		By("verifying the containers don't exist")
 		Eventually(func() int {
@@ -56,7 +46,7 @@ var _ = Describe(":life [#130495079] Garbage collecting containers for destroyed
 		}, 5*time.Minute, 30*time.Second).Should(BeZero())
 
 		Eventually(func() []garden.Container {
-			containers, err := gClient.Containers(nil)
+			containers, err := workerGardenClient.Containers(nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			return containers

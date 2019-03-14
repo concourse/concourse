@@ -36,11 +36,11 @@ type PutStep struct {
 
 	name         string
 	resourceType string
+	resource     string
 	source       creds.Source
 	params       creds.Params
 	tags         atc.Tags
-
-	resource string
+	inputs       PutInputs
 
 	delegate              PutDelegate
 	resourceFactory       resource.ResourceFactory
@@ -63,6 +63,7 @@ func NewPutStep(
 	source creds.Source,
 	params creds.Params,
 	tags atc.Tags,
+	inputs PutInputs,
 	delegate PutDelegate,
 	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
@@ -80,6 +81,7 @@ func NewPutStep(
 		source:                source,
 		params:                params,
 		tags:                  tags,
+		inputs:                inputs,
 		delegate:              delegate,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
@@ -101,6 +103,11 @@ func NewPutStep(
 func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 
+	containerInputs, err := step.inputs.FindAll(state.Artifacts())
+	if err != nil {
+		return err
+	}
+
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.resourceType,
@@ -111,13 +118,15 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		Dir: atc.ResourcesDir("put"),
 
 		Env: step.stepMetadata.Env(),
+
+		Inputs: containerInputs,
 	}
 
-	for name, source := range state.Artifacts().AsMap() {
-		containerSpec.Inputs = append(containerSpec.Inputs, &putInputSource{
-			name:   name,
-			source: PutResourceSource{source},
-		})
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  step.resourceType,
+		Tags:          step.tags,
+		TeamID:        step.build.TeamID(),
+		ResourceTypes: step.resourceTypes,
 	}
 
 	source, err := step.source.Evaluate()
@@ -142,6 +151,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID()),
 		step.containerMetadata,
 		containerSpec,
+		workerSpec,
 		step.resourceTypes,
 		step.delegate,
 		resourceConfig,
@@ -181,7 +191,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		}
 
 		if step.resource != "" {
-			logger = logger.WithData(lager.Data{"step": step.name, "resource": step.resource, "resource-type": step.resourceType})
+			logger = logger.WithData(lager.Data{"step": step.name, "resource": step.resource, "resource-type": step.resourceType, "version": step.versionInfo.Version})
 
 			for _, v := range versions {
 				err = step.build.SaveOutput(resourceConfig, v, step.name, step.resource)
@@ -210,23 +220,4 @@ func (step *PutStep) VersionInfo() VersionInfo {
 // Succeeded returns true if the resource script exited successfully.
 func (step *PutStep) Succeeded() bool {
 	return step.succeeded
-}
-
-type PutResourceSource struct {
-	worker.ArtifactSource
-}
-
-func (source PutResourceSource) StreamTo(dest worker.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(worker.ArtifactDestination(dest))
-}
-
-type putInputSource struct {
-	name   worker.ArtifactName
-	source worker.ArtifactSource
-}
-
-func (s *putInputSource) Source() worker.ArtifactSource { return s.source }
-
-func (s *putInputSource) DestinationPath() string {
-	return atc.ResourcesDir("put/" + string(s.name))
 }

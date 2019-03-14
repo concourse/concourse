@@ -33,7 +33,7 @@ func (s *Server) ClearTaskCache(pipeline db.Pipeline) http.Handler {
 			})
 			w.Header().Set("Content-Type", jsonapi.MediaType)
 			w.WriteHeader(http.StatusNotFound)
-			jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
+			_ = jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
 				Title:  "Job Not Found Error",
 				Detail: fmt.Sprintf("Job with name '%s' not found.", jobName),
 				Status: "404",
@@ -47,7 +47,7 @@ func (s *Server) ClearTaskCache(pipeline db.Pipeline) http.Handler {
 			logger.Error("failed-to-clear-task-cache", err)
 			w.Header().Set("Content-Type", jsonapi.MediaType)
 			w.WriteHeader(http.StatusInternalServerError)
-			jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
+			_ = jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
 				Title:  "Clear Task Cache Error",
 				Detail: err.Error(),
 				Status: "500",

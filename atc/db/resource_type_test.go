@@ -143,7 +143,7 @@ var _ = Describe("ResourceType", func() {
 
 		Context("when the resource is first created", func() {
 			It("is not errored", func() {
-				Expect(resourceType.CheckError()).To(BeNil())
+				Expect(resourceType.CheckSetupError()).To(BeNil())
 			})
 		})
 
@@ -151,13 +151,13 @@ var _ = Describe("ResourceType", func() {
 			It("is then marked as errored", func() {
 				originalCause := errors.New("on fire")
 
-				err := resourceType.SetCheckError(originalCause)
+				err := resourceType.SetCheckSetupError(originalCause)
 				Expect(err).ToNot(HaveOccurred())
 
 				returnedResourceType, _, err := pipeline.ResourceType("some-type")
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(returnedResourceType.CheckError()).To(Equal(originalCause))
+				Expect(returnedResourceType.CheckSetupError()).To(Equal(originalCause))
 			})
 		})
 
@@ -165,25 +165,25 @@ var _ = Describe("ResourceType", func() {
 			It("is not marked as errored again", func() {
 				originalCause := errors.New("on fire")
 
-				err := resourceType.SetCheckError(originalCause)
+				err := resourceType.SetCheckSetupError(originalCause)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceType.SetCheckError(nil)
+				err = resourceType.SetCheckSetupError(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				returnedResourceType, _, err := pipeline.ResourceType("some-type")
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(returnedResourceType.CheckError()).To(BeNil())
+				Expect(returnedResourceType.CheckSetupError()).To(BeNil())
 			})
 		})
 	})
 
 	Describe("Version", func() {
 		var (
-			resourceType       db.ResourceType
-			resourceTypeConfig db.ResourceConfig
-			version            atc.Version
+			resourceType      db.ResourceType
+			version           atc.Version
+			resourceTypeScope db.ResourceConfigScope
 		)
 
 		BeforeEach(func() {
@@ -198,14 +198,12 @@ var _ = Describe("ResourceType", func() {
 			brt := db.BaseResourceType{
 				Name: "registry-image",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceTypeConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "registry-image", atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceType.SetResourceConfig(resourceTypeConfig.ID())
+			resourceTypeScope, err = resourceType.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -220,10 +218,10 @@ var _ = Describe("ResourceType", func() {
 
 		Context("when the resource type has a default space", func() {
 			BeforeEach(func() {
-				err := resourceTypeConfig.SaveDefaultSpace(atc.Space("space"))
+				err := resourceTypeScope.SaveDefaultSpace(atc.Space("space"))
 				Expect(err).ToNot(HaveOccurred())
 
-				saveVersions(resourceTypeConfig, []atc.SpaceVersion{
+				saveVersions(resourceTypeScope, []atc.SpaceVersion{
 					atc.SpaceVersion{
 						Space:   atc.Space("space"),
 						Version: atc.Version{"version": "1"},
@@ -244,6 +242,11 @@ var _ = Describe("ResourceType", func() {
 
 			It("returns the version", func() {
 				Expect(version).To(Equal(atc.Version{"version": "2"}))
+			})
+
+			It("creates a shared scope for the resource type", func() {
+				Expect(resourceTypeScope.Resource()).To(BeNil())
+				Expect(resourceTypeScope.ResourceConfig()).ToNot(BeNil())
 			})
 
 			Context("when the resource type specifies a space", func() {

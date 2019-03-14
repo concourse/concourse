@@ -52,6 +52,8 @@ var _ = Describe("PutStep", func() {
 
 		putStep *exec.PutStep
 		stepErr error
+
+		putInputs exec.PutInputs
 	)
 
 	BeforeEach(func() {
@@ -94,6 +96,8 @@ var _ = Describe("PutStep", func() {
 		})
 
 		stepErr = nil
+
+		putInputs = exec.NewAllInputs()
 	})
 
 	AfterEach(func() {
@@ -109,6 +113,7 @@ var _ = Describe("PutStep", func() {
 			creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
 			creds.NewParams(variables, atc.Params{"some-param": "some-value"}),
 			[]string{"some", "tags"},
+			putInputs,
 			fakeDelegate,
 			fakeResourceFactory,
 			fakeResourceConfigFactory,
@@ -178,12 +183,13 @@ var _ = Describe("PutStep", func() {
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
 			})
 
-			It("initializes the resource with the correct type, session, and sources", func() {
+			It("initializes the resource with the correct type, session, and sources with no inputs specified (meaning it takes all artifacts)", func() {
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 
-				_, _, owner, cm, containerSpec, actualResourceTypes, delegate, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, _, owner, cm, containerSpec, workerSpec, actualResourceTypes, delegate, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(cm).To(Equal(containerMetadata))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
+
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "some-resource-type",
 				}))
@@ -192,6 +198,14 @@ var _ = Describe("PutStep", func() {
 				Expect(containerSpec.Env).To(Equal([]string{"a=1", "b=2"}))
 				Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
 				Expect(containerSpec.Inputs).To(HaveLen(3))
+
+				Expect(workerSpec).To(Equal(worker.WorkerSpec{
+					TeamID:        123,
+					Tags:          []string{"some", "tags"},
+					ResourceType:  "some-resource-type",
+					ResourceTypes: resourceTypes,
+				}))
+
 				Expect([]worker.ArtifactSource{
 					containerSpec.Inputs[0].Source(),
 					containerSpec.Inputs[1].Source(),
@@ -204,6 +218,24 @@ var _ = Describe("PutStep", func() {
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
 				Expect(delegate).To(Equal(fakeDelegate))
 				Expect(resourceConfig.ID()).To(Equal(1))
+			})
+
+			Context("when the inputs are specified", func() {
+				BeforeEach(func() {
+					putInputs = exec.NewSpecificInputs([]string{"some-source", "some-other-source"})
+				})
+
+				It("initializes the resource with specified inputs", func() {
+					_, _, _, _, containerSpec, _, _, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+					Expect(containerSpec.Inputs).To(HaveLen(2))
+					Expect([]worker.ArtifactSource{
+						containerSpec.Inputs[0].Source(),
+						containerSpec.Inputs[1].Source(),
+					}).To(ConsistOf(
+						exec.PutResourceSource{fakeSource},
+						exec.PutResourceSource{fakeOtherSource},
+					))
+				})
 			})
 
 			It("puts the resource with the given context", func() {

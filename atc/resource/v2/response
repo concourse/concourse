@@ -1,2 +1,2 @@
 
-			{"action": "unknown-action", "space": "some-space", "version": {"ref": "v1"}}
+			{"action": "fetched", "space": "some-space", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}

@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -79,6 +78,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	source atc.Source,
 	resourceTypes creds.VersionedResourceTypes,
 ) (ResourceConfig, error) {
+
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
 	if err != nil {
 		return nil, err
@@ -170,8 +170,17 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs() error {
 		return err
 	}
 
+	usedByResourceTypesIds, _, err := sq.
+		Select("resource_config_id").
+		From("resource_types").
+		Where("resource_config_id IS NOT NULL").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	_, err = psql.Delete("resource_configs").
-		Where("id NOT IN (" + usedByResourceConfigCheckSessionIds + " UNION " + usedByResourceCachesIds + " UNION " + usedByResourceIds + ")").
+		Where("id NOT IN (" + usedByResourceConfigCheckSessionIds + " UNION " + usedByResourceCachesIds + " UNION " + usedByResourceIds + " UNION " + usedByResourceTypesIds + ")").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(f.conn).Exec()
 	if err != nil {
@@ -188,14 +197,14 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs() error {
 }
 
 func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, bool, error) {
-	var brtIDString, cacheIDString, chkErr sql.NullString
+	var brtIDString, cacheIDString sql.NullString
 
-	err := psql.Select("base_resource_type_id", "resource_cache_id", "check_error").
+	err := psql.Select("base_resource_type_id", "resource_cache_id").
 		From("resource_configs").
 		Where(sq.Eq{"id": resourceConfigID}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&brtIDString, &cacheIDString, &chkErr)
+		Scan(&brtIDString, &cacheIDString)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -203,36 +212,31 @@ func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFa
 		return nil, false, err
 	}
 
-	var checkErr error
-	if chkErr.Valid {
-		checkErr = errors.New(chkErr.String)
-	}
-
 	rc := &resourceConfig{
 		id:          resourceConfigID,
-		checkError:  checkErr,
 		lockFactory: lockFactory,
 		conn:        conn,
 	}
 
 	if brtIDString.Valid {
 		var brtName string
+		var unique bool
 		brtID, err := strconv.Atoi(brtIDString.String)
 		if err != nil {
 			return nil, false, err
 		}
 
-		err = psql.Select("name").
+		err = psql.Select("name, unique_version_history").
 			From("base_resource_types").
 			Where(sq.Eq{"id": brtID}).
 			RunWith(tx).
 			QueryRow().
-			Scan(&brtName)
+			Scan(&brtName, &unique)
 		if err != nil {
 			return nil, false, err
 		}
 
-		rc.createdByBaseResourceType = &UsedBaseResourceType{brtID, brtName}
+		rc.createdByBaseResourceType = &UsedBaseResourceType{brtID, brtName, unique}
 
 	} else if cacheIDString.Valid {
 		cacheID, err := strconv.Atoi(cacheIDString.String)

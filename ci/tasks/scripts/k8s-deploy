@@ -1,46 +1,63 @@
 #!/bin/bash
 
-set -eo pipefail
+# k8s-deploy - deploys Concourse on a K8S cluster using
+# a helm charts provided under `./charts`.
+#
+# ps.: this script is meant to be used for smoke tests.
 
-mkdir -p ~/.kube
+set -o errexit
+set -o nounset
+set -o pipefail
 
-if [ ! -f ~/.kube/config ]; then
-  echo "$KUBE_CONFIG" > ~/.kube/config
-fi
+# Variables that can be either be configured
+# by making use of environment variables when
+# executing `k8s-deploy` or the default values.
+readonly RELEASE_NAME="${RELEASE_NAME:-concourse-smoke}"
+readonly CONCOURSE_IMAGE="${CONCOURSE_IMAGE:-concourse/dev}"
+readonly CONCOURSE_DIGEST="${CONCOURSE_DIGEST:-$(cat ./image-info/digest)}"
 
-if [ -z $RELEASE_NAME ]; then
-  RELEASE_NAME="concourse"
-fi
+main() {
+  eventually_populate_kube_config
+  run_helm_deploy
+}
 
-if [ -z $CONCOURSE_IMAGE ]; then
-  CONCOURSE_IMAGE='concourse/concourse-rc'
-fi
+eventually_populate_kube_config() {
+  mkdir -p ~/.kube
 
-if [ -z $CONCOURSE_TAG ]; then
-  CONCOURSE_TAG='latest'
-fi
-
-if [ -n "${CONCOURSE_DIGEST_FILE}" ]; then
-  if [ -f $CONCOURSE_DIGEST_FILE ]; then
-    CONCOURSE_DIGEST="$(cat $CONCOURSE_DIGEST_FILE)"
+  if [[ -f ~/.kube/config ]]; then
+    return 0
   fi
-fi
 
-external_ip='127.0.0.1'
-app="${RELEASE_NAME}-web"
+  if [[ -z $KUBE_CONFIG ]]; then
+    echo "Error: KUBE_CONFIG must be specified when ~/.kube/config doesnt exist"
+    exit 1
+  fi
 
-pushd charts/stable/concourse/
-  helm init --wait
-  helm dependency update
-  helm upgrade -f values.yaml \
+  echo "$KUBE_CONFIG" >~/.kube/config
+}
+
+run_helm_deploy() {
+  local chart=./charts/stable/concourse
+
+  helm init --upgrade --wait
+  helm version
+  helm dependency update $chart
+  helm upgrade \
     --install \
-    --force \
-    --set image=$CONCOURSE_IMAGE \
-    --set imageDigest="$CONCOURSE_DIGEST" \
-    --set concourse.worker.garden.allowHostAccess="true" \
-    --set concourse.worker.baggageclaim.driver="detect" \
-    --set worker.resources.requests.cpu="1000m" \
-    --set worker.replicas="2" \
+    --recreate-pods \
+    --wait \
+    --namespace "$RELEASE_NAME" \
+    --set "concourse.web.auth.mainTeam.localUser=admin" \
+    --set "concourse.web.kubernetes.enabled=false" \
+    --set "concourse.worker.baggageclaim.driver=overlay" \
+    --set "image=$CONCOURSE_IMAGE" \
+    --set "imageDigest=$CONCOURSE_DIGEST" \
+    --set "persistence.enabled=false" \
+    --set "postgresql.persistence.enabled=false" \
+    --set "secrets.localUsers=admin:admin\,guest:guest" \
+    --set "worker.replicas=1" \
     $RELEASE_NAME \
-    .
-popd
+    $chart
+}
+
+main "$@"

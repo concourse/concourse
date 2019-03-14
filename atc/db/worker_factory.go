@@ -20,7 +20,8 @@ type WorkerFactory interface {
 	Workers() ([]Worker, error)
 	VisibleWorkers([]string) ([]Worker, error)
 
-	FindWorkerForContainerByOwner(ContainerOwner) (Worker, bool, error)
+	FindWorkersForContainerByOwner(ContainerOwner) ([]Worker, error)
+	BuildContainersCountPerWorker() (map[string]int, error)
 }
 
 type workerFactory struct {
@@ -44,6 +45,7 @@ var workersQuery = psql.Select(`
 		w.https_proxy_url,
 		w.no_proxy,
 		w.active_containers,
+		w.active_volumes,
 		w.resource_types,
 		w.platform,
 		w.tags,
@@ -79,20 +81,13 @@ func (f *workerFactory) Workers() ([]Worker, error) {
 	return getWorkers(f.conn, workersQuery)
 }
 
-//This function can be run with either a db.Tx or a db.Conn
-//in case of Tx the returend worker will not have a connection set on it.
-func getWorker(runner sq.BaseRunner, query sq.SelectBuilder) (Worker, bool, error) {
+func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
 	row := query.
-		RunWith(runner).
+		RunWith(conn).
 		QueryRow()
 
-	conn, success := runner.(Conn)
-	var w *worker
-	if success {
-		w = &worker{conn: conn}
-	} else {
-		w = &worker{}
-	}
+	w := &worker{conn: conn}
+
 	err := scanWorker(w, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -157,6 +152,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&httpsProxyURL,
 		&noProxy,
 		&worker.activeContainers,
+		&worker.activeVolumes,
 		&resourceTypes,
 		&platform,
 		&tags,
@@ -264,6 +260,7 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 	_, err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
 		Set("active_containers", atcWorker.ActiveContainers).
+		Set("active_volumes", atcWorker.ActiveVolumes).
 		Set("state", sq.Expr("("+cSQL+")")).
 		Where(sq.Eq{"name": atcWorker.Name}).
 		RunWith(tx).
@@ -317,14 +314,14 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 	return savedWorker, nil
 }
 
-func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner) (Worker, bool, error) {
+func (f *workerFactory) FindWorkersForContainerByOwner(owner ContainerOwner) ([]Worker, error) {
 	ownerQuery, found, err := owner.Find(f.conn)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	if !found {
-		return nil, false, nil
+		return []Worker{}, nil
 	}
 
 	ownerEq := sq.Eq{}
@@ -332,9 +329,44 @@ func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner) (Wor
 		ownerEq["c."+k] = v
 	}
 
-	return getWorker(f.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
+	workers, err := getWorkers(f.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
 		ownerEq,
 	}))
+	if err != nil {
+		return nil, err
+	}
+
+	return workers, nil
+}
+
+func (f *workerFactory) BuildContainersCountPerWorker() (map[string]int, error) {
+	rows, err := psql.Select("worker_name, COUNT(*)").
+		From("containers").
+		Where("build_id IS NOT NULL").
+		GroupBy("worker_name").
+		RunWith(f.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	countByWorker := make(map[string]int)
+
+	for rows.Next() {
+		var workerName string
+		var containersCount int
+
+		err = rows.Scan(&workerName, &containersCount)
+		if err != nil {
+			return nil, err
+		}
+
+		countByWorker[workerName] = containersCount
+	}
+
+	return countByWorker, nil
 }
 
 func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, conn Conn) (Worker, error) {
@@ -354,19 +386,10 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	var workerState WorkerState
-
 	if atcWorker.State != "" {
 		workerState = WorkerState(atcWorker.State)
 	} else {
 		workerState = WorkerStateRunning
-	}
-
-	currWorker, found, err := getWorker(tx, workersQuery.Where(sq.Eq{"w.name": atcWorker.Name}))
-
-	if found {
-		if (currWorker.State() == WorkerStateLanding || currWorker.State() == WorkerStateRetiring) && atcWorker.State == "" {
-			workerState = currWorker.State()
-		}
 	}
 
 	var workerVersion *string
@@ -377,6 +400,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	values := []interface{}{
 		atcWorker.GardenAddr,
 		atcWorker.ActiveContainers,
+		atcWorker.ActiveVolumes,
 		resourceTypes,
 		tags,
 		atcWorker.Platform,
@@ -407,6 +431,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"expires",
 			"addr",
 			"active_containers",
+			"active_volumes",
 			"resource_types",
 			"tags",
 			"platform",
@@ -428,6 +453,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				expires = `+expires+`,
 				addr = ?,
 				active_containers = ?,
+				active_volumes = ?,
 				resource_types = ?,
 				tags = ?,
 				platform = ?,
@@ -476,6 +502,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		httpsProxyURL:    atcWorker.HTTPSProxyURL,
 		noProxy:          atcWorker.NoProxy,
 		activeContainers: atcWorker.ActiveContainers,
+		activeVolumes:    atcWorker.ActiveVolumes,
 		resourceTypes:    atcWorker.ResourceTypes,
 		platform:         atcWorker.Platform,
 		tags:             atcWorker.Tags,
@@ -498,31 +525,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			},
 		}
 
-		ubrt, err := workerResourceType.BaseResourceType.FindOrCreate(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = psql.Delete("worker_base_resource_types").
-			Where(sq.Eq{
-				"worker_name":           atcWorker.Name,
-				"base_resource_type_id": ubrt.ID,
-			}).
-			Where(sq.Or{
-				sq.NotEq{
-					"image": resourceType.Image,
-				},
-				sq.NotEq{
-					"version": resourceType.Version,
-				},
-			}).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return nil, err
-		}
-
-		uwrt, err := workerResourceType.FindOrCreate(tx)
+		uwrt, err := workerResourceType.FindOrCreate(tx, resourceType.UniqueVersionHistory)
 		if err != nil {
 			return nil, err
 		}
@@ -554,4 +557,23 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	return savedWorker, nil
+}
+
+func tagsMatch(workerTags []string, tags []string) bool {
+	if len(workerTags) > 0 && len(tags) == 0 {
+		return false
+	}
+
+insert_coin:
+	for _, stag := range tags {
+		for _, wtag := range workerTags {
+			if stag == wtag {
+				continue insert_coin
+			}
+		}
+
+		return false
+	}
+
+	return true
 }

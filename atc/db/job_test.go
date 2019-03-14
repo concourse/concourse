@@ -245,7 +245,7 @@ var _ = Describe("Job", func() {
 		})
 	})
 
-	Context("Builds", func() {
+	Describe("Builds", func() {
 		var (
 			builds       [10]db.Build
 			someJob      db.Job
@@ -330,6 +330,111 @@ var _ = Describe("Job", func() {
 				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
 				Expect(pagination.Previous).To(BeNil())
 				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
+			})
+		})
+	})
+
+	Describe("BuildsWithTime", func() {
+
+		var (
+			pipeline db.Pipeline
+			builds   = make([]db.Build, 4)
+			job      db.Job
+		)
+
+		BeforeEach(func() {
+			var (
+				err   error
+				found bool
+			)
+
+			config := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+					{
+						Name: "some-other-job",
+					},
+				},
+			}
+			pipeline, _, err = team.SavePipeline("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err = pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			for i := range builds {
+				builds[i], err = job.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				buildStart := time.Date(2020, 11, i+1, 0, 0, 0, 0, time.UTC)
+				_, err = dbConn.Exec("UPDATE builds SET start_time = to_timestamp($1) WHERE id = $2", buildStart.Unix(), builds[i].ID())
+				Expect(err).NotTo(HaveOccurred())
+
+				builds[i], found, err = job.Build(builds[i].Name())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			}
+		})
+
+		Context("when not providing boundaries", func() {
+			Context("without a limit specified", func() {
+				It("returns no builds", func() {
+					returnedBuilds, _, err := job.BuildsWithTime(db.Page{})
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(returnedBuilds).To(BeEmpty())
+				})
+			})
+
+			Context("when a limit specified", func() {
+				It("returns a subset of the builds", func() {
+					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
+						Limit: 2,
+					})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(returnedBuilds).To(ConsistOf(builds[3], builds[2]))
+				})
+			})
+		})
+
+		Context("when providing boundaries", func() {
+			Context("only until", func() {
+				It("returns only those after until", func() {
+					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
+						Until: int(builds[2].StartTime().Unix()),
+						Limit: 50,
+					})
+
+					Expect(err).NotTo(HaveOccurred())
+					Expect(returnedBuilds).To(ConsistOf(builds[0], builds[1], builds[2]))
+				})
+			})
+
+			Context("only since", func() {
+				It("returns only those before since", func() {
+					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
+						Since: int(builds[1].StartTime().Unix()),
+						Limit: 50,
+					})
+
+					Expect(err).NotTo(HaveOccurred())
+					Expect(returnedBuilds).To(ConsistOf(builds[1], builds[2], builds[3]))
+				})
+			})
+
+			Context("since and until", func() {
+				It("returns only elements in the range", func() {
+					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
+						Until: int(builds[2].StartTime().Unix()),
+						Since: int(builds[1].StartTime().Unix()),
+						Limit: 50,
+					})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(returnedBuilds).To(ConsistOf(builds[1], builds[2]))
+				})
 			})
 		})
 	})
@@ -580,13 +685,13 @@ var _ = Describe("Job", func() {
 
 	Describe("GetIndependentBuildInputs", func() {
 		var (
-			pipeline2      db.Pipeline
-			versions       []atc.ResourceVersion
-			job            db.Job
-			job2           db.Job
-			resourceConfig db.ResourceConfig
-			resource       db.Resource
-			resource2      db.Resource
+			pipeline2           db.Pipeline
+			versions            []atc.ResourceVersion
+			job                 db.Job
+			job2                db.Job
+			resourceConfigScope db.ResourceConfigScope
+			resource            db.Resource
+			resource2           db.Resource
 		)
 
 		BeforeEach(func() {
@@ -596,12 +701,21 @@ var _ = Describe("Job", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, creds.VersionedResourceTypes{})
-			Expect(err).NotTo(HaveOccurred())
+			var found bool
+			job, found, err = pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
 
 			saveVersions(resourceConfig, []atc.SpaceVersion{
 				atc.SpaceVersion{
@@ -623,18 +737,6 @@ var _ = Describe("Job", func() {
 					Version: atc.Version{"version": "v3"},
 				},
 			})
-
-			var found bool
-			job, found, err = pipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resource, found, err = pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
-			Expect(err).ToNot(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
 			Expect(err).NotTo(HaveOccurred())
@@ -771,13 +873,13 @@ var _ = Describe("Job", func() {
 
 	Describe("GetNextBuildInputs", func() {
 		var (
-			pipeline2      db.Pipeline
-			versions       []atc.ResourceVersion
-			job            db.Job
-			job2           db.Job
-			resourceConfig db.ResourceConfig
-			resource       db.Resource
-			resource2      db.Resource
+			pipeline2           db.Pipeline
+			versions            []atc.ResourceVersion
+			job                 db.Job
+			job2                db.Job
+			resourceConfigScope db.ResourceConfigScope
+			resource            db.Resource
+			resource2           db.Resource
 		)
 
 		BeforeEach(func() {
@@ -787,14 +889,23 @@ var _ = Describe("Job", func() {
 			brt := db.BaseResourceType{
 				Name: "some-type",
 			}
-			_, err = brt.FindOrCreate(setupTx)
+			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, creds.VersionedResourceTypes{})
-			Expect(err).NotTo(HaveOccurred())
+			var found bool
+			job, found, err = pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			saveVersions(resourceConfig, []atc.SpaceVersion{
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			saveVersions(resourceConfigScope, []atc.SpaceVersion{
 				atc.SpaceVersion{
 					Space:   atc.Space("space"),
 					Version: atc.Version{"version": "v1"},
@@ -814,19 +925,6 @@ var _ = Describe("Job", func() {
 					Version: atc.Version{"version": "v3"},
 				},
 			})
-			Expect(err).NotTo(HaveOccurred())
-
-			var found bool
-			job, found, err = pipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resource, found, err = pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			err = resource.SetResourceConfig(resourceConfig.ID())
-			Expect(err).ToNot(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
 			Expect(err).NotTo(HaveOccurred())

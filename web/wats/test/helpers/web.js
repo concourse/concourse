@@ -49,12 +49,20 @@ class Web {
   }
 
   async login(t) {
+    await this.visitLoginPage();
+    await this.performLogin();
+    await this.clickAndWait('#submit-login', '#user-id');
+    t.notRegex(await this.text(), /login/);
+  }
+
+  async visitLoginPage() {
     await this.page.goto(`${this.url}/sky/login`);
+  }
+
+  async performLogin() {
     await this.page.waitForSelector('#login', {timeout: 90000});
     await this.page.type('#login', this.username);
     await this.page.type('#password', this.password);
-    await this.clickAndWait('#submit-login', '#user-id');
-    t.notRegex(await this.text(), /login/);
   }
 
   async clickAndWait(clickSelector, waitSelector) {

@@ -6,7 +6,7 @@ import (
 )
 
 type StateToken struct {
-	RedirectUri string `json:"redirect_uri"`
+	RedirectURI string `json:"redirect_uri"`
 	Entropy     string `json:"entropy"`
 }
 

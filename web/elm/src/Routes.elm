@@ -1,222 +1,451 @@
-module Routes exposing (ConcourseRoute, Route(..), customToString, navigateTo, parsePath, pipelineRoute, jobRoute, buildRoute, dashboardRoute, dashboardHdRoute, toString)
+module Routes exposing
+    ( Highlight(..)
+    , Route(..)
+    , SearchType(..)
+    , StepID
+    , buildRoute
+    , dashboardRoute
+    , extractPid
+    , jobRoute
+    , parsePath
+    , pipelineRoute
+    , showHighlight
+    , toString
+    , tokenToFlyRoute
+    )
 
 import Concourse
-import Concourse.Pagination as Pagination
+import Concourse.Pagination as Pagination exposing (Direction(..))
 import Navigation exposing (Location)
 import QueryString
-import Route exposing (..)
+import UrlParser
+    exposing
+        ( (</>)
+        , (<?>)
+        , Parser
+        , custom
+        , int
+        , intParam
+        , map
+        , oneOf
+        , s
+        , string
+        , stringParam
+        )
 
 
 type Route
-    = Build String String String String
-    | Resource String String String
-    | Job String String String
-    | OneOffBuild String
-    | Pipeline String String
-    | Dashboard
-    | DashboardHd
+    = Build { id : Concourse.JobBuildIdentifier, highlight : Highlight }
+    | Resource { id : Concourse.ResourceIdentifier, page : Maybe Pagination.Page }
+    | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
+    | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
+    | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
+    | Dashboard { searchType : SearchType }
+    | FlySuccess { flyPort : Maybe Int }
 
 
-type alias ConcourseRoute =
-    { logical : Route
-    , queries : QueryString.QueryString
-    , page : Maybe Pagination.Page
-    , hash : String
-    }
+type SearchType
+    = HighDensity
+    | Normal (Maybe String)
+
+
+type Highlight
+    = HighlightNothing
+    | HighlightLine StepID Int
+    | HighlightRange StepID Int Int
+
+
+type alias StepID =
+    String
 
 
 
 -- pages
 
 
-build : Route.Route Route
+build : Parser ((Highlight -> Route) -> a) a
 build =
-    Build := static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string </> static "builds" </> string
+    let
+        buildHelper teamName pipelineName jobName buildName highlight =
+            Build
+                { id =
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , jobName = jobName
+                    , buildName = buildName
+                    }
+                , highlight = highlight
+                }
+    in
+    map buildHelper (s "teams" </> string </> s "pipelines" </> string </> s "jobs" </> string </> s "builds" </> string)
 
 
-oneOffBuild : Route.Route Route
+oneOffBuild : Parser ((Highlight -> Route) -> a) a
 oneOffBuild =
-    OneOffBuild := static "builds" </> string
+    map (\b h -> OneOffBuild { id = b, highlight = h }) (s "builds" </> int)
 
 
-resource : Route.Route Route
+parsePage : Maybe Int -> Maybe Int -> Maybe Int -> Maybe Pagination.Page
+parsePage since until limit =
+    case ( since, until, limit ) of
+        ( Nothing, Just u, Just l ) ->
+            Just
+                { direction = Pagination.Until u
+                , limit = l
+                }
+
+        ( Just s, Nothing, Just l ) ->
+            Just
+                { direction = Pagination.Since s
+                , limit = l
+                }
+
+        _ ->
+            Nothing
+
+
+resource : Parser (Route -> a) a
 resource =
-    Resource := static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
+    let
+        resourceHelper teamName pipelineName resourceName since until limit =
+            Resource
+                { id =
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , resourceName = resourceName
+                    }
+                , page = parsePage since until limit
+                }
+    in
+    map resourceHelper
+        (s "teams"
+            </> string
+            </> s "pipelines"
+            </> string
+            </> s "resources"
+            </> string
+            <?> intParam "since"
+            <?> intParam "until"
+            <?> intParam "limit"
+        )
 
 
-job : Route.Route Route
+job : Parser (Route -> a) a
 job =
-    Job := static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string
+    let
+        jobHelper teamName pipelineName jobName since until limit =
+            Job
+                { id =
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , jobName = jobName
+                    }
+                , page = parsePage since until limit
+                }
+    in
+    map jobHelper
+        (s "teams"
+            </> string
+            </> s "pipelines"
+            </> string
+            </> s "jobs"
+            </> string
+            <?> intParam "since"
+            <?> intParam "until"
+            <?> intParam "limit"
+        )
 
 
-pipeline : Route.Route Route
+pipeline : Parser ((List String -> Route) -> a) a
 pipeline =
-    Pipeline := static "teams" </> string </> static "pipelines" </> string
+    map (\t p g -> Pipeline { id = { teamName = t, pipelineName = p }, groups = g })
+        (s "teams" </> string </> s "pipelines" </> string)
 
 
-dashboard : Route.Route Route
+dashboard : Parser (Route -> a) a
 dashboard =
-    Dashboard := static ""
+    oneOf
+        [ map (\s -> Dashboard { searchType = Normal s }) (s "" <?> stringParam "search")
+        , map (Dashboard { searchType = HighDensity }) (s "hd")
+        ]
 
 
-dashboardHd : Route.Route Route
-dashboardHd =
-    DashboardHd := static "hd"
+flySuccess : Parser (Route -> a) a
+flySuccess =
+    map (\p -> FlySuccess { flyPort = p }) (s "fly_success" <?> intParam "fly_port")
 
 
 
 -- route utils
 
 
-buildRoute : Concourse.Build -> String
+buildRoute : Concourse.Build -> Route
 buildRoute build =
     case build.job of
         Just j ->
-            (Build j.teamName j.pipelineName j.jobName build.name) |> toString
+            Build
+                { id =
+                    { teamName = j.teamName
+                    , pipelineName = j.pipelineName
+                    , jobName = j.jobName
+                    , buildName = build.name
+                    }
+                , highlight = HighlightNothing
+                }
 
         Nothing ->
-            (OneOffBuild (Basics.toString build.id)) |> toString
+            OneOffBuild { id = build.id, highlight = HighlightNothing }
 
 
-jobRoute : Concourse.Job -> String
+jobRoute : Concourse.Job -> Route
 jobRoute j =
-    (Job j.teamName j.pipelineName j.name) |> toString
+    Job { id = { teamName = j.teamName, pipelineName = j.pipelineName, jobName = j.name }, page = Nothing }
 
 
-pipelineRoute : Concourse.Pipeline -> String
+pipelineRoute : { a | name : String, teamName : String } -> Route
 pipelineRoute p =
-    (Pipeline p.teamName p.name) |> toString
+    Pipeline { id = { teamName = p.teamName, pipelineName = p.name }, groups = [] }
 
 
-dashboardRoute : String
-dashboardRoute =
-    Dashboard |> toString
+dashboardRoute : Bool -> Route
+dashboardRoute isHd =
+    if isHd then
+        Dashboard { searchType = HighDensity }
+
+    else
+        Dashboard { searchType = Normal Nothing }
 
 
-dashboardHdRoute : String
-dashboardHdRoute =
-    DashboardHd |> toString
+showHighlight : Highlight -> String
+showHighlight hl =
+    case hl of
+        HighlightNothing ->
+            ""
+
+        HighlightLine id line ->
+            "#L" ++ id ++ ":" ++ Basics.toString line
+
+        HighlightRange id line1 line2 ->
+            "#L"
+                ++ id
+                ++ ":"
+                ++ Basics.toString line1
+                ++ ":"
+                ++ Basics.toString line2
+
+
+parseHighlight : String -> Highlight
+parseHighlight hash =
+    case String.uncons hash of
+        Just ( 'L', selector ) ->
+            case String.split ":" selector of
+                [ stepID, line1str, line2str ] ->
+                    case ( String.toInt line1str, String.toInt line2str ) of
+                        ( Ok line1, Ok line2 ) ->
+                            HighlightRange stepID line1 line2
+
+                        _ ->
+                            HighlightNothing
+
+                [ stepID, linestr ] ->
+                    case String.toInt linestr of
+                        Ok line ->
+                            HighlightLine stepID line
+
+                        _ ->
+                            HighlightNothing
+
+                _ ->
+                    HighlightNothing
+
+        _ ->
+            HighlightNothing
+
+
+tokenToFlyRoute : String -> Int -> String
+tokenToFlyRoute authToken flyPort =
+    let
+        queryString =
+            QueryString.empty
+                |> QueryString.add "token" authToken
+                |> QueryString.render
+    in
+    "http://127.0.0.1:" ++ Basics.toString flyPort ++ queryString
 
 
 
 -- router
 
 
-sitemap : Router Route
+sitemap : Parser (Route -> a) a
 sitemap =
-    router
-        [ build
-        , resource
+    oneOf
+        [ resource
         , job
-        , oneOffBuild
-        , pipeline
         , dashboard
-        , dashboardHd
+        , flySuccess
         ]
 
 
-match : String -> Route
-match =
-    Route.match sitemap
-        >> Maybe.withDefault Dashboard
+pageToQueryString : Maybe Pagination.Page -> String
+pageToQueryString page =
+    case page of
+        Nothing ->
+            ""
+
+        Just { direction, limit } ->
+            "?"
+                ++ (case direction of
+                        Since id ->
+                            "since=" ++ Basics.toString id
+
+                        Until id ->
+                            "until=" ++ Basics.toString id
+
+                        From id ->
+                            "from=" ++ Basics.toString id
+
+                        To id ->
+                            "to=" ++ Basics.toString id
+                   )
+                ++ "&limit="
+                ++ Basics.toString limit
 
 
 toString : Route -> String
 toString route =
     case route of
-        Build teamName pipelineName jobName buildName ->
-            reverse build [ teamName, pipelineName, jobName, buildName ]
+        Build { id, highlight } ->
+            "/teams/"
+                ++ id.teamName
+                ++ "/pipelines/"
+                ++ id.pipelineName
+                ++ "/jobs/"
+                ++ id.jobName
+                ++ "/builds/"
+                ++ id.buildName
+                ++ showHighlight highlight
 
-        Job teamName pipelineName jobName ->
-            reverse job [ teamName, pipelineName, jobName ]
+        Job { id, page } ->
+            "/teams/"
+                ++ id.teamName
+                ++ "/pipelines/"
+                ++ id.pipelineName
+                ++ "/jobs/"
+                ++ id.jobName
+                ++ pageToQueryString page
 
-        Resource teamName pipelineName resourceName ->
-            reverse resource [ teamName, pipelineName, resourceName ]
+        Resource { id, page } ->
+            "/teams/"
+                ++ id.teamName
+                ++ "/pipelines/"
+                ++ id.pipelineName
+                ++ "/resources/"
+                ++ id.resourceName
+                ++ pageToQueryString page
 
-        OneOffBuild buildId ->
-            reverse oneOffBuild [ buildId ]
+        OneOffBuild { id, highlight } ->
+            "/builds/"
+                ++ Basics.toString id
+                ++ showHighlight highlight
 
-        Pipeline teamName pipelineName ->
-            reverse pipeline [ teamName, pipelineName ]
+        Pipeline { id, groups } ->
+            "/teams/"
+                ++ id.teamName
+                ++ "/pipelines/"
+                ++ id.pipelineName
+                ++ (case groups of
+                        [] ->
+                            ""
 
-        Dashboard ->
-            reverse dashboard []
+                        gs ->
+                            "?groups=" ++ String.join "&groups=" gs
+                   )
 
-        DashboardHd ->
-            reverse dashboardHd []
+        Dashboard { searchType } ->
+            case searchType of
+                Normal (Just search) ->
+                    "/?search=" ++ search
+
+                Normal Nothing ->
+                    "/"
+
+                HighDensity ->
+                    "/hd"
+
+        FlySuccess { flyPort } ->
+            "/fly_success"
+                ++ (case flyPort of
+                        Nothing ->
+                            ""
+
+                        Just fp ->
+                            "?fly_port=" ++ Basics.toString fp
+                   )
 
 
-parsePath : Location -> ConcourseRoute
+highlight : Parser (Highlight -> a) a
+highlight =
+    custom "HIGHLIGHT" <|
+        parseHighlight
+            >> Ok
+
+
+parsePath : Location -> Route
 parsePath location =
-    let
-        queries =
+    case
+        ( UrlParser.parsePath sitemap location
+        , UrlParser.parsePath pipeline location
+        , UrlParser.parsePath build location
+        , UrlParser.parsePath oneOffBuild location
+        )
+    of
+        ( Just route, _, _, _ ) ->
+            route
+
+        ( _, Just f, _, _ ) ->
             QueryString.parse location.search
-                |> QueryString.remove "csrf_token"
-                |> QueryString.remove "token"
+                |> QueryString.all "groups"
+                |> f
 
-        search =
-            QueryString.one QueryString.string "search" queries
-                |> Maybe.withDefault ""
-                |> String.map (\c -> if c == '+' then ' ' else c)
+        ( _, _, Just f, _ ) ->
+            UrlParser.parseHash highlight location
+                |> Maybe.withDefault HighlightNothing
+                |> f
 
-        cleanedQueries =
-            case search of
-                "" ->
-                    queries
+        ( _, _, _, Just f ) ->
+            UrlParser.parseHash highlight location
+                |> Maybe.withDefault HighlightNothing
+                |> f
 
-                term ->
-                    queries
-                        |> QueryString.remove "search"
-                        |> QueryString.add "search" search
-    in
-        { logical = match <| location.pathname
-        , queries = cleanedQueries
-        , page = createPageFromSearch location.search
-        , hash = location.hash
-        }
+        _ ->
+            Dashboard { searchType = Normal Nothing }
 
 
-customToString : ConcourseRoute -> String
-customToString route =
-    toString route.logical
-        ++ if route.queries == QueryString.empty then
-            ""
-           else
-            QueryString.render route.queries
+
+-- route utils
 
 
-createPageFromSearch : String -> Maybe Pagination.Page
-createPageFromSearch search =
-    let
-        q =
-            QueryString.parse search
+extractPid : Route -> Maybe Concourse.PipelineIdentifier
+extractPid route =
+    case route of
+        Build { id } ->
+            Just { teamName = id.teamName, pipelineName = id.pipelineName }
 
-        until =
-            QueryString.one QueryString.int "until" q
+        Job { id } ->
+            Just { teamName = id.teamName, pipelineName = id.pipelineName }
 
-        since =
-            QueryString.one QueryString.int "since" q
+        Resource { id } ->
+            Just { teamName = id.teamName, pipelineName = id.pipelineName }
 
-        limit =
-            Maybe.withDefault 100 <| QueryString.one QueryString.int "limit" q
-    in
-        case ( since, until ) of
-            ( Nothing, Just u ) ->
-                Just
-                    { direction = Pagination.Until u
-                    , limit = limit
-                    }
+        Pipeline { id } ->
+            Just id
 
-            ( Just s, Nothing ) ->
-                Just
-                    { direction = Pagination.Since s
-                    , limit = limit
-                    }
+        OneOffBuild _ ->
+            Nothing
 
-            _ ->
-                Nothing
+        Dashboard _ ->
+            Nothing
 
-
-navigateTo : Route -> Cmd msg
-navigateTo =
-    toString >> Navigation.newUrl
+        FlySuccess _ ->
+            Nothing

@@ -10,9 +10,14 @@ import (
 
 type connectionRetryingDriver struct {
 	driver.Driver
+	driverName string
 }
 
-func SetupConnectionRetryingDriver(delegateDriverName, sqlDataSource, newDriverName string) {
+func SetupConnectionRetryingDriver(
+	delegateDriverName string,
+	sqlDataSource string,
+	newDriverName string,
+) {
 	for _, driverName := range sql.Drivers() {
 		if driverName == newDriverName {
 			return
@@ -24,7 +29,10 @@ func SetupConnectionRetryingDriver(delegateDriverName, sqlDataSource, newDriverN
 		_ = delegateDBConn.Close()
 	}
 
-	connectionRetryingDriver := &connectionRetryingDriver{delegateDBConn.Driver()}
+	connectionRetryingDriver := &connectionRetryingDriver{
+		delegateDBConn.Driver(),
+		delegateDriverName,
+	}
 	sql.Register(newDriverName, connectionRetryingDriver)
 }
 
@@ -33,7 +41,11 @@ func (d *connectionRetryingDriver) Open(name string) (driver.Conn, error) {
 
 	err := backoff.Retry(func() error {
 		var err error
-		conn, err = d.Driver.Open(name)
+		if d.driverName == "postgres" {
+			conn, err = pq.DialOpen(keepAliveDialer{}, name)
+		} else {
+			conn, err = d.Driver.Open(name)
+		}
 		if err != nil {
 			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "too_many_connections" {
 				return err

@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
@@ -15,13 +14,13 @@ import (
 type VolumeRepository interface {
 	GetTeamVolumes(teamID int) ([]CreatedVolume, error)
 
-	CreateContainerVolume(int, string, CreatingContainer, string) (CreatingVolume, error)
-	FindContainerVolume(int, string, CreatingContainer, string) (CreatingVolume, CreatedVolume, error)
+	CreateContainerVolume(teamID int, workerName string, container CreatingContainer, mountPath string) (CreatingVolume, error)
+	FindContainerVolume(teamID int, workerName string, container CreatingContainer, mountPath string) (CreatingVolume, CreatedVolume, error)
 
-	FindBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error)
-	CreateBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, error)
+	FindBaseResourceTypeVolume(usedWorkerBaseResourceType *UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error)
+	CreateBaseResourceTypeVolume(usedWorkerBaseResourceType *UsedWorkerBaseResourceType) (CreatingVolume, error)
 
-	FindResourceCacheVolume(string, UsedResourceCache) (CreatedVolume, bool, error)
+	FindResourceCacheVolume(workerName string, resourceCache UsedResourceCache) (CreatedVolume, bool, error)
 
 	FindTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, CreatedVolume, error)
 	CreateTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, error)
@@ -29,10 +28,10 @@ type VolumeRepository interface {
 	FindResourceCertsVolume(workerName string, uwrc *UsedWorkerResourceCerts) (CreatingVolume, CreatedVolume, error)
 	CreateResourceCertsVolume(workerName string, uwrc *UsedWorkerResourceCerts) (CreatingVolume, error)
 
-	FindVolumesForContainer(CreatedContainer) ([]CreatedVolume, error)
+	FindVolumesForContainer(container CreatedContainer) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, error)
 
-	DestroyFailedVolumes() (int, error)
+	DestroyFailedVolumes() (count int, err error)
 
 	GetDestroyingVolumes(workerName string) ([]string, error)
 
@@ -41,8 +40,10 @@ type VolumeRepository interface {
 	RemoveDestroyingVolumes(workerName string, handles []string) (int, error)
 
 	UpdateVolumesMissingSince(workerName string, handles []string) error
-	RemoveMissingVolumes(time.Duration) (int, error)
+	RemoveMissingVolumes(gracePeriod time.Duration) (removed int, err error)
 }
+
+const noTeam = 0
 
 type volumeRepository struct {
 	conn Conn
@@ -67,7 +68,7 @@ func (repository *volumeRepository) queryVolumeHandles(cond sq.Eq) ([]string, er
 
 	defer Close(rows)
 
-	handles := []string{}
+	var handles []string
 
 	for rows.Next() {
 		var handle = "handle"
@@ -120,7 +121,10 @@ func (repository *volumeRepository) UpdateVolumesMissingSince(workerName string,
 
 	query, args, err = psql.Update("volumes").
 		Set("missing_since", sq.Expr("now()")).
-		Where(sq.Eq{"handle": handles}).ToSql()
+		Where(sq.And{
+			sq.Eq{"handle": handles},
+			sq.NotEq{"state": VolumeStateCreating},
+		}).ToSql()
 	if err != nil {
 		return err
 	}
@@ -219,7 +223,7 @@ func (repository *volumeRepository) GetTeamVolumes(teamID int) ([]CreatedVolume,
 	}
 	defer Close(rows)
 
-	createdVolumes := []CreatedVolume{}
+	var createdVolumes []CreatedVolume
 
 	for rows.Next() {
 		_, createdVolume, _, _, err := scanVolume(rows, repository.conn)
@@ -235,7 +239,7 @@ func (repository *volumeRepository) GetTeamVolumes(teamID int) ([]CreatedVolume,
 
 func (repository *volumeRepository) CreateBaseResourceTypeVolume(uwbrt *UsedWorkerBaseResourceType) (CreatingVolume, error) {
 	volume, err := repository.createVolume(
-		0,
+		noTeam,
 		uwbrt.WorkerName,
 		map[string]interface{}{
 			"worker_base_resource_type_id": uwbrt.ID,
@@ -291,7 +295,7 @@ func (repository *volumeRepository) FindVolumesForContainer(container CreatedCon
 	}
 	defer Close(rows)
 
-	createdVolumes := []CreatedVolume{}
+	var createdVolumes []CreatedVolume
 
 	for rows.Next() {
 		_, createdVolume, _, _, err := scanVolume(rows, repository.conn)
@@ -349,7 +353,7 @@ func (repository *volumeRepository) FindResourceCertsVolume(workerName string, u
 
 func (repository *volumeRepository) CreateResourceCertsVolume(workerName string, uwrc *UsedWorkerResourceCerts) (CreatingVolume, error) {
 	volume, err := repository.createVolume(
-		0,
+		noTeam,
 		workerName,
 		map[string]interface{}{
 			"worker_resource_certs_id": uwrc.ID,
@@ -413,26 +417,12 @@ func (repository *volumeRepository) GetOrphanedVolumes() ([]CreatedVolume, error
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
 		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(
-			sq.Or{
-				sq.Eq{
-					"v.worker_resource_cache_id":     nil,
-					"v.worker_base_resource_type_id": nil,
-					"v.container_id":                 nil,
-					"v.worker_task_cache_id":         nil,
-					"v.worker_resource_certs_id":     nil,
-				},
-				sq.And{
-					sq.NotEq{
-						"v.worker_base_resource_type_id": nil,
-					},
-					sq.Eq{
-						"v.worker_resource_cache_id": nil,
-						"v.team_id":                  nil,
-						"v.container_id":             nil,
-						"v.worker_task_cache_id":     nil,
-						"v.worker_resource_certs_id": nil,
-					},
-				},
+			sq.Eq{
+				"v.worker_resource_cache_id":     nil,
+				"v.worker_base_resource_type_id": nil,
+				"v.container_id":                 nil,
+				"v.worker_task_cache_id":         nil,
+				"v.worker_resource_certs_id":     nil,
 			},
 		).
 		Where(sq.Eq{"v.state": string(VolumeStateCreated)}).
@@ -452,7 +442,7 @@ func (repository *volumeRepository) GetOrphanedVolumes() ([]CreatedVolume, error
 	}
 	defer Close(rows)
 
-	createdVolumes := []CreatedVolume{}
+	var createdVolumes []CreatedVolume
 
 	for rows.Next() {
 		_, createdVolume, _, _, err := scanVolume(rows, repository.conn)
@@ -509,8 +499,6 @@ func (repository *volumeRepository) GetDestroyingVolumes(workerName string) ([]s
 		},
 	)
 }
-
-var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer exists (stale?)")
 
 // 1. open tx
 // 2. lookup worker resource type id

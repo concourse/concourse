@@ -36,6 +36,12 @@ func (fake *FakeHandler) ServeHTTPCallCount() int {
 	return len(fake.serveHTTPArgsForCall)
 }
 
+func (fake *FakeHandler) ServeHTTPCalls(stub func(http.ResponseWriter, *http.Request)) {
+	fake.serveHTTPMutex.Lock()
+	defer fake.serveHTTPMutex.Unlock()
+	fake.ServeHTTPStub = stub
+}
+
 func (fake *FakeHandler) ServeHTTPArgsForCall(i int) (http.ResponseWriter, *http.Request) {
 	fake.serveHTTPMutex.RLock()
 	defer fake.serveHTTPMutex.RUnlock()

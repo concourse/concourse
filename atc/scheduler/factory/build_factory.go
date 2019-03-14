@@ -165,16 +165,19 @@ func (factory *buildFactory) constructUnhookedPlan(
 			return atc.Plan{}, ErrResourceNotFound
 		}
 
-		putPlan := factory.planFactory.NewPlan(atc.PutPlan{
+		atcPutPlan := atc.PutPlan{
 			Type:     resource.Type,
 			Name:     logicalName,
 			Resource: resourceName,
 			Source:   resource.Source,
 			Params:   planConfig.Params,
 			Tags:     planConfig.Tags,
+			Inputs:   planConfig.Inputs,
 
 			VersionedResourceTypes: resourceTypes,
-		})
+		}
+
+		putPlan := factory.planFactory.NewPlan(atcPutPlan)
 
 		dependentGetPlan := factory.planFactory.NewPlan(atc.GetPlan{
 			Type:        resource.Type,
@@ -232,6 +235,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Privileged:        planConfig.Privileged,
 			Config:            planConfig.TaskConfig,
 			ConfigPath:        planConfig.TaskConfigPath,
+			Vars:              planConfig.TaskVars,
 			Tags:              planConfig.Tags,
 			Params:            planConfig.Params,
 			InputMapping:      planConfig.InputMapping,

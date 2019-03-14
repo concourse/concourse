@@ -57,7 +57,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 
 		It("can use custom resource type named as base resource type", func() {
 			watch := fly("trigger-job", "-j", inPipeline("resource-getter"), "-w")
-			Expect(watch).To(gbytes.Say("mirror-mirror"))
+			Expect(watch).To(gbytes.Say("mirror-" + hash))
 		})
 	})
 })

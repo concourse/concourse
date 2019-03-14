@@ -99,7 +99,15 @@ func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExistsCallCount() int {
 	return len(fake.createDefaultTeamIfNotExistsArgsForCall)
 }
 
+func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExistsCalls(stub func() (db.Team, error)) {
+	fake.createDefaultTeamIfNotExistsMutex.Lock()
+	defer fake.createDefaultTeamIfNotExistsMutex.Unlock()
+	fake.CreateDefaultTeamIfNotExistsStub = stub
+}
+
 func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExistsReturns(result1 db.Team, result2 error) {
+	fake.createDefaultTeamIfNotExistsMutex.Lock()
+	defer fake.createDefaultTeamIfNotExistsMutex.Unlock()
 	fake.CreateDefaultTeamIfNotExistsStub = nil
 	fake.createDefaultTeamIfNotExistsReturns = struct {
 		result1 db.Team
@@ -108,6 +116,8 @@ func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExistsReturns(result1 db.Team
 }
 
 func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExistsReturnsOnCall(i int, result1 db.Team, result2 error) {
+	fake.createDefaultTeamIfNotExistsMutex.Lock()
+	defer fake.createDefaultTeamIfNotExistsMutex.Unlock()
 	fake.CreateDefaultTeamIfNotExistsStub = nil
 	if fake.createDefaultTeamIfNotExistsReturnsOnCall == nil {
 		fake.createDefaultTeamIfNotExistsReturnsOnCall = make(map[int]struct {
@@ -145,6 +155,12 @@ func (fake *FakeTeamFactory) CreateTeamCallCount() int {
 	return len(fake.createTeamArgsForCall)
 }
 
+func (fake *FakeTeamFactory) CreateTeamCalls(stub func(atc.Team) (db.Team, error)) {
+	fake.createTeamMutex.Lock()
+	defer fake.createTeamMutex.Unlock()
+	fake.CreateTeamStub = stub
+}
+
 func (fake *FakeTeamFactory) CreateTeamArgsForCall(i int) atc.Team {
 	fake.createTeamMutex.RLock()
 	defer fake.createTeamMutex.RUnlock()
@@ -153,6 +169,8 @@ func (fake *FakeTeamFactory) CreateTeamArgsForCall(i int) atc.Team {
 }
 
 func (fake *FakeTeamFactory) CreateTeamReturns(result1 db.Team, result2 error) {
+	fake.createTeamMutex.Lock()
+	defer fake.createTeamMutex.Unlock()
 	fake.CreateTeamStub = nil
 	fake.createTeamReturns = struct {
 		result1 db.Team
@@ -161,6 +179,8 @@ func (fake *FakeTeamFactory) CreateTeamReturns(result1 db.Team, result2 error) {
 }
 
 func (fake *FakeTeamFactory) CreateTeamReturnsOnCall(i int, result1 db.Team, result2 error) {
+	fake.createTeamMutex.Lock()
+	defer fake.createTeamMutex.Unlock()
 	fake.CreateTeamStub = nil
 	if fake.createTeamReturnsOnCall == nil {
 		fake.createTeamReturnsOnCall = make(map[int]struct {
@@ -198,6 +218,12 @@ func (fake *FakeTeamFactory) FindTeamCallCount() int {
 	return len(fake.findTeamArgsForCall)
 }
 
+func (fake *FakeTeamFactory) FindTeamCalls(stub func(string) (db.Team, bool, error)) {
+	fake.findTeamMutex.Lock()
+	defer fake.findTeamMutex.Unlock()
+	fake.FindTeamStub = stub
+}
+
 func (fake *FakeTeamFactory) FindTeamArgsForCall(i int) string {
 	fake.findTeamMutex.RLock()
 	defer fake.findTeamMutex.RUnlock()
@@ -206,6 +232,8 @@ func (fake *FakeTeamFactory) FindTeamArgsForCall(i int) string {
 }
 
 func (fake *FakeTeamFactory) FindTeamReturns(result1 db.Team, result2 bool, result3 error) {
+	fake.findTeamMutex.Lock()
+	defer fake.findTeamMutex.Unlock()
 	fake.FindTeamStub = nil
 	fake.findTeamReturns = struct {
 		result1 db.Team
@@ -215,6 +243,8 @@ func (fake *FakeTeamFactory) FindTeamReturns(result1 db.Team, result2 bool, resu
 }
 
 func (fake *FakeTeamFactory) FindTeamReturnsOnCall(i int, result1 db.Team, result2 bool, result3 error) {
+	fake.findTeamMutex.Lock()
+	defer fake.findTeamMutex.Unlock()
 	fake.FindTeamStub = nil
 	if fake.findTeamReturnsOnCall == nil {
 		fake.findTeamReturnsOnCall = make(map[int]struct {
@@ -254,6 +284,12 @@ func (fake *FakeTeamFactory) GetByIDCallCount() int {
 	return len(fake.getByIDArgsForCall)
 }
 
+func (fake *FakeTeamFactory) GetByIDCalls(stub func(int) db.Team) {
+	fake.getByIDMutex.Lock()
+	defer fake.getByIDMutex.Unlock()
+	fake.GetByIDStub = stub
+}
+
 func (fake *FakeTeamFactory) GetByIDArgsForCall(i int) int {
 	fake.getByIDMutex.RLock()
 	defer fake.getByIDMutex.RUnlock()
@@ -262,6 +298,8 @@ func (fake *FakeTeamFactory) GetByIDArgsForCall(i int) int {
 }
 
 func (fake *FakeTeamFactory) GetByIDReturns(result1 db.Team) {
+	fake.getByIDMutex.Lock()
+	defer fake.getByIDMutex.Unlock()
 	fake.GetByIDStub = nil
 	fake.getByIDReturns = struct {
 		result1 db.Team
@@ -269,6 +307,8 @@ func (fake *FakeTeamFactory) GetByIDReturns(result1 db.Team) {
 }
 
 func (fake *FakeTeamFactory) GetByIDReturnsOnCall(i int, result1 db.Team) {
+	fake.getByIDMutex.Lock()
+	defer fake.getByIDMutex.Unlock()
 	fake.GetByIDStub = nil
 	if fake.getByIDReturnsOnCall == nil {
 		fake.getByIDReturnsOnCall = make(map[int]struct {
@@ -303,7 +343,15 @@ func (fake *FakeTeamFactory) GetTeamsCallCount() int {
 	return len(fake.getTeamsArgsForCall)
 }
 
+func (fake *FakeTeamFactory) GetTeamsCalls(stub func() ([]db.Team, error)) {
+	fake.getTeamsMutex.Lock()
+	defer fake.getTeamsMutex.Unlock()
+	fake.GetTeamsStub = stub
+}
+
 func (fake *FakeTeamFactory) GetTeamsReturns(result1 []db.Team, result2 error) {
+	fake.getTeamsMutex.Lock()
+	defer fake.getTeamsMutex.Unlock()
 	fake.GetTeamsStub = nil
 	fake.getTeamsReturns = struct {
 		result1 []db.Team
@@ -312,6 +360,8 @@ func (fake *FakeTeamFactory) GetTeamsReturns(result1 []db.Team, result2 error) {
 }
 
 func (fake *FakeTeamFactory) GetTeamsReturnsOnCall(i int, result1 []db.Team, result2 error) {
+	fake.getTeamsMutex.Lock()
+	defer fake.getTeamsMutex.Unlock()
 	fake.GetTeamsStub = nil
 	if fake.getTeamsReturnsOnCall == nil {
 		fake.getTeamsReturnsOnCall = make(map[int]struct {

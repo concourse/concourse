@@ -69,7 +69,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 		It("waits for a user and sends the artifact to them", func() {
 			Expect(source.StreamToCallCount()).To(Equal(1))
 
-			dest := source.StreamToArgsForCall(0)
+			_, dest := source.StreamToArgsForCall(0)
 			Expect(dest.StreamIn(".", bytes.NewBufferString("hello"))).To(Succeed())
 
 			Expect(output.String()).To(Equal("hello"))

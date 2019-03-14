@@ -10,11 +10,11 @@ inputs:
 - name: final-version
   optional: true
 
-caches:
-- path: gopath
-
 outputs:
 - name: fly-linux
+
+caches:
+- path: gopath
 
 run:
   path: concourse/ci/tasks/scripts/fly-build

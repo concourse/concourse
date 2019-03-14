@@ -55,7 +55,9 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 			return err
 		}
 
-		exitCode := eventstream.Render(os.Stdout, eventSource)
+		renderOptions := eventstream.RenderOptions{}
+
+		exitCode := eventstream.Render(os.Stdout, eventSource, renderOptions)
 
 		eventSource.Close()
 

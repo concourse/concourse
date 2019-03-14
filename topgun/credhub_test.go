@@ -12,39 +12,20 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
+	yaml "gopkg.in/yaml.v2"
+
+	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
-	yaml "gopkg.in/yaml.v2"
 )
 
 var _ = Describe("Credhub", func() {
-	pgDump := func() *gexec.Session {
-		dump := exec.Command("pg_dump", "-U", "atc", "-h", dbInstance.IP, "atc")
-		dump.Env = append(os.Environ(), "PGPASSWORD=dummy-password")
-		dump.Stdin = bytes.NewBufferString("dummy-password\n")
-		session, err := gexec.Start(dump, GinkgoWriter, GinkgoWriter)
-		Expect(err).ToNot(HaveOccurred())
-		<-session.Exited
-		Expect(session.ExitCode()).To(Equal(0))
-		return session
-	}
-
-	getPipeline := func() *gexec.Session {
-		session := spawnFly("get-pipeline", "-p", "pipeline-credhub-test")
-		<-session.Exited
-		Expect(session.ExitCode()).To(Equal(0))
-		return session
-	}
-
 	BeforeEach(func() {
 		if !strings.Contains(string(bosh("releases").Out.Contents()), "credhub") {
 			Skip("credhub release not uploaded")
@@ -116,7 +97,7 @@ var _ = Describe("Credhub", func() {
 		Describe("/api/v1/info/creds", func() {
 			type responseSkeleton struct {
 				CredHub struct {
-					Url     string   `json:"url"`
+					URL     string   `json:"url"`
 					CACerts []string `json:"ca_certs"`
 					Health  struct {
 						Error    string `json:"error"`
@@ -126,21 +107,24 @@ var _ = Describe("Credhub", func() {
 						Method string `json:"method"`
 					} `json:"health"`
 					PathPrefix  string `json:"path_prefix"`
-					UAAClientId string `json:"uaa_client_id"`
+					UAAClientID string `json:"uaa_client_id"`
 				} `json:"credhub"`
 			}
 
 			var (
-				atcUrl         string
+				atcURL         string
 				parsedResponse responseSkeleton
 			)
 
 			BeforeEach(func() {
-				atcUrl = "http://" + JobInstance("web").IP + ":8080"
+				atcURL = "http://" + JobInstance("web").IP + ":8080"
 			})
 
 			JustBeforeEach(func() {
-				body, err := requestCredsInfo(atcUrl)
+				token, err := FetchToken(atcURL, atcUsername, atcPassword)
+				Expect(err).ToNot(HaveOccurred())
+
+				body, err := RequestCredsInfo(atcURL, token.AccessToken)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = json.Unmarshal(body, &parsedResponse)
@@ -148,104 +132,43 @@ var _ = Describe("Credhub", func() {
 			})
 
 			It("contains credhub config", func() {
-				Expect(parsedResponse.CredHub.Url).To(Equal("https://" + credhubInstance.IP + ":8844"))
+				Expect(parsedResponse.CredHub.URL).To(Equal("https://" + credhubInstance.IP + ":8844"))
 				Expect(parsedResponse.CredHub.Health.Response).ToNot(BeNil())
 				Expect(parsedResponse.CredHub.Health.Response.Status).To(Equal("UP"))
 				Expect(parsedResponse.CredHub.Health.Error).To(BeEmpty())
 			})
 		})
 
-		Context("with a pipeline build", func() {
-			BeforeEach(func() {
-				_, err := credhubClient.SetValue("/concourse/main/pipeline-credhub-test/resource_type_repository", values.Value("concourse/time-resource"))
-				Expect(err).ToNot(HaveOccurred())
+		testCredentialManagement(func() {
+			_, err := credhubClient.SetValue("/concourse/main/team_secret", values.Value("some_team_secret"))
+			Expect(err).ToNot(HaveOccurred())
 
-				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/time_resource_interval", values.Value("10m"))
-				credhubClient.SetUser("/concourse/main/pipeline-credhub-test/job_secret", values.User{
-					Username: "Hello",
-					Password: "World",
-				})
-				credhubClient.SetValue("/concourse/main/team_secret", values.Value("Sauce"))
-				credhubClient.SetValue("/concourse/main/pipeline-credhub-test/image_resource_repository", values.Value("busybox"))
+			_, err = credhubClient.SetValue("/concourse/main/pipeline-creds-test/assertion_script", values.Value(assertionScript))
+			Expect(err).ToNot(HaveOccurred())
 
-				By("setting a pipeline that contains credhub secrets")
-				fly("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "pipeline-credhub-test")
+			_, err = credhubClient.SetValue("/concourse/main/pipeline-creds-test/canary", values.Value("some_canary"))
+			Expect(err).ToNot(HaveOccurred())
 
-				By("getting the pipeline config")
-				session := getPipeline()
-				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("concourse/time-resource"))
-				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("10m"))
-				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Hello/World"))
-				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Sauce"))
-				Expect(string(session.Out.Contents())).ToNot(ContainSubstring("busybox"))
+			_, err = credhubClient.SetValue("/concourse/main/pipeline-creds-test/resource_type_secret", values.Value("some_resource_type_secret"))
+			Expect(err).ToNot(HaveOccurred())
 
-				By("unpausing the pipeline")
-				fly("unpause-pipeline", "-p", "pipeline-credhub-test")
+			_, err = credhubClient.SetValue("/concourse/main/pipeline-creds-test/resource_secret", values.Value("some_resource_secret"))
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = credhubClient.SetUser("/concourse/main/pipeline-creds-test/job_secret", values.User{
+				Username: "some_username",
+				Password: "some_password",
 			})
+			Expect(err).ToNot(HaveOccurred())
 
-			It("parameterizes via Credhub and leaves the pipeline uninterpolated", func() {
-				By("triggering job")
-				watch := spawnFly("trigger-job", "-w", "-j", "pipeline-credhub-test/job-with-custom-input")
-				wait(watch)
-				Expect(watch).To(gbytes.Say("GET SECRET: GET-Hello/GET-World"))
-				Expect(watch).To(gbytes.Say("PUT SECRET: PUT-Hello/PUT-World"))
-				Expect(watch).To(gbytes.Say("GET SECRET: PUT-GET-Hello/PUT-GET-World"))
-				Expect(watch).To(gbytes.Say("SECRET: Hello/World"))
-				Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
+			_, err = credhubClient.SetValue("/concourse/main/pipeline-creds-test/resource_version", values.Value("some_exposed_version_secret"))
+			Expect(err).ToNot(HaveOccurred())
+		}, func() {
+			_, err := credhubClient.SetValue("/concourse/main/team_secret", values.Value("some_team_secret"))
+			Expect(err).ToNot(HaveOccurred())
 
-				By("taking a dump")
-				session := pgDump()
-				Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-				Expect(session).ToNot(gbytes.Say("10m"))
-				Expect(session).To(gbytes.Say("Hello/World")) // build echoed it; nothing we can do
-				Expect(session).To(gbytes.Say("Sauce"))       // build echoed it; nothing we can do
-				Expect(session).ToNot(gbytes.Say("busybox"))
-			})
-
-			Context("when the job's inputs are used for a one-off build", func() {
-				It("parameterizes the values using the job's pipeline scope", func() {
-					By("triggering job to populate its inputs")
-					watch := spawnFly("trigger-job", "-w", "-j", "pipeline-credhub-test/job-with-input")
-					wait(watch)
-					Expect(watch).To(gbytes.Say("GET SECRET: GET-Hello/GET-World"))
-					Expect(watch).To(gbytes.Say("PUT SECRET: PUT-Hello/PUT-World"))
-					Expect(watch).To(gbytes.Say("GET SECRET: PUT-GET-Hello/PUT-GET-World"))
-					Expect(watch).To(gbytes.Say("SECRET: Hello/World"))
-					Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
-
-					By("executing a task that parameterizes image_resource")
-					watch = spawnFly("execute", "-c", "tasks/credential-management-with-job-inputs.yml", "-j", "pipeline-credhub-test/job-with-input")
-					wait(watch)
-					Expect(watch).To(gbytes.Say("./some-resource/input"))
-
-					By("taking a dump")
-					session := pgDump()
-					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-					Expect(session).ToNot(gbytes.Say("10m"))
-					Expect(session).To(gbytes.Say("./some-resource/input")) // build echoed it; nothing we can do
-				})
-			})
-		})
-
-		Context("with a one-off build", func() {
-			BeforeEach(func() {
-				_, err := credhubClient.SetValue("/concourse/main/task_secret", values.Value("Hiii"))
-				Expect(err).ToNot(HaveOccurred())
-
-				credhubClient.SetValue("/concourse/main/image_resource_repository", values.Value("busybox"))
-			})
-
-			It("parameterizes image_resource and params in a task config", func() {
-				By("executing a task that parameterizes image_resource")
-				watch := spawnFly("execute", "-c", "tasks/credential-management.yml")
-				wait(watch)
-				Expect(watch).To(gbytes.Say("SECRET: Hiii"))
-
-				By("taking a dump")
-				session := pgDump()
-				Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-				Expect(session).To(gbytes.Say("Hiii")) // build echoed it; nothing we can do
-			})
+			_, err = credhubClient.SetValue("/concourse/main/resource_version", values.Value("some_exposed_version_secret"))
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

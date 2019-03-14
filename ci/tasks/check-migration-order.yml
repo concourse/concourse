@@ -1,0 +1,13 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+inputs:
+- name: concourse-pr
+- name: concourse-master
+
+run:
+  path: concourse-pr/ci/tasks/scripts/check-migration-order

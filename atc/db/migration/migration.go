@@ -239,6 +239,9 @@ func (self *migrator) Migrate(toVersion int) error {
 	if existingDBVersion > 0 {
 		var containsOldMigrationInfo bool
 		err = self.db.QueryRow("SELECT EXISTS (SELECT 1 FROM migrations_history where version=$1)", existingDBVersion).Scan(&containsOldMigrationInfo)
+		if err != nil {
+			return err
+		}
 
 		if !containsOldMigrationInfo {
 			_, err = self.db.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, 'up', 'passed', false)", existingDBVersion)
@@ -321,18 +324,21 @@ func (m *migrator) runMigration(migration migration) error {
 		for _, statement := range migration.Statements {
 			_, err = tx.Exec(statement)
 			if err != nil {
-				tx.Rollback()
 				err = multierror.Append(fmt.Errorf("Transaction %v failed, rolled back the migration", statement), err)
-				if err != nil {
-					return m.recordMigrationFailure(migration, err, false)
+				txErr := tx.Rollback()
+				if txErr != nil {
+					err = multierror.Append(fmt.Errorf("Rolling back transaction %v failed", statement), txErr)
 				}
+				return m.recordMigrationFailure(migration, err, false)
 			}
 		}
 		err = tx.Commit()
 	case SQLNoTransaction:
-		_, err = m.db.Exec(migration.Statements[0])
-		if err != nil {
-			return m.recordMigrationFailure(migration, err, true)
+		for _, statement := range migration.Statements {
+			_, err = m.db.Exec(statement)
+			if err != nil {
+				return m.recordMigrationFailure(migration, err, true)
+			}
 		}
 	}
 
@@ -447,8 +453,6 @@ func (self *migrator) migrateFromSchemaMigrations() (int, error) {
 
 	return existingVersion, nil
 }
-
-type filenames []string
 
 func sortMigrations(migrationList []migration) {
 	sort.Slice(migrationList, func(i, j int) bool {

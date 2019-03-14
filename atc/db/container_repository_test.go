@@ -17,8 +17,8 @@ var _ = Describe("ContainerRepository", func() {
 	Describe("FindOrphanedContainers", func() {
 		Describe("check containers", func() {
 			var (
-				creatingContainer          db.CreatingContainer
-				resourceConfigCheckSession db.ResourceConfigCheckSession
+				creatingContainer db.CreatingContainer
+				resourceConfig    db.ResourceConfig
 			)
 
 			expiries := db.ContainerOwnerExpiries{
@@ -29,16 +29,15 @@ var _ = Describe("ContainerRepository", func() {
 
 			BeforeEach(func() {
 				var err error
-				resourceConfigCheckSession, err = resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
 					"some-base-resource-type",
 					atc.Source{"some": "source"},
 					creds.VersionedResourceTypes{},
-					expiries,
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultWorker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession), fullMetadata)
+				creatingContainer, err = defaultWorker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiries), fullMetadata)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -49,9 +48,13 @@ var _ = Describe("ContainerRepository", func() {
 
 			Context("when check container best if use by date is expired", func() {
 				BeforeEach(func() {
-					_, err := psql.Update("resource_config_check_sessions").
+					var rccsID int
+					err := psql.Select("id").From("resource_config_check_sessions").
+						Where(sq.Eq{"resource_config_id": resourceConfig.ID()}).RunWith(dbConn).QueryRow().Scan(&rccsID)
+
+					_, err = psql.Update("resource_config_check_sessions").
 						Set("expires_at", sq.Expr("NOW() - '1 second'::INTERVAL")).
-						Where(sq.Eq{"id": resourceConfigCheckSession.ID()}).
+						Where(sq.Eq{"id": rccsID}).
 						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -107,9 +110,13 @@ var _ = Describe("ContainerRepository", func() {
 
 			Context("when check container best if use by date did not expire", func() {
 				BeforeEach(func() {
-					_, err := psql.Update("resource_config_check_sessions").
+					var rccsID int
+					err := psql.Select("id").From("resource_config_check_sessions").
+						Where(sq.Eq{"resource_config_id": resourceConfig.ID()}).RunWith(dbConn).QueryRow().Scan(&rccsID)
+
+					_, err = psql.Update("resource_config_check_sessions").
 						Set("expires_at", sq.Expr("NOW() + '1 hour'::INTERVAL")).
-						Where(sq.Eq{"id": resourceConfigCheckSession.ID()}).
+						Where(sq.Eq{"id": rccsID}).
 						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -897,6 +904,27 @@ var _ = Describe("ContainerRepository", func() {
 		Context("when the reported handles is a subset", func() {
 			BeforeEach(func() {
 				handles = []string{"some-handle1"}
+			})
+
+			Context("having the containers in the creating state in the db", func() {
+				BeforeEach(func() {
+					result, err := psql.Update("containers").
+						Where(sq.Eq{"handle": "some-handle3"}).
+						SetMap(map[string]interface{}{
+							"state":         atc.ContainerStateCreating,
+							"missing_since": nil,
+						}).RunWith(dbConn).Exec()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+				})
+
+				It("does not mark as missing", func() {
+					err = psql.Select("missing_since").From("containers").
+						Where(sq.Eq{"handle": "some-handle3"}).RunWith(dbConn).QueryRow().
+						Scan(&missingSince)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(missingSince.Valid).To(BeFalse())
+				})
 			})
 
 			It("should mark containers not in the subset and not already marked as missing", func() {

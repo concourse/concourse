@@ -1,0 +1,10 @@
+resources:
+- name: resource
+  type: mock
+  source:
+    mirror_self: true
+    force_version: other-version
+jobs:
+- name: job
+  plan:
+  - get: resource

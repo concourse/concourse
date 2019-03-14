@@ -335,6 +335,10 @@ var _ = Describe("Accessor", func() {
 
 			Expect(access.IsAuthorized("some-team")).To(Equal(authorized))
 		},
+		Entry("owner :: table has no entry", "some-role", "owner", false),
+		Entry("member :: table has no entry", "some-role", "member", false),
+		Entry("viewer :: table has no entry", "some-role", "viewer", false),
+
 		Entry("owner :: "+atc.SaveConfig, atc.SaveConfig, "owner", true),
 		Entry("member :: "+atc.SaveConfig, atc.SaveConfig, "member", true),
 		Entry("viewer :: "+atc.SaveConfig, atc.SaveConfig, "viewer", false),
@@ -342,6 +346,10 @@ var _ = Describe("Accessor", func() {
 		Entry("owner :: "+atc.GetConfig, atc.GetConfig, "owner", true),
 		Entry("member :: "+atc.GetConfig, atc.GetConfig, "member", true),
 		Entry("viewer :: "+atc.GetConfig, atc.GetConfig, "viewer", true),
+
+		Entry("owner :: "+atc.GetCC, atc.GetCC, "owner", true),
+		Entry("member :: "+atc.GetCC, atc.GetCC, "member", true),
+		Entry("viewer :: "+atc.GetCC, atc.GetCC, "viewer", true),
 
 		Entry("owner :: "+atc.GetBuild, atc.GetBuild, "owner", true),
 		Entry("member :: "+atc.GetBuild, atc.GetBuild, "member", true),

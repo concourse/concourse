@@ -50,7 +50,7 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 		return nil
 	case concourse.ErrDestroyRefused:
 		fmt.Println()
-		fmt.Printf(ui.WarningColor("could not destroy `%s`\n", teamName))
+		fmt.Println(ui.WarningColor("could not destroy `%s`", teamName))
 		fmt.Println()
 		fmt.Println("either your team is not an admin or it is the last admin team")
 		os.Exit(1)

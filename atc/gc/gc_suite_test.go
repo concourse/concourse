@@ -4,6 +4,8 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/lager"
+
 	"code.cloudfoundry.org/lager/lagertest"
 
 	sq "github.com/Masterminds/squirrel"
@@ -29,14 +31,13 @@ var (
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
 
-	dbConn                            db.Conn
-	err                               error
-	resourceCacheFactory              db.ResourceCacheFactory
-	resourceCacheLifecycle            db.ResourceCacheLifecycle
-	resourceConfigFactory             db.ResourceConfigFactory
-	resourceConfigCheckSessionFactory db.ResourceConfigCheckSessionFactory
-	buildFactory                      db.BuildFactory
-	lockFactory                       lock.LockFactory
+	dbConn                 db.Conn
+	err                    error
+	resourceCacheFactory   db.ResourceCacheFactory
+	resourceCacheLifecycle db.ResourceCacheLifecycle
+	resourceConfigFactory  db.ResourceConfigFactory
+	buildFactory           db.BuildFactory
+	lockFactory            lock.LockFactory
 
 	teamFactory db.TeamFactory
 
@@ -45,8 +46,10 @@ var (
 	defaultJob      db.Job
 	defaultBuild    db.Build
 
-	usedResource db.Resource
-	logger       *lagertest.TestLogger
+	usedResource     db.Resource
+	usedResourceType db.ResourceType
+	logger           *lagertest.TestLogger
+	fakeLogFunc      = func(logger lager.Logger, id lock.LockID) {}
 )
 
 var _ = BeforeSuite(func() {
@@ -64,7 +67,7 @@ var _ = BeforeEach(func() {
 
 	dbConn = postgresRunner.OpenConn()
 
-	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
+	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0)
@@ -81,6 +84,13 @@ var _ = BeforeEach(func() {
 				Name:   "some-resource",
 				Type:   "some-base-type",
 				Source: atc.Source{"some": "source"},
+			},
+		},
+		ResourceTypes: atc.ResourceTypes{
+			{
+				Name:   "some-resource-type",
+				Type:   "some-base-type",
+				Source: atc.Source{"some": "source-type"},
 			},
 		},
 		Jobs: atc.JobConfigs{
@@ -105,13 +115,18 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
 
+	usedResourceType, found, err = defaultPipeline.ResourceType("some-resource-type")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
+
 	setupTx, err := dbConn.Begin()
 	Expect(err).ToNot(HaveOccurred())
 
 	baseResourceType := db.BaseResourceType{
 		Name: "some-base-type",
 	}
-	_, err = baseResourceType.FindOrCreate(setupTx)
+
+	_, err = baseResourceType.FindOrCreate(setupTx, false)
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect(setupTx.Commit()).To(Succeed())
@@ -121,7 +136,6 @@ var _ = BeforeEach(func() {
 	resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
-	resourceConfigCheckSessionFactory = db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 })
 
 var _ = AfterEach(func() {

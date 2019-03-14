@@ -593,10 +593,10 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 		Context("when since and until are both specified", func() {
 			BeforeEach(func() {
-				expectedQuery = fmt.Sprint("until=26")
+				expectedQuery = fmt.Sprint("until=26&since=24")
 			})
 
-			It("only sends the until", func() {
+			It("sends both since and until", func() {
 				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24, Until: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())

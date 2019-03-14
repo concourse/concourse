@@ -1,9 +1,0 @@
-- type: replace
-  path: /instance_groups/name=other_worker/jobs/name=worker/properties/tags?
-  value: [special]
-
-- type: replace
-  path: /instance_groups/name=other_worker/jobs/name=worker/properties/additional_resource_types?
-  value:
-  - type: special-time
-    image: /var/vcap/packages/time_resource/rootfs

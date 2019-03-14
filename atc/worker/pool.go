@@ -25,16 +25,16 @@ type WorkerProvider interface {
 		handle string,
 	) (Worker, bool, error)
 
-	FindWorkerForContainerByOwner(
+	FindWorkersForContainerByOwner(
 		logger lager.Logger,
-		teamID int,
 		owner db.ContainerOwner,
-	) (Worker, bool, error)
+	) ([]Worker, error)
 
 	NewGardenWorker(
 		logger lager.Logger,
 		tikTok clock.Clock,
 		savedWorker db.Worker,
+		numBuildWorkers int,
 	) Worker
 }
 
@@ -43,21 +43,11 @@ var (
 )
 
 type NoCompatibleWorkersError struct {
-	Spec    WorkerSpec
-	Workers []Worker
+	Spec WorkerSpec
 }
 
 func (err NoCompatibleWorkersError) Error() string {
-	availableWorkers := ""
-	for _, worker := range err.Workers {
-		availableWorkers += "\n  - " + worker.Description()
-	}
-
-	return fmt.Sprintf(
-		"no workers satisfying: %s\n\navailable workers: %s",
-		err.Spec.Description(),
-		availableWorkers,
-	)
+	return fmt.Sprintf("no workers satisfying: %s", err.Spec.Description())
 }
 
 type pool struct {
@@ -75,11 +65,7 @@ func NewPool(provider WorkerProvider, strategy ContainerPlacementStrategy) Clien
 	}
 }
 
-func (pool *pool) RunningWorkers(logger lager.Logger) ([]Worker, error) {
-	return pool.provider.RunningWorkers(logger)
-}
-
-func (pool *pool) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) ([]Worker, error) {
+func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker, error) {
 	workers, err := pool.provider.RunningWorkers(logger)
 	if err != nil {
 		return nil, err
@@ -92,7 +78,7 @@ func (pool *pool) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTy
 	compatibleTeamWorkers := []Worker{}
 	compatibleGeneralWorkers := []Worker{}
 	for _, worker := range workers {
-		satisfyingWorker, err := worker.Satisfying(logger, spec, resourceTypes)
+		satisfyingWorker, err := worker.Satisfying(logger, spec)
 		if err == nil {
 			if worker.IsOwnedByTeam() {
 				compatibleTeamWorkers = append(compatibleTeamWorkers, satisfyingWorker)
@@ -111,13 +97,12 @@ func (pool *pool) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTy
 	}
 
 	return nil, NoCompatibleWorkersError{
-		Spec:    spec,
-		Workers: workers,
+		Spec: spec,
 	}
 }
 
-func (pool *pool) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes creds.VersionedResourceTypes) (Worker, error) {
-	compatibleWorkers, err := pool.AllSatisfying(logger, spec, resourceTypes)
+func (pool *pool) Satisfying(logger lager.Logger, spec WorkerSpec) (Worker, error) {
+	compatibleWorkers, err := pool.allSatisfying(logger, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -131,25 +116,36 @@ func (pool *pool) FindOrCreateContainer(
 	delegate ImageFetchingDelegate,
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
-	spec ContainerSpec,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
-	worker, found, err := pool.provider.FindWorkerForContainerByOwner(
+	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
 		logger.Session("find-worker"),
-		spec.TeamID,
 		owner,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	if !found {
-		compatibleWorkers, err := pool.AllSatisfying(logger, spec.WorkerSpec(), resourceTypes)
-		if err != nil {
-			return nil, err
-		}
+	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
+	if err != nil {
+		return nil, err
+	}
 
-		worker, err = pool.strategy.Choose(compatibleWorkers, spec)
+	var worker Worker
+dance:
+	for _, w := range workersWithContainer {
+		for _, c := range compatibleWorkers {
+			if w.Name() == c.Name() {
+				worker = c
+				break dance
+			}
+		}
+	}
+
+	if worker == nil {
+		worker, err = pool.strategy.Choose(logger, compatibleWorkers, containerSpec, metadata)
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +157,8 @@ func (pool *pool) FindOrCreateContainer(
 		delegate,
 		owner,
 		metadata,
-		spec,
+		containerSpec,
+		workerSpec,
 		resourceTypes,
 	)
 }

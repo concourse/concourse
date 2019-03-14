@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
+const responseFilename = "response.json"
 const TaskProcessID = "resource"
 
 type resource struct {

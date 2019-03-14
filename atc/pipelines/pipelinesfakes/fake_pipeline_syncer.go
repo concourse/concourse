@@ -33,6 +33,12 @@ func (fake *FakePipelineSyncer) SyncCallCount() int {
 	return len(fake.syncArgsForCall)
 }
 
+func (fake *FakePipelineSyncer) SyncCalls(stub func()) {
+	fake.syncMutex.Lock()
+	defer fake.syncMutex.Unlock()
+	fake.SyncStub = stub
+}
+
 func (fake *FakePipelineSyncer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()

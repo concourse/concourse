@@ -3,7 +3,6 @@ package tsacmd
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"sync"
@@ -13,9 +12,8 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/tsa"
-	"github.com/concourse/concourse/tsa/tsaflags"
+	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -25,24 +23,23 @@ import (
 type TSACommand struct {
 	Logger flag.Lager
 
-	BindIP        flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
-	BindPort      uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
-	DebugBindPort uint16  `long:"bind-debug-port" default:"8089"    description:"Port on which to listen for TSA pprof server."`
-	PeerIP        string  `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
+	PeerIP string `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
 
-	HostKey            *flag.PrivateKey         `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
-	AuthorizedKeys     flag.AuthorizedKeys      `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
-	TeamAuthorizedKeys []tsaflags.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
+	BindPort uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
+
+	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
+	DebugBindPort uint16  `long:"debug-bind-port" default:"2221"      description:"Port on which to listen for the pprof debugger endpoints."`
+
+	HostKey            *flag.PrivateKey               `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
+	AuthorizedKeys     flag.AuthorizedKeys            `long:"authorized-keys" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	TeamAuthorizedKeys map[string]flag.AuthorizedKeys `long:"team-authorized-keys" value-name:"NAME:PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 
 	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
 
 	SessionSigningKey *flag.PrivateKey `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
 
 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
-}
-
-func (cmd *TSACommand) debugBindAddr() string {
-	return fmt.Sprintf("127.0.0.1:%d", cmd.DebugBindPort)
 }
 
 type TeamAuthKeys struct {
@@ -87,6 +84,10 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, fmt.Errorf("failed to load team authorized keys: %s", err)
 	}
 
+	if len(cmd.AuthorizedKeys.Keys)+len(cmd.TeamAuthorizedKeys) == 0 {
+		logger.Info("starting-tsa-without-authorized-keys")
+	}
+
 	sessionAuthTeam := &sessionTeam{
 		sessionTeams: make(map[string]string),
 		lock:         &sync.RWMutex{},
@@ -99,28 +100,25 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 
-	if cmd.SessionSigningKey != nil {
-		tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
-
-		logLevel, err := lager.LogLevelFromString(cmd.Logger.LogLevel)
-		if err != nil {
-			panic(err)
-		}
-		server := &registrarSSHServer{
-			logger:            logger,
-			logLevel:          logLevel,
-			heartbeatInterval: cmd.HeartbeatInterval,
-			cprInterval:       1 * time.Second,
-			atcEndpointPicker: atcEndpointPicker,
-			tokenGenerator:    tokenGenerator,
-			forwardHost:       cmd.PeerIP,
-			config:            config,
-			httpClient:        http.DefaultClient,
-			sessionTeam:       sessionAuthTeam,
-		}
-		return serverRunner{logger, server, listenAddr}, nil
+	if cmd.SessionSigningKey == nil {
+		return nil, fmt.Errorf("missing session signing key")
 	}
-	return nil, fmt.Errorf("missing session signing key")
+
+	tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
+
+	server := &server{
+		logger:            logger,
+		heartbeatInterval: cmd.HeartbeatInterval,
+		cprInterval:       1 * time.Second,
+		atcEndpointPicker: atcEndpointPicker,
+		tokenGenerator:    tokenGenerator,
+		forwardHost:       cmd.PeerIP,
+		config:            config,
+		httpClient:        http.DefaultClient,
+		sessionTeam:       sessionAuthTeam,
+	}
+
+	return serverRunner{logger, server, listenAddr}, nil
 }
 
 func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
@@ -132,27 +130,11 @@ func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSin
 func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 	var teamKeys []TeamAuthKeys
 
-	for i := range cmd.TeamAuthorizedKeys {
-		var teamAuthorizedKeys []ssh.PublicKey
-
-		teamAuthKeysBytes, err := ioutil.ReadFile(string(cmd.TeamAuthorizedKeys[i].Path))
-
-		if err != nil {
-			return nil, err
-		}
-
-		for {
-			key, _, _, rest, err := ssh.ParseAuthorizedKey(teamAuthKeysBytes)
-			if err != nil {
-				break
-			}
-
-			teamAuthorizedKeys = append(teamAuthorizedKeys, key)
-
-			teamAuthKeysBytes = rest
-		}
-
-		teamKeys = append(teamKeys, TeamAuthKeys{Team: cmd.TeamAuthorizedKeys[i].Name, AuthKeys: teamAuthorizedKeys})
+	for teamName, keys := range cmd.TeamAuthorizedKeys {
+		teamKeys = append(teamKeys, TeamAuthKeys{
+			Team:     teamName,
+			AuthKeys: keys.Keys,
+		})
 	}
 
 	return teamKeys, nil
@@ -202,4 +184,8 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authoriz
 	config.AddHostKey(signer)
 
 	return config, nil
+}
+
+func (cmd *TSACommand) debugBindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
 }

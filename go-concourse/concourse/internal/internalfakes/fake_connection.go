@@ -45,6 +45,19 @@ type FakeConnection struct {
 	sendReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SendHTTPRequestStub        func(*http.Request, bool, *internal.Response) error
+	sendHTTPRequestMutex       sync.RWMutex
+	sendHTTPRequestArgsForCall []struct {
+		arg1 *http.Request
+		arg2 bool
+		arg3 *internal.Response
+	}
+	sendHTTPRequestReturns struct {
+		result1 error
+	}
+	sendHTTPRequestReturnsOnCall map[int]struct {
+		result1 error
+	}
 	URLStub        func() string
 	uRLMutex       sync.RWMutex
 	uRLArgsForCall []struct {
@@ -83,6 +96,12 @@ func (fake *FakeConnection) ConnectToEventStreamCallCount() int {
 	return len(fake.connectToEventStreamArgsForCall)
 }
 
+func (fake *FakeConnection) ConnectToEventStreamCalls(stub func(internal.Request) (*sse.EventSource, error)) {
+	fake.connectToEventStreamMutex.Lock()
+	defer fake.connectToEventStreamMutex.Unlock()
+	fake.ConnectToEventStreamStub = stub
+}
+
 func (fake *FakeConnection) ConnectToEventStreamArgsForCall(i int) internal.Request {
 	fake.connectToEventStreamMutex.RLock()
 	defer fake.connectToEventStreamMutex.RUnlock()
@@ -91,6 +110,8 @@ func (fake *FakeConnection) ConnectToEventStreamArgsForCall(i int) internal.Requ
 }
 
 func (fake *FakeConnection) ConnectToEventStreamReturns(result1 *sse.EventSource, result2 error) {
+	fake.connectToEventStreamMutex.Lock()
+	defer fake.connectToEventStreamMutex.Unlock()
 	fake.ConnectToEventStreamStub = nil
 	fake.connectToEventStreamReturns = struct {
 		result1 *sse.EventSource
@@ -99,6 +120,8 @@ func (fake *FakeConnection) ConnectToEventStreamReturns(result1 *sse.EventSource
 }
 
 func (fake *FakeConnection) ConnectToEventStreamReturnsOnCall(i int, result1 *sse.EventSource, result2 error) {
+	fake.connectToEventStreamMutex.Lock()
+	defer fake.connectToEventStreamMutex.Unlock()
 	fake.ConnectToEventStreamStub = nil
 	if fake.connectToEventStreamReturnsOnCall == nil {
 		fake.connectToEventStreamReturnsOnCall = make(map[int]struct {
@@ -135,7 +158,15 @@ func (fake *FakeConnection) HTTPClientCallCount() int {
 	return len(fake.hTTPClientArgsForCall)
 }
 
+func (fake *FakeConnection) HTTPClientCalls(stub func() *http.Client) {
+	fake.hTTPClientMutex.Lock()
+	defer fake.hTTPClientMutex.Unlock()
+	fake.HTTPClientStub = stub
+}
+
 func (fake *FakeConnection) HTTPClientReturns(result1 *http.Client) {
+	fake.hTTPClientMutex.Lock()
+	defer fake.hTTPClientMutex.Unlock()
 	fake.HTTPClientStub = nil
 	fake.hTTPClientReturns = struct {
 		result1 *http.Client
@@ -143,6 +174,8 @@ func (fake *FakeConnection) HTTPClientReturns(result1 *http.Client) {
 }
 
 func (fake *FakeConnection) HTTPClientReturnsOnCall(i int, result1 *http.Client) {
+	fake.hTTPClientMutex.Lock()
+	defer fake.hTTPClientMutex.Unlock()
 	fake.HTTPClientStub = nil
 	if fake.hTTPClientReturnsOnCall == nil {
 		fake.hTTPClientReturnsOnCall = make(map[int]struct {
@@ -179,6 +212,12 @@ func (fake *FakeConnection) SendCallCount() int {
 	return len(fake.sendArgsForCall)
 }
 
+func (fake *FakeConnection) SendCalls(stub func(internal.Request, *internal.Response) error) {
+	fake.sendMutex.Lock()
+	defer fake.sendMutex.Unlock()
+	fake.SendStub = stub
+}
+
 func (fake *FakeConnection) SendArgsForCall(i int) (internal.Request, *internal.Response) {
 	fake.sendMutex.RLock()
 	defer fake.sendMutex.RUnlock()
@@ -187,6 +226,8 @@ func (fake *FakeConnection) SendArgsForCall(i int) (internal.Request, *internal.
 }
 
 func (fake *FakeConnection) SendReturns(result1 error) {
+	fake.sendMutex.Lock()
+	defer fake.sendMutex.Unlock()
 	fake.SendStub = nil
 	fake.sendReturns = struct {
 		result1 error
@@ -194,6 +235,8 @@ func (fake *FakeConnection) SendReturns(result1 error) {
 }
 
 func (fake *FakeConnection) SendReturnsOnCall(i int, result1 error) {
+	fake.sendMutex.Lock()
+	defer fake.sendMutex.Unlock()
 	fake.SendStub = nil
 	if fake.sendReturnsOnCall == nil {
 		fake.sendReturnsOnCall = make(map[int]struct {
@@ -201,6 +244,68 @@ func (fake *FakeConnection) SendReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.sendReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeConnection) SendHTTPRequest(arg1 *http.Request, arg2 bool, arg3 *internal.Response) error {
+	fake.sendHTTPRequestMutex.Lock()
+	ret, specificReturn := fake.sendHTTPRequestReturnsOnCall[len(fake.sendHTTPRequestArgsForCall)]
+	fake.sendHTTPRequestArgsForCall = append(fake.sendHTTPRequestArgsForCall, struct {
+		arg1 *http.Request
+		arg2 bool
+		arg3 *internal.Response
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SendHTTPRequest", []interface{}{arg1, arg2, arg3})
+	fake.sendHTTPRequestMutex.Unlock()
+	if fake.SendHTTPRequestStub != nil {
+		return fake.SendHTTPRequestStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.sendHTTPRequestReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeConnection) SendHTTPRequestCallCount() int {
+	fake.sendHTTPRequestMutex.RLock()
+	defer fake.sendHTTPRequestMutex.RUnlock()
+	return len(fake.sendHTTPRequestArgsForCall)
+}
+
+func (fake *FakeConnection) SendHTTPRequestCalls(stub func(*http.Request, bool, *internal.Response) error) {
+	fake.sendHTTPRequestMutex.Lock()
+	defer fake.sendHTTPRequestMutex.Unlock()
+	fake.SendHTTPRequestStub = stub
+}
+
+func (fake *FakeConnection) SendHTTPRequestArgsForCall(i int) (*http.Request, bool, *internal.Response) {
+	fake.sendHTTPRequestMutex.RLock()
+	defer fake.sendHTTPRequestMutex.RUnlock()
+	argsForCall := fake.sendHTTPRequestArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeConnection) SendHTTPRequestReturns(result1 error) {
+	fake.sendHTTPRequestMutex.Lock()
+	defer fake.sendHTTPRequestMutex.Unlock()
+	fake.SendHTTPRequestStub = nil
+	fake.sendHTTPRequestReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeConnection) SendHTTPRequestReturnsOnCall(i int, result1 error) {
+	fake.sendHTTPRequestMutex.Lock()
+	defer fake.sendHTTPRequestMutex.Unlock()
+	fake.SendHTTPRequestStub = nil
+	if fake.sendHTTPRequestReturnsOnCall == nil {
+		fake.sendHTTPRequestReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.sendHTTPRequestReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -228,7 +333,15 @@ func (fake *FakeConnection) URLCallCount() int {
 	return len(fake.uRLArgsForCall)
 }
 
+func (fake *FakeConnection) URLCalls(stub func() string) {
+	fake.uRLMutex.Lock()
+	defer fake.uRLMutex.Unlock()
+	fake.URLStub = stub
+}
+
 func (fake *FakeConnection) URLReturns(result1 string) {
+	fake.uRLMutex.Lock()
+	defer fake.uRLMutex.Unlock()
 	fake.URLStub = nil
 	fake.uRLReturns = struct {
 		result1 string
@@ -236,6 +349,8 @@ func (fake *FakeConnection) URLReturns(result1 string) {
 }
 
 func (fake *FakeConnection) URLReturnsOnCall(i int, result1 string) {
+	fake.uRLMutex.Lock()
+	defer fake.uRLMutex.Unlock()
 	fake.URLStub = nil
 	if fake.uRLReturnsOnCall == nil {
 		fake.uRLReturnsOnCall = make(map[int]struct {
@@ -256,6 +371,8 @@ func (fake *FakeConnection) Invocations() map[string][][]interface{} {
 	defer fake.hTTPClientMutex.RUnlock()
 	fake.sendMutex.RLock()
 	defer fake.sendMutex.RUnlock()
+	fake.sendHTTPRequestMutex.RLock()
+	defer fake.sendHTTPRequestMutex.RUnlock()
 	fake.uRLMutex.RLock()
 	defer fake.uRLMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -11,12 +11,13 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
+	v2 "github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker"
 )
 
 const GetResourceLockInterval = 5 * time.Second
 
-var ErrFailedToGetLock = errors.New("failed-to-get-lock")
+var ErrFailedToGetLock = errors.New("failed to get lock")
 var ErrInterrupted = errors.New("interrupted")
 
 //go:generate counterfeiter . Fetcher
@@ -26,6 +27,7 @@ type Fetcher interface {
 		ctx context.Context,
 		logger lager.Logger,
 		session Session,
+		getEventHandler v2.GetEventHandler,
 		tags atc.Tags,
 		teamID int,
 		resourceTypes creds.VersionedResourceTypes,
@@ -57,6 +59,7 @@ func (f *fetcher) Fetch(
 	ctx context.Context,
 	logger lager.Logger,
 	session Session,
+	getEventHandler v2.GetEventHandler,
 	tags atc.Tags,
 	teamID int,
 	resourceTypes creds.VersionedResourceTypes,
@@ -67,6 +70,7 @@ func (f *fetcher) Fetch(
 	sourceProvider := f.fetchSourceProviderFactory.NewFetchSourceProvider(
 		logger,
 		session,
+		getEventHandler,
 		metadata,
 		tags,
 		teamID,

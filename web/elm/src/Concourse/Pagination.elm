@@ -1,12 +1,23 @@
-module Concourse.Pagination exposing (Paginated, Pagination, Page, Direction(..), fetch, parseLinks, equal)
+module Concourse.Pagination exposing
+    ( Direction(..)
+    , Page
+    , Paginated
+    , Pagination
+    , chevron
+    , chevronContainer
+    , equal
+    , fetch
+    , parseLinks
+    )
 
+import Colors
 import Dict exposing (Dict)
 import Http
 import Json.Decode
+import Maybe.Extra
 import Regex exposing (Regex)
 import String
 import Task exposing (Task)
-import Maybe.Extra
 
 
 type alias Paginated a =
@@ -49,40 +60,28 @@ linkHeaderRegex =
     Regex.regex ("<([^>]+)>; rel=\"(" ++ previousRel ++ "|" ++ nextRel ++ ")\"")
 
 
+directionEqual : Direction -> Direction -> Bool
+directionEqual d1 d2 =
+    case ( d1, d2 ) of
+        ( Since p1, Since p2 ) ->
+            p1 == p2
+
+        ( Until p1, Until p2 ) ->
+            p1 == p2
+
+        ( From p1, From p2 ) ->
+            p1 == p2
+
+        ( To p1, To p2 ) ->
+            p1 == p2
+
+        ( _, _ ) ->
+            False
+
+
 equal : Page -> Page -> Bool
 equal one two =
-    case one.direction of
-        Since p ->
-            case two.direction of
-                Since pp ->
-                    p == pp
-
-                _ ->
-                    False
-
-        Until q ->
-            case two.direction of
-                Until qq ->
-                    q == qq
-
-                _ ->
-                    False
-
-        From f ->
-            case two.direction of
-                From ff ->
-                    f == ff
-
-                _ ->
-                    False
-
-        To t ->
-            case two.direction of
-                To tt ->
-                    t == tt
-
-                _ ->
-                    False
+    directionEqual one.direction two.direction
 
 
 fetch : Json.Decode.Decoder a -> String -> Maybe Page -> Task Http.Error (Paginated a)
@@ -108,12 +107,12 @@ parsePagination decode response =
         decoded =
             Json.Decode.decodeString (Json.Decode.list decode) response.body
     in
-        case decoded of
-            Err err ->
-                Err err
+    case decoded of
+        Err err ->
+            Err err
 
-            Ok content ->
-                Ok { content = content, pagination = pagination }
+        Ok content ->
+            Ok { content = content, pagination = pagination }
 
 
 parseLinks : Http.Response String -> Pagination
@@ -130,19 +129,16 @@ parseLinks response =
                 parsed =
                     Dict.fromList <| List.filterMap parseLinkTuple headers
             in
-                Pagination
-                    (Dict.get previousRel parsed |> Maybe.andThen parseParams)
-                    (Dict.get nextRel parsed |> Maybe.andThen parseParams)
+            Pagination
+                (Dict.get previousRel parsed |> Maybe.andThen parseParams)
+                (Dict.get nextRel parsed |> Maybe.andThen parseParams)
 
 
 keysToLower : Dict String a -> Dict String a
 keysToLower =
-    Dict.fromList << List.map fstToLower << Dict.toList
-
-
-fstToLower : ( String, a ) -> ( String, a )
-fstToLower ( x, y ) =
-    ( String.toLower x, y )
+    Dict.toList
+        >> List.map (Tuple.mapFirst String.toLower)
+        >> Dict.fromList
 
 
 parseLinkTuple : String -> Maybe ( String, String )
@@ -182,10 +178,11 @@ setQuery baseURL query =
             String.join "&" <|
                 List.map (\( k, v ) -> k ++ "=" ++ v) (Dict.toList query)
     in
-        if params == "" then
-            baseURL
-        else
-            baseURL ++ "?" ++ params
+    if params == "" then
+        baseURL
+
+    else
+        baseURL ++ "?" ++ params
 
 
 parseQuery : String -> Dict String String
@@ -199,9 +196,9 @@ parseQuery query =
                 [] ->
                     ( "", "" )
     in
-        Dict.fromList <|
-            List.map parseParam <|
-                String.split "&" query
+    Dict.fromList <|
+        List.map parseParam <|
+            String.split "&" query
 
 
 addParams : String -> Maybe Page -> String
@@ -210,7 +207,7 @@ addParams url page =
         ( baseURL, query ) =
             extractQuery url
     in
-        setQuery baseURL (Dict.union query (toQuery page))
+    setQuery baseURL (Dict.union query (toQuery page))
 
 
 fromQuery : Dict String String -> Maybe Page
@@ -236,10 +233,10 @@ fromQuery query =
             Maybe.map Since <|
                 (Dict.get "to" query |> Maybe.andThen parseNum)
     in
-        Maybe.map (\direction -> { direction = direction, limit = limit }) <|
-            Maybe.Extra.or until <|
-                Maybe.Extra.or since <|
-                    Maybe.Extra.or from to
+    Maybe.map (\direction -> { direction = direction, limit = limit }) <|
+        Maybe.Extra.or until <|
+            Maybe.Extra.or since <|
+                Maybe.Extra.or from to
 
 
 toQuery : Maybe Page -> Dict String String
@@ -267,9 +264,48 @@ toQuery page =
                 limitParam =
                     ( "limit", toString somePage.limit )
             in
-                Dict.fromList [ directionParam, limitParam ]
+            Dict.fromList [ directionParam, limitParam ]
 
 
 parseNum : String -> Maybe Int
 parseNum =
     Result.toMaybe << String.toInt
+
+
+chevronContainer : List ( String, String )
+chevronContainer =
+    [ ( "padding", "5px" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "border-left", "1px solid " ++ Colors.background )
+    ]
+
+
+chevron :
+    { direction : String, enabled : Bool, hovered : Bool }
+    -> List ( String, String )
+chevron { direction, enabled, hovered } =
+    [ ( "background-image"
+      , "url(/public/images/baseline-chevron-" ++ direction ++ "-24px.svg)"
+      )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "width", "24px" )
+    , ( "height", "24px" )
+    , ( "padding", "5px" )
+    , ( "opacity"
+      , if enabled then
+            "1"
+
+        else
+            "0.5"
+      )
+    ]
+        ++ (if hovered then
+                [ ( "background-color", Colors.paginationHover )
+                , ( "border-radius", "50%" )
+                ]
+
+            else
+                []
+           )

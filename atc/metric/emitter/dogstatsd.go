@@ -1,7 +1,6 @@
 package emitter
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"regexp"
@@ -10,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/pkg/errors"
 )
 
 type DogstatsdEmitter struct {
@@ -108,7 +108,8 @@ func (emitter *DogstatsdEmitter) Emit(logger lager.Logger, event metric.Event) {
 
 	err = emitter.client.Gauge(name, value, tags, 1)
 	if err != nil {
-		logger.Error("failed-to-send-metric", err)
+		logger.Error("failed-to-send-metric",
+			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
 		return
 	}
 }

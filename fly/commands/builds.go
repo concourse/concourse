@@ -17,13 +17,18 @@ import (
 )
 
 const timeDateLayout = "2006-01-02@15:04:05-0700"
+const inputTimeLayout = "2006-01-02 15:04:05"
 
 type BuildsCommand struct {
-	Count    int                      `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
-	Job      flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
-	Team     bool                     `short:"t"  long:"team" description:"Only show builds for the currently targeted team"`
-	Json     bool                     `long:"json" description:"Print command result as JSON"`
+	AllTeams    bool                     `short:"a" long:"all-teams" description:"Show builds for the all teams that user has access to"`
+	Count       int                      `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
+	CurrentTeam bool                     `long:"current-team" description:"Show builds for the currently targeted team"`
+	Job         flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
+	Json        bool                     `long:"json" description:"Print command result as JSON"`
+	Pipeline    flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
+	Teams       []string                 `short:"t"  long:"team" description:"Show builds for these teams"`
+	Since       string                   `long:"since" description:"Start of the range to filter builds"`
+	Until       string                   `long:"until" description:"End of the range to filter builds"`
 }
 
 func (command *BuildsCommand) Execute([]string) error {
@@ -37,22 +42,63 @@ func (command *BuildsCommand) Execute([]string) error {
 		return err
 	}
 
-	page := concourse.Page{Limit: command.Count}
+	var (
+		timeSince time.Time
+		timeUntil time.Time
+		page      = concourse.Page{}
+	)
 
-	team := target.Team()
-	client := target.Client()
+	if command.Since != "" {
+		timeSince, err = time.ParseInLocation(inputTimeLayout, command.Since, time.Now().Location())
+		if err != nil {
+			return errors.New("Since time should be in the format: " + inputTimeLayout)
+		}
+		page.Since = int(timeSince.Unix())
+	}
 
-	var builds []atc.Build
+	if command.Until != "" {
+		timeUntil, err = time.ParseInLocation(inputTimeLayout, command.Until, time.Now().Location())
+		if err != nil {
+			return errors.New("Until time should be in the format: " + inputTimeLayout)
+		}
+		page.Until = int(timeUntil.Unix())
+	}
+
+	if timeSince.After(timeUntil) && command.Since != "" && command.Until != "" {
+		return errors.New("Cannot have --since after --until")
+	}
+
 	if command.pipelineFlag() && command.jobFlag() {
 		return errors.New("Cannot specify both --pipeline and --job")
-	} else if command.pipelineFlag() {
+	}
+
+	if command.CurrentTeam && command.AllTeams {
+		return errors.New("Cannot specify both --all-teams and --current-team")
+	}
+
+	if len(command.Teams) > 0 && command.AllTeams {
+		return errors.New("Cannot specify both --all-teams and --team")
+	}
+
+	var (
+		builds = make([]atc.Build, 0)
+		teams  = make([]concourse.Team, 0)
+	)
+
+	page.Limit = command.Count
+	page.Timestamps = command.Since != "" || command.Until != ""
+
+	currentTeam := target.Team()
+	client := target.Client()
+
+	if command.pipelineFlag() {
 		err = command.Pipeline.Validate()
 		if err != nil {
 			return err
 		}
 
 		var found bool
-		builds, _, found, err = team.PipelineBuilds(
+		builds, _, found, err = currentTeam.PipelineBuilds(
 			string(command.Pipeline),
 			page,
 		)
@@ -65,7 +111,7 @@ func (command *BuildsCommand) Execute([]string) error {
 		}
 	} else if command.jobFlag() {
 		var found bool
-		builds, _, found, err = team.JobBuilds(
+		builds, _, found, err = currentTeam.JobBuilds(
 			command.Job.PipelineName,
 			command.Job.JobName,
 			page,
@@ -77,16 +123,37 @@ func (command *BuildsCommand) Execute([]string) error {
 		if !found {
 			displayhelpers.Failf("pipeline/job not found")
 		}
-	} else if command.Team {
-		builds, _, err = team.Builds(page)
+	} else if command.AllTeams {
+		atcTeams, err := client.ListTeams()
 		if err != nil {
 			return err
+		}
+
+		for _, atcTeam := range atcTeams {
+			teams = append(teams, client.Team(atcTeam.Name))
+		}
+	} else if len(command.Teams) > 0 || command.CurrentTeam {
+		if command.CurrentTeam {
+			teams = append(teams, currentTeam)
+		}
+
+		for _, teamName := range command.Teams {
+			teams = append(teams, client.Team(teamName))
 		}
 	} else {
 		builds, _, err = client.Builds(page)
 		if err != nil {
 			return err
 		}
+	}
+
+	for _, team := range teams {
+		teamBuilds, _, err := team.Builds(page)
+		if err != nil {
+			return err
+		}
+
+		builds = append(builds, teamBuilds...)
 	}
 
 	if command.Json {
@@ -106,6 +173,7 @@ func (command *BuildsCommand) Execute([]string) error {
 			{Contents: "start", Color: color.New(color.Bold)},
 			{Contents: "end", Color: color.New(color.Bold)},
 			{Contents: "duration", Color: color.New(color.Bold)},
+			{Contents: "team", Color: color.New(color.Bold)},
 		},
 	}
 
@@ -156,6 +224,7 @@ func (command *BuildsCommand) Execute([]string) error {
 			startTimeCell,
 			endTimeCell,
 			durationCell,
+			{Contents: b.TeamName},
 		})
 	}
 

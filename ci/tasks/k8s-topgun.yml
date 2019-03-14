@@ -1,0 +1,23 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+params:
+  CONCOURSE_CHART_DIR:
+  CONCOURSE_IMAGE_NAME:
+  CONCOURSE_IMAGE_TAG:
+  KUBE_CONFIG:
+
+inputs:
+- name: concourse
+- name: concourse-rc-image
+- name: charts
+
+caches:
+- path: gopath
+
+run:
+  path: concourse/ci/tasks/scripts/k8s-topgun

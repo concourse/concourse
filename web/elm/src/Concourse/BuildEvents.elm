@@ -1,37 +1,22 @@
-module Concourse.BuildEvents exposing (..)
+module Concourse.BuildEvents exposing
+    ( dateFromSeconds
+    , decodeBuildEvent
+    , decodeBuildEventEnvelope
+    , decodeErrorEvent
+    , decodeFinishResource
+    , decodeOrigin
+    , parseEvent
+    , parseEvents
+    , parseEventsFromIndex
+    )
 
 import Array exposing (Array)
+import Build.Models exposing (BuildEvent(..), Origin)
+import Concourse
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Json.Decode
-import Concourse
-import EventSource
 import EventSource.LowLevel as ES
-
-
-type BuildEvent
-    = BuildStatus Concourse.BuildStatus Date
-    | Initialize Origin
-    | StartTask Origin
-    | FinishTask Origin Int
-    | FinishGet Origin Int Concourse.Version Concourse.Metadata
-    | FinishPut Origin Int Concourse.Version Concourse.Metadata
-    | Log Origin String (Maybe Date)
-    | Error Origin String
-    | BuildError String
-    | End
-
-
-type Msg
-    = Opened
-    | Errored
-    | Events (Result String (Array.Array BuildEvent))
-
-
-type alias Origin =
-    { source : String
-    , id : String
-    }
+import Json.Decode
 
 
 decodeBuildEventEnvelope : Json.Decode.Decoder BuildEvent
@@ -95,51 +80,29 @@ decodeBuildEvent eventType =
             Json.Decode.fail ("unknown event type: " ++ unknown)
 
 
-subscribe : Int -> Sub Msg
-subscribe build =
-    EventSource.listen ( "/api/v1/builds/" ++ toString build ++ "/events", [ "end", "event" ] ) parseMsg
-
-
 parseEvents : Array.Array ES.Event -> Result String (Array.Array BuildEvent)
 parseEvents evs =
     -- this is hard to read, but faster than a fold or using a List
     parseEventsFromIndex evs (Array.initialize (Array.length evs) (\_ -> End)) 0
 
 
-parseEventsFromIndex : Array.Array ES.Event -> Array.Array BuildEvent -> Int -> Result String (Array.Array BuildEvent)
+parseEventsFromIndex :
+    Array.Array ES.Event
+    -> Array.Array BuildEvent
+    -> Int
+    -> Result String (Array.Array BuildEvent)
 parseEventsFromIndex evs acc i =
-    let
-        elem =
-            Array.get i evs
-    in
-        case elem of
-            Nothing ->
-                Ok acc
+    case Array.get i evs of
+        Nothing ->
+            Ok acc
 
-            Just ev ->
-                let
-                    parsed =
-                        parseEvent ev
-                in
-                    case parsed of
-                        Ok ev ->
-                            parseEventsFromIndex evs (Array.set i ev acc) (i + 1)
+        Just ev ->
+            case parseEvent ev of
+                Ok ev ->
+                    parseEventsFromIndex evs (Array.set i ev acc) (i + 1)
 
-                        Err err ->
-                            Err err
-
-
-parseMsg : EventSource.Msg -> Msg
-parseMsg msg =
-    case msg of
-        EventSource.Events evs ->
-            Events (parseEvents evs)
-
-        EventSource.Opened ->
-            Opened
-
-        EventSource.Errored ->
-            Errored
+                Err err ->
+                    Err err
 
 
 parseEvent : ES.Event -> Result String BuildEvent
@@ -157,7 +120,7 @@ parseEvent event =
 
 dateFromSeconds : Float -> Date
 dateFromSeconds =
-    Date.fromTime << ((*) 1000)
+    Date.fromTime << (*) 1000
 
 
 decodeFinishResource : (Origin -> Int -> Concourse.Version -> Concourse.Metadata -> a) -> Json.Decode.Decoder a

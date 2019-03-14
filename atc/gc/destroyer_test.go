@@ -213,7 +213,7 @@ var _ = Describe("Destroyer", func() {
 
 		Context("there is error in the volumes repository call", func() {
 			BeforeEach(func() {
-				fakeVolumeRepository.GetDestroyingVolumesReturns([]string{}, errors.New("some-bad-err"))
+				fakeVolumeRepository.GetDestroyingVolumesReturns(nil, errors.New("some-bad-err"))
 			})
 			It("returns an error", func() {
 				Expect(FindErr).To(HaveOccurred())

@@ -40,42 +40,6 @@
     flex-direction: column;
   }
 
-  .dashboard-pipeline {
-    display: flex;
-    height: 60px;
-    max-height: 60px;
-    margin: 0 60px 4px 0;
-    break-inside: avoid;
-    width: ~"calc((100vw - 600px) / 9)";
-    min-width: 200px;
-    position: relative;
-
-    &.dashboard-status-succeeded {
-      .dashboard-pipeline-content {
-        background-color: rgba(17, 197, 96, 0.2);
-      }
-    }
-
-    &.dashboard-status-failed {
-      .dashboard-pipeline-content {
-        background-color: @red-primary;
-      }
-    }
-
-    &.dashboard-status-errored {
-      .dashboard-pipeline-content {
-        background-color: @amber-primary;
-      }
-    }
-  }
-
-  .dashboard-pipeline-banner {
-    min-width: 8px;
-    width: 8px;
-    height: 100% !important;
-    z-index: 1;
-  }
-
   .dashboard-pipeline-content {
     display: table !important;
     // 100% - banner width - left/right padding
@@ -94,11 +58,9 @@
     }
 
     a {
-      letter-spacing: 1px;
       display: table-cell;
       vertical-align: middle;
       text-align: left;
-      font-size: 19px;
       line-height: 18px;
       padding-left: 4px;
 

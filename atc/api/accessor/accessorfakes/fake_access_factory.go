@@ -50,6 +50,12 @@ func (fake *FakeAccessFactory) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
+func (fake *FakeAccessFactory) CreateCalls(stub func(*http.Request, string) accessor.Access) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
+	fake.CreateStub = stub
+}
+
 func (fake *FakeAccessFactory) CreateArgsForCall(i int) (*http.Request, string) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
@@ -58,6 +64,8 @@ func (fake *FakeAccessFactory) CreateArgsForCall(i int) (*http.Request, string) 
 }
 
 func (fake *FakeAccessFactory) CreateReturns(result1 accessor.Access) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
 		result1 accessor.Access
@@ -65,6 +73,8 @@ func (fake *FakeAccessFactory) CreateReturns(result1 accessor.Access) {
 }
 
 func (fake *FakeAccessFactory) CreateReturnsOnCall(i int, result1 accessor.Access) {
+	fake.createMutex.Lock()
+	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {

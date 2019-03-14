@@ -37,6 +37,12 @@ func (fake *FakeBuildTracker) ReleaseCallCount() int {
 	return len(fake.releaseArgsForCall)
 }
 
+func (fake *FakeBuildTracker) ReleaseCalls(stub func()) {
+	fake.releaseMutex.Lock()
+	defer fake.releaseMutex.Unlock()
+	fake.ReleaseStub = stub
+}
+
 func (fake *FakeBuildTracker) Track() {
 	fake.trackMutex.Lock()
 	fake.trackArgsForCall = append(fake.trackArgsForCall, struct {
@@ -52,6 +58,12 @@ func (fake *FakeBuildTracker) TrackCallCount() int {
 	fake.trackMutex.RLock()
 	defer fake.trackMutex.RUnlock()
 	return len(fake.trackArgsForCall)
+}
+
+func (fake *FakeBuildTracker) TrackCalls(stub func()) {
+	fake.trackMutex.Lock()
+	defer fake.trackMutex.Unlock()
+	fake.TrackStub = stub
 }
 
 func (fake *FakeBuildTracker) Invocations() map[string][][]interface{} {

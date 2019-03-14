@@ -24,12 +24,13 @@ import (
 type LoginCommand struct {
 	ATCURL      string       `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
 	Insecure    bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
-	Remote      bool         `short:"r" long:"remote" description:"Login redirect to token page on browser"`
 	Username    string       `short:"u" long:"username" description:"Username for basic auth"`
 	Password    string       `short:"p" long:"password" description:"Password for basic auth"`
 	TeamName    string       `short:"n" long:"team-name" description:"Team to authenticate with"`
 	CACert      atc.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
 	OpenBrowser bool         `short:"b" long:"open-browser" description:"Open browser to the auth endpoint"`
+
+	BrowserOnly bool
 }
 
 func (command *LoginCommand) Execute(args []string) error {
@@ -114,12 +115,12 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	if semver.Compare(legacySemver) <= 0 && semver.Compare(devSemver) != 0 {
 		// Legacy Auth Support
-		tokenType, tokenValue, err = command.legacyAuth(target)
+		tokenType, tokenValue, err = command.legacyAuth(target, command.BrowserOnly)
 	} else {
 		if command.Username != "" && command.Password != "" {
 			tokenType, tokenValue, err = command.passwordGrant(client, command.Username, command.Password)
 		} else {
-			tokenType, tokenValue, err = command.authCodeGrant(client.URL())
+			tokenType, tokenValue, err = command.authCodeGrant(client.URL(), command.BrowserOnly)
 		}
 	}
 
@@ -163,7 +164,7 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 	return token.TokenType, token.AccessToken, nil
 }
 
-func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, error) {
+func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (string, string, error) {
 
 	var tokenStr string
 
@@ -181,17 +182,10 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 	fmt.Println("navigate to the following URL in your browser:")
 	fmt.Println("")
 
-	if command.Remote {
-		openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, "/sky/token")
+	openURL = fmt.Sprintf("%s/login?fly_port=%s", targetUrl, port)
 
-		fmt.Printf("  %s\n", openURL)
-		fmt.Println("")
-		fmt.Printf("and enter token manually: ")
-	} else {
-		redirectUri := "http://127.0.0.1:" + port + "/auth/callback"
-		openURL = fmt.Sprintf("%s/sky/login?redirect_uri=%s", targetUrl, redirectUri)
-
-		fmt.Printf("  %s\n", openURL)
+	fmt.Printf("  %s\n", openURL)
+	if !browserOnly {
 		fmt.Println("")
 		fmt.Printf("or enter token manually: ")
 	}
@@ -202,7 +196,9 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 		_ = open.Start(openURL)
 	}
 
-	go waitForTokenInput(stdinChannel, errorChannel)
+	if !browserOnly {
+		go waitForTokenInput(stdinChannel, errorChannel)
+	}
 
 	select {
 	case tokenStrMsg := <-tokenChannel:
@@ -219,7 +215,6 @@ func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, er
 }
 
 func checkTokenTeams(tokenValue string, loginTeam string) error {
-
 	tokenContents := strings.Split(tokenValue, ".")
 	if len(tokenContents) < 2 {
 		return nil
@@ -235,12 +230,17 @@ func checkTokenTeams(tokenValue string, loginTeam string) error {
 		return err
 	}
 
+	var teamNames []string
 	teamRoles := map[string][]string{}
-	if err := mapstructure.Decode(payload["teams"], &teamRoles); err != nil {
+	if err := mapstructure.Decode(payload["teams"], &teamRoles); err == nil {
+		for team, _ := range teamRoles {
+			teamNames = append(teamNames, team)
+		}
+	} else if err := mapstructure.Decode(payload["teams"], &teamNames); err != nil {
 		return err
 	}
 
-	for team, _ := range teamRoles {
+	for _, team := range teamNames {
 		if team == loginTeam {
 			return nil
 		}
@@ -255,8 +255,9 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 	s := &http.Server{
 		Addr: "127.0.0.1:0",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", targetUrl)
 			tokenChannel <- r.FormValue("token")
-			http.Redirect(w, r, fmt.Sprintf("%s/public/fly_success", targetUrl), http.StatusTemporaryRedirect)
+			w.WriteHeader(200)
 		}),
 	}
 
@@ -329,7 +330,7 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 	return nil
 }
 
-func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error) {
+func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool) (string, string, error) {
 
 	httpClient := target.Client().HTTPClient()
 
@@ -362,34 +363,34 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 		if chosenMethod.Type == "" {
 			return "", "", errors.New("basic auth is not available")
 		}
-	}
+	} else {
+		choices := make([]interact.Choice, len(authMethods))
 
-	choices := make([]interact.Choice, len(authMethods))
-
-	for i, method := range authMethods {
-		choices[i] = interact.Choice{
-			Display: method.DisplayName,
-			Value:   method,
-		}
-	}
-
-	if len(choices) == 0 {
-		chosenMethod = authMethod{
-			Type: "none",
-		}
-	}
-
-	if len(choices) == 1 {
-		chosenMethod = authMethods[0]
-	}
-
-	if len(choices) > 1 {
-		err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
-		if err != nil {
-			return "", "", err
+		for i, method := range authMethods {
+			choices[i] = interact.Choice{
+				Display: method.DisplayName,
+				Value:   method,
+			}
 		}
 
-		fmt.Println("")
+		if len(choices) == 0 {
+			chosenMethod = authMethod{
+				Type: "none",
+			}
+		}
+
+		if len(choices) == 1 {
+			chosenMethod = authMethods[0]
+		}
+
+		if len(choices) > 1 {
+			err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
+			if err != nil {
+				return "", "", err
+			}
+
+			fmt.Println("")
+		}
 	}
 
 	switch chosenMethod.Type {
@@ -410,8 +411,11 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 		fmt.Println("navigate to the following URL in your browser:")
 		fmt.Println("")
 		fmt.Printf("    %s", theURL)
-		fmt.Println("")
-		fmt.Printf("or enter token manually: ")
+
+		if !browserOnly {
+			fmt.Println("")
+			fmt.Printf("or enter token manually: ")
+		}
 
 		if command.OpenBrowser {
 			// try to open the browser window, but don't get all hung up if it
@@ -419,7 +423,9 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 			_ = open.Start(theURL)
 		}
 
-		go waitForTokenInput(stdinChannel, errorChannel)
+		if !browserOnly {
+			go waitForTokenInput(stdinChannel, errorChannel)
+		}
 
 		select {
 		case tokenStrMsg := <-tokenChannel:

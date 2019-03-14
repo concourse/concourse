@@ -84,8 +84,10 @@ Concourse instance to the next.
   reference material.
 * The [Concourse Tutorial](https://concoursetutorial.com) by Stark & Wayne is
   great for a guided introduction to all the core concepts.
+* See Concourse in action with our [production pipelines](https://ci.concourse-ci.org/)
 * Hang around in the [forums](https://discuss.concourse-ci.org) or in
   [Discord](https://discord.gg/MeRxXKW).
+* See what we're working on on the [project board](https://github.com/orgs/concourse/projects). 
 
 
 ## Contributing
@@ -94,4 +96,4 @@ Our user base is basically everyone that develops software (and wants it to
 work).
 
 It's a lot of work, and we need your help! If you're interested, check out our
-[contributing docs](.github/CONTRIBUTING.md).
+[contributing docs](CONTRIBUTING.md).

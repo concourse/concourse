@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,9 +14,17 @@ import (
 )
 
 var (
-	ErrWorkerNotPresent         = errors.New("worker-not-present-in-db")
-	ErrCannotPruneRunningWorker = errors.New("worker-not-stalled-for-pruning")
+	ErrWorkerNotPresent         = errors.New("worker not present in db")
+	ErrCannotPruneRunningWorker = errors.New("worker not stalled for pruning")
 )
+
+type ContainerOwnerDisappearedError struct {
+	owner ContainerOwner
+}
+
+func (e ContainerOwnerDisappearedError) Error() string {
+	return fmt.Sprintf("container owner %T disappeared", e.owner)
+}
 
 type WorkerState string
 
@@ -41,6 +50,7 @@ type Worker interface {
 	HTTPSProxyURL() string
 	NoProxy() string
 	ActiveContainers() int
+	ActiveVolumes() int
 	ResourceTypes() []atc.WorkerResourceType
 	Platform() string
 	Tags() []string
@@ -73,6 +83,7 @@ type worker struct {
 	httpsProxyURL    string
 	noProxy          string
 	activeContainers int
+	activeVolumes    int
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             []string
@@ -95,6 +106,7 @@ func (worker *worker) HTTPProxyURL() string                    { return worker.h
 func (worker *worker) HTTPSProxyURL() string                   { return worker.httpsProxyURL }
 func (worker *worker) NoProxy() string                         { return worker.noProxy }
 func (worker *worker) ActiveContainers() int                   { return worker.activeContainers }
+func (worker *worker) ActiveVolumes() int                      { return worker.activeVolumes }
 func (worker *worker) ResourceTypes() []atc.WorkerResourceType { return worker.resourceTypes }
 func (worker *worker) Platform() string                        { return worker.platform }
 func (worker *worker) Tags() []string                          { return worker.tags }
@@ -299,7 +311,7 @@ func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetada
 		Scan(cols...)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
-			return nil, ErrBuildDisappeared
+			return nil, ContainerOwnerDisappearedError{owner}
 		}
 
 		return nil, err

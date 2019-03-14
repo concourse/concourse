@@ -54,6 +54,12 @@ func (fake *FakeLockFactory) AcquireCallCount() int {
 	return len(fake.acquireArgsForCall)
 }
 
+func (fake *FakeLockFactory) AcquireCalls(stub func(lager.Logger, lock.LockID) (lock.Lock, bool, error)) {
+	fake.acquireMutex.Lock()
+	defer fake.acquireMutex.Unlock()
+	fake.AcquireStub = stub
+}
+
 func (fake *FakeLockFactory) AcquireArgsForCall(i int) (lager.Logger, lock.LockID) {
 	fake.acquireMutex.RLock()
 	defer fake.acquireMutex.RUnlock()
@@ -62,6 +68,8 @@ func (fake *FakeLockFactory) AcquireArgsForCall(i int) (lager.Logger, lock.LockI
 }
 
 func (fake *FakeLockFactory) AcquireReturns(result1 lock.Lock, result2 bool, result3 error) {
+	fake.acquireMutex.Lock()
+	defer fake.acquireMutex.Unlock()
 	fake.AcquireStub = nil
 	fake.acquireReturns = struct {
 		result1 lock.Lock
@@ -71,6 +79,8 @@ func (fake *FakeLockFactory) AcquireReturns(result1 lock.Lock, result2 bool, res
 }
 
 func (fake *FakeLockFactory) AcquireReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.acquireMutex.Lock()
+	defer fake.acquireMutex.Unlock()
 	fake.AcquireStub = nil
 	if fake.acquireReturnsOnCall == nil {
 		fake.acquireReturnsOnCall = make(map[int]struct {

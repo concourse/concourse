@@ -85,6 +85,12 @@ func (fake *FakeEngine) CreateBuildCallCount() int {
 	return len(fake.createBuildArgsForCall)
 }
 
+func (fake *FakeEngine) CreateBuildCalls(stub func(lager.Logger, db.Build, atc.Plan) (engine.Build, error)) {
+	fake.createBuildMutex.Lock()
+	defer fake.createBuildMutex.Unlock()
+	fake.CreateBuildStub = stub
+}
+
 func (fake *FakeEngine) CreateBuildArgsForCall(i int) (lager.Logger, db.Build, atc.Plan) {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
@@ -93,6 +99,8 @@ func (fake *FakeEngine) CreateBuildArgsForCall(i int) (lager.Logger, db.Build, a
 }
 
 func (fake *FakeEngine) CreateBuildReturns(result1 engine.Build, result2 error) {
+	fake.createBuildMutex.Lock()
+	defer fake.createBuildMutex.Unlock()
 	fake.CreateBuildStub = nil
 	fake.createBuildReturns = struct {
 		result1 engine.Build
@@ -101,6 +109,8 @@ func (fake *FakeEngine) CreateBuildReturns(result1 engine.Build, result2 error) 
 }
 
 func (fake *FakeEngine) CreateBuildReturnsOnCall(i int, result1 engine.Build, result2 error) {
+	fake.createBuildMutex.Lock()
+	defer fake.createBuildMutex.Unlock()
 	fake.CreateBuildStub = nil
 	if fake.createBuildReturnsOnCall == nil {
 		fake.createBuildReturnsOnCall = make(map[int]struct {
@@ -139,6 +149,12 @@ func (fake *FakeEngine) LookupBuildCallCount() int {
 	return len(fake.lookupBuildArgsForCall)
 }
 
+func (fake *FakeEngine) LookupBuildCalls(stub func(lager.Logger, db.Build) (engine.Build, error)) {
+	fake.lookupBuildMutex.Lock()
+	defer fake.lookupBuildMutex.Unlock()
+	fake.LookupBuildStub = stub
+}
+
 func (fake *FakeEngine) LookupBuildArgsForCall(i int) (lager.Logger, db.Build) {
 	fake.lookupBuildMutex.RLock()
 	defer fake.lookupBuildMutex.RUnlock()
@@ -147,6 +163,8 @@ func (fake *FakeEngine) LookupBuildArgsForCall(i int) (lager.Logger, db.Build) {
 }
 
 func (fake *FakeEngine) LookupBuildReturns(result1 engine.Build, result2 error) {
+	fake.lookupBuildMutex.Lock()
+	defer fake.lookupBuildMutex.Unlock()
 	fake.LookupBuildStub = nil
 	fake.lookupBuildReturns = struct {
 		result1 engine.Build
@@ -155,6 +173,8 @@ func (fake *FakeEngine) LookupBuildReturns(result1 engine.Build, result2 error) 
 }
 
 func (fake *FakeEngine) LookupBuildReturnsOnCall(i int, result1 engine.Build, result2 error) {
+	fake.lookupBuildMutex.Lock()
+	defer fake.lookupBuildMutex.Unlock()
 	fake.LookupBuildStub = nil
 	if fake.lookupBuildReturnsOnCall == nil {
 		fake.lookupBuildReturnsOnCall = make(map[int]struct {
@@ -191,7 +211,15 @@ func (fake *FakeEngine) NameCallCount() int {
 	return len(fake.nameArgsForCall)
 }
 
+func (fake *FakeEngine) NameCalls(stub func() string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = stub
+}
+
 func (fake *FakeEngine) NameReturns(result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
 	fake.NameStub = nil
 	fake.nameReturns = struct {
 		result1 string
@@ -199,6 +227,8 @@ func (fake *FakeEngine) NameReturns(result1 string) {
 }
 
 func (fake *FakeEngine) NameReturnsOnCall(i int, result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
 	fake.NameStub = nil
 	if fake.nameReturnsOnCall == nil {
 		fake.nameReturnsOnCall = make(map[int]struct {
@@ -226,6 +256,12 @@ func (fake *FakeEngine) ReleaseAllCallCount() int {
 	fake.releaseAllMutex.RLock()
 	defer fake.releaseAllMutex.RUnlock()
 	return len(fake.releaseAllArgsForCall)
+}
+
+func (fake *FakeEngine) ReleaseAllCalls(stub func(lager.Logger)) {
+	fake.releaseAllMutex.Lock()
+	defer fake.releaseAllMutex.Unlock()
+	fake.ReleaseAllStub = stub
 }
 
 func (fake *FakeEngine) ReleaseAllArgsForCall(i int) lager.Logger {

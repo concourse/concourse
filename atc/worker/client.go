@@ -22,6 +22,7 @@ type Client interface {
 		db.ContainerOwner,
 		db.ContainerMetadata,
 		ContainerSpec,
+		WorkerSpec,
 		creds.VersionedResourceTypes,
 	) (Container, error)
 
@@ -31,9 +32,7 @@ type Client interface {
 
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 
-	Satisfying(lager.Logger, WorkerSpec, creds.VersionedResourceTypes) (Worker, error)
-	AllSatisfying(lager.Logger, WorkerSpec, creds.VersionedResourceTypes) ([]Worker, error)
-	RunningWorkers(lager.Logger) ([]Worker, error)
+	Satisfying(lager.Logger, WorkerSpec) (Worker, error)
 }
 
 //go:generate counterfeiter . InputSource

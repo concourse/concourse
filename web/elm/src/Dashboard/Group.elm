@@ -1,123 +1,89 @@
-module Dashboard.Group exposing (..)
+module Dashboard.Group exposing
+    ( DragState(..)
+    , DropState(..)
+    , Group
+    , PipelineIndex
+    , StickyHeaderConfig
+    , allPipelines
+    , allTeamNames
+    , dragIndex
+    , dragIndexOptional
+    , dropIndex
+    , dropIndexOptional
+    , findGroupOptional
+    , group
+    , groups
+    , hdView
+    , jobStatus
+    , ordering
+    , pipelineDropAreaView
+    , pipelineNotSetView
+    , pipelineStatus
+    , setDragIndex
+    , setDropIndex
+    , setTeamName
+    , shiftPipelineTo
+    , shiftPipelines
+    , stickyHeaderConfig
+    , teamName
+    , teamNameOptional
+    , transition
+    , view
+    )
 
 import Concourse
-import Concourse.Info
-import Concourse.Job
-import Concourse.Pipeline
-import Concourse.PipelineStatus
-import Concourse.Resource
-import Concourse.Team
-import Dashboard.Pipeline as Pipeline
+import Concourse.BuildStatus
+import Concourse.PipelineStatus as PipelineStatus
+import Dashboard.APIData exposing (APIData)
 import Dashboard.Group.Tag as Tag
-
-
--- import Dashboard.Details as Details
-
+import Dashboard.Models as Models
+import Dashboard.Msgs exposing (Msg(..))
+import Dashboard.Pipeline as Pipeline
+import Dashboard.Styles as Styles
+import Date exposing (Date)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter)
-import Http
 import Json.Decode
 import List.Extra
 import Maybe.Extra
-import Monocle.Iso
 import Monocle.Optional
-import Monocle.Lens
+import TopBar.Styles as NTBS
 import Ordering exposing (Ordering)
 import Set
-import Task
 import Time exposing (Time)
 
 
-type GroupHeader
-    = WithTag { teamName : String, tag : Tag.Tag }
-    | WithoutTag { teamName : String }
-
-
-type GroupBody
-    = Preview (List Pipeline.PreviewPipeline)
-    | Summary (List Pipeline.SummaryPipeline)
-
-
-type alias NewGroup =
-    { header : GroupHeader
-    , body : GroupBody
-    }
-
-
-viewHeader : GroupHeader -> List (Html Msg)
-viewHeader header =
-    case header of
-        WithTag { teamName, tag } ->
-            [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ]
-            , Html.div [ class "dashboard-team-tag" ] [ Html.text <| Tag.text tag ]
-            ]
-
-        WithoutTag { teamName } ->
-            [ Html.div [ class "dashboard-team-name" ] [ Html.text teamName ] ]
-
-
-
--- viewNewGroup : NewGroup -> Details -> Html Msg
--- viewNewGroup newGroup details =
---     let
---         pipelines =
---             if List.isEmpty newGroup.body then
---                 [ Pipeline.pipelineNotSetView ]
---             else
---                 List.append
---                     (List.indexedMap
---                         (\i pipeline ->
---                             Html.div [ class "pipeline-wrapper" ]
---                                 [ pipelineDropAreaView dragState dropState group.teamName i
---                                 , Html.div
---                                     [ classList
---                                         [ ( "dashboard-pipeline", True )
---                                         , ( "dashboard-paused", pipeline.pipeline.paused )
---                                         , ( "dashboard-running", not <| List.isEmpty <| List.filterMap .nextBuild pipeline.jobs )
---                                         , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (Pipeline.pipelineStatusFromJobs pipeline.jobs False), not pipeline.pipeline.paused )
---                                         , ( "dragging", dragState == Dragging pipeline.pipeline.teamName i )
---                                         ]
---                                     , attribute "data-pipeline-name" pipeline.pipeline.name
---                                     , attribute "ondragstart" "event.dataTransfer.setData('text/plain', '');"
---                                     , draggable "true"
---                                     , on "dragstart" (Json.Decode.succeed (DragStart pipeline.pipeline.teamName i))
---                                     , on "dragend" (Json.Decode.succeed DragEnd)
---                                     ]
---                                     [ Html.div [ class "dashboard-pipeline-banner" ] []
---                                     , Html.map PipelineMsg <| Pipeline.view now pipeline
---                                     ]
---                                 ]
---                         )
---                         group.body
---                     )
---                     [ pipelineDropAreaView dragState dropState group.teamName (List.length group.pipelines) ]
---     in
---         Html.div [ id group.teamName, class "dashboard-team-group", attribute "data-team-name" group.teamName ]
---             [ Html.div [ class "pin-wrapper" ]
---                 [ Html.div [ class "dashboard-team-header" ] viewHeader newGroup.header ]
---             , Html.div [ class "dashboard-team-pipelines" ] pipelines
---             ]
-
-
 type alias Group =
-    { pipelines : List Pipeline.PipelineWithJobs
+    { pipelines : List Models.Pipeline
     , teamName : String
+    , tag : Maybe Tag.Tag
     }
 
 
-type alias APIData =
-    { teams : List Concourse.Team
-    , pipelines : List Concourse.Pipeline
-    , jobs : List Concourse.Job
-    , resources : List Concourse.Resource
-    , version : String
+ordering : Ordering Group
+ordering =
+    Ordering.byFieldWith Tag.ordering .tag
+        |> Ordering.breakTiesWith (Ordering.byField .teamName)
+
+
+type alias StickyHeaderConfig =
+    { pageHeaderHeight : Float
+    , pageBodyClass : String
+    , sectionHeaderClass : String
+    , sectionClass : String
+    , sectionBodyClass : String
     }
 
 
-groupsLens : Monocle.Lens.Lens APIData (List Group)
-groupsLens =
-    Monocle.Lens.fromIso <| Monocle.Iso.Iso groups apiData
+stickyHeaderConfig : StickyHeaderConfig
+stickyHeaderConfig =
+    { pageHeaderHeight = NTBS.pageHeaderHeight
+    , pageBodyClass = "dashboard"
+    , sectionClass = "dashboard-team-group"
+    , sectionHeaderClass = "dashboard-team-header"
+    , sectionBodyClass = "dashboard-team-pipelines"
+    }
 
 
 findGroupOptional : String -> Monocle.Optional.Optional (List Group) Group
@@ -126,8 +92,12 @@ findGroupOptional teamName =
         predicate =
             .teamName >> (==) teamName
     in
-        Monocle.Optional.Optional (List.Extra.find predicate)
-            (\g gs -> List.Extra.findIndex predicate gs |> Maybe.map (\i -> List.Extra.setAt i g gs) |> Maybe.Extra.join |> Maybe.withDefault gs)
+    Monocle.Optional.Optional (List.Extra.find predicate)
+        (\g gs ->
+            List.Extra.findIndex predicate gs
+                |> Maybe.andThen (\i -> List.Extra.setAt i g gs)
+                |> Maybe.withDefault gs
+        )
 
 
 type alias PipelineIndex =
@@ -219,26 +189,25 @@ setDropIndex dropIndex dropState =
             NotDropping
 
 
-type Msg
-    = DragStart String Int
-    | DragOver String Int
-    | DragEnd
-    | PipelineMsg Pipeline.Msg
-
-
-allPipelines : APIData -> List Pipeline.PipelineWithJobs
+allPipelines : APIData -> List Models.Pipeline
 allPipelines data =
     data.pipelines
         |> List.map
             (\p ->
-                { pipeline = p
-                , jobs =
-                    data.jobs
-                        |> List.filter
-                            (\j ->
-                                (j.teamName == p.teamName)
-                                    && (j.pipelineName == p.name)
-                            )
+                let
+                    jobs =
+                        data.jobs
+                            |> List.filter
+                                (\j ->
+                                    (j.teamName == p.teamName)
+                                        && (j.pipelineName == p.name)
+                                )
+                in
+                { id = p.id
+                , name = p.name
+                , teamName = p.teamName
+                , public = p.public
+                , jobs = jobs
                 , resourceError =
                     data.resources
                         |> List.any
@@ -247,14 +216,117 @@ allPipelines data =
                                     && (r.pipelineName == p.name)
                                     && r.failingToCheck
                             )
+                , status = pipelineStatus p jobs
                 }
             )
+
+
+pipelineStatus : Concourse.Pipeline -> List Concourse.Job -> PipelineStatus.PipelineStatus
+pipelineStatus pipeline jobs =
+    if pipeline.paused then
+        PipelineStatus.PipelineStatusPaused
+
+    else
+        let
+            isRunning =
+                List.any (\job -> job.nextBuild /= Nothing) jobs
+
+            mostImportantJobStatus =
+                jobs
+                    |> List.map jobStatus
+                    |> List.sortWith Concourse.BuildStatus.ordering
+                    |> List.head
+
+            firstNonSuccess =
+                jobs
+                    |> List.filter (jobStatus >> (/=) Concourse.BuildStatusSucceeded)
+                    |> List.filterMap transition
+                    |> List.sort
+                    |> List.head
+
+            lastTransition =
+                jobs
+                    |> List.filterMap transition
+                    |> List.sort
+                    |> List.reverse
+                    |> List.head
+
+            transitionTime =
+                case firstNonSuccess of
+                    Just t ->
+                        Just t
+
+                    Nothing ->
+                        lastTransition
+        in
+        case ( mostImportantJobStatus, transitionTime ) of
+            ( _, Nothing ) ->
+                PipelineStatus.PipelineStatusPending isRunning
+
+            ( Nothing, _ ) ->
+                PipelineStatus.PipelineStatusPending isRunning
+
+            ( Just Concourse.BuildStatusPending, _ ) ->
+                PipelineStatus.PipelineStatusPending isRunning
+
+            ( Just Concourse.BuildStatusStarted, _ ) ->
+                PipelineStatus.PipelineStatusPending isRunning
+
+            ( Just Concourse.BuildStatusSucceeded, Just since ) ->
+                if isRunning then
+                    PipelineStatus.PipelineStatusSucceeded PipelineStatus.Running
+
+                else
+                    PipelineStatus.PipelineStatusSucceeded (PipelineStatus.Since since)
+
+            ( Just Concourse.BuildStatusFailed, Just since ) ->
+                if isRunning then
+                    PipelineStatus.PipelineStatusFailed PipelineStatus.Running
+
+                else
+                    PipelineStatus.PipelineStatusFailed (PipelineStatus.Since since)
+
+            ( Just Concourse.BuildStatusErrored, Just since ) ->
+                if isRunning then
+                    PipelineStatus.PipelineStatusErrored PipelineStatus.Running
+
+                else
+                    PipelineStatus.PipelineStatusErrored (PipelineStatus.Since since)
+
+            ( Just Concourse.BuildStatusAborted, Just since ) ->
+                if isRunning then
+                    PipelineStatus.PipelineStatusAborted PipelineStatus.Running
+
+                else
+                    PipelineStatus.PipelineStatusAborted (PipelineStatus.Since since)
+
+
+jobStatus : Concourse.Job -> Concourse.BuildStatus
+jobStatus job =
+    case job.finishedBuild of
+        Just build ->
+            build.status
+
+        Nothing ->
+            Concourse.BuildStatusPending
+
+
+transition : Concourse.Job -> Maybe Time
+transition job =
+    case job.transitionBuild of
+        Just build ->
+            build.duration.finishedAt
+                |> Maybe.map Date.toTime
+
+        Nothing ->
+            Nothing
 
 
 shiftPipelines : Int -> Int -> Group -> Group
 shiftPipelines dragIndex dropIndex group =
     if dragIndex == dropIndex then
         group
+
     else
         let
             pipelines =
@@ -269,7 +341,7 @@ shiftPipelines dragIndex dropIndex group =
                     Just pipeline ->
                         shiftPipelineTo pipeline dropIndex group.pipelines
         in
-            { group | pipelines = pipelines }
+        { group | pipelines = pipelines }
 
 
 
@@ -278,24 +350,28 @@ shiftPipelines dragIndex dropIndex group =
 -- to the 'length of this file' tire fire
 
 
-shiftPipelineTo : Pipeline.PipelineWithJobs -> Int -> List Pipeline.PipelineWithJobs -> List Pipeline.PipelineWithJobs
-shiftPipelineTo ({ pipeline } as pipelineWithJobs) position pipelines =
+shiftPipelineTo : Models.Pipeline -> Int -> List Models.Pipeline -> List Models.Pipeline
+shiftPipelineTo pipeline position pipelines =
     case pipelines of
         [] ->
             if position < 0 then
                 []
+
             else
-                [ pipelineWithJobs ]
+                [ pipeline ]
 
         p :: ps ->
-            if p.pipeline.teamName /= pipeline.teamName then
-                p :: shiftPipelineTo pipelineWithJobs position ps
-            else if p.pipeline == pipeline then
-                shiftPipelineTo pipelineWithJobs (position - 1) ps
+            if p.teamName /= pipeline.teamName then
+                p :: shiftPipelineTo pipeline position ps
+
+            else if p == pipeline then
+                shiftPipelineTo pipeline (position - 1) ps
+
             else if position == 0 then
-                pipelineWithJobs :: p :: shiftPipelineTo pipelineWithJobs (position - 1) ps
+                pipeline :: p :: shiftPipelineTo pipeline (position - 1) ps
+
             else
-                p :: shiftPipelineTo pipelineWithJobs (position - 1) ps
+                p :: shiftPipelineTo pipeline (position - 1) ps
 
 
 allTeamNames : APIData -> List String
@@ -306,65 +382,45 @@ allTeamNames apiData =
         |> Set.toList
 
 
-remoteData : Task.Task Http.Error APIData
-remoteData =
-    Task.map5 APIData
-        Concourse.Team.fetchTeams
-        Concourse.Pipeline.fetchPipelines
-        (Concourse.Job.fetchAllJobs |> Task.map (Maybe.withDefault []))
-        (Concourse.Resource.fetchAllResources |> Task.map (Maybe.withDefault []))
-        (Concourse.Info.fetch |> Task.map .version)
-
-
 groups : APIData -> List Group
 groups apiData =
     let
         teamNames =
             allTeamNames apiData
     in
-        teamNames
-            |> List.map (group (allPipelines apiData))
+    teamNames
+        |> List.map (group (allPipelines apiData) apiData.user)
 
 
-
--- TODO i'd like for this to be an isomorphism, which would
--- require adding resource data to the Group type, or making
--- the APIData type smaller (or, like, not marrying Group to
--- APIData at all but using a different type)
-
-
-apiData : List Group -> APIData
-apiData groups =
-    let
-        pipelines =
-            groups |> List.concatMap .pipelines
-    in
-        { teams = groups |> List.map (\g -> { id = 0, name = g.teamName })
-        , pipelines = pipelines |> List.map .pipeline
-        , jobs = pipelines |> List.concatMap .jobs
-        , resources = []
-        , version = ""
-        }
-
-
-group : List Pipeline.PipelineWithJobs -> String -> Group
-group allPipelines teamName =
-    { pipelines = (List.filter ((==) teamName << .teamName << .pipeline) allPipelines)
+group : List Models.Pipeline -> Maybe Concourse.User -> String -> Group
+group allPipelines user teamName =
+    { pipelines = List.filter (.teamName >> (==) teamName) allPipelines
     , teamName = teamName
+    , tag =
+        case user of
+            Just u ->
+                Tag.tag u teamName
+
+            Nothing ->
+                Nothing
     }
 
 
-ordering : Ordering Group
-ordering =
-    Ordering.byField .teamName
-
-
-view : List (Html Msg) -> DragState -> DropState -> Time -> Group -> Html Msg
-view header dragState dropState now group =
+view :
+    { dragState : DragState
+    , dropState : DropState
+    , now : Time
+    , hoveredPipeline : Maybe Models.Pipeline
+    , pipelineRunningKeyframes : String
+    }
+    -> Group
+    -> Html Msg
+view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } group =
     let
         pipelines =
             if List.isEmpty group.pipelines then
                 [ Pipeline.pipelineNotSetView ]
+
             else
                 List.append
                     (List.indexedMap
@@ -373,20 +429,26 @@ view header dragState dropState now group =
                                 [ pipelineDropAreaView dragState dropState group.teamName i
                                 , Html.div
                                     [ classList
-                                        [ ( "dashboard-pipeline", True )
-                                        , ( "dashboard-paused", pipeline.pipeline.paused )
-                                        , ( "dashboard-running", not <| List.isEmpty <| List.filterMap .nextBuild pipeline.jobs )
-                                        , ( "dashboard-status-" ++ Concourse.PipelineStatus.show (Pipeline.pipelineStatusFromJobs pipeline.jobs False), not pipeline.pipeline.paused )
-                                        , ( "dragging", dragState == Dragging pipeline.pipeline.teamName i )
+                                        [ ( "card", True )
+                                        , ( "dragging"
+                                          , dragState == Dragging pipeline.teamName i
+                                          )
                                         ]
-                                    , attribute "data-pipeline-name" pipeline.pipeline.name
-                                    , attribute "ondragstart" "event.dataTransfer.setData('text/plain', '');"
+                                    , attribute "data-pipeline-name" pipeline.name
+                                    , attribute
+                                        "ondragstart"
+                                        "event.dataTransfer.setData('text/plain', '');"
                                     , draggable "true"
-                                    , on "dragstart" (Json.Decode.succeed (DragStart pipeline.pipeline.teamName i))
+                                    , on "dragstart"
+                                        (Json.Decode.succeed (DragStart pipeline.teamName i))
                                     , on "dragend" (Json.Decode.succeed DragEnd)
                                     ]
-                                    [ Html.div [ class "dashboard-pipeline-banner" ] []
-                                    , Html.map PipelineMsg <| Pipeline.pipelineView now pipeline
+                                    [ Pipeline.pipelineView
+                                        { now = now
+                                        , pipeline = pipeline
+                                        , hovered = hoveredPipeline == Just pipeline
+                                        , pipelineRunningKeyframes = pipelineRunningKeyframes
+                                        }
                                     ]
                                 ]
                         )
@@ -394,49 +456,66 @@ view header dragState dropState now group =
                     )
                     [ pipelineDropAreaView dragState dropState group.teamName (List.length group.pipelines) ]
     in
-        Html.div [ id group.teamName, class "dashboard-team-group", attribute "data-team-name" group.teamName ]
-            [ Html.div [ class "dashboard-team-header" ] header
-            , Html.div [ class "dashboard-team-pipelines" ] pipelines
+    Html.div
+        [ id group.teamName
+        , class "dashboard-team-group"
+        , attribute "data-team-name" group.teamName
+        ]
+        [ Html.div
+            [ style [ ( "display", "flex" ), ( "align-items", "center" ) ]
+            , class stickyHeaderConfig.sectionHeaderClass
             ]
+            ([ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+             ]
+                ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view False) group.tag)
+            )
+        , Html.div [ class stickyHeaderConfig.sectionBodyClass ] pipelines
+        ]
 
 
-hdView : List (Html Msg) -> String -> List Pipeline.PipelineWithJobs -> Html Msg
-hdView header teamName pipelines =
+hdView : String -> Group -> Html Msg
+hdView pipelineRunningKeyframes group =
     let
-        teamPipelines =
-            if List.isEmpty pipelines then
-                [ pipelineNotSetView ]
-            else
-                List.map (Pipeline.hdPipelineView >> Html.map PipelineMsg) pipelines
-    in
-        Html.div [ class "pipeline-wrapper" ] <|
-            case teamPipelines of
-                [] ->
-                    header
+        header =
+            [ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+            ]
+                ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view True) group.tag)
 
-                p :: ps ->
-                    -- Wrap the team name and the first pipeline together so the team name is not the last element in a column
-                    List.append [ Html.div [ class "dashboard-team-name-wrapper" ] (header ++ [ p ]) ] ps
+        teamPipelines =
+            if List.isEmpty group.pipelines then
+                [ pipelineNotSetView ]
+
+            else
+                group.pipelines
+                    |> List.map
+                        (\p ->
+                            Pipeline.hdPipelineView
+                                { pipeline = p
+                                , pipelineRunningKeyframes = pipelineRunningKeyframes
+                                }
+                        )
+    in
+    Html.div [ class "pipeline-wrapper" ] <|
+        case teamPipelines of
+            [] ->
+                header
+
+            p :: ps ->
+                -- Wrap the team name and the first pipeline together so the team name is not the last element in a column
+                List.append [ Html.div [ class "dashboard-team-name-wrapper" ] (header ++ [ p ]) ] ps
 
 
 pipelineNotSetView : Html msg
 pipelineNotSetView =
     Html.div
-        [ class "dashboard-pipeline" ]
+        [ class "card" ]
         [ Html.div
-            [ classList
-                [ ( "dashboard-pipeline-content", True )
-                , ( "no-set", True )
-                ]
-            ]
-            [ Html.a [] [ Html.text "no pipelines set" ]
+            [ style Styles.noPipelineCardHd ]
+            [ Html.div
+                [ style Styles.noPipelineCardTextHd ]
+                [ Html.text "no pipelines set" ]
             ]
         ]
-
-
-headerView : Group -> List (Html Msg)
-headerView group =
-    [ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ] ]
 
 
 pipelineDropAreaView : DragState -> DropState -> String -> Int -> Html Msg
@@ -453,8 +532,8 @@ pipelineDropAreaView dragState dropState teamName index =
                 _ ->
                     ( False, False )
     in
-        Html.div
-            [ classList [ ( "drop-area", True ), ( "active", active ), ( "over", over ), ( "animation", dropState /= NotDropping ) ]
-            , on "dragenter" (Json.Decode.succeed (DragOver teamName index))
-            ]
-            [ Html.text "" ]
+    Html.div
+        [ classList [ ( "drop-area", True ), ( "active", active ), ( "over", over ), ( "animation", dropState /= NotDropping ) ]
+        , on "dragenter" (Json.Decode.succeed (DragOver teamName index))
+        ]
+        [ Html.text "" ]

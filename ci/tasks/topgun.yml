@@ -6,12 +6,13 @@ image_resource:
   source: {repository: concourse/unit}
 
 params:
-  BOSH_ENVIRONMENT:
-  BOSH_USER:
-  BOSH_PASSWORD:
+  BOSH_CA_CERT:
   BOSH_CLIENT:
   BOSH_CLIENT_SECRET:
+  BOSH_ENVIRONMENT:
   BOSH_KEY:
+  BOSH_PASSWORD:
+  BOSH_USER:
   SKIP:
   TOPGUN_NETWORK_OFFSET:
   AWS_REGION:
@@ -19,14 +20,16 @@ params:
   AWS_SECRET_ACCESS_KEY:
 
 inputs:
+- name: bbr
+- name: bpm-release
 - name: concourse
 - name: concourse-release
-- name: bpm-release
-- name: postgres-release
-- name: git-server-release
-- name: vault-release
 - name: credhub-release
+- name: postgres-bbr-compatible-release
+- name: postgres-release
 - name: stemcell
+- name: vault-release
+- name: backup-and-restore-sdk-release
 
 caches:
 - path: gopath

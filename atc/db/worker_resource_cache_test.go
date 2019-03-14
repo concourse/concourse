@@ -123,7 +123,7 @@ var _ = Describe("WorkerResourceCache", func() {
 
 				_, err = db.BaseResourceType{
 					Name: "some-bogus-resource-type",
-				}.FindOrCreate(tx)
+				}.FindOrCreate(tx, false)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = tx.Commit()

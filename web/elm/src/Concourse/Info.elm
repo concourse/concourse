@@ -1,7 +1,4 @@
-module Concourse.Info
-    exposing
-        ( fetch
-        )
+module Concourse.Info exposing (fetch)
 
 import Concourse
 import Http

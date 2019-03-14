@@ -20,6 +20,10 @@ type ManagerFactory interface {
 
 type Managers map[string]Manager
 
+type CredentialManagementConfig struct {
+	RetryConfig SecretRetryConfig
+}
+
 type HealthResponse struct {
 	Response interface{} `json:"response,omitempty"`
 	Error    string      `json:"error,omitempty"`

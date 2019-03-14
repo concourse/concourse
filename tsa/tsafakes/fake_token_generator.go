@@ -60,7 +60,15 @@ func (fake *FakeTokenGenerator) GenerateSystemTokenCallCount() int {
 	return len(fake.generateSystemTokenArgsForCall)
 }
 
+func (fake *FakeTokenGenerator) GenerateSystemTokenCalls(stub func() (string, error)) {
+	fake.generateSystemTokenMutex.Lock()
+	defer fake.generateSystemTokenMutex.Unlock()
+	fake.GenerateSystemTokenStub = stub
+}
+
 func (fake *FakeTokenGenerator) GenerateSystemTokenReturns(result1 string, result2 error) {
+	fake.generateSystemTokenMutex.Lock()
+	defer fake.generateSystemTokenMutex.Unlock()
 	fake.GenerateSystemTokenStub = nil
 	fake.generateSystemTokenReturns = struct {
 		result1 string
@@ -69,6 +77,8 @@ func (fake *FakeTokenGenerator) GenerateSystemTokenReturns(result1 string, resul
 }
 
 func (fake *FakeTokenGenerator) GenerateSystemTokenReturnsOnCall(i int, result1 string, result2 error) {
+	fake.generateSystemTokenMutex.Lock()
+	defer fake.generateSystemTokenMutex.Unlock()
 	fake.GenerateSystemTokenStub = nil
 	if fake.generateSystemTokenReturnsOnCall == nil {
 		fake.generateSystemTokenReturnsOnCall = make(map[int]struct {
@@ -106,6 +116,12 @@ func (fake *FakeTokenGenerator) GenerateTeamTokenCallCount() int {
 	return len(fake.generateTeamTokenArgsForCall)
 }
 
+func (fake *FakeTokenGenerator) GenerateTeamTokenCalls(stub func(string) (string, error)) {
+	fake.generateTeamTokenMutex.Lock()
+	defer fake.generateTeamTokenMutex.Unlock()
+	fake.GenerateTeamTokenStub = stub
+}
+
 func (fake *FakeTokenGenerator) GenerateTeamTokenArgsForCall(i int) string {
 	fake.generateTeamTokenMutex.RLock()
 	defer fake.generateTeamTokenMutex.RUnlock()
@@ -114,6 +130,8 @@ func (fake *FakeTokenGenerator) GenerateTeamTokenArgsForCall(i int) string {
 }
 
 func (fake *FakeTokenGenerator) GenerateTeamTokenReturns(result1 string, result2 error) {
+	fake.generateTeamTokenMutex.Lock()
+	defer fake.generateTeamTokenMutex.Unlock()
 	fake.GenerateTeamTokenStub = nil
 	fake.generateTeamTokenReturns = struct {
 		result1 string
@@ -122,6 +140,8 @@ func (fake *FakeTokenGenerator) GenerateTeamTokenReturns(result1 string, result2
 }
 
 func (fake *FakeTokenGenerator) GenerateTeamTokenReturnsOnCall(i int, result1 string, result2 error) {
+	fake.generateTeamTokenMutex.Lock()
+	defer fake.generateTeamTokenMutex.Unlock()
 	fake.GenerateTeamTokenStub = nil
 	if fake.generateTeamTokenReturnsOnCall == nil {
 		fake.generateTeamTokenReturnsOnCall = make(map[int]struct {

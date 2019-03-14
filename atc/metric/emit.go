@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	flags "github.com/jessevdk/go-flags"
-
 	"code.cloudfoundry.org/lager"
+
+	flags "github.com/jessevdk/go-flags"
 )
 
 type Event struct {
@@ -21,9 +21,11 @@ type Event struct {
 
 type EventState string
 
-const EventStateOK EventState = "ok"
-const EventStateWarning EventState = "warning"
-const EventStateCritical EventState = "critical"
+const (
+	EventStateOK       EventState = "ok"
+	EventStateWarning  EventState = "warning"
+	EventStateCritical EventState = "critical"
+)
 
 //go:generate counterfeiter . Emitter
 type Emitter interface {
@@ -52,19 +54,24 @@ func WireEmitters(group *flags.Group) {
 	}
 }
 
-var emitter Emitter
-var eventHost string
-var eventAttributes map[string]string
-
 type eventEmission struct {
 	event  Event
 	logger lager.Logger
 }
 
-var emissions = make(chan eventEmission, 1000)
+var (
+	emitter         Emitter
+	eventHost       string
+	eventAttributes map[string]string
+	emissions       chan eventEmission
+)
 
 func Initialize(logger lager.Logger, host string, attributes map[string]string) error {
-	var emitterDescriptions []string
+	var (
+		emitterDescriptions []string
+		err                 error
+	)
+
 	for _, factory := range emitterFactories {
 		if factory.IsConfigured() {
 			emitterDescriptions = append(emitterDescriptions, factory.Description())
@@ -74,7 +81,6 @@ func Initialize(logger lager.Logger, host string, attributes map[string]string) 
 		return fmt.Errorf("Multiple emitters configured: %s", strings.Join(emitterDescriptions, ", "))
 	}
 
-	var err error
 	for _, factory := range emitterFactories {
 		if factory.IsConfigured() {
 			emitter, err = factory.NewEmitter()
@@ -91,10 +97,16 @@ func Initialize(logger lager.Logger, host string, attributes map[string]string) 
 	emitter = emitter
 	eventHost = host
 	eventAttributes = attributes
+	emissions = make(chan eventEmission, 1000)
 
 	go emitLoop()
 
 	return nil
+}
+
+func Deinitialize(logger lager.Logger) {
+	close(emissions)
+	emitterFactories = nil
 }
 
 func emit(logger lager.Logger, event Event) {

@@ -3,12 +3,10 @@ package worker_test
 import (
 	"time"
 
-	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden/gardenfakes"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -22,29 +20,27 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		logger                 *lagertest.TestLogger
-		fakeVolumeClient       *wfakes.FakeVolumeClient
-		fakeClock              *fakeclock.FakeClock
-		fakeContainerProvider  *wfakes.FakeContainerProvider
-		activeContainers       int
-		resourceTypes          []atc.WorkerResourceType
-		platform               string
-		tags                   atc.Tags
-		teamID                 int
-		ephemeral              bool
-		workerName             string
-		workerStartTime        int64
-		workerUptime           uint64
-		gardenWorker           Worker
-		workerVersion          string
-		fakeGardenClient       *gardenfakes.FakeClient
-		fakeBaggageClaimClient *baggageclaimfakes.FakeClient
+		logger                *lagertest.TestLogger
+		fakeVolumeClient      *wfakes.FakeVolumeClient
+		fakeContainerProvider *wfakes.FakeContainerProvider
+		activeContainers      int
+		resourceTypes         []atc.WorkerResourceType
+		platform              string
+		tags                  atc.Tags
+		teamID                int
+		ephemeral             bool
+		workerName            string
+		workerStartTime       int64
+		gardenWorker          Worker
+		workerVersion         string
+		fakeGardenClient      *gardenfakes.FakeClient
+		fakeImageFactory      *wfakes.FakeImageFactory
+		fakeImage             *wfakes.FakeImage
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeVolumeClient = new(wfakes.FakeVolumeClient)
-		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
 			{
@@ -58,13 +54,14 @@ var _ = Describe("Worker", func() {
 		teamID = 17
 		ephemeral = true
 		workerName = "some-worker"
-		workerStartTime = fakeClock.Now().Unix()
-		workerUptime = 0
+		workerStartTime = time.Now().Unix()
 		workerVersion = "1.2.3"
 
 		fakeContainerProvider = new(wfakes.FakeContainerProvider)
 		fakeGardenClient = new(gardenfakes.FakeClient)
-		fakeBaggageClaimClient = new(baggageclaimfakes.FakeClient)
+		fakeImageFactory = new(wfakes.FakeImageFactory)
+		fakeImage = new(wfakes.FakeImage)
+		fakeImageFactory.GetImageReturns(fakeImage, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -81,14 +78,13 @@ var _ = Describe("Worker", func() {
 
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
-			fakeBaggageClaimClient,
 			fakeContainerProvider,
 			fakeVolumeClient,
+			fakeImageFactory,
 			dbWorker,
-			fakeClock,
+			0,
 		)
 
-		fakeClock.IncrementBySeconds(workerUptime)
 	})
 
 	Describe("IsVersionCompatible", func() {
@@ -201,11 +197,6 @@ var _ = Describe("Worker", func() {
 		)
 
 		BeforeEach(func() {
-			spec = WorkerSpec{
-				Tags:   []string{"some", "tags"},
-				TeamID: teamID,
-			}
-
 			variables := template.StaticVariables{}
 
 			customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
@@ -250,10 +241,16 @@ var _ = Describe("Worker", func() {
 					Version: atc.Version{"some": "version"},
 				},
 			})
+
+			spec = WorkerSpec{
+				Tags:          []string{"some", "tags"},
+				TeamID:        teamID,
+				ResourceTypes: customTypes,
+			}
 		})
 
 		JustBeforeEach(func() {
-			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(logger, spec, customTypes)
+			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(logger, spec)
 		})
 
 		Context("when the platform is compatible", func() {

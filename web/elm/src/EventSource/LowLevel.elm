@@ -1,4 +1,9 @@
-module EventSource.LowLevel exposing (..)
+module EventSource.LowLevel exposing
+    ( EventSource(..), open
+    , Event
+    , close
+    , Settings
+    )
 
 {-| This library provides a Task-based interface for attaching to EventSource
 endpoints and subscribing to events.
@@ -20,9 +25,9 @@ endpoints and subscribing to events.
 
 -}
 
-import Task exposing (Task)
-import Native.EventSource
 import Array exposing (Array)
+import Native.EventSource
+import Task exposing (Task)
 
 
 {-| An opaque type representing the EventSource.

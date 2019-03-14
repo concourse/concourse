@@ -389,8 +389,8 @@ var _ = Describe("Volumes API", func() {
 			})
 
 			Context("when worker name is not in params", func() {
-				It("returns 404 Not found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				It("returns 400 Bad Request", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 		})

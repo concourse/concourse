@@ -1,0 +1,5 @@
+
+		{"action": "default_space", "space": "space"}
+		{"action": "discovered", "space": "space", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}
+		{"action": "discovered", "space": "space", "version": {"ref": "v2"}, "metadata": [{"name": "some", "value": "metadata"}]}
+		{"action": "discovered", "space": "space2", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}

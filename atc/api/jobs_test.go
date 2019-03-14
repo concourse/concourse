@@ -232,6 +232,19 @@ var _ = Describe("Jobs API", func() {
 			})
 		})
 
+		Context("when there are no visible jobs", func() {
+			BeforeEach(func() {
+				dbJobFactory.VisibleJobsReturns(nil, nil)
+			})
+
+			It("returns empty array", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[]`))
+			})
+		})
+
 		Context("when not authenticated", func() {
 			It("populates job factory with no team names", func() {
 				Expect(dbJobFactory.VisibleJobsCallCount()).To(Equal(1))
@@ -970,6 +983,7 @@ var _ = Describe("Jobs API", func() {
 					})
 				})
 			})
+
 			Context("when authorized", func() {
 				BeforeEach(func() {
 					fakeaccess.IsAuthorizedReturns(true)
@@ -1065,6 +1079,19 @@ var _ = Describe("Jobs API", func() {
 								"groups": []
 							}
 						]`))
+				})
+
+				Context("when there are no jobs in dashboard", func() {
+					BeforeEach(func() {
+						dashboardResponse = db.Dashboard{}
+						fakePipeline.DashboardReturns(dashboardResponse, nil)
+					})
+					It("should return an empty array", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`[]`))
+					})
 				})
 
 				Context("when manual triggering of a job is disabled", func() {

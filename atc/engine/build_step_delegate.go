@@ -2,7 +2,6 @@ package engine
 
 import (
 	"io"
-	"sync"
 	"unicode/utf8"
 
 	"code.cloudfoundry.org/clock"
@@ -11,7 +10,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/atc/exec"
 )
 
 type BuildStepDelegate struct {
@@ -109,26 +107,4 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	}
 
 	return len(data), nil
-}
-
-type implicitOutput struct {
-	resourceType string
-	info         exec.VersionInfo
-}
-
-type implicitOutputsRepo struct {
-	outputs map[string]implicitOutput
-	lock    *sync.Mutex
-}
-
-func (repo *implicitOutputsRepo) Register(resource string, output implicitOutput) {
-	repo.lock.Lock()
-	repo.outputs[resource] = output
-	repo.lock.Unlock()
-}
-
-func (repo *implicitOutputsRepo) Unregister(resource string) {
-	repo.lock.Lock()
-	delete(repo.outputs, resource)
-	repo.lock.Unlock()
 }

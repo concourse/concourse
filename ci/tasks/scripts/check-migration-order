@@ -1,0 +1,40 @@
+#!/bin/bash
+
+migrations_path=atc/db/migration/migrations/
+master_dir=concourse-master/$migrations_path
+pr_dir=concourse-pr/$migrations_path
+
+migrations_on_master=$(mktemp)
+find $master_dir -name '[0-9]*' -exec basename {} \; |
+  sort > "$migrations_on_master"
+
+actual_pr_migrations=$(mktemp)
+find $pr_dir -name '[0-9]*' -exec basename {} \; |
+  sort > "$actual_pr_migrations"
+
+unique_to_master=$(comm -23 "$migrations_on_master" "$actual_pr_migrations")
+[ -z "$unique_to_master" ] || {
+  echo "pr removed migrations:"
+  echo "$unique_to_master"
+  echo "and prs cannot remove migrations."
+  exit 1
+}
+
+new_on_pr=$(comm -13 "$migrations_on_master" "$actual_pr_migrations")
+
+expected_pr_migrations=$(mktemp)
+sort -n "$migrations_on_master" >> "$expected_pr_migrations"
+if [ -n "$new_on_pr" ]; then
+  echo "$new_on_pr" >> "$expected_pr_migrations"
+fi
+
+# we use `-n` here and not above because comm requires its
+# inputs to be *lexically* sorted but our test is about
+# numerical sorting.
+diff "$expected_pr_migrations" <(sort -n "$actual_pr_migrations") >/dev/null || {
+  echo "pr added migrations:"
+  echo "$new_on_pr"
+  echo "out of order with master."
+  echo "new migrations in a pr must be strictly newer than those on master."
+  exit 1
+}

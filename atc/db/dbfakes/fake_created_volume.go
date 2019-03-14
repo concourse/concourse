@@ -195,7 +195,15 @@ func (fake *FakeCreatedVolume) BaseResourceTypeCallCount() int {
 	return len(fake.baseResourceTypeArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) BaseResourceTypeCalls(stub func() (*db.UsedWorkerBaseResourceType, error)) {
+	fake.baseResourceTypeMutex.Lock()
+	defer fake.baseResourceTypeMutex.Unlock()
+	fake.BaseResourceTypeStub = stub
+}
+
 func (fake *FakeCreatedVolume) BaseResourceTypeReturns(result1 *db.UsedWorkerBaseResourceType, result2 error) {
+	fake.baseResourceTypeMutex.Lock()
+	defer fake.baseResourceTypeMutex.Unlock()
 	fake.BaseResourceTypeStub = nil
 	fake.baseResourceTypeReturns = struct {
 		result1 *db.UsedWorkerBaseResourceType
@@ -204,6 +212,8 @@ func (fake *FakeCreatedVolume) BaseResourceTypeReturns(result1 *db.UsedWorkerBas
 }
 
 func (fake *FakeCreatedVolume) BaseResourceTypeReturnsOnCall(i int, result1 *db.UsedWorkerBaseResourceType, result2 error) {
+	fake.baseResourceTypeMutex.Lock()
+	defer fake.baseResourceTypeMutex.Unlock()
 	fake.BaseResourceTypeStub = nil
 	if fake.baseResourceTypeReturnsOnCall == nil {
 		fake.baseResourceTypeReturnsOnCall = make(map[int]struct {
@@ -240,7 +250,15 @@ func (fake *FakeCreatedVolume) ContainerHandleCallCount() int {
 	return len(fake.containerHandleArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) ContainerHandleCalls(stub func() string) {
+	fake.containerHandleMutex.Lock()
+	defer fake.containerHandleMutex.Unlock()
+	fake.ContainerHandleStub = stub
+}
+
 func (fake *FakeCreatedVolume) ContainerHandleReturns(result1 string) {
+	fake.containerHandleMutex.Lock()
+	defer fake.containerHandleMutex.Unlock()
 	fake.ContainerHandleStub = nil
 	fake.containerHandleReturns = struct {
 		result1 string
@@ -248,6 +266,8 @@ func (fake *FakeCreatedVolume) ContainerHandleReturns(result1 string) {
 }
 
 func (fake *FakeCreatedVolume) ContainerHandleReturnsOnCall(i int, result1 string) {
+	fake.containerHandleMutex.Lock()
+	defer fake.containerHandleMutex.Unlock()
 	fake.ContainerHandleStub = nil
 	if fake.containerHandleReturnsOnCall == nil {
 		fake.containerHandleReturnsOnCall = make(map[int]struct {
@@ -284,6 +304,12 @@ func (fake *FakeCreatedVolume) CreateChildForContainerCallCount() int {
 	return len(fake.createChildForContainerArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) CreateChildForContainerCalls(stub func(db.CreatingContainer, string) (db.CreatingVolume, error)) {
+	fake.createChildForContainerMutex.Lock()
+	defer fake.createChildForContainerMutex.Unlock()
+	fake.CreateChildForContainerStub = stub
+}
+
 func (fake *FakeCreatedVolume) CreateChildForContainerArgsForCall(i int) (db.CreatingContainer, string) {
 	fake.createChildForContainerMutex.RLock()
 	defer fake.createChildForContainerMutex.RUnlock()
@@ -292,6 +318,8 @@ func (fake *FakeCreatedVolume) CreateChildForContainerArgsForCall(i int) (db.Cre
 }
 
 func (fake *FakeCreatedVolume) CreateChildForContainerReturns(result1 db.CreatingVolume, result2 error) {
+	fake.createChildForContainerMutex.Lock()
+	defer fake.createChildForContainerMutex.Unlock()
 	fake.CreateChildForContainerStub = nil
 	fake.createChildForContainerReturns = struct {
 		result1 db.CreatingVolume
@@ -300,6 +328,8 @@ func (fake *FakeCreatedVolume) CreateChildForContainerReturns(result1 db.Creatin
 }
 
 func (fake *FakeCreatedVolume) CreateChildForContainerReturnsOnCall(i int, result1 db.CreatingVolume, result2 error) {
+	fake.createChildForContainerMutex.Lock()
+	defer fake.createChildForContainerMutex.Unlock()
 	fake.CreateChildForContainerStub = nil
 	if fake.createChildForContainerReturnsOnCall == nil {
 		fake.createChildForContainerReturnsOnCall = make(map[int]struct {
@@ -336,7 +366,15 @@ func (fake *FakeCreatedVolume) DestroyingCallCount() int {
 	return len(fake.destroyingArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) DestroyingCalls(stub func() (db.DestroyingVolume, error)) {
+	fake.destroyingMutex.Lock()
+	defer fake.destroyingMutex.Unlock()
+	fake.DestroyingStub = stub
+}
+
 func (fake *FakeCreatedVolume) DestroyingReturns(result1 db.DestroyingVolume, result2 error) {
+	fake.destroyingMutex.Lock()
+	defer fake.destroyingMutex.Unlock()
 	fake.DestroyingStub = nil
 	fake.destroyingReturns = struct {
 		result1 db.DestroyingVolume
@@ -345,6 +383,8 @@ func (fake *FakeCreatedVolume) DestroyingReturns(result1 db.DestroyingVolume, re
 }
 
 func (fake *FakeCreatedVolume) DestroyingReturnsOnCall(i int, result1 db.DestroyingVolume, result2 error) {
+	fake.destroyingMutex.Lock()
+	defer fake.destroyingMutex.Unlock()
 	fake.DestroyingStub = nil
 	if fake.destroyingReturnsOnCall == nil {
 		fake.destroyingReturnsOnCall = make(map[int]struct {
@@ -381,7 +421,15 @@ func (fake *FakeCreatedVolume) HandleCallCount() int {
 	return len(fake.handleArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) HandleCalls(stub func() string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
+	fake.HandleStub = stub
+}
+
 func (fake *FakeCreatedVolume) HandleReturns(result1 string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
 	fake.HandleStub = nil
 	fake.handleReturns = struct {
 		result1 string
@@ -389,6 +437,8 @@ func (fake *FakeCreatedVolume) HandleReturns(result1 string) {
 }
 
 func (fake *FakeCreatedVolume) HandleReturnsOnCall(i int, result1 string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
 	fake.HandleStub = nil
 	if fake.handleReturnsOnCall == nil {
 		fake.handleReturnsOnCall = make(map[int]struct {
@@ -424,6 +474,12 @@ func (fake *FakeCreatedVolume) InitializeResourceCacheCallCount() int {
 	return len(fake.initializeResourceCacheArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) InitializeResourceCacheCalls(stub func(db.UsedResourceCache) error) {
+	fake.initializeResourceCacheMutex.Lock()
+	defer fake.initializeResourceCacheMutex.Unlock()
+	fake.InitializeResourceCacheStub = stub
+}
+
 func (fake *FakeCreatedVolume) InitializeResourceCacheArgsForCall(i int) db.UsedResourceCache {
 	fake.initializeResourceCacheMutex.RLock()
 	defer fake.initializeResourceCacheMutex.RUnlock()
@@ -432,6 +488,8 @@ func (fake *FakeCreatedVolume) InitializeResourceCacheArgsForCall(i int) db.Used
 }
 
 func (fake *FakeCreatedVolume) InitializeResourceCacheReturns(result1 error) {
+	fake.initializeResourceCacheMutex.Lock()
+	defer fake.initializeResourceCacheMutex.Unlock()
 	fake.InitializeResourceCacheStub = nil
 	fake.initializeResourceCacheReturns = struct {
 		result1 error
@@ -439,6 +497,8 @@ func (fake *FakeCreatedVolume) InitializeResourceCacheReturns(result1 error) {
 }
 
 func (fake *FakeCreatedVolume) InitializeResourceCacheReturnsOnCall(i int, result1 error) {
+	fake.initializeResourceCacheMutex.Lock()
+	defer fake.initializeResourceCacheMutex.Unlock()
 	fake.InitializeResourceCacheStub = nil
 	if fake.initializeResourceCacheReturnsOnCall == nil {
 		fake.initializeResourceCacheReturnsOnCall = make(map[int]struct {
@@ -476,6 +536,12 @@ func (fake *FakeCreatedVolume) InitializeTaskCacheCallCount() int {
 	return len(fake.initializeTaskCacheArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) InitializeTaskCacheCalls(stub func(int, string, string) error) {
+	fake.initializeTaskCacheMutex.Lock()
+	defer fake.initializeTaskCacheMutex.Unlock()
+	fake.InitializeTaskCacheStub = stub
+}
+
 func (fake *FakeCreatedVolume) InitializeTaskCacheArgsForCall(i int) (int, string, string) {
 	fake.initializeTaskCacheMutex.RLock()
 	defer fake.initializeTaskCacheMutex.RUnlock()
@@ -484,6 +550,8 @@ func (fake *FakeCreatedVolume) InitializeTaskCacheArgsForCall(i int) (int, strin
 }
 
 func (fake *FakeCreatedVolume) InitializeTaskCacheReturns(result1 error) {
+	fake.initializeTaskCacheMutex.Lock()
+	defer fake.initializeTaskCacheMutex.Unlock()
 	fake.InitializeTaskCacheStub = nil
 	fake.initializeTaskCacheReturns = struct {
 		result1 error
@@ -491,6 +559,8 @@ func (fake *FakeCreatedVolume) InitializeTaskCacheReturns(result1 error) {
 }
 
 func (fake *FakeCreatedVolume) InitializeTaskCacheReturnsOnCall(i int, result1 error) {
+	fake.initializeTaskCacheMutex.Lock()
+	defer fake.initializeTaskCacheMutex.Unlock()
 	fake.InitializeTaskCacheStub = nil
 	if fake.initializeTaskCacheReturnsOnCall == nil {
 		fake.initializeTaskCacheReturnsOnCall = make(map[int]struct {
@@ -525,7 +595,15 @@ func (fake *FakeCreatedVolume) ParentHandleCallCount() int {
 	return len(fake.parentHandleArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) ParentHandleCalls(stub func() string) {
+	fake.parentHandleMutex.Lock()
+	defer fake.parentHandleMutex.Unlock()
+	fake.ParentHandleStub = stub
+}
+
 func (fake *FakeCreatedVolume) ParentHandleReturns(result1 string) {
+	fake.parentHandleMutex.Lock()
+	defer fake.parentHandleMutex.Unlock()
 	fake.ParentHandleStub = nil
 	fake.parentHandleReturns = struct {
 		result1 string
@@ -533,6 +611,8 @@ func (fake *FakeCreatedVolume) ParentHandleReturns(result1 string) {
 }
 
 func (fake *FakeCreatedVolume) ParentHandleReturnsOnCall(i int, result1 string) {
+	fake.parentHandleMutex.Lock()
+	defer fake.parentHandleMutex.Unlock()
 	fake.ParentHandleStub = nil
 	if fake.parentHandleReturnsOnCall == nil {
 		fake.parentHandleReturnsOnCall = make(map[int]struct {
@@ -567,7 +647,15 @@ func (fake *FakeCreatedVolume) PathCallCount() int {
 	return len(fake.pathArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) PathCalls(stub func() string) {
+	fake.pathMutex.Lock()
+	defer fake.pathMutex.Unlock()
+	fake.PathStub = stub
+}
+
 func (fake *FakeCreatedVolume) PathReturns(result1 string) {
+	fake.pathMutex.Lock()
+	defer fake.pathMutex.Unlock()
 	fake.PathStub = nil
 	fake.pathReturns = struct {
 		result1 string
@@ -575,6 +663,8 @@ func (fake *FakeCreatedVolume) PathReturns(result1 string) {
 }
 
 func (fake *FakeCreatedVolume) PathReturnsOnCall(i int, result1 string) {
+	fake.pathMutex.Lock()
+	defer fake.pathMutex.Unlock()
 	fake.PathStub = nil
 	if fake.pathReturnsOnCall == nil {
 		fake.pathReturnsOnCall = make(map[int]struct {
@@ -609,7 +699,15 @@ func (fake *FakeCreatedVolume) ResourceTypeCallCount() int {
 	return len(fake.resourceTypeArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) ResourceTypeCalls(stub func() (*db.VolumeResourceType, error)) {
+	fake.resourceTypeMutex.Lock()
+	defer fake.resourceTypeMutex.Unlock()
+	fake.ResourceTypeStub = stub
+}
+
 func (fake *FakeCreatedVolume) ResourceTypeReturns(result1 *db.VolumeResourceType, result2 error) {
+	fake.resourceTypeMutex.Lock()
+	defer fake.resourceTypeMutex.Unlock()
 	fake.ResourceTypeStub = nil
 	fake.resourceTypeReturns = struct {
 		result1 *db.VolumeResourceType
@@ -618,6 +716,8 @@ func (fake *FakeCreatedVolume) ResourceTypeReturns(result1 *db.VolumeResourceTyp
 }
 
 func (fake *FakeCreatedVolume) ResourceTypeReturnsOnCall(i int, result1 *db.VolumeResourceType, result2 error) {
+	fake.resourceTypeMutex.Lock()
+	defer fake.resourceTypeMutex.Unlock()
 	fake.ResourceTypeStub = nil
 	if fake.resourceTypeReturnsOnCall == nil {
 		fake.resourceTypeReturnsOnCall = make(map[int]struct {
@@ -654,7 +754,15 @@ func (fake *FakeCreatedVolume) TaskIdentifierCallCount() int {
 	return len(fake.taskIdentifierArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) TaskIdentifierCalls(stub func() (string, string, string, error)) {
+	fake.taskIdentifierMutex.Lock()
+	defer fake.taskIdentifierMutex.Unlock()
+	fake.TaskIdentifierStub = stub
+}
+
 func (fake *FakeCreatedVolume) TaskIdentifierReturns(result1 string, result2 string, result3 string, result4 error) {
+	fake.taskIdentifierMutex.Lock()
+	defer fake.taskIdentifierMutex.Unlock()
 	fake.TaskIdentifierStub = nil
 	fake.taskIdentifierReturns = struct {
 		result1 string
@@ -665,6 +773,8 @@ func (fake *FakeCreatedVolume) TaskIdentifierReturns(result1 string, result2 str
 }
 
 func (fake *FakeCreatedVolume) TaskIdentifierReturnsOnCall(i int, result1 string, result2 string, result3 string, result4 error) {
+	fake.taskIdentifierMutex.Lock()
+	defer fake.taskIdentifierMutex.Unlock()
 	fake.TaskIdentifierStub = nil
 	if fake.taskIdentifierReturnsOnCall == nil {
 		fake.taskIdentifierReturnsOnCall = make(map[int]struct {
@@ -705,7 +815,15 @@ func (fake *FakeCreatedVolume) TeamIDCallCount() int {
 	return len(fake.teamIDArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) TeamIDCalls(stub func() int) {
+	fake.teamIDMutex.Lock()
+	defer fake.teamIDMutex.Unlock()
+	fake.TeamIDStub = stub
+}
+
 func (fake *FakeCreatedVolume) TeamIDReturns(result1 int) {
+	fake.teamIDMutex.Lock()
+	defer fake.teamIDMutex.Unlock()
 	fake.TeamIDStub = nil
 	fake.teamIDReturns = struct {
 		result1 int
@@ -713,6 +831,8 @@ func (fake *FakeCreatedVolume) TeamIDReturns(result1 int) {
 }
 
 func (fake *FakeCreatedVolume) TeamIDReturnsOnCall(i int, result1 int) {
+	fake.teamIDMutex.Lock()
+	defer fake.teamIDMutex.Unlock()
 	fake.TeamIDStub = nil
 	if fake.teamIDReturnsOnCall == nil {
 		fake.teamIDReturnsOnCall = make(map[int]struct {
@@ -747,7 +867,15 @@ func (fake *FakeCreatedVolume) TypeCallCount() int {
 	return len(fake.typeArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) TypeCalls(stub func() db.VolumeType) {
+	fake.typeMutex.Lock()
+	defer fake.typeMutex.Unlock()
+	fake.TypeStub = stub
+}
+
 func (fake *FakeCreatedVolume) TypeReturns(result1 db.VolumeType) {
+	fake.typeMutex.Lock()
+	defer fake.typeMutex.Unlock()
 	fake.TypeStub = nil
 	fake.typeReturns = struct {
 		result1 db.VolumeType
@@ -755,6 +883,8 @@ func (fake *FakeCreatedVolume) TypeReturns(result1 db.VolumeType) {
 }
 
 func (fake *FakeCreatedVolume) TypeReturnsOnCall(i int, result1 db.VolumeType) {
+	fake.typeMutex.Lock()
+	defer fake.typeMutex.Unlock()
 	fake.TypeStub = nil
 	if fake.typeReturnsOnCall == nil {
 		fake.typeReturnsOnCall = make(map[int]struct {
@@ -789,7 +919,15 @@ func (fake *FakeCreatedVolume) WorkerNameCallCount() int {
 	return len(fake.workerNameArgsForCall)
 }
 
+func (fake *FakeCreatedVolume) WorkerNameCalls(stub func() string) {
+	fake.workerNameMutex.Lock()
+	defer fake.workerNameMutex.Unlock()
+	fake.WorkerNameStub = stub
+}
+
 func (fake *FakeCreatedVolume) WorkerNameReturns(result1 string) {
+	fake.workerNameMutex.Lock()
+	defer fake.workerNameMutex.Unlock()
 	fake.WorkerNameStub = nil
 	fake.workerNameReturns = struct {
 		result1 string
@@ -797,6 +935,8 @@ func (fake *FakeCreatedVolume) WorkerNameReturns(result1 string) {
 }
 
 func (fake *FakeCreatedVolume) WorkerNameReturnsOnCall(i int, result1 string) {
+	fake.workerNameMutex.Lock()
+	defer fake.workerNameMutex.Unlock()
 	fake.WorkerNameStub = nil
 	if fake.workerNameReturnsOnCall == nil {
 		fake.workerNameReturnsOnCall = make(map[int]struct {

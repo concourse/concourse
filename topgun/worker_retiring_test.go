@@ -7,27 +7,19 @@ import (
 )
 
 var _ = Describe("Worker retiring", func() {
-	var (
-		deployment string
-	)
-
 	BeforeEach(func() {
-		Skip("until draining has been re-introduced")
-
-		deployment = "deployments/concourse-separate-forwarded-worker.yml"
-		Deploy(deployment)
-		_ = waitForRunningWorker()
+		Deploy("deployments/concourse.yml")
 	})
 
 	It("deletes all containers and volumes when worker is gone", func() {
 		By("setting pipeline that creates resource cache")
-		fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "worker-retiring-test")
+		fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "worker-retiring-test")
 
 		By("unpausing the pipeline")
-		fly("unpause-pipeline", "-p", "worker-retiring-test")
+		fly.Run("unpause-pipeline", "-p", "worker-retiring-test")
 
 		By("checking resource")
-		fly("check-resource", "-r", "worker-retiring-test/tick-tock")
+		fly.Run("check-resource", "-r", "worker-retiring-test/tick-tock")
 
 		By("getting the worker containers")
 		containersBefore := flyTable("containers")
@@ -38,7 +30,7 @@ var _ = Describe("Worker retiring", func() {
 		Expect(volumesBefore).ToNot(BeEmpty())
 
 		By("retiring the worker")
-		Deploy(deployment, "-o", "operations/retire-worker.yml")
+		Deploy("deployments/concourse.yml", "-o", "operations/retire-worker.yml")
 
 		By("getting the worker containers")
 		containersAfter := flyTable("containers")

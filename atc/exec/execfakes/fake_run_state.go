@@ -102,7 +102,15 @@ func (fake *FakeRunState) ArtifactsCallCount() int {
 	return len(fake.artifactsArgsForCall)
 }
 
+func (fake *FakeRunState) ArtifactsCalls(stub func() *worker.ArtifactRepository) {
+	fake.artifactsMutex.Lock()
+	defer fake.artifactsMutex.Unlock()
+	fake.ArtifactsStub = stub
+}
+
 func (fake *FakeRunState) ArtifactsReturns(result1 *worker.ArtifactRepository) {
+	fake.artifactsMutex.Lock()
+	defer fake.artifactsMutex.Unlock()
 	fake.ArtifactsStub = nil
 	fake.artifactsReturns = struct {
 		result1 *worker.ArtifactRepository
@@ -110,6 +118,8 @@ func (fake *FakeRunState) ArtifactsReturns(result1 *worker.ArtifactRepository) {
 }
 
 func (fake *FakeRunState) ArtifactsReturnsOnCall(i int, result1 *worker.ArtifactRepository) {
+	fake.artifactsMutex.Lock()
+	defer fake.artifactsMutex.Unlock()
 	fake.ArtifactsStub = nil
 	if fake.artifactsReturnsOnCall == nil {
 		fake.artifactsReturnsOnCall = make(map[int]struct {
@@ -138,6 +148,12 @@ func (fake *FakeRunState) ReadPlanOutputCallCount() int {
 	fake.readPlanOutputMutex.RLock()
 	defer fake.readPlanOutputMutex.RUnlock()
 	return len(fake.readPlanOutputArgsForCall)
+}
+
+func (fake *FakeRunState) ReadPlanOutputCalls(stub func(atc.PlanID, io.Writer)) {
+	fake.readPlanOutputMutex.Lock()
+	defer fake.readPlanOutputMutex.Unlock()
+	fake.ReadPlanOutputStub = stub
 }
 
 func (fake *FakeRunState) ReadPlanOutputArgsForCall(i int) (atc.PlanID, io.Writer) {
@@ -172,6 +188,12 @@ func (fake *FakeRunState) ReadUserInputCallCount() int {
 	return len(fake.readUserInputArgsForCall)
 }
 
+func (fake *FakeRunState) ReadUserInputCalls(stub func(atc.PlanID, exec.InputHandler) error) {
+	fake.readUserInputMutex.Lock()
+	defer fake.readUserInputMutex.Unlock()
+	fake.ReadUserInputStub = stub
+}
+
 func (fake *FakeRunState) ReadUserInputArgsForCall(i int) (atc.PlanID, exec.InputHandler) {
 	fake.readUserInputMutex.RLock()
 	defer fake.readUserInputMutex.RUnlock()
@@ -180,6 +202,8 @@ func (fake *FakeRunState) ReadUserInputArgsForCall(i int) (atc.PlanID, exec.Inpu
 }
 
 func (fake *FakeRunState) ReadUserInputReturns(result1 error) {
+	fake.readUserInputMutex.Lock()
+	defer fake.readUserInputMutex.Unlock()
 	fake.ReadUserInputStub = nil
 	fake.readUserInputReturns = struct {
 		result1 error
@@ -187,6 +211,8 @@ func (fake *FakeRunState) ReadUserInputReturns(result1 error) {
 }
 
 func (fake *FakeRunState) ReadUserInputReturnsOnCall(i int, result1 error) {
+	fake.readUserInputMutex.Lock()
+	defer fake.readUserInputMutex.Unlock()
 	fake.ReadUserInputStub = nil
 	if fake.readUserInputReturnsOnCall == nil {
 		fake.readUserInputReturnsOnCall = make(map[int]struct {
@@ -223,6 +249,12 @@ func (fake *FakeRunState) ResultCallCount() int {
 	return len(fake.resultArgsForCall)
 }
 
+func (fake *FakeRunState) ResultCalls(stub func(atc.PlanID, interface{}) bool) {
+	fake.resultMutex.Lock()
+	defer fake.resultMutex.Unlock()
+	fake.ResultStub = stub
+}
+
 func (fake *FakeRunState) ResultArgsForCall(i int) (atc.PlanID, interface{}) {
 	fake.resultMutex.RLock()
 	defer fake.resultMutex.RUnlock()
@@ -231,6 +263,8 @@ func (fake *FakeRunState) ResultArgsForCall(i int) (atc.PlanID, interface{}) {
 }
 
 func (fake *FakeRunState) ResultReturns(result1 bool) {
+	fake.resultMutex.Lock()
+	defer fake.resultMutex.Unlock()
 	fake.ResultStub = nil
 	fake.resultReturns = struct {
 		result1 bool
@@ -238,6 +272,8 @@ func (fake *FakeRunState) ResultReturns(result1 bool) {
 }
 
 func (fake *FakeRunState) ResultReturnsOnCall(i int, result1 bool) {
+	fake.resultMutex.Lock()
+	defer fake.resultMutex.Unlock()
 	fake.ResultStub = nil
 	if fake.resultReturnsOnCall == nil {
 		fake.resultReturnsOnCall = make(map[int]struct {
@@ -274,6 +310,12 @@ func (fake *FakeRunState) SendPlanOutputCallCount() int {
 	return len(fake.sendPlanOutputArgsForCall)
 }
 
+func (fake *FakeRunState) SendPlanOutputCalls(stub func(atc.PlanID, exec.OutputHandler) error) {
+	fake.sendPlanOutputMutex.Lock()
+	defer fake.sendPlanOutputMutex.Unlock()
+	fake.SendPlanOutputStub = stub
+}
+
 func (fake *FakeRunState) SendPlanOutputArgsForCall(i int) (atc.PlanID, exec.OutputHandler) {
 	fake.sendPlanOutputMutex.RLock()
 	defer fake.sendPlanOutputMutex.RUnlock()
@@ -282,6 +324,8 @@ func (fake *FakeRunState) SendPlanOutputArgsForCall(i int) (atc.PlanID, exec.Out
 }
 
 func (fake *FakeRunState) SendPlanOutputReturns(result1 error) {
+	fake.sendPlanOutputMutex.Lock()
+	defer fake.sendPlanOutputMutex.Unlock()
 	fake.SendPlanOutputStub = nil
 	fake.sendPlanOutputReturns = struct {
 		result1 error
@@ -289,6 +333,8 @@ func (fake *FakeRunState) SendPlanOutputReturns(result1 error) {
 }
 
 func (fake *FakeRunState) SendPlanOutputReturnsOnCall(i int, result1 error) {
+	fake.sendPlanOutputMutex.Lock()
+	defer fake.sendPlanOutputMutex.Unlock()
 	fake.SendPlanOutputStub = nil
 	if fake.sendPlanOutputReturnsOnCall == nil {
 		fake.sendPlanOutputReturnsOnCall = make(map[int]struct {
@@ -319,6 +365,12 @@ func (fake *FakeRunState) SendUserInputCallCount() int {
 	return len(fake.sendUserInputArgsForCall)
 }
 
+func (fake *FakeRunState) SendUserInputCalls(stub func(atc.PlanID, io.ReadCloser)) {
+	fake.sendUserInputMutex.Lock()
+	defer fake.sendUserInputMutex.Unlock()
+	fake.SendUserInputStub = stub
+}
+
 func (fake *FakeRunState) SendUserInputArgsForCall(i int) (atc.PlanID, io.ReadCloser) {
 	fake.sendUserInputMutex.RLock()
 	defer fake.sendUserInputMutex.RUnlock()
@@ -343,6 +395,12 @@ func (fake *FakeRunState) StoreResultCallCount() int {
 	fake.storeResultMutex.RLock()
 	defer fake.storeResultMutex.RUnlock()
 	return len(fake.storeResultArgsForCall)
+}
+
+func (fake *FakeRunState) StoreResultCalls(stub func(atc.PlanID, interface{})) {
+	fake.storeResultMutex.Lock()
+	defer fake.storeResultMutex.Unlock()
+	fake.StoreResultStub = stub
 }
 
 func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, interface{}) {

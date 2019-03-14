@@ -1,23 +1,30 @@
 package v2_test
 
 import (
+	"archive/tar"
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io/ioutil"
+
+	"github.com/onsi/gomega/gbytes"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
 	v2 "github.com/concourse/concourse/atc/resource/v2"
+	"github.com/concourse/concourse/atc/resource/v2/v2fakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Resource Get", func() {
 	var (
+		config map[string]interface{}
+
 		source  atc.Source
 		params  atc.Params
 		version atc.Version
@@ -30,11 +37,14 @@ var _ = Describe("Resource Get", func() {
 
 		inScriptProcess *gardenfakes.FakeProcess
 
+		fakeGetEventHandler *v2fakes.FakeGetEventHandler
+
 		ioConfig  atc.IOConfig
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
 		fakeVolume *workerfakes.FakeVolume
+		response   []byte
 
 		ctx    context.Context
 		cancel func()
@@ -45,10 +55,20 @@ var _ = Describe("Resource Get", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
+		fakeGetEventHandler = new(v2fakes.FakeGetEventHandler)
+
 		source = atc.Source{"some": "source"}
 		version = atc.Version{"some": "version"}
 		params = atc.Params{"other": "params"}
 		space = atc.Space("some-space")
+
+		config = make(map[string]interface{})
+		for k, v := range source {
+			config[k] = v
+		}
+		for k, v := range params {
+			config[k] = v
+		}
 
 		inScriptStderr = ""
 		inScriptExitStatus = 0
@@ -71,6 +91,12 @@ var _ = Describe("Resource Get", func() {
 		}
 
 		fakeVolume = new(workerfakes.FakeVolume)
+
+		streamedOut := gbytes.NewBuffer()
+		fakeContainer.StreamOutReturns(streamedOut, nil)
+
+		response = []byte(`
+			{"action": "fetched", "space": "some-space", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}`)
 	})
 
 	Describe("running", func() {
@@ -83,6 +109,18 @@ var _ = Describe("Resource Get", func() {
 				_, err := io.Stderr.Write([]byte(inScriptStderr))
 				Expect(err).NotTo(HaveOccurred())
 
+				request, err := ioutil.ReadAll(io.Stdin)
+				Expect(err).NotTo(HaveOccurred())
+
+				var getReq v2.GetRequest
+				err = json.Unmarshal(request, &getReq)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(getReq.Config).To(Equal(map[string]interface{}(config)))
+				Expect(getReq.Space).To(Equal(space))
+				Expect(getReq.Version).To(Equal(version))
+				Expect(getReq.ResponsePath).ToNot(BeEmpty())
+
 				return inScriptProcess, nil
 			}
 
@@ -94,32 +132,69 @@ var _ = Describe("Resource Get", func() {
 				_, err := io.Stderr.Write([]byte(inScriptStderr))
 				Expect(err).NotTo(HaveOccurred())
 
+				request, err := ioutil.ReadAll(io.Stdin)
+				Expect(err).NotTo(HaveOccurred())
+
+				var getReq v2.GetRequest
+				err = json.Unmarshal(request, &getReq)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(getReq.Config).To(Equal(map[string]interface{}(config)))
+				Expect(getReq.Space).To(Equal(space))
+				Expect(getReq.Version).To(Equal(version))
+				Expect(getReq.ResponsePath).ToNot(BeEmpty())
+
 				return inScriptProcess, nil
 			}
 
-			getErr = resource.Get(ctx, fakeVolume, ioConfig, source, params, space, version)
+			getErr = resource.Get(ctx, fakeGetEventHandler, fakeVolume, ioConfig, source, params, space, version)
 		})
 
 		Context("when artifact get has already been spawned", func() {
 			It("reattaches to it", func() {
 				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
-				pid, io := fakeContainer.AttachArgsForCall(0)
+				pid, _ := fakeContainer.AttachArgsForCall(0)
 				Expect(pid).To(Equal(v2.TaskProcessID))
-
-				// send request on stdin in case process hasn't read it yet
-				request, err := ioutil.ReadAll(io.Stdin)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(request).To(MatchJSON(`{
-					"config": {"some":"source","other":"params"},
-					"version": {"some":"version"},
-					"space": "some-space"
-				}`))
 			})
 
 			It("does not run an additional process", func() {
 				Expect(fakeContainer.RunCallCount()).To(BeZero())
+			})
+
+			Context("when artifact get succeeds", func() {
+				BeforeEach(func() {
+					tarStream := new(bytes.Buffer)
+
+					tarWriter := tar.NewWriter(tarStream)
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "doesnt matter",
+						Size: int64(len(response)),
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = tarWriter.Write(response)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = tarWriter.Close()
+					Expect(err).ToNot(HaveOccurred())
+
+					fakeContainer.StreamOutReturns(ioutil.NopCloser(tarStream), nil)
+				})
+
+				It("returns the versions and space written to the temp file", func() {
+					Expect(fakeGetEventHandler.SaveMetadataCallCount()).To(Equal(1))
+					metadata := fakeGetEventHandler.SaveMetadataArgsForCall(0)
+					Expect(metadata).To(Equal(atc.Metadata{
+						atc.MetadataField{
+							Name:  "some",
+							Value: "metadata",
+						},
+					}))
+
+					Expect(getErr).ToNot(HaveOccurred())
+				})
 			})
 
 			Context("when artifact get outputs to stderr", func() {
@@ -137,23 +212,12 @@ var _ = Describe("Resource Get", func() {
 
 				BeforeEach(func() {
 					attachInError = disaster
+					runInError = disaster
 				})
 
-				Context("and run succeeds", func() {
-					It("succeeds", func() {
-						Expect(getErr).ToNot(HaveOccurred())
-					})
-				})
-
-				Context("and run subsequently fails", func() {
-					BeforeEach(func() {
-						runInError = disaster
-					})
-
-					It("errors", func() {
-						Expect(getErr).To(HaveOccurred())
-						Expect(getErr).To(Equal(disaster))
-					})
+				It("errors", func() {
+					Expect(getErr).To(HaveOccurred())
+					Expect(getErr).To(Equal(disaster))
 				})
 			})
 
@@ -181,21 +245,38 @@ var _ = Describe("Resource Get", func() {
 				Expect(spec.ID).To(Equal(v2.TaskProcessID))
 			})
 
+			Context("when artifact get succeeds", func() {
+				BeforeEach(func() {
+					tarStream := new(bytes.Buffer)
+
+					tarWriter := tar.NewWriter(tarStream)
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "doesnt matter",
+						Size: int64(len(response)),
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = tarWriter.Write(response)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = tarWriter.Close()
+					Expect(err).ToNot(HaveOccurred())
+
+					fakeContainer.StreamOutReturns(ioutil.NopCloser(tarStream), nil)
+				})
+
+				It("returns the version, metadata and space written to the temp file", func() {
+					Expect(getErr).ToNot(HaveOccurred())
+				})
+			})
+
 			It("runs artifact get in <destination> with the request on stdin", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
-				spec, io := fakeContainer.RunArgsForCall(0)
+				spec, _ := fakeContainer.RunArgsForCall(0)
 				Expect(spec.Path).To(Equal(resourceInfo.Artifacts.Get))
-				Expect(spec.Args).To(ConsistOf("/tmp/build/get"))
-
-				request, err := ioutil.ReadAll(io.Stdin)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(request).To(MatchJSON(`{
-					"config": {"some":"source","other":"params"},
-					"version": {"some":"version"},
-					"space": "some-space"
-				}`))
+				Expect(spec.Dir).To(Equal("get"))
 			})
 
 			Context("when artifact get outputs to stderr", func() {
@@ -231,6 +312,95 @@ var _ = Describe("Resource Get", func() {
 					Expect(getErr.Error()).To(ContainSubstring("exit status 9"))
 				})
 			})
+
+			Context("when the response writes multiple versions to the temp file", func() {
+				BeforeEach(func() {
+					tarStream := new(bytes.Buffer)
+
+					tarWriter := tar.NewWriter(tarStream)
+
+					response = []byte(`
+			{"action": "fetched", "space": "some-space", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}
+			{"action": "fetched", "space": "second-space", "version": {"ref": "v2"}, "metadata": [{"name": "second", "value": "metadata"}]}`)
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "doesnt matter",
+						Size: int64(len(response)),
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = tarWriter.Write(response)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = tarWriter.Close()
+					Expect(err).ToNot(HaveOccurred())
+
+					fakeContainer.StreamOutReturns(ioutil.NopCloser(tarStream), nil)
+				})
+
+				It("only saves the metadata once for the first version and ignores the rest", func() {
+					Expect(fakeGetEventHandler.SaveMetadataCallCount()).To(Equal(1))
+					metadata := fakeGetEventHandler.SaveMetadataArgsForCall(0)
+					Expect(metadata).To(Equal(atc.Metadata{
+						atc.MetadataField{
+							Name:  "some",
+							Value: "metadata",
+						},
+					}))
+
+					Expect(getErr).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when the response is garbage", func() {
+				BeforeEach(func() {
+					tarStream := new(bytes.Buffer)
+
+					tarWriter := tar.NewWriter(tarStream)
+
+					response = []byte("vito")
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "doesnt matter",
+						Size: int64(len(response)),
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = tarWriter.Write(response)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = tarWriter.Close()
+					Expect(err).ToNot(HaveOccurred())
+
+					fakeContainer.StreamOutReturns(ioutil.NopCloser(tarStream), nil)
+				})
+
+				It("returns a failed to decode error", func() {
+					Expect(getErr).To(HaveOccurred())
+					Expect(getErr.Error()).To(ContainSubstring("failed to decode response"))
+				})
+			})
+
+			Context("when streaming out fails", func() {
+				BeforeEach(func() {
+					fakeContainer.StreamOutReturns(nil, errors.New("ah"))
+				})
+
+				It("returns the error", func() {
+					Expect(getErr).To(HaveOccurred())
+				})
+			})
+
+			Context("when streaming out non tar response", func() {
+				BeforeEach(func() {
+					streamedOut := gbytes.NewBuffer()
+					fakeContainer.StreamOutReturns(streamedOut, nil)
+				})
+
+				It("returns an error", func() {
+					Expect(getErr).To(HaveOccurred())
+				})
+			})
 		})
 	})
 
@@ -258,7 +428,7 @@ var _ = Describe("Resource Get", func() {
 			}
 
 			go func() {
-				getErr = resource.Get(ctx, fakeVolume, ioConfig, source, params, space, version)
+				getErr = resource.Get(ctx, fakeGetEventHandler, fakeVolume, ioConfig, source, params, space, version)
 				close(done)
 			}()
 		})

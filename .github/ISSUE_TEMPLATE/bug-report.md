@@ -1,6 +1,10 @@
 ---
 name: Bug Report
 about: Let us know about a problem with Concourse
+title: ''
+labels: bug, triage
+assignees: ''
+
 ---
 
 > Please remove all lines starting with '>' before submitting!

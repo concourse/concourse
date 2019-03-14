@@ -181,7 +181,7 @@ var _ = Describe("Image", func() {
 
 			Expect(fakeImageArtifactSource.StreamToCallCount()).To(Equal(1))
 
-			artifactDestination := fakeImageArtifactSource.StreamToArgsForCall(0)
+			_, artifactDestination := fakeImageArtifactSource.StreamToArgsForCall(0)
 			artifactDestination.StreamIn("fake-path", strings.NewReader("fake-tar-stream"))
 			Expect(fakeContainerRootfsVolume.StreamInCallCount()).To(Equal(1))
 		})

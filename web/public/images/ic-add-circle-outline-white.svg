@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30px" height="30px" viewBox="0 0 30 30" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51.2 (57519) - http://www.bohemiancoding.com/sketch -->
+    <title>ic_add_circle_outline_white_24px (1)</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="04_Job_page_1240x1040-Copy" transform="translate(-1195.000000, -70.000000)">
+            <g id="ic_add_circle_outline_white_24px-(1)" transform="translate(1193.000000, 68.000000)">
+                <polygon id="Shape" points="0 0 35 0 35 35 0 35"></polygon>
+                <path d="M18.50625,9.84375 L15.61875,9.84375 L15.61875,15.61875 L9.84375,15.61875 L9.84375,18.50625 L15.61875,18.50625 L15.61875,24.28125 L18.50625,24.28125 L18.50625,18.50625 L24.28125,18.50625 L24.28125,15.61875 L18.50625,15.61875 L18.50625,9.84375 Z M17.0625,2.625 C9.093,2.625 2.625,9.093 2.625,17.0625 C2.625,25.032 9.093,31.5 17.0625,31.5 C25.032,31.5 31.5,25.032 31.5,17.0625 C31.5,9.093 25.032,2.625 17.0625,2.625 Z M17.0625,28.6125 C10.6955625,28.6125 5.5125,23.4294375 5.5125,17.0625 C5.5125,10.6955625 10.6955625,5.5125 17.0625,5.5125 C23.4294375,5.5125 28.6125,10.6955625 28.6125,17.0625 C28.6125,23.4294375 23.4294375,28.6125 17.0625,28.6125 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
+            </g>
+        </g>
+    </g>
+</svg>

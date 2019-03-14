@@ -50,6 +50,12 @@ func (fake *FakeScanner) ScanCallCount() int {
 	return len(fake.scanArgsForCall)
 }
 
+func (fake *FakeScanner) ScanCalls(stub func(lager.Logger, string) error) {
+	fake.scanMutex.Lock()
+	defer fake.scanMutex.Unlock()
+	fake.ScanStub = stub
+}
+
 func (fake *FakeScanner) ScanArgsForCall(i int) (lager.Logger, string) {
 	fake.scanMutex.RLock()
 	defer fake.scanMutex.RUnlock()
@@ -58,6 +64,8 @@ func (fake *FakeScanner) ScanArgsForCall(i int) (lager.Logger, string) {
 }
 
 func (fake *FakeScanner) ScanReturns(result1 error) {
+	fake.scanMutex.Lock()
+	defer fake.scanMutex.Unlock()
 	fake.ScanStub = nil
 	fake.scanReturns = struct {
 		result1 error
@@ -65,6 +73,8 @@ func (fake *FakeScanner) ScanReturns(result1 error) {
 }
 
 func (fake *FakeScanner) ScanReturnsOnCall(i int, result1 error) {
+	fake.scanMutex.Lock()
+	defer fake.scanMutex.Unlock()
 	fake.ScanStub = nil
 	if fake.scanReturnsOnCall == nil {
 		fake.scanReturnsOnCall = make(map[int]struct {

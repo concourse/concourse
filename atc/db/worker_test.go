@@ -237,16 +237,15 @@ var _ = Describe("Worker", func() {
 			otherWorker, err = workerFactory.SaveWorker(atcWorker2, 5*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 
-			resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
 				"some-resource-type",
 				atc.Source{"some": "source"},
 				creds.VersionedResourceTypes{},
-				expiries,
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			containerOwner = NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
+			containerOwner = NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiries)
 		})
 
 		JustBeforeEach(func() {
@@ -315,7 +314,7 @@ var _ = Describe("Worker", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					var checkSessions int
-					err = dbConn.QueryRow("SELECT COUNT(*) FROM worker_resource_config_check_sessions").Scan(&checkSessions)
+					err = dbConn.QueryRow("SELECT COUNT(*) FROM resource_config_check_sessions").Scan(&checkSessions)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(checkSessions).To(Equal(1))
 				})
@@ -326,9 +325,9 @@ var _ = Describe("Worker", func() {
 						Expect(err).ToNot(HaveOccurred())
 					})
 
-					It("does not duplicate the worker resource config check session", func() {
+					It("does not duplicate the resource config check session", func() {
 						var checkSessions int
-						err := dbConn.QueryRow("SELECT COUNT(*) FROM worker_resource_config_check_sessions").Scan(&checkSessions)
+						err := dbConn.QueryRow("SELECT COUNT(*) FROM resource_config_check_sessions").Scan(&checkSessions)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(checkSessions).To(Equal(1))
 					})

@@ -61,6 +61,12 @@ func (fake *FakePutEventHandler) CreatedResponseCallCount() int {
 	return len(fake.createdResponseArgsForCall)
 }
 
+func (fake *FakePutEventHandler) CreatedResponseCalls(stub func(atc.Space, atc.Version, atc.Metadata, []atc.SpaceVersion) ([]atc.SpaceVersion, error)) {
+	fake.createdResponseMutex.Lock()
+	defer fake.createdResponseMutex.Unlock()
+	fake.CreatedResponseStub = stub
+}
+
 func (fake *FakePutEventHandler) CreatedResponseArgsForCall(i int) (atc.Space, atc.Version, atc.Metadata, []atc.SpaceVersion) {
 	fake.createdResponseMutex.RLock()
 	defer fake.createdResponseMutex.RUnlock()
@@ -69,6 +75,8 @@ func (fake *FakePutEventHandler) CreatedResponseArgsForCall(i int) (atc.Space, a
 }
 
 func (fake *FakePutEventHandler) CreatedResponseReturns(result1 []atc.SpaceVersion, result2 error) {
+	fake.createdResponseMutex.Lock()
+	defer fake.createdResponseMutex.Unlock()
 	fake.CreatedResponseStub = nil
 	fake.createdResponseReturns = struct {
 		result1 []atc.SpaceVersion
@@ -77,6 +85,8 @@ func (fake *FakePutEventHandler) CreatedResponseReturns(result1 []atc.SpaceVersi
 }
 
 func (fake *FakePutEventHandler) CreatedResponseReturnsOnCall(i int, result1 []atc.SpaceVersion, result2 error) {
+	fake.createdResponseMutex.Lock()
+	defer fake.createdResponseMutex.Unlock()
 	fake.CreatedResponseStub = nil
 	if fake.createdResponseReturnsOnCall == nil {
 		fake.createdResponseReturnsOnCall = make(map[int]struct {

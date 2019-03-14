@@ -9,5 +9,8 @@ inputs:
 outputs:
 - name: fly-darwin
 
+caches:
+- path: gopath
+
 run:
   path: concourse/ci/tasks/scripts/fly-build

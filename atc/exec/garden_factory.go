@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -94,6 +95,19 @@ func (factory *gardenFactory) Put(
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
+	var putInputs PutInputs
+	if plan.Put.Inputs == nil {
+		// Put step defaults to all inputs if not specified
+		putInputs = NewAllInputs()
+	} else if plan.Put.Inputs.All {
+		putInputs = NewAllInputs()
+	} else {
+		// Covers both cases where inputs are specified and when there are no
+		// inputs specified and "all" field is given a false boolean, which will
+		// result in no inputs attached
+		putInputs = NewSpecificInputs(plan.Put.Inputs.Specified)
+	}
+
 	putStep := NewPutStep(
 		build,
 
@@ -103,6 +117,7 @@ func (factory *gardenFactory) Put(
 		creds.NewSource(variables, plan.Put.Source),
 		creds.NewParams(variables, plan.Put.Params),
 		plan.Put.Tags,
+		putInputs,
 
 		delegate,
 		factory.resourceFactory,
@@ -127,21 +142,32 @@ func (factory *gardenFactory) Task(
 	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
+	credMgrVariables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
+
 	var taskConfigSource TaskConfigSource
-	if plan.Task.ConfigPath != "" && (plan.Task.Config != nil || plan.Task.Params != nil) {
-		taskConfigSource = &MergedConfigSource{
-			A: FileConfigSource{plan.Task.ConfigPath},
-			B: StaticConfigSource{Plan: *plan.Task},
-		}
-	} else if plan.Task.Config != nil {
-		taskConfigSource = StaticConfigSource{Plan: *plan.Task}
-	} else if plan.Task.ConfigPath != "" {
-		taskConfigSource = FileConfigSource{plan.Task.ConfigPath}
+	var taskVars []boshtemplate.Variables
+	if plan.Task.ConfigPath != "" {
+		// external task - construct a source which reads it from file
+		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath}
+
+		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred mgr variables
+		taskVars = []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
+	} else {
+		// embedded task - first we take it
+		taskConfigSource = StaticConfigSource{Config: plan.Task.Config}
+
+		// for interpolation - use just cred mgr variables
+		taskVars = []boshtemplate.Variables{credMgrVariables}
 	}
 
-	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
+	// override params
+	taskConfigSource = &OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: plan.Task.Params}
 
-	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
+	// interpolate template vars
+	taskConfigSource = InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: taskVars}
+
+	// validate
+	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
 
 	taskStep := NewTaskStep(
 		Privileged(plan.Task.Privileged),
@@ -163,8 +189,7 @@ func (factory *gardenFactory) Task(
 		plan.ID,
 		containerMetadata,
 
-		creds.NewVersionedResourceTypes(variables, plan.Task.VersionedResourceTypes),
-		variables,
+		creds.NewVersionedResourceTypes(credMgrVariables, plan.Task.VersionedResourceTypes),
 		factory.defaultLimits,
 	)
 

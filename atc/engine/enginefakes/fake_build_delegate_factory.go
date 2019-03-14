@@ -48,6 +48,12 @@ func (fake *FakeBuildDelegateFactory) DelegateCallCount() int {
 	return len(fake.delegateArgsForCall)
 }
 
+func (fake *FakeBuildDelegateFactory) DelegateCalls(stub func(db.Build) engine.BuildDelegate) {
+	fake.delegateMutex.Lock()
+	defer fake.delegateMutex.Unlock()
+	fake.DelegateStub = stub
+}
+
 func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) db.Build {
 	fake.delegateMutex.RLock()
 	defer fake.delegateMutex.RUnlock()
@@ -56,6 +62,8 @@ func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) db.Build {
 }
 
 func (fake *FakeBuildDelegateFactory) DelegateReturns(result1 engine.BuildDelegate) {
+	fake.delegateMutex.Lock()
+	defer fake.delegateMutex.Unlock()
 	fake.DelegateStub = nil
 	fake.delegateReturns = struct {
 		result1 engine.BuildDelegate
@@ -63,6 +71,8 @@ func (fake *FakeBuildDelegateFactory) DelegateReturns(result1 engine.BuildDelega
 }
 
 func (fake *FakeBuildDelegateFactory) DelegateReturnsOnCall(i int, result1 engine.BuildDelegate) {
+	fake.delegateMutex.Lock()
+	defer fake.delegateMutex.Unlock()
 	fake.DelegateStub = nil
 	if fake.delegateReturnsOnCall == nil {
 		fake.delegateReturnsOnCall = make(map[int]struct {

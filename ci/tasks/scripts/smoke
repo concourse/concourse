@@ -3,44 +3,43 @@
 
 set -e -u
 
-instance_ip="$(cat endpoint-info/instance_ip)"
-test -n "$instance_ip"
+readonly DIR=$(cd $(dirname $0) && pwd)
 
-export ATC_URL="http://${instance_ip}:8080"
-export ATC_ADMIN_USERNAME=admin
+export MAX_TICKS="${MAX_TICKS:-60}"
+export ATC_URL="${ATC_URL:-"http://$(cat endpoint-info/instance_ip):8080"}"
+
+if [ -e endpoint-info/admin_username ]; then
+  export ATC_ADMIN_USERNAME="$(cat endpoint-info/admin_username)"
+else
+  export ATC_ADMIN_USERNAME=admin
+fi
 if [ -e endpoint-info/admin_password ]; then
   export ATC_ADMIN_PASSWORD="$(cat endpoint-info/admin_password)"
 else
   export ATC_ADMIN_PASSWORD=admin
 fi
 
-export ATC_GUEST_USERNAME=guest
-export ATC_GUEST_PASSWORD=guest
+if [ -e endpoint-info/guest_username ]; then
+  export ATC_GUEST_USERNAME="$(cat endpoint-info/guest_username)"
+else
+  export ATC_GUEST_USERNAME=guest
+fi
 if [ -e endpoint-info/guest_password ]; then
   export ATC_GUEST_PASSWORD="$(cat endpoint-info/guest_password)"
 else
   export ATC_GUEST_PASSWORD=guest
 fi
 
-ticks=0
-echo -n 'waiting for ATC to be running...'
-until curl -sf "$ATC_URL/api/v1/info"; do
-  echo -n .
+$DIR/wait-atc
 
-  ((ticks++))
-
-  if [ "$ticks" -ge 60 ]; then
-    echo "giving up. :("
-    exit 1
-  fi
-
-  sleep 1
-done
-
-echo 'ok!'
-
-curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" | tar -zxf - -C /usr/local/bin
+if curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" --fail -o /usr/local/bin/fly; then
+  chmod +x /usr/local/bin/fly
+else
+  pushd concourse/fly
+    go build -o /usr/local/bin/fly
+  popd
+fi
 
 fly --version
 
-$(dirname $0)/watsjs test/smoke.js
+$DIR/watsjs test/smoke.js

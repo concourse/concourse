@@ -1,69 +1,68 @@
-module Concourse
-    exposing
-        ( AuthSession
-        , AuthToken
-        , Build
-        , BuildDuration
-        , BuildId
-        , BuildName
-        , BuildPlan
-        , BuildPrep
-        , BuildPrepStatus(..)
-        , BuildResources
-        , BuildResourcesInput
-        , BuildResourcesOutput
-        , BuildStatus(..)
-        , BuildStep(..)
-        , CSRFToken
-        , Cause
-        , HookedPlan
-        , Info
-        , Job
-        , JobBuildIdentifier
-        , JobIdentifier
-        , JobInput
-        , JobName
-        , JobOutput
-        , Metadata
-        , MetadataField
-        , Pipeline
-        , PipelineGroup
-        , PipelineIdentifier
-        , PipelineName
-        , PipelineStatus(..)
-        , Resource
-        , ResourceIdentifier
-        , Team
-        , TeamName
-        , User
-        , Version
-        , VersionedResource
-        , VersionedResourceIdentifier
-        , csrfTokenHeaderName
-        , decodeAuthToken
-        , decodeBuild
-        , decodeBuildPlan
-        , decodeBuildPrep
-        , decodeBuildResources
-        , decodeBuildStatus
-        , decodeCause
-        , decodeInfo
-        , decodeJob
-        , decodeMetadata
-        , decodePipeline
-        , decodeResource
-        , decodeTeam
-        , decodeUser
-        , decodeVersion
-        , decodeVersionedResource
-        , retrieveCSRFToken
-        )
+module Concourse exposing
+    ( AuthSession
+    , AuthToken
+    , Build
+    , BuildDuration
+    , BuildId
+    , BuildName
+    , BuildPlan
+    , BuildPrep
+    , BuildPrepStatus(..)
+    , BuildResources
+    , BuildResourcesInput
+    , BuildResourcesOutput
+    , BuildStatus(..)
+    , BuildStep(..)
+    , CSRFToken
+    , Cause
+    , HookedPlan
+    , Info
+    , Job
+    , JobBuildIdentifier
+    , JobIdentifier
+    , JobInput
+    , JobName
+    , JobOutput
+    , Metadata
+    , MetadataField
+    , Pipeline
+    , PipelineGroup
+    , PipelineIdentifier
+    , PipelineName
+    , Resource
+    , ResourceIdentifier
+    , Team
+    , TeamName
+    , User
+    , Version
+    , VersionedResource
+    , VersionedResourceIdentifier
+    , csrfTokenHeaderName
+    , decodeAuthToken
+    , decodeBuild
+    , decodeBuildPlan
+    , decodeBuildPrep
+    , decodeBuildResources
+    , decodeBuildStatus
+    , decodeCause
+    , decodeInfo
+    , decodeJob
+    , decodeMetadata
+    , decodePipeline
+    , decodeResource
+    , decodeTeam
+    , decodeUser
+    , decodeVersion
+    , decodeVersionedResource
+    , retrieveCSRFToken
+    )
 
 import Array exposing (Array)
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Json.Decode
 import Json.Decode.Extra exposing ((|:))
+
 
 
 -- AuthToken
@@ -330,7 +329,6 @@ type BuildStep
     = BuildStepTask StepName
     | BuildStepGet StepName (Maybe Version)
     | BuildStepPut StepName
-    | BuildStepDependentGet StepName
     | BuildStepAggregate (Array BuildPlan)
     | BuildStepDo (Array BuildPlan)
     | BuildStepOnSuccess HookedPlan
@@ -363,7 +361,7 @@ decodeBuildPlan_ =
             [ Json.Decode.field "task" <| lazy (\_ -> decodeBuildStepTask)
             , Json.Decode.field "get" <| lazy (\_ -> decodeBuildStepGet)
             , Json.Decode.field "put" <| lazy (\_ -> decodeBuildStepPut)
-            , Json.Decode.field "dependent_get" <| lazy (\_ -> decodeBuildStepDependentGet)
+            , Json.Decode.field "dependent_get" <| lazy (\_ -> decodeBuildStepGet)
             , Json.Decode.field "aggregate" <| lazy (\_ -> decodeBuildStepAggregate)
             , Json.Decode.field "do" <| lazy (\_ -> decodeBuildStepDo)
             , Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildStepOnSuccess)
@@ -392,12 +390,6 @@ decodeBuildStepGet =
 decodeBuildStepPut : Json.Decode.Decoder BuildStep
 decodeBuildStepPut =
     Json.Decode.succeed BuildStepPut
-        |: Json.Decode.field "name" Json.Decode.string
-
-
-decodeBuildStepDependentGet : Json.Decode.Decoder BuildStep
-decodeBuildStepDependentGet =
-    Json.Decode.succeed BuildStepDependentGet
         |: Json.Decode.field "name" Json.Decode.string
 
 
@@ -586,16 +578,6 @@ type alias PipelineGroup =
     }
 
 
-type PipelineStatus
-    = PipelineStatusAborted
-    | PipelineStatusErrored
-    | PipelineStatusFailed
-    | PipelineStatusPaused
-    | PipelineStatusPending
-    | PipelineStatusRunning
-    | PipelineStatusSucceeded
-
-
 decodePipeline : Json.Decode.Decoder Pipeline
 decodePipeline =
     Json.Decode.succeed Pipeline
@@ -623,13 +605,13 @@ type alias Resource =
     { teamName : String
     , pipelineName : String
     , name : String
-    , paused : Bool
     , failingToCheck : Bool
     , checkError : String
     , checkSetupError : String
     , lastChecked : Maybe Date
     , pinnedVersion : Maybe Version
     , pinnedInConfig : Bool
+    , pinComment : Maybe String
     }
 
 
@@ -644,6 +626,7 @@ type alias VersionedResource =
     { id : Int
     , version : Version
     , metadata : Metadata
+    , enabled : Bool
     }
 
 
@@ -661,13 +644,13 @@ decodeResource =
         |: Json.Decode.field "team_name" Json.Decode.string
         |: Json.Decode.field "pipeline_name" Json.Decode.string
         |: Json.Decode.field "name" Json.Decode.string
-        |: (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
         |: (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
         |: (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
         |: (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
         |: Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.float))
         |: Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion)
         |: (defaultTo False <| Json.Decode.field "pinned_in_config" Json.Decode.bool)
+        |: Json.Decode.maybe (Json.Decode.field "pin_comment" Json.Decode.string)
 
 
 decodeVersionedResource : Json.Decode.Decoder VersionedResource
@@ -676,6 +659,7 @@ decodeVersionedResource =
         |: Json.Decode.field "id" Json.Decode.int
         |: Json.Decode.field "version" decodeVersion
         |: defaultTo [] (Json.Decode.field "metadata" decodeMetadata)
+        |: Json.Decode.field "enabled" Json.Decode.bool
 
 
 

@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -10,14 +11,22 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type getRequest struct {
-	Config  map[string]interface{} `json:"config"`
-	Space   atc.Space              `json:"space"`
-	Version atc.Version            `json:"version,omitempty"`
+//go:generate counterfeiter . GetEventHandler
+
+type GetEventHandler interface {
+	SaveMetadata(atc.Metadata) error
+}
+
+type GetRequest struct {
+	Config       map[string]interface{} `json:"config"`
+	Space        atc.Space              `json:"space"`
+	Version      atc.Version            `json:"version,omitempty"`
+	ResponsePath string                 `json:"response_path"`
 }
 
 func (r *resource) Get(
 	ctx context.Context,
+	eventHandler GetEventHandler,
 	volume worker.Volume,
 	ioConfig atc.IOConfig,
 	source atc.Source,
@@ -26,8 +35,7 @@ func (r *resource) Get(
 	version atc.Version,
 ) error {
 	config := constructConfig(source, params)
-
-	input := getRequest{config, space, version}
+	input := GetRequest{config, space, version, "../" + responseFilename}
 	request, err := json.Marshal(input)
 	if err != nil {
 		return err
@@ -52,7 +60,7 @@ func (r *resource) Get(
 		process, err = r.container.Run(garden.ProcessSpec{
 			ID:   TaskProcessID,
 			Path: r.info.Artifacts.Get,
-			Args: []string{atc.ResourcesDir("get")},
+			Dir:  "get",
 		}, processIO)
 		if err != nil {
 			return err
@@ -78,11 +86,42 @@ func (r *resource) Get(
 		if processStatus != 0 {
 			return atc.ErrResourceScriptFailed{
 				Path:       r.info.Artifacts.Get,
-				Args:       []string{atc.ResourcesDir("get")},
+				Dir:        "get",
 				ExitStatus: processStatus,
 
 				Stderr: stderr.String(),
 			}
+		}
+
+		out, err := r.container.StreamOut(garden.StreamOutSpec{Path: responseFilename})
+		if err != nil {
+			return err
+		}
+
+		defer out.Close()
+
+		tarReader := tar.NewReader(out)
+
+		_, err = tarReader.Next()
+		if err != nil {
+			return err
+		}
+
+		decoder := json.NewDecoder(tarReader)
+
+		var event Event
+		err = decoder.Decode(&event)
+		if err != nil {
+			return DecodeResponseError{Err: err}
+		}
+
+		if event.Action == "fetched" {
+			err = eventHandler.SaveMetadata(event.Metadata)
+			if err != nil {
+				return err
+			}
+		} else {
+			return ActionNotFoundError{event.Action}
 		}
 
 		return nil

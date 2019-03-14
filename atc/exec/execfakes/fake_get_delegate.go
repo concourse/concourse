@@ -78,6 +78,12 @@ func (fake *FakeGetDelegate) ErroredCallCount() int {
 	return len(fake.erroredArgsForCall)
 }
 
+func (fake *FakeGetDelegate) ErroredCalls(stub func(lager.Logger, string)) {
+	fake.erroredMutex.Lock()
+	defer fake.erroredMutex.Unlock()
+	fake.ErroredStub = stub
+}
+
 func (fake *FakeGetDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
@@ -103,6 +109,12 @@ func (fake *FakeGetDelegate) FinishedCallCount() int {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	return len(fake.finishedArgsForCall)
+}
+
+func (fake *FakeGetDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, exec.VersionInfo)) {
+	fake.finishedMutex.Lock()
+	defer fake.finishedMutex.Unlock()
+	fake.FinishedStub = stub
 }
 
 func (fake *FakeGetDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, exec.VersionInfo) {
@@ -136,6 +148,12 @@ func (fake *FakeGetDelegate) ImageVersionDeterminedCallCount() int {
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
+func (fake *FakeGetDelegate) ImageVersionDeterminedCalls(stub func(db.UsedResourceCache) error) {
+	fake.imageVersionDeterminedMutex.Lock()
+	defer fake.imageVersionDeterminedMutex.Unlock()
+	fake.ImageVersionDeterminedStub = stub
+}
+
 func (fake *FakeGetDelegate) ImageVersionDeterminedArgsForCall(i int) db.UsedResourceCache {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
@@ -144,6 +162,8 @@ func (fake *FakeGetDelegate) ImageVersionDeterminedArgsForCall(i int) db.UsedRes
 }
 
 func (fake *FakeGetDelegate) ImageVersionDeterminedReturns(result1 error) {
+	fake.imageVersionDeterminedMutex.Lock()
+	defer fake.imageVersionDeterminedMutex.Unlock()
 	fake.ImageVersionDeterminedStub = nil
 	fake.imageVersionDeterminedReturns = struct {
 		result1 error
@@ -151,6 +171,8 @@ func (fake *FakeGetDelegate) ImageVersionDeterminedReturns(result1 error) {
 }
 
 func (fake *FakeGetDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
+	fake.imageVersionDeterminedMutex.Lock()
+	defer fake.imageVersionDeterminedMutex.Unlock()
 	fake.ImageVersionDeterminedStub = nil
 	if fake.imageVersionDeterminedReturnsOnCall == nil {
 		fake.imageVersionDeterminedReturnsOnCall = make(map[int]struct {
@@ -185,7 +207,15 @@ func (fake *FakeGetDelegate) StderrCallCount() int {
 	return len(fake.stderrArgsForCall)
 }
 
+func (fake *FakeGetDelegate) StderrCalls(stub func() io.Writer) {
+	fake.stderrMutex.Lock()
+	defer fake.stderrMutex.Unlock()
+	fake.StderrStub = stub
+}
+
 func (fake *FakeGetDelegate) StderrReturns(result1 io.Writer) {
+	fake.stderrMutex.Lock()
+	defer fake.stderrMutex.Unlock()
 	fake.StderrStub = nil
 	fake.stderrReturns = struct {
 		result1 io.Writer
@@ -193,6 +223,8 @@ func (fake *FakeGetDelegate) StderrReturns(result1 io.Writer) {
 }
 
 func (fake *FakeGetDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
+	fake.stderrMutex.Lock()
+	defer fake.stderrMutex.Unlock()
 	fake.StderrStub = nil
 	if fake.stderrReturnsOnCall == nil {
 		fake.stderrReturnsOnCall = make(map[int]struct {
@@ -227,7 +259,15 @@ func (fake *FakeGetDelegate) StdoutCallCount() int {
 	return len(fake.stdoutArgsForCall)
 }
 
+func (fake *FakeGetDelegate) StdoutCalls(stub func() io.Writer) {
+	fake.stdoutMutex.Lock()
+	defer fake.stdoutMutex.Unlock()
+	fake.StdoutStub = stub
+}
+
 func (fake *FakeGetDelegate) StdoutReturns(result1 io.Writer) {
+	fake.stdoutMutex.Lock()
+	defer fake.stdoutMutex.Unlock()
 	fake.StdoutStub = nil
 	fake.stdoutReturns = struct {
 		result1 io.Writer
@@ -235,6 +275,8 @@ func (fake *FakeGetDelegate) StdoutReturns(result1 io.Writer) {
 }
 
 func (fake *FakeGetDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
+	fake.stdoutMutex.Lock()
+	defer fake.stdoutMutex.Unlock()
 	fake.StdoutStub = nil
 	if fake.stdoutReturnsOnCall == nil {
 		fake.stdoutReturnsOnCall = make(map[int]struct {

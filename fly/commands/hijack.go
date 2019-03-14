@@ -27,6 +27,7 @@ type HijackCommand struct {
 	Url            string                   `short:"u" long:"url"                               description:"URL for the build, job, or check container to hijack"`
 	Build          string                   `short:"b" long:"build"                             description:"Build number within the job, or global build ID"`
 	StepName       string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
+	StepType       string                   `          long:"step-type"                         description:"Type of step to hijack (e.g. get, put, task)"`
 	Attempt        string                   `short:"a" long:"attempt" value-name:"N[,N,...]"    description:"Attempt number of step to hijack."`
 	PositionalArgs struct {
 		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: bash)"`
@@ -106,6 +107,10 @@ func (command *HijackCommand) Execute([]string) error {
 
 			infos = append(infos, fmt.Sprintf("type: %s", container.Type))
 
+			if container.Type == "check" {
+				infos = append(infos, fmt.Sprintf("expires in: %s", container.ExpiresIn))
+			}
+
 			if container.Attempt != "" {
 				infos = append(infos, fmt.Sprintf("attempt: %s", container.Attempt))
 			}
@@ -165,7 +170,9 @@ func (command *HijackCommand) Execute([]string) error {
 				return -1, err
 			}
 
-			defer term.Restore()
+			defer func() {
+				_ = term.Restore()
+			}()
 
 			in = term
 		} else {
@@ -264,6 +271,7 @@ func (command *HijackCommand) getContainerFingerprint(target rc.Target) (*contai
 		{fp: &fingerprint.pipelineName, cmd: pipelineName},
 		{fp: &fingerprint.buildNameOrID, cmd: command.Build},
 		{fp: &fingerprint.stepName, cmd: command.StepName},
+		{fp: &fingerprint.stepType, cmd: command.StepType},
 		{fp: &fingerprint.jobName, cmd: command.Job.JobName},
 		{fp: &fingerprint.checkName, cmd: command.Check.ResourceName},
 		{fp: &fingerprint.attempt, cmd: command.Attempt},
@@ -319,6 +327,18 @@ type stepContainerLocator struct {
 func (locator stepContainerLocator) locate(fingerprint *containerFingerprint) (map[string]string, error) {
 	reqValues := map[string]string{}
 
+	if fingerprint.stepType != "" {
+		reqValues["type"] = fingerprint.stepType
+	}
+
+	if fingerprint.stepName != "" {
+		reqValues["step_name"] = fingerprint.stepName
+	}
+
+	if fingerprint.attempt != "" {
+		reqValues["attempt"] = fingerprint.attempt
+	}
+
 	if fingerprint.jobName != "" {
 		reqValues["pipeline_name"] = fingerprint.pipelineName
 		reqValues["job_name"] = fingerprint.jobName
@@ -333,13 +353,6 @@ func (locator stepContainerLocator) locate(fingerprint *containerFingerprint) (m
 			return reqValues, err
 		}
 		reqValues["build_id"] = strconv.Itoa(build.ID)
-	}
-	if fingerprint.stepName != "" {
-		reqValues["step_name"] = fingerprint.stepName
-	}
-
-	if fingerprint.attempt != "" {
-		reqValues["attempt"] = fingerprint.attempt
 	}
 
 	return reqValues, nil
@@ -367,6 +380,7 @@ type containerFingerprint struct {
 	buildNameOrID string
 
 	stepName string
+	stepType string
 
 	checkName string
 	attempt   string

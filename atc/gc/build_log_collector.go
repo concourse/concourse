@@ -103,11 +103,6 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 				return err
 			}
 
-			buildIDsToRetain := []int{}
-			for _, build := range buildsToRetain {
-				buildIDsToRetain = append(buildIDsToRetain, build.ID())
-			}
-
 			if len(buildsToRetain) == 0 {
 				continue
 			}
@@ -122,8 +117,8 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 					break
 				}
 
-				if br.drainerConfigured == true {
-					if build.IsDrained() == false {
+				if br.drainerConfigured {
+					if !build.IsDrained() {
 						continue
 					}
 				}

@@ -66,6 +66,12 @@ func (fake *FakeStrategy) DecryptCallCount() int {
 	return len(fake.decryptArgsForCall)
 }
 
+func (fake *FakeStrategy) DecryptCalls(stub func(string, *string) ([]byte, error)) {
+	fake.decryptMutex.Lock()
+	defer fake.decryptMutex.Unlock()
+	fake.DecryptStub = stub
+}
+
 func (fake *FakeStrategy) DecryptArgsForCall(i int) (string, *string) {
 	fake.decryptMutex.RLock()
 	defer fake.decryptMutex.RUnlock()
@@ -74,6 +80,8 @@ func (fake *FakeStrategy) DecryptArgsForCall(i int) (string, *string) {
 }
 
 func (fake *FakeStrategy) DecryptReturns(result1 []byte, result2 error) {
+	fake.decryptMutex.Lock()
+	defer fake.decryptMutex.Unlock()
 	fake.DecryptStub = nil
 	fake.decryptReturns = struct {
 		result1 []byte
@@ -82,6 +90,8 @@ func (fake *FakeStrategy) DecryptReturns(result1 []byte, result2 error) {
 }
 
 func (fake *FakeStrategy) DecryptReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.decryptMutex.Lock()
+	defer fake.decryptMutex.Unlock()
 	fake.DecryptStub = nil
 	if fake.decryptReturnsOnCall == nil {
 		fake.decryptReturnsOnCall = make(map[int]struct {
@@ -124,6 +134,12 @@ func (fake *FakeStrategy) EncryptCallCount() int {
 	return len(fake.encryptArgsForCall)
 }
 
+func (fake *FakeStrategy) EncryptCalls(stub func([]byte) (string, *string, error)) {
+	fake.encryptMutex.Lock()
+	defer fake.encryptMutex.Unlock()
+	fake.EncryptStub = stub
+}
+
 func (fake *FakeStrategy) EncryptArgsForCall(i int) []byte {
 	fake.encryptMutex.RLock()
 	defer fake.encryptMutex.RUnlock()
@@ -132,6 +148,8 @@ func (fake *FakeStrategy) EncryptArgsForCall(i int) []byte {
 }
 
 func (fake *FakeStrategy) EncryptReturns(result1 string, result2 *string, result3 error) {
+	fake.encryptMutex.Lock()
+	defer fake.encryptMutex.Unlock()
 	fake.EncryptStub = nil
 	fake.encryptReturns = struct {
 		result1 string
@@ -141,6 +159,8 @@ func (fake *FakeStrategy) EncryptReturns(result1 string, result2 *string, result
 }
 
 func (fake *FakeStrategy) EncryptReturnsOnCall(i int, result1 string, result2 *string, result3 error) {
+	fake.encryptMutex.Lock()
+	defer fake.encryptMutex.Unlock()
 	fake.EncryptStub = nil
 	if fake.encryptReturnsOnCall == nil {
 		fake.encryptReturnsOnCall = make(map[int]struct {

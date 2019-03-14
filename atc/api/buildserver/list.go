@@ -23,6 +23,7 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		limit int
 	)
 
+	timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 	urlUntil := r.FormValue(atc.PaginationQueryUntil)
 	until, _ = strconv.Atoi(urlUntil)
 
@@ -42,7 +43,11 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	var pagination db.Pagination
 
 	acc := accessor.GetAccessor(r)
-	builds, pagination, err = s.buildFactory.VisibleBuilds(acc.TeamNames(), page)
+	if timestamps == "" {
+		builds, pagination, err = s.buildFactory.VisibleBuilds(acc.TeamNames(), page)
+	} else {
+		builds, pagination, err = s.buildFactory.VisibleBuildsWithTime(acc.TeamNames(), page)
+	}
 
 	if err != nil {
 		logger.Error("failed-to-get-all-builds", err)

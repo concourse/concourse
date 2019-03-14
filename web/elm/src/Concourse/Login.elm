@@ -1,10 +1,10 @@
-module Concourse.Login exposing (..)
+module Concourse.Login exposing (basicAuth, encodedAuthHeader, noAuth, parseResponse)
 
 import Base64
+import Concourse
 import Http
 import Json.Decode
 import Task exposing (Task)
-import Concourse
 
 
 noAuth : String -> Task Http.Error Concourse.AuthSession
@@ -30,7 +30,7 @@ parseResponse response =
         csrfToken =
             Concourse.retrieveCSRFToken response.headers
     in
-        Result.map2 (\a b -> { authToken = a, csrfToken = b }) authToken csrfToken
+    Result.map2 (\a b -> { authToken = a, csrfToken = b }) authToken csrfToken
 
 
 basicAuth : String -> String -> String -> Task Http.Error Concourse.AuthSession

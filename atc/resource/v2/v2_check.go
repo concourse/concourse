@@ -1,12 +1,11 @@
 package v2
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
-	"os"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
@@ -38,15 +37,7 @@ func (r *resource) Check(
 	src atc.Source,
 	from map[atc.Space]atc.Version,
 ) error {
-	tmpfile, err := ioutil.TempFile("", "response")
-	if err != nil {
-		return err
-	}
-
-	defer os.Remove(tmpfile.Name())
-
-	path := r.info.Artifacts.Check
-	input := CheckRequest{src, from, tmpfile.Name()}
+	input := CheckRequest{src, from, "../" + responseFilename}
 
 	request, err := json.Marshal(input)
 	if err != nil {
@@ -57,14 +48,22 @@ func (r *resource) Check(
 
 	processIO := garden.ProcessIO{
 		Stdin:  bytes.NewBuffer(request),
+		Stdout: stderr,
 		Stderr: stderr,
 	}
 
-	process, err := r.container.Run(garden.ProcessSpec{
-		Path: path,
-	}, processIO)
+	var process garden.Process
+
+	process, err = r.container.Attach(TaskProcessID, processIO)
 	if err != nil {
-		return err
+		process, err = r.container.Run(garden.ProcessSpec{
+			ID:   TaskProcessID,
+			Path: r.info.Artifacts.Check,
+			Dir:  "check",
+		}, processIO)
+		if err != nil {
+			return err
+		}
 	}
 
 	processExited := make(chan struct{})
@@ -85,19 +84,29 @@ func (r *resource) Check(
 
 		if processStatus != 0 {
 			return atc.ErrResourceScriptFailed{
-				Path:       path,
+				Path:       r.info.Artifacts.Check,
+				Dir:        "check",
 				ExitStatus: processStatus,
 
 				Stderr: stderr.String(),
 			}
 		}
 
-		fileReader, err := os.Open(tmpfile.Name())
+		out, err := r.container.StreamOut(garden.StreamOutSpec{Path: responseFilename})
 		if err != nil {
 			return err
 		}
 
-		decoder := json.NewDecoder(fileReader)
+		defer out.Close()
+
+		tarReader := tar.NewReader(out)
+
+		_, err = tarReader.Next()
+		if err != nil {
+			return err
+		}
+
+		decoder := json.NewDecoder(tarReader)
 
 		for {
 			var event Event
@@ -107,7 +116,7 @@ func (r *resource) Check(
 					break
 				}
 
-				return err
+				return DecodeResponseError{Err: err}
 			}
 
 			err = r.handleCheckEvent(event, checkHandler)

@@ -21,12 +21,6 @@ class Suite {
     this.web = new Web(this.url, this.adminUsername, this.adminPassword);
   }
 
-  static async build(t) {
-    let suite = new Suite();
-    await suite.init(t);
-    return suite;
-  }
-
   async init(t) {
     await this.newTeam(this.adminUsername, this.teamName);
     await this.newTeam(this.guestUsername, this.guestTeamName);
@@ -63,9 +57,6 @@ class Suite {
   }
 
   async finish(t) {
-    await this.destroyTeams();
-    await this.fly.cleanup();
-
     if (this.web.page && !this.succeeded) {
       await this.web.page.screenshot({path: 'failure.png'});
     }
@@ -73,6 +64,9 @@ class Suite {
     if (this.web.browser) {
       await this.web.browser.close();
     }
+
+    await this.destroyTeams();
+    await this.fly.cleanup();
   }
 }
 

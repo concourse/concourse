@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource/v2"
+	v2 "github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -35,9 +35,9 @@ type ResourceFactory interface {
 		owner db.ContainerOwner,
 		metadata db.ContainerMetadata,
 		containerSpec worker.ContainerSpec,
+		workerSpec worker.WorkerSpec,
 		resourceTypes creds.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
-		resourceConfig db.ResourceConfig,
 	) (Resource, error)
 }
 
@@ -51,9 +51,9 @@ func (f *resourceFactory) NewResource(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec worker.ContainerSpec,
+	workerSpec worker.WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
-	resourceConfig db.ResourceConfig,
 ) (Resource, error) {
 
 	containerSpec.BindMounts = []worker.BindMountSource{
@@ -67,6 +67,7 @@ func (f *resourceFactory) NewResource(
 		owner,
 		metadata,
 		containerSpec,
+		workerSpec,
 		resourceTypes,
 	)
 	if err != nil {
@@ -83,7 +84,7 @@ func (f *resourceFactory) NewResource(
 			return nil, ErrUnknownResourceVersion{resourceInfo.Artifacts.APIVersion}
 		}
 	} else if _, ok := err.(garden.ExecutableNotFoundError); ok {
-		resource = v2.NewV1Adapter(container, resourceConfig)
+		resource = v2.NewV1Adapter(container)
 	} else if err != nil {
 		return nil, err
 	}

@@ -46,37 +46,39 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		fromVersion := map[atc.Space]atc.Version{}
-		resourceConfigId := pipelineResource.ResourceConfigID()
-		resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigId)
-		if err != nil {
-			logger.Error("failed-to-get-resource-config", err, lager.Data{"resource-config-id": resourceConfigId})
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if found {
-			latestVersions, err := resourceConfig.LatestVersions()
+		go func() {
+			fromVersion := map[atc.Space]atc.Version{}
+			resourceConfigID := pipelineResource.ResourceConfigID()
+			resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigID)
 			if err != nil {
-				logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigId})
-				w.WriteHeader(http.StatusInternalServerError)
+				logger.Error("failed-to-get-resource-config", err, lager.Data{"resource-config-id": resourceConfigID})
 				return
 			}
 
-			for _, v := range latestVersions {
-				fromVersion[v.Space()] = atc.Version(v.Version())
-			}
-		}
+			if found {
+				resourceConfigScope, found, err := resourceConfig.FindResourceConfigScopeByID(pipelineResource.ResourceConfigScopeID(), pipelineResource)
+				if err != nil {
+					logger.Error("failed-to-get-resource-config-scope", err, lager.Data{"resource-config-scope-id": pipelineResource.ResourceConfigScopeID()})
+					return
+				}
 
-		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
-		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)
-		switch err.(type) {
-		case db.ResourceNotFoundError:
-			w.WriteHeader(http.StatusNotFound)
-		case error:
-			w.WriteHeader(http.StatusInternalServerError)
-		default:
-			w.WriteHeader(http.StatusOK)
-		}
+				if found {
+					latestVersions, err := resourceConfigScope.LatestVersions()
+					if err != nil {
+						logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigID})
+						return
+					}
+
+					for _, v := range latestVersions {
+						fromVersion[v.Space()] = atc.Version(v.Version())
+					}
+				}
+			}
+
+			scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
+			scanner.ScanFromVersion(logger, resourceName, fromVersion)
+		}()
+
+		w.WriteHeader(http.StatusOK)
 	})
 }

@@ -4,16 +4,18 @@ package execfakes
 import (
 	sync "sync"
 
+	lager "code.cloudfoundry.org/lager"
 	atc "github.com/concourse/concourse/atc"
 	exec "github.com/concourse/concourse/atc/exec"
 	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeTaskConfigSource struct {
-	FetchConfigStub        func(*worker.ArtifactRepository) (atc.TaskConfig, error)
+	FetchConfigStub        func(lager.Logger, *worker.ArtifactRepository) (atc.TaskConfig, error)
 	fetchConfigMutex       sync.RWMutex
 	fetchConfigArgsForCall []struct {
-		arg1 *worker.ArtifactRepository
+		arg1 lager.Logger
+		arg2 *worker.ArtifactRepository
 	}
 	fetchConfigReturns struct {
 		result1 atc.TaskConfig
@@ -37,16 +39,17 @@ type FakeTaskConfigSource struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTaskConfigSource) FetchConfig(arg1 *worker.ArtifactRepository) (atc.TaskConfig, error) {
+func (fake *FakeTaskConfigSource) FetchConfig(arg1 lager.Logger, arg2 *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	fake.fetchConfigMutex.Lock()
 	ret, specificReturn := fake.fetchConfigReturnsOnCall[len(fake.fetchConfigArgsForCall)]
 	fake.fetchConfigArgsForCall = append(fake.fetchConfigArgsForCall, struct {
-		arg1 *worker.ArtifactRepository
-	}{arg1})
-	fake.recordInvocation("FetchConfig", []interface{}{arg1})
+		arg1 lager.Logger
+		arg2 *worker.ArtifactRepository
+	}{arg1, arg2})
+	fake.recordInvocation("FetchConfig", []interface{}{arg1, arg2})
 	fake.fetchConfigMutex.Unlock()
 	if fake.FetchConfigStub != nil {
-		return fake.FetchConfigStub(arg1)
+		return fake.FetchConfigStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -61,14 +64,22 @@ func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
 	return len(fake.fetchConfigArgsForCall)
 }
 
-func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) *worker.ArtifactRepository {
+func (fake *FakeTaskConfigSource) FetchConfigCalls(stub func(lager.Logger, *worker.ArtifactRepository) (atc.TaskConfig, error)) {
+	fake.fetchConfigMutex.Lock()
+	defer fake.fetchConfigMutex.Unlock()
+	fake.FetchConfigStub = stub
+}
+
+func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) (lager.Logger, *worker.ArtifactRepository) {
 	fake.fetchConfigMutex.RLock()
 	defer fake.fetchConfigMutex.RUnlock()
 	argsForCall := fake.fetchConfigArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeTaskConfigSource) FetchConfigReturns(result1 atc.TaskConfig, result2 error) {
+	fake.fetchConfigMutex.Lock()
+	defer fake.fetchConfigMutex.Unlock()
 	fake.FetchConfigStub = nil
 	fake.fetchConfigReturns = struct {
 		result1 atc.TaskConfig
@@ -77,6 +88,8 @@ func (fake *FakeTaskConfigSource) FetchConfigReturns(result1 atc.TaskConfig, res
 }
 
 func (fake *FakeTaskConfigSource) FetchConfigReturnsOnCall(i int, result1 atc.TaskConfig, result2 error) {
+	fake.fetchConfigMutex.Lock()
+	defer fake.fetchConfigMutex.Unlock()
 	fake.FetchConfigStub = nil
 	if fake.fetchConfigReturnsOnCall == nil {
 		fake.fetchConfigReturnsOnCall = make(map[int]struct {
@@ -113,7 +126,15 @@ func (fake *FakeTaskConfigSource) WarningsCallCount() int {
 	return len(fake.warningsArgsForCall)
 }
 
+func (fake *FakeTaskConfigSource) WarningsCalls(stub func() []string) {
+	fake.warningsMutex.Lock()
+	defer fake.warningsMutex.Unlock()
+	fake.WarningsStub = stub
+}
+
 func (fake *FakeTaskConfigSource) WarningsReturns(result1 []string) {
+	fake.warningsMutex.Lock()
+	defer fake.warningsMutex.Unlock()
 	fake.WarningsStub = nil
 	fake.warningsReturns = struct {
 		result1 []string
@@ -121,6 +142,8 @@ func (fake *FakeTaskConfigSource) WarningsReturns(result1 []string) {
 }
 
 func (fake *FakeTaskConfigSource) WarningsReturnsOnCall(i int, result1 []string) {
+	fake.warningsMutex.Lock()
+	defer fake.warningsMutex.Unlock()
 	fake.WarningsStub = nil
 	if fake.warningsReturnsOnCall == nil {
 		fake.warningsReturnsOnCall = make(map[int]struct {

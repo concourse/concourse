@@ -121,7 +121,15 @@ func (fake *FakeTx) CommitCallCount() int {
 	return len(fake.commitArgsForCall)
 }
 
+func (fake *FakeTx) CommitCalls(stub func() error) {
+	fake.commitMutex.Lock()
+	defer fake.commitMutex.Unlock()
+	fake.CommitStub = stub
+}
+
 func (fake *FakeTx) CommitReturns(result1 error) {
+	fake.commitMutex.Lock()
+	defer fake.commitMutex.Unlock()
 	fake.CommitStub = nil
 	fake.commitReturns = struct {
 		result1 error
@@ -129,6 +137,8 @@ func (fake *FakeTx) CommitReturns(result1 error) {
 }
 
 func (fake *FakeTx) CommitReturnsOnCall(i int, result1 error) {
+	fake.commitMutex.Lock()
+	defer fake.commitMutex.Unlock()
 	fake.CommitStub = nil
 	if fake.commitReturnsOnCall == nil {
 		fake.commitReturnsOnCall = make(map[int]struct {
@@ -165,6 +175,12 @@ func (fake *FakeTx) ExecCallCount() int {
 	return len(fake.execArgsForCall)
 }
 
+func (fake *FakeTx) ExecCalls(stub func(string, ...interface{}) (sql.Result, error)) {
+	fake.execMutex.Lock()
+	defer fake.execMutex.Unlock()
+	fake.ExecStub = stub
+}
+
 func (fake *FakeTx) ExecArgsForCall(i int) (string, []interface{}) {
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
@@ -173,6 +189,8 @@ func (fake *FakeTx) ExecArgsForCall(i int) (string, []interface{}) {
 }
 
 func (fake *FakeTx) ExecReturns(result1 sql.Result, result2 error) {
+	fake.execMutex.Lock()
+	defer fake.execMutex.Unlock()
 	fake.ExecStub = nil
 	fake.execReturns = struct {
 		result1 sql.Result
@@ -181,6 +199,8 @@ func (fake *FakeTx) ExecReturns(result1 sql.Result, result2 error) {
 }
 
 func (fake *FakeTx) ExecReturnsOnCall(i int, result1 sql.Result, result2 error) {
+	fake.execMutex.Lock()
+	defer fake.execMutex.Unlock()
 	fake.ExecStub = nil
 	if fake.execReturnsOnCall == nil {
 		fake.execReturnsOnCall = make(map[int]struct {
@@ -218,6 +238,12 @@ func (fake *FakeTx) PrepareCallCount() int {
 	return len(fake.prepareArgsForCall)
 }
 
+func (fake *FakeTx) PrepareCalls(stub func(string) (*sql.Stmt, error)) {
+	fake.prepareMutex.Lock()
+	defer fake.prepareMutex.Unlock()
+	fake.PrepareStub = stub
+}
+
 func (fake *FakeTx) PrepareArgsForCall(i int) string {
 	fake.prepareMutex.RLock()
 	defer fake.prepareMutex.RUnlock()
@@ -226,6 +252,8 @@ func (fake *FakeTx) PrepareArgsForCall(i int) string {
 }
 
 func (fake *FakeTx) PrepareReturns(result1 *sql.Stmt, result2 error) {
+	fake.prepareMutex.Lock()
+	defer fake.prepareMutex.Unlock()
 	fake.PrepareStub = nil
 	fake.prepareReturns = struct {
 		result1 *sql.Stmt
@@ -234,6 +262,8 @@ func (fake *FakeTx) PrepareReturns(result1 *sql.Stmt, result2 error) {
 }
 
 func (fake *FakeTx) PrepareReturnsOnCall(i int, result1 *sql.Stmt, result2 error) {
+	fake.prepareMutex.Lock()
+	defer fake.prepareMutex.Unlock()
 	fake.PrepareStub = nil
 	if fake.prepareReturnsOnCall == nil {
 		fake.prepareReturnsOnCall = make(map[int]struct {
@@ -272,6 +302,12 @@ func (fake *FakeTx) QueryCallCount() int {
 	return len(fake.queryArgsForCall)
 }
 
+func (fake *FakeTx) QueryCalls(stub func(string, ...interface{}) (*sql.Rows, error)) {
+	fake.queryMutex.Lock()
+	defer fake.queryMutex.Unlock()
+	fake.QueryStub = stub
+}
+
 func (fake *FakeTx) QueryArgsForCall(i int) (string, []interface{}) {
 	fake.queryMutex.RLock()
 	defer fake.queryMutex.RUnlock()
@@ -280,6 +316,8 @@ func (fake *FakeTx) QueryArgsForCall(i int) (string, []interface{}) {
 }
 
 func (fake *FakeTx) QueryReturns(result1 *sql.Rows, result2 error) {
+	fake.queryMutex.Lock()
+	defer fake.queryMutex.Unlock()
 	fake.QueryStub = nil
 	fake.queryReturns = struct {
 		result1 *sql.Rows
@@ -288,6 +326,8 @@ func (fake *FakeTx) QueryReturns(result1 *sql.Rows, result2 error) {
 }
 
 func (fake *FakeTx) QueryReturnsOnCall(i int, result1 *sql.Rows, result2 error) {
+	fake.queryMutex.Lock()
+	defer fake.queryMutex.Unlock()
 	fake.QueryStub = nil
 	if fake.queryReturnsOnCall == nil {
 		fake.queryReturnsOnCall = make(map[int]struct {
@@ -326,6 +366,12 @@ func (fake *FakeTx) QueryRowCallCount() int {
 	return len(fake.queryRowArgsForCall)
 }
 
+func (fake *FakeTx) QueryRowCalls(stub func(string, ...interface{}) squirrel.RowScanner) {
+	fake.queryRowMutex.Lock()
+	defer fake.queryRowMutex.Unlock()
+	fake.QueryRowStub = stub
+}
+
 func (fake *FakeTx) QueryRowArgsForCall(i int) (string, []interface{}) {
 	fake.queryRowMutex.RLock()
 	defer fake.queryRowMutex.RUnlock()
@@ -334,6 +380,8 @@ func (fake *FakeTx) QueryRowArgsForCall(i int) (string, []interface{}) {
 }
 
 func (fake *FakeTx) QueryRowReturns(result1 squirrel.RowScanner) {
+	fake.queryRowMutex.Lock()
+	defer fake.queryRowMutex.Unlock()
 	fake.QueryRowStub = nil
 	fake.queryRowReturns = struct {
 		result1 squirrel.RowScanner
@@ -341,6 +389,8 @@ func (fake *FakeTx) QueryRowReturns(result1 squirrel.RowScanner) {
 }
 
 func (fake *FakeTx) QueryRowReturnsOnCall(i int, result1 squirrel.RowScanner) {
+	fake.queryRowMutex.Lock()
+	defer fake.queryRowMutex.Unlock()
 	fake.QueryRowStub = nil
 	if fake.queryRowReturnsOnCall == nil {
 		fake.queryRowReturnsOnCall = make(map[int]struct {
@@ -375,7 +425,15 @@ func (fake *FakeTx) RollbackCallCount() int {
 	return len(fake.rollbackArgsForCall)
 }
 
+func (fake *FakeTx) RollbackCalls(stub func() error) {
+	fake.rollbackMutex.Lock()
+	defer fake.rollbackMutex.Unlock()
+	fake.RollbackStub = stub
+}
+
 func (fake *FakeTx) RollbackReturns(result1 error) {
+	fake.rollbackMutex.Lock()
+	defer fake.rollbackMutex.Unlock()
 	fake.RollbackStub = nil
 	fake.rollbackReturns = struct {
 		result1 error
@@ -383,6 +441,8 @@ func (fake *FakeTx) RollbackReturns(result1 error) {
 }
 
 func (fake *FakeTx) RollbackReturnsOnCall(i int, result1 error) {
+	fake.rollbackMutex.Lock()
+	defer fake.rollbackMutex.Unlock()
 	fake.RollbackStub = nil
 	if fake.rollbackReturnsOnCall == nil {
 		fake.rollbackReturnsOnCall = make(map[int]struct {
@@ -418,6 +478,12 @@ func (fake *FakeTx) StmtCallCount() int {
 	return len(fake.stmtArgsForCall)
 }
 
+func (fake *FakeTx) StmtCalls(stub func(*sql.Stmt) *sql.Stmt) {
+	fake.stmtMutex.Lock()
+	defer fake.stmtMutex.Unlock()
+	fake.StmtStub = stub
+}
+
 func (fake *FakeTx) StmtArgsForCall(i int) *sql.Stmt {
 	fake.stmtMutex.RLock()
 	defer fake.stmtMutex.RUnlock()
@@ -426,6 +492,8 @@ func (fake *FakeTx) StmtArgsForCall(i int) *sql.Stmt {
 }
 
 func (fake *FakeTx) StmtReturns(result1 *sql.Stmt) {
+	fake.stmtMutex.Lock()
+	defer fake.stmtMutex.Unlock()
 	fake.StmtStub = nil
 	fake.stmtReturns = struct {
 		result1 *sql.Stmt
@@ -433,6 +501,8 @@ func (fake *FakeTx) StmtReturns(result1 *sql.Stmt) {
 }
 
 func (fake *FakeTx) StmtReturnsOnCall(i int, result1 *sql.Stmt) {
+	fake.stmtMutex.Lock()
+	defer fake.stmtMutex.Unlock()
 	fake.StmtStub = nil
 	if fake.stmtReturnsOnCall == nil {
 		fake.stmtReturnsOnCall = make(map[int]struct {

@@ -56,6 +56,12 @@ func (fake *FakeImage) FetchForContainerCallCount() int {
 	return len(fake.fetchForContainerArgsForCall)
 }
 
+func (fake *FakeImage) FetchForContainerCalls(stub func(context.Context, lager.Logger, db.CreatingContainer) (worker.FetchedImage, error)) {
+	fake.fetchForContainerMutex.Lock()
+	defer fake.fetchForContainerMutex.Unlock()
+	fake.FetchForContainerStub = stub
+}
+
 func (fake *FakeImage) FetchForContainerArgsForCall(i int) (context.Context, lager.Logger, db.CreatingContainer) {
 	fake.fetchForContainerMutex.RLock()
 	defer fake.fetchForContainerMutex.RUnlock()
@@ -64,6 +70,8 @@ func (fake *FakeImage) FetchForContainerArgsForCall(i int) (context.Context, lag
 }
 
 func (fake *FakeImage) FetchForContainerReturns(result1 worker.FetchedImage, result2 error) {
+	fake.fetchForContainerMutex.Lock()
+	defer fake.fetchForContainerMutex.Unlock()
 	fake.FetchForContainerStub = nil
 	fake.fetchForContainerReturns = struct {
 		result1 worker.FetchedImage
@@ -72,6 +80,8 @@ func (fake *FakeImage) FetchForContainerReturns(result1 worker.FetchedImage, res
 }
 
 func (fake *FakeImage) FetchForContainerReturnsOnCall(i int, result1 worker.FetchedImage, result2 error) {
+	fake.fetchForContainerMutex.Lock()
+	defer fake.fetchForContainerMutex.Unlock()
 	fake.FetchForContainerStub = nil
 	if fake.fetchForContainerReturnsOnCall == nil {
 		fake.fetchForContainerReturnsOnCall = make(map[int]struct {

@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# diff - verifies if there are any concourse parameters that are missing from
+# the distribution's configurable parameters
+#
+# Environment variables:
+#   DISTRIBUTION    Distribution, i.e. 'helm' or 'bosh'
+
+set -e -u
+
+distro_dir=$PWD/distribution
+linux_rc=$PWD/linux-rc
+
+if [ -z "$DISTRIBUTION" ]; then
+  echo 'missing required env $DISTRIBUTION' >&2
+  exit 1
+fi
+
+distro_scripts=$(dirname $0)/$DISTRIBUTION
+
+main() {
+  local actual=$(get_distribution_variables)
+  local expected=$(get_concourse_variables)
+  local diff=$(get_diff "$actual" "$expected")
+
+  if [[ -z $diff ]]; then
+    echo "All good!"
+    exit 0
+  fi
+
+  echo "$diff"
+
+  exit 1
+}
+
+get_distribution_variables() {
+  $distro_scripts/list-actual $distro_dir | filter_list ignored-in-distribution
+}
+
+get_concourse_variables() {
+  tar -zxf $linux_rc/concourse-*.tgz -C $linux_rc
+
+  for subcommand in web worker; do
+    $linux_rc/concourse/bin/concourse $subcommand --help 2>&1 |
+      grep -o '\[\$.*\]' |
+      tr -d \[\]\$
+  done | filter_list ignored-in-concourse
+}
+
+filter_list() {
+  local filter="$(cat $distro_scripts/$1 | xargs | tr ' ' '|')"
+
+  if [ -z "$filter" ]; then
+    tee
+  else
+    egrep -v $filter
+  fi
+}
+
+get_diff() {
+  local actual=$1
+  local expected=$2
+
+  comm -23 <(echo "$expected" | sort -u) <(echo "$actual" | sort -u) | sed 's/^/+ /'
+  comm -13 <(echo "$expected" | sort -u) <(echo "$actual" | sort -u) | sed 's/^/- /'
+}
+
+main "$@"

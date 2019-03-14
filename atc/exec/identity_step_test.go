@@ -20,7 +20,6 @@ var _ = Describe("Identity", func() {
 	)
 
 	BeforeEach(func() {
-		step = IdentityStep{}
 		state = new(execfakes.FakeRunState)
 	})
 

@@ -1,0 +1,9 @@
+resources:
+- name: some-resource
+  type: mock
+  source: {initial_version: first-version}
+
+jobs:
+- name: simple-job
+  plan:
+  - get: some-resource

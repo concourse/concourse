@@ -48,6 +48,12 @@ func (fake *FakeIntervalRunner) RunCallCount() int {
 	return len(fake.runArgsForCall)
 }
 
+func (fake *FakeIntervalRunner) RunCalls(stub func(context.Context) error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
+	fake.RunStub = stub
+}
+
 func (fake *FakeIntervalRunner) RunArgsForCall(i int) context.Context {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
@@ -56,6 +62,8 @@ func (fake *FakeIntervalRunner) RunArgsForCall(i int) context.Context {
 }
 
 func (fake *FakeIntervalRunner) RunReturns(result1 error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
 	fake.RunStub = nil
 	fake.runReturns = struct {
 		result1 error
@@ -63,6 +71,8 @@ func (fake *FakeIntervalRunner) RunReturns(result1 error) {
 }
 
 func (fake *FakeIntervalRunner) RunReturnsOnCall(i int, result1 error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
 	fake.RunStub = nil
 	if fake.runReturnsOnCall == nil {
 		fake.runReturnsOnCall = make(map[int]struct {

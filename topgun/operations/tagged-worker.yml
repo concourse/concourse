@@ -1,3 +1,3 @@
 - type: replace
-  path: /instance_groups/name=concourse/jobs/name=worker/properties/tags?
+  path: /instance_groups/name=worker/jobs/name=worker/properties/tags?
   value: [tagged]

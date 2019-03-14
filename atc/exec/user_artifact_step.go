@@ -50,7 +50,7 @@ type streamSource struct {
 	state  RunState
 }
 
-func (source streamSource) StreamTo(dest worker.ArtifactDestination) error {
+func (source streamSource) StreamTo(logger lager.Logger, dest worker.ArtifactDestination) error {
 	pb := progress(string(source.step.name)+":", source.step.delegate.Stdout())
 
 	return source.state.ReadUserInput(source.step.id, func(rc io.ReadCloser) error {
@@ -62,10 +62,10 @@ func (source streamSource) StreamTo(dest worker.ArtifactDestination) error {
 	})
 }
 
-func (source streamSource) StreamFile(path string) (io.ReadCloser, error) {
+func (source streamSource) StreamFile(logger lager.Logger, path string) (io.ReadCloser, error) {
 	return nil, errors.New("cannot stream single file from user artifact")
 }
 
-func (source streamSource) VolumeOn(worker.Worker) (worker.Volume, bool, error) {
+func (source streamSource) VolumeOn(lager.Logger, worker.Worker) (worker.Volume, bool, error) {
 	return nil, false, nil
 }

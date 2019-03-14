@@ -68,6 +68,12 @@ func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryCallCount() int {
 	return len(fake.buildScanRunnerFactoryArgsForCall)
 }
 
+func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryCalls(stub func(db.Pipeline, string, creds.Variables) radar.ScanRunnerFactory) {
+	fake.buildScanRunnerFactoryMutex.Lock()
+	defer fake.buildScanRunnerFactoryMutex.Unlock()
+	fake.BuildScanRunnerFactoryStub = stub
+}
+
 func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryArgsForCall(i int) (db.Pipeline, string, creds.Variables) {
 	fake.buildScanRunnerFactoryMutex.RLock()
 	defer fake.buildScanRunnerFactoryMutex.RUnlock()
@@ -76,6 +82,8 @@ func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryArgsForCall(i int) 
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryReturns(result1 radar.ScanRunnerFactory) {
+	fake.buildScanRunnerFactoryMutex.Lock()
+	defer fake.buildScanRunnerFactoryMutex.Unlock()
 	fake.BuildScanRunnerFactoryStub = nil
 	fake.buildScanRunnerFactoryReturns = struct {
 		result1 radar.ScanRunnerFactory
@@ -83,6 +91,8 @@ func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryReturns(result1 rad
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryReturnsOnCall(i int, result1 radar.ScanRunnerFactory) {
+	fake.buildScanRunnerFactoryMutex.Lock()
+	defer fake.buildScanRunnerFactoryMutex.Unlock()
 	fake.BuildScanRunnerFactoryStub = nil
 	if fake.buildScanRunnerFactoryReturnsOnCall == nil {
 		fake.buildScanRunnerFactoryReturnsOnCall = make(map[int]struct {
@@ -120,6 +130,12 @@ func (fake *FakeRadarSchedulerFactory) BuildSchedulerCallCount() int {
 	return len(fake.buildSchedulerArgsForCall)
 }
 
+func (fake *FakeRadarSchedulerFactory) BuildSchedulerCalls(stub func(db.Pipeline, string, creds.Variables) scheduler.BuildScheduler) {
+	fake.buildSchedulerMutex.Lock()
+	defer fake.buildSchedulerMutex.Unlock()
+	fake.BuildSchedulerStub = stub
+}
+
 func (fake *FakeRadarSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipeline, string, creds.Variables) {
 	fake.buildSchedulerMutex.RLock()
 	defer fake.buildSchedulerMutex.RUnlock()
@@ -128,6 +144,8 @@ func (fake *FakeRadarSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipe
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {
+	fake.buildSchedulerMutex.Lock()
+	defer fake.buildSchedulerMutex.Unlock()
 	fake.BuildSchedulerStub = nil
 	fake.buildSchedulerReturns = struct {
 		result1 scheduler.BuildScheduler
@@ -135,6 +153,8 @@ func (fake *FakeRadarSchedulerFactory) BuildSchedulerReturns(result1 scheduler.B
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildSchedulerReturnsOnCall(i int, result1 scheduler.BuildScheduler) {
+	fake.buildSchedulerMutex.Lock()
+	defer fake.buildSchedulerMutex.Unlock()
 	fake.BuildSchedulerStub = nil
 	if fake.buildSchedulerReturnsOnCall == nil {
 		fake.buildSchedulerReturnsOnCall = make(map[int]struct {

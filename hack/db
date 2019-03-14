@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if which pgcli >/dev/null; then
+  PGPASSWORD=dev pgcli -h localhost -p 6543 -U dev concourse
+else
+  PGPASSWORD=dev psql -h localhost -p 6543 -U dev concourse
+fi

@@ -15,8 +15,9 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/lib/pq"
+
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 //go:generate counterfeiter . Conn
@@ -91,7 +92,7 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *e
 			}
 		}
 
-		listener := pq.NewListener(sqlDataSource, time.Second, time.Minute, nil)
+		listener := pq.NewDialListener(keepAliveDialer{}, sqlDataSource, time.Second, time.Minute, nil)
 
 		return &db{
 			DB: sqlDb,

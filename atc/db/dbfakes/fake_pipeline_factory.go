@@ -60,7 +60,15 @@ func (fake *FakePipelineFactory) AllPipelinesCallCount() int {
 	return len(fake.allPipelinesArgsForCall)
 }
 
+func (fake *FakePipelineFactory) AllPipelinesCalls(stub func() ([]db.Pipeline, error)) {
+	fake.allPipelinesMutex.Lock()
+	defer fake.allPipelinesMutex.Unlock()
+	fake.AllPipelinesStub = stub
+}
+
 func (fake *FakePipelineFactory) AllPipelinesReturns(result1 []db.Pipeline, result2 error) {
+	fake.allPipelinesMutex.Lock()
+	defer fake.allPipelinesMutex.Unlock()
 	fake.AllPipelinesStub = nil
 	fake.allPipelinesReturns = struct {
 		result1 []db.Pipeline
@@ -69,6 +77,8 @@ func (fake *FakePipelineFactory) AllPipelinesReturns(result1 []db.Pipeline, resu
 }
 
 func (fake *FakePipelineFactory) AllPipelinesReturnsOnCall(i int, result1 []db.Pipeline, result2 error) {
+	fake.allPipelinesMutex.Lock()
+	defer fake.allPipelinesMutex.Unlock()
 	fake.AllPipelinesStub = nil
 	if fake.allPipelinesReturnsOnCall == nil {
 		fake.allPipelinesReturnsOnCall = make(map[int]struct {
@@ -111,6 +121,12 @@ func (fake *FakePipelineFactory) VisiblePipelinesCallCount() int {
 	return len(fake.visiblePipelinesArgsForCall)
 }
 
+func (fake *FakePipelineFactory) VisiblePipelinesCalls(stub func([]string) ([]db.Pipeline, error)) {
+	fake.visiblePipelinesMutex.Lock()
+	defer fake.visiblePipelinesMutex.Unlock()
+	fake.VisiblePipelinesStub = stub
+}
+
 func (fake *FakePipelineFactory) VisiblePipelinesArgsForCall(i int) []string {
 	fake.visiblePipelinesMutex.RLock()
 	defer fake.visiblePipelinesMutex.RUnlock()
@@ -119,6 +135,8 @@ func (fake *FakePipelineFactory) VisiblePipelinesArgsForCall(i int) []string {
 }
 
 func (fake *FakePipelineFactory) VisiblePipelinesReturns(result1 []db.Pipeline, result2 error) {
+	fake.visiblePipelinesMutex.Lock()
+	defer fake.visiblePipelinesMutex.Unlock()
 	fake.VisiblePipelinesStub = nil
 	fake.visiblePipelinesReturns = struct {
 		result1 []db.Pipeline
@@ -127,6 +145,8 @@ func (fake *FakePipelineFactory) VisiblePipelinesReturns(result1 []db.Pipeline, 
 }
 
 func (fake *FakePipelineFactory) VisiblePipelinesReturnsOnCall(i int, result1 []db.Pipeline, result2 error) {
+	fake.visiblePipelinesMutex.Lock()
+	defer fake.visiblePipelinesMutex.Unlock()
 	fake.VisiblePipelinesStub = nil
 	if fake.visiblePipelinesReturnsOnCall == nil {
 		fake.visiblePipelinesReturnsOnCall = make(map[int]struct {

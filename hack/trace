@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)/..
+
+container_name=""
+case $1 in
+web)
+  container_name="concourse_web_1"
+  ;;
+
+worker)
+  container_name="concourse_worker_1"
+  ;;
+
+*)
+  echo "Usage: trace (web|worker)"
+  exit 1
+  ;;
+esac
+
+trace_pid=$(docker exec $container_name pidof concourse)
+
+docker build --tag dlv ./hack/dlv
+
+docker run \
+  --interactive \
+  --pid=container:$container_name \
+  --privileged \
+  --rm \
+  --tty \
+  dlv \
+  attach $trace_pid

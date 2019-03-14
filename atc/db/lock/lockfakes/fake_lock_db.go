@@ -62,6 +62,12 @@ func (fake *FakeLockDB) AcquireCallCount() int {
 	return len(fake.acquireArgsForCall)
 }
 
+func (fake *FakeLockDB) AcquireCalls(stub func(lock.LockID) (bool, error)) {
+	fake.acquireMutex.Lock()
+	defer fake.acquireMutex.Unlock()
+	fake.AcquireStub = stub
+}
+
 func (fake *FakeLockDB) AcquireArgsForCall(i int) lock.LockID {
 	fake.acquireMutex.RLock()
 	defer fake.acquireMutex.RUnlock()
@@ -70,6 +76,8 @@ func (fake *FakeLockDB) AcquireArgsForCall(i int) lock.LockID {
 }
 
 func (fake *FakeLockDB) AcquireReturns(result1 bool, result2 error) {
+	fake.acquireMutex.Lock()
+	defer fake.acquireMutex.Unlock()
 	fake.AcquireStub = nil
 	fake.acquireReturns = struct {
 		result1 bool
@@ -78,6 +86,8 @@ func (fake *FakeLockDB) AcquireReturns(result1 bool, result2 error) {
 }
 
 func (fake *FakeLockDB) AcquireReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.acquireMutex.Lock()
+	defer fake.acquireMutex.Unlock()
 	fake.AcquireStub = nil
 	if fake.acquireReturnsOnCall == nil {
 		fake.acquireReturnsOnCall = make(map[int]struct {
@@ -115,6 +125,12 @@ func (fake *FakeLockDB) ReleaseCallCount() int {
 	return len(fake.releaseArgsForCall)
 }
 
+func (fake *FakeLockDB) ReleaseCalls(stub func(lock.LockID) (bool, error)) {
+	fake.releaseMutex.Lock()
+	defer fake.releaseMutex.Unlock()
+	fake.ReleaseStub = stub
+}
+
 func (fake *FakeLockDB) ReleaseArgsForCall(i int) lock.LockID {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
@@ -123,6 +139,8 @@ func (fake *FakeLockDB) ReleaseArgsForCall(i int) lock.LockID {
 }
 
 func (fake *FakeLockDB) ReleaseReturns(result1 bool, result2 error) {
+	fake.releaseMutex.Lock()
+	defer fake.releaseMutex.Unlock()
 	fake.ReleaseStub = nil
 	fake.releaseReturns = struct {
 		result1 bool
@@ -131,6 +149,8 @@ func (fake *FakeLockDB) ReleaseReturns(result1 bool, result2 error) {
 }
 
 func (fake *FakeLockDB) ReleaseReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.releaseMutex.Lock()
+	defer fake.releaseMutex.Unlock()
 	fake.ReleaseStub = nil
 	if fake.releaseReturnsOnCall == nil {
 		fake.releaseReturnsOnCall = make(map[int]struct {

@@ -2,37 +2,23 @@ package topgun_test
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 
-	"code.cloudfoundry.org/garden"
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/baggageclaim"
-	bgclient "github.com/concourse/baggageclaim/client"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe(":life volume gc", func() {
-	var gClient garden.Client
-	var bcClient baggageclaim.Client
-
+var _ = Describe("Garbage-collecting volumes", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml")
-
-		workerIP := JobInstance("worker").IP
-
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", workerIP)))
-		bcClient = bgclient.New(fmt.Sprintf("http://%s:7788", workerIP), http.DefaultTransport)
 	})
 
 	Describe("A volume that belonged to a container that is now gone", func() {
 		It("is removed from the database and worker [#129726011]", func() {
 			By("running a task with container having a rootfs, input, and output volume")
-			fly("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
+			fly.Run("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
 
 			By("collecting the build containers")
 			rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"build_id": 1}).RunWith(dbConn).Query()
@@ -85,7 +71,7 @@ var _ = Describe(":life volume gc", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the containers from the worker")
-			containers, err := gClient.Containers(nil)
+			containers, err := workerGardenClient.Containers(nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles := []string{}
@@ -106,7 +92,7 @@ var _ = Describe(":life volume gc", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			volumes, err := bcClient.ListVolumes(logger, nil)
+			volumes, err := workerBaggageclaimClient.ListVolumes(logger, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles = []string{}
@@ -123,13 +109,13 @@ var _ = Describe(":life volume gc", func() {
 	Describe("A volume that belonged to a resource cache that is no longer in use", func() {
 		It("is removed from the database and worker [#129726933]", func() {
 			By("setting pipeline that creates resource cache")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "volume-gc-test")
+			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
 
 			By("triggering job")
-			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting resource cache")
 			var resourceCacheID int
@@ -155,7 +141,7 @@ var _ = Describe(":life volume gc", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("creating a new version of resource")
-			fly("check-resource", "-r", "volume-gc-test/tick-tock")
+			fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
 
 			By(fmt.Sprintf("eventually expiring the resource cache: %d", resourceCacheID))
 			Eventually(func() int {
@@ -184,7 +170,7 @@ var _ = Describe(":life volume gc", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			volumes, err := bcClient.ListVolumes(logger, nil)
+			volumes, err := workerBaggageclaimClient.ListVolumes(logger, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles := []string{}

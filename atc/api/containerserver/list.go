@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -31,7 +32,7 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 
 		hLog.Debug("listing-containers")
 
-		containers, err := containerLocator.Locate(hLog)
+		containers, checkContainersExpiresAt, err := containerLocator.Locate(hLog)
 		if err != nil {
 			hLog.Error("failed-to-find-containers", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -43,7 +44,7 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 		presentedContainers := make([]atc.Container, len(containers))
 		for i := 0; i < len(containers); i++ {
 			container := containers[i]
-			presentedContainers[i] = present.Container(container)
+			presentedContainers[i] = present.Container(container, checkContainersExpiresAt[container.ID()])
 		}
 
 		err = json.NewEncoder(w).Encode(presentedContainers)
@@ -55,11 +56,27 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 }
 
 type containerLocator interface {
-	Locate(logger lager.Logger) ([]db.Container, error)
+	Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error)
 }
 
 func createContainerLocatorFromRequest(team db.Team, r *http.Request, variablesFactory creds.VariablesFactory) (containerLocator, error) {
 	query := r.URL.Query()
+	delete(query, ":team_name")
+
+	if len(query) == 0 {
+		return &allContainersLocator{
+			team: team,
+		}, nil
+	}
+
+	if query.Get("type") == "check" {
+		return &checkContainerLocator{
+			team:             team,
+			pipelineName:     query.Get("pipeline_name"),
+			resourceName:     query.Get("resource_name"),
+			variablesFactory: variablesFactory,
+		}, nil
+	}
 
 	var err error
 	var containerType db.ContainerType
@@ -105,13 +122,34 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request, variablesF
 	}, nil
 }
 
+type allContainersLocator struct {
+	team db.Team
+}
+
+func (l *allContainersLocator) Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error) {
+	containers, err := l.team.Containers(logger)
+	return containers, nil, err
+}
+
+type checkContainerLocator struct {
+	team             db.Team
+	pipelineName     string
+	resourceName     string
+	variablesFactory creds.VariablesFactory
+}
+
+func (l *checkContainerLocator) Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error) {
+	return l.team.FindCheckContainers(logger, l.pipelineName, l.resourceName, l.variablesFactory)
+}
+
 type stepContainerLocator struct {
 	team     db.Team
 	metadata db.ContainerMetadata
 }
 
-func (l *stepContainerLocator) Locate(logger lager.Logger) ([]db.Container, error) {
-	return l.team.FindContainersByMetadata(l.metadata)
+func (l *stepContainerLocator) Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error) {
+	containers, err := l.team.FindContainersByMetadata(l.metadata)
+	return containers, nil, err
 }
 
 func parseIntParam(r *http.Request, name string) (int, error) {

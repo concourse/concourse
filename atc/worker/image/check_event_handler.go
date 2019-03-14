@@ -14,6 +14,9 @@ func (c *CheckEventHandler) DefaultSpace(space atc.Space) error {
 	return nil
 }
 
+// When versions are discovered, they are not saved into the database because
+// image resources are checked everytime in order to get the latest version of
+// the image everytime it is run
 func (c *CheckEventHandler) Discovered(space atc.Space, version atc.Version, metadata atc.Metadata) error {
 	c.SavedLatestVersions[space] = version
 	return nil

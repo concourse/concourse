@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -15,11 +16,13 @@ import (
 
 var _ = Describe("ArtifactRepository", func() {
 	var (
-		repo *ArtifactRepository
+		repo   *ArtifactRepository
+		logger *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
 		repo = NewArtifactRepository()
+		logger = lagertest.NewTestLogger("artifact-repository-test")
 	})
 
 	It("initially does not contain any sources", func() {
@@ -87,7 +90,7 @@ var _ = Describe("ArtifactRepository", func() {
 				})
 
 				JustBeforeEach(func() {
-					streamErr = repo.StreamTo(fakeDestination)
+					streamErr = repo.StreamTo(logger, fakeDestination)
 				})
 
 				It("succeeds", func() {
@@ -100,8 +103,8 @@ var _ = Describe("ArtifactRepository", func() {
 					Expect(firstSource.StreamToCallCount()).To(Equal(1))
 					Expect(secondSource.StreamToCallCount()).To(Equal(1))
 
-					firstDestination := firstSource.StreamToArgsForCall(0)
-					secondDestination := secondSource.StreamToArgsForCall(0)
+					_, firstDestination := firstSource.StreamToArgsForCall(0)
+					_, secondDestination := secondSource.StreamToArgsForCall(0)
 
 					Expect(firstDestination.StreamIn("foo", someStream)).To(Succeed())
 
@@ -138,7 +141,7 @@ var _ = Describe("ArtifactRepository", func() {
 				var streamErr error
 
 				JustBeforeEach(func() {
-					stream, streamErr = repo.StreamFile(path)
+					stream, streamErr = repo.StreamFile(logger, path)
 				})
 
 				Context("from a path not referring to any source", func() {
@@ -163,8 +166,8 @@ var _ = Describe("ArtifactRepository", func() {
 
 					It("streams out from the source", func() {
 						Expect(stream).To(Equal(outStream))
-
-						Expect(firstSource.StreamFileArgsForCall(0)).To(Equal("foo"))
+						_, file := firstSource.StreamFileArgsForCall(0)
+						Expect(file).To(Equal("foo"))
 					})
 
 					Context("when streaming out from the source fails", func() {

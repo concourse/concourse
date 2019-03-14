@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
 )
@@ -35,7 +36,6 @@ var (
 	workerFactory                       db.WorkerFactory
 	workerLifecycle                     db.WorkerLifecycle
 	resourceConfigCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle
-	resourceConfigCheckSessionFactory   db.ResourceConfigCheckSessionFactory
 	resourceConfigFactory               db.ResourceConfigFactory
 	resourceCacheFactory                db.ResourceCacheFactory
 	workerBaseResourceTypeFactory       db.WorkerBaseResourceTypeFactory
@@ -90,7 +90,7 @@ var _ = BeforeEach(func() {
 
 	dbConn = postgresRunner.OpenConn()
 
-	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
+	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
 
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 5*time.Minute)
 	volumeRepository = db.NewVolumeRepository(dbConn)
@@ -99,7 +99,6 @@ var _ = BeforeEach(func() {
 	workerFactory = db.NewWorkerFactory(dbConn)
 	workerLifecycle = db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
-	resourceConfigCheckSessionFactory = db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -134,6 +133,8 @@ var _ = BeforeEach(func() {
 	}
 
 	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
+	Expect(err).NotTo(HaveOccurred())
+
 	otherWorker, err = workerFactory.SaveWorker(otherWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 

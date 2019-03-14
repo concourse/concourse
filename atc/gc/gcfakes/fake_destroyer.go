@@ -79,6 +79,12 @@ func (fake *FakeDestroyer) DestroyContainersCallCount() int {
 	return len(fake.destroyContainersArgsForCall)
 }
 
+func (fake *FakeDestroyer) DestroyContainersCalls(stub func(string, []string) error) {
+	fake.destroyContainersMutex.Lock()
+	defer fake.destroyContainersMutex.Unlock()
+	fake.DestroyContainersStub = stub
+}
+
 func (fake *FakeDestroyer) DestroyContainersArgsForCall(i int) (string, []string) {
 	fake.destroyContainersMutex.RLock()
 	defer fake.destroyContainersMutex.RUnlock()
@@ -87,6 +93,8 @@ func (fake *FakeDestroyer) DestroyContainersArgsForCall(i int) (string, []string
 }
 
 func (fake *FakeDestroyer) DestroyContainersReturns(result1 error) {
+	fake.destroyContainersMutex.Lock()
+	defer fake.destroyContainersMutex.Unlock()
 	fake.DestroyContainersStub = nil
 	fake.destroyContainersReturns = struct {
 		result1 error
@@ -94,6 +102,8 @@ func (fake *FakeDestroyer) DestroyContainersReturns(result1 error) {
 }
 
 func (fake *FakeDestroyer) DestroyContainersReturnsOnCall(i int, result1 error) {
+	fake.destroyContainersMutex.Lock()
+	defer fake.destroyContainersMutex.Unlock()
 	fake.DestroyContainersStub = nil
 	if fake.destroyContainersReturnsOnCall == nil {
 		fake.destroyContainersReturnsOnCall = make(map[int]struct {
@@ -135,6 +145,12 @@ func (fake *FakeDestroyer) DestroyVolumesCallCount() int {
 	return len(fake.destroyVolumesArgsForCall)
 }
 
+func (fake *FakeDestroyer) DestroyVolumesCalls(stub func(string, []string) error) {
+	fake.destroyVolumesMutex.Lock()
+	defer fake.destroyVolumesMutex.Unlock()
+	fake.DestroyVolumesStub = stub
+}
+
 func (fake *FakeDestroyer) DestroyVolumesArgsForCall(i int) (string, []string) {
 	fake.destroyVolumesMutex.RLock()
 	defer fake.destroyVolumesMutex.RUnlock()
@@ -143,6 +159,8 @@ func (fake *FakeDestroyer) DestroyVolumesArgsForCall(i int) (string, []string) {
 }
 
 func (fake *FakeDestroyer) DestroyVolumesReturns(result1 error) {
+	fake.destroyVolumesMutex.Lock()
+	defer fake.destroyVolumesMutex.Unlock()
 	fake.DestroyVolumesStub = nil
 	fake.destroyVolumesReturns = struct {
 		result1 error
@@ -150,6 +168,8 @@ func (fake *FakeDestroyer) DestroyVolumesReturns(result1 error) {
 }
 
 func (fake *FakeDestroyer) DestroyVolumesReturnsOnCall(i int, result1 error) {
+	fake.destroyVolumesMutex.Lock()
+	defer fake.destroyVolumesMutex.Unlock()
 	fake.DestroyVolumesStub = nil
 	if fake.destroyVolumesReturnsOnCall == nil {
 		fake.destroyVolumesReturnsOnCall = make(map[int]struct {
@@ -185,6 +205,12 @@ func (fake *FakeDestroyer) FindDestroyingVolumesForGcCallCount() int {
 	return len(fake.findDestroyingVolumesForGcArgsForCall)
 }
 
+func (fake *FakeDestroyer) FindDestroyingVolumesForGcCalls(stub func(string) ([]string, error)) {
+	fake.findDestroyingVolumesForGcMutex.Lock()
+	defer fake.findDestroyingVolumesForGcMutex.Unlock()
+	fake.FindDestroyingVolumesForGcStub = stub
+}
+
 func (fake *FakeDestroyer) FindDestroyingVolumesForGcArgsForCall(i int) string {
 	fake.findDestroyingVolumesForGcMutex.RLock()
 	defer fake.findDestroyingVolumesForGcMutex.RUnlock()
@@ -193,6 +219,8 @@ func (fake *FakeDestroyer) FindDestroyingVolumesForGcArgsForCall(i int) string {
 }
 
 func (fake *FakeDestroyer) FindDestroyingVolumesForGcReturns(result1 []string, result2 error) {
+	fake.findDestroyingVolumesForGcMutex.Lock()
+	defer fake.findDestroyingVolumesForGcMutex.Unlock()
 	fake.FindDestroyingVolumesForGcStub = nil
 	fake.findDestroyingVolumesForGcReturns = struct {
 		result1 []string
@@ -201,6 +229,8 @@ func (fake *FakeDestroyer) FindDestroyingVolumesForGcReturns(result1 []string, r
 }
 
 func (fake *FakeDestroyer) FindDestroyingVolumesForGcReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.findDestroyingVolumesForGcMutex.Lock()
+	defer fake.findDestroyingVolumesForGcMutex.Unlock()
 	fake.FindDestroyingVolumesForGcStub = nil
 	if fake.findDestroyingVolumesForGcReturnsOnCall == nil {
 		fake.findDestroyingVolumesForGcReturnsOnCall = make(map[int]struct {

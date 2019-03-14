@@ -5,9 +5,9 @@ import Html exposing (Html)
 import Html.Attributes exposing (class)
 
 
-view : Dict String (Html a) -> Html a
-view dict =
-    Html.table [ class "dictionary" ] <|
+view : List (Html.Attribute a) -> Dict String (Html a) -> Html a
+view attrs dict =
+    Html.table (class "dictionary" :: attrs) <|
         List.map viewPair (Dict.toList dict)
 
 

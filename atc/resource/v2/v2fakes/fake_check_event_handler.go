@@ -71,6 +71,12 @@ func (fake *FakeCheckEventHandler) DefaultSpaceCallCount() int {
 	return len(fake.defaultSpaceArgsForCall)
 }
 
+func (fake *FakeCheckEventHandler) DefaultSpaceCalls(stub func(atc.Space) error) {
+	fake.defaultSpaceMutex.Lock()
+	defer fake.defaultSpaceMutex.Unlock()
+	fake.DefaultSpaceStub = stub
+}
+
 func (fake *FakeCheckEventHandler) DefaultSpaceArgsForCall(i int) atc.Space {
 	fake.defaultSpaceMutex.RLock()
 	defer fake.defaultSpaceMutex.RUnlock()
@@ -79,6 +85,8 @@ func (fake *FakeCheckEventHandler) DefaultSpaceArgsForCall(i int) atc.Space {
 }
 
 func (fake *FakeCheckEventHandler) DefaultSpaceReturns(result1 error) {
+	fake.defaultSpaceMutex.Lock()
+	defer fake.defaultSpaceMutex.Unlock()
 	fake.DefaultSpaceStub = nil
 	fake.defaultSpaceReturns = struct {
 		result1 error
@@ -86,6 +94,8 @@ func (fake *FakeCheckEventHandler) DefaultSpaceReturns(result1 error) {
 }
 
 func (fake *FakeCheckEventHandler) DefaultSpaceReturnsOnCall(i int, result1 error) {
+	fake.defaultSpaceMutex.Lock()
+	defer fake.defaultSpaceMutex.Unlock()
 	fake.DefaultSpaceStub = nil
 	if fake.defaultSpaceReturnsOnCall == nil {
 		fake.defaultSpaceReturnsOnCall = make(map[int]struct {
@@ -123,6 +133,12 @@ func (fake *FakeCheckEventHandler) DiscoveredCallCount() int {
 	return len(fake.discoveredArgsForCall)
 }
 
+func (fake *FakeCheckEventHandler) DiscoveredCalls(stub func(atc.Space, atc.Version, atc.Metadata) error) {
+	fake.discoveredMutex.Lock()
+	defer fake.discoveredMutex.Unlock()
+	fake.DiscoveredStub = stub
+}
+
 func (fake *FakeCheckEventHandler) DiscoveredArgsForCall(i int) (atc.Space, atc.Version, atc.Metadata) {
 	fake.discoveredMutex.RLock()
 	defer fake.discoveredMutex.RUnlock()
@@ -131,6 +147,8 @@ func (fake *FakeCheckEventHandler) DiscoveredArgsForCall(i int) (atc.Space, atc.
 }
 
 func (fake *FakeCheckEventHandler) DiscoveredReturns(result1 error) {
+	fake.discoveredMutex.Lock()
+	defer fake.discoveredMutex.Unlock()
 	fake.DiscoveredStub = nil
 	fake.discoveredReturns = struct {
 		result1 error
@@ -138,6 +156,8 @@ func (fake *FakeCheckEventHandler) DiscoveredReturns(result1 error) {
 }
 
 func (fake *FakeCheckEventHandler) DiscoveredReturnsOnCall(i int, result1 error) {
+	fake.discoveredMutex.Lock()
+	defer fake.discoveredMutex.Unlock()
 	fake.DiscoveredStub = nil
 	if fake.discoveredReturnsOnCall == nil {
 		fake.discoveredReturnsOnCall = make(map[int]struct {
@@ -172,7 +192,15 @@ func (fake *FakeCheckEventHandler) LatestVersionsCallCount() int {
 	return len(fake.latestVersionsArgsForCall)
 }
 
+func (fake *FakeCheckEventHandler) LatestVersionsCalls(stub func() error) {
+	fake.latestVersionsMutex.Lock()
+	defer fake.latestVersionsMutex.Unlock()
+	fake.LatestVersionsStub = stub
+}
+
 func (fake *FakeCheckEventHandler) LatestVersionsReturns(result1 error) {
+	fake.latestVersionsMutex.Lock()
+	defer fake.latestVersionsMutex.Unlock()
 	fake.LatestVersionsStub = nil
 	fake.latestVersionsReturns = struct {
 		result1 error
@@ -180,6 +208,8 @@ func (fake *FakeCheckEventHandler) LatestVersionsReturns(result1 error) {
 }
 
 func (fake *FakeCheckEventHandler) LatestVersionsReturnsOnCall(i int, result1 error) {
+	fake.latestVersionsMutex.Lock()
+	defer fake.latestVersionsMutex.Unlock()
 	fake.LatestVersionsStub = nil
 	if fake.latestVersionsReturnsOnCall == nil {
 		fake.latestVersionsReturnsOnCall = make(map[int]struct {

@@ -40,7 +40,6 @@ type Pipeline interface {
 	ConfigVersion() ConfigVersion
 	Public() bool
 	Paused() bool
-	ScopedName(string) string
 
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
@@ -53,6 +52,8 @@ type Pipeline interface {
 	Builds(page Page) ([]Build, Pagination, error)
 	CreateOneOffBuild() (Build, error)
 	GetAllPendingBuilds() (map[string][]Build, error)
+	BuildsWithTime(page Page) ([]Build, Pagination, error)
+
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
 	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
@@ -151,10 +152,6 @@ func (p *pipeline) Groups() atc.GroupConfigs     { return p.groups }
 func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
 func (p *pipeline) Public() bool                 { return p.public }
 func (p *pipeline) Paused() bool                 { return p.paused }
-
-func (p *pipeline) ScopedName(n string) string {
-	return p.name + ":" + n
-}
 
 // IMPORTANT: This method is broken with the new resource config versions changes
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
@@ -332,7 +329,7 @@ func (p *pipeline) ResourceVersion(resourceVersionID int) (atc.ResourceVersion, 
 			SELECT 1
 			FROM resource_disabled_versions d, resources r, spaces s
 			WHERE v.version_md5 = d.version_md5
-			AND r.resource_config_id = s.resource_config_id
+			AND r.resource_config_scope_id = s.resource_config_scope_id
 			AND s.id = v.space_id
 			AND r.id = d.resource_id
 		)`
@@ -433,7 +430,7 @@ func (p *pipeline) Resource(name string) (Resource, bool, error) {
 		"r.name":        name,
 	}).RunWith(p.conn).QueryRow()
 
-	resource := &resource{conn: p.conn}
+	resource := &resource{conn: p.conn, lockFactory: p.lockFactory}
 	err := scanResource(resource, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -447,15 +444,25 @@ func (p *pipeline) Resource(name string) (Resource, bool, error) {
 }
 
 func (p *pipeline) Builds(page Page) ([]Build, Pagination, error) {
-	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), page, p.conn, p.lockFactory)
+	return getBuildsWithPagination(
+		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
+}
+
+func (p *pipeline) BuildsWithTime(page Page) ([]Build, Pagination, error) {
+	return getBuildsWithDates(
+		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
 }
 
 func (p *pipeline) Resources() (Resources, error) {
-	return resources(p.id, p.conn)
+	return resources(p.id, p.conn, p.lockFactory)
 }
 
 func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
-	rows, err := resourceTypesQuery.Where(sq.Eq{"r.pipeline_id": p.id}).RunWith(p.conn).Query()
+	rows, err := resourceTypesQuery.
+		Where(sq.Eq{"r.pipeline_id": p.id}).
+		OrderBy("r.name").
+		RunWith(p.conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
@@ -464,7 +471,7 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	resourceTypes := []ResourceType{}
 
 	for rows.Next() {
-		resourceType := &resourceType{conn: p.conn}
+		resourceType := &resourceType{conn: p.conn, lockFactory: p.lockFactory}
 		err := scanResourceType(resourceType, rows)
 		if err != nil {
 			return nil, err
@@ -482,7 +489,7 @@ func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 		"r.name":        name,
 	}).RunWith(p.conn).QueryRow()
 
-	resourceType := &resourceType{conn: p.conn}
+	resourceType := &resourceType{conn: p.conn, lockFactory: p.lockFactory}
 	err := scanResourceType(resourceType, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -590,6 +597,18 @@ func (p *pipeline) Pause() error {
 		}).
 		RunWith(p.conn).
 		Exec()
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("resources").
+		Set("resource_config_id", nil).
+		Set("resource_config_scope_id", nil).
+		Where(sq.Eq{
+			"pipeline_id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
 
 	return err
 }
@@ -684,7 +703,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("spaces s ON s.id = v.space_id").
 		Join("resources r ON r.id = o.resource_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
-		Where(sq.Expr("r.resource_config_id = s.resource_config_id")).
+		Where(sq.Expr("r.resource_config_scope_id = s.resource_config_scope_id")).
 		Where(sq.NotEq{
 			"v.check_order": 0,
 		}).
@@ -721,7 +740,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("spaces s ON s.id = v.space_id").
 		Join("resources r ON r.id = i.resource_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
-		Where(sq.Expr("r.resource_config_id = s.resource_config_id")).
+		Where(sq.Expr("r.resource_config_scope_id = s.resource_config_scope_id")).
 		Where(sq.NotEq{
 			"v.check_order": 0,
 		}).
@@ -764,7 +783,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err = psql.Select("v.id, v.check_order, r.id").
 		From("resource_versions v").
 		Join("spaces s ON s.id = v.space_id").
-		Join("resources r ON r.resource_config_id = s.resource_config_id").
+		Join("resources r ON r.resource_config_scope_id = s.resource_config_scope_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.NotEq{
 			"v.check_order": 0,
@@ -1041,8 +1060,12 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 	return buildName, jobID, err
 }
 
-func resources(pipelineID int, conn Conn) (Resources, error) {
-	rows, err := resourcesQuery.Where(sq.Eq{"r.pipeline_id": pipelineID}).RunWith(conn).Query()
+func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resources, error) {
+	rows, err := resourcesQuery.
+		Where(sq.Eq{"r.pipeline_id": pipelineID}).
+		OrderBy("r.name").
+		RunWith(conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
@@ -1051,7 +1074,7 @@ func resources(pipelineID int, conn Conn) (Resources, error) {
 	var resources Resources
 
 	for rows.Next() {
-		newResource := &resource{conn: conn}
+		newResource := &resource{conn: conn, lockFactory: lockFactory}
 		err := scanResource(newResource, rows)
 		if err != nil {
 			return nil, err

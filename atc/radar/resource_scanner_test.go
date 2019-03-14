@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/concourse/atc/radar/radarfakes"
+	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/worker"
 
 	. "github.com/concourse/concourse/atc/radar"
@@ -30,22 +30,20 @@ var _ = Describe("ResourceScanner", func() {
 		fakeConn *dbfakes.FakeConn
 		fakeTx   *dbfakes.FakeTx
 
-		fakeResourceFactory                   *rfakes.FakeResourceFactory
-		fakeResourceConfigCheckSessionFactory *dbfakes.FakeResourceConfigCheckSessionFactory
-		fakeResourceConfigCheckSession        *dbfakes.FakeResourceConfigCheckSession
-		fakeDBPipeline                        *dbfakes.FakePipeline
-		fakeClock                             *fakeclock.FakeClock
-		interval                              time.Duration
-		variables                             creds.Variables
+		fakeResourceFactory *rfakes.FakeResourceFactory
+		fakeDBPipeline      *dbfakes.FakePipeline
+		fakeClock           *fakeclock.FakeClock
+		interval            time.Duration
+		variables           creds.Variables
 
 		fakeResourceType      *dbfakes.FakeResourceType
 		versionedResourceType atc.VersionedResourceType
 
-		scanner                 Scanner
-		fakeResourceTypeScanner *radarfakes.FakeScanner
+		scanner Scanner
 
-		fakeDBResource     *dbfakes.FakeResource
-		fakeResourceConfig *dbfakes.FakeResourceConfig
+		fakeDBResource          *dbfakes.FakeResource
+		fakeResourceConfig      *dbfakes.FakeResourceConfig
+		fakeResourceConfigScope *dbfakes.FakeResourceConfigScope
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
@@ -75,17 +73,14 @@ var _ = Describe("ResourceScanner", func() {
 		fakeConn.BeginReturns(fakeTx, nil)
 
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
-		fakeResourceConfigCheckSession = new(dbfakes.FakeResourceConfigCheckSession)
-		fakeResourceConfigCheckSessionFactory = new(dbfakes.FakeResourceConfigCheckSessionFactory)
 		fakeResourceType = new(dbfakes.FakeResourceType)
 		fakeDBResource = new(dbfakes.FakeResource)
 		fakeDBPipeline = new(dbfakes.FakePipeline)
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-
-		fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(fakeResourceConfigCheckSession, nil)
-
 		fakeResourceConfig.IDReturns(123)
-		fakeResourceConfigCheckSession.ResourceConfigReturns(fakeResourceConfig)
+		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
+		fakeResourceConfigScope.IDReturns(456)
+		fakeResourceConfigScope.ResourceConfigReturns(fakeResourceConfig)
 
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.NameReturns("some-pipeline")
@@ -107,22 +102,18 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.TypeReturns("git")
 		fakeDBResource.SourceReturns(atc.Source{"uri": "((source-params))"})
 		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
-		fakeDBResource.SetResourceConfigReturns(nil)
+		fakeDBResource.SetResourceConfigReturns(fakeResourceConfigScope, nil)
 
 		fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
-
-		fakeResourceTypeScanner = new(radarfakes.FakeScanner)
 
 		scanner = NewResourceScanner(
 			fakeConn,
 			fakeClock,
 			fakeResourceFactory,
-			fakeResourceConfigCheckSessionFactory,
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
 			variables,
-			fakeResourceTypeScanner,
 		)
 	})
 
@@ -144,267 +135,350 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("when the lock cannot be acquired", func() {
 			BeforeEach(func() {
-				fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckReturns(nil, false, nil)
+				results := make(chan bool, 4)
+				results <- false
+				results <- false
+				results <- true
+				results <- true
+				close(results)
+
+				fakeResourceConfigScope.AcquireResourceCheckingLockStub = func(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
+					if <-results {
+						return fakeLock, true, nil
+					} else {
+						// allow the sleep to continue
+						go fakeClock.WaitForWatcherAndIncrement(time.Second)
+						return nil, false, nil
+					}
+				}
 			})
 
-			It("does not check", func() {
-				Expect(fakeResource.CheckCallCount()).To(Equal(0))
-			})
+			It("retries every second until it is", func() {
+				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(3))
 
-			It("returns the configured interval", func() {
-				Expect(runErr).To(Equal(ErrFailedToAcquireLock))
-				Expect(actualInterval).To(Equal(interval))
+				_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
+				Expect(leaseInterval).To(Equal(interval))
+
+				_, leaseInterval = fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(1)
+				Expect(leaseInterval).To(Equal(interval))
+
+				_, leaseInterval = fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(2)
+				Expect(leaseInterval).To(Equal(interval))
+
+				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 			})
 		})
 
 		Context("when the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
+				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
 			})
 
-			It("checks immediately", func() {
-				Expect(fakeResource.CheckCallCount()).To(Equal(1))
-			})
-
-			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
-				Expect(resourceType).To(Equal("git"))
-				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
-				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-					versionedResourceType,
-				})))
-
-				Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
-				err := fakeDBResource.SetCheckErrorArgsForCall(0)
-				Expect(err).To(BeNil())
-
-				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
-				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
-				Expect(resourceConfigID).To(Equal(123))
-
-				_, _, owner, metadata, resourceSpec, resourceTypes, _, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
-				Expect(metadata).To(Equal(db.ContainerMetadata{
-					Type: db.ContainerTypeCheck,
-				}))
-				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
-					ImageSpec: worker.ImageSpec{
-						ResourceType: "git",
-					},
-					Tags:   atc.Tags{"some-tag"},
-					TeamID: 123,
-					Env: []string{
-						"ATC_EXTERNAL_URL=https://www.example.com",
-						"RESOURCE_PIPELINE_NAME=some-pipeline",
-						"RESOURCE_NAME=some-resource",
-					},
-				}))
-				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-					versionedResourceType,
-				})))
-				Expect(resourceConfig).To(Equal(fakeResourceConfig))
-			})
-
-			Context("when the resource config has a specified check interval", func() {
+			Context("when the last checked is not able to be updated", func() {
 				BeforeEach(func() {
-					fakeDBResource.CheckEveryReturns("10ms")
-					fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+					fakeResourceConfigScope.UpdateLastCheckedReturns(false, nil)
 				})
 
-				It("leases for the configured interval", func() {
-					Expect(fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
+				It("does not check", func() {
+					Expect(fakeResource.CheckCallCount()).To(Equal(0))
+				})
 
-					_, leaseInterval, immediate := fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckArgsForCall(0)
-					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
+				It("returns the configured interval", func() {
+					Expect(runErr).To(Equal(ErrFailedToAcquireLock))
+					Expect(actualInterval).To(Equal(interval))
+				})
+			})
+
+			Context("when the last checked fails to update", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.UpdateLastCheckedReturns(false, errors.New("woops"))
+				})
+
+				It("does not check", func() {
+					Expect(fakeResource.CheckCallCount()).To(Equal(0))
+				})
+
+				It("returns the configured interval", func() {
+					Expect(runErr).To(Equal(errors.New("woops")))
+					Expect(actualInterval).To(Equal(interval))
+				})
+			})
+
+			Context("when the last checked is updated", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
+				})
+
+				It("checks immediately", func() {
+					Expect(fakeResource.CheckCallCount()).To(Equal(1))
+				})
+
+				It("constructs the resource of the correct type", func() {
+					Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
+					_, resourceSource, resourceTypes := fakeDBResource.SetResourceConfigArgsForCall(0)
+					Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
+					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+						versionedResourceType,
+					})))
+
+					Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+					err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
+					Expect(err).To(BeNil())
+
+					_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
+					Expect(metadata).To(Equal(db.ContainerMetadata{
+						Type: db.ContainerTypeCheck,
+					}))
+					Expect(containerSpec).To(Equal(worker.ContainerSpec{
+						ImageSpec: worker.ImageSpec{
+							ResourceType: "git",
+						},
+						Tags:   atc.Tags{"some-tag"},
+						TeamID: 123,
+						Env: []string{
+							"ATC_EXTERNAL_URL=https://www.example.com",
+							"RESOURCE_PIPELINE_NAME=some-pipeline",
+							"RESOURCE_NAME=some-resource",
+						},
+					}))
+					Expect(workerSpec).To(Equal(worker.WorkerSpec{
+						ResourceType:  "git",
+						Tags:          atc.Tags{"some-tag"},
+						ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+						TeamID:        123,
+					}))
+					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+						versionedResourceType,
+					})))
+				})
+
+				Context("when the resource config has a specified check interval", func() {
+					BeforeEach(func() {
+						fakeDBResource.CheckEveryReturns("10ms")
+						fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+					})
+
+					It("leases for the configured interval", func() {
+						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+						Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
+
+						_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
+						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
+
+						leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
+						Expect(immediate).To(BeFalse())
+
+						Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
+					})
+
+					It("returns configured interval", func() {
+						Expect(actualInterval).To(Equal(10 * time.Millisecond))
+					})
+
+					Context("when the interval cannot be parsed", func() {
+						BeforeEach(func() {
+							fakeDBResource.CheckEveryReturns("bad-value")
+							fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+						})
+
+						It("sets the check error", func() {
+							Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+
+							resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
+							Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
+						})
+
+						It("returns an error", func() {
+							Expect(runErr).To(HaveOccurred())
+						})
+					})
+				})
+
+				It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
+					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
+
+					_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
+					Expect(leaseInterval).To(Equal(interval))
+
+					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeFalse())
 
 					Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
 				})
 
-				It("returns configured interval", func() {
-					Expect(actualInterval).To(Equal(10 * time.Millisecond))
-				})
-
-				Context("when the interval cannot be parsed", func() {
+				Context("when the resource uses a custom type", func() {
 					BeforeEach(func() {
-						fakeDBResource.CheckEveryReturns("bad-value")
-						fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+						fakeDBResource.TypeReturns("some-custom-resource")
 					})
 
-					It("sets the check error", func() {
-						Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+					Context("and the custom type has a version", func() {
+						It("doesn't check for check error of custom type", func() {
+							Expect(fakeResourceType.CheckErrorCallCount()).To(Equal(0))
+						})
+					})
 
-						resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
-						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
+					Context("and the custom type does not have a version", func() {
+						BeforeEach(func() {
+							results := make(chan bool, 4)
+							results <- false
+							results <- false
+							results <- true
+							results <- true
+							close(results)
+
+							fakeResourceType.VersionStub = func() (atc.Version, error) {
+								if <-results {
+									return atc.Version{"version": "1"}, nil
+								} else {
+									// allow the sleep to continue
+									go fakeClock.WaitForWatcherAndIncrement(10 * time.Second)
+									return nil, nil
+								}
+							}
+						})
+
+						Context("when the custom type has a check error", func() {
+							BeforeEach(func() {
+								fakeResourceType.CheckErrorReturns(errors.New("oops"))
+							})
+
+							It("sets the resource check error to the custom type's check error and does not run a check", func() {
+								Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+								err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
+								Expect(err).To(Equal(errors.New("oops")))
+
+								Expect(fakeResource.CheckCallCount()).To(Equal(0))
+							})
+						})
+
+						Context("when the custom type has a nil check error", func() {
+							It("retries every second until version is not nil", func() {
+								Expect(fakeResourceType.VersionCallCount()).To(Equal(4))
+							})
+						})
+					})
+				})
+
+				Context("when there are no current versions", func() {
+					It("checks from nil", func() {
+						_, _, _, versions := fakeResource.CheckArgsForCall(0)
+						Expect(versions).To(Equal(map[atc.Space]atc.Version{}))
+					})
+				})
+
+				Context("when there are current versions", func() {
+					BeforeEach(func() {
+						fakeResourceVersion1 := new(dbfakes.FakeResourceVersion)
+						fakeResourceVersion1.IDReturns(1)
+						fakeResourceVersion1.VersionReturns(db.Version{"version": "1"})
+						fakeResourceVersion1.SpaceReturns(atc.Space("space1"))
+
+						fakeResourceVersion2 := new(dbfakes.FakeResourceVersion)
+						fakeResourceVersion2.IDReturns(2)
+						fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
+						fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
+
+						fakeResourceConfigScope.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
+					})
+
+					It("checks from it", func() {
+						_, checkHandler, _, version := fakeResource.CheckArgsForCall(0)
+
+						var expectedCheckHandler CheckEventHandler
+						Expect(checkHandler).To(BeAssignableToTypeOf(&expectedCheckHandler))
+						Expect(version).To(Equal(map[atc.Space]atc.Version{
+							atc.Space("space1"): atc.Version{"version": "1"},
+							atc.Space("space2"): atc.Version{"version": "2"},
+						}))
+					})
+				})
+
+				Context("when checking fails internally", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeResource.CheckReturns(disaster)
+					})
+
+					It("exits with the failure", func() {
+						Expect(runErr).To(HaveOccurred())
+						Expect(runErr).To(Equal(disaster))
+
+						Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
+						err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
+						Expect(err).To(Equal(disaster))
+					})
+				})
+
+				Context("when checking fails with ErrResourceScriptFailed", func() {
+					scriptFail := atc.ErrResourceScriptFailed{}
+
+					BeforeEach(func() {
+						fakeResource.CheckReturns(scriptFail)
+					})
+
+					It("returns no error", func() {
+						Expect(runErr).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("when the pipeline is paused", func() {
+					BeforeEach(func() {
+						fakeDBPipeline.CheckPausedReturns(true, nil)
+					})
+
+					It("does not check", func() {
+						Expect(fakeResource.CheckCallCount()).To(BeZero())
+					})
+
+					It("returns the default interval", func() {
+						Expect(actualInterval).To(Equal(interval))
+					})
+
+					It("does not return an error", func() {
+						Expect(runErr).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("when checking if the pipeline is paused fails", func() {
+					disaster := errors.New("disaster")
+
+					BeforeEach(func() {
+						fakeDBPipeline.CheckPausedReturns(false, disaster)
 					})
 
 					It("returns an error", func() {
 						Expect(runErr).To(HaveOccurred())
-					})
-				})
-			})
-
-			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
-				Expect(fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
-
-				_, leaseInterval, immediate := fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckArgsForCall(0)
-				Expect(leaseInterval).To(Equal(interval))
-				Expect(immediate).To(BeFalse())
-
-				Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
-			})
-
-			Context("when the resource uses a custom type", func() {
-				BeforeEach(func() {
-					fakeDBResource.TypeReturns("some-custom-resource")
-				})
-				Context("and the custom type has a version", func() {
-					It("doesn't scan for new versions of the custom type", func() {
-						Expect(fakeResourceTypeScanner.ScanCallCount()).To(Equal(0))
+						Expect(runErr).To(Equal(disaster))
 					})
 				})
 
-				Context("and the custom type does not have a version", func() {
+				Context("when finding the resource fails", func() {
+					disaster := errors.New("disaster")
+
 					BeforeEach(func() {
-						fakeResourceType.VersionReturns(nil, nil)
+						fakeDBPipeline.ResourceReturns(nil, false, disaster)
 					})
 
-					It("scans for new versions of the custom type", func() {
-						Expect(fakeResourceTypeScanner.ScanCallCount()).To(Equal(1))
-						_, scannedResourceType := fakeResourceTypeScanner.ScanArgsForCall(0)
-						Expect(scannedResourceType).To(Equal("some-custom-resource"))
-					})
-
-					Context("when scanning for the custom type fails", func() {
-						var typeScanErr = errors.New("type scan failed")
-						BeforeEach(func() {
-							fakeResourceTypeScanner.ScanReturns(typeScanErr)
-						})
-						It("returns the error from scanning for the type", func() {
-							Expect(runErr).To(Equal(typeScanErr))
-						})
-					})
-
-					Context("when scanning for the custom type succeeds", func() {
-						BeforeEach(func() {
-							fakeResourceTypeScanner.ScanReturns(nil)
-						})
-						It("reloads the resource types", func() {
-							Expect(fakeDBPipeline.ResourceTypesCallCount()).To(Equal(2))
-						})
+					It("returns an error", func() {
+						Expect(runErr).To(HaveOccurred())
+						Expect(runErr).To(Equal(disaster))
 					})
 				})
-			})
 
-			Context("when there are no current versions", func() {
-				It("checks from nil", func() {
-					_, _, _, versions := fakeResource.CheckArgsForCall(0)
-					Expect(versions).To(BeEmpty())
-				})
-			})
+				Context("when the resource is not in the database", func() {
+					BeforeEach(func() {
+						fakeDBPipeline.ResourceReturns(nil, false, nil)
+					})
 
-			Context("when there are current versions", func() {
-				BeforeEach(func() {
-					fakeResourceVersion1 := new(dbfakes.FakeResourceVersion)
-					fakeResourceVersion1.IDReturns(1)
-					fakeResourceVersion1.VersionReturns(db.Version{"version": "1"})
-					fakeResourceVersion1.SpaceReturns(atc.Space("space1"))
-
-					fakeResourceVersion2 := new(dbfakes.FakeResourceVersion)
-					fakeResourceVersion2.IDReturns(2)
-					fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
-					fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
-
-					fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
-				})
-
-				It("checks from it", func() {
-					_, _, _, version := fakeResource.CheckArgsForCall(0)
-					Expect(version).To(Equal(map[atc.Space]atc.Version{
-						atc.Space("space1"): atc.Version{"version": "1"},
-						atc.Space("space2"): atc.Version{"version": "2"},
-					}))
-				})
-			})
-
-			Context("when checking fails internally", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeResource.CheckReturns(disaster)
-				})
-
-				It("exits with the failure", func() {
-					Expect(runErr).To(HaveOccurred())
-					Expect(runErr).To(Equal(disaster))
-				})
-			})
-
-			Context("when checking fails with ErrResourceScriptFailed", func() {
-				scriptFail := atc.ErrResourceScriptFailed{}
-
-				BeforeEach(func() {
-					fakeResource.CheckReturns(scriptFail)
-				})
-
-				It("returns no error", func() {
-					Expect(runErr).NotTo(HaveOccurred())
-				})
-			})
-
-			Context("when the pipeline is paused", func() {
-				BeforeEach(func() {
-					fakeDBPipeline.CheckPausedReturns(true, nil)
-				})
-
-				It("does not check", func() {
-					Expect(fakeResource.CheckCallCount()).To(BeZero())
-				})
-
-				It("returns the default interval", func() {
-					Expect(actualInterval).To(Equal(interval))
-				})
-
-				It("does not return an error", func() {
-					Expect(runErr).NotTo(HaveOccurred())
-				})
-			})
-
-			Context("when checking if the pipeline is paused fails", func() {
-				disaster := errors.New("disaster")
-
-				BeforeEach(func() {
-					fakeDBPipeline.CheckPausedReturns(false, disaster)
-				})
-
-				It("returns an error", func() {
-					Expect(runErr).To(HaveOccurred())
-					Expect(runErr).To(Equal(disaster))
-				})
-			})
-
-			Context("when finding the resource fails", func() {
-				disaster := errors.New("disaster")
-
-				BeforeEach(func() {
-					fakeDBPipeline.ResourceReturns(nil, false, disaster)
-				})
-
-				It("returns an error", func() {
-					Expect(runErr).To(HaveOccurred())
-					Expect(runErr).To(Equal(disaster))
-				})
-			})
-
-			Context("when the resource is not in the database", func() {
-				BeforeEach(func() {
-					fakeDBPipeline.ResourceReturns(nil, false, nil)
-				})
-
-				It("returns an error", func() {
-					Expect(runErr).To(HaveOccurred())
-					Expect(runErr.Error()).To(ContainSubstring("resource 'some-resource' not found"))
+					It("returns an error", func() {
+						Expect(runErr).To(HaveOccurred())
+						Expect(runErr.Error()).To(ContainSubstring("resource 'some-resource' not found"))
+					})
 				})
 			})
 		})
@@ -426,12 +500,13 @@ var _ = Describe("ResourceScanner", func() {
 			scanErr = scanner.Scan(lagertest.NewTestLogger("test"), "some-resource")
 		})
 
-		Context("if the lock can be acquired", func() {
+		Context("if the lock can be acquired and last checked updated", func() {
 			BeforeEach(func() {
-				fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
+				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
 			})
 
-			Context("Parent resource has no version and attempt to Scan fails", func() {
+			Context("Parent resource has no version and check fails", func() {
 				BeforeEach(func() {
 					var fakeGitResourceType *dbfakes.FakeResourceType
 					fakeGitResourceType = new(dbfakes.FakeResourceType)
@@ -442,26 +517,41 @@ var _ = Describe("ResourceScanner", func() {
 					fakeGitResourceType.NameReturns("git")
 					fakeGitResourceType.TypeReturns("registry-image")
 					fakeGitResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
+					fakeGitResourceType.CheckErrorReturns(errors.New("oops"))
 					fakeGitResourceType.VersionReturns(nil, nil)
-
-					fakeResourceTypeScanner.ScanReturns(errors.New("some-resource-type-error"))
 				})
 
 				It("fails and returns error", func() {
-					Expect(fakeResourceTypeScanner.ScanCallCount()).To(Equal(1))
-					_, parentTypeName := fakeResourceTypeScanner.ScanArgsForCall(0)
-					Expect(parentTypeName).To(Equal("git"))
-
 					Expect(scanErr).To(HaveOccurred())
-					Expect(scanErr.Error()).To(Equal("some-resource-type-error"))
+					Expect(scanErr).To(Equal(radar.ErrResourceTypeCheckError))
 				})
 
 				It("saves the error to check_error on resource row in db", func() {
-					Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
-					err := fakeDBResource.SetCheckErrorArgsForCall(0)
+					err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal("some-resource-type-error"))
+					Expect(err).To(Equal(errors.New("oops")))
+				})
+			})
+
+			Context("Parent resource has a version and but check is failing", func() {
+				BeforeEach(func() {
+					var fakeGitResourceType *dbfakes.FakeResourceType
+					fakeGitResourceType = new(dbfakes.FakeResourceType)
+
+					fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeGitResourceType}, nil)
+
+					fakeGitResourceType.IDReturns(5)
+					fakeGitResourceType.NameReturns("git")
+					fakeGitResourceType.TypeReturns("registry-image")
+					fakeGitResourceType.SourceReturns(atc.Source{"custom": "((source-params))"})
+					fakeGitResourceType.VersionReturns(atc.Version{"version": "1"}, nil)
+					fakeGitResourceType.CheckErrorReturns(errors.New("oops"))
+				})
+
+				It("continues to scan", func() {
+					Expect(scanErr).NotTo(HaveOccurred())
 				})
 			})
 
@@ -470,28 +560,23 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionCallCount()).To(Equal(1))
-				_, resourceType, resourceSource, resourceTypes, _ := fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionArgsForCall(0)
-				Expect(resourceType).To(Equal("git"))
+				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
+				_, resourceSource, resourceTypes := fakeDBResource.SetResourceConfigArgsForCall(0)
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
 				})))
 
-				Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
-				err := fakeDBResource.SetCheckErrorArgsForCall(0)
+				Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+				err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
-				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
-				resourceConfigID := fakeDBResource.SetResourceConfigArgsForCall(0)
-				Expect(resourceConfigID).To(Equal(123))
-
-				_, _, owner, metadata, resourceSpec, resourceTypes, _, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(0)
-				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfigCheckSession)))
+				_, _, owner, metadata, containerSpec, workerSpec, resourceTypes, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
 				}))
-				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+				Expect(containerSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "git",
 					},
@@ -503,46 +588,41 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_NAME=some-resource",
 					},
 				}))
+				Expect(workerSpec).To(Equal(worker.WorkerSpec{
+					ResourceType:  "git",
+					Tags:          atc.Tags{"some-tag"},
+					ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+					TeamID:        123,
+				}))
 				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 					versionedResourceType,
 				})))
-				Expect(resourceConfig).To(Equal(fakeResourceConfig))
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
-				Expect(fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
+				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+				Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
 
-				_, leaseInterval, immediate := fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckArgsForCall(0)
+				_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
+				Expect(leaseInterval).To(Equal(interval))
+
+				leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeTrue())
 
 				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 			})
 
-			Context("when creating the resource config fails", func() {
+			Context("when setting the resource config on the resource fails", func() {
 				BeforeEach(func() {
-					fakeResourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSessionReturns(nil, errors.New("catastrophe"))
+					fakeDBResource.SetResourceConfigReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
-					resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
-					Expect(resourceErr).To(MatchError("catastrophe"))
-				})
-			})
-
-			Context("when updating the resource config id on the resource fails", func() {
-				BeforeEach(func() {
-					fakeDBResource.SetResourceConfigReturns(errors.New("catastrophe"))
-				})
-
-				It("sets the check error and returns the error", func() {
-					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
-
-					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})
@@ -554,9 +634,9 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					resourceErr := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})
@@ -568,9 +648,13 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("leases for the configured interval", func() {
-					Expect(fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
 
-					_, leaseInterval, immediate := fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckArgsForCall(0)
+					_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
+					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
+
+					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeTrue())
 
@@ -585,9 +669,9 @@ var _ = Describe("ResourceScanner", func() {
 
 					It("sets the check error and returns the error", func() {
 						Expect(scanErr).To(HaveOccurred())
-						Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
-						resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
+						resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 				})
@@ -614,9 +698,9 @@ var _ = Describe("ResourceScanner", func() {
 
 					It("fails to parse the timeout and returns the error", func() {
 						Expect(scanErr).To(HaveOccurred())
-						Expect(fakeDBResource.SetCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
-						resourceErr := fakeDBResource.SetCheckErrorArgsForCall(0)
+						resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 				})
@@ -629,8 +713,8 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("tries to find the version in the database", func() {
-					Expect(fakeResourceConfig.FindVersionCallCount()).To(Equal(1))
-					Expect(fakeResourceConfig.FindVersionArgsForCall(0)).To(Equal(atc.Version{"version": "1"}))
+					Expect(fakeResourceConfigScope.FindVersionCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.FindVersionArgsForCall(0)).To(Equal(atc.Version{"version": "1"}))
 				})
 
 				Context("when finding the version succeeds", func() {
@@ -638,7 +722,7 @@ var _ = Describe("ResourceScanner", func() {
 						fakeResourceVersion := new(dbfakes.FakeResourceVersion)
 						fakeResourceVersion.IDReturns(1)
 						fakeResourceVersion.VersionReturns(db.Version{"version": "1"})
-						fakeResourceConfig.FindVersionReturns(fakeResourceVersion, true, nil)
+						fakeResourceConfigScope.FindVersionReturns(fakeResourceVersion, true, nil)
 					})
 
 					It("does not check", func() {
@@ -648,7 +732,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when the version is not found", func() {
 					BeforeEach(func() {
-						fakeResourceConfig.FindVersionReturns(nil, false, nil)
+						fakeResourceConfigScope.FindVersionReturns(nil, false, nil)
 					})
 
 					It("checks from the pinned version", func() {
@@ -659,67 +743,28 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when finding the version fails", func() {
 					BeforeEach(func() {
-						fakeResourceConfig.FindVersionReturns(nil, false, errors.New("ah"))
+						fakeResourceConfigScope.FindVersionReturns(nil, false, errors.New("ah"))
 					})
 
 					It("sets the check error on the resource config", func() {
-						Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-						err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+						err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 						Expect(err).To(Equal(errors.New("ah")))
 					})
 				})
 			})
 
-			Context("when the lock is not immediately available", func() {
-				BeforeEach(func() {
-					results := make(chan bool, 4)
-					results <- false
-					results <- false
-					results <- true
-					results <- true
-					close(results)
-
-					fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckStub = func(logger lager.Logger, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
-						if <-results {
-							return fakeLock, true, nil
-						} else {
-							// allow the sleep to continue
-							go fakeClock.WaitForWatcherAndIncrement(time.Second)
-							return nil, false, nil
-						}
-					}
-				})
-
-				It("retries every second until it is", func() {
-					Expect(fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckCallCount()).To(Equal(3))
-
-					_, leaseInterval, immediate := fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckArgsForCall(0)
-					Expect(leaseInterval).To(Equal(interval))
-					Expect(immediate).To(BeTrue())
-
-					_, leaseInterval, immediate = fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckArgsForCall(1)
-					Expect(leaseInterval).To(Equal(interval))
-					Expect(immediate).To(BeTrue())
-
-					_, leaseInterval, immediate = fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckArgsForCall(2)
-					Expect(leaseInterval).To(Equal(interval))
-					Expect(immediate).To(BeTrue())
-
-					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
-				})
-			})
-
 			It("clears the resource's check error", func() {
-				Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+				Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-				err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+				err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 			})
 
 			Context("when there is no current version", func() {
 				BeforeEach(func() {
-					fakeResourceConfig.LatestVersionsReturns(nil, nil)
+					fakeResourceConfigScope.LatestVersionsReturns(nil, nil)
 				})
 
 				It("checks from nil", func() {
@@ -732,7 +777,7 @@ var _ = Describe("ResourceScanner", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeResourceConfig.LatestVersionsReturns(nil, disaster)
+					fakeResourceConfigScope.LatestVersionsReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {
@@ -756,11 +801,13 @@ var _ = Describe("ResourceScanner", func() {
 					fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
 					fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
 
-					fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
+					fakeResourceConfigScope.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 				})
 
 				It("checks from it", func() {
-					_, _, _, version := fakeResource.CheckArgsForCall(0)
+					_, checkHandler, _, version := fakeResource.CheckArgsForCall(0)
+					var expectedCheckHandler CheckEventHandler
+					Expect(checkHandler).To(BeAssignableToTypeOf(&expectedCheckHandler))
 					Expect(version).To(Equal(map[atc.Space]atc.Version{
 						atc.Space("space1"): atc.Version{"version": "1"},
 						atc.Space("space2"): atc.Version{"version": "2"},
@@ -780,9 +827,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-					err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 					Expect(err).To(Equal(disaster))
 				})
 			})
@@ -799,9 +846,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 
-					err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
+					err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 					Expect(err).To(Equal(scriptFail))
 				})
 			})
@@ -826,9 +873,10 @@ var _ = Describe("ResourceScanner", func() {
 			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), "some-resource", fromVersion)
 		})
 
-		Context("if the lock can be acquired", func() {
+		Context("if the lock can be acquired and last checked updated", func() {
 			BeforeEach(func() {
-				fakeResourceConfig.AcquireResourceConfigCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
+				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
 			})
 
 			Context("when fromVersion is nil", func() {
@@ -866,7 +914,7 @@ var _ = Describe("ResourceScanner", func() {
 						fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
 						fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
 
-						fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
+						fakeResourceConfigScope.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 					})
 
 					Context("when fromVersion has the same space", func() {

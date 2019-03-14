@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -54,23 +53,17 @@ type ImageResourceFetcher interface {
 }
 
 type imageResourceFetcherFactory struct {
-	resourceFetcherFactory  resource.FetcherFactory
-	dbResourceCacheFactory  db.ResourceCacheFactory
-	dbResourceConfigFactory db.ResourceConfigFactory
-	clock                   clock.Clock
+	resourceFetcherFactory resource.FetcherFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
 func NewImageResourceFetcherFactory(
 	resourceFetcherFactory resource.FetcherFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
-	dbResourceConfigFactory db.ResourceConfigFactory,
-	clock clock.Clock,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
-		resourceFetcherFactory:  resourceFetcherFactory,
-		dbResourceCacheFactory:  dbResourceCacheFactory,
-		dbResourceConfigFactory: dbResourceConfigFactory,
-		clock:                   clock,
+		resourceFetcherFactory: resourceFetcherFactory,
+		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
@@ -85,11 +78,9 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) ImageResourceFetcher {
 	return &imageResourceFetcher{
-		resourceFetcher:         f.resourceFetcherFactory.FetcherFor(worker),
-		resourceFactory:         resourceFactory,
-		dbResourceCacheFactory:  f.dbResourceCacheFactory,
-		dbResourceConfigFactory: f.dbResourceConfigFactory,
-		clock:                   f.clock,
+		resourceFetcher:        f.resourceFetcherFactory.FetcherFor(worker),
+		resourceFactory:        resourceFactory,
+		dbResourceCacheFactory: f.dbResourceCacheFactory,
 
 		worker:                worker,
 		imageResource:         imageResource,
@@ -102,12 +93,10 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 }
 
 type imageResourceFetcher struct {
-	worker                  worker.Worker
-	resourceFetcher         resource.Fetcher
-	resourceFactory         resource.ResourceFactory
-	dbResourceCacheFactory  db.ResourceCacheFactory
-	dbResourceConfigFactory db.ResourceConfigFactory
-	clock                   clock.Clock
+	worker                 worker.Worker
+	resourceFetcher        resource.Fetcher
+	resourceFactory        resource.ResourceFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
 
 	imageResource         worker.ImageResource
 	version               atc.Version
@@ -185,6 +174,7 @@ func (i *imageResourceFetcher) Fetch(
 		ctx,
 		logger.Session("init-image"),
 		getSess,
+		NewGetEventHandler(),
 		i.worker.Tags(),
 		i.teamID,
 		i.customTypes,
@@ -237,11 +227,6 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		return err
 	}
 
-	resourceConfig, err := i.dbResourceConfigFactory.FindOrCreateResourceConfig(logger, resourceType.Name, source, i.customTypes)
-	if err != nil {
-		return err
-	}
-
 	checkResourceType, err := i.resourceFactory.NewResource(
 		ctx,
 		logger,
@@ -253,11 +238,16 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 			ImageSpec: worker.ImageSpec{
 				ResourceType: resourceType.Name,
 			},
-			Tags:   i.worker.Tags(),
 			TeamID: i.teamID,
-		}, i.customTypes,
+			Tags:   i.worker.Tags(),
+		},
+		worker.WorkerSpec{
+			ResourceType:  resourceType.Name,
+			Tags:          i.worker.Tags(),
+			ResourceTypes: i.customTypes,
+		},
+		i.customTypes,
 		worker.NoopImageFetchingDelegate{},
-		resourceConfig,
 	)
 	if err != nil {
 		return err
@@ -315,12 +305,13 @@ func (i *imageResourceFetcher) getLatestVersion(
 		TeamID: i.teamID,
 	}
 
-	source, err := i.imageResource.Source.Evaluate()
-	if err != nil {
-		return "", nil, err
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  i.imageResource.Type,
+		Tags:          i.worker.Tags(),
+		ResourceTypes: i.customTypes,
 	}
 
-	resourceConfig, err := i.dbResourceConfigFactory.FindOrCreateResourceConfig(logger, i.imageResource.Type, source, i.customTypes)
+	source, err := i.imageResource.Source.Evaluate()
 	if err != nil {
 		return "", nil, err
 	}
@@ -333,9 +324,9 @@ func (i *imageResourceFetcher) getLatestVersion(
 			Type: db.ContainerTypeCheck,
 		},
 		resourceSpec,
+		workerSpec,
 		i.customTypes,
 		i.imageFetchingDelegate,
-		resourceConfig,
 	)
 	if err != nil {
 		return "", nil, err

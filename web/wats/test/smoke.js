@@ -3,7 +3,8 @@ import test from 'ava';
 const Suite = require('./helpers/suite');
 
 test.beforeEach(async t => {
-  t.context = await Suite.build(t);
+  t.context = new Suite();
+  await t.context.init(t);
 });
 
 test.afterEach(async t => {

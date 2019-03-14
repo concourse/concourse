@@ -38,6 +38,12 @@ func (fake *FakeEmitter) EmitCallCount() int {
 	return len(fake.emitArgsForCall)
 }
 
+func (fake *FakeEmitter) EmitCalls(stub func(lager.Logger, metric.Event)) {
+	fake.emitMutex.Lock()
+	defer fake.emitMutex.Unlock()
+	fake.EmitStub = stub
+}
+
 func (fake *FakeEmitter) EmitArgsForCall(i int) (lager.Logger, metric.Event) {
 	fake.emitMutex.RLock()
 	defer fake.emitMutex.RUnlock()

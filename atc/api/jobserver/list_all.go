@@ -21,7 +21,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var jobs []atc.Job
+	jobs := []atc.Job{}
 
 	for _, job := range dashboard {
 		jobs = append(

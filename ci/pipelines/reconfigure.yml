@@ -1,0 +1,37 @@
+resource_types:
+- name: concourse-pipeline
+  type: registry-image
+  source:
+    repository: concourse/concourse-pipeline-resource
+
+resources:
+- name: pipelines
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse
+    paths:
+    - ci/pipelines
+
+- name: prod
+  type: concourse-pipeline
+  source:
+    target: https://ci.concourse-ci.org
+    teams:
+    - name: main
+      username: ((basic_auth.username))
+      password: ((basic_auth.password))
+
+jobs:
+- name: reconfigure
+  plan:
+  - get: pipelines
+    trigger: true
+  - put: prod
+    params:
+      pipelines:
+      - name: concourse
+        team: main
+        config_file: pipelines/ci/pipelines/concourse.yml
+      - name: prs
+        team: main
+        config_file: pipelines/ci/pipelines/prs.yml

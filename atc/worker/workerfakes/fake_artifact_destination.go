@@ -50,6 +50,12 @@ func (fake *FakeArtifactDestination) StreamInCallCount() int {
 	return len(fake.streamInArgsForCall)
 }
 
+func (fake *FakeArtifactDestination) StreamInCalls(stub func(string, io.Reader) error) {
+	fake.streamInMutex.Lock()
+	defer fake.streamInMutex.Unlock()
+	fake.StreamInStub = stub
+}
+
 func (fake *FakeArtifactDestination) StreamInArgsForCall(i int) (string, io.Reader) {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
@@ -58,6 +64,8 @@ func (fake *FakeArtifactDestination) StreamInArgsForCall(i int) (string, io.Read
 }
 
 func (fake *FakeArtifactDestination) StreamInReturns(result1 error) {
+	fake.streamInMutex.Lock()
+	defer fake.streamInMutex.Unlock()
 	fake.StreamInStub = nil
 	fake.streamInReturns = struct {
 		result1 error
@@ -65,6 +73,8 @@ func (fake *FakeArtifactDestination) StreamInReturns(result1 error) {
 }
 
 func (fake *FakeArtifactDestination) StreamInReturnsOnCall(i int, result1 error) {
+	fake.streamInMutex.Lock()
+	defer fake.streamInMutex.Unlock()
 	fake.StreamInStub = nil
 	if fake.streamInReturnsOnCall == nil {
 		fake.streamInReturnsOnCall = make(map[int]struct {

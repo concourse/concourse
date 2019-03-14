@@ -1,6 +1,7 @@
 package tsa
 
 import (
+	"context"
 	"net/http"
 
 	"net/http/httputil"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/tedsuo/rata"
 )
@@ -17,7 +19,9 @@ type Lander struct {
 	TokenGenerator TokenGenerator
 }
 
-func (l *Lander) Land(logger lager.Logger, worker atc.Worker) error {
+func (l *Lander) Land(ctx context.Context, worker atc.Worker) error {
+	logger := lagerctx.FromContext(ctx)
+
 	logger.Info("start")
 	defer logger.Info("end")
 

@@ -54,6 +54,12 @@ func (fake *FakeResourceFactory) VisibleResourcesCallCount() int {
 	return len(fake.visibleResourcesArgsForCall)
 }
 
+func (fake *FakeResourceFactory) VisibleResourcesCalls(stub func([]string) ([]db.Resource, error)) {
+	fake.visibleResourcesMutex.Lock()
+	defer fake.visibleResourcesMutex.Unlock()
+	fake.VisibleResourcesStub = stub
+}
+
 func (fake *FakeResourceFactory) VisibleResourcesArgsForCall(i int) []string {
 	fake.visibleResourcesMutex.RLock()
 	defer fake.visibleResourcesMutex.RUnlock()
@@ -62,6 +68,8 @@ func (fake *FakeResourceFactory) VisibleResourcesArgsForCall(i int) []string {
 }
 
 func (fake *FakeResourceFactory) VisibleResourcesReturns(result1 []db.Resource, result2 error) {
+	fake.visibleResourcesMutex.Lock()
+	defer fake.visibleResourcesMutex.Unlock()
 	fake.VisibleResourcesStub = nil
 	fake.visibleResourcesReturns = struct {
 		result1 []db.Resource
@@ -70,6 +78,8 @@ func (fake *FakeResourceFactory) VisibleResourcesReturns(result1 []db.Resource, 
 }
 
 func (fake *FakeResourceFactory) VisibleResourcesReturnsOnCall(i int, result1 []db.Resource, result2 error) {
+	fake.visibleResourcesMutex.Lock()
+	defer fake.visibleResourcesMutex.Unlock()
 	fake.VisibleResourcesStub = nil
 	if fake.visibleResourcesReturnsOnCall == nil {
 		fake.visibleResourcesReturnsOnCall = make(map[int]struct {

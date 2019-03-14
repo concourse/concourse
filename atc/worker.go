@@ -33,6 +33,7 @@ type Worker struct {
 
 var ErrInvalidWorkerVersion = errors.New("invalid worker version, only numeric characters are allowed")
 var ErrMissingWorkerGardenAddress = errors.New("missing garden address")
+var ErrNoWorkers = errors.New("no workers available for checking")
 
 func (w Worker) Validate() error {
 	if w.Version != "" && !regexp.MustCompile(`^[0-9\.]+$`).MatchString(w.Version) {
@@ -47,10 +48,11 @@ func (w Worker) Validate() error {
 }
 
 type WorkerResourceType struct {
-	Type       string `json:"type"`
-	Image      string `json:"image"`
-	Version    string `json:"version"`
-	Privileged bool   `json:"privileged"`
+	Type                 string `json:"type"`
+	Image                string `json:"image"`
+	Version              string `json:"version"`
+	Privileged           bool   `json:"privileged"`
+	UniqueVersionHistory bool   `json:"unique_version_history"`
 }
 
 type PruneWorkerResponseBody struct {

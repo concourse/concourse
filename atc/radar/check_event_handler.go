@@ -8,25 +8,25 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func NewCheckEventHandler(logger lager.Logger, tx db.Tx, resourceConfig db.ResourceConfig, spaces map[atc.Space]atc.Version) *checkEventHandler {
-	return &checkEventHandler{
-		logger:         logger,
-		tx:             tx,
-		resourceConfig: resourceConfig,
-		spaces:         spaces,
+func NewCheckEventHandler(logger lager.Logger, tx db.Tx, resourceConfigScope db.ResourceConfigScope, spaces map[atc.Space]atc.Version) *CheckEventHandler {
+	return &CheckEventHandler{
+		logger:              logger,
+		tx:                  tx,
+		resourceConfigScope: resourceConfigScope,
+		spaces:              spaces,
 	}
 }
 
-type checkEventHandler struct {
-	logger         lager.Logger
-	tx             db.Tx
-	resourceConfig db.ResourceConfig
-	spaces         map[atc.Space]atc.Version
+type CheckEventHandler struct {
+	logger              lager.Logger
+	tx                  db.Tx
+	resourceConfigScope db.ResourceConfigScope
+	spaces              map[atc.Space]atc.Version
 }
 
-func (c *checkEventHandler) DefaultSpace(space atc.Space) error {
+func (c *CheckEventHandler) DefaultSpace(space atc.Space) error {
 	if space != "" {
-		err := c.resourceConfig.SaveDefaultSpace(space)
+		err := c.resourceConfigScope.SaveDefaultSpace(space)
 		if err != nil {
 			c.logger.Error("failed-to-save-default-space", err, lager.Data{
 				"space": space,
@@ -42,9 +42,9 @@ func (c *checkEventHandler) DefaultSpace(space atc.Space) error {
 	return nil
 }
 
-func (c *checkEventHandler) Discovered(space atc.Space, version atc.Version, metadata atc.Metadata) error {
+func (c *CheckEventHandler) Discovered(space atc.Space, version atc.Version, metadata atc.Metadata) error {
 	if _, ok := c.spaces[space]; !ok {
-		err := c.resourceConfig.SaveSpace(space)
+		err := c.resourceConfigScope.SaveSpace(space)
 		if err != nil {
 			c.logger.Error("failed-to-save-space", err, lager.Data{
 				"space": space,
@@ -57,7 +57,7 @@ func (c *checkEventHandler) Discovered(space atc.Space, version atc.Version, met
 		})
 	}
 
-	err := c.resourceConfig.SavePartialVersion(space, version, metadata)
+	err := c.resourceConfigScope.SavePartialVersion(space, version, metadata)
 	if err != nil {
 		c.logger.Error("failed-to-save-resource-config-version", err, lager.Data{
 			"version": fmt.Sprintf("%v", version),
@@ -74,19 +74,19 @@ func (c *checkEventHandler) Discovered(space atc.Space, version atc.Version, met
 	return nil
 }
 
-func (c *checkEventHandler) LatestVersions() error {
+func (c *CheckEventHandler) LatestVersions() error {
 	if len(c.spaces) == 0 {
 		c.logger.Debug("no-new-versions")
 		return nil
 	}
 
-	err := c.resourceConfig.FinishSavingVersions()
+	err := c.resourceConfigScope.FinishSavingVersions()
 	if err != nil {
 		return err
 	}
 
 	for space, version := range c.spaces {
-		err := c.resourceConfig.SaveSpaceLatestVersion(space, version)
+		err := c.resourceConfigScope.SaveSpaceLatestVersion(space, version)
 		if err != nil {
 			return err
 		}

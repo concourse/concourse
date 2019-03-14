@@ -1,0 +1,27 @@
+only: issues
+
+daysUntilStale: 60
+
+daysUntilClose: 7
+
+exemptLabels:
+- triage
+- help wanted
+- good first issue
+
+staleLabel: wontfix
+
+exemptProjects: true
+
+issues:
+  markComment: |
+    Beep boop! This issue has been idle for long enough that it's time to check
+    in and see if it's still important.
+
+    If it is, what is blocking it? Would anyone be interested in [submitting a
+    PR](https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md) or
+    continuing the discussion to help move things forward?
+
+    If no activity is observed within the next week, this issue will be
+    ~~exterminated~~ closed, in accordance with our [stale issue
+    process](https://github.com/concourse/concourse/wiki/How-Issues-are-Managed#staleness).

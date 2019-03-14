@@ -43,7 +43,7 @@ func (r *resourceFactory) VisibleResources(teamNames []string) ([]Resource, erro
 	var resources []Resource
 
 	for rows.Next() {
-		resource := &resource{conn: r.conn}
+		resource := &resource{conn: r.conn, lockFactory: r.lockFactory}
 
 		err := scanResource(resource, rows)
 		if err != nil {

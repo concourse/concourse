@@ -1,3 +1,0 @@
-- type: replace
-  path: /instance_groups/name=worker/instances
-  value: 2

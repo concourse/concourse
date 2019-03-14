@@ -24,6 +24,7 @@ type Connection interface {
 	HTTPClient() *http.Client
 
 	Send(request Request, response *Response) error
+	SendHTTPRequest(request *http.Request, returnResponseBody bool, response *Response) error
 	ConnectToEventStream(request Request) (*sse.EventSource, error)
 }
 
@@ -80,6 +81,14 @@ func (connection *connection) Send(passedRequest Request, passedResponse *Respon
 		return err
 	}
 
+	return connection.send(req, passedRequest.ReturnResponseBody, passedResponse)
+}
+
+func (connection *connection) SendHTTPRequest(request *http.Request, returnResponseBody bool, passedResponse *Response) error {
+	return connection.send(request, returnResponseBody, passedResponse)
+}
+
+func (connection *connection) send(req *http.Request, returnResponseBody bool, passedResponse *Response) error {
 	if connection.tracing {
 		b, err := httputil.DumpRequestOut(req, true)
 		if err != nil {
@@ -103,11 +112,11 @@ func (connection *connection) Send(passedRequest Request, passedResponse *Respon
 		log.Println(string(b))
 	}
 
-	if !passedRequest.ReturnResponseBody {
+	if !returnResponseBody {
 		defer response.Body.Close()
 	}
 
-	return connection.populateResponse(response, passedRequest.ReturnResponseBody, passedResponse)
+	return connection.populateResponse(response, returnResponseBody, passedResponse)
 }
 
 func (connection *connection) ConnectToEventStream(passedRequest Request) (*sse.EventSource, error) {

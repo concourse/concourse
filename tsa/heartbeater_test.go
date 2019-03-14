@@ -1,26 +1,26 @@
 package tsa_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
+	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/tsa"
 	"github.com/concourse/concourse/tsa/tsafakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
 
@@ -31,8 +31,8 @@ var _ = Describe("Heartbeater", func() {
 	}
 
 	var (
-		logger   lager.Logger
-		logLevel lager.LogLevel
+		ctx    context.Context
+		cancel func()
 
 		addrToRegister string
 		fakeClock      *fakeclock.FakeClock
@@ -47,7 +47,7 @@ var _ = Describe("Heartbeater", func() {
 		fakeATC1               *ghttp.Server
 		fakeATC2               *ghttp.Server
 		atcEndpointPicker      *tsafakes.FakeEndpointPicker
-		heartbeater            ifrit.Process
+		heartbeatErr           <-chan error
 
 		verifyRegister  http.HandlerFunc
 		verifyHeartbeat http.HandlerFunc
@@ -60,8 +60,7 @@ var _ = Describe("Heartbeater", func() {
 	)
 
 	BeforeEach(func() {
-		logger = lagertest.NewTestLogger("test")
-		logLevel = lager.DEBUG
+		ctx, cancel = context.WithCancel(lagerctx.NewContext(context.Background(), lagertest.NewTestLogger("test")))
 
 		addrToRegister = "1.2.3.4:7777"
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -149,29 +148,33 @@ var _ = Describe("Heartbeater", func() {
 
 			return rata.NewRequestGenerator(fakeATC1.URL(), atc.Routes)
 		}
+
 	})
 
 	JustBeforeEach(func() {
-		heartbeater = ifrit.Invoke(
-			NewHeartbeater(
-				logger,
-				logLevel,
-				fakeClock,
-				interval,
-				cprInterval,
-				fakeGardenClient,
-				fakeBaggageclaimClient,
-				atcEndpointPicker,
-				fakeTokenGenerator,
-				worker,
-				clientWriter,
-			),
+		heartbeater := NewHeartbeater(
+			fakeClock,
+			interval,
+			cprInterval,
+			fakeGardenClient,
+			fakeBaggageclaimClient,
+			atcEndpointPicker,
+			fakeTokenGenerator,
+			worker,
+			NewEventWriter(clientWriter),
 		)
+
+		errs := make(chan error, 1)
+		heartbeatErr = errs
+		go func() {
+			errs <- heartbeater.Heartbeat(ctx)
+			close(errs)
+		}()
 	})
 
 	AfterEach(func() {
-		heartbeater.Signal(os.Interrupt)
-		<-heartbeater.Wait()
+		cancel()
+		<-heartbeatErr
 		fakeATC2.Close()
 		fakeATC1.Close()
 	})
@@ -246,11 +249,11 @@ var _ = Describe("Heartbeater", func() {
 				It("immediately registers", func() {
 					expectedWorker.ActiveContainers = 2
 					expectedWorker.ActiveVolumes = 3
-					Expect(registrations).To(Receive(Equal(registration{expectedWorker, 2 * interval})))
+					Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 				})
 
 				It("heartbeats", func() {
-					Expect(registrations).To(Receive())
+					Eventually(registrations).Should(Receive())
 
 					fakeClock.WaitForWatcherAndIncrement(interval)
 					expectedWorker.ActiveContainers = 5
@@ -258,37 +261,15 @@ var _ = Describe("Heartbeater", func() {
 					Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 				})
 
-				It("logs debug messages", func() {
-					Expect(clientWriter).Should(gbytes.Say("test.register.start"))
-					Expect(clientWriter).Should(gbytes.Say("test.register.reached-worker"))
-					Expect(clientWriter).Should(gbytes.Say("test.register.done"))
+				It("emits events", func() {
+					Eventually(registrations).Should(Receive())
+
+					Eventually(clientWriter).Should(gbytes.Say(`{"event":"registered"}`))
 
 					fakeClock.WaitForWatcherAndIncrement(interval)
-					Eventually(clientWriter).Should(gbytes.Say("test.heartbeat.start"))
-					Eventually(clientWriter).Should(gbytes.Say("test.heartbeat.reached-worker"))
-					Eventually(clientWriter).Should(gbytes.Say("test.heartbeat.done"))
+					Eventually(clientWriter).Should(gbytes.Say(`{"event":"heartbeated"}`))
 				})
 			})
-
-			Context("When the ERROR log level is set", func() {
-				BeforeEach(func() {
-					fakeATC1.AppendHandlers(verifyRegister)
-					fakeATC2.AppendHandlers(verifyHeartbeat)
-					logLevel = lager.ERROR
-				})
-
-				It("does not log messages", func() {
-					Expect(clientWriter).ShouldNot(gbytes.Say("test.register.start"))
-					Expect(clientWriter).ShouldNot(gbytes.Say("test.register.reached-worker"))
-					Expect(clientWriter).ShouldNot(gbytes.Say("test.register.done"))
-
-					fakeClock.WaitForWatcherAndIncrement(interval)
-					Eventually(clientWriter).ShouldNot(gbytes.Say("test.heartbeat.start"))
-					Eventually(clientWriter).ShouldNot(gbytes.Say("test.heartbeat.reached-worker"))
-					Eventually(clientWriter).ShouldNot(gbytes.Say("test.heartbeat.done"))
-				})
-			})
-
 		})
 
 		Context("when heartbeat returns worker is landed", func() {
@@ -319,12 +300,12 @@ var _ = Describe("Heartbeater", func() {
 			})
 
 			It("exits heartbeater with no error", func() {
-				Expect(registrations).To(Receive())
+				Eventually(registrations).Should(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(interval)
 				Eventually(heartbeats).Should(Receive())
 
-				err := <-heartbeater.Wait()
+				err := <-heartbeatErr
 				Expect(err).To(BeNil())
 			})
 		})
@@ -345,7 +326,7 @@ var _ = Describe("Heartbeater", func() {
 			})
 
 			It("heartbeats faster according to cprInterval", func() {
-				Expect(registrations).To(Receive())
+				Eventually(registrations).Should(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(interval)
 				Eventually(heartbeats).Should(Receive())
@@ -357,7 +338,7 @@ var _ = Describe("Heartbeater", func() {
 			})
 
 			It("goes back to normal after the heartbeat succeeds", func() {
-				Expect(registrations).To(Receive())
+				Eventually(registrations).Should(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(interval)
 				Eventually(heartbeats).Should(Receive())
@@ -372,50 +353,6 @@ var _ = Describe("Heartbeater", func() {
 				expectedWorker.ActiveContainers = 3
 				expectedWorker.ActiveVolumes = 0
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
-			})
-		})
-		Context("When the Worker's connection is an old connection", func() {
-			BeforeEach(func() {
-				heartbeated := make(chan registration, 100)
-				heartbeats = heartbeated
-				verifyHeartbeatOldConn := ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", "/api/v1/workers/some-name/heartbeat"),
-					func(w http.ResponseWriter, r *http.Request) {
-						var worker atc.Worker
-						Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
-
-						err := json.NewDecoder(r.Body).Decode(&worker)
-						Expect(err).NotTo(HaveOccurred())
-
-						ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-						Expect(err).NotTo(HaveOccurred())
-
-						heartbeated <- registration{worker, ttl}
-
-						json.NewEncoder(w).Encode(atc.Worker{})
-					},
-				)
-				fakeATC1.AppendHandlers(
-					verifyRegister,
-					verifyHeartbeat,
-				)
-				fakeATC2.AppendHandlers(verifyHeartbeatOldConn)
-			})
-
-			It("Stops heartbeating when it detects itself to be stale connection", func() {
-				Expect(registrations).To(Receive())
-
-				fakeClock.WaitForWatcherAndIncrement(interval)
-				Eventually(heartbeats).Should(Receive())
-
-				fakeClock.WaitForWatcherAndIncrement(interval)
-				Consistently(heartbeats).ShouldNot(Receive())
-
-				fakeClock.Increment(cprInterval)
-				Consistently(heartbeats).ShouldNot(Receive())
-
-				Expect(fakeBaggageclaimClient.ListVolumesCallCount()).To(Equal(2))
-				Expect(fakeGardenClient.ContainersCallCount()).To(Equal(2))
 			})
 		})
 	})

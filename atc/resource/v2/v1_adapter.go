@@ -5,8 +5,7 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource/v1"
+	v1 "github.com/concourse/concourse/atc/resource/v1"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -19,14 +18,12 @@ func (e UnknownSpaceError) Error() string {
 }
 
 type V1Adapter struct {
-	resource       v1.Resource
-	resourceConfig db.ResourceConfig
+	resource v1.Resource
 }
 
-func NewV1Adapter(container worker.Container, resourceConfig db.ResourceConfig) *V1Adapter {
+func NewV1Adapter(container worker.Container) *V1Adapter {
 	return &V1Adapter{
-		resource:       v1.Resource{Container: container},
-		resourceConfig: resourceConfig,
+		resource: v1.Resource{Container: container},
 	}
 }
 
@@ -36,6 +33,7 @@ func (a *V1Adapter) Container() worker.Container {
 
 func (a *V1Adapter) Get(
 	context context.Context,
+	eventHandler GetEventHandler,
 	volume worker.Volume,
 	ioConfig atc.IOConfig,
 	source atc.Source,
@@ -48,7 +46,7 @@ func (a *V1Adapter) Get(
 		return err
 	}
 
-	_, err = a.resourceConfig.SaveUncheckedVersion(atc.Space("v1space"), version, db.NewResourceConfigMetadataFields(versionedSource.Metadata()))
+	err = eventHandler.SaveMetadata(versionedSource.Metadata())
 	return err
 }
 

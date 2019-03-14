@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/concourse/concourse/atc/db/lock"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -356,11 +358,31 @@ func ms(duration time.Duration) float64 {
 	return float64(duration) / 1000000
 }
 
+type ErrorLog struct {
+	Message string
+	Value   int
+}
+
+func (e ErrorLog) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("error-log"),
+		Event{
+			Name:  "error log",
+			Value: e.Value,
+			State: EventStateWarning,
+			Attributes: map[string]string{
+				"message": e.Message,
+			},
+		},
+	)
+}
+
 type HTTPResponseTime struct {
-	Route    string
-	Path     string
-	Method   string
-	Duration time.Duration
+	Route      string
+	Path       string
+	Method     string
+	StatusCode int
+	Duration   time.Duration
 }
 
 func (event HTTPResponseTime) Emit(logger lager.Logger) {
@@ -384,6 +406,7 @@ func (event HTTPResponseTime) Emit(logger lager.Logger) {
 				"route":  event.Route,
 				"path":   event.Path,
 				"method": event.Method,
+				"status": strconv.Itoa(event.StatusCode),
 			},
 		},
 	)
@@ -414,6 +437,76 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 			},
 		},
 	)
+}
+
+var lockTypeNames = map[int]string{
+	lock.LockTypeResourceConfigChecking: "ResourceConfigChecking",
+	lock.LockTypeBuildTracking:          "BuildTracking",
+	lock.LockTypePipelineScheduling:     "PipelineScheduling",
+	lock.LockTypeBatch:                  "Batch",
+	lock.LockTypeVolumeCreating:         "VolumeCreating",
+	lock.LockTypeContainerCreating:      "ContainerCreating",
+	lock.LockTypeDatabaseMigration:      "DatabaseMigration",
+}
+
+type LockAcquired struct {
+	LockType string
+}
+
+func (event LockAcquired) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("lock-acquired"),
+		Event{
+			Name:  "lock held",
+			Value: 1,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"type": event.LockType,
+			},
+		},
+	)
+}
+
+type LockReleased struct {
+	LockType string
+}
+
+func (event LockReleased) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("lock-released"),
+		Event{
+			Name:  "lock held",
+			Value: 0,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"type": event.LockType,
+			},
+		},
+	)
+}
+
+func LogLockAcquired(logger lager.Logger, lockID lock.LockID) {
+	logger.Debug("acquired")
+
+	if len(lockID) == 0 {
+		return
+	}
+
+	if lockType, ok := lockTypeNames[lockID[0]]; ok {
+		LockAcquired{LockType: lockType}.Emit(logger)
+	}
+}
+
+func LogLockReleased(logger lager.Logger, lockID lock.LockID) {
+	logger.Debug("released")
+
+	if len(lockID) == 0 {
+		return
+	}
+
+	if lockType, ok := lockTypeNames[lockID[0]]; ok {
+		LockReleased{LockType: lockType}.Emit(logger)
+	}
 }
 
 type WorkersState struct {
@@ -452,11 +545,10 @@ func (event WorkersState) Emit(logger lager.Logger) {
 				Value: numericState,
 				State: eventState,
 				Attributes: map[string]string{
-					"name":         workerName,
+					"worker":       workerName,
 					"worker_state": string(workerState),
 				},
 			},
 		)
 	}
-
 }

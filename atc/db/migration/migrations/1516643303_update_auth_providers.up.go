@@ -81,29 +81,28 @@ func (self *migrations) Up_1516643303() error {
 
 		newAuth, err := json.Marshal(authConfig)
 		if err != nil {
-			tx.Rollback()
-			return err
+			return rollback(tx, err)
 		}
 
 		encryptedAuth, noncense, err := self.Strategy.Encrypt(newAuth)
+		if err != nil {
+			return rollback(tx, err)
+		}
 
 		_, err = tx.Exec("UPDATE teams SET auth = $1, nonce = $2 WHERE id = $3", encryptedAuth, noncense, team.id)
 		if err != nil {
-			tx.Rollback()
-			return err
+			return rollback(tx, err)
 		}
 	}
 
 	_, err = tx.Exec("ALTER TABLE teams DROP COLUMN IF EXISTS basic_auth")
 	if err != nil {
-		tx.Rollback()
-		return err
+		return rollback(tx, err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
-		return err
+		return rollback(tx, err)
 	}
 
 	return nil

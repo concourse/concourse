@@ -36,16 +36,17 @@ type FakeResource struct {
 	containerReturnsOnCall map[int]struct {
 		result1 worker.Container
 	}
-	GetStub        func(context.Context, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) error
+	GetStub        func(context.Context, v2.GetEventHandler, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) error
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 context.Context
-		arg2 worker.Volume
-		arg3 atc.IOConfig
-		arg4 atc.Source
-		arg5 atc.Params
-		arg6 atc.Space
-		arg7 atc.Version
+		arg2 v2.GetEventHandler
+		arg3 worker.Volume
+		arg4 atc.IOConfig
+		arg5 atc.Source
+		arg6 atc.Params
+		arg7 atc.Space
+		arg8 atc.Version
 	}
 	getReturns struct {
 		result1 error
@@ -101,6 +102,12 @@ func (fake *FakeResource) CheckCallCount() int {
 	return len(fake.checkArgsForCall)
 }
 
+func (fake *FakeResource) CheckCalls(stub func(context.Context, v2.CheckEventHandler, atc.Source, map[atc.Space]atc.Version) error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = stub
+}
+
 func (fake *FakeResource) CheckArgsForCall(i int) (context.Context, v2.CheckEventHandler, atc.Source, map[atc.Space]atc.Version) {
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
@@ -109,6 +116,8 @@ func (fake *FakeResource) CheckArgsForCall(i int) (context.Context, v2.CheckEven
 }
 
 func (fake *FakeResource) CheckReturns(result1 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	fake.checkReturns = struct {
 		result1 error
@@ -116,6 +125,8 @@ func (fake *FakeResource) CheckReturns(result1 error) {
 }
 
 func (fake *FakeResource) CheckReturnsOnCall(i int, result1 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	if fake.checkReturnsOnCall == nil {
 		fake.checkReturnsOnCall = make(map[int]struct {
@@ -150,7 +161,15 @@ func (fake *FakeResource) ContainerCallCount() int {
 	return len(fake.containerArgsForCall)
 }
 
+func (fake *FakeResource) ContainerCalls(stub func() worker.Container) {
+	fake.containerMutex.Lock()
+	defer fake.containerMutex.Unlock()
+	fake.ContainerStub = stub
+}
+
 func (fake *FakeResource) ContainerReturns(result1 worker.Container) {
+	fake.containerMutex.Lock()
+	defer fake.containerMutex.Unlock()
 	fake.ContainerStub = nil
 	fake.containerReturns = struct {
 		result1 worker.Container
@@ -158,6 +177,8 @@ func (fake *FakeResource) ContainerReturns(result1 worker.Container) {
 }
 
 func (fake *FakeResource) ContainerReturnsOnCall(i int, result1 worker.Container) {
+	fake.containerMutex.Lock()
+	defer fake.containerMutex.Unlock()
 	fake.ContainerStub = nil
 	if fake.containerReturnsOnCall == nil {
 		fake.containerReturnsOnCall = make(map[int]struct {
@@ -169,22 +190,23 @@ func (fake *FakeResource) ContainerReturnsOnCall(i int, result1 worker.Container
 	}{result1}
 }
 
-func (fake *FakeResource) Get(arg1 context.Context, arg2 worker.Volume, arg3 atc.IOConfig, arg4 atc.Source, arg5 atc.Params, arg6 atc.Space, arg7 atc.Version) error {
+func (fake *FakeResource) Get(arg1 context.Context, arg2 v2.GetEventHandler, arg3 worker.Volume, arg4 atc.IOConfig, arg5 atc.Source, arg6 atc.Params, arg7 atc.Space, arg8 atc.Version) error {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 context.Context
-		arg2 worker.Volume
-		arg3 atc.IOConfig
-		arg4 atc.Source
-		arg5 atc.Params
-		arg6 atc.Space
-		arg7 atc.Version
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
-	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+		arg2 v2.GetEventHandler
+		arg3 worker.Volume
+		arg4 atc.IOConfig
+		arg5 atc.Source
+		arg6 atc.Params
+		arg7 atc.Space
+		arg8 atc.Version
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1
@@ -199,14 +221,22 @@ func (fake *FakeResource) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeResource) GetArgsForCall(i int) (context.Context, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) {
+func (fake *FakeResource) GetCalls(stub func(context.Context, v2.GetEventHandler, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) error) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
+	fake.GetStub = stub
+}
+
+func (fake *FakeResource) GetArgsForCall(i int) (context.Context, v2.GetEventHandler, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
 }
 
 func (fake *FakeResource) GetReturns(result1 error) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
 		result1 error
@@ -214,6 +244,8 @@ func (fake *FakeResource) GetReturns(result1 error) {
 }
 
 func (fake *FakeResource) GetReturnsOnCall(i int, result1 error) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
@@ -253,6 +285,12 @@ func (fake *FakeResource) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
+func (fake *FakeResource) PutCalls(stub func(context.Context, v2.PutEventHandler, atc.IOConfig, atc.Source, atc.Params) ([]atc.SpaceVersion, error)) {
+	fake.putMutex.Lock()
+	defer fake.putMutex.Unlock()
+	fake.PutStub = stub
+}
+
 func (fake *FakeResource) PutArgsForCall(i int) (context.Context, v2.PutEventHandler, atc.IOConfig, atc.Source, atc.Params) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
@@ -261,6 +299,8 @@ func (fake *FakeResource) PutArgsForCall(i int) (context.Context, v2.PutEventHan
 }
 
 func (fake *FakeResource) PutReturns(result1 []atc.SpaceVersion, result2 error) {
+	fake.putMutex.Lock()
+	defer fake.putMutex.Unlock()
 	fake.PutStub = nil
 	fake.putReturns = struct {
 		result1 []atc.SpaceVersion
@@ -269,6 +309,8 @@ func (fake *FakeResource) PutReturns(result1 []atc.SpaceVersion, result2 error) 
 }
 
 func (fake *FakeResource) PutReturnsOnCall(i int, result1 []atc.SpaceVersion, result2 error) {
+	fake.putMutex.Lock()
+	defer fake.putMutex.Unlock()
 	fake.PutStub = nil
 	if fake.putReturnsOnCall == nil {
 		fake.putReturnsOnCall = make(map[int]struct {

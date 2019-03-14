@@ -25,6 +25,7 @@ func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {
 		logger := s.logger.Session("list-pipeline-builds")
 
 		teamName := r.FormValue(":team_name")
+		timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 
 		urlUntil := r.FormValue(atc.PaginationQueryUntil)
 		until, _ = strconv.Atoi(urlUntil)
@@ -41,11 +42,20 @@ func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {
 
 		page := db.Page{Until: until, Since: since, Limit: limit}
 
-		builds, pagination, err = pipeline.Builds(page)
-		if err != nil {
-			logger.Error("failed-to-get-pipeline-builds", err)
-			w.WriteHeader(http.StatusNotFound)
-			return
+		if timestamps == "" {
+			builds, pagination, err = pipeline.Builds(page)
+			if err != nil {
+				logger.Error("failed-to-get-pipeline-builds", err)
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+		} else {
+			builds, pagination, err = pipeline.BuildsWithTime(page)
+			if err != nil {
+				logger.Error("failed-to-get-pipeline-builds-in-range", err)
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
 		}
 
 		if pagination.Next != nil {

@@ -59,6 +59,12 @@ func (fake *FakeBindata) AssetCallCount() int {
 	return len(fake.assetArgsForCall)
 }
 
+func (fake *FakeBindata) AssetCalls(stub func(string) ([]byte, error)) {
+	fake.assetMutex.Lock()
+	defer fake.assetMutex.Unlock()
+	fake.AssetStub = stub
+}
+
 func (fake *FakeBindata) AssetArgsForCall(i int) string {
 	fake.assetMutex.RLock()
 	defer fake.assetMutex.RUnlock()
@@ -67,6 +73,8 @@ func (fake *FakeBindata) AssetArgsForCall(i int) string {
 }
 
 func (fake *FakeBindata) AssetReturns(result1 []byte, result2 error) {
+	fake.assetMutex.Lock()
+	defer fake.assetMutex.Unlock()
 	fake.AssetStub = nil
 	fake.assetReturns = struct {
 		result1 []byte
@@ -75,6 +83,8 @@ func (fake *FakeBindata) AssetReturns(result1 []byte, result2 error) {
 }
 
 func (fake *FakeBindata) AssetReturnsOnCall(i int, result1 []byte, result2 error) {
+	fake.assetMutex.Lock()
+	defer fake.assetMutex.Unlock()
 	fake.AssetStub = nil
 	if fake.assetReturnsOnCall == nil {
 		fake.assetReturnsOnCall = make(map[int]struct {
@@ -111,7 +121,15 @@ func (fake *FakeBindata) AssetNamesCallCount() int {
 	return len(fake.assetNamesArgsForCall)
 }
 
+func (fake *FakeBindata) AssetNamesCalls(stub func() []string) {
+	fake.assetNamesMutex.Lock()
+	defer fake.assetNamesMutex.Unlock()
+	fake.AssetNamesStub = stub
+}
+
 func (fake *FakeBindata) AssetNamesReturns(result1 []string) {
+	fake.assetNamesMutex.Lock()
+	defer fake.assetNamesMutex.Unlock()
 	fake.AssetNamesStub = nil
 	fake.assetNamesReturns = struct {
 		result1 []string
@@ -119,6 +137,8 @@ func (fake *FakeBindata) AssetNamesReturns(result1 []string) {
 }
 
 func (fake *FakeBindata) AssetNamesReturnsOnCall(i int, result1 []string) {
+	fake.assetNamesMutex.Lock()
+	defer fake.assetNamesMutex.Unlock()
 	fake.AssetNamesStub = nil
 	if fake.assetNamesReturnsOnCall == nil {
 		fake.assetNamesReturnsOnCall = make(map[int]struct {

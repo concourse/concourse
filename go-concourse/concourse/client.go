@@ -31,6 +31,7 @@ type Client interface {
 	ListPipelines() ([]atc.Pipeline, error)
 	ListTeams() ([]atc.Team, error)
 	Team(teamName string) Team
+	UserInfo() (map[string]interface{}, error)
 }
 
 type client struct {

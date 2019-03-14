@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/buildserver"
+	"github.com/concourse/concourse/atc/api/ccserver"
 	"github.com/concourse/concourse/atc/api/cliserver"
 	"github.com/concourse/concourse/atc/api/configserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
@@ -86,6 +87,7 @@ func NewHandler(
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, engine)
 	configServer := configserver.NewServer(logger, dbTeamFactory, variablesFactory)
+	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory, workerProvider)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
@@ -97,6 +99,8 @@ func NewHandler(
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
+
+		atc.GetCC: http.HandlerFunc(ccServer.GetCC),
 
 		atc.ListBuilds:              http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild:             teamHandlerFactory.HandlerFor(buildServer.CreateBuild),
@@ -141,20 +145,21 @@ func NewHandler(
 		atc.CreatePipelineBuild: pipelineHandlerFactory.HandlerFor(pipelineServer.CreateBuild),
 		atc.PipelineBadge:       pipelineHandlerFactory.HandlerFor(pipelineServer.PipelineBadge),
 
-		atc.ListAllResources:     http.HandlerFunc(resourceServer.ListAllResources),
-		atc.ListResources:        pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
-		atc.ListResourceTypes:    pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes),
-		atc.GetResource:          pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
-		atc.CheckResource:        pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource),
-		atc.CheckResourceWebHook: pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceWebHook),
-		atc.CheckResourceType:    pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceType),
+		atc.ListAllResources:        http.HandlerFunc(resourceServer.ListAllResources),
+		atc.ListResources:           pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
+		atc.ListResourceTypes:       pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes),
+		atc.GetResource:             pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
+		atc.UnpinResource:           pipelineHandlerFactory.HandlerFor(resourceServer.UnpinResource),
+		atc.SetPinCommentOnResource: pipelineHandlerFactory.HandlerFor(resourceServer.SetPinCommentOnResource),
+		atc.CheckResource:           pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource),
+		atc.CheckResourceWebHook:    pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceWebHook),
+		atc.CheckResourceType:       pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceType),
 
 		atc.ListResourceVersions:          pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
 		atc.GetResourceVersion:            pipelineHandlerFactory.HandlerFor(versionServer.GetResourceVersion),
 		atc.EnableResourceVersion:         pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),
 		atc.DisableResourceVersion:        pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion),
 		atc.PinResourceVersion:            pipelineHandlerFactory.HandlerFor(versionServer.PinResourceVersion),
-		atc.UnpinResourceVersion:          pipelineHandlerFactory.HandlerFor(versionServer.UnpinResourceVersion),
 		atc.ListBuildsWithVersionAsInput:  pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput),
 		atc.ListBuildsWithVersionAsOutput: pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput),
 		atc.GetResourceCausality:          pipelineHandlerFactory.HandlerFor(versionServer.GetCausality),

@@ -67,6 +67,11 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 		return nil, err
 	}
 
+	buildContainersCountPerWorker, err := provider.dbWorkerFactory.BuildContainersCountPerWorker()
+	if err != nil {
+		return nil, err
+	}
+
 	tikTok := clock.NewClock()
 
 	workers := []Worker{}
@@ -77,7 +82,12 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 		}
 
 		workerLog := logger.Session("running-worker")
-		worker := provider.NewGardenWorker(workerLog, tikTok, savedWorker)
+		worker := provider.NewGardenWorker(
+			workerLog,
+			tikTok,
+			savedWorker,
+			buildContainersCountPerWorker[savedWorker.Name()],
+		)
 		if !worker.IsVersionCompatible(workerLog, provider.workerVersion) {
 			continue
 		}
@@ -88,26 +98,25 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 	return workers, nil
 }
 
-func (provider *dbWorkerProvider) FindWorkerForContainerByOwner(
+func (provider *dbWorkerProvider) FindWorkersForContainerByOwner(
 	logger lager.Logger,
-	teamID int,
 	owner db.ContainerOwner,
-) (Worker, bool, error) {
+) ([]Worker, error) {
 	logger = logger.Session("worker-for-container")
-	dbWorker, found, err := provider.dbWorkerFactory.FindWorkerForContainerByOwner(owner)
+	dbWorkers, err := provider.dbWorkerFactory.FindWorkersForContainerByOwner(owner)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	if !found {
-		return nil, false, nil
+	var workers []Worker
+	for _, w := range dbWorkers {
+		worker := provider.NewGardenWorker(logger, clock.NewClock(), w, 0)
+		if worker.IsVersionCompatible(logger, provider.workerVersion) {
+			workers = append(workers, worker)
+		}
 	}
 
-	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker)
-	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
-		return nil, false, nil
-	}
-	return worker, true, err
+	return workers, nil
 }
 
 func (provider *dbWorkerProvider) FindWorkerForContainer(
@@ -127,14 +136,14 @@ func (provider *dbWorkerProvider) FindWorkerForContainer(
 		return nil, false, nil
 	}
 
-	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker)
+	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker, 0)
 	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
 		return nil, false, nil
 	}
 	return worker, true, err
 }
 
-func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker) Worker {
+func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker, buildContainersCount int) Worker {
 	gcf := NewGardenConnectionFactory(
 		provider.dbWorkerFactory,
 		logger.Session("garden-connection"),
@@ -167,11 +176,8 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 
 	containerProvider := NewContainerProvider(
 		gClient,
-		bClient,
-		// rClient,
 		volumeClient,
 		savedWorker,
-		tikTok,
 		provider.imageFactory,
 		provider.dbVolumeRepository,
 		provider.dbTeamFactory,
@@ -180,11 +186,10 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 
 	return NewGardenWorker(
 		gClient,
-		bClient,
-		// rClient,
 		containerProvider,
 		volumeClient,
+		provider.imageFactory,
 		savedWorker,
-		tikTok,
+		buildContainersCount,
 	)
 }

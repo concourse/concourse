@@ -6,3 +6,9 @@ tags
 web/public/elm.js
 web/public/elm.min.js
 web/public/main.css
+docker-compose.override.yml
+
+ci/deployments/*/.terraform/
+ci/deployments/*/keys/gcp.json
+ci/deployments/*/keys/id_rsa
+ci/deployments/*/keys/id_rsa.pub

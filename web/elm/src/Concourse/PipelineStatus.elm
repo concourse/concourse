@@ -1,41 +1,61 @@
-module Concourse.PipelineStatus exposing (..)
+module Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..), isRunning, show)
 
-import Concourse
+import Time exposing (Time)
 
 
-show : Concourse.PipelineStatus -> String
+type StatusDetails
+    = Running
+    | Since Time
+
+
+type PipelineStatus
+    = PipelineStatusPaused
+    | PipelineStatusAborted StatusDetails
+    | PipelineStatusErrored StatusDetails
+    | PipelineStatusFailed StatusDetails
+    | PipelineStatusPending Bool
+    | PipelineStatusSucceeded StatusDetails
+
+
+show : PipelineStatus -> String
 show status =
     case status of
-        Concourse.PipelineStatusAborted ->
-            "aborted"
-
-        Concourse.PipelineStatusErrored ->
-            "errored"
-
-        Concourse.PipelineStatusFailed ->
-            "failed"
-
-        Concourse.PipelineStatusPaused ->
+        PipelineStatusPaused ->
             "paused"
 
-        Concourse.PipelineStatusPending ->
+        PipelineStatusAborted _ ->
+            "aborted"
+
+        PipelineStatusErrored _ ->
+            "errored"
+
+        PipelineStatusFailed _ ->
+            "failed"
+
+        PipelineStatusPending _ ->
             "pending"
 
-        Concourse.PipelineStatusRunning ->
-            "running"
-
-        Concourse.PipelineStatusSucceeded ->
+        PipelineStatusSucceeded _ ->
             "succeeded"
 
 
-isRunning : Concourse.PipelineStatus -> Bool
+isRunning : PipelineStatus -> Bool
 isRunning status =
     case status of
-        Concourse.PipelineStatusPending ->
-            True
-
-        Concourse.PipelineStatusRunning ->
-            True
-
-        _ ->
+        PipelineStatusPaused ->
             False
+
+        PipelineStatusAborted details ->
+            details == Running
+
+        PipelineStatusErrored details ->
+            details == Running
+
+        PipelineStatusFailed details ->
+            details == Running
+
+        PipelineStatusPending isRunning ->
+            isRunning
+
+        PipelineStatusSucceeded details ->
+            details == Running

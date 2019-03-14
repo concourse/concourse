@@ -1,7 +1,6 @@
 package vault
 
 import (
-	"context"
 	"sync"
 	"time"
 
@@ -21,7 +20,6 @@ type Cache struct {
 	cache    map[string]*cachedSecret
 	newItems chan time.Time
 	sr       SecretReader
-	context  context.Context
 	maxLease time.Duration
 }
 
@@ -66,14 +64,14 @@ func (c *Cache) reaperThread() {
 		case <-sleep.C:
 			nextWakeup = c.reapCache()
 			if !nextWakeup.IsZero() {
-				sleep.Reset(nextWakeup.Sub(time.Now()))
+				sleep.Reset(time.Since(nextWakeup))
 			}
 		case t := <-c.newItems:
 			if t.Before(nextWakeup) {
 				continue
 			}
 			nextWakeup = t
-			sleep.Reset(t.Sub(time.Now()))
+			sleep.Reset(time.Until(nextWakeup))
 		}
 	}
 }

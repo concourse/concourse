@@ -49,6 +49,12 @@ func (fake *FakeATCListener) ListenCallCount() int {
 	return len(fake.listenArgsForCall)
 }
 
+func (fake *FakeATCListener) ListenCalls(stub func(string) (chan bool, error)) {
+	fake.listenMutex.Lock()
+	defer fake.listenMutex.Unlock()
+	fake.ListenStub = stub
+}
+
 func (fake *FakeATCListener) ListenArgsForCall(i int) string {
 	fake.listenMutex.RLock()
 	defer fake.listenMutex.RUnlock()
@@ -57,6 +63,8 @@ func (fake *FakeATCListener) ListenArgsForCall(i int) string {
 }
 
 func (fake *FakeATCListener) ListenReturns(result1 chan bool, result2 error) {
+	fake.listenMutex.Lock()
+	defer fake.listenMutex.Unlock()
 	fake.ListenStub = nil
 	fake.listenReturns = struct {
 		result1 chan bool
@@ -65,6 +73,8 @@ func (fake *FakeATCListener) ListenReturns(result1 chan bool, result2 error) {
 }
 
 func (fake *FakeATCListener) ListenReturnsOnCall(i int, result1 chan bool, result2 error) {
+	fake.listenMutex.Lock()
+	defer fake.listenMutex.Unlock()
 	fake.ListenStub = nil
 	if fake.listenReturnsOnCall == nil {
 		fake.listenReturnsOnCall = make(map[int]struct {

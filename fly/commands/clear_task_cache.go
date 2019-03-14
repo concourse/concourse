@@ -31,8 +31,8 @@ func (command *ClearTaskCacheCommand) Execute([]string) error {
 	if len(command.CachePath) > 0 {
 		warningMsg += fmt.Sprintf(", at `%s`", command.CachePath)
 	}
-	warningMsg += "\n\n"
-	fmt.Printf(warningMsg)
+	warningMsg += "\n"
+	fmt.Println(warningMsg)
 
 	confirm := command.SkipInteractive
 	if !confirm {

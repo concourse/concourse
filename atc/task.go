@@ -2,7 +2,6 @@ package atc
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -93,46 +92,6 @@ func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 	}
 
 	return config, nil
-}
-
-func (config TaskConfig) Merge(other TaskConfig) (TaskConfig, []string, error) {
-	if other.Platform != "" {
-		config.Platform = other.Platform
-	}
-
-	if other.RootfsURI != "" {
-		config.RootfsURI = other.RootfsURI
-	}
-
-	var warnings []string
-
-	newParams := map[string]string{}
-
-	for k, v := range config.Params {
-		newParams[k] = v
-	}
-
-	for k, v := range other.Params {
-		if _, exists := config.Params[k]; !exists {
-			warnings = append(warnings, fmt.Sprintf("%s was defined in pipeline but missing from task file", k))
-		}
-
-		newParams[k] = v
-	}
-
-	if len(newParams) > 0 {
-		config.Params = newParams
-	}
-
-	if len(other.Inputs) != 0 {
-		config.Inputs = other.Inputs
-	}
-
-	if other.Run.Path != "" {
-		config.Run = other.Run
-	}
-
-	return config, warnings, nil
 }
 
 func (config TaskConfig) Validate() error {
@@ -227,31 +186,6 @@ func (counter *pathCounter) registerOutput(output TaskOutputConfig) {
 	} else {
 		counter.outputCount[path] = val + 1
 	}
-}
-
-const duplicateErrorMessage = "  cannot have more than one %s using the same path '%s'"
-
-func pathContains(child string, parent string) bool {
-	if child == parent {
-		return false
-	}
-
-	childParts := strings.Split(child, string(filepath.Separator))
-	parentParts := strings.Split(parent, string(filepath.Separator))
-
-	if len(childParts) < len(parentParts) {
-		return false
-	}
-
-	for i, part := range parentParts {
-		if childParts[i] == part {
-			continue
-		} else {
-			return false
-		}
-	}
-
-	return true
 }
 
 func (config TaskConfig) validateOutputContainsNames() []string {

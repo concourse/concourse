@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -62,6 +63,7 @@ var _ = Describe("Fetcher", func() {
 			ctx,
 			lagertest.NewTestLogger("test"),
 			resource.Session{},
+			image.NewGetEventHandler(),
 			atc.Tags{},
 			teamID,
 			creds.VersionedResourceTypes{},

@@ -119,7 +119,7 @@ func testExponentialBackoff(t *testing.T) {
 		start := time.Now()
 		select {
 		case li := <-ma.LoginAttempt:
-			lastRetryInterval = time.Now().Sub(start)
+			lastRetryInterval = time.Since(start)
 			if li {
 				t.Error("error, shouldn't have logged in succesfully")
 			}

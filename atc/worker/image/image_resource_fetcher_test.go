@@ -9,9 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"time"
 
-	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
@@ -36,8 +34,6 @@ var _ = Describe("Image", func() {
 	var fakeResourceFetcherFactory *resourcefakes.FakeFetcherFactory
 	var fakeResourceFetcher *resourcefakes.FakeFetcher
 	var fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-	var fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-	var fakeResourceConfig *dbfakes.FakeResourceConfig
 	var fakeCreatingContainer *dbfakes.FakeCreatingContainer
 	var fakeCheckResource *resourcefakes.FakeResource
 	var fakeCheckResourceType *resourcefakes.FakeResource
@@ -53,7 +49,7 @@ var _ = Describe("Image", func() {
 	var ctx context.Context
 	var fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 	var fakeWorker *workerfakes.FakeWorker
-	var fakeClock *fakeclock.FakeClock
+
 	var customTypes creds.VersionedResourceTypes
 	var privileged bool
 
@@ -75,13 +71,11 @@ var _ = Describe("Image", func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceFetcherFactory = new(resourcefakes.FakeFetcherFactory)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
-		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
-		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceFetcherFactory.FetcherForReturns(fakeResourceFetcher)
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		fakeCheckResource = new(resourcefakes.FakeResource)
 		fakeCheckResourceType = new(resourcefakes.FakeResource)
-		fakeClock = fakeclock.NewFakeClock(time.Now())
+
 		stderrBuf = gbytes.NewBuffer()
 
 		variables = template.StaticVariables{
@@ -138,8 +132,6 @@ var _ = Describe("Image", func() {
 		imageResourceFetcher = image.NewImageResourceFetcherFactory(
 			fakeResourceFetcherFactory,
 			fakeResourceCacheFactory,
-			fakeResourceConfigFactory,
-			fakeClock,
 		).NewImageResourceFetcher(
 			fakeWorker,
 			fakeResourceFactory,
@@ -203,7 +195,6 @@ var _ = Describe("Image", func() {
 
 				Context("and the custom type does not have a version", func() {
 					BeforeEach(func() {
-						fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 						customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
 							{
 								ResourceType: atc.ResourceType{
@@ -222,12 +213,12 @@ var _ = Describe("Image", func() {
 
 					It("checks for the latest version of the resource type", func() {
 						By("using the resource factory to find or create a resource container")
-						_, _, _, _, containerSpec, _, _, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(0)
+						_, _, _, _, containerSpec, workerSpec, _, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 						Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
+						Expect(workerSpec.ResourceType).To(Equal("custom-type-a"))
 
 						By("calling the resource type's check script")
 						Expect(fakeCheckResourceType.CheckCallCount()).To(Equal(1))
-						Expect(resourceConfig).To(Equal(fakeResourceConfig))
 					})
 
 					Context("when a version of the custom resource type is found", func() {
@@ -238,10 +229,10 @@ var _ = Describe("Image", func() {
 
 						It("uses the version of the custom type when checking for the original resource", func() {
 							Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(2))
-							_, _, _, _, containerSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(1)
+							_, _, _, _, containerSpec, workerSpec, customTypes, _ := fakeResourceFactory.NewResourceArgsForCall(1)
 							Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
 							Expect(customTypes[0].Version).To(Equal(atc.Version{"some": "version"}))
-							Expect(resourceConfig).To(Equal(fakeResourceConfig))
+							Expect(workerSpec.ResourceType).To(Equal("custom-type-a"))
 						})
 					})
 				})
@@ -281,7 +272,6 @@ var _ = Describe("Image", func() {
 
 							fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
 							fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
-							fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 						})
 
 						Context("when the resource has a volume", func() {
@@ -306,13 +296,13 @@ var _ = Describe("Image", func() {
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 									Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-									cctx, _, owner, metadata, resourceSpec, actualCustomTypes, delegate, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(0)
+									cctx, _, owner, metadata, containerSpec, workerSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 									Expect(cctx).To(Equal(ctx))
 									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
-									Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+									Expect(containerSpec).To(Equal(worker.ContainerSpec{
 										ImageSpec: worker.ImageSpec{
 											ResourceType: "docker",
 										},
@@ -321,7 +311,12 @@ var _ = Describe("Image", func() {
 									}))
 									Expect(actualCustomTypes).To(Equal(customTypes))
 									Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-									Expect(resourceConfig).To(Equal(fakeResourceConfig))
+									Expect(workerSpec).To(Equal(worker.WorkerSpec{
+										ResourceType:  "docker",
+										Tags:          []string{"worker", "tags"},
+										ResourceTypes: customTypes,
+										TeamID:        0,
+									}))
 								})
 							})
 
@@ -348,22 +343,27 @@ var _ = Describe("Image", func() {
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 								Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-								cctx, _, owner, metadata, resourceSpec, actualCustomTypes, delegate, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(0)
+								cctx, _, owner, metadata, containerSpec, workerSpec, actualCustomTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 								Expect(cctx).To(Equal(ctx))
 								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 								Expect(metadata).To(Equal(db.ContainerMetadata{
 									Type: db.ContainerTypeCheck,
 								}))
-								Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+								Expect(containerSpec).To(Equal(worker.ContainerSpec{
 									ImageSpec: worker.ImageSpec{
 										ResourceType: "docker",
 									},
 									Tags:   []string{"worker", "tags"},
 									TeamID: 123,
 								}))
+								Expect(workerSpec).To(Equal(worker.WorkerSpec{
+									ResourceType:  "docker",
+									Tags:          []string{"worker", "tags"},
+									ResourceTypes: customTypes,
+									TeamID:        0,
+								}))
 								Expect(actualCustomTypes).To(Equal(customTypes))
 								Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-								Expect(resourceConfig).To(Equal(fakeResourceConfig))
 							})
 
 							It("ran 'check' with the right config", func() {
@@ -380,13 +380,14 @@ var _ = Describe("Image", func() {
 
 							It("fetches resource with correct session", func() {
 								Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-								_, _, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+								_, _, session, eventHandler, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate := fakeResourceFetcher.FetchArgsForCall(0)
 								Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 								Expect(session).To(Equal(resource.Session{
 									Metadata: db.ContainerMetadata{
 										Type: db.ContainerTypeGet,
 									},
 								}))
+								Expect(eventHandler).To(Equal(image.NewGetEventHandler()))
 								Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
 								Expect(actualTeamID).To(Equal(teamID))
 								Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
@@ -624,13 +625,14 @@ var _ = Describe("Image", func() {
 
 					It("fetches resource with correct session", func() {
 						Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-						_, _, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+						_, _, session, eventHandler, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate := fakeResourceFetcher.FetchArgsForCall(0)
 						Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 						Expect(session).To(Equal(resource.Session{
 							Metadata: db.ContainerMetadata{
 								Type: db.ContainerTypeGet,
 							},
 						}))
+						Expect(eventHandler).To(Equal(image.NewGetEventHandler()))
 						Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
 						Expect(actualTeamID).To(Equal(teamID))
 						Expect(resourceInstance).To(Equal(resource.NewResourceInstance(

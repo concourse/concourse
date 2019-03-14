@@ -7,11 +7,13 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	v2 "github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker"
 )
 
 type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
+	getEventHandler        v2.GetEventHandler
 	resourceInstance       ResourceInstance
 	worker                 worker.Worker
 	resourceTypes          creds.VersionedResourceTypes
@@ -25,6 +27,7 @@ type resourceInstanceFetchSource struct {
 
 func NewResourceInstanceFetchSource(
 	logger lager.Logger,
+	getEventHandler v2.GetEventHandler,
 	resourceInstance ResourceInstance,
 	worker worker.Worker,
 	resourceTypes creds.VersionedResourceTypes,
@@ -37,6 +40,7 @@ func NewResourceInstanceFetchSource(
 ) FetchSource {
 	return &resourceInstanceFetchSource{
 		logger:                 logger,
+		getEventHandler:        getEventHandler,
 		resourceInstance:       resourceInstance,
 		worker:                 worker,
 		resourceTypes:          resourceTypes,
@@ -100,6 +104,13 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (worker.Volume
 		},
 	}
 
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  string(s.resourceInstance.ResourceType()),
+		Tags:          s.tags,
+		TeamID:        s.teamID,
+		ResourceTypes: s.resourceTypes,
+	}
+
 	resourceFactory := NewResourceFactory(s.worker)
 	resource, err := resourceFactory.NewResource(
 		ctx,
@@ -107,9 +118,9 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (worker.Volume
 		s.resourceInstance.ContainerOwner(),
 		s.session.Metadata,
 		containerSpec,
+		workerSpec,
 		s.resourceTypes,
 		s.imageFetchingDelegate,
-		s.resourceInstance.ResourceCache().ResourceConfig(),
 	)
 	if err != nil {
 		sLog.Error("failed-to-construct-resource", err)
@@ -126,6 +137,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (worker.Volume
 
 	err = resource.Get(
 		ctx,
+		s.getEventHandler,
 		volume,
 		atc.IOConfig{
 			Stdout: s.imageFetchingDelegate.Stdout(),

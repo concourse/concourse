@@ -29,12 +29,18 @@ func NewLegacyServer(config *LegacyConfig) (http.Handler, error) {
 	handlers := map[string]http.Handler{
 		LoginRoute: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			u := url.URL{
-				Scheme: r.URL.Scheme,
-				Host:   r.URL.Host,
-				Path:   "/sky/login",
+				Scheme:   r.URL.Scheme,
+				Host:     r.URL.Host,
+				Path:     "/sky/login",
+				RawQuery: r.URL.RawQuery,
 			}
 
-			http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+			flyPort := r.FormValue("fly_port")
+			if flyPort != "" {
+				u.RawQuery = "redirect_uri=/fly_success%3Ffly_port=" + flyPort
+			}
+
+			http.Redirect(w, r, u.String(), http.StatusFound)
 		}),
 
 		LogoutRoute: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

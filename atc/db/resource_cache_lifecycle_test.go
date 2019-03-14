@@ -174,7 +174,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 			BeforeEach(func() {
 				var err error
-				resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
 					"some-base-resource-type",
 					atc.Source{
@@ -184,11 +184,10 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 						template.StaticVariables{"source-param": "some-secret-sauce"},
 						atc.VersionedResourceTypes{},
 					),
-					db.ContainerOwnerExpiries{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				containerOwner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
+				containerOwner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, db.ContainerOwnerExpiries{})
 
 				container, err = defaultWorker.CreateContainer(containerOwner, db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
@@ -230,7 +229,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 		Context("when the cache is for a custom resource type", func() {
 			It("does not remove the cache if the type is still configured", func() {
-				_, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
 					"some-type",
 					atc.Source{
@@ -251,7 +250,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 							},
 						},
 					),
-					db.ContainerOwnerExpiries{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -263,7 +261,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 			})
 
 			It("removes the cache if the type is no longer configured", func() {
-				_, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
 					"some-type",
 					atc.Source{
@@ -284,7 +282,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 							},
 						},
 					),
-					db.ContainerOwnerExpiries{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -308,38 +305,31 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err := defaultPipeline.Unpause()
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfigCheckSession, err := resourceConfigCheckSessionFactory.FindOrCreateResourceConfigCheckSession(
+				resourceConfigScope, err := defaultResource.SetResourceConfig(
 					logger,
-					"some-base-resource-type",
-					atc.Source{
-						"some": "source",
-					},
+					atc.Source{"some": "source"},
 					creds.NewVersionedResourceTypes(
 						template.StaticVariables{"source-param": "some-secret-sauce"},
 						atc.VersionedResourceTypes{},
 					),
-					db.ContainerOwnerExpiries{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigCheckSession)
+				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), db.ContainerOwnerExpiries{})
 
 				container, err := defaultWorker.CreateContainer(containerOwner, db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
-				rc := createResourceCacheWithUser(db.ForContainer(container.ID()))
+				_ = createResourceCacheWithUser(db.ForContainer(container.ID()))
 
-				err = defaultResource.SetResourceConfig(rc.ResourceConfig().ID())
-				Expect(err).ToNot(HaveOccurred())
-
-				saveVersions(rc.ResourceConfig(), []atc.SpaceVersion{
+				saveVersions(resourceConfigScope, []atc.SpaceVersion{
 					{
 						Space:   atc.Space("space"),
 						Version: atc.Version{"some": "version"},
 					},
 				})
 
-				resourceConfigVersion, found, err := rc.ResourceConfig().FindVersion(atc.Space("space"), atc.Version{"some": "version"})
+				resourceConfigVersion, found, err := resourceConfigScope.FindVersion(atc.Space("space"), atc.Version{"some": "version"})
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
@@ -391,7 +381,7 @@ func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.Used
 		"some-base-resource-type",
 		atc.Version{"some": "version"},
 		atc.Source{
-			"some": fmt.Sprintf("param-%d", time.Now().UnixNano()),
+			"some": "source",
 		},
 		atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
 		creds.NewVersionedResourceTypes(

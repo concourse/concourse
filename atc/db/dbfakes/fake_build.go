@@ -336,10 +336,10 @@ type FakeBuild struct {
 	saveImageResourceVersionReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SaveOutputStub        func(db.ResourceConfig, atc.SpaceVersion, string, string) error
+	SaveOutputStub        func(lager.Logger, atc.SpaceVersion, string, string) error
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
-		arg1 db.ResourceConfig
+		arg1 lager.Logger
 		arg2 atc.SpaceVersion
 		arg3 string
 		arg4 string
@@ -2071,11 +2071,11 @@ func (fake *FakeBuild) SaveImageResourceVersionReturnsOnCall(i int, result1 erro
 	}{result1}
 }
 
-func (fake *FakeBuild) SaveOutput(arg1 db.ResourceConfig, arg2 atc.SpaceVersion, arg3 string, arg4 string) error {
+func (fake *FakeBuild) SaveOutput(arg1 lager.Logger, arg2 atc.SpaceVersion, arg3 string, arg4 string) error {
 	fake.saveOutputMutex.Lock()
 	ret, specificReturn := fake.saveOutputReturnsOnCall[len(fake.saveOutputArgsForCall)]
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
-		arg1 db.ResourceConfig
+		arg1 lager.Logger
 		arg2 atc.SpaceVersion
 		arg3 string
 		arg4 string
@@ -2098,13 +2098,13 @@ func (fake *FakeBuild) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakeBuild) SaveOutputCalls(stub func(db.ResourceConfig, atc.SpaceVersion, string, string) error) {
+func (fake *FakeBuild) SaveOutputCalls(stub func(lager.Logger, atc.SpaceVersion, string, string) error) {
 	fake.saveOutputMutex.Lock()
 	defer fake.saveOutputMutex.Unlock()
 	fake.SaveOutputStub = stub
 }
 
-func (fake *FakeBuild) SaveOutputArgsForCall(i int) (db.ResourceConfig, atc.SpaceVersion, string, string) {
+func (fake *FakeBuild) SaveOutputArgsForCall(i int) (lager.Logger, atc.SpaceVersion, string, string) {
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
 	argsForCall := fake.saveOutputArgsForCall[i]

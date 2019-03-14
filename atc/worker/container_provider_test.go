@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"time"
 
-	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
@@ -61,6 +59,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		ctx                context.Context
 		containerSpec      ContainerSpec
+		workerSpec         WorkerSpec
 		fakeContainerOwner *dbfakes.FakeContainerOwner
 		containerMetadata  db.ContainerMetadata
 		resourceTypes      creds.VersionedResourceTypes
@@ -101,7 +100,6 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
 		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
-		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 
@@ -112,10 +110,8 @@ var _ = Describe("ContainerProvider", func() {
 
 		containerProvider = NewContainerProvider(
 			fakeGardenClient,
-			fakeBaggageclaimClient,
 			fakeVolumeClient,
 			fakeDBWorker,
-			fakeClock,
 			fakeImageFactory,
 			fakeDBVolumeRepository,
 			fakeDBTeamFactory,
@@ -251,6 +247,12 @@ var _ = Describe("ContainerProvider", func() {
 				Version: atc.Version{"some": "version"},
 			},
 		})
+
+		workerSpec = WorkerSpec{
+			TeamID:        73410,
+			ResourceType:  "registry-image",
+			ResourceTypes: resourceTypes,
+		}
 	})
 
 	CertsVolumeExists := func() {
@@ -272,7 +274,9 @@ var _ = Describe("ContainerProvider", func() {
 				fakeImageFetchingDelegate,
 				containerMetadata,
 				containerSpec,
+				workerSpec,
 				resourceTypes,
+				fakeImage,
 			)
 		})
 
@@ -305,11 +309,6 @@ var _ = Describe("ContainerProvider", func() {
 				})
 				BeforeEach(CertsVolumeExists)
 
-				It("gets image", func() {
-					Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
-					Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
-				})
-
 				It("acquires lock", func() {
 					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
 				})
@@ -339,19 +338,19 @@ var _ = Describe("ContainerProvider", func() {
 						Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(0))
 					})
 				})
+			})
 
-				Context("when getting image fails", func() {
-					BeforeEach(func() {
-						fakeImageFactory.GetImageReturns(nil, disasterErr)
-					})
+			Context("when failing to acquire the lock", func() {
+				BeforeEach(func() {
+					fakeLock := new(lockfakes.FakeLock)
 
-					It("returns an error", func() {
-						Expect(findOrCreateErr).To(Equal(disasterErr))
-					})
+					fakeLockFactory.AcquireReturnsOnCall(0, nil, false, nil)
+					fakeLockFactory.AcquireReturnsOnCall(1, fakeLock, true, nil)
+				})
 
-					It("does not create container in garden", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(0))
-					})
+				// another ATC may have created the container already
+				It("rechecks for created and creating container", func() {
+					Expect(fakeDBWorker.FindContainerOnWorkerCallCount()).To(Equal(2))
 				})
 			})
 		})
@@ -411,26 +410,6 @@ var _ = Describe("ContainerProvider", func() {
 				fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
 				fakeCertsVolume.PathReturns("/the/certs/volume/path")
 				fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
-			})
-
-			It("gets image", func() {
-				Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
-				_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualDelegate, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
-
-				Expect(actualWorker.GardenClient()).To(Equal(fakeGardenClient))
-
-				Expect(actualVolumeClient).To(Equal(fakeVolumeClient))
-				Expect(actualImageSpec).To(Equal(containerSpec.ImageSpec))
-				Expect(actualImageSpec).ToNot(BeZero())
-				Expect(actualTeamID).To(Equal(containerSpec.TeamID))
-				Expect(actualTeamID).ToNot(BeZero())
-				Expect(actualDelegate).To(Equal(fakeImageFetchingDelegate))
-				Expect(actualResourceTypes).To(Equal(resourceTypes))
-
-				Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
-				actualCtx, _, actualContainer := fakeImage.FetchForContainerArgsForCall(0)
-				Expect(actualContainer).To(Equal(fakeCreatingContainer))
-				Expect(actualCtx).To(Equal(ctx))
 			})
 
 			It("creates container in database", func() {
@@ -845,7 +824,7 @@ var _ = Describe("ContainerProvider", func() {
 
 			It("streams remote inputs into newly created container volumes", func() {
 				Expect(fakeRemoteInputAS.StreamToCallCount()).To(Equal(1))
-				ad := fakeRemoteInputAS.StreamToArgsForCall(0)
+				_, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
 
 				err := ad.StreamIn(".", bytes.NewBufferString("some-stream"))
 				Expect(err).ToNot(HaveOccurred())
@@ -929,24 +908,6 @@ var _ = Describe("ContainerProvider", func() {
 							Mode:    garden.BindMountModeRW,
 						},
 					}))
-				})
-			})
-
-			Context("when getting image fails", func() {
-				BeforeEach(func() {
-					fakeImageFactory.GetImageReturns(nil, disasterErr)
-				})
-
-				It("returns an error", func() {
-					Expect(findOrCreateErr).To(Equal(disasterErr))
-				})
-
-				It("does not create container in database", func() {
-					Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
-				})
-
-				It("does not create container in garden", func() {
-					Expect(fakeGardenClient.CreateCallCount()).To(Equal(0))
 				})
 			})
 

@@ -19,6 +19,8 @@ type FlyCommand struct {
 	Status StatusCommand `command:"status" description:"Login status"`
 	Sync   SyncCommand   `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
+	Userinfo UserinfoCommand `command:"userinfo" description:"User information"`
+
 	Teams       TeamsCommand       `command:"teams" alias:"t" description:"List the configured teams"`
 	SetTeam     SetTeamCommand     `command:"set-team"  alias:"st" description:"Create or modify a team to have the given credentials"`
 	RenameTeam  RenameTeamCommand  `command:"rename-team"   alias:"rt" description:"Rename a team"`
@@ -49,6 +51,7 @@ type FlyCommand struct {
 	FormatPipeline   FormatPipelineCommand   `command:"format-pipeline"     alias:"fp"   description:"Format a pipeline config"`
 	OrderPipelines   OrderPipelinesCommand   `command:"order-pipelines"     alias:"op"   description:"Orders pipelines"`
 
+	Resources        ResourcesCommand        `command:"resources"           alias:"rs"   description:"List the resources in the pipeline"`
 	ResourceVersions ResourceVersionsCommand `command:"resource-versions"   alias:"rvs"  description:"List the versions of a resource"`
 	CheckResource    CheckResourceCommand    `command:"check-resource"      alias:"cr"   description:"Check a resource"`
 
@@ -66,6 +69,8 @@ type FlyCommand struct {
 	Workers     WorkersCommand     `command:"workers" alias:"ws" description:"List the registered workers"`
 	LandWorker  LandWorkerCommand  `command:"land-worker" alias:"lw" description:"Land a worker"`
 	PruneWorker PruneWorkerCommand `command:"prune-worker" alias:"pw" description:"Prune a stalled, landing, landed, or retiring worker"`
+
+	Curl CurlCommand `command:"curl" alias:"c" description:"curl the api"`
 }
 
 var Fly FlyCommand

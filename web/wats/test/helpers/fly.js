@@ -19,8 +19,12 @@ class Fly {
     return fly;
   }
 
-  async init() {
+  async setupHome() {
     this.home = await tmp.dir({ unsafeCleanup: true });
+  }
+
+  async init() {
+    await this.setupHome();
     await this.loginAs(this.teamName);
   }
 

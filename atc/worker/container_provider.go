@@ -7,7 +7,6 @@ import (
 	"sort"
 	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
@@ -21,11 +20,8 @@ const creatingContainerRetryDelay = 1 * time.Second
 
 func NewContainerProvider(
 	gardenClient garden.Client,
-	baggageclaimClient baggageclaim.Client,
 	volumeClient VolumeClient,
 	dbWorker db.Worker,
-	clock clock.Clock,
-	//TODO: less of all this junk..
 	imageFactory ImageFactory,
 	dbVolumeRepository db.VolumeRepository,
 	dbTeamFactory db.TeamFactory,
@@ -34,7 +30,6 @@ func NewContainerProvider(
 
 	return &containerProvider{
 		gardenClient:       gardenClient,
-		baggageclaimClient: baggageclaimClient,
 		volumeClient:       volumeClient,
 		imageFactory:       imageFactory,
 		dbVolumeRepository: dbVolumeRepository,
@@ -43,7 +38,6 @@ func NewContainerProvider(
 		httpProxyURL:       dbWorker.HTTPProxyURL(),
 		httpsProxyURL:      dbWorker.HTTPSProxyURL(),
 		noProxy:            dbWorker.NoProxy(),
-		clock:              clock,
 		worker:             dbWorker,
 	}
 }
@@ -63,14 +57,20 @@ type ContainerProvider interface {
 		owner db.ContainerOwner,
 		delegate ImageFetchingDelegate,
 		metadata db.ContainerMetadata,
-		spec ContainerSpec,
+		containerSpec ContainerSpec,
+		workerSpec WorkerSpec,
 		resourceTypes creds.VersionedResourceTypes,
+		image Image,
 	) (Container, error)
 }
 
+// TODO: Remove the ImageFactory from the containerProvider.
+// Currently, the imageFactory is only needed to create a garden
+// worker in createGardenContainer. Creating a garden worker here
+// is cyclical because the garden worker contains a containerProvider.
+// There is an ongoing refactor that is attempting to fix this.
 type containerProvider struct {
 	gardenClient       garden.Client
-	baggageclaimClient baggageclaim.Client
 	volumeClient       VolumeClient
 	imageFactory       ImageFactory
 	dbVolumeRepository db.VolumeRepository
@@ -82,23 +82,34 @@ type containerProvider struct {
 	httpProxyURL  string
 	httpsProxyURL string
 	noProxy       string
-
-	clock clock.Clock
 }
 
+// If a created container exists, a garden.Container must also exist
+// so this method will find it, create the corresponding worker.Container
+// and return it.
+// If no created container exists, FindOrCreateContainer will go through
+// the container creation flow i.e. find or create a CreatingContainer,
+// create the garden.Container and then the CreatedContainer
 func (p *containerProvider) FindOrCreateContainer(
 	ctx context.Context,
 	logger lager.Logger,
 	owner db.ContainerOwner,
 	delegate ImageFetchingDelegate,
 	metadata db.ContainerMetadata,
-	spec ContainerSpec,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
 	resourceTypes creds.VersionedResourceTypes,
+	image Image,
 ) (Container, error) {
-	for {
-		var gardenContainer garden.Container
+	var (
+		gardenContainer   garden.Container
+		createdContainer  db.CreatedContainer
+		creatingContainer db.CreatingContainer
+		err               error
+	)
 
-		creatingContainer, createdContainer, err := p.worker.FindContainerOnWorker(
+	for {
+		creatingContainer, createdContainer, err = p.worker.FindContainerOnWorker(
 			owner,
 		)
 		if err != nil {
@@ -124,75 +135,47 @@ func (p *containerProvider) FindOrCreateContainer(
 			)
 		}
 
-		if creatingContainer != nil {
-			logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
+		if creatingContainer == nil {
+			logger.Debug("creating-container-in-db")
 
-			logger.Debug("found-creating-container-in-db")
-
-			gardenContainer, err = p.gardenClient.Lookup(creatingContainer.Handle())
-			if err != nil {
-				if _, ok := err.(garden.ContainerNotFoundError); !ok {
-					logger.Error("failed-to-lookup-creating-container-in-garden", err)
-					return nil, err
-				}
-			}
-		}
-
-		if gardenContainer != nil {
-			logger.Debug("found-created-container-in-garden")
-		} else {
-
-			worker := NewGardenWorker(
-				p.gardenClient,
-				p.baggageclaimClient,
-				p,
-				p.volumeClient,
-				p.worker,
-				p.clock,
-			)
-
-			image, err := p.imageFactory.GetImage(
-				logger,
-				worker,
-				p.volumeClient,
-				spec.ImageSpec,
-				spec.TeamID,
-				delegate,
-				resourceTypes,
+			creatingContainer, err = p.worker.CreateContainer(
+				owner,
+				metadata,
 			)
 			if err != nil {
+				logger.Error("failed-to-create-container-in-db", err)
 				return nil, err
 			}
 
-			if creatingContainer == nil {
-				logger.Debug("creating-container-in-db")
+			logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
+			logger.Debug("created-creating-container-in-db")
+		} else {
+			logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
+			logger.Debug("found-creating-container-in-db")
+		}
 
-				creatingContainer, err = p.worker.CreateContainer(
-					owner,
-					metadata,
-				)
-				if err != nil {
-					logger.Error("failed-to-create-container-in-db", err)
-					return nil, err
-				}
-
-				logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
-
-				logger.Debug("created-creating-container-in-db")
+		gardenContainer, err = p.gardenClient.Lookup(creatingContainer.Handle())
+		if err != nil {
+			if _, ok := err.(garden.ContainerNotFoundError); !ok {
+				logger.Error("failed-to-lookup-creating-container-in-garden", err)
+				return nil, err
 			}
+		}
 
-			lock, acquired, err := p.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID(creatingContainer.ID()))
+		if gardenContainer == nil {
+			containerLock, acquired, err := p.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID(creatingContainer.ID()))
 			if err != nil {
 				logger.Error("failed-to-acquire-container-creating-lock", err)
 				return nil, err
 			}
 
 			if !acquired {
-				p.clock.Sleep(creatingContainerRetryDelay)
+				time.Sleep(creatingContainerRetryDelay)
+				logger.Debug("did-not-acquire-creating-container-lock", lager.Data{"containerID": creatingContainer.ID()})
 				continue
 			}
 
-			defer lock.Release()
+			defer containerLock.Release()
 
 			logger.Debug("fetching-image")
 
@@ -208,7 +191,7 @@ func (p *containerProvider) FindOrCreateContainer(
 			gardenContainer, err = p.createGardenContainer(
 				logger,
 				creatingContainer,
-				spec,
+				containerSpec,
 				fetchedImage,
 			)
 			if err != nil {
@@ -225,6 +208,8 @@ func (p *containerProvider) FindOrCreateContainer(
 			metric.ContainersCreated.Inc()
 
 			logger.Debug("created-container-in-garden")
+		} else {
+			logger.Debug("found-created-container-in-garden")
 		}
 
 		createdContainer, err = creatingContainer.Created()
@@ -371,11 +356,11 @@ func (p *containerProvider) createGardenContainer(
 
 	worker := NewGardenWorker(
 		p.gardenClient,
-		p.baggageclaimClient,
 		p,
 		p.volumeClient,
+		p.imageFactory,
 		p.worker,
-		p.clock,
+		0,
 	)
 
 	inputDestinationPaths := make(map[string]bool)
@@ -383,7 +368,7 @@ func (p *containerProvider) createGardenContainer(
 	for _, inputSource := range spec.Inputs {
 		var inputVolume Volume
 
-		localVolume, found, err := inputSource.Source().VolumeOn(worker)
+		localVolume, found, err := inputSource.Source().VolumeOn(logger, worker)
 		if err != nil {
 			return nil, err
 		}
@@ -420,7 +405,11 @@ func (p *containerProvider) createGardenContainer(
 				return nil, err
 			}
 
-			err = inputSource.Source().StreamTo(inputVolume)
+			destData := lager.Data{
+				"dest-volume": inputVolume.Handle(),
+				"dest-worker": inputVolume.WorkerName(),
+			}
+			err = inputSource.Source().StreamTo(logger.Session("stream-to", destData), inputVolume)
 			if err != nil {
 				return nil, err
 			}

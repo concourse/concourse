@@ -1,6 +1,8 @@
 package v2_test
 
 import (
+	"archive/tar"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -105,6 +107,9 @@ var _ = Describe("Resource Put", func() {
 			},
 		}
 
+		streamedOut := gbytes.NewBuffer()
+		fakeContainer.StreamOutReturns(streamedOut, nil)
+
 		response = []byte(`
 			{"action": "created", "space": "some-space", "version": {"ref": "v1"}, "metadata": [{"name": "some", "value": "metadata"}]}
 			{"action": "created", "space": "some-space", "version": {"ref": "v2"}, "metadata": [{"name": "other", "value": "metadata"}]}`)
@@ -130,9 +135,6 @@ var _ = Describe("Resource Put", func() {
 				Expect(putReq.Config).To(Equal(map[string]interface{}(config)))
 				Expect(putReq.ResponsePath).ToNot(BeEmpty())
 
-				err = ioutil.WriteFile(putReq.ResponsePath, response, 0644)
-				Expect(err).NotTo(HaveOccurred())
-
 				return outScriptProcess, nil
 			}
 
@@ -153,9 +155,6 @@ var _ = Describe("Resource Put", func() {
 
 				Expect(putReq.Config).To(Equal(map[string]interface{}(config)))
 				Expect(putReq.ResponsePath).ToNot(BeEmpty())
-
-				err = ioutil.WriteFile(putReq.ResponsePath, response, 0644)
-				Expect(err).NotTo(HaveOccurred())
 
 				return outScriptProcess, nil
 			}
@@ -181,6 +180,26 @@ var _ = Describe("Resource Put", func() {
 			})
 
 			Context("when artifact put succeeds", func() {
+				BeforeEach(func() {
+					tarStream := new(bytes.Buffer)
+
+					tarWriter := tar.NewWriter(tarStream)
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "doesnt matter",
+						Size: int64(len(response)),
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = tarWriter.Write(response)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = tarWriter.Close()
+					Expect(err).ToNot(HaveOccurred())
+
+					fakeContainer.StreamOutReturns(ioutil.NopCloser(tarStream), nil)
+				})
+
 				It("returns the versions and space written to the temp file", func() {
 					Expect(fakePutEventHandler.CreatedResponseCallCount()).To(Equal(2))
 					space, version, metadata, spaceVersion := fakePutEventHandler.CreatedResponseArgsForCall(0)
@@ -275,10 +294,30 @@ var _ = Describe("Resource Put", func() {
 
 				spec, _ := fakeContainer.RunArgsForCall(0)
 				Expect(spec.Path).To(Equal("artifact put"))
-				Expect(spec.Args).To(ConsistOf("/tmp/build/put"))
+				Expect(spec.Dir).To(Equal("put"))
 			})
 
 			Context("when artifact put succeeds", func() {
+				BeforeEach(func() {
+					tarStream := new(bytes.Buffer)
+
+					tarWriter := tar.NewWriter(tarStream)
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "doesnt matter",
+						Size: int64(len(response)),
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = tarWriter.Write(response)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = tarWriter.Close()
+					Expect(err).ToNot(HaveOccurred())
+
+					fakeContainer.StreamOutReturns(ioutil.NopCloser(tarStream), nil)
+				})
+
 				It("returns the versions and space written to the temp file", func() {
 					Expect(putErr).ToNot(HaveOccurred())
 					Expect(spaceVersions).To(HaveLen(2))
@@ -322,13 +361,81 @@ var _ = Describe("Resource Put", func() {
 
 			Context("when the response has an unknown action", func() {
 				BeforeEach(func() {
+					tarStream := new(bytes.Buffer)
+
+					tarWriter := tar.NewWriter(tarStream)
+
 					response = []byte(`
 			{"action": "unknown-action", "space": "some-space", "version": {"ref": "v1"}}`)
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "doesnt matter",
+						Size: int64(len(response)),
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = tarWriter.Write(response)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = tarWriter.Close()
+					Expect(err).ToNot(HaveOccurred())
+
+					fakeContainer.StreamOutReturns(ioutil.NopCloser(tarStream), nil)
 				})
 
 				It("returns action not found error", func() {
 					Expect(putErr).To(HaveOccurred())
 					Expect(putErr).To(Equal(v2.ActionNotFoundError{Action: "unknown-action"}))
+				})
+			})
+
+			Context("when the response is garbage", func() {
+				BeforeEach(func() {
+					tarStream := new(bytes.Buffer)
+
+					tarWriter := tar.NewWriter(tarStream)
+
+					response = []byte("vito")
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "doesnt matter",
+						Size: int64(len(response)),
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = tarWriter.Write(response)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = tarWriter.Close()
+					Expect(err).ToNot(HaveOccurred())
+
+					fakeContainer.StreamOutReturns(ioutil.NopCloser(tarStream), nil)
+				})
+
+				It("returns a failed to decode error", func() {
+					Expect(putErr).To(HaveOccurred())
+					Expect(putErr.Error()).To(ContainSubstring("failed to decode response"))
+				})
+			})
+
+			Context("when streaming out fails", func() {
+				BeforeEach(func() {
+					fakeContainer.StreamOutReturns(nil, errors.New("ah"))
+				})
+
+				It("returns the error", func() {
+					Expect(putErr).To(HaveOccurred())
+				})
+			})
+
+			Context("when streaming out non tar response", func() {
+				BeforeEach(func() {
+					streamedOut := gbytes.NewBuffer()
+					fakeContainer.StreamOutReturns(streamedOut, nil)
+				})
+
+				It("returns an error", func() {
+					Expect(putErr).To(HaveOccurred())
 				})
 			})
 		})

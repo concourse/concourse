@@ -1,0 +1,7 @@
+- type: replace
+  path: /instance_groups/name=worker/jobs/name=worker/properties/tags?
+  value: [tag-a]
+
+- type: replace
+  path: /instance_groups/name=other_worker/jobs/name=worker/properties/tags?
+  value: [tag-b]

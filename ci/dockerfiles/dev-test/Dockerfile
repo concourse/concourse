@@ -2,9 +2,9 @@ FROM concourse/dev
 
 # generate one-off keys for development
 RUN mkdir /concourse-keys
-RUN ssh-keygen -t rsa -N '' -f /concourse-keys/tsa_host_key
-RUN ssh-keygen -t rsa -N '' -f /concourse-keys/session_signing_key
-RUN ssh-keygen -t rsa -N '' -f /concourse-keys/worker_key
+RUN concourse generate-key -t rsa -f /concourse-keys/session_signing_key
+RUN concourse generate-key -t ssh -f /concourse-keys/tsa_host_key
+RUN concourse generate-key -t ssh -f /concourse-keys/worker_key
 RUN cp /concourse-keys/worker_key.pub /concourse-keys/authorized_worker_keys
 
 # keys for 'web'

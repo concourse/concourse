@@ -1,19 +1,12 @@
 package config
 
 import (
-	"fmt"
-	"io/ioutil"
 	"syscall"
 
 	"github.com/concourse/concourse/atc"
 )
 
-func LoadTaskConfig(configPath string, args []string) (atc.TaskConfig, error) {
-	configFile, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to read task config: %s", err)
-	}
-
+func OverrideTaskParams(configFile []byte, args []string) (atc.TaskConfig, error) {
 	config, err := atc.NewTaskConfig(configFile)
 	if err != nil {
 		return atc.TaskConfig{}, err

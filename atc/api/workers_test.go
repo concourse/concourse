@@ -150,6 +150,7 @@ var _ = Describe("Workers API", func() {
 				HTTPSProxyURL:    "https://example.com",
 				NoProxy:          "example.com,127.0.0.1,localhost",
 				ActiveContainers: 2,
+				ActiveVolumes:    10,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource", Image: "some-resource-image"},
 				},
@@ -194,6 +195,7 @@ var _ = Describe("Workers API", func() {
 					HTTPSProxyURL:    "https://example.com",
 					NoProxy:          "example.com,127.0.0.1,localhost",
 					ActiveContainers: 2,
+					ActiveVolumes:    10,
 					ResourceTypes: []atc.WorkerResourceType{
 						{Type: "some-resource", Image: "some-resource-image"},
 					},
@@ -294,6 +296,7 @@ var _ = Describe("Workers API", func() {
 						HTTPSProxyURL:    "https://example.com",
 						NoProxy:          "example.com,127.0.0.1,localhost",
 						ActiveContainers: 2,
+						ActiveVolumes:    10,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
@@ -324,6 +327,7 @@ var _ = Describe("Workers API", func() {
 						HTTPSProxyURL:    "https://example.com",
 						NoProxy:          "example.com,127.0.0.1,localhost",
 						ActiveContainers: 2,
+						ActiveVolumes:    10,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
@@ -355,6 +359,7 @@ var _ = Describe("Workers API", func() {
 						HTTPSProxyURL:    "https://example.com",
 						NoProxy:          "example.com,127.0.0.1,localhost",
 						ActiveContainers: 2,
+						ActiveVolumes:    10,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
@@ -763,6 +768,7 @@ var _ = Describe("Workers API", func() {
 			workerName = "some-name"
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.ActiveContainersReturns(2)
+			fakeWorker.ActiveVolumesReturns(10)
 			fakeWorker.PlatformReturns("penguin")
 			fakeWorker.TagsReturns([]string{"some-tag"})
 			fakeWorker.StateReturns(db.WorkerStateRunning)
@@ -810,7 +816,7 @@ var _ = Describe("Workers API", func() {
 				"addr": "",
 				"baggageclaim_url": "",
 				"active_containers": 2,
-				"active_volumes": 0,
+				"active_volumes": 10,
 				"resource_types": null,
 				"platform": "penguin",
 				"ephemeral": true,

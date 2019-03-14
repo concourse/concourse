@@ -22,8 +22,6 @@ type Team interface {
 	ExposePipeline(pipelineName string) (bool, error)
 	HidePipeline(pipelineName string) (bool, error)
 	RenamePipeline(pipelineName, name string) (bool, error)
-	PauseResource(pipelineName string, resourceName string) (bool, error)
-	UnpauseResource(pipelineName string, resourceName string) (bool, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
 	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error)
@@ -44,6 +42,7 @@ type Team interface {
 	ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (int64, error)
 
 	Resource(pipelineName string, resourceName string) (atc.Resource, bool, error)
+	ListResources(pipelineName string) ([]atc.Resource, error)
 	VersionedResourceTypes(pipelineName string) (atc.VersionedResourceTypes, bool, error)
 	ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.ResourceVersion, Pagination, bool, error)
 	CheckResource(pipelineName string, resourceName string, version atc.Version) (bool, error)

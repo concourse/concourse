@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# wait-atc -  waits for a given ATC instance to be running
+#             by making unauthenticated requests to it.
+#
+# Environment variables:
+#   ATC_URL    The URL of the ATC service to target (required)
+#   MAX_TICKS  The maximum number of ticks to try (required)
+
+set -u
+
+readonly ATC_URL="${ATC_URL:-}"
+readonly MAX_TICKS="${MAX_TICKS:-}"
+
+main() {
+  check_environment_variables
+  try_until_responding
+  echo 'ok!'
+}
+
+check_environment_variables() {
+  if [[ -z $ATC_URL ]]; then
+    echo "ATC_URL environment variable must be specified"
+    exit 1
+  fi
+
+  if [[ -z $MAX_TICKS ]]; then
+    echo "MAX_TICKS environment variable must be specified"
+    exit 1
+  fi
+}
+
+try_until_responding() {
+  local ticks=0
+
+  echo -n "waiting for ATC at $ATC_URL to be running"
+
+  until curl -sf "$ATC_URL/api/v1/info"; do
+    echo -n .
+
+    ((ticks++))
+
+    if [[ $ticks -ge $MAX_TICKS ]]; then
+      echo "giving up. :("
+      exit 1
+    fi
+
+    sleep 1
+  done
+}
+
+main

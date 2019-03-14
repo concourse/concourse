@@ -11,7 +11,9 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
+	v2 "github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -24,6 +26,7 @@ var _ = Describe("FetchSourceProvider", func() {
 		fetchSourceProvider   resource.FetchSourceProvider
 		fakeBuildStepDelegate *workerfakes.FakeImageFetchingDelegate
 
+		getEventHandler          v2.GetEventHandler
 		logger                   lager.Logger
 		resourceInstance         *resourcefakes.FakeResourceInstance
 		metadata                 = resource.EmptyMetadata{}
@@ -63,10 +66,12 @@ var _ = Describe("FetchSourceProvider", func() {
 		fakeBuildStepDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeUsedResourceCache.IDReturns(42)
 		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
+		getEventHandler = image.NewGetEventHandler()
 
 		fetchSourceProvider = fetchSourceProviderFactory.NewFetchSourceProvider(
 			logger,
 			session,
+			getEventHandler,
 			metadata,
 			tags,
 			teamID,
@@ -81,13 +86,13 @@ var _ = Describe("FetchSourceProvider", func() {
 			_, err := fetchSourceProvider.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
-			_, resourceSpec, actualResourceTypes := fakeWorkerClient.SatisfyingArgsForCall(0)
-			Expect(resourceSpec).To(Equal(worker.WorkerSpec{
-				ResourceType: "some-resource-type",
-				Tags:         tags,
-				TeamID:       teamID,
+			_, workerSpec := fakeWorkerClient.SatisfyingArgsForCall(0)
+			Expect(workerSpec).To(Equal(worker.WorkerSpec{
+				ResourceType:  "some-resource-type",
+				Tags:          tags,
+				TeamID:        teamID,
+				ResourceTypes: resourceTypes,
 			}))
-			Expect(actualResourceTypes).To(Equal(resourceTypes))
 		})
 
 		Context("when worker is found for resource types", func() {
@@ -104,6 +109,7 @@ var _ = Describe("FetchSourceProvider", func() {
 
 				expectedSource := resource.NewResourceInstanceFetchSource(
 					logger,
+					getEventHandler,
 					resourceInstance,
 					fakeWorker,
 					resourceTypes,

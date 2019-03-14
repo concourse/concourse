@@ -67,7 +67,15 @@ func (fake *FakeDestroyingVolume) DestroyCallCount() int {
 	return len(fake.destroyArgsForCall)
 }
 
+func (fake *FakeDestroyingVolume) DestroyCalls(stub func() (bool, error)) {
+	fake.destroyMutex.Lock()
+	defer fake.destroyMutex.Unlock()
+	fake.DestroyStub = stub
+}
+
 func (fake *FakeDestroyingVolume) DestroyReturns(result1 bool, result2 error) {
+	fake.destroyMutex.Lock()
+	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	fake.destroyReturns = struct {
 		result1 bool
@@ -76,6 +84,8 @@ func (fake *FakeDestroyingVolume) DestroyReturns(result1 bool, result2 error) {
 }
 
 func (fake *FakeDestroyingVolume) DestroyReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.destroyMutex.Lock()
+	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	if fake.destroyReturnsOnCall == nil {
 		fake.destroyReturnsOnCall = make(map[int]struct {
@@ -112,7 +122,15 @@ func (fake *FakeDestroyingVolume) HandleCallCount() int {
 	return len(fake.handleArgsForCall)
 }
 
+func (fake *FakeDestroyingVolume) HandleCalls(stub func() string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
+	fake.HandleStub = stub
+}
+
 func (fake *FakeDestroyingVolume) HandleReturns(result1 string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
 	fake.HandleStub = nil
 	fake.handleReturns = struct {
 		result1 string
@@ -120,6 +138,8 @@ func (fake *FakeDestroyingVolume) HandleReturns(result1 string) {
 }
 
 func (fake *FakeDestroyingVolume) HandleReturnsOnCall(i int, result1 string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
 	fake.HandleStub = nil
 	if fake.handleReturnsOnCall == nil {
 		fake.handleReturnsOnCall = make(map[int]struct {
@@ -154,7 +174,15 @@ func (fake *FakeDestroyingVolume) WorkerNameCallCount() int {
 	return len(fake.workerNameArgsForCall)
 }
 
+func (fake *FakeDestroyingVolume) WorkerNameCalls(stub func() string) {
+	fake.workerNameMutex.Lock()
+	defer fake.workerNameMutex.Unlock()
+	fake.WorkerNameStub = stub
+}
+
 func (fake *FakeDestroyingVolume) WorkerNameReturns(result1 string) {
+	fake.workerNameMutex.Lock()
+	defer fake.workerNameMutex.Unlock()
 	fake.WorkerNameStub = nil
 	fake.workerNameReturns = struct {
 		result1 string
@@ -162,6 +190,8 @@ func (fake *FakeDestroyingVolume) WorkerNameReturns(result1 string) {
 }
 
 func (fake *FakeDestroyingVolume) WorkerNameReturnsOnCall(i int, result1 string) {
+	fake.workerNameMutex.Lock()
+	defer fake.workerNameMutex.Unlock()
 	fake.WorkerNameStub = nil
 	if fake.workerNameReturnsOnCall == nil {
 		fake.workerNameReturnsOnCall = make(map[int]struct {

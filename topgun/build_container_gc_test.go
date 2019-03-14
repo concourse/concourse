@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/garden"
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
@@ -14,13 +11,9 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe(":life Garbage collecting build containers", func() {
-	var gClient garden.Client
-
+var _ = Describe("Garbage collecting build containers", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml")
-
-		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", JobInstance("worker").IP)))
 	})
 
 	getContainers := func(condition, value string) []string {
@@ -40,7 +33,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 		Context("one-off builds", func() {
 			It("is removed from the database and worker [#129725995]", func() {
 				By("running a task with container having a rootfs, input, and output volume")
-				fly("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
+				fly.Run("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
 
 				By("collecting the build containers")
 				buildContainerHandles := getContainers("build id", "1")
@@ -55,7 +48,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 10*time.Minute, time.Second).Should(BeZero())
 
 				By("having removed the containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}
@@ -72,13 +65,13 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 		Context("pipeline builds", func() {
 			It("is removed from the database and worker [#129725995]", func() {
 				By("setting pipeline that creates containers for check, get, task, put")
-				fly("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "build-container-gc")
+				fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "build-container-gc")
 
 				By("unpausing the pipeline")
-				fly("unpause-pipeline", "-p", "build-container-gc")
+				fly.Run("unpause-pipeline", "-p", "build-container-gc")
 
 				By("triggering job")
-				fly("trigger-job", "-w", "-j", "build-container-gc/simple-job")
+				fly.Run("trigger-job", "-w", "-j", "build-container-gc/simple-job")
 
 				By("collecting the build containers")
 				buildContainerHandles := getContainers("type", "task")
@@ -93,7 +86,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 10*time.Minute, time.Second).Should(BeZero())
 
 				By("having removed the containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}
@@ -112,13 +105,13 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 		Context("pipeline builds", func() {
 			It("keeps in the database and worker [#129725995]", func() {
 				By("setting pipeline that creates containers for check, get, task, put")
-				fly("set-pipeline", "-n", "-c", "pipelines/get-task-put-failing.yml", "-p", "build-container-gc")
+				fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put-failing.yml", "-p", "build-container-gc")
 
 				By("unpausing the pipeline")
-				fly("unpause-pipeline", "-p", "build-container-gc")
+				fly.Run("unpause-pipeline", "-p", "build-container-gc")
 
 				By("triggering job")
-				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
+				<-fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the build containers")
 				buildContainerHandles := getContainers("type", "task")
@@ -133,7 +126,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 2*time.Minute, time.Second).Should(Equal(len(buildContainerHandles)))
 
 				By("not removing the containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}
@@ -150,19 +143,19 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 		Context("pipeline builds that fail subsequently", func() {
 			It("keeps the latest build containers in the database and worker, removes old build containers from database and worker [#129725995]", func() {
 				By("setting pipeline that creates containers for check, get, task, put")
-				fly("set-pipeline", "-n", "-c", "pipelines/get-task-put-failing.yml", "-p", "build-container-gc")
+				fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put-failing.yml", "-p", "build-container-gc")
 
 				By("unpausing the pipeline")
-				fly("unpause-pipeline", "-p", "build-container-gc")
+				fly.Run("unpause-pipeline", "-p", "build-container-gc")
 
 				By("triggering first job")
-				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
+				<-fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the first build containers")
 				firstBuildContainerHandles := getContainers("type", "task")
 
 				By("triggering second job")
-				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
+				<-fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the second build containers")
 				allBuildContainerHandles := getContainers("type", "task")
@@ -192,7 +185,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 10*time.Minute, time.Second).Should(BeZero())
 
 				By("having removed the first build containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}
@@ -223,20 +216,20 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 		Context("pipeline builds that is running and previous build failed", func() {
 			It("keeps both the latest and previous build containers in the database and worker [#129725995]", func() {
 				By("setting pipeline that creates containers for check, get, task, put")
-				fly("set-pipeline", "-n", "-c", "pipelines/get-task-put-failing.yml", "-p", "build-container-gc")
+				fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put-failing.yml", "-p", "build-container-gc")
 
 				By("unpausing the pipeline")
-				fly("unpause-pipeline", "-p", "build-container-gc")
+				fly.Run("unpause-pipeline", "-p", "build-container-gc")
 
 				By("triggering first failing job")
-				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
+				<-fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the first build containers")
 				firstBuildContainerHandles := getContainers("type", "task")
 
 				By("triggering second long running job")
-				fly("set-pipeline", "-n", "-c", "pipelines/get-task-put-waiting.yml", "-p", "build-container-gc")
-				runningBuildSession := spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job")
+				fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put-waiting.yml", "-p", "build-container-gc")
+				runningBuildSession := fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job")
 				Eventually(runningBuildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 				By("collecting the second build containers")
@@ -267,7 +260,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				}, 2*time.Minute, time.Second).Should(Equal(len(firstBuildContainerHandles)))
 
 				By("not removing the first build containers from the worker")
-				containers, err := gClient.Containers(nil)
+				containers, err := workerGardenClient.Containers(nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				existingHandles := []string{}
@@ -293,7 +286,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 					Expect(existingHandles).To(ContainElement(handle))
 				}
 
-				fly("abort-build", "-j", "build-container-gc/simple-job", "-b", "2")
+				fly.Run("abort-build", "-j", "build-container-gc/simple-job", "-b", "2")
 
 				<-runningBuildSession.Exited
 			})

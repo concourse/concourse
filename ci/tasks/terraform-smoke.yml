@@ -11,10 +11,12 @@ params:
   GCP_PROJECT:
   GCP_KEY:
   SSH_KEY:
+  DEPLOYMENT:
 
 inputs:
 - name: concourse
 - name: linux-rc
+  optional: true
 
 outputs:
 - name: outputs

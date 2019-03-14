@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -e -u -x
+
+export GOPATH=$PWD/gopath
+export PATH=$GOPATH/bin:$PATH
+
+ref_cache=$PWD/old-ref
+
+old_ref=""
+if [ -e $ref_cache/ref ]; then
+  old_ref="$(cat $ref_cache/ref)"
+fi
+
+go get github.com/golangci/golangci-lint/cmd/golangci-lint
+
+cd concourse
+
+git rev-parse HEAD > $ref_cache/ref
+
+go mod download
+
+function lint() {
+  golangci-lint run --deadline=10m \
+    --fast \
+    -E gosec -E gocritic -E gofmt -E gocyclo \
+    "$@"
+}
+
+if [ -n "$old_ref" ]; then
+  lint --new-from-rev=$old_ref
+else
+  # no previous ref recorded; lint only latest commit
+  #
+  # note: this will let commits through if they pushed a bunch of commits and
+  # the last one was OK, but it's better than learning to ignore failures due
+  # to a cache miss
+  lint --new-from-rev=HEAD~
+fi

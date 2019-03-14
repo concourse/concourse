@@ -9,11 +9,12 @@ import (
 var _ = Describe("Ephemeral Workers", func() {
 	Context("with an ephemeral worker available", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse-separate-forwarded-worker.yml", "-o", "operations/separate-worker-two.yml", "-o", "operations/ephemeral-worker.yml")
-			Eventually(func() int {
-				workers := flyTable("workers")
-				return len(workers)
-			}).Should(Equal(2))
+			Deploy(
+				"deployments/concourse.yml",
+				"-o", "operations/worker-instances.yml",
+				"-v", "worker_instances=2",
+				"-o", "operations/ephemeral-worker.yml",
+			)
 		})
 
 		Context("when the worker goes away", func() {

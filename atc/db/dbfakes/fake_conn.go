@@ -184,7 +184,15 @@ func (fake *FakeConn) BeginCallCount() int {
 	return len(fake.beginArgsForCall)
 }
 
+func (fake *FakeConn) BeginCalls(stub func() (db.Tx, error)) {
+	fake.beginMutex.Lock()
+	defer fake.beginMutex.Unlock()
+	fake.BeginStub = stub
+}
+
 func (fake *FakeConn) BeginReturns(result1 db.Tx, result2 error) {
+	fake.beginMutex.Lock()
+	defer fake.beginMutex.Unlock()
 	fake.BeginStub = nil
 	fake.beginReturns = struct {
 		result1 db.Tx
@@ -193,6 +201,8 @@ func (fake *FakeConn) BeginReturns(result1 db.Tx, result2 error) {
 }
 
 func (fake *FakeConn) BeginReturnsOnCall(i int, result1 db.Tx, result2 error) {
+	fake.beginMutex.Lock()
+	defer fake.beginMutex.Unlock()
 	fake.BeginStub = nil
 	if fake.beginReturnsOnCall == nil {
 		fake.beginReturnsOnCall = make(map[int]struct {
@@ -229,7 +239,15 @@ func (fake *FakeConn) BusCallCount() int {
 	return len(fake.busArgsForCall)
 }
 
+func (fake *FakeConn) BusCalls(stub func() db.NotificationsBus) {
+	fake.busMutex.Lock()
+	defer fake.busMutex.Unlock()
+	fake.BusStub = stub
+}
+
 func (fake *FakeConn) BusReturns(result1 db.NotificationsBus) {
+	fake.busMutex.Lock()
+	defer fake.busMutex.Unlock()
 	fake.BusStub = nil
 	fake.busReturns = struct {
 		result1 db.NotificationsBus
@@ -237,6 +255,8 @@ func (fake *FakeConn) BusReturns(result1 db.NotificationsBus) {
 }
 
 func (fake *FakeConn) BusReturnsOnCall(i int, result1 db.NotificationsBus) {
+	fake.busMutex.Lock()
+	defer fake.busMutex.Unlock()
 	fake.BusStub = nil
 	if fake.busReturnsOnCall == nil {
 		fake.busReturnsOnCall = make(map[int]struct {
@@ -271,7 +291,15 @@ func (fake *FakeConn) CloseCallCount() int {
 	return len(fake.closeArgsForCall)
 }
 
+func (fake *FakeConn) CloseCalls(stub func() error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
+	fake.CloseStub = stub
+}
+
 func (fake *FakeConn) CloseReturns(result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	fake.closeReturns = struct {
 		result1 error
@@ -279,6 +307,8 @@ func (fake *FakeConn) CloseReturns(result1 error) {
 }
 
 func (fake *FakeConn) CloseReturnsOnCall(i int, result1 error) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
 	fake.CloseStub = nil
 	if fake.closeReturnsOnCall == nil {
 		fake.closeReturnsOnCall = make(map[int]struct {
@@ -313,7 +343,15 @@ func (fake *FakeConn) DriverCallCount() int {
 	return len(fake.driverArgsForCall)
 }
 
+func (fake *FakeConn) DriverCalls(stub func() driver.Driver) {
+	fake.driverMutex.Lock()
+	defer fake.driverMutex.Unlock()
+	fake.DriverStub = stub
+}
+
 func (fake *FakeConn) DriverReturns(result1 driver.Driver) {
+	fake.driverMutex.Lock()
+	defer fake.driverMutex.Unlock()
 	fake.DriverStub = nil
 	fake.driverReturns = struct {
 		result1 driver.Driver
@@ -321,6 +359,8 @@ func (fake *FakeConn) DriverReturns(result1 driver.Driver) {
 }
 
 func (fake *FakeConn) DriverReturnsOnCall(i int, result1 driver.Driver) {
+	fake.driverMutex.Lock()
+	defer fake.driverMutex.Unlock()
 	fake.DriverStub = nil
 	if fake.driverReturnsOnCall == nil {
 		fake.driverReturnsOnCall = make(map[int]struct {
@@ -355,7 +395,15 @@ func (fake *FakeConn) EncryptionStrategyCallCount() int {
 	return len(fake.encryptionStrategyArgsForCall)
 }
 
+func (fake *FakeConn) EncryptionStrategyCalls(stub func() encryption.Strategy) {
+	fake.encryptionStrategyMutex.Lock()
+	defer fake.encryptionStrategyMutex.Unlock()
+	fake.EncryptionStrategyStub = stub
+}
+
 func (fake *FakeConn) EncryptionStrategyReturns(result1 encryption.Strategy) {
+	fake.encryptionStrategyMutex.Lock()
+	defer fake.encryptionStrategyMutex.Unlock()
 	fake.EncryptionStrategyStub = nil
 	fake.encryptionStrategyReturns = struct {
 		result1 encryption.Strategy
@@ -363,6 +411,8 @@ func (fake *FakeConn) EncryptionStrategyReturns(result1 encryption.Strategy) {
 }
 
 func (fake *FakeConn) EncryptionStrategyReturnsOnCall(i int, result1 encryption.Strategy) {
+	fake.encryptionStrategyMutex.Lock()
+	defer fake.encryptionStrategyMutex.Unlock()
 	fake.EncryptionStrategyStub = nil
 	if fake.encryptionStrategyReturnsOnCall == nil {
 		fake.encryptionStrategyReturnsOnCall = make(map[int]struct {
@@ -399,6 +449,12 @@ func (fake *FakeConn) ExecCallCount() int {
 	return len(fake.execArgsForCall)
 }
 
+func (fake *FakeConn) ExecCalls(stub func(string, ...interface{}) (sql.Result, error)) {
+	fake.execMutex.Lock()
+	defer fake.execMutex.Unlock()
+	fake.ExecStub = stub
+}
+
 func (fake *FakeConn) ExecArgsForCall(i int) (string, []interface{}) {
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
@@ -407,6 +463,8 @@ func (fake *FakeConn) ExecArgsForCall(i int) (string, []interface{}) {
 }
 
 func (fake *FakeConn) ExecReturns(result1 sql.Result, result2 error) {
+	fake.execMutex.Lock()
+	defer fake.execMutex.Unlock()
 	fake.ExecStub = nil
 	fake.execReturns = struct {
 		result1 sql.Result
@@ -415,6 +473,8 @@ func (fake *FakeConn) ExecReturns(result1 sql.Result, result2 error) {
 }
 
 func (fake *FakeConn) ExecReturnsOnCall(i int, result1 sql.Result, result2 error) {
+	fake.execMutex.Lock()
+	defer fake.execMutex.Unlock()
 	fake.ExecStub = nil
 	if fake.execReturnsOnCall == nil {
 		fake.execReturnsOnCall = make(map[int]struct {
@@ -451,7 +511,15 @@ func (fake *FakeConn) NameCallCount() int {
 	return len(fake.nameArgsForCall)
 }
 
+func (fake *FakeConn) NameCalls(stub func() string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = stub
+}
+
 func (fake *FakeConn) NameReturns(result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
 	fake.NameStub = nil
 	fake.nameReturns = struct {
 		result1 string
@@ -459,6 +527,8 @@ func (fake *FakeConn) NameReturns(result1 string) {
 }
 
 func (fake *FakeConn) NameReturnsOnCall(i int, result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
 	fake.NameStub = nil
 	if fake.nameReturnsOnCall == nil {
 		fake.nameReturnsOnCall = make(map[int]struct {
@@ -493,7 +563,15 @@ func (fake *FakeConn) PingCallCount() int {
 	return len(fake.pingArgsForCall)
 }
 
+func (fake *FakeConn) PingCalls(stub func() error) {
+	fake.pingMutex.Lock()
+	defer fake.pingMutex.Unlock()
+	fake.PingStub = stub
+}
+
 func (fake *FakeConn) PingReturns(result1 error) {
+	fake.pingMutex.Lock()
+	defer fake.pingMutex.Unlock()
 	fake.PingStub = nil
 	fake.pingReturns = struct {
 		result1 error
@@ -501,6 +579,8 @@ func (fake *FakeConn) PingReturns(result1 error) {
 }
 
 func (fake *FakeConn) PingReturnsOnCall(i int, result1 error) {
+	fake.pingMutex.Lock()
+	defer fake.pingMutex.Unlock()
 	fake.PingStub = nil
 	if fake.pingReturnsOnCall == nil {
 		fake.pingReturnsOnCall = make(map[int]struct {
@@ -536,6 +616,12 @@ func (fake *FakeConn) PrepareCallCount() int {
 	return len(fake.prepareArgsForCall)
 }
 
+func (fake *FakeConn) PrepareCalls(stub func(string) (*sql.Stmt, error)) {
+	fake.prepareMutex.Lock()
+	defer fake.prepareMutex.Unlock()
+	fake.PrepareStub = stub
+}
+
 func (fake *FakeConn) PrepareArgsForCall(i int) string {
 	fake.prepareMutex.RLock()
 	defer fake.prepareMutex.RUnlock()
@@ -544,6 +630,8 @@ func (fake *FakeConn) PrepareArgsForCall(i int) string {
 }
 
 func (fake *FakeConn) PrepareReturns(result1 *sql.Stmt, result2 error) {
+	fake.prepareMutex.Lock()
+	defer fake.prepareMutex.Unlock()
 	fake.PrepareStub = nil
 	fake.prepareReturns = struct {
 		result1 *sql.Stmt
@@ -552,6 +640,8 @@ func (fake *FakeConn) PrepareReturns(result1 *sql.Stmt, result2 error) {
 }
 
 func (fake *FakeConn) PrepareReturnsOnCall(i int, result1 *sql.Stmt, result2 error) {
+	fake.prepareMutex.Lock()
+	defer fake.prepareMutex.Unlock()
 	fake.PrepareStub = nil
 	if fake.prepareReturnsOnCall == nil {
 		fake.prepareReturnsOnCall = make(map[int]struct {
@@ -590,6 +680,12 @@ func (fake *FakeConn) QueryCallCount() int {
 	return len(fake.queryArgsForCall)
 }
 
+func (fake *FakeConn) QueryCalls(stub func(string, ...interface{}) (*sql.Rows, error)) {
+	fake.queryMutex.Lock()
+	defer fake.queryMutex.Unlock()
+	fake.QueryStub = stub
+}
+
 func (fake *FakeConn) QueryArgsForCall(i int) (string, []interface{}) {
 	fake.queryMutex.RLock()
 	defer fake.queryMutex.RUnlock()
@@ -598,6 +694,8 @@ func (fake *FakeConn) QueryArgsForCall(i int) (string, []interface{}) {
 }
 
 func (fake *FakeConn) QueryReturns(result1 *sql.Rows, result2 error) {
+	fake.queryMutex.Lock()
+	defer fake.queryMutex.Unlock()
 	fake.QueryStub = nil
 	fake.queryReturns = struct {
 		result1 *sql.Rows
@@ -606,6 +704,8 @@ func (fake *FakeConn) QueryReturns(result1 *sql.Rows, result2 error) {
 }
 
 func (fake *FakeConn) QueryReturnsOnCall(i int, result1 *sql.Rows, result2 error) {
+	fake.queryMutex.Lock()
+	defer fake.queryMutex.Unlock()
 	fake.QueryStub = nil
 	if fake.queryReturnsOnCall == nil {
 		fake.queryReturnsOnCall = make(map[int]struct {
@@ -644,6 +744,12 @@ func (fake *FakeConn) QueryRowCallCount() int {
 	return len(fake.queryRowArgsForCall)
 }
 
+func (fake *FakeConn) QueryRowCalls(stub func(string, ...interface{}) squirrel.RowScanner) {
+	fake.queryRowMutex.Lock()
+	defer fake.queryRowMutex.Unlock()
+	fake.QueryRowStub = stub
+}
+
 func (fake *FakeConn) QueryRowArgsForCall(i int) (string, []interface{}) {
 	fake.queryRowMutex.RLock()
 	defer fake.queryRowMutex.RUnlock()
@@ -652,6 +758,8 @@ func (fake *FakeConn) QueryRowArgsForCall(i int) (string, []interface{}) {
 }
 
 func (fake *FakeConn) QueryRowReturns(result1 squirrel.RowScanner) {
+	fake.queryRowMutex.Lock()
+	defer fake.queryRowMutex.Unlock()
 	fake.QueryRowStub = nil
 	fake.queryRowReturns = struct {
 		result1 squirrel.RowScanner
@@ -659,6 +767,8 @@ func (fake *FakeConn) QueryRowReturns(result1 squirrel.RowScanner) {
 }
 
 func (fake *FakeConn) QueryRowReturnsOnCall(i int, result1 squirrel.RowScanner) {
+	fake.queryRowMutex.Lock()
+	defer fake.queryRowMutex.Unlock()
 	fake.QueryRowStub = nil
 	if fake.queryRowReturnsOnCall == nil {
 		fake.queryRowReturnsOnCall = make(map[int]struct {
@@ -688,6 +798,12 @@ func (fake *FakeConn) SetMaxIdleConnsCallCount() int {
 	return len(fake.setMaxIdleConnsArgsForCall)
 }
 
+func (fake *FakeConn) SetMaxIdleConnsCalls(stub func(int)) {
+	fake.setMaxIdleConnsMutex.Lock()
+	defer fake.setMaxIdleConnsMutex.Unlock()
+	fake.SetMaxIdleConnsStub = stub
+}
+
 func (fake *FakeConn) SetMaxIdleConnsArgsForCall(i int) int {
 	fake.setMaxIdleConnsMutex.RLock()
 	defer fake.setMaxIdleConnsMutex.RUnlock()
@@ -711,6 +827,12 @@ func (fake *FakeConn) SetMaxOpenConnsCallCount() int {
 	fake.setMaxOpenConnsMutex.RLock()
 	defer fake.setMaxOpenConnsMutex.RUnlock()
 	return len(fake.setMaxOpenConnsArgsForCall)
+}
+
+func (fake *FakeConn) SetMaxOpenConnsCalls(stub func(int)) {
+	fake.setMaxOpenConnsMutex.Lock()
+	defer fake.setMaxOpenConnsMutex.Unlock()
+	fake.SetMaxOpenConnsStub = stub
 }
 
 func (fake *FakeConn) SetMaxOpenConnsArgsForCall(i int) int {
@@ -743,7 +865,15 @@ func (fake *FakeConn) StatsCallCount() int {
 	return len(fake.statsArgsForCall)
 }
 
+func (fake *FakeConn) StatsCalls(stub func() sql.DBStats) {
+	fake.statsMutex.Lock()
+	defer fake.statsMutex.Unlock()
+	fake.StatsStub = stub
+}
+
 func (fake *FakeConn) StatsReturns(result1 sql.DBStats) {
+	fake.statsMutex.Lock()
+	defer fake.statsMutex.Unlock()
 	fake.StatsStub = nil
 	fake.statsReturns = struct {
 		result1 sql.DBStats
@@ -751,6 +881,8 @@ func (fake *FakeConn) StatsReturns(result1 sql.DBStats) {
 }
 
 func (fake *FakeConn) StatsReturnsOnCall(i int, result1 sql.DBStats) {
+	fake.statsMutex.Lock()
+	defer fake.statsMutex.Unlock()
 	fake.StatsStub = nil
 	if fake.statsReturnsOnCall == nil {
 		fake.statsReturnsOnCall = make(map[int]struct {

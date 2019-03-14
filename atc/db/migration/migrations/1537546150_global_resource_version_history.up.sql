@@ -42,6 +42,12 @@ BEGIN;
   CREATE UNIQUE INDEX build_resource_config_version_inputs_uniq
   ON build_resource_config_version_inputs (build_id, resource_id, version_md5, name);
 
+  INSERT INTO build_resource_config_version_inputs (build_id, resource_id, version_md5, name)
+  SELECT bi.build_id, vr.resource_id, md5(vr.version), bi.name
+  FROM build_inputs bi, versioned_resources vr
+  WHERE bi.versioned_resource_id = vr.id
+  ON CONFLICT DO NOTHING;
+
   CREATE TABLE build_resource_config_version_outputs (
       "build_id" integer NOT NULL REFERENCES builds (id) ON DELETE CASCADE,
       "resource_id" integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
@@ -51,6 +57,12 @@ BEGIN;
 
   CREATE UNIQUE INDEX build_resource_config_version_outputs_uniq
   ON build_resource_config_version_outputs (build_id, resource_id, version_md5, name);
+
+  INSERT INTO build_resource_config_version_outputs (build_id, resource_id, version_md5, name)
+  SELECT bo.build_id, vr.resource_id, md5(vr.version), r.name
+  FROM build_outputs bo, versioned_resources vr, resources r
+  WHERE bo.versioned_resource_id = vr.id AND vr.resource_id = r.id
+  ON CONFLICT DO NOTHING;
 
   TRUNCATE TABLE next_build_inputs;
 
@@ -80,12 +92,10 @@ BEGIN;
   ALTER TABLE worker_resource_config_check_sessions
     DROP COLUMN team_id;
 
+  DELETE FROM worker_resource_config_check_sessions;
+
   CREATE UNIQUE INDEX worker_resource_config_check_sessions_uniq
   ON worker_resource_config_check_sessions (resource_config_check_session_id, worker_base_resource_type_id);
-
-  DROP TABLE build_inputs;
-
-  DROP TABLE build_outputs;
 
   ALTER TABLE resources
     DROP COLUMN last_checked,

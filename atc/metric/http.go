@@ -2,14 +2,13 @@ package metric
 
 import (
 	"net/http"
-	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/felixge/httpsnoop"
 )
 
 type MetricsHandler struct {
-	Logger lager.Logger
-
+	Logger  lager.Logger
 	Route   string
 	Handler http.Handler
 }
@@ -23,13 +22,13 @@ func WrapHandler(logger lager.Logger, route string, handler http.Handler) http.H
 }
 
 func (handler MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-	handler.Handler.ServeHTTP(w, r)
+	metrics := httpsnoop.CaptureMetrics(handler.Handler, w, r)
 
 	HTTPResponseTime{
-		Route:    handler.Route,
-		Path:     r.URL.Path,
-		Method:   r.Method,
-		Duration: time.Since(start),
+		Route:      handler.Route,
+		Path:       r.URL.Path,
+		Method:     r.Method,
+		StatusCode: metrics.Code,
+		Duration:   metrics.Duration,
 	}.Emit(handler.Logger)
 }

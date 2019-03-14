@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,31 +10,15 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+
+	. "github.com/concourse/concourse/topgun"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Vault", func() {
-	pgDump := func() *gexec.Session {
-		dump := exec.Command("pg_dump", "-U", "atc", "-h", dbInstance.IP, "atc")
-		dump.Env = append(os.Environ(), "PGPASSWORD=dummy-password")
-		dump.Stdin = bytes.NewBufferString("dummy-password\n")
-		session, err := gexec.Start(dump, GinkgoWriter, GinkgoWriter)
-		Expect(err).ToNot(HaveOccurred())
-		<-session.Exited
-		Expect(session.ExitCode()).To(Equal(0))
-		return session
-	}
-
-	getPipeline := func() *gexec.Session {
-		session := spawnFly("get-pipeline", "-p", "pipeline-vault-test")
-		<-session.Exited
-		Expect(session.ExitCode()).To(Equal(0))
-		return session
-	}
-
 	var tokenDuration = 30 * time.Second
 
 	BeforeEach(func() {
@@ -61,7 +44,7 @@ var _ = Describe("Vault", func() {
 			Deploy(
 				"deployments/concourse.yml",
 				"-o", "operations/add-vault.yml",
-				"-v", "instances=0",
+				"-v", "web_instances=0",
 				"-v", "vault_url=dontcare",
 				"-v", "vault_client_token=dontcare",
 				"-v", "vault_auth_backend=dontcare",
@@ -81,23 +64,23 @@ var _ = Describe("Vault", func() {
 		testTokenRenewal := func() {
 			Context("when enough time has passed such that token would have expired", func() {
 				BeforeEach(func() {
-					v.Run("write", "concourse/main/task_secret", "value=Hiii")
-					v.Run("write", "concourse/main/image_resource_repository", "value=busybox")
+					v.Run("write", "concourse/main/team_secret", "value=some_team_secret")
+					v.Run("write", "concourse/main/resource_version", "value=some_exposed_version_secret")
 
 					By("waiting for long enough that the initial token would have expired")
 					time.Sleep(tokenDuration)
 				})
 
 				It("renews the token", func() {
-					By("executing a task that parameterizes image_resource")
-					watch := spawnFly("execute", "-c", "tasks/credential-management.yml")
-					wait(watch)
-					Expect(watch).To(gbytes.Say("SECRET: Hiii"))
-
-					By("taking a dump")
-					session := pgDump()
-					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-					Expect(session).To(gbytes.Say("Hiii")) // build echoed it; nothing we can do
+					watch := fly.StartWithEnv(
+						[]string{
+							"EXPECTED_TEAM_SECRET=some_team_secret",
+							"EXPECTED_RESOURCE_VERSION_SECRET=some_exposed_version_secret",
+						},
+						"execute", "-c", "tasks/credential-management.yml",
+					)
+					Wait(watch)
+					Expect(watch).To(gbytes.Say("all credentials matched expected values"))
 				})
 			})
 		}
@@ -142,97 +125,24 @@ var _ = Describe("Vault", func() {
 					"--vars-store", varsStore.Name(),
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
-					"-v", "instances=1",
+					"-v", "web_instances=1",
 					"-v", "vault_client_token="+token,
 					"-v", `vault_auth_backend=""`,
 					"-v", "vault_auth_params={}",
 				)
 			})
 
-			Context("with a pipeline build", func() {
-				BeforeEach(func() {
-					v.Run("write", "concourse/main/pipeline-vault-test/resource_type_repository", "value=concourse/time-resource")
-					v.Run("write", "concourse/main/pipeline-vault-test/time_resource_interval", "value=10m")
-					v.Run("write", "concourse/main/pipeline-vault-test/job_secret", "username=Hello", "password=World")
-					v.Run("write", "concourse/main/team_secret", "value=Sauce")
-					v.Run("write", "concourse/main/pipeline-vault-test/image_resource_repository", "value=busybox")
-
-					By("setting a pipeline that contains vault secrets")
-					fly("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "pipeline-vault-test")
-
-					By("getting the pipeline config")
-					session := getPipeline()
-					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("concourse/time-resource"))
-					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("10m"))
-					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Hello/World"))
-					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("Sauce"))
-					Expect(string(session.Out.Contents())).ToNot(ContainSubstring("busybox"))
-
-					By("unpausing the pipeline")
-					fly("unpause-pipeline", "-p", "pipeline-vault-test")
-				})
-
-				It("parameterizes via Vault and leaves the pipeline uninterpolated", func() {
-					By("triggering job")
-					watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/job-with-custom-input")
-					wait(watch)
-					Expect(watch).To(gbytes.Say("GET SECRET: GET-Hello/GET-World"))
-					Expect(watch).To(gbytes.Say("PUT SECRET: PUT-Hello/PUT-World"))
-					Expect(watch).To(gbytes.Say("GET SECRET: PUT-GET-Hello/PUT-GET-World"))
-					Expect(watch).To(gbytes.Say("TASK SECRET: Hello/World"))
-					Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
-
-					By("taking a dump")
-					session := pgDump()
-					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-					Expect(session).ToNot(gbytes.Say("10m"))
-					Expect(session).To(gbytes.Say("Hello/World")) // build echoed it; nothing we can do
-					Expect(session).To(gbytes.Say("Sauce"))       // build echoed it; nothing we can do
-					Expect(session).ToNot(gbytes.Say("busybox"))
-				})
-
-				Context("when the job's inputs are used for a one-off build", func() {
-					It("parameterizes the values using the job's pipeline scope", func() {
-						By("triggering job to populate its inputs")
-						watch := spawnFly("trigger-job", "-w", "-j", "pipeline-vault-test/job-with-input")
-						wait(watch)
-						Expect(watch).To(gbytes.Say("GET SECRET: GET-Hello/GET-World"))
-						Expect(watch).To(gbytes.Say("PUT SECRET: PUT-Hello/PUT-World"))
-						Expect(watch).To(gbytes.Say("GET SECRET: PUT-GET-Hello/PUT-GET-World"))
-						Expect(watch).To(gbytes.Say("SECRET: Hello/World"))
-						Expect(watch).To(gbytes.Say("TEAM SECRET: Sauce"))
-
-						By("executing a task that parameterizes image_resource")
-						watch = spawnFly("execute", "-c", "tasks/credential-management-with-job-inputs.yml", "-j", "pipeline-vault-test/job-with-input")
-						wait(watch)
-						Expect(watch).To(gbytes.Say("./some-resource/input"))
-
-						By("taking a dump")
-						session := pgDump()
-						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-						Expect(session).ToNot(gbytes.Say("10m"))
-						Expect(session).To(gbytes.Say("./some-resource/input")) // build echoed it; nothing we can do
-					})
-				})
-			})
-
-			Context("with a one-off build", func() {
-				BeforeEach(func() {
-					v.Run("write", "concourse/main/task_secret", "value=Hiii")
-					v.Run("write", "concourse/main/image_resource_repository", "value=busybox")
-				})
-
-				It("parameterizes image_resource and params in a task config", func() {
-					By("executing a task that parameterizes image_resource")
-					watch := spawnFly("execute", "-c", "tasks/credential-management.yml")
-					wait(watch)
-					Expect(watch).To(gbytes.Say("SECRET: Hiii"))
-
-					By("taking a dump")
-					session := pgDump()
-					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
-					Expect(session).To(gbytes.Say("Hiii")) // build echoed it; nothing we can do
-				})
+			testCredentialManagement(func() {
+				v.Run("write", "concourse/main/team_secret", "value=some_team_secret")
+				v.Run("write", "concourse/main/pipeline-creds-test/assertion_script", "value="+assertionScript)
+				v.Run("write", "concourse/main/pipeline-creds-test/canary", "value=some_canary")
+				v.Run("write", "concourse/main/pipeline-creds-test/resource_type_secret", "value=some_resource_type_secret")
+				v.Run("write", "concourse/main/pipeline-creds-test/resource_secret", "value=some_resource_secret")
+				v.Run("write", "concourse/main/pipeline-creds-test/job_secret", "username=some_username", "password=some_password")
+				v.Run("write", "concourse/main/pipeline-creds-test/resource_version", "value=some_exposed_version_secret")
+			}, func() {
+				v.Run("write", "concourse/main/team_secret", "value=some_team_secret")
+				v.Run("write", "concourse/main/resource_version", "value=some_exposed_version_secret")
 			})
 
 			testTokenRenewal()
@@ -250,7 +160,7 @@ var _ = Describe("Vault", func() {
 					"-v", "vault_client_token=dontcare",
 					"-v", `vault_auth_backend=""`,
 					"-v", "vault_auth_params={}",
-					"-v", "instances=0",
+					"-v", "web_instances=0",
 				)
 
 				vaultCACertFile, err := ioutil.TempFile("", "vault-ca.cert")
@@ -283,7 +193,7 @@ var _ = Describe("Vault", func() {
 					"-o", "operations/enable-vault-tls.yml",
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
-					"-v", "instances=1",
+					"-v", "web_instances=1",
 					"-v", `vault_client_token=""`,
 					"-v", "vault_auth_backend=cert",
 					"-v", "vault_auth_params={}",
@@ -318,7 +228,7 @@ var _ = Describe("Vault", func() {
 					"--vars-store", varsStore.Name(),
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
-					"-v", "instances=1",
+					"-v", "web_instances=1",
 					"-v", `vault_client_token=""`,
 					"-v", "vault_auth_backend=approle",
 					"-v", `vault_auth_params={"role_id":"`+roleID+`","secret_id":"`+secretID+`"}`,
@@ -374,7 +284,7 @@ func (v *vault) Run(command string, args ...string) *gexec.Session {
 
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
-	wait(session)
+	Wait(session)
 	return session
 }
 

@@ -29,8 +29,10 @@ var _ = Describe("CheckAuthenticationHandler", func() {
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		buffer := bytes.NewBufferString("simple ")
 
-		io.Copy(w, buffer)
-		io.Copy(w, r.Body)
+		_, err := io.Copy(w, buffer)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = io.Copy(w, r.Body)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	BeforeEach(func() {

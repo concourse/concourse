@@ -1,7 +1,19 @@
 local resource = std.extVar("resource");
 
 local build_params =
-  if resource == "semver" then
+  if resource == "registry-image" then
+    {
+      build: resource+"-resource",
+      build_args: {
+        DOCKER_PRIVATE_REPO: "((registry_image_resource_docker.private_repo))",
+        DOCKER_PRIVATE_USERNAME: "((registry_image_resource_docker.username))",
+        DOCKER_PRIVATE_PASSWORD: "((registry_image_resource_docker.password))",
+        DOCKER_PUSH_REPO: "((registry_image_resource_docker.push_repo))",
+        DOCKER_PUSH_USERNAME: "((registry_image_resource_docker.username))",
+        DOCKER_PUSH_PASSWORD: "((registry_image_resource_docker.password))",
+      }
+    }
+  else if resource == "semver" then
     {
       build: resource+"-resource",
       build_args: {
@@ -103,7 +115,8 @@ local create_release = {
         {
           "type": "%(resource)s",
           "version": "$(cat version/number)",
-          "privileged": %(privileged)s
+          "privileged": %(privileged)s,
+          "unique_version_history": %(unique_version_history)s
         }
         EOF
 
@@ -119,7 +132,8 @@ local create_release = {
         tar -czf ../release/%(resource)s-resource-${version}.tgz rootfs.tgz resource_metadata.json
       ||| % {
         resource: resource,
-        privileged: resource == "docker-image"
+        privileged: resource == "docker-image",
+        unique_version_history: resource == "time"
       }
     ]
   }
@@ -183,6 +197,27 @@ local publish_job(bump) = {
       name: "pull-request",
       type: "registry-image",
       source: {repository: "jtarchie/pr"}
+    },
+    {
+      name: "semver",
+      type: "registry-image",
+      source: {repository: "concourse/semver-resource"}
+    },
+    {
+      name: "docker-image",
+      type: "registry-image",
+      source: {repository: "concourse/docker-image-resource"},
+      privileged: true
+    },
+    {
+      name: "github-release",
+      type: "registry-image",
+      source: {repository: "concourse/github-release-resource"}
+    },
+    {
+      name: "s3",
+      type: "registry-image",
+      source: {repository: "concourse/s3-resource"}
     }
   ],
   resources: [
@@ -238,7 +273,7 @@ local publish_job(bump) = {
       type: "docker-image",
       source: {
         repository: "concourse/"+resource+"-resource",
-        tag: "dev",
+        tag: "latest",
         username: "((docker.username))",
         password: "((docker.password))"
       }
@@ -248,7 +283,7 @@ local publish_job(bump) = {
       type: "docker-image",
       source: {
         repository: "concourse/"+resource+"-resource",
-        tag: "latest",
+        tag: "dev",
         username: "((docker.username))",
         password: "((docker.password))"
       }

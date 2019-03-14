@@ -3,8 +3,8 @@
   value:
     name: credhub
     instances: 1
-    networks: [{name: topgun}]
+    networks: [{name: test}]
     azs: [z1]
-    vm_type: topgun
+    vm_type: test
     stemcell: xenial
     jobs: []

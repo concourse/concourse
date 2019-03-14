@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 	"sync"
+
+	"code.cloudfoundry.org/lager"
 )
 
 // ArtifactName is just a string, with its own type to make interfaces using it
@@ -58,7 +60,7 @@ func (repo *ArtifactRepository) SourceFor(name ArtifactName) (ArtifactSource, bo
 //
 // Each ArtifactSource will be streamed to a subdirectory matching its
 // ArtifactName.
-func (repo *ArtifactRepository) StreamTo(dest ArtifactDestination) error {
+func (repo *ArtifactRepository) StreamTo(logger lager.Logger, dest ArtifactDestination) error {
 	sources := map[ArtifactName]ArtifactSource{}
 
 	repo.repoL.RLock()
@@ -68,7 +70,7 @@ func (repo *ArtifactRepository) StreamTo(dest ArtifactDestination) error {
 	repo.repoL.RUnlock()
 
 	for name, src := range sources {
-		err := src.StreamTo(subdirectoryDestination{dest, string(name)})
+		err := src.StreamTo(logger, subdirectoryDestination{dest, string(name)})
 		if err != nil {
 			return err
 		}
@@ -84,7 +86,7 @@ func (repo *ArtifactRepository) StreamTo(dest ArtifactDestination) error {
 //
 // If the ArtifactSource determined by the path is not present,
 // FileNotFoundError will be returned.
-func (repo *ArtifactRepository) StreamFile(path string) (io.ReadCloser, error) {
+func (repo *ArtifactRepository) StreamFile(logger lager.Logger, path string) (io.ReadCloser, error) {
 	sources := map[ArtifactName]ArtifactSource{}
 
 	repo.repoL.RLock()
@@ -95,7 +97,7 @@ func (repo *ArtifactRepository) StreamFile(path string) (io.ReadCloser, error) {
 
 	for name, src := range sources {
 		if strings.HasPrefix(path, string(name)+"/") {
-			return src.StreamFile(path[len(name)+1:])
+			return src.StreamFile(logger, path[len(name)+1:])
 		}
 	}
 
@@ -104,7 +106,7 @@ func (repo *ArtifactRepository) StreamFile(path string) (io.ReadCloser, error) {
 
 // VolumeOn returns nothing, as it's impossible for there to be a single volume
 // representing all ArtifactSources.
-func (repo *ArtifactRepository) VolumeOn(worker Worker) (Volume, bool, error) {
+func (repo *ArtifactRepository) VolumeOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
 	return nil, false, nil
 }
 

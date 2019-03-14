@@ -1,15 +1,14 @@
-module StrictEvents
-    exposing
-        ( onLeftClick
-        , onLeftClickNoPreventDefault
-        , onLeftClickOrShiftLeftClick
-        , onLeftMouseDown
-        , onLeftMouseDownCapturing
-        , MouseWheelEvent
-        , onMouseWheel
-        , ScrollState
-        , onScroll
-        )
+module StrictEvents exposing
+    ( MouseWheelEvent
+    , ScrollState
+    , onLeftClick
+    , onLeftClickNoPreventDefault
+    , onLeftClickOrShiftLeftClick
+    , onLeftMouseDown
+    , onLeftMouseDownCapturing
+    , onMouseWheel
+    , onScroll
+    )
 
 import Html
 import Html.Events
@@ -119,6 +118,7 @@ determineClickMsg clickMsg shiftClickMsg =
         \shiftKey ->
             if shiftKey then
                 Ok shiftClickMsg
+
             else
                 Ok clickMsg
 
@@ -146,6 +146,7 @@ assertNo prop =
         \val ->
             if not val then
                 Ok ()
+
             else
                 Err (prop ++ " used - skipping")
 
@@ -156,6 +157,7 @@ assertLeftButton =
         \button ->
             if button == 0 then
                 Ok ()
+
             else
                 Err "not left button"
 

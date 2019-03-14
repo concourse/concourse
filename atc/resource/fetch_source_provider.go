@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	v2 "github.com/concourse/concourse/atc/resource/v2"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -16,6 +17,7 @@ type FetchSourceProviderFactory interface {
 	NewFetchSourceProvider(
 		logger lager.Logger,
 		session Session,
+		getEventHandler v2.GetEventHandler,
 		metadata Metadata,
 		tags atc.Tags,
 		teamID int,
@@ -57,6 +59,7 @@ func NewFetchSourceProviderFactory(
 func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 	logger lager.Logger,
 	session Session,
+	getEventHandler v2.GetEventHandler,
 	metadata Metadata,
 	tags atc.Tags,
 	teamID int,
@@ -67,6 +70,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 	return &fetchSourceProvider{
 		logger:                 logger,
 		session:                session,
+		getEventHandler:        getEventHandler,
 		metadata:               metadata,
 		tags:                   tags,
 		teamID:                 teamID,
@@ -81,6 +85,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 type fetchSourceProvider struct {
 	logger                 lager.Logger
 	session                Session
+	getEventHandler        v2.GetEventHandler
 	metadata               Metadata
 	tags                   atc.Tags
 	teamID                 int
@@ -93,12 +98,13 @@ type fetchSourceProvider struct {
 
 func (f *fetchSourceProvider) Get() (FetchSource, error) {
 	resourceSpec := worker.WorkerSpec{
-		ResourceType: string(f.resourceInstance.ResourceType()),
-		Tags:         f.tags,
-		TeamID:       f.teamID,
+		ResourceType:  string(f.resourceInstance.ResourceType()),
+		Tags:          f.tags,
+		TeamID:        f.teamID,
+		ResourceTypes: f.resourceTypes,
 	}
 
-	chosenWorker, err := f.workerClient.Satisfying(f.logger.Session("fetch-source-provider"), resourceSpec, f.resourceTypes)
+	chosenWorker, err := f.workerClient.Satisfying(f.logger.Session("fetch-source-provider"), resourceSpec)
 	if err != nil {
 		f.logger.Error("no-workers-satisfying-spec", err)
 		return nil, err
@@ -106,6 +112,7 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 
 	return NewResourceInstanceFetchSource(
 		f.logger,
+		f.getEventHandler,
 		f.resourceInstance,
 		chosenWorker,
 		f.resourceTypes,

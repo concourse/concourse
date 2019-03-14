@@ -1,8 +1,11 @@
 package tsa_test
 
 import (
+	"context"
+
 	"github.com/concourse/concourse/tsa"
 
+	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa/tsafakes"
@@ -16,14 +19,15 @@ var _ = Describe("Deleter", func() {
 	var (
 		deleter *tsa.Deleter
 
-		logger             *lagertest.TestLogger
+		ctx                context.Context
 		worker             atc.Worker
 		fakeTokenGenerator *tsafakes.FakeTokenGenerator
 		fakeATC            *ghttp.Server
 	)
 
 	BeforeEach(func() {
-		logger = lagertest.NewTestLogger("test")
+		ctx = lagerctx.NewContext(context.Background(), lagertest.NewTestLogger("test"))
+
 		worker = atc.Worker{
 			Name: "some-worker",
 		}
@@ -51,7 +55,7 @@ var _ = Describe("Deleter", func() {
 			ghttp.RespondWith(200, nil, nil),
 		))
 
-		err := deleter.Delete(logger, worker)
+		err := deleter.Delete(ctx, worker)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
@@ -66,7 +70,7 @@ var _ = Describe("Deleter", func() {
 		})
 
 		It("errors", func() {
-			err := deleter.Delete(logger, worker)
+			err := deleter.Delete(ctx, worker)
 			Expect(err).To(HaveOccurred())
 
 			Expect(err).To(MatchError(ContainSubstring("500")))

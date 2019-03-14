@@ -86,7 +86,7 @@ func (a *access) TeamRoles() map[string][]string {
 					}
 				}
 			} else {
-				mapstructure.Decode(teamsClaim, &teamRoles)
+				_ = mapstructure.Decode(teamsClaim, &teamRoles)
 			}
 		}
 	}
@@ -97,7 +97,7 @@ func (a *access) TeamRoles() map[string][]string {
 func (a *access) TeamNames() []string {
 
 	teams := []string{}
-	for teamName, _ := range a.TeamRoles() {
+	for teamName := range a.TeamRoles() {
 		teams = append(teams, teamName)
 	}
 
@@ -118,6 +118,7 @@ func (a *access) CSRFToken() string {
 var requiredRoles = map[string]string{
 	atc.SaveConfig:                    "member",
 	atc.GetConfig:                     "viewer",
+	atc.GetCC:                         "viewer",
 	atc.GetBuild:                      "viewer",
 	atc.GetBuildPlan:                  "viewer",
 	atc.CreateBuild:                   "member",
@@ -145,6 +146,8 @@ var requiredRoles = map[string]string{
 	atc.GetResource:                   "viewer",
 	atc.PauseResource:                 "member",
 	atc.UnpauseResource:               "member",
+	atc.UnpinResource:                 "member",
+	atc.SetPinCommentOnResource:       "member",
 	atc.CheckResource:                 "member",
 	atc.CheckResourceWebHook:          "member",
 	atc.CheckResourceType:             "member",
@@ -153,7 +156,6 @@ var requiredRoles = map[string]string{
 	atc.EnableResourceVersion:         "member",
 	atc.DisableResourceVersion:        "member",
 	atc.PinResourceVersion:            "member",
-	atc.UnpinResourceVersion:          "member",
 	atc.ListBuildsWithVersionAsInput:  "viewer",
 	atc.ListBuildsWithVersionAsOutput: "viewer",
 	atc.GetResourceCausality:          "viewer",

@@ -6,8 +6,11 @@ import (
 	"errors"
 	"fmt"
 
+	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type ResourceTypeNotFoundError struct {
@@ -29,14 +32,15 @@ type ResourceType interface {
 	Params() atc.Params
 	Tags() atc.Tags
 	CheckEvery() string
+	CheckSetupError() error
 	CheckError() error
-	ResourceConfigCheckError() error
 	Space() atc.Space
 
 	Version() (atc.Version, error)
+	UniqueVersionHistory() bool
 
-	SetResourceConfig(int) error
-	SetCheckError(error) error
+	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
+	SetCheckSetupError(error) error
 
 	Reload() (bool, error)
 }
@@ -54,14 +58,15 @@ func (resourceTypes ResourceTypes) Deserialize() (atc.VersionedResourceTypes, er
 
 		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
-				Name:       t.Name(),
-				Type:       t.Type(),
-				Space:      t.Space(),
-				Source:     t.Source(),
-				Privileged: t.Privileged(),
-				CheckEvery: t.CheckEvery(),
-				Tags:       t.Tags(),
-				Params:     t.Params(),
+				Name:                 t.Name(),
+				Type:                 t.Type(),
+				Space:                t.Space(),
+				Source:               t.Source(),
+				Privileged:           t.Privileged(),
+				CheckEvery:           t.CheckEvery(),
+				Tags:                 t.Tags(),
+				Params:               t.Params(),
+				UniqueVersionHistory: t.UniqueVersionHistory(),
 			},
 			Version: version,
 		})
@@ -75,14 +80,15 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 
 	for _, r := range resourceTypes {
 		configs = append(configs, atc.ResourceType{
-			Name:       r.Name(),
-			Type:       r.Type(),
-			Space:      r.Space(),
-			Source:     r.Source(),
-			Privileged: r.Privileged(),
-			CheckEvery: r.CheckEvery(),
-			Tags:       r.Tags(),
-			Params:     r.Params(),
+			Name:                 r.Name(),
+			Type:                 r.Type(),
+			Space:                r.Space(),
+			Source:               r.Source(),
+			Privileged:           r.Privileged(),
+			CheckEvery:           r.CheckEvery(),
+			Tags:                 r.Tags(),
+			Params:               r.Params(),
+			UniqueVersionHistory: r.UniqueVersionHistory(),
 		})
 	}
 
@@ -95,32 +101,35 @@ var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, r.space, r
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
-	id                       int
-	name                     string
-	type_                    string
-	privileged               bool
-	source                   atc.Source
-	params                   atc.Params
-	tags                     atc.Tags
-	space                    atc.Space
-	checkEvery               string
-	checkError               error
-	resourceConfigCheckError error
+	id                   int
+	name                 string
+	type_                string
+	privileged           bool
+	source               atc.Source
+	params               atc.Params
+	tags                 atc.Tags
+	space                atc.Space
+	checkEvery           string
+	checkSetupError      error
+	checkError           error
+	uniqueVersionHistory bool
 
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
-func (t *resourceType) ID() int                         { return t.id }
-func (t *resourceType) Name() string                    { return t.name }
-func (t *resourceType) Type() string                    { return t.type_ }
-func (t *resourceType) Space() atc.Space                { return t.space }
-func (t *resourceType) Privileged() bool                { return t.privileged }
-func (t *resourceType) CheckEvery() string              { return t.checkEvery }
-func (t *resourceType) Source() atc.Source              { return t.source }
-func (t *resourceType) Params() atc.Params              { return t.params }
-func (t *resourceType) Tags() atc.Tags                  { return t.tags }
-func (t *resourceType) CheckError() error               { return t.checkError }
-func (t *resourceType) ResourceConfigCheckError() error { return t.resourceConfigCheckError }
+func (t *resourceType) ID() int                    { return t.id }
+func (t *resourceType) Name() string               { return t.name }
+func (t *resourceType) Type() string               { return t.type_ }
+func (t *resourceType) Space() atc.Space           { return t.space }
+func (t *resourceType) Privileged() bool           { return t.privileged }
+func (t *resourceType) CheckEvery() string         { return t.checkEvery }
+func (t *resourceType) Source() atc.Source         { return t.source }
+func (t *resourceType) Params() atc.Params         { return t.params }
+func (t *resourceType) Tags() atc.Tags             { return t.tags }
+func (t *resourceType) CheckSetupError() error     { return t.checkSetupError }
+func (t *resourceType) CheckError() error          { return t.checkError }
+func (t *resourceType) UniqueVersionHistory() bool { return t.uniqueVersionHistory }
 
 func (t *resourceType) Version() (atc.Version, error) {
 	var version atc.Version
@@ -128,9 +137,10 @@ func (t *resourceType) Version() (atc.Version, error) {
 
 	if t.space != "" {
 		err := psql.Select("rv.version").
-			From("resource_versions rv, spaces s, resource_types rt").
+			From("resource_versions rv, spaces s, resource_config_scopes rs, resource_types rt").
 			Where(sq.Expr("rv.space_id = s.id")).
-			Where(sq.Expr("rt.resource_config_id = s.resource_config_id")).
+			Where(sq.Expr("s.resource_config_scope_id = rs.id")).
+			Where(sq.Expr("rs.resource_config_id = rt.resource_config_id")).
 			Where(sq.Eq{
 				"s.name": t.space,
 				"rt.id":  t.id,
@@ -150,7 +160,8 @@ func (t *resourceType) Version() (atc.Version, error) {
 		err := psql.Select("rv.version").
 			From("resource_types rt").
 			Join("resource_configs rc ON rt.resource_config_id = rc.id").
-			Join("spaces s ON rc.default_space = s.name AND rc.id = s.resource_config_id").
+			Join("resource_config_scopes rs ON rc.id = rs.resource_config_id").
+			Join("spaces s ON rs.default_space = s.name AND rs.id = s.resource_config_scope_id").
 			Join("resource_versions rv ON s.latest_resource_version_id = rv.id").
 			Where(sq.Eq{
 				"rt.id": t.id,
@@ -187,19 +198,50 @@ func (t *resourceType) Reload() (bool, error) {
 	return true, nil
 }
 
-func (t *resourceType) SetResourceConfig(resourceConfigID int) error {
-	_, err := psql.Update("resource_types").
-		Set("resource_config_id", resourceConfigID).
+func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfigScope, error) {
+	resourceConfigDescriptor, err := constructResourceConfigDescriptor(t.type_, source, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, t.lockFactory, t.conn)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = psql.Update("resource_types").
+		Set("resource_config_id", resourceConfig.ID()).
 		Where(sq.Eq{
 			"id": t.id,
 		}).
-		RunWith(t.conn).
+		RunWith(tx).
 		Exec()
+	if err != nil {
+		return nil, err
+	}
 
-	return err
+	// A nil value is passed into the Resource object parameter because we always want resource type versions to be shared
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, t.conn, t.lockFactory, resourceConfig, nil, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return resourceConfigScope, nil
 }
 
-func (t *resourceType) SetCheckError(cause error) error {
+func (t *resourceType) SetCheckSetupError(cause error) error {
 	var err error
 
 	if cause == nil {
@@ -221,11 +263,11 @@ func (t *resourceType) SetCheckError(cause error) error {
 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON                         []byte
-		checkErr, rcCheckErr, nonce, space sql.NullString
+		configJSON                          []byte
+		checkErr, rcsCheckErr, nonce, space sql.NullString
 	)
 
-	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &space, &nonce, &checkErr, &rcCheckErr)
+	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &space, &nonce, &checkErr, &rcsCheckErr)
 	if err != nil {
 		return err
 	}
@@ -257,13 +299,14 @@ func scanResourceType(t *resourceType, row scannable) error {
 	t.privileged = config.Privileged
 	t.tags = config.Tags
 	t.checkEvery = config.CheckEvery
+	t.uniqueVersionHistory = config.UniqueVersionHistory
 
 	if checkErr.Valid {
-		t.checkError = errors.New(checkErr.String)
+		t.checkSetupError = errors.New(checkErr.String)
 	}
 
-	if rcCheckErr.Valid {
-		t.resourceConfigCheckError = errors.New(rcCheckErr.String)
+	if rcsCheckErr.Valid {
+		t.checkError = errors.New(rcsCheckErr.String)
 	}
 
 	return nil

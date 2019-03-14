@@ -52,10 +52,10 @@ func (team *team) EnableResourceVersion(pipelineName string, resourceName string
 
 func (team *team) sendResourceVersion(pipelineName string, resourceName string, resourceVersionID int, resourceVersionReq string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name":       pipelineName,
-		"resource_name":       resourceName,
-		"resource_version_id": strconv.Itoa(resourceVersionID),
-		"team_name":           team.name,
+		"pipeline_name":              pipelineName,
+		"resource_name":              resourceName,
+		"resource_config_version_id": strconv.Itoa(resourceVersionID),
+		"team_name":                  team.name,
 	}
 
 	err := team.connection.Send(internal.Request{

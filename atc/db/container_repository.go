@@ -111,7 +111,10 @@ func (repository *containerRepository) UpdateContainersMissingSince(workerName s
 
 	query, args, err = psql.Update("containers").
 		Set("missing_since", sq.Expr("now()")).
-		Where(sq.Eq{"handle": handles}).ToSql()
+		Where(sq.And{
+			sq.Eq{"handle": handles},
+			sq.NotEq{"state": atc.ContainerStateCreating},
+		}).ToSql()
 	if err != nil {
 		return err
 	}
@@ -198,10 +201,10 @@ func (repository *containerRepository) FindOrphanedContainers() ([]CreatingConta
 		LeftJoin("containers igc ON igc.id = c.image_get_container_id").
 		Where(sq.Or{
 			sq.Eq{
-				"c.build_id":                                nil,
-				"c.image_check_container_id":                nil,
-				"c.image_get_container_id":                  nil,
-				"c.worker_resource_config_check_session_id": nil,
+				"c.build_id":                         nil,
+				"c.image_check_container_id":         nil,
+				"c.image_get_container_id":           nil,
+				"c.resource_config_check_session_id": nil,
 			},
 			sq.And{
 				sq.NotEq{"c.build_id": nil},
@@ -272,7 +275,6 @@ func selectContainers(asOptional ...string) sq.SelectBuilder {
 	table := "containers"
 	if len(asOptional) > 0 {
 		as := asOptional[0]
-
 		for i, c := range columns {
 			columns[i] = as + "." + c
 		}

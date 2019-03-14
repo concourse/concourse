@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . Job
@@ -32,6 +33,7 @@ type Job interface {
 
 	CreateBuild() (Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
+	BuildsWithTime(page Page) ([]Build, Pagination, error)
 	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
@@ -51,7 +53,7 @@ type Job interface {
 	ClearTaskCache(string, string) (int64, error)
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "array_to_json(j.tags)").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -183,83 +185,27 @@ func (j *job) UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error {
 	return nil
 }
 
-func (j *job) Builds(page Page) ([]Build, Pagination, error) {
-	query := buildsQuery.Where(sq.Eq{"j.id": j.id})
-
-	limit := uint64(page.Limit)
-
-	var reverse bool
-	if page.Since == 0 && page.Until == 0 {
-		query = query.OrderBy("b.id DESC").Limit(limit)
-	} else if page.Until != 0 {
-		query = query.Where(sq.Gt{"b.id": page.Until}).OrderBy("b.id ASC").Limit(limit)
-		reverse = true
-	} else {
-		query = query.Where(sq.Lt{"b.id": page.Since}).OrderBy("b.id DESC").Limit(limit)
-	}
-
-	rows, err := query.RunWith(j.conn).Query()
-	if err != nil {
-		return nil, Pagination{}, err
-	}
-
-	defer Close(rows)
-
-	builds := []Build{}
-
-	for rows.Next() {
-		build := &build{conn: j.conn, lockFactory: j.lockFactory}
-		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
-		if err != nil {
-			return nil, Pagination{}, err
-		}
-
-		if reverse {
-			builds = append([]Build{build}, builds...)
-		} else {
-			builds = append(builds, build)
-		}
-	}
-
-	if len(builds) == 0 {
-		return []Build{}, Pagination{}, nil
-	}
-
-	var maxID, minID int
-	err = psql.Select("COALESCE(MAX(b.id), 0) as maxID", "COALESCE(MIN(b.id), 0) as minID").
-		From("builds b").
+func (j *job) BuildsWithTime(page Page) ([]Build, Pagination, error) {
+	newBuildsQuery := buildsQuery.Where(sq.Eq{"j.id": j.id})
+	newMinMaxIdQuery := minMaxIdQuery.
 		Join("jobs j ON b.job_id = j.id").
 		Where(sq.Eq{
 			"j.name":        j.name,
 			"j.pipeline_id": j.pipelineID,
-		}).
-		RunWith(j.conn).
-		QueryRow().
-		Scan(&maxID, &minID)
-	if err != nil {
-		return nil, Pagination{}, err
-	}
+		})
+	return getBuildsWithDates(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
+}
 
-	firstBuild := builds[0]
-	lastBuild := builds[len(builds)-1]
+func (j *job) Builds(page Page) ([]Build, Pagination, error) {
+	newBuildsQuery := buildsQuery.Where(sq.Eq{"j.id": j.id})
+	newMinMaxIdQuery := minMaxIdQuery.
+		Join("jobs j ON b.job_id = j.id").
+		Where(sq.Eq{
+			"j.name":        j.name,
+			"j.pipeline_id": j.pipelineID,
+		})
 
-	var pagination Pagination
-
-	if firstBuild.ID() < maxID {
-		pagination.Previous = &Page{
-			Until: firstBuild.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	if lastBuild.ID() > minID {
-		pagination.Next = &Page{
-			Since: lastBuild.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	return builds, pagination, nil
+	return getBuildsWithPagination(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
 }
 
 func (j *job) Build(name string) (Build, bool, error) {
@@ -591,8 +537,7 @@ func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 
 	defer Rollback(tx)
 
-	var sqlBuilder sq.DeleteBuilder
-	sqlBuilder = psql.Delete("worker_task_caches").
+	var sqlBuilder sq.DeleteBuilder = psql.Delete("worker_task_caches").
 		Where(sq.Eq{
 			"job_id":    j.id,
 			"step_name": stepName,
@@ -859,11 +804,9 @@ func scanJob(j *job, row scannable) error {
 	var (
 		configBlob []byte
 		nonce      sql.NullString
-		tagsBlob   []byte
-		tags       []string
 	)
 
-	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, &tagsBlob)
+	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags))
 	if err != nil {
 		return err
 	}
@@ -887,9 +830,6 @@ func scanJob(j *job, row scannable) error {
 	}
 
 	j.config = config
-
-	json.Unmarshal(tagsBlob, &tags)
-	j.tags = tags
 
 	return nil
 }

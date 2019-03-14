@@ -50,10 +50,6 @@ var _ = Describe("Runner", func() {
 		fakeResourceType2.NameReturns("some-other-resource")
 		fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeResourceType1, fakeResourceType2}, nil)
 
-		fakePipeline.ScopedNameStub = func(thing string) string {
-			return "pipeline:" + thing
-		}
-
 		fakeResourceRunner = new(radarfakes.FakeIntervalRunner)
 		scanRunnerFactory.ScanResourceRunnerReturns(fakeResourceRunner)
 		fakeResourceTypeRunner = new(radarfakes.FakeIntervalRunner)

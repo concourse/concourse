@@ -91,7 +91,7 @@ type RunCommand struct {
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
-	CredentialManagement struct{} `group:"Credential Management"`
+	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
 
 	EncryptionKey    flag.Cipher `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
@@ -102,11 +102,13 @@ type RunCommand struct {
 
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
+	EnableGlobalResources bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+
 	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
 
-	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" description:"Method by which a worker is selected during container placement."`
+	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" description:"Method by which a worker is selected during container placement."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
@@ -122,8 +124,9 @@ type RunCommand struct {
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
 	Metrics struct {
-		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`
-		Attributes map[string]string `long:"metrics-attribute"   description:"A key-value attribute to attach to emitted metrics. Can be specified multiple times." value-name:"NAME:VALUE"`
+		HostName            string            `long:"metrics-host-name" description:"Host string to attach to emitted metrics."`
+		Attributes          map[string]string `long:"metrics-attribute" description:"A key-value attribute to attach to emitted metrics. Can be specified multiple times." value-name:"NAME:VALUE"`
+		CaptureErrorMetrics bool              `long:"capture-error-metrics" description:"Enable capturing of error log metrics"`
 	} `group:"Metrics & Diagnostics"`
 
 	Server struct {
@@ -133,8 +136,10 @@ type RunCommand struct {
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 
 	GC struct {
-		Interval               time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
-		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Grace period before reaping one-off task containers"`
+		Interval time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
+
+		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Period after which one-off build containers will be garbage-collected."`
+		MissingGracePeriod     time.Duration `long:"missing-grace-period" default:"5m" description:"Period after which to reap containers and volumes that were created but went missing from the worker."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
@@ -249,7 +254,7 @@ func (cmd *Migration) migrateDBToVersion() error {
 
 	err := helper.MigrateToVersion(version)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Could not migrate to version: %d Reason: %s", version, err.Error()))
+		return fmt.Errorf("Could not migrate to version: %d Reason: %s", version, err.Error())
 	}
 
 	fmt.Println("Successfully migrated to version:", version)
@@ -326,11 +331,41 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		cmd.ExternalURL = cmd.defaultURL()
 	}
 
+	if len(positionalArguments) != 0 {
+		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
+	}
+
+	err := cmd.validate()
+	if err != nil {
+		return nil, err
+	}
+
+	logger, reconfigurableSink := cmd.Logger.Logger("atc")
+
+	commandSession := logger.Session("cmd")
+	startTime := time.Now()
+
+	commandSession.Info("start")
+	defer commandSession.Info("finish", lager.Data{
+		"duration": time.Now().Sub(startTime),
+	})
+
+	atc.EnableGlobalResources = cmd.EnableGlobalResources
+
 	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
-	db.SetupConnectionRetryingDriver("postgres", cmd.Postgres.ConnectionString(), retryingDriverName)
-	logger, reconfigurableSink := cmd.Logger.Logger("atc")
+	db.SetupConnectionRetryingDriver(
+		"postgres",
+		cmd.Postgres.ConnectionString(),
+		retryingDriverName,
+	)
+
+	// Register the sink that collects error metrics
+	if cmd.Metrics.CaptureErrorMetrics {
+		errorSinkCollector := metric.NewErrorSinkCollector(logger)
+		logger.RegisterSink(&errorSinkCollector)
+	}
 
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
 		for _, stack := range db.GlobalConnectionTracker.Current() {
@@ -346,7 +381,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if err != nil {
 		return nil, err
 	}
-	lockFactory := lock.NewLockFactory(lockConn)
+
+	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
 	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 32, "api", lockFactory)
 	if err != nil {
@@ -363,7 +399,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(positionalArguments, logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +435,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 }
 
 func (cmd *RunCommand) constructMembers(
-	positionalArguments []string,
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
@@ -407,16 +442,6 @@ func (cmd *RunCommand) constructMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 ) ([]grouper.Member, error) {
-
-	if len(positionalArguments) != 0 {
-		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
-	}
-
-	err := cmd.validate()
-	if err != nil {
-		return nil, err
-	}
-
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
 		go func() {
@@ -468,7 +493,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		TeamFactory: teamFactory,
 		Flags:       cmd.Auth.AuthFlags,
 		ExternalURL: cmd.ExternalURL.String(),
-		HttpClient:  httpClient,
+		HTTPClient:  httpClient,
 		Storage:     storage,
 	})
 	if err != nil {
@@ -481,8 +506,6 @@ func (cmd *RunCommand) constructAPIMembers(
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
 		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		clock.NewClock(),
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -527,11 +550,10 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
 
-	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		dbConn,
 		resourceFactory,
-		dbResourceConfigCheckSessionFactory,
+		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
@@ -540,7 +562,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	radarScannerFactory := radar.NewScannerFactory(
 		dbConn,
 		resourceFactory,
-		dbResourceConfigCheckSessionFactory,
+		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
@@ -683,9 +705,8 @@ func (cmd *RunCommand) constructBackendMembers(
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
 		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		clock.NewClock(),
 	)
+
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
@@ -726,11 +747,10 @@ func (cmd *RunCommand) constructBackendMembers(
 	}
 	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
 
-	dbResourceConfigCheckSessionFactory := db.NewResourceConfigCheckSessionFactory(dbConn, lockFactory)
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		dbConn,
 		resourceFactory,
-		dbResourceConfigCheckSessionFactory,
+		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
@@ -755,7 +775,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		}},
 		{Name: "pipelines", Runner: pipelines.SyncRunner{
 			Syncer: cmd.constructPipelineSyncer(
-				logger.Session("syncer"),
+				logger.Session("pipelines"),
 				dbPipelineFactory,
 				radarSchedulerFactory,
 				variablesFactory,
@@ -785,7 +805,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 				gc.NewVolumeCollector(
 					dbVolumeRepository,
-					cmd.GC.Interval*3, // volume missing-since grace period (must be larger than gc.interval so it doesn't race)
+					cmd.GC.MissingGracePeriod,
 				),
 				gc.NewContainerCollector(
 					dbContainerRepository,
@@ -794,7 +814,7 @@ func (cmd *RunCommand) constructBackendMembers(
 						workerProvider,
 						time.Minute,
 					),
-					cmd.GC.Interval*3, // container missing-since grace period (must be larger than gc.interval so it doesn't race)
+					cmd.GC.MissingGracePeriod,
 				),
 				gc.NewResourceConfigCheckSessionCollector(
 					resourceConfigCheckSessionLifecycle,
@@ -884,7 +904,7 @@ func (cmd *RunCommand) variablesFactory(logger lager.Logger) (creds.VariablesFac
 
 		break
 	}
-	return variablesFactory, nil
+	return creds.NewRetryableVariablesFactory(variablesFactory, cmd.CredentialManagement.RetryConfig), nil
 }
 
 func (cmd *RunCommand) newKey() *encryption.Key {
@@ -1147,6 +1167,8 @@ func (cmd *RunCommand) constructWorkerPool(
 	switch cmd.ContainerPlacementStrategy {
 	case "random":
 		strategy = worker.NewRandomPlacementStrategy()
+	case "fewest-build-containers":
+		strategy = worker.NewFewestBuildContainersPlacementStrategy()
 	default:
 		strategy = worker.NewVolumeLocalityPlacementStrategy()
 	}
@@ -1355,9 +1377,12 @@ func (cmd *RunCommand) constructPipelineSyncer(
 			variables := variablesFactory.NewVariables(pipeline.TeamName(), pipeline.Name())
 			return grouper.NewParallel(os.Interrupt, grouper.Members{
 				{
-					pipeline.ScopedName("radar"),
-					radar.NewRunner(
-						logger.Session(pipeline.ScopedName("radar")),
+					Name: fmt.Sprintf("radar:%d", pipeline.ID()),
+					Runner: radar.NewRunner(
+						logger.Session("radar").WithData(lager.Data{
+							"team":     pipeline.TeamName(),
+							"pipeline": pipeline.Name(),
+						}),
 						cmd.Developer.Noop,
 						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables),
 						pipeline,
@@ -1365,9 +1390,12 @@ func (cmd *RunCommand) constructPipelineSyncer(
 					),
 				},
 				{
-					pipeline.ScopedName("scheduler"),
-					&scheduler.Runner{
-						Logger:    logger.Session(pipeline.ScopedName("scheduler")),
+					Name: fmt.Sprintf("scheduler:%d", pipeline.ID()),
+					Runner: &scheduler.Runner{
+						Logger: logger.Session("scheduler", lager.Data{
+							"team":     pipeline.TeamName(),
+							"pipeline": pipeline.Name(),
+						}),
 						Pipeline:  pipeline,
 						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline, cmd.ExternalURL.String(), variables),
 						Noop:      cmd.Developer.Noop,

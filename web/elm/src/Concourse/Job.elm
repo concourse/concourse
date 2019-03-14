@@ -1,13 +1,13 @@
 -- TODO: explicit exposing
 
 
-module Concourse.Job exposing (..)
+module Concourse.Job exposing (fetchAllJobs, fetchJob, fetchJobs, fetchJobsRaw, pause, pauseUnpause, triggerBuild, unpause)
 
+import Concourse
 import Http
 import HttpBuilder
-import Task exposing (Task)
 import Json.Decode
-import Concourse
+import Task exposing (Task)
 
 
 fetchJob : Concourse.JobIdentifier -> Task Http.Error Concourse.Job
@@ -46,7 +46,7 @@ triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error
 triggerBuild job csrfToken =
     HttpBuilder.post ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds")
         |> HttpBuilder.withHeader Concourse.csrfTokenHeaderName csrfToken
-        |> HttpBuilder.withExpect (Http.expectJson (Concourse.decodeBuild))
+        |> HttpBuilder.withExpect (Http.expectJson Concourse.decodeBuild)
         |> HttpBuilder.toTask
 
 
@@ -66,16 +66,17 @@ pauseUnpause pause { teamName, pipelineName, jobName } csrfToken =
         action =
             if pause then
                 "pause"
+
             else
                 "unpause"
     in
-        Http.toTask <|
-            Http.request
-                { method = "PUT"
-                , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName ++ "/" ++ action
-                , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
-                , body = Http.emptyBody
-                , expect = Http.expectStringResponse (\_ -> Ok ())
-                , timeout = Nothing
-                , withCredentials = False
-                }
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName ++ "/" ++ action
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , body = Http.emptyBody
+            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , timeout = Nothing
+            , withCredentials = False
+            }

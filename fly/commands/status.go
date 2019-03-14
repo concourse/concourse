@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
@@ -12,10 +11,6 @@ import (
 type StatusCommand struct{}
 
 func (c *StatusCommand) Execute([]string) error {
-	if Fly.Target == "" {
-		return errors.New("name for the target must be specified (--target/-t)")
-	}
-
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -34,6 +29,12 @@ func (c *StatusCommand) Execute([]string) error {
 		})
 
 		if err != nil && err.Error() != jwt.ErrInvalidKeyType.Error() {
+			displayhelpers.FailWithErrorf("please login again.\n\ntoken validation failed with error ", err)
+			return nil
+		}
+
+		_, err = target.Client().UserInfo()
+		if err != nil {
 			displayhelpers.FailWithErrorf("please login again.\n\ntoken validation failed with error ", err)
 			return nil
 		}

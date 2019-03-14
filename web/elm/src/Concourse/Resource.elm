@@ -1,25 +1,24 @@
-module Concourse.Resource
-    exposing
-        ( fetchAllResources
-        , fetchResource
-        , fetchResourcesRaw
-        , pause
-        , unpause
-        , fetchVersionedResources
-        , fetchVersionedResource
-        , enableVersionedResource
-        , disableVersionedResource
-        , fetchInputTo
-        , fetchOutputOf
-        , fetchCausality
-        , pinVersion
-        , unpinVersion
-        )
+module Concourse.Resource exposing
+    ( check
+    , enableDisableVersionedResource
+    , fetchAllResources
+    , fetchCausality
+    , fetchInputTo
+    , fetchOutputOf
+    , fetchResource
+    , fetchResourcesRaw
+    , fetchVersionedResource
+    , fetchVersionedResources
+    , pinVersion
+    , setPinComment
+    , unpinVersion
+    )
 
 import Concourse
-import Concourse.Pagination exposing (Pagination, Paginated, Page)
+import Concourse.Pagination exposing (Page, Paginated, Pagination)
 import Http
 import Json.Decode
+import Json.Encode
 import Task exposing (Task)
 
 
@@ -27,7 +26,7 @@ fetchAllResources : Task Http.Error (Maybe (List Concourse.Resource))
 fetchAllResources =
     Http.toTask <|
         flip Http.get
-            (Json.Decode.nullable <| Json.Decode.list (Concourse.decodeResource))
+            (Json.Decode.nullable <| Json.Decode.list Concourse.decodeResource)
             "/api/v1/resources"
 
 
@@ -52,37 +51,6 @@ fetchResourcesRaw pi =
             ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/resources")
 
 
-pause : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-pause =
-    pauseUnpause True
-
-
-unpause : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-unpause =
-    pauseUnpause False
-
-
-pauseUnpause : Bool -> Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-pauseUnpause pause rid csrfToken =
-    let
-        action =
-            if pause then
-                "pause"
-            else
-                "unpause"
-    in
-        Http.toTask <|
-            Http.request
-                { method = "PUT"
-                , url = "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++ "/resources/" ++ rid.resourceName ++ "/" ++ action
-                , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
-                , body = Http.emptyBody
-                , expect = Http.expectStringResponse (\_ -> Ok ())
-                , timeout = Nothing
-                , withCredentials = False
-                }
-
-
 fetchVersionedResource : Concourse.VersionedResourceIdentifier -> Task Http.Error Concourse.VersionedResource
 fetchVersionedResource vrid =
     Http.toTask
@@ -104,17 +72,7 @@ fetchVersionedResources rid page =
         url =
             "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++ "/resources/" ++ rid.resourceName ++ "/versions"
     in
-        Concourse.Pagination.fetch Concourse.decodeVersionedResource url page
-
-
-enableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-enableVersionedResource =
-    enableDisableVersionedResource True
-
-
-disableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-disableVersionedResource =
-    enableDisableVersionedResource False
+    Concourse.Pagination.fetch Concourse.decodeVersionedResource url page
 
 
 enableDisableVersionedResource : Bool -> Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
@@ -123,19 +81,20 @@ enableDisableVersionedResource enable vrid csrfToken =
         action =
             if enable then
                 "enable"
+
             else
                 "disable"
     in
-        Http.toTask <|
-            Http.request
-                { method = "PUT"
-                , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ (toString vrid.versionID) ++ "/" ++ action
-                , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
-                , body = Http.emptyBody
-                , expect = Http.expectStringResponse (\_ -> Ok ())
-                , timeout = Nothing
-                , withCredentials = False
-                }
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ toString vrid.versionID ++ "/" ++ action
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , body = Http.emptyBody
+            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , timeout = Nothing
+            , withCredentials = False
+            }
 
 
 fetchInputTo : Concourse.VersionedResourceIdentifier -> Task Http.Error (List Concourse.Build)
@@ -185,7 +144,7 @@ pinVersion vrid csrfToken =
     Http.toTask <|
         Http.request
             { method = "PUT"
-            , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ (toString vrid.versionID) ++ "/pin"
+            , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ toString vrid.versionID ++ "/pin"
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , body = Http.emptyBody
             , expect = Http.expectStringResponse (\_ -> Ok ())
@@ -194,14 +153,81 @@ pinVersion vrid csrfToken =
             }
 
 
-unpinVersion : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-unpinVersion vrid csrfToken =
+unpinVersion :
+    Concourse.ResourceIdentifier
+    -> Concourse.CSRFToken
+    -> Task Http.Error ()
+unpinVersion rid csrfToken =
     Http.toTask <|
         Http.request
             { method = "PUT"
-            , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ (toString vrid.versionID) ++ "/unpin"
+            , url =
+                "/api/v1/teams/"
+                    ++ rid.teamName
+                    ++ "/pipelines/"
+                    ++ rid.pipelineName
+                    ++ "/resources/"
+                    ++ rid.resourceName
+                    ++ "/unpin"
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , body = Http.emptyBody
+            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , timeout = Nothing
+            , withCredentials = False
+            }
+
+
+check :
+    Concourse.ResourceIdentifier
+    -> Concourse.CSRFToken
+    -> Task Http.Error ()
+check rid csrfToken =
+    Http.toTask <|
+        Http.request
+            { method = "POST"
+            , url =
+                "/api/v1/teams/"
+                    ++ rid.teamName
+                    ++ "/pipelines/"
+                    ++ rid.pipelineName
+                    ++ "/resources/"
+                    ++ rid.resourceName
+                    ++ "/check"
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , body =
+                Http.jsonBody <|
+                    Json.Encode.object [ ( "from", Json.Encode.null ) ]
+            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , timeout = Nothing
+            , withCredentials = False
+            }
+
+
+setPinComment :
+    Concourse.ResourceIdentifier
+    -> Concourse.CSRFToken
+    -> String
+    -> Task Http.Error ()
+setPinComment rid csrfToken comment =
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url =
+                "/api/v1/teams/"
+                    ++ rid.teamName
+                    ++ "/pipelines/"
+                    ++ rid.pipelineName
+                    ++ "/resources/"
+                    ++ rid.resourceName
+                    ++ "/pin_comment"
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , body =
+                Http.jsonBody <|
+                    Json.Encode.object
+                        [ ( "pin_comment"
+                          , Json.Encode.string comment
+                          )
+                        ]
             , expect = Http.expectStringResponse (\_ -> Ok ())
             , timeout = Nothing
             , withCredentials = False

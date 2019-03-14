@@ -16,13 +16,20 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type ErrResourceConfigVersionNotFound struct {
-	ResourceName string
-	Version      atc.Version
+type ErrPipelineNotFound struct {
+	PipelineName string
 }
 
-func (e ErrResourceConfigVersionNotFound) Error() string {
-	return fmt.Sprintf("resource '%s' version '%v' not found", e.ResourceName, e.Version)
+func (e ErrPipelineNotFound) Error() string {
+	return fmt.Sprintf("pipeline '%s' not found", e.PipelineName)
+}
+
+type ErrResourceNotFound struct {
+	ResourceName string
+}
+
+func (e ErrResourceNotFound) Error() string {
+	return fmt.Sprintf("resource '%s' not found", e.ResourceName)
 }
 
 //go:generate counterfeiter . GetDelegate
@@ -182,6 +189,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		resource.Session{
 			Metadata: step.containerMetadata,
 		},
+		NewGetEventHandler(resourceCache.ResourceConfig(), space, version),
 		step.tags,
 		step.teamID,
 		step.resourceTypes,
@@ -212,7 +220,6 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	state.Artifacts().RegisterSource(worker.ArtifactName(step.name), &getArtifactSource{
-		logger:           logger,
 		resourceInstance: resourceInstance,
 		volume:           volume,
 	})
@@ -233,19 +240,18 @@ func (step *GetStep) Succeeded() bool {
 }
 
 type getArtifactSource struct {
-	logger           lager.Logger
 	resourceInstance resource.ResourceInstance
 	volume           worker.Volume
 }
 
 // VolumeOn locates the cache for the GetStep's resource and version on the
 // given worker.
-func (s *getArtifactSource) VolumeOn(worker worker.Worker) (worker.Volume, bool, error) {
-	return s.resourceInstance.FindOn(s.logger.Session("volume-on"), worker)
+func (s *getArtifactSource) VolumeOn(logger lager.Logger, worker worker.Worker) (worker.Volume, bool, error) {
+	return s.resourceInstance.FindOn(logger.Session("volume-on"), worker)
 }
 
 // StreamTo streams the resource's data to the destination.
-func (s *getArtifactSource) StreamTo(destination worker.ArtifactDestination) error {
+func (s *getArtifactSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
 	out, err := s.volume.StreamOut(".")
 	if err != nil {
 		return err
@@ -257,7 +263,7 @@ func (s *getArtifactSource) StreamTo(destination worker.ArtifactDestination) err
 }
 
 // StreamFile streams a single file out of the resource.
-func (s *getArtifactSource) StreamFile(path string) (io.ReadCloser, error) {
+func (s *getArtifactSource) StreamFile(logger lager.Logger, path string) (io.ReadCloser, error) {
 	out, err := s.volume.StreamOut(path)
 	if err != nil {
 		return nil, err
