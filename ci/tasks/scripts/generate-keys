@@ -1,0 +1,6 @@
+#!/bin/bash
+
+docker run -v $PWD/keys:/keys concourse/dev generate-key -t rsa -b 1024 -f /keys/session_signing_key
+docker run -v $PWD/keys:/keys concourse/dev generate-key -t ssh -b 1024 -f /keys/tsa_host_key
+docker run -v $PWD/keys:/keys concourse/dev generate-key -t ssh -b 1024 -f /keys/worker_key
+cp keys/worker_key.pub keys/authorized_worker_keys
