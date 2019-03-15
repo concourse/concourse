@@ -59,6 +59,31 @@ var _ = Describe("Targets", func() {
 	})
 
 	Describe("SaveTarget", func() {
+		Context("when managing .flyrc", func() {
+			It("creates any new file with 0600 permissions", func() {
+				err := rc.SaveTarget("foo", "url", false, "main", nil, "")
+				Expect(err).ToNot(HaveOccurred())
+				fi, statErr := os.Stat(flyrc)
+				Expect(statErr).To(BeNil())
+				Expect(fi.Mode().Perm()).To(Equal(os.FileMode(0600)))
+			})
+
+			Describe("when the file exists with 0755 permissions", func() {
+				BeforeEach(func() {
+					err := ioutil.WriteFile(flyrc, []byte{}, 0755)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("preserves those permissions", func() {
+					err := rc.SaveTarget("foo", "url", false, "main", nil, "")
+					Expect(err).ToNot(HaveOccurred())
+					fi, statErr := os.Stat(flyrc)
+					Expect(statErr).To(BeNil())
+					Expect(fi.Mode().Perm()).To(Equal(os.FileMode(0755)))
+				})
+			})
+		})
+
 		Describe("CA Cert Flag", func() {
 			Describe("when 'ca_cert' is not set in the flyrc", func() {
 				var targetName rc.TargetName
