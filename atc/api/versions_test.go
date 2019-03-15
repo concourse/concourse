@@ -160,26 +160,51 @@ var _ = Describe("Versions API", func() {
 					}
 				]`))
 					})
-
 				})
 
 				Context("when resource is not public", func() {
-					It("returns the json without version metadata", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
+					Context("when the user is not authenticated", func() {
+						It("returns the json without version metadata", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
 
-						Expect(body).To(MatchJSON(`[
-					{
-						"id": 4,
-						"enabled": true,
-						"version": {"some":"version"}
-					},
-					{
-						"id":2,
-						"enabled": false,
-						"version": {"some":"version"}
-					}
-				]`))
+							Expect(body).To(MatchJSON(`[
+								{
+									"id": 4,
+									"enabled": true,
+									"version": {"some":"version"}
+								},
+								{
+									"id":2,
+									"enabled": false,
+									"version": {"some":"version"}
+								}
+							]`))
+						})
+					})
+
+					Context("when the user is authenticated", func() {
+						BeforeEach(func() {
+							fakeaccess.IsAuthenticatedReturns(true)
+						})
+
+						It("returns the json without version metadata", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`[
+								{
+									"id": 4,
+									"enabled": true,
+									"version": {"some":"version"}
+								},
+								{
+									"id":2,
+									"enabled": false,
+									"version": {"some":"version"}
+								}
+							]`))
+						})
 					})
 				})
 			})

@@ -91,7 +91,7 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 		w.WriteHeader(http.StatusOK)
 
 		acc := accessor.GetAccessor(r)
-		hideMetadata := !resource.Public() && !acc.IsAuthenticated()
+		hideMetadata := !resource.Public() && !acc.IsAuthorized(teamName)
 
 		versions = present.ResourceVersions(hideMetadata, versions)
 
