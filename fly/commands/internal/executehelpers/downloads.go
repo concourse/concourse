@@ -8,7 +8,7 @@ import (
 )
 
 func Download(team concourse.Team, artifactID int, path string) error {
-	pb := progress(path+":", os.Stdout)
+	pb := progress("downloading to "+path+":", os.Stdout)
 
 	pb.Start()
 	defer pb.Finish()

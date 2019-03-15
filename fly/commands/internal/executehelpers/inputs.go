@@ -49,7 +49,7 @@ func DetermineInputs(
 
 		localInputMappings = append(localInputMappings, flaghelpers.InputPairFlag{
 			Name: filepath.Base(wd),
-			Path: wd,
+			Path: ".",
 		})
 	}
 

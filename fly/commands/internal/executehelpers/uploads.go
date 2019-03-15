@@ -26,7 +26,7 @@ func Upload(team concourse.Team, path string, includeIgnored bool) (atc.WorkerAr
 		archiveWriter.CloseWithError(tgzfs.Compress(archiveWriter, path, files...))
 	}()
 
-	pb := progress(path+":", os.Stdout)
+	pb := progress("uploading "+path+":", os.Stdout)
 
 	pb.Start()
 	defer pb.Finish()
