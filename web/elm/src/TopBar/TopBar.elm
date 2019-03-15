@@ -360,7 +360,9 @@ update msg ( model, effects ) =
             ( { model | isPinMenuExpanded = not model.isPinMenuExpanded }, effects )
 
         TogglePipelinePaused pipelineIdentifier isPaused ->
-            ( model, effects ++ [ SendTogglePipelineRequest pipelineIdentifier isPaused ] )
+            ( model
+            , effects ++ [ SendTogglePipelineRequest pipelineIdentifier isPaused ]
+            )
 
         FocusMsg ->
             let

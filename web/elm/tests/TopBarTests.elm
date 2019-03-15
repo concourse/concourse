@@ -1001,6 +1001,39 @@ all =
                             )
                         |> Tuple.first
 
+                givenUserAuthorized =
+                    Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.UserFetched <|
+                            Ok
+                                { id = "test"
+                                , userName = "test"
+                                , name = "test"
+                                , email = "test"
+                                , teams =
+                                    Dict.fromList
+                                        [ ( "t", [ "member" ] ) ]
+                                }
+                        )
+                        >> Tuple.first
+
+                loggedOut =
+                    Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.UserFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 401
+                                        , message = "unauthorized"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                        >> Tuple.first
+
                 pipelineIdentifier =
                     { pipelineName = "p"
                     , teamName = "t"
@@ -1016,7 +1049,7 @@ all =
             in
             [ defineHoverBehaviour
                 { name = "play pipeline icon"
-                , setup = givenPipelinePaused
+                , setup = givenPipelinePaused |> givenUserAuthorized
                 , query =
                     Application.view
                         >> Query.fromHtml
@@ -1078,7 +1111,7 @@ all =
                         |> Query.find [ id "top-bar-pause-toggle" ]
                         |> Event.simulate Event.click
                         |> Event.expect toggleMsg
-            , test "TogglePipelinePaused msg sends TogglePipelineRequest" <|
+            , test "play button click msg sends api call" <|
                 \_ ->
                     givenPipelinePaused
                         |> Application.update toggleMsg
@@ -1103,7 +1136,31 @@ all =
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
                             [ style [ ( "background-color", backgroundGrey ) ] ]
-            , test "failed PipelineToggled callback leaves topbar blue" <|
+            , test "Unauthorized PipelineToggled callback redirects to login" <|
+                \_ ->
+                    givenPipelinePaused
+                        |> Application.handleCallback
+                            (Effects.SubPage 1)
+                            (Callback.PipelineToggled <|
+                                Err <|
+                                    Http.BadStatus
+                                        { url = "http://example.com"
+                                        , status =
+                                            { code = 401
+                                            , message = "unauthorized"
+                                            }
+                                        , headers = Dict.empty
+                                        , body = ""
+                                        }
+                            )
+                        |> Tuple.second
+                        |> Expect.equal
+                            [ ( Effects.SubPage 1
+                              , ""
+                              , Effects.RedirectToLogin
+                              )
+                            ]
+            , test "erroring PipelineToggled callback leaves topbar blue" <|
                 \_ ->
                     givenPipelinePaused
                         |> Application.handleCallback

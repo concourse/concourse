@@ -189,6 +189,14 @@ handleCallbackWithoutTopBar callback ( model, effects ) =
             , effects
             )
 
+        PipelineToggled (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    ( model, effects ++ redirectToLoginIfUnauthenticated status )
+
+                _ ->
+                    ( model, effects )
+
         JobsFetched (Ok fetchedJobs) ->
             renderIfNeeded ( { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }, effects )
 
