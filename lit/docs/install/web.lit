@@ -173,7 +173,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
 
     Note that we don't currently guarantee a lack of funny-business if you're
     running mixed Concourse versions - database migrations can perform
-    modiciations that confuse other \code{web} nodes. So there may be some
+    modifications that confuse other \code{web} nodes. So there may be some
     turbulence during a rolling upgrade, but everything should stabilize once
     all \code{web} nodes are running the latest version.
   }
