@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/rc"
@@ -60,6 +61,12 @@ var _ = Describe("Targets", func() {
 
 	Describe("SaveTarget", func() {
 		Context("when managing .flyrc", func() {
+			BeforeEach(func() {
+				if runtime.GOOS == "windows" {
+					Skip("these tests are UNIX-specific")
+				}
+			})
+
 			It("creates any new file with 0600 permissions", func() {
 				err := rc.SaveTarget("foo", "url", false, "main", nil, "")
 				Expect(err).ToNot(HaveOccurred())
