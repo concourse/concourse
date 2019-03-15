@@ -7,15 +7,15 @@ import (
 	lager "code.cloudfoundry.org/lager"
 	atc "github.com/concourse/concourse/atc"
 	exec "github.com/concourse/concourse/atc/exec"
-	worker "github.com/concourse/concourse/atc/worker"
+	artifact "github.com/concourse/concourse/atc/exec/artifact"
 )
 
 type FakeTaskConfigSource struct {
-	FetchConfigStub        func(lager.Logger, *worker.ArtifactRepository) (atc.TaskConfig, error)
+	FetchConfigStub        func(lager.Logger, *artifact.Repository) (atc.TaskConfig, error)
 	fetchConfigMutex       sync.RWMutex
 	fetchConfigArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 *worker.ArtifactRepository
+		arg2 *artifact.Repository
 	}
 	fetchConfigReturns struct {
 		result1 atc.TaskConfig
@@ -39,12 +39,12 @@ type FakeTaskConfigSource struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTaskConfigSource) FetchConfig(arg1 lager.Logger, arg2 *worker.ArtifactRepository) (atc.TaskConfig, error) {
+func (fake *FakeTaskConfigSource) FetchConfig(arg1 lager.Logger, arg2 *artifact.Repository) (atc.TaskConfig, error) {
 	fake.fetchConfigMutex.Lock()
 	ret, specificReturn := fake.fetchConfigReturnsOnCall[len(fake.fetchConfigArgsForCall)]
 	fake.fetchConfigArgsForCall = append(fake.fetchConfigArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 *worker.ArtifactRepository
+		arg2 *artifact.Repository
 	}{arg1, arg2})
 	fake.recordInvocation("FetchConfig", []interface{}{arg1, arg2})
 	fake.fetchConfigMutex.Unlock()
@@ -64,13 +64,13 @@ func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
 	return len(fake.fetchConfigArgsForCall)
 }
 
-func (fake *FakeTaskConfigSource) FetchConfigCalls(stub func(lager.Logger, *worker.ArtifactRepository) (atc.TaskConfig, error)) {
+func (fake *FakeTaskConfigSource) FetchConfigCalls(stub func(lager.Logger, *artifact.Repository) (atc.TaskConfig, error)) {
 	fake.fetchConfigMutex.Lock()
 	defer fake.fetchConfigMutex.Unlock()
 	fake.FetchConfigStub = stub
 }
 
-func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) (lager.Logger, *worker.ArtifactRepository) {
+func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) (lager.Logger, *artifact.Repository) {
 	fake.fetchConfigMutex.RLock()
 	defer fake.fetchConfigMutex.RUnlock()
 	argsForCall := fake.fetchConfigArgsForCall[i]

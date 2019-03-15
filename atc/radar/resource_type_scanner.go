@@ -253,7 +253,7 @@ func (scanner *resourceTypeScanner) check(
 
 	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
 
-	chosenWorker, err := scanner.pool.FindOrChooseWorker(logger, owner, containerSpec, workerSpec, scanner.strategy)
+	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, scanner.strategy)
 	if err != nil {
 		chkErr := resourceConfigScope.SetCheckError(err)
 		if chkErr != nil {

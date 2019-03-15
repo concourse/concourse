@@ -208,6 +208,16 @@ var _ = Describe("VolumeFactory", func() {
 			resourceCacheVolumeCreated, err := resourceCacheVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
 
+			err = resourceCacheVolumeCreated.InitializeResourceCache(usedResourceCache)
+			Expect(err).NotTo(HaveOccurred())
+
+			artifactVolume, err := volumeRepository.CreateVolume(defaultTeam.ID(), defaultWorker.Name(), db.VolumeTypeArtifact)
+			Expect(err).NotTo(HaveOccurred())
+			expectedCreatedHandles = append(expectedCreatedHandles, artifactVolume.Handle())
+
+			_, err = artifactVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+
 			usedWorkerBaseResourceType, found, err := workerBaseResourceTypeFactory.Find(defaultWorkerResourceType.Type, defaultWorker)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -227,9 +237,6 @@ var _ = Describe("VolumeFactory", func() {
 
 			defaultWorker, err = workerFactory.SaveWorker(newWorker, 0)
 			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceCacheVolumeCreated.InitializeResourceCache(usedResourceCache)
-			Expect(err).NotTo(HaveOccurred())
 
 			tx, err := dbConn.Begin()
 			Expect(err).NotTo(HaveOccurred())
@@ -405,6 +412,20 @@ var _ = Describe("VolumeFactory", func() {
 				Where(sq.Eq{"handle": volume.Handle()}).RunWith(dbConn).QueryRow().Scan(&teamID)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Scan error"))
+		})
+	})
+
+	Describe("CreateVolume", func() {
+		It("creates a CreatingVolume of the given type with a teamID", func() {
+			volume, err := volumeRepository.CreateVolume(defaultTeam.ID(), defaultWorker.Name(), db.VolumeTypeArtifact)
+			Expect(err).NotTo(HaveOccurred())
+			var teamID int
+			var workerName string
+			err = psql.Select("team_id, worker_name").From("volumes").
+				Where(sq.Eq{"handle": volume.Handle()}).RunWith(dbConn).QueryRow().Scan(&teamID, &workerName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(teamID).To(Equal(defaultTeam.ID()))
+			Expect(workerName).To(Equal(defaultWorker.Name()))
 		})
 	})
 

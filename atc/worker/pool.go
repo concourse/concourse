@@ -22,6 +22,12 @@ type WorkerProvider interface {
 		handle string,
 	) (Worker, bool, error)
 
+	FindWorkerForVolume(
+		logger lager.Logger,
+		teamID int,
+		handle string,
+	) (Worker, bool, error)
+
 	FindWorkersForContainerByOwner(
 		logger lager.Logger,
 		owner db.ContainerOwner,
@@ -50,7 +56,7 @@ func (err NoCompatibleWorkersError) Error() string {
 //go:generate counterfeiter . Pool
 
 type Pool interface {
-	FindOrChooseWorker(
+	FindOrChooseWorkerForContainer(
 		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
@@ -58,7 +64,10 @@ type Pool interface {
 		ContainerPlacementStrategy,
 	) (Worker, error)
 
-	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)
+	FindOrChooseWorker(
+		lager.Logger,
+		WorkerSpec,
+	) (Worker, error)
 }
 
 type pool struct {
@@ -110,7 +119,7 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	}
 }
 
-func (pool *pool) FindOrChooseWorker(
+func (pool *pool) FindOrChooseWorkerForContainer(
 	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
@@ -151,19 +160,14 @@ dance:
 	return worker, nil
 }
 
-func (pool *pool) FindContainerByHandle(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
-	worker, found, err := pool.provider.FindWorkerForContainer(
-		logger.Session("find-worker"),
-		teamID,
-		handle,
-	)
+func (pool *pool) FindOrChooseWorker(
+	logger lager.Logger,
+	workerSpec WorkerSpec,
+) (Worker, error) {
+	workers, err := pool.allSatisfying(logger, workerSpec)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	if !found {
-		return nil, false, nil
-	}
-
-	return worker.FindContainerByHandle(logger, teamID, handle)
+	return workers[rand.Intn(len(workers))], nil
 }

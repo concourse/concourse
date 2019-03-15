@@ -197,6 +197,7 @@ var requiredRoles = map[string]string{
 	atc.RenameTeam:                    "owner",
 	atc.DestroyTeam:                   "owner",
 	atc.ListTeamBuilds:                "viewer",
-	atc.SendInputToBuildPlan:          "member",
-	atc.ReadOutputFromBuildPlan:       "member",
+	atc.CreateArtifact:                "member",
+	atc.GetArtifact:                   "member",
+	atc.ListBuildArtifacts:            "viewer",
 }

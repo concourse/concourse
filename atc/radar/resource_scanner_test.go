@@ -143,7 +143,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeWorker.NameReturns("some-worker")
-			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 			fakeContainer.HandleReturns("some-handle")
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
@@ -248,7 +248,7 @@ var _ = Describe("ResourceScanner", func() {
 					err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 					Expect(err).To(BeNil())
 
-					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
+					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "git",
@@ -596,7 +596,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeWorker.NameReturns("some-worker")
-			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 			fakeContainer.HandleReturns("some-handle")
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
@@ -680,7 +680,7 @@ var _ = Describe("ResourceScanner", func() {
 				err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
-				_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
+				_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "git",
@@ -763,7 +763,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when find or choosing the worker fails", func() {
 				BeforeEach(func() {
-					fakePool.FindOrChooseWorkerReturns(nil, errors.New("catastrophe"))
+					fakePool.FindOrChooseWorkerForContainerReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {
@@ -1043,7 +1043,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeWorker.NameReturns("some-worker")
-			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 			fakeContainer.HandleReturns("some-handle")
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)

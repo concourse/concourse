@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
-
+	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -693,6 +693,47 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("FindVolumeForWorkerArtifact", func() {
+
+		Context("when the artifact doesn't exist", func() {
+			It("returns not found", func() {
+				_, found, err := defaultTeam.FindVolumeForWorkerArtifact(12)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when the artifact exists", func() {
+			BeforeEach(func() {
+				_, err := dbConn.Exec("INSERT INTO worker_artifacts (id, name) VALUES ($1, '')", 18)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when the associated volume doesn't exist", func() {
+				It("returns not found", func() {
+					_, found, err := defaultTeam.FindVolumeForWorkerArtifact(18)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
+			})
+
+			Context("when the associated volume exists", func() {
+				BeforeEach(func() {
+					_, err := dbConn.Exec("INSERT INTO volumes (handle, team_id, worker_name, worker_artifact_id, state) VALUES ('some-handle', $1, $2, $3, $4)", defaultTeam.ID(), defaultWorker.Name(), 18, db.VolumeStateCreated)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns the volume", func() {
+					volume, found, err := defaultTeam.FindVolumeForWorkerArtifact(18)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(volume.Handle()).To(Equal("some-handle"))
+					Expect(volume.WorkerArtifactID()).To(Equal(18))
+				})
+			})
+		})
+	})
+
 	Describe("FindWorkerForContainer", func() {
 		var containerMetadata db.ContainerMetadata
 		var defaultBuild db.Build
@@ -1024,6 +1065,76 @@ var _ = Describe("Team", func() {
 			Expect(oneOffBuild.Name()).To(Equal(strconv.Itoa(oneOffBuild.ID())))
 			Expect(oneOffBuild.TeamName()).To(Equal(team.Name()))
 			Expect(oneOffBuild.Status()).To(Equal(db.BuildStatusPending))
+		})
+	})
+
+	Describe("CreateStartedBuild", func() {
+		var (
+			plan         atc.Plan
+			startedBuild db.Build
+			err          error
+		)
+
+		BeforeEach(func() {
+			plan = atc.Plan{
+				ID: atc.PlanID("56"),
+				Get: &atc.GetPlan{
+					Type:     "some-type",
+					Name:     "some-name",
+					Resource: "some-resource",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
+					Version:  &atc.Version{"some": "version"},
+					Tags:     atc.Tags{"some-tags"},
+					VersionedResourceTypes: atc.VersionedResourceTypes{
+						{
+							ResourceType: atc.ResourceType{
+								Name:       "some-name",
+								Source:     atc.Source{"some": "source"},
+								Type:       "some-type",
+								Privileged: true,
+								Tags:       atc.Tags{"some-tags"},
+							},
+							Version: atc.Version{"some-resource-type": "version"},
+						},
+					},
+				},
+			}
+
+			startedBuild, err = team.CreateStartedBuild(plan)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("can create started builds with plans", func() {
+			Expect(startedBuild.ID()).ToNot(BeZero())
+			Expect(startedBuild.JobName()).To(BeZero())
+			Expect(startedBuild.PipelineName()).To(BeZero())
+			Expect(startedBuild.Name()).To(Equal(strconv.Itoa(startedBuild.ID())))
+			Expect(startedBuild.TeamName()).To(Equal(team.Name()))
+			Expect(startedBuild.Status()).To(Equal(db.BuildStatusStarted))
+		})
+
+		It("saves the public plan", func() {
+			found, err := startedBuild.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(startedBuild.PublicPlan()).To(Equal(plan.Public()))
+		})
+
+		It("creates Start event", func() {
+			found, err := startedBuild.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			events, err := startedBuild.Events(0)
+			Expect(err).NotTo(HaveOccurred())
+
+			defer db.Close(events)
+
+			Expect(events.Next()).To(Equal(envelope(event.Status{
+				Status: atc.StatusStarted,
+				Time:   startedBuild.StartTime().Unix(),
+			})))
 		})
 	})
 

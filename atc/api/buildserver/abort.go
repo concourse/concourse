@@ -3,9 +3,8 @@ package buildserver
 import (
 	"net/http"
 
-	"github.com/concourse/concourse/atc/db"
-
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) AbortBuild(build db.Build) http.Handler {
@@ -14,14 +13,7 @@ func (s *Server) AbortBuild(build db.Build) http.Handler {
 			"build": build.ID(),
 		})
 
-		engineBuild, err := s.engine.LookupBuild(aLog, build)
-		if err != nil {
-			aLog.Error("failed-to-lookup-build", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		err = engineBuild.Abort(aLog)
+		err := build.MarkAsAborted()
 		if err != nil {
 			aLog.Error("failed-to-abort-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -121,7 +121,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		BeforeEach(func() {
 			fakeWorker.NameReturns("some-worker")
-			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 			fakeContainer.HandleReturns("some-handle")
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
@@ -184,7 +184,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 
-					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
+					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",
@@ -243,7 +243,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
 						Expect(err).To(BeNil())
 
-						_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
+						_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 						Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 							ResourceType: "registry-image",
@@ -444,7 +444,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		BeforeEach(func() {
 			fakeWorker.NameReturns("some-worker")
-			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 			fakeContainer.HandleReturns("some-handle")
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
@@ -477,7 +477,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
-				_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
+				_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "registry-image",
@@ -603,7 +603,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						versionedResourceType,
 					})))
 
-					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerArgsForCall(0)
+					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",
@@ -675,7 +675,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			Context("when finding or choosing the worker fails", func() {
 				BeforeEach(func() {
-					fakePool.FindOrChooseWorkerReturns(nil, errors.New("catastrophe"))
+					fakePool.FindOrChooseWorkerForContainerReturns(nil, errors.New("catastrophe"))
 				})
 
 				It("sets the check error and returns the error", func() {
@@ -876,7 +876,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		BeforeEach(func() {
 			fakeWorker.NameReturns("some-worker")
-			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 			fakeContainer.HandleReturns("some-handle")
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)

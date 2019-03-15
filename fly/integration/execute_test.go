@@ -12,21 +12,19 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/vito/go-sse/sse"
-
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/event"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -39,6 +37,10 @@ var _ = Describe("Fly CLI", func() {
 	var uploadingBits <-chan struct{}
 
 	var expectedPlan atc.Plan
+	var workerArtifact = atc.WorkerArtifact{
+		ID:   125,
+		Name: "some-dir",
+	}
 
 	BeforeEach(func() {
 		var err error
@@ -85,8 +87,9 @@ run:
 
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
 			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.UserArtifactPlan{
-					Name: filepath.Base(buildDir),
+				planFactory.NewPlan(atc.ArtifactInputPlan{
+					ArtifactID: 125,
+					Name:       filepath.Base(buildDir),
 				}),
 			}),
 			planFactory.NewPlan(atc.TaskPlan{
@@ -124,6 +127,29 @@ run:
 		uploading := make(chan struct{})
 		uploadingBits = uploading
 
+		atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
+			ghttp.CombineHandlers(
+				func(w http.ResponseWriter, req *http.Request) {
+					close(uploading)
+
+					gr, err := gzip.NewReader(req.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					tr := tar.NewReader(gr)
+
+					hdr, err := tr.Next()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(hdr.Name).To(Equal("./"))
+
+					hdr, err = tr.Next()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
+				},
+				ghttp.RespondWith(201, `{"id":125}`),
+			),
+		)
 		atcServer.RouteToHandler("POST", "/api/v1/teams/main/builds",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/teams/main/builds"),
@@ -182,29 +208,10 @@ run:
 				},
 			),
 		)
-		atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
-			ghttp.CombineHandlers(
-				func(w http.ResponseWriter, req *http.Request) {
-					close(uploading)
-
-					gr, err := gzip.NewReader(req.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					tr := tar.NewReader(gr)
-
-					hdr, err := tr.Next()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(hdr.Name).To(Equal("./"))
-
-					hdr, err = tr.Next()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
-				},
-				ghttp.RespondWith(200, ""),
-			),
+		atcServer.RouteToHandler("GET", "/api/v1/builds/128/artifacts",
+			ghttp.RespondWithJSONEncoded(200, []atc.WorkerArtifact{workerArtifact}),
 		)
+
 	})
 
 	It("creates a build, streams output, uploads the bits, and polls until completion", func() {
@@ -314,7 +321,7 @@ run: {}
 				It("by default apply .gitignore", func() {
 					uploading := make(chan struct{})
 					uploadingBits = uploading
-					atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
+					atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 						ghttp.CombineHandlers(
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
@@ -338,7 +345,7 @@ run: {}
 
 								Expect(matchFound).To(Equal(false))
 							},
-							ghttp.RespondWith(200, ""),
+							ghttp.RespondWith(201, `{"id":125}`),
 						),
 					)
 
@@ -364,7 +371,7 @@ run: {}
 				It("uploading with everything", func() {
 					uploading := make(chan struct{})
 					uploadingBits = uploading
-					atcServer.RouteToHandler("PUT", regexp.MustCompile(`/api/v1/builds/128/plan/.*/input`),
+					atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 						ghttp.CombineHandlers(
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
@@ -388,7 +395,7 @@ run: {}
 
 								Expect(matchFound).To(Equal(true))
 							},
-							ghttp.RespondWith(200, ""),
+							ghttp.RespondWith(201, `{"id":125}`),
 						),
 					)
 					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "--include-ignored")

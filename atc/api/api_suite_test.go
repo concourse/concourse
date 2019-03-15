@@ -10,25 +10,21 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
+	"github.com/concourse/concourse/atc/api/resourceserver/resourceserverfakes"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/gc/gcfakes"
-
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
-	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
-	"github.com/concourse/concourse/atc/api/jobserver/jobserverfakes"
-	"github.com/concourse/concourse/atc/api/resourceserver/resourceserverfakes"
-	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/atc/wrappa"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var (
@@ -36,9 +32,7 @@ var (
 
 	externalURL = "https://example.com"
 
-	fakeEngine              *enginefakes.FakeEngine
-	fakeWorkerPool          *workerfakes.FakePool
-	fakeWorkerProvider      *workerfakes.FakeWorkerProvider
+	fakeWorkerClient        *workerfakes.FakeClient
 	fakeVolumeRepository    *dbfakes.FakeVolumeRepository
 	fakeContainerRepository *dbfakes.FakeContainerRepository
 	fakeDestroyer           *gcfakes.FakeDestroyer
@@ -54,13 +48,11 @@ var (
 	build                   *dbfakes.FakeBuild
 	dbBuildFactory          *dbfakes.FakeBuildFactory
 	dbTeam                  *dbfakes.FakeTeam
-	fakeSchedulerFactory    *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory      *resourceserverfakes.FakeScannerFactory
 	fakeVariablesFactory    *credsfakes.FakeVariablesFactory
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
-	peerURL                 string
 	drain                   chan struct{}
 	expire                  time.Duration
 	isTLSEnabled            bool
@@ -117,15 +109,10 @@ var _ = BeforeEach(func() {
 	dbWorkerFactory = new(dbfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
 
-	peerURL = "http://127.0.0.1:1234"
-
 	drain = make(chan struct{})
 
-	fakeEngine = new(enginefakes.FakeEngine)
-	fakeWorkerPool = new(workerfakes.FakePool)
-	fakeWorkerProvider = new(workerfakes.FakeWorkerProvider)
+	fakeWorkerClient = new(workerfakes.FakeClient)
 
-	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
 	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
 
 	fakeVolumeRepository = new(dbfakes.FakeVolumeRepository)
@@ -182,15 +169,11 @@ var _ = BeforeEach(func() {
 		dbBuildFactory,
 		dbResourceConfigFactory,
 
-		peerURL,
 		constructedEventHandler.Construct,
 		drain,
 
-		fakeEngine,
-		fakeWorkerPool,
-		fakeWorkerProvider,
+		fakeWorkerClient,
 
-		fakeSchedulerFactory,
 		fakeScannerFactory,
 
 		sink,

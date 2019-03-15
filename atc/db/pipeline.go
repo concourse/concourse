@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/event"
 )
 
 type ErrResourceNotFound struct {
@@ -50,7 +50,10 @@ type Pipeline interface {
 	GetBuildsWithVersionAsInput(int, int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(int, int) ([]Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
+
 	CreateOneOffBuild() (Build, error)
+	CreateStartedBuild(plan atc.Plan) (Build, error)
+
 	GetAllPendingBuilds() (map[string][]Build, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
@@ -966,6 +969,56 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 	}
 
 	return build, nil
+}
+
+func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	metadata, err := json.Marshal(plan)
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedPlan, nonce, err := p.conn.EncryptionStrategy().Encrypt(metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	build := &build{conn: p.conn, lockFactory: p.lockFactory}
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":         sq.Expr("nextval('one_off_name')"),
+		"pipeline_id":  p.id,
+		"team_id":      p.teamID,
+		"status":       BuildStatusStarted,
+		"start_time":   sq.Expr("now()"),
+		"schema":       "exec.v2",
+		"private_plan": encryptedPlan,
+		"public_plan":  plan.Public(),
+		"nonce":        nonce,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = build.saveEvent(tx, event.Status{
+		Status: atc.StatusStarted,
+		Time:   build.StartTime().Unix(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return build, p.conn.Bus().Notify(buildEventsChannel(build.id))
 }
 
 func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {

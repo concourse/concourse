@@ -9,21 +9,19 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-
-	"golang.org/x/crypto/ssh"
-
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
+	"golang.org/x/crypto/ssh"
 )
 
 type TSACommand struct {
 	Logger flag.Lager
 
-	PeerIP string `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
+	PeerIP string `long:"peer-ip" default:"127.0.0.1" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
 
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
 	BindPort uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`

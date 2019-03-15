@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -48,7 +49,7 @@ var _ = Describe("PutStep", func() {
 
 		resourceTypes creds.VersionedResourceTypes
 
-		repo  *worker.ArtifactRepository
+		repo  *artifact.Repository
 		state *execfakes.FakeRunState
 
 		stdoutBuf *gbytes.Buffer
@@ -87,7 +88,7 @@ var _ = Describe("PutStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
-		repo = worker.NewArtifactRepository()
+		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 
@@ -170,7 +171,7 @@ var _ = Describe("PutStep", func() {
 				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
 
 				fakeWorker.NameReturns("some-worker")
-				fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 				fakeResource = new(resourcefakes.FakeResource)
 				fakeResource.PutReturns(fakeVersionedSource, nil)
@@ -178,8 +179,8 @@ var _ = Describe("PutStep", func() {
 			})
 
 			It("finds/chooses a worker and creates a container with the correct type, session, and sources with no inputs specified (meaning it takes all artifacts)", func() {
-				Expect(fakePool.FindOrChooseWorkerCallCount()).To(Equal(1))
-				_, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerArgsForCall(0)
+				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+				_, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
 				Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "some-resource-type",
@@ -381,7 +382,7 @@ var _ = Describe("PutStep", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerReturns(nil, disaster)
+				fakePool.FindOrChooseWorkerForContainerReturns(nil, disaster)
 			})
 
 			It("returns the failure", func() {
@@ -393,7 +394,7 @@ var _ = Describe("PutStep", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 				fakeWorker.FindOrCreateContainerReturns(nil, disaster)
 			})
 
