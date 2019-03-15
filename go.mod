@@ -84,7 +84,7 @@ require (
 	github.com/go-sql-driver/mysql v0.0.0-20160802113842-0b58b37b664c // indirect
 	github.com/go-stomp/stomp v2.0.2+incompatible // indirect
 	github.com/go-test/deep v1.0.1 // indirect
-	github.com/gobuffalo/packr v1.13.7
+	github.com/gobuffalo/packr v1.24.0
 	github.com/gocql/gocql v0.0.0-20180920092337-799fb0373110 // indirect
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
