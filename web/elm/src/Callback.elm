@@ -21,6 +21,7 @@ type Callback
     | JobFetched (Fetched Concourse.Job)
     | JobsFetched (Fetched Json.Encode.Value)
     | PipelineFetched (Fetched Concourse.Pipeline)
+    | PipelineToggled (Fetched ())
     | UserFetched (Fetched Concourse.User)
     | ResourcesFetched (Fetched Json.Encode.Value)
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))

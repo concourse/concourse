@@ -137,7 +137,9 @@ handleCallback callback ( model, effects ) =
             )
 
         APIDataFetched (Err err) ->
-            ( { model | teams = RemoteData.Failure err, middleSection = Empty }, effects )
+            ( { model | teams = RemoteData.Failure err, middleSection = Empty }
+            , effects
+            )
 
         ScreenResized size ->
             ( screenResize size model, effects )
@@ -444,10 +446,12 @@ showSearchInput model =
             ( model, [] )
 
         Empty ->
-            Debug.log "attempting to show search input when search is gone" ( model, [] )
+            Debug.log "attempting to show search input when search is gone"
+                ( model, [] )
 
         Breadcrumbs _ ->
-            Debug.log "attempting to show search input on a breadcrumbs page" ( model, [] )
+            Debug.log "attempting to show search input on a breadcrumbs page"
+                ( model, [] )
 
 
 view : UserState -> PipelineState -> Model r -> Html Msg
@@ -456,49 +460,47 @@ view userState pipelineState model =
         [ id "top-bar-app"
         , style <| Styles.topBar <| isPaused pipelineState
         ]
-        (viewConcourseLogo
-            ++ viewMiddleSection model
-            ++ viewPin pipelineState model
-            ++ viewPauseToggle pipelineState model
-            ++ viewLogin userState model (isPaused pipelineState)
-        )
+        [ viewConcourseLogo
+        , viewMiddleSection model
+        , viewPin pipelineState model
+        , viewPauseToggle pipelineState model
+        , viewLogin userState model (isPaused pipelineState)
+        ]
 
 
-viewPauseToggle :
-    PipelineState
-    -> { a | pauseToggleHovered : Bool }
-    -> List (Html Msg)
+viewPauseToggle : PipelineState -> { a | pauseToggleHovered : Bool } -> Html Msg
 viewPauseToggle pipelineState { pauseToggleHovered } =
     case pipelineState of
         HasPipeline { isPaused, pipeline } ->
-            [ Html.a
-                [ id "top-bar-pause-pipeline"
-                , style
-                    (Styles.pausePipelineButton
-                        { isPaused = isPaused
-                        , hovered = pauseToggleHovered
-                        }
-                    )
+            Html.div
+                [ id "top-bar-pause-toggle"
+                , style <| Styles.pauseToggle isPaused
                 , onClick <| TogglePipelinePaused pipeline isPaused
                 , onMouseEnter <| Hover True
                 , onMouseLeave <| Hover False
                 ]
-                []
-            ]
+                [ Html.div
+                    [ style <|
+                        Styles.pauseToggleIcon
+                            { isPaused = isPaused
+                            , hovered = pauseToggleHovered
+                            }
+                    ]
+                    []
+                ]
 
         _ ->
-            []
+            Html.text ""
 
 
-viewLogin : UserState -> Model r -> Bool -> List (Html Msg)
+viewLogin : UserState -> Model r -> Bool -> Html Msg
 viewLogin userState model isPaused =
     if showLogin model then
-        [ Html.div [ id "login-component", style Styles.loginComponent ] <|
+        Html.div [ id "login-component", style Styles.loginComponent ] <|
             viewLoginState userState model.isUserMenuExpanded isPaused
-        ]
 
     else
-        []
+        Html.text ""
 
 
 showLogin : Model r -> Bool
@@ -554,14 +556,14 @@ userDisplayName user =
             List.filter (not << String.isEmpty) [ user.userName, user.name, user.email ]
 
 
-viewMiddleSection : Model r -> List (Html Msg)
+viewMiddleSection : Model r -> Html Msg
 viewMiddleSection model =
     case model.middleSection of
         Empty ->
-            []
+            Html.text ""
 
         MinifiedSearch ->
-            [ Html.div [ style <| Styles.showSearchContainer model ]
+            Html.div [ style <| Styles.showSearchContainer model ]
                 [ Html.a
                     [ id "show-search-button"
                     , onClick ShowSearchInput
@@ -569,18 +571,22 @@ viewMiddleSection model =
                     ]
                     []
                 ]
-            ]
 
         SearchBar r ->
             viewSearch r model
 
         Breadcrumbs r ->
-            [ Html.div [ id "breadcrumbs", style Styles.breadcrumbContainer ] (viewBreadcrumbs r) ]
+            Html.div
+                [ id "breadcrumbs", style Styles.breadcrumbContainer ]
+                (viewBreadcrumbs r)
 
 
-viewSearch : { query : String, dropdown : Dropdown } -> Model r -> List (Html Msg)
+viewSearch :
+    { query : String, dropdown : Dropdown }
+    -> Model r
+    -> Html Msg
 viewSearch r model =
-    [ Html.div
+    Html.div
         [ id "search-container"
         , style (Styles.searchContainer model.screenSize)
         ]
@@ -603,7 +609,6 @@ viewSearch r model =
          ]
             ++ viewDropdownItems r model
         )
-    ]
 
 
 viewDropdownItems : { query : String, dropdown : Dropdown } -> Model r -> List (Html Msg)
@@ -655,12 +660,9 @@ viewDropdownItems { query, dropdown } model =
             ]
 
 
-viewConcourseLogo : List (Html Msg)
+viewConcourseLogo : Html Msg
 viewConcourseLogo =
-    [ Html.a
-        [ style Styles.concourseLogo, href "/" ]
-        []
-    ]
+    Html.a [ style Styles.concourseLogo, href "/" ] []
 
 
 viewBreadcrumbs : Routes.Route -> List (Html Msg)
@@ -761,11 +763,11 @@ dropdownOptions { query, teams } =
             []
 
 
-viewPin : PipelineState -> Model r -> List (Html Msg)
+viewPin : PipelineState -> Model r -> Html Msg
 viewPin pipelineState model =
     case pipelineState of
         HasPipeline { pinnedResources, pipeline } ->
-            [ Html.div
+            Html.div
                 [ style <| Styles.pinIconContainer model.isPinMenuExpanded
                 , id "pin-icon"
                 ]
@@ -788,10 +790,9 @@ viewPin pipelineState model =
                   else
                     Html.div [ style <| Styles.pinIcon ] []
                 ]
-            ]
 
         None ->
-            []
+            Html.text ""
 
 
 viewPinDropdown : List ( String, Concourse.Version ) -> Concourse.PipelineIdentifier -> Model r -> List (Html Msg)

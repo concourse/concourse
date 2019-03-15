@@ -13,7 +13,8 @@ module TopBar.Styles exposing
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
-    , pausePipelineButton
+    , pauseToggle
+    , pauseToggleIcon
     , pinBadge
     , pinDropdownCursor
     , pinHoverHighlight
@@ -248,20 +249,9 @@ breadcrumbItem clickable =
     ]
 
 
-pausePipelineButton :
-    { isPaused : Bool, hovered : Bool }
-    -> List ( String, String )
-pausePipelineButton { isPaused, hovered } =
-    [ ( "background-image"
-      , if isPaused then
-            "url(/public/images/ic-play-white.svg)"
-
-        else
-            "url(/public/images/ic-pause-white.svg)"
-      )
-    , ( "padding", "10px" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
+pauseToggle : Bool -> List ( String, String )
+pauseToggle isPaused =
+    [ ( "padding", "10px" )
     , ( "border-left"
       , if isPaused then
             "1px solid rgba(255, 255, 255, 0.5)"
@@ -269,9 +259,25 @@ pausePipelineButton { isPaused, hovered } =
         else
             "1px solid #3d3c3c"
       )
+    , ( "cursor", "pointer" )
+    ]
+
+
+pauseToggleIcon :
+    { isPaused : Bool, hovered : Bool }
+    -> List ( String, String )
+pauseToggleIcon { isPaused, hovered } =
+    [ ( "background-image"
+      , if isPaused then
+            "url(/public/images/ic-play-white.svg)"
+
+        else
+            "url(/public/images/ic-pause-white.svg)"
+      )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
     , ( "width", "34px" )
     , ( "height", "34px" )
-    , ( "cursor", "pointer" )
     , ( "opacity"
       , if hovered then
             "1"

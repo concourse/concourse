@@ -179,6 +179,16 @@ handleCallbackWithoutTopBar callback ( model, effects ) =
                 _ ->
                     renderIfNeeded ( { model | experiencingTurbulence = True }, effects )
 
+        PipelineToggled (Ok ()) ->
+            ( { model
+                | pipeline =
+                    RemoteData.map
+                        (\p -> { p | paused = not p.paused })
+                        model.pipeline
+              }
+            , effects
+            )
+
         JobsFetched (Ok fetchedJobs) ->
             renderIfNeeded ( { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }, effects )
 

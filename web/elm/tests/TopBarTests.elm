@@ -9,6 +9,7 @@ import Dict
 import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
+import Http
 import Pipeline.Msgs
 import Routes
 import SubPage.Msgs
@@ -275,11 +276,11 @@ all =
                         >> Query.find [ id "user-id" ]
                         >> Query.hasNot [ id "logout-button" ]
                 , it "renders pause pipeline button" <|
-                    Query.find [ id "top-bar-pause-pipeline" ]
+                    Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.has
                             [ style [ ( "background-image", "url(/public/images/ic-pause-white.svg)" ) ] ]
                 , it "draws lighter grey line to the left of pause pipeline button" <|
-                    Query.find [ id "top-bar-pause-pipeline" ]
+                    Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.has
                             [ style [ ( "border-left", "1px solid " ++ borderGrey ) ] ]
                 ]
@@ -298,7 +299,8 @@ all =
                             )
                         )
                     >> Tuple.second
-                    >> Expect.equal [ Effects.NavigateTo "/teams/t/pipelines/p/resources/r" ]
+                    >> Expect.equal
+                        [ Effects.NavigateTo "/teams/t/pipelines/p/resources/r" ]
             , context "when pipeline is paused"
                 (Tuple.first
                     >> TopBar.view (UserState.UserStateLoggedIn sampleUser)
@@ -317,20 +319,12 @@ all =
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
                         >> Query.has
-                            [ style [ ( "border-left", "1px solid " ++ almostWhite ) ] ]
-                , it "renders play pipeline button" <|
-                    Query.find [ id "top-bar-pause-pipeline" ]
-                        >> Query.has
                             [ style
-                                [ ( "background-image"
-                                  , "url(/public/images/ic-play-white.svg)"
+                                [ ( "border-left"
+                                  , "1px solid " ++ almostWhite
                                   )
                                 ]
                             ]
-                , it "draws almost-white line to the left of pause pipeline button" <|
-                    Query.find [ id "top-bar-pause-pipeline" ]
-                        >> Query.has
-                            [ style [ ( "border-left", "1px solid " ++ almostWhite ) ] ]
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
@@ -970,79 +964,169 @@ all =
                         >> Query.count (Expect.equal 0)
                 ]
             ]
-        , defineHoverBehaviour
-            { name = "play pipeline icon"
-            , setup =
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
+        , describe "pause toggle" <|
+            let
+                givenPipelinePaused =
+                    Application.init
+                        { turbulenceImgSrc = ""
+                        , notFoundImgSrc = ""
+                        , csrfToken = ""
+                        , authToken = ""
+                        , pipelineRunningKeyframes = ""
+                        }
+                        { href = ""
+                        , host = ""
+                        , hostname = ""
+                        , protocol = ""
+                        , origin = ""
+                        , port_ = ""
+                        , pathname = "/teams/t/pipelines/p"
+                        , search = ""
+                        , hash = ""
+                        , username = ""
+                        , password = ""
+                        }
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Effects.SubPage 1)
+                            (Callback.PipelineFetched <|
+                                Ok
+                                    { id = 0
+                                    , name = "p"
+                                    , paused = True
+                                    , public = True
+                                    , teamName = "t"
+                                    , groups = []
+                                    }
+                            )
+                        |> Tuple.first
+
+                pipelineIdentifier =
+                    { pipelineName = "p"
+                    , teamName = "t"
                     }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
+
+                toggleMsg =
+                    Application.Msgs.SubMsg 1 <|
+                        SubPage.Msgs.PipelineMsg <|
+                            Pipeline.Msgs.FromTopBar <|
+                                Msgs.TogglePipelinePaused
+                                    pipelineIdentifier
+                                    True
+            in
+            [ defineHoverBehaviour
+                { name = "play pipeline icon"
+                , setup = givenPipelinePaused
+                , query =
+                    Application.view
+                        >> Query.fromHtml
+                        >> Query.find [ id "top-bar-pause-toggle" ]
+                , updateFunc =
+                    \msg ->
+                        Application.update msg
+                            >> Tuple.first
+                , unhoveredSelector =
+                    { description = "faded play button with light border"
+                    , selector =
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border-left"
+                              , "1px solid " ++ almostWhite
+                              )
+                            ]
+                        , containing <|
+                            [ style [ ( "opacity", "0.5" ) ] ]
+                                ++ iconSelector
+                                    { size = "34px"
+                                    , image = "ic-play-white.svg"
+                                    }
+                        ]
                     }
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Effects.SubPage 1)
-                        (Callback.PipelineFetched <|
-                            Ok
-                                { id = 0
-                                , name = "p"
-                                , paused = True
-                                , public = True
-                                , teamName = "t"
-                                , groups = []
-                                }
-                        )
-                    |> Tuple.first
-            , query =
-                Application.view
-                    >> Query.fromHtml
-                    >> Query.find [ id "top-bar-pause-pipeline" ]
-            , updateFunc =
-                \msg ->
-                    Application.update msg
-                        >> Tuple.first
-            , unhoveredSelector =
-                { description = "faded play button"
-                , selector =
-                    [ style [ ( "opacity", "0.5" ) ] ]
-                        ++ iconSelector
-                            { size = "34px"
-                            , image = "ic-play-white.svg"
-                            }
+                , hoveredSelector =
+                    { description = "white play button with light border"
+                    , selector =
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border-left"
+                              , "1px solid " ++ almostWhite
+                              )
+                            ]
+                        , containing <|
+                            [ style [ ( "opacity", "1" ) ] ]
+                                ++ iconSelector
+                                    { size = "34px"
+                                    , image = "ic-play-white.svg"
+                                    }
+                        ]
+                    }
+                , mouseEnterMsg =
+                    Application.Msgs.SubMsg 1 <|
+                        SubPage.Msgs.PipelineMsg <|
+                            Pipeline.Msgs.FromTopBar <|
+                                Msgs.Hover True
+                , mouseLeaveMsg =
+                    Application.Msgs.SubMsg 1 <|
+                        SubPage.Msgs.PipelineMsg <|
+                            Pipeline.Msgs.FromTopBar <|
+                                Msgs.Hover False
                 }
-            , hoveredSelector =
-                { description = "white play button"
-                , selector =
-                    [ style [ ( "opacity", "1" ) ] ]
-                        ++ iconSelector
-                            { size = "34px"
-                            , image = "ic-play-white.svg"
-                            }
-                }
-            , mouseEnterMsg =
-                Application.Msgs.SubMsg 1 <|
-                    SubPage.Msgs.PipelineMsg <|
-                        Pipeline.Msgs.FromTopBar <|
-                            Msgs.Hover True
-            , mouseLeaveMsg =
-                Application.Msgs.SubMsg 1 <|
-                    SubPage.Msgs.PipelineMsg <|
-                        Pipeline.Msgs.FromTopBar <|
-                            Msgs.Hover False
-            }
+            , test "clicking play button sends TogglePipelinePaused msg" <|
+                \_ ->
+                    givenPipelinePaused
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-pause-toggle" ]
+                        |> Event.simulate Event.click
+                        |> Event.expect toggleMsg
+            , test "TogglePipelinePaused msg sends TogglePipelineRequest" <|
+                \_ ->
+                    givenPipelinePaused
+                        |> Application.update toggleMsg
+                        |> Tuple.second
+                        |> Expect.equal
+                            [ ( Effects.SubPage 1
+                              , ""
+                              , Effects.SendTogglePipelineRequest
+                                    pipelineIdentifier
+                                    True
+                              )
+                            ]
+            , test "successful PipelineToggled callback turns topbar dark" <|
+                \_ ->
+                    givenPipelinePaused
+                        |> Application.handleCallback
+                            (Effects.SubPage 1)
+                            (Callback.PipelineToggled <| Ok ())
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Query.has
+                            [ style [ ( "background-color", backgroundGrey ) ] ]
+            , test "failed PipelineToggled callback leaves topbar blue" <|
+                \_ ->
+                    givenPipelinePaused
+                        |> Application.handleCallback
+                            (Effects.SubPage 1)
+                            (Callback.PipelineToggled <|
+                                Err <|
+                                    Http.BadStatus
+                                        { url = "http://example.com"
+                                        , status =
+                                            { code = 500
+                                            , message = ""
+                                            }
+                                        , headers = Dict.empty
+                                        , body = ""
+                                        }
+                            )
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Query.has
+                            [ style [ ( "background-color", pausedBlue ) ] ]
+            ]
         ]
 
 
