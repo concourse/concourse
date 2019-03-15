@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  web:
+    image: concourse/dev:latest
+    volumes: ["./keys:/concourse-keys"]
+
+  worker:
+    image: concourse/dev:latest
+    volumes: ["./keys:/concourse-keys"]

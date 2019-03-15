@@ -23,6 +23,7 @@ cd concourse
 docker-compose \
   -f docker-compose.yml \
   -f ci/overrides/docker-compose.ci.yml \
+  -f ci/overrides/docker-compose.no-build.yml \
   -f ci/overrides/docker-compose.latest.yml \
   up --no-build -d
 
@@ -32,6 +33,7 @@ docker-compose \
 docker-compose \
   -f docker-compose.yml \
   -f ci/overrides/docker-compose.ci.yml \
+  -f ci/overrides/docker-compose.no-build.yml \
   up --no-build -d
 
 ./ci/tasks/scripts/verify-upgrade-downgrade-pipeline

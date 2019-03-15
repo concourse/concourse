@@ -111,6 +111,7 @@ jobs:
     privileged: true
     file: concourse-pr/ci/tasks/docker-compose-testflight.yml
     input_mapping: {concourse: built-concourse}
+    params: {BUILD: true}
     tags: [pr]
 
 - name: watsjs
@@ -151,6 +152,7 @@ jobs:
     privileged: true
     file: concourse-pr/ci/tasks/docker-compose-watsjs.yml
     input_mapping: {concourse: built-concourse}
+    params: {BUILD: true}
     tags: [pr]
 
 - name: baggageclaim
