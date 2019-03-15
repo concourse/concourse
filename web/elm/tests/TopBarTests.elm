@@ -1061,7 +1061,7 @@ all =
                     { description = "faded play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "10px" )
+                            [ ( "padding", "17px" )
                             , ( "border-left"
                               , "1px solid " ++ almostWhite
                               )
@@ -1070,7 +1070,7 @@ all =
                         , containing <|
                             [ style [ ( "opacity", "0.5" ) ] ]
                                 ++ iconSelector
-                                    { size = "34px"
+                                    { size = "20px"
                                     , image = "ic-play-white.svg"
                                     }
                         ]
@@ -1079,7 +1079,7 @@ all =
                     { description = "white play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "10px" )
+                            [ ( "padding", "17px" )
                             , ( "border-left"
                               , "1px solid " ++ almostWhite
                               )
@@ -1088,7 +1088,7 @@ all =
                         , containing <|
                             [ style [ ( "opacity", "1" ) ] ]
                                 ++ iconSelector
-                                    { size = "34px"
+                                    { size = "20px"
                                     , image = "ic-play-white.svg"
                                     }
                         ]
@@ -1119,7 +1119,7 @@ all =
                     { description = "faded play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "10px" )
+                            [ ( "padding", "17px" )
                             , ( "border-left"
                               , "1px solid " ++ almostWhite
                               )
@@ -1128,7 +1128,7 @@ all =
                         , containing <|
                             [ style [ ( "opacity", "0.5" ) ] ]
                                 ++ iconSelector
-                                    { size = "34px"
+                                    { size = "20px"
                                     , image = "ic-play-white.svg"
                                     }
                         ]
@@ -1137,7 +1137,7 @@ all =
                     { description = "white play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "10px" )
+                            [ ( "padding", "17px" )
                             , ( "border-left"
                               , "1px solid " ++ almostWhite
                               )
@@ -1146,7 +1146,7 @@ all =
                         , containing <|
                             [ style [ ( "opacity", "1" ) ] ]
                                 ++ iconSelector
-                                    { size = "34px"
+                                    { size = "20px"
                                     , image = "ic-play-white.svg"
                                     }
                         ]
@@ -1177,7 +1177,7 @@ all =
                     { description = "faded play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "10px" )
+                            [ ( "padding", "17px" )
                             , ( "border-left"
                               , "1px solid " ++ almostWhite
                               )
@@ -1186,7 +1186,7 @@ all =
                         , containing <|
                             [ style [ ( "opacity", "0.5" ) ] ]
                                 ++ iconSelector
-                                    { size = "34px"
+                                    { size = "20px"
                                     , image = "ic-play-white.svg"
                                     }
                         ]
@@ -1195,7 +1195,7 @@ all =
                     { description = "faded play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "10px" )
+                            [ ( "padding", "17px" )
                             , ( "border-left"
                               , "1px solid " ++ almostWhite
                               )
@@ -1204,7 +1204,7 @@ all =
                         , containing <|
                             [ style [ ( "opacity", "0.5" ) ] ]
                                 ++ iconSelector
-                                    { size = "34px"
+                                    { size = "20px"
                                     , image = "ic-play-white.svg"
                                     }
                         ]
@@ -1251,9 +1251,28 @@ all =
                                     True
                               )
                             ]
+            , test "play button click msg turns icon into spinner" <|
+                \_ ->
+                    givenPipelinePaused
+                        |> Application.update toggleMsg
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-pause-toggle" ]
+                        |> Query.has
+                            [ style
+                                [ ( "animation"
+                                  , "container-rotate 1568ms linear infinite"
+                                  )
+                                , ( "height", "20px" )
+                                , ( "width", "20px" )
+                                ]
+                            ]
             , test "successful PipelineToggled callback turns topbar dark" <|
                 \_ ->
                     givenPipelinePaused
+                        |> Application.update toggleMsg
+                        |> Tuple.first
                         |> Application.handleCallback
                             (Effects.SubPage 1)
                             (Callback.PipelineToggled <| Ok ())
@@ -1263,6 +1282,24 @@ all =
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
                             [ style [ ( "background-color", backgroundGrey ) ] ]
+            , test "successful callback turns spinner into pause button" <|
+                \_ ->
+                    givenPipelinePaused
+                        |> Application.update toggleMsg
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Effects.SubPage 1)
+                            (Callback.PipelineToggled <| Ok ())
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-pause-toggle" ]
+                        |> Query.has
+                            (iconSelector
+                                { size = "20px"
+                                , image = "ic-pause-white.svg"
+                                }
+                            )
             , test "Unauthorized PipelineToggled callback redirects to login" <|
                 \_ ->
                     givenPipelinePaused

@@ -147,4 +147,5 @@ notFound route =
     , highDensity = False
     , isPinMenuExpanded = False
     , pauseToggleHovered = False
+    , pauseToggleLoading = False
     }

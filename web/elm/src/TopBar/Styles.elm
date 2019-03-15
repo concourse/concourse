@@ -253,7 +253,7 @@ pauseToggle :
     { isPaused : Bool, isClickable : Bool }
     -> List ( String, String )
 pauseToggle { isPaused, isClickable } =
-    [ ( "padding", "10px" )
+    [ ( "padding", "17px" )
     , ( "border-left"
       , if isPaused then
             "1px solid rgba(255, 255, 255, 0.5)"
@@ -284,8 +284,8 @@ pauseToggleIcon { isPaused, isHovered } =
       )
     , ( "background-position", "50% 50%" )
     , ( "background-repeat", "no-repeat" )
-    , ( "width", "34px" )
-    , ( "height", "34px" )
+    , ( "width", "20px" )
+    , ( "height", "20px" )
     , ( "opacity"
       , if isHovered then
             "1"

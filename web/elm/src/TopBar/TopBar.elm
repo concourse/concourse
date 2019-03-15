@@ -33,6 +33,7 @@ import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
+import Spinner
 import Subscription exposing (Delivery(..))
 import TopBar.Model
     exposing
@@ -88,6 +89,7 @@ init { route } =
       , screenSize = Desktop
       , highDensity = isHd
       , pauseToggleHovered = False
+      , pauseToggleLoading = False
       }
     , [ GetScreenSize ]
     )
@@ -143,6 +145,9 @@ handleCallback callback ( model, effects ) =
 
         ScreenResized size ->
             ( screenResize size model, effects )
+
+        PipelineToggled _ ->
+            ( { model | pauseToggleLoading = False }, effects )
 
         _ ->
             ( model, effects )
@@ -360,7 +365,7 @@ update msg ( model, effects ) =
             ( { model | isPinMenuExpanded = not model.isPinMenuExpanded }, effects )
 
         TogglePipelinePaused pipelineIdentifier isPaused ->
-            ( model
+            ( { model | pauseToggleLoading = True }
             , effects ++ [ SendTogglePipelineRequest pipelineIdentifier isPaused ]
             )
 
@@ -473,9 +478,9 @@ view userState pipelineState model =
 viewPauseToggle :
     UserState
     -> PipelineState
-    -> { a | pauseToggleHovered : Bool }
+    -> { a | pauseToggleHovered : Bool, pauseToggleLoading : Bool }
     -> Html Msg
-viewPauseToggle userState pipelineState { pauseToggleHovered } =
+viewPauseToggle userState pipelineState { pauseToggleHovered, pauseToggleLoading } =
     case pipelineState of
         HasPipeline { isPaused, pipeline } ->
             let
@@ -508,14 +513,18 @@ viewPauseToggle userState pipelineState { pauseToggleHovered } =
                             []
                        )
                 )
-                [ Html.div
-                    [ style <|
-                        Styles.pauseToggleIcon
-                            { isPaused = isPaused
-                            , isHovered = isClickable && pauseToggleHovered
-                            }
-                    ]
-                    []
+                [ if pauseToggleLoading then
+                    Spinner.spinner { size = "20px", margin = "0" }
+
+                  else
+                    Html.div
+                        [ style <|
+                            Styles.pauseToggleIcon
+                                { isPaused = isPaused
+                                , isHovered = isClickable && pauseToggleHovered
+                                }
+                        ]
+                        []
                 ]
 
         _ ->

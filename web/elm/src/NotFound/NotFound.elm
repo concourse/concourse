@@ -33,6 +33,7 @@ init flags =
       , screenSize = topBar.screenSize
       , highDensity = topBar.highDensity
       , pauseToggleHovered = topBar.pauseToggleHovered
+      , pauseToggleLoading = topBar.pauseToggleLoading
       }
     , topBarEffects ++ [ Effects.SetTitle "Not Found " ]
     )

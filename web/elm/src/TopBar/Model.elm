@@ -21,6 +21,7 @@ type alias Model r =
         , screenSize : ScreenSize
         , highDensity : Bool
         , pauseToggleHovered : Bool
+        , pauseToggleLoading : Bool
     }
 
 
