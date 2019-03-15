@@ -381,7 +381,7 @@ delivering y'all a better and better CI system - hopefully, more continuously.
 }
 
 \note{feature}{
-  The \code{concourse worker} command can now be given a \code{--use-houdini}
+  The \code{concourse worker} command can now be given a \code{--garden-use-houdini}
   flag on Linux to use the "no-op" Houdini Garden backend for those odd cases
   where you don't really want containerization. (Use sparingly.)
 }
