@@ -130,7 +130,7 @@ all =
             (TopBar.init { route = Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] } })
             [ context "when login state unknown"
                 (Tuple.first
-                    >> TopBar.view UserState.UserStateUnknown Model.None
+                    >> TopBar.view UserState.UserStateUnknown Nothing
                     >> Query.fromHtml
                 )
                 [ it "shows concourse logo" <|
@@ -194,10 +194,12 @@ all =
             , context "when logged in"
                 (Tuple.first
                     >> TopBar.view (UserState.UserStateLoggedIn sampleUser)
-                        (Model.HasPipeline
+                        (Just
                             { pinnedResources = []
                             , pipeline = { teamName = "t", pipelineName = "p" }
                             , isPaused = False
+                            , isToggleHovered = False
+                            , isToggleLoading = False
                             }
                         )
                     >> Query.fromHtml
@@ -304,10 +306,12 @@ all =
             , context "when pipeline is paused"
                 (Tuple.first
                     >> TopBar.view (UserState.UserStateLoggedIn sampleUser)
-                        (Model.HasPipeline
+                        (Just
                             { pinnedResources = []
                             , pipeline = { teamName = "t", pipelineName = "p" }
                             , isPaused = True
+                            , isToggleHovered = False
+                            , isToggleLoading = False
                             }
                         )
                     >> Query.fromHtml
@@ -332,13 +336,13 @@ all =
             [ it "shows user menu when ToggleUserMenu msg is received" <|
                 TopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
-                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
+                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Nothing
                     >> Query.fromHtml
                     >> Query.has [ id "logout-button" ]
             , it "renders user menu content when ToggleUserMenu msg is received and logged in" <|
                 TopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
-                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
+                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Nothing
                     >> Query.fromHtml
                     >> Expect.all
                         [ Query.has [ id "logout-button" ]
@@ -364,7 +368,7 @@ all =
             , it "when logout is clicked, a LogOut Msg is sent" <|
                 TopBar.update Msgs.ToggleUserMenu
                     >> Tuple.first
-                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Model.None
+                    >> TopBar.view (UserState.UserStateLoggedIn sampleUser) Nothing
                     >> Query.fromHtml
                     >> Query.find [ id "logout-button" ]
                     >> Event.simulate Event.click
@@ -1401,7 +1405,7 @@ onePipeline teamName =
 
 viewNormally : ( Model.Model {}, List Effects.Effect ) -> Query.Single Msgs.Msg
 viewNormally =
-    Tuple.first >> TopBar.view UserStateLoggedOut Model.None >> Query.fromHtml
+    Tuple.first >> TopBar.view UserStateLoggedOut Nothing >> Query.fromHtml
 
 
 testDropdown : List Int -> List Int -> ( Model.Model {}, List Effects.Effect ) -> Test

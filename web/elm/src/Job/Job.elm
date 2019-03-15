@@ -114,8 +114,6 @@ init flags =
             , teams = topBar.teams
             , screenSize = topBar.screenSize
             , highDensity = topBar.highDensity
-            , pauseToggleHovered = topBar.pauseToggleHovered
-            , pauseToggleLoading = topBar.pauseToggleLoading
             }
     in
     ( model
@@ -412,7 +410,7 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
+            [ TopBar.view userState Nothing model |> Html.map FromTopBar
             , Html.div
                 [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ viewMainJobsSection model ]

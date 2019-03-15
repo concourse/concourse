@@ -2,7 +2,7 @@ module TopBar.Model exposing
     ( Dropdown(..)
     , MiddleSection(..)
     , Model
-    , PipelineState(..)
+    , PipelineState
     , isPaused
     )
 
@@ -20,8 +20,6 @@ type alias Model r =
         , teams : RemoteData.WebData (List Concourse.Team)
         , screenSize : ScreenSize
         , highDensity : Bool
-        , pauseToggleHovered : Bool
-        , pauseToggleLoading : Bool
     }
 
 
@@ -41,20 +39,15 @@ type Dropdown
     | Shown { selectedIdx : Maybe Int }
 
 
-type PipelineState
-    = None
-    | HasPipeline
-        { pinnedResources : List ( String, Concourse.Version )
-        , pipeline : Concourse.PipelineIdentifier
-        , isPaused : Bool
-        }
+type alias PipelineState =
+    { pinnedResources : List ( String, Concourse.Version )
+    , pipeline : Concourse.PipelineIdentifier
+    , isPaused : Bool
+    , isToggleHovered : Bool
+    , isToggleLoading : Bool
+    }
 
 
-isPaused : PipelineState -> Bool
-isPaused pipeline =
-    case pipeline of
-        None ->
-            False
-
-        HasPipeline { isPaused } ->
-            isPaused
+isPaused : Maybe PipelineState -> Bool
+isPaused =
+    Maybe.map .isPaused >> Maybe.withDefault False

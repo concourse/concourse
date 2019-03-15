@@ -41,6 +41,7 @@ import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
 import TopBar.Model
+import TopBar.Msgs
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
@@ -61,6 +62,8 @@ type alias Model =
         , selectedGroups : List String
         , hideLegend : Bool
         , hideLegendCounter : Time
+        , isToggleHovered : Bool
+        , isToggleLoading : Bool
         }
 
 
@@ -89,6 +92,8 @@ init flags =
             , experiencingTurbulence = False
             , hideLegend = False
             , hideLegendCounter = 0
+            , isToggleHovered = False
+            , isToggleLoading = False
             , selectedGroups = flags.selectedGroups
             , isUserMenuExpanded = topBar.isUserMenuExpanded
             , isPinMenuExpanded = topBar.isPinMenuExpanded
@@ -96,8 +101,6 @@ init flags =
             , teams = topBar.teams
             , screenSize = topBar.screenSize
             , highDensity = topBar.highDensity
-            , pauseToggleHovered = topBar.pauseToggleHovered
-            , pauseToggleLoading = topBar.pauseToggleLoading
             }
     in
     ( model, [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )
@@ -186,17 +189,24 @@ handleCallbackWithoutTopBar callback ( model, effects ) =
                     RemoteData.map
                         (\p -> { p | paused = not p.paused })
                         model.pipeline
+                , isToggleLoading = False
               }
             , effects
             )
 
         PipelineToggled (Err err) ->
+            let
+                newModel =
+                    { model | isToggleLoading = False }
+            in
             case err of
                 Http.BadStatus { status } ->
-                    ( model, effects ++ redirectToLoginIfUnauthenticated status )
+                    ( newModel
+                    , effects ++ redirectToLoginIfUnauthenticated status
+                    )
 
                 _ ->
-                    ( model, effects )
+                    ( newModel, effects )
 
         JobsFetched (Ok fetchedJobs) ->
             renderIfNeeded ( { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }, effects )
@@ -278,7 +288,25 @@ update msg ( model, effects ) =
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
         FromTopBar msg ->
-            TopBar.update msg ( model, effects )
+            let
+                ( newModel, newEffects ) =
+                    TopBar.update msg ( model, effects )
+            in
+            case msg of
+                TopBar.Msgs.TogglePipelinePaused pipelineIdentifier isPaused ->
+                    ( { newModel | isToggleLoading = True }
+                    , newEffects
+                        ++ [ SendTogglePipelineRequest
+                                pipelineIdentifier
+                                isPaused
+                           ]
+                    )
+
+                TopBar.Msgs.Hover isHovered ->
+                    ( { newModel | isToggleHovered = isHovered }, newEffects )
+
+                _ ->
+                    ( newModel, newEffects )
 
 
 getPinnedResources : Model -> List ( String, Concourse.Version )
@@ -307,10 +335,12 @@ view : UserState -> Model -> Html Msg
 view userState model =
     let
         pipelineState =
-            TopBar.Model.HasPipeline
+            Just
                 { pinnedResources = getPinnedResources model
                 , pipeline = model.pipelineLocator
                 , isPaused = isPaused model.pipeline
+                , isToggleHovered = model.isToggleHovered
+                , isToggleLoading = model.isToggleLoading
                 }
     in
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]

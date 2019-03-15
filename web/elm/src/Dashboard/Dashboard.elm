@@ -104,8 +104,6 @@ init flags =
       , teams = topBar.teams
       , screenSize = topBar.screenSize
       , highDensity = topBar.highDensity
-      , pauseToggleHovered = topBar.pauseToggleHovered
-      , pauseToggleLoading = topBar.pauseToggleLoading
       }
     , [ FetchData
       , PinTeamNames Group.stickyHeaderConfig
@@ -360,7 +358,7 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
+            [ Html.map FromTopBar <| TopBar.view userState Nothing model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ dashboardView model
                 ]

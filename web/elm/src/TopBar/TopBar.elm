@@ -29,18 +29,18 @@ import Html.Attributes as HA
         )
 import Html.Events exposing (..)
 import Http
+import PauseToggle
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Spinner
 import Subscription exposing (Delivery(..))
 import TopBar.Model
     exposing
         ( Dropdown(..)
         , MiddleSection(..)
         , Model
-        , PipelineState(..)
+        , PipelineState
         , isPaused
         )
 import TopBar.Msgs exposing (Msg(..))
@@ -88,8 +88,6 @@ init { route } =
       , teams = RemoteData.Loading
       , screenSize = Desktop
       , highDensity = isHd
-      , pauseToggleHovered = False
-      , pauseToggleLoading = False
       }
     , [ GetScreenSize ]
     )
@@ -145,9 +143,6 @@ handleCallback callback ( model, effects ) =
 
         ScreenResized size ->
             ( screenResize size model, effects )
-
-        PipelineToggled _ ->
-            ( { model | pauseToggleLoading = False }, effects )
 
         _ ->
             ( model, effects )
@@ -364,10 +359,8 @@ update msg ( model, effects ) =
         TogglePinIconDropdown ->
             ( { model | isPinMenuExpanded = not model.isPinMenuExpanded }, effects )
 
-        TogglePipelinePaused pipelineIdentifier isPaused ->
-            ( { model | pauseToggleLoading = True }
-            , effects ++ [ SendTogglePipelineRequest pipelineIdentifier isPaused ]
-            )
+        TogglePipelinePaused _ _ ->
+            ( model, effects )
 
         FocusMsg ->
             let
@@ -401,7 +394,7 @@ update msg ( model, effects ) =
             showSearchInput model
 
         Hover hovered ->
-            ( { model | pauseToggleHovered = hovered }, effects )
+            ( model, effects )
 
 
 screenResize : Window.Size -> Model r -> Model r
@@ -461,7 +454,7 @@ showSearchInput model =
                 ( model, [] )
 
 
-view : UserState -> PipelineState -> Model r -> Html Msg
+view : UserState -> Maybe PipelineState -> Model r -> Html Msg
 view userState pipelineState model =
     Html.div
         [ id "top-bar-app"
@@ -470,65 +463,9 @@ view userState pipelineState model =
         [ viewConcourseLogo
         , viewMiddleSection model
         , viewPin pipelineState model
-        , viewPauseToggle userState pipelineState model
+        , PauseToggle.view userState pipelineState
         , viewLogin userState model (isPaused pipelineState)
         ]
-
-
-viewPauseToggle :
-    UserState
-    -> PipelineState
-    -> { a | pauseToggleHovered : Bool, pauseToggleLoading : Bool }
-    -> Html Msg
-viewPauseToggle userState pipelineState { pauseToggleHovered, pauseToggleLoading } =
-    case pipelineState of
-        HasPipeline { isPaused, pipeline } ->
-            let
-                isAnonymous =
-                    UserState.user userState == Nothing
-
-                isMember =
-                    UserState.isMember
-                        { teamName = pipeline.teamName
-                        , userState = userState
-                        }
-
-                isClickable =
-                    isAnonymous || isMember
-            in
-            Html.div
-                ([ id "top-bar-pause-toggle"
-                 , style <|
-                    Styles.pauseToggle
-                        { isPaused = isPaused
-                        , isClickable = isClickable
-                        }
-                 , onMouseEnter <| Hover True
-                 , onMouseLeave <| Hover False
-                 ]
-                    ++ (if isClickable then
-                            [ onClick <| TogglePipelinePaused pipeline isPaused ]
-
-                        else
-                            []
-                       )
-                )
-                [ if pauseToggleLoading then
-                    Spinner.spinner { size = "20px", margin = "0" }
-
-                  else
-                    Html.div
-                        [ style <|
-                            Styles.pauseToggleIcon
-                                { isPaused = isPaused
-                                , isHovered = isClickable && pauseToggleHovered
-                                }
-                        ]
-                        []
-                ]
-
-        _ ->
-            Html.text ""
 
 
 viewLogin : UserState -> Model r -> Bool -> Html Msg
@@ -801,10 +738,10 @@ dropdownOptions { query, teams } =
             []
 
 
-viewPin : PipelineState -> Model r -> Html Msg
+viewPin : Maybe PipelineState -> Model r -> Html Msg
 viewPin pipelineState model =
     case pipelineState of
-        HasPipeline { pinnedResources, pipeline } ->
+        Just { pinnedResources, pipeline } ->
             Html.div
                 [ style <| Styles.pinIconContainer model.isPinMenuExpanded
                 , id "pin-icon"
@@ -829,7 +766,7 @@ viewPin pipelineState model =
                     Html.div [ style <| Styles.pinIcon ] []
                 ]
 
-        None ->
+        Nothing ->
             Html.text ""
 
 
