@@ -969,19 +969,14 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
         isCurrentlyChecking =
             checkStatus == Models.CurrentlyChecking
 
-        isUnauthenticated =
-            case userState of
-                UserStateLoggedIn _ ->
-                    False
+        isAnonymous =
+            UserState.user userState == Nothing
 
-                _ ->
-                    True
-
-        isUserAuthorized =
-            isAuthorized params
+        isMember =
+            UserState.isMember params
 
         isClickable =
-            (isUnauthenticated || isUserAuthorized)
+            (isAnonymous || isMember)
                 && not isCurrentlyChecking
 
         isHighlighted =
@@ -993,29 +988,13 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
          , onMouseLeave <| Hover Models.None
          ]
             ++ (if isClickable then
-                    [ onClick (CheckRequested isUserAuthorized) ]
+                    [ onClick (CheckRequested isMember) ]
 
                 else
                     []
                )
         )
         [ Html.div [ style <| Resource.Styles.checkButtonIcon isHighlighted ] [] ]
-
-
-isAuthorized : { a | teamName : String, userState : UserState } -> Bool
-isAuthorized { teamName, userState } =
-    case userState of
-        UserStateLoggedIn user ->
-            case Dict.get teamName user.teams of
-                Just roles ->
-                    List.member "member" roles
-                        || List.member "owner" roles
-
-                Nothing ->
-                    False
-
-        _ ->
-            False
 
 
 commentBar :
@@ -1064,7 +1043,12 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                                 , version
                                 ]
                     in
-                    if isAuthorized { teamName = resourceIdentifier.teamName, userState = userState } then
+                    if
+                        UserState.isMember
+                            { teamName = resourceIdentifier.teamName
+                            , userState = userState
+                            }
+                    then
                         [ header
                         , Html.textarea
                             [ style Resource.Styles.commentTextArea

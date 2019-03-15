@@ -1,6 +1,7 @@
-module UserState exposing (UserState(..), map, user)
+module UserState exposing (UserState(..), isMember, map, user)
 
 import Concourse
+import Dict
 
 
 type UserState
@@ -22,3 +23,19 @@ user userState =
 
         _ ->
             Nothing
+
+
+isMember : { a | teamName : String, userState : UserState } -> Bool
+isMember { teamName, userState } =
+    case userState of
+        UserStateLoggedIn user ->
+            case Dict.get teamName user.teams of
+                Just roles ->
+                    List.member "member" roles
+                        || List.member "owner" roles
+
+                Nothing ->
+                    False
+
+        _ ->
+            False

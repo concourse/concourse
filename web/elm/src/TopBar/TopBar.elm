@@ -465,27 +465,54 @@ view userState pipelineState model =
         [ viewConcourseLogo
         , viewMiddleSection model
         , viewPin pipelineState model
-        , viewPauseToggle pipelineState model
+        , viewPauseToggle userState pipelineState model
         , viewLogin userState model (isPaused pipelineState)
         ]
 
 
-viewPauseToggle : PipelineState -> { a | pauseToggleHovered : Bool } -> Html Msg
-viewPauseToggle pipelineState { pauseToggleHovered } =
+viewPauseToggle :
+    UserState
+    -> PipelineState
+    -> { a | pauseToggleHovered : Bool }
+    -> Html Msg
+viewPauseToggle userState pipelineState { pauseToggleHovered } =
     case pipelineState of
         HasPipeline { isPaused, pipeline } ->
+            let
+                isAnonymous =
+                    UserState.user userState == Nothing
+
+                isMember =
+                    UserState.isMember
+                        { teamName = pipeline.teamName
+                        , userState = userState
+                        }
+
+                isClickable =
+                    isAnonymous || isMember
+            in
             Html.div
-                [ id "top-bar-pause-toggle"
-                , style <| Styles.pauseToggle isPaused
-                , onClick <| TogglePipelinePaused pipeline isPaused
-                , onMouseEnter <| Hover True
-                , onMouseLeave <| Hover False
-                ]
+                ([ id "top-bar-pause-toggle"
+                 , style <|
+                    Styles.pauseToggle
+                        { isPaused = isPaused
+                        , isClickable = isClickable
+                        }
+                 , onMouseEnter <| Hover True
+                 , onMouseLeave <| Hover False
+                 ]
+                    ++ (if isClickable then
+                            [ onClick <| TogglePipelinePaused pipeline isPaused ]
+
+                        else
+                            []
+                       )
+                )
                 [ Html.div
                     [ style <|
                         Styles.pauseToggleIcon
                             { isPaused = isPaused
-                            , hovered = pauseToggleHovered
+                            , isHovered = isClickable && pauseToggleHovered
                             }
                     ]
                     []

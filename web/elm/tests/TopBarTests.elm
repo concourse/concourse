@@ -1003,7 +1003,7 @@ all =
 
                 givenUserAuthorized =
                     Application.handleCallback
-                        (Effects.SubPage 1)
+                        Effects.Layout
                         (Callback.UserFetched <|
                             Ok
                                 { id = "test"
@@ -1017,20 +1017,19 @@ all =
                         )
                         >> Tuple.first
 
-                loggedOut =
+                givenUserUnauthorized =
                     Application.handleCallback
-                        (Effects.SubPage 1)
+                        Effects.Layout
                         (Callback.UserFetched <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 401
-                                        , message = "unauthorized"
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
+                            Ok
+                                { id = "test"
+                                , userName = "test"
+                                , name = "test"
+                                , email = "test"
+                                , teams =
+                                    Dict.fromList
+                                        [ ( "s", [ "member" ] ) ]
+                                }
                         )
                         >> Tuple.first
 
@@ -1048,7 +1047,7 @@ all =
                                     True
             in
             [ defineHoverBehaviour
-                { name = "play pipeline icon"
+                { name = "play pipeline icon when authorized"
                 , setup = givenPipelinePaused |> givenUserAuthorized
                 , query =
                     Application.view
@@ -1066,6 +1065,7 @@ all =
                             , ( "border-left"
                               , "1px solid " ++ almostWhite
                               )
+                            , ( "cursor", "pointer" )
                             ]
                         , containing <|
                             [ style [ ( "opacity", "0.5" ) ] ]
@@ -1083,9 +1083,126 @@ all =
                             , ( "border-left"
                               , "1px solid " ++ almostWhite
                               )
+                            , ( "cursor", "pointer" )
                             ]
                         , containing <|
                             [ style [ ( "opacity", "1" ) ] ]
+                                ++ iconSelector
+                                    { size = "34px"
+                                    , image = "ic-play-white.svg"
+                                    }
+                        ]
+                    }
+                , mouseEnterMsg =
+                    Application.Msgs.SubMsg 1 <|
+                        SubPage.Msgs.PipelineMsg <|
+                            Pipeline.Msgs.FromTopBar <|
+                                Msgs.Hover True
+                , mouseLeaveMsg =
+                    Application.Msgs.SubMsg 1 <|
+                        SubPage.Msgs.PipelineMsg <|
+                            Pipeline.Msgs.FromTopBar <|
+                                Msgs.Hover False
+                }
+            , defineHoverBehaviour
+                { name = "play pipeline icon when unauthenticated"
+                , setup = givenPipelinePaused
+                , query =
+                    Application.view
+                        >> Query.fromHtml
+                        >> Query.find [ id "top-bar-pause-toggle" ]
+                , updateFunc =
+                    \msg ->
+                        Application.update msg
+                            >> Tuple.first
+                , unhoveredSelector =
+                    { description = "faded play button with light border"
+                    , selector =
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border-left"
+                              , "1px solid " ++ almostWhite
+                              )
+                            , ( "cursor", "pointer" )
+                            ]
+                        , containing <|
+                            [ style [ ( "opacity", "0.5" ) ] ]
+                                ++ iconSelector
+                                    { size = "34px"
+                                    , image = "ic-play-white.svg"
+                                    }
+                        ]
+                    }
+                , hoveredSelector =
+                    { description = "white play button with light border"
+                    , selector =
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border-left"
+                              , "1px solid " ++ almostWhite
+                              )
+                            , ( "cursor", "pointer" )
+                            ]
+                        , containing <|
+                            [ style [ ( "opacity", "1" ) ] ]
+                                ++ iconSelector
+                                    { size = "34px"
+                                    , image = "ic-play-white.svg"
+                                    }
+                        ]
+                    }
+                , mouseEnterMsg =
+                    Application.Msgs.SubMsg 1 <|
+                        SubPage.Msgs.PipelineMsg <|
+                            Pipeline.Msgs.FromTopBar <|
+                                Msgs.Hover True
+                , mouseLeaveMsg =
+                    Application.Msgs.SubMsg 1 <|
+                        SubPage.Msgs.PipelineMsg <|
+                            Pipeline.Msgs.FromTopBar <|
+                                Msgs.Hover False
+                }
+            , defineHoverBehaviour
+                { name = "play pipeline icon when unauthorized"
+                , setup = givenPipelinePaused |> givenUserUnauthorized
+                , query =
+                    Application.view
+                        >> Query.fromHtml
+                        >> Query.find [ id "top-bar-pause-toggle" ]
+                , updateFunc =
+                    \msg ->
+                        Application.update msg
+                            >> Tuple.first
+                , unhoveredSelector =
+                    { description = "faded play button with light border"
+                    , selector =
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border-left"
+                              , "1px solid " ++ almostWhite
+                              )
+                            , ( "cursor", "default" )
+                            ]
+                        , containing <|
+                            [ style [ ( "opacity", "0.5" ) ] ]
+                                ++ iconSelector
+                                    { size = "34px"
+                                    , image = "ic-play-white.svg"
+                                    }
+                        ]
+                    }
+                , hoveredSelector =
+                    { description = "faded play button with light border"
+                    , selector =
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border-left"
+                              , "1px solid " ++ almostWhite
+                              )
+                            , ( "cursor", "default" )
+                            ]
+                        , containing <|
+                            [ style [ ( "opacity", "0.5" ) ] ]
                                 ++ iconSelector
                                     { size = "34px"
                                     , image = "ic-play-white.svg"
@@ -1111,6 +1228,16 @@ all =
                         |> Query.find [ id "top-bar-pause-toggle" ]
                         |> Event.simulate Event.click
                         |> Event.expect toggleMsg
+            , test "play button unclickable for non-members" <|
+                \_ ->
+                    givenPipelinePaused
+                        |> givenUserUnauthorized
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.find [ id "top-bar-pause-toggle" ]
+                        |> Event.simulate Event.click
+                        |> Event.toResult
+                        |> Expect.err
             , test "play button click msg sends api call" <|
                 \_ ->
                     givenPipelinePaused
