@@ -1,4 +1,4 @@
-port module Effects exposing
+port module Message.Effects exposing
     ( Effect(..)
     , LayoutDispatch(..)
     , ScrollDirection(..)
@@ -7,7 +7,6 @@ port module Effects exposing
     , setTitle
     )
 
-import Callback exposing (Callback(..))
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Dashboard.Group
@@ -15,6 +14,7 @@ import Dashboard.Models
 import Dom
 import Favicon
 import Json.Encode
+import Message.Callback exposing (Callback(..))
 import Navigation
 import Network.Build
 import Network.BuildPlan

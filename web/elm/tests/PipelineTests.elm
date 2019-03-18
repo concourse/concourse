@@ -3,18 +3,18 @@ module PipelineTests exposing (all)
 import Application.Application as Application
 import Application.Msgs as Msgs
 import Build.Msgs
-import Callback
 import Char
-import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
+import Message.Callback as Callback
+import Message.Effects as Effects
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Pipeline.Msgs exposing (Msg(..))
 import Pipeline.Pipeline as Pipeline exposing (update)
 import Resource.Msgs
 import Routes
 import SubPage.Msgs
-import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query

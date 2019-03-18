@@ -10,15 +10,15 @@ module Application.Application exposing
     )
 
 import Application.Msgs as Msgs exposing (Msg(..), NavIndex)
-import Callback exposing (Callback(..))
 import Concourse
-import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Http
+import Message.Callback exposing (Callback(..))
+import Message.Effects as Effects exposing (Effect(..), LayoutDispatch(..))
+import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Navigation
 import Routes
 import SubPage.SubPage as SubPage
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import UserState exposing (UserState(..))
 
 

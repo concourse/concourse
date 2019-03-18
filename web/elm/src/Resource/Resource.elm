@@ -13,7 +13,6 @@ module Resource.Resource exposing
     , viewVersionHeader
     )
 
-import Callback exposing (Callback(..))
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -30,7 +29,6 @@ import Date.Format
 import Dict
 import DictView
 import Duration exposing (Duration)
-import Effects exposing (Effect(..), runEffect, setTitle)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -58,6 +56,9 @@ import Http
 import Keycodes
 import List.Extra
 import Maybe.Extra as ME
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..), runEffect, setTitle)
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Msgs exposing (Msg(..))
@@ -65,7 +66,6 @@ import Resource.Styles
 import Routes
 import Spinner
 import StrictEvents
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles

@@ -10,10 +10,8 @@ module TopBar.TopBar exposing
     )
 
 import Array
-import Callback exposing (Callback(..))
 import Concourse
 import Dict
-import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes as HA
     exposing
@@ -29,11 +27,13 @@ import Html.Attributes as HA
         )
 import Html.Events exposing (..)
 import Http
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
+import Message.Subscription exposing (Delivery(..))
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Subscription exposing (Delivery(..))
 import TopBar.Model
     exposing
         ( Dropdown(..)

@@ -14,7 +14,6 @@ module DashboardTests exposing
 
 import Application.Application as Application
 import Application.Msgs
-import Callback
 import Char
 import Concourse
 import Concourse.Cli as Cli
@@ -24,12 +23,13 @@ import Dashboard.Group as Group
 import Dashboard.Msgs as Msgs
 import Date exposing (Date)
 import Dict
-import Effects
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import List.Extra
+import Message.Callback as Callback
+import Message.Effects as Effects
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Routes
-import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query

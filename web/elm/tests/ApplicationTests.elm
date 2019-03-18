@@ -4,10 +4,10 @@ import Application.Application as Application
 import Application.Msgs as Msgs
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Msgs
-import Effects
 import Expect
+import Message.Effects as Effects
+import Message.Subscription as Subscription exposing (Delivery(..))
 import SubPage.Msgs
-import Subscription exposing (Delivery(..))
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (style)

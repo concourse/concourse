@@ -5,8 +5,6 @@ module FlySuccess.FlySuccess exposing
     , view
     )
 
-import Callback exposing (Callback(..))
-import Effects exposing (Effect(..))
 import FlySuccess.Models
     exposing
         ( ButtonState(..)
@@ -23,6 +21,8 @@ import FlySuccess.Text as Text
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
 import RemoteData
 import Routes
 import TopBar.Model

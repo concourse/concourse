@@ -1,4 +1,4 @@
-port module Subscription exposing (Delivery(..), Interval(..), Subscription(..), runSubscription)
+port module Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..), runSubscription)
 
 import Build.StepTree.Models exposing (BuildEventEnvelope)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)

@@ -1,13 +1,13 @@
 module TopBarTests exposing (all)
 
-import Callback exposing (Callback(..))
 import Concourse
 import Dict
-import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
+import Message.Callback as Callback exposing (Callback(..))
+import Message.Effects as Effects
+import Message.Subscription exposing (Delivery(..))
 import Routes
-import Subscription exposing (Delivery(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query

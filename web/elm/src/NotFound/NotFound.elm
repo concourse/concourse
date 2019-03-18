@@ -1,9 +1,9 @@
 module NotFound.NotFound exposing (handleCallback, init, update, view)
 
-import Callback exposing (Callback)
-import Effects exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
+import Message.Callback exposing (Callback)
+import Message.Effects as Effects exposing (Effect)
 import NotFound.Model exposing (Model)
 import NotFound.Msgs exposing (Msg(..))
 import Routes

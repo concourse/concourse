@@ -1,4 +1,4 @@
-module Callback exposing (Callback(..))
+module Message.Callback exposing (Callback(..))
 
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)

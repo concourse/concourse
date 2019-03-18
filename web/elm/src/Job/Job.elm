@@ -12,7 +12,6 @@ module Job.Job exposing
     )
 
 import BuildDuration
-import Callback exposing (Callback(..))
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -26,7 +25,6 @@ import Concourse.Pagination
         )
 import Dict exposing (Dict)
 import DictView
-import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -47,10 +45,12 @@ import Http
 import Job.Msgs exposing (Hoverable(..), Msg(..))
 import Job.Styles as Styles
 import LoadingIndicator
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
+import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles

@@ -11,12 +11,10 @@ module Pipeline.Pipeline exposing
     , view
     )
 
-import Callback exposing (Callback(..))
 import Char
 import Colors
 import Concourse
 import Concourse.Cli as Cli
-import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -31,12 +29,14 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Decode
 import Json.Encode
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
+import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Pipeline.Msgs exposing (Msg(..))
 import Pipeline.Styles as Styles
 import RemoteData exposing (..)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)

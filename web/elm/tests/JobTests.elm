@@ -2,7 +2,6 @@ module JobTests exposing (all)
 
 import Application.Application as Application
 import Application.Msgs as Msgs
-import Callback exposing (Callback(..))
 import Concourse exposing (Build, BuildId, BuildStatus(..), Job)
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -14,15 +13,16 @@ import DashboardTests
         )
 import Date
 import Dict
-import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
 import Job.Job as Job exposing (update)
 import Job.Msgs exposing (Msg(..))
+import Message.Callback as Callback exposing (Callback(..))
+import Message.Effects as Effects
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import RemoteData
 import SubPage.Msgs
-import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector

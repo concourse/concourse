@@ -1,11 +1,11 @@
 module SubPageTests exposing (all)
 
 import Application.Application as Application
-import Callback exposing (Callback(..))
 import Dict exposing (Dict)
-import Effects
 import Expect
 import Http
+import Message.Callback exposing (Callback(..))
+import Message.Effects as Effects
 import NotFound.Model
 import RemoteData
 import Routes

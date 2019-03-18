@@ -25,7 +25,6 @@ import Concourse
 import Concourse.BuildStatus
 import Date exposing (Date)
 import Dict exposing (Dict)
-import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -39,6 +38,7 @@ import Html.Attributes
         )
 import Http
 import LoadingIndicator
+import Message.Effects exposing (Effect(..))
 import NotAuthorized
 import Routes exposing (StepID)
 

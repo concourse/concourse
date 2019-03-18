@@ -12,13 +12,14 @@ module SubPage.SubPage exposing
 
 import Build.Build as Build
 import Build.Models
-import Callback exposing (Callback)
 import Dashboard.Dashboard as Dashboard
-import Effects exposing (Effect)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
 import Html exposing (Html)
 import Job.Job as Job
+import Message.Callback exposing (Callback)
+import Message.Effects exposing (Effect)
+import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
 import NotFound.Model
 import NotFound.NotFound as NotFound
 import Pipeline.Pipeline as Pipeline
@@ -26,7 +27,6 @@ import Resource.Models
 import Resource.Resource as Resource
 import Routes
 import SubPage.Msgs exposing (Msg(..))
-import Subscription exposing (Delivery(..), Interval(..), Subscription)
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 

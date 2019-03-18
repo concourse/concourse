@@ -2,10 +2,10 @@ module DashboardSearchTests exposing (all)
 
 import Application.Application as Application
 import Application.Msgs as Msgs
-import Callback
 import Dashboard.Msgs
-import Effects
 import Expect exposing (Expectation)
+import Message.Callback as Callback
+import Message.Effects as Effects
 import SubPage.Msgs
 import Test exposing (Test)
 import Test.Html.Query as Query

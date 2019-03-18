@@ -8,7 +8,6 @@ module Dashboard.Dashboard exposing
     , view
     )
 
-import Callback exposing (Callback(..))
 import Char
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
@@ -20,7 +19,6 @@ import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
-import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -34,6 +32,9 @@ import Html.Attributes
         , style
         )
 import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
+import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
@@ -43,7 +44,6 @@ import RemoteData
 import Routes
 import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import TopBar.Model
 import TopBar.Msgs
 import TopBar.Styles

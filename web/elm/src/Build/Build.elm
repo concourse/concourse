@@ -22,7 +22,6 @@ import Build.Output.Output
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
 import BuildDuration
-import Callback exposing (Callback(..))
 import Char
 import Concourse
 import Concourse.BuildStatus
@@ -31,7 +30,6 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
-import Effects exposing (Effect(..), ScrollDirection(..), runEffect)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -54,12 +52,14 @@ import Keyboard
 import Keycodes
 import LoadingIndicator
 import Maybe.Extra
+import Message.Callback exposing (Callback(..))
+import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import RemoteData exposing (WebData)
 import Routes
 import Spinner
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles

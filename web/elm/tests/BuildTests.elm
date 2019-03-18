@@ -7,7 +7,6 @@ import Build.Build as Build
 import Build.Models as Models
 import Build.Msgs
 import Build.StepTree.Models as STModels
-import Callback
 import Char
 import Concourse exposing (BuildPrepStatus(..))
 import DashboardTests
@@ -19,12 +18,13 @@ import DashboardTests
         )
 import Date
 import Dict
-import Effects
 import Expect
 import Html.Attributes as Attr
 import Keycodes
+import Message.Callback as Callback
+import Message.Effects as Effects
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Routes
-import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query

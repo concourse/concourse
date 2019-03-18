@@ -1,10 +1,10 @@
 module Application.Msgs exposing (Msg(..), NavIndex)
 
-import Callback exposing (Callback)
-import Effects
+import Message.Callback exposing (Callback)
+import Message.Effects as Effects
+import Message.Subscription exposing (Delivery)
 import Routes
 import SubPage.Msgs
-import Subscription exposing (Delivery)
 
 
 type alias NavIndex =

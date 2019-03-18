@@ -3,9 +3,9 @@ module Main exposing (main)
 import Application.Application as Application
 import Application.Msgs as Msgs
 import Concourse
-import Effects
+import Message.Effects as Effects
+import Message.Subscription as Subscription
 import Navigation
-import Subscription
 
 
 main : Program Application.Flags Application.Model Msgs.Msg

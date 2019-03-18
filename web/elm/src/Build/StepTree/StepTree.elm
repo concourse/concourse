@@ -40,10 +40,10 @@ import Date.Format
 import Debug
 import Dict exposing (Dict)
 import DictView
-import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
+import Message.Effects exposing (Effect(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
 import StrictEvents
