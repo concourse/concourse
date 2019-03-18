@@ -109,22 +109,16 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-
-		buildURL, err = url.Parse(fmt.Sprintf("/teams/%s/pipelines/%s/builds/%s", build.TeamName, build.PipelineName, build.Name))
-		if err != nil {
-			return err
-		}
-
 	} else {
 		build, err = target.Team().CreateBuild(plan)
 		if err != nil {
 			return err
 		}
+	}
 
-		buildURL, err = url.Parse(fmt.Sprintf("/builds/%d", build.ID))
-		if err != nil {
-			return err
-		}
+	buildURL, err = url.Parse(fmt.Sprintf("/builds/%d", build.ID))
+	if err != nil {
+		return err
 	}
 
 	fmt.Printf("executing build %d at %s \n", build.ID, clientURL.ResolveReference(buildURL))
