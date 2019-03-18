@@ -42,15 +42,17 @@ func (command *TeamsCommand) Execute([]string) error {
 		return nil
 	}
 
-	headers := ui.TableRow{
-		{Contents: "name", Color: color.New(color.Bold)},
-	}
-
+	var headers ui.TableRow
 	if command.Details {
-		headers = append(headers,
-			ui.TableCell{Contents: "users", Color: color.New(color.Bold)},
-			ui.TableCell{Contents: "groups", Color: color.New(color.Bold)},
-		)
+		headers = ui.TableRow{
+			{Contents: "name/role", Color: color.New(color.Bold)},
+			{Contents: "users", Color: color.New(color.Bold)},
+			{Contents: "groups", Color: color.New(color.Bold)},
+		}
+	} else {
+		headers = ui.TableRow{
+			{Contents: "name", Color: color.New(color.Bold)},
+		}
 	}
 
 	table := ui.Table{Headers: headers}
