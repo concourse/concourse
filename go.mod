@@ -148,7 +148,7 @@ require (
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
 	github.com/mattbaird/elastigo v0.0.0-20170123220020-2fe47fd29e4b // indirect
 	github.com/mattn/go-colorable v0.1.1
-	github.com/mattn/go-isatty v0.0.6
+	github.com/mattn/go-isatty v0.0.7
 	github.com/mattn/go-runewidth v0.0.3 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/michaelklishin/rabbit-hole v1.4.0 // indirect
