@@ -58,7 +58,7 @@ var _ = Describe("ErrorSinkCollector", func() {
 					log = lager.LogFormat{
 						Message:  "message",
 						LogLevel: lager.ERROR,
-						Error: metric.ErrFailedToEmit,
+						Error:    metric.ErrFailedToEmit,
 					}
 				})
 
