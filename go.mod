@@ -118,7 +118,7 @@ require (
 	github.com/hashicorp/nomad v0.8.6 // indirect
 	github.com/hashicorp/raft v1.0.0 // indirect
 	github.com/hashicorp/serf v0.8.1 // indirect
-	github.com/hashicorp/vault v1.0.1
+	github.com/hashicorp/vault v1.0.3
 	github.com/hashicorp/vault-plugin-auth-alicloud v0.0.0-20181109180636-f278a59ca3e8 // indirect
 	github.com/hashicorp/vault-plugin-auth-azure v0.0.0-20181207232528-4c0b46069a22 // indirect
 	github.com/hashicorp/vault-plugin-auth-centrify v0.0.0-20180816201131-66b0a34a58bf // indirect
