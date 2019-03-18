@@ -389,7 +389,7 @@ local publish_job(bump) = {
       ]
     },
     {
-      name: "prs",
+      name: "prs-alpine",
       serial: true,
       public: true,
       plan: [
@@ -412,6 +412,7 @@ local publish_job(bump) = {
           resource: "resource-pr",
           params: {
             path: "resource-pr",
+            context: "status-alpine",
             status: "pending"
           },
           get_params: {fetch_merge: true}
@@ -421,13 +422,14 @@ local publish_job(bump) = {
           params: {
             load_base: "alpine-edge",
             tag: resource+"-resource/.git/id",
-            tag_prefix: "pr-",
+            tag_prefix: "pr-alpine-",
             dockerfile: resource+"-resource/dockerfiles/alpine/Dockerfile",
           } + build_params,
           on_failure: {
             put: "resource-pr",
             params: {
               path: "resource-pr",
+              context: "status-alpine",
               status: "failure"
             }
           },
@@ -435,6 +437,63 @@ local publish_job(bump) = {
             put: "resource-pr",
             params: {
               path: "resource-pr",
+              context: "status-alpine",
+              status: "success"
+            }
+          }
+        }
+      ]
+    },
+    {
+      name: "prs-ubuntu",
+      serial: true,
+      public: true,
+      plan: [
+        {
+          aggregate: [
+            {
+              get: "resource-pr",
+              trigger: true,
+              version: "every"
+            },
+            {
+              get: "ubuntu-bionic",
+              params: {save: true},
+              trigger: true
+            },
+          ] + extra_gets
+        },
+        {
+          put: resource+"-resource",
+          resource: "resource-pr",
+          params: {
+            path: "resource-pr",
+            context: "status-ubuntu",
+            status: "pending"
+          },
+          get_params: {fetch_merge: true}
+        },
+        {
+          put: "resource-image-dev-ubuntu",
+          params: {
+            load_base: "ubuntu-bionic",
+            tag: resource+"-resource/.git/id",
+            tag_prefix: "pr-ubuntu-",
+            dockerfile: resource+"-resource/dockerfiles/ubuntu/Dockerfile",
+          } + build_params,
+          on_failure: {
+            put: "resource-pr",
+            params: {
+              path: "resource-pr",
+              context: "status-ubuntu",
+              status: "failure"
+            }
+          },
+          on_success: {
+            put: "resource-pr",
+            params: {
+              path: "resource-pr",
+              context: "status-ubuntu",
               status: "success"
             }
           }
