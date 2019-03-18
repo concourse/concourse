@@ -21,6 +21,7 @@ type Vault struct {
 	PathPrefix   string
 	TeamName     string
 	PipelineName string
+	Version      string
 }
 
 func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error) {
@@ -44,6 +45,22 @@ func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error
 
 	if !found {
 		return nil, false, nil
+	}
+
+	if v.Version == "v2" {
+		if data, ok := secret.Data["data"]; ok && data != nil {
+			if dataMap, ok := data.(map[string]interface{}); ok {
+				evenLessTyped := map[interface{}]interface{}{}
+				for k, v := range dataMap {
+					evenLessTyped[k] = v
+				}
+				return evenLessTyped, true, nil
+			} else {
+				return nil, false, nil
+			}
+		} else {
+			return nil, false, nil
+		}
 	}
 
 	val, found := secret.Data["value"]
@@ -73,7 +90,11 @@ func (v Vault) findSecret(path string) (*vaultapi.Secret, bool, error) {
 }
 
 func (v Vault) path(segments ...string) string {
-	return path.Join(append([]string{v.PathPrefix}, segments...)...)
+	if v.Version == "v2" {
+		return path.Join(append([]string{v.PathPrefix, "data"}, segments...)...)
+	} else {
+		return path.Join(append([]string{v.PathPrefix}, segments...)...)
+	}
 }
 
 func (v Vault) List() ([]template.VariableDefinition, error) {

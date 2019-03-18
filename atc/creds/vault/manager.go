@@ -21,6 +21,8 @@ type VaultManager struct {
 	Cache    bool          `long:"cache" description:"Cache returned secrets for their lease duration in memory"`
 	MaxLease time.Duration `long:"max-lease" description:"If the cache is enabled, and this is set, override secrets lease duration with a maximum value"`
 
+	Version string `long:"version" default:"v1" description:"Vault KV Secrets Engine Version"`
+
 	TLS    TLS
 	Auth   AuthConfig
 	Client *APIClient
@@ -131,5 +133,5 @@ func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.Vari
 		sr = NewCache(manager.Client, manager.MaxLease)
 	}
 
-	return NewVaultFactory(sr, ra.LoggedIn(), manager.PathPrefix), nil
+	return NewVaultFactory(sr, ra.LoggedIn(), manager.PathPrefix, manager.Version), nil
 }

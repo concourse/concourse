@@ -10,13 +10,15 @@ import (
 type vaultFactory struct {
 	sr       SecretReader
 	prefix   string
+	version  string
 	loggedIn <-chan struct{}
 }
 
-func NewVaultFactory(sr SecretReader, loggedIn <-chan struct{}, prefix string) *vaultFactory {
+func NewVaultFactory(sr SecretReader, loggedIn <-chan struct{}, prefix string, version string) *vaultFactory {
 	factory := &vaultFactory{
 		sr:       sr,
 		prefix:   prefix,
+		version:  version,
 		loggedIn: loggedIn,
 	}
 
@@ -36,5 +38,6 @@ func (factory *vaultFactory) NewVariables(teamName string, pipelineName string) 
 		PathPrefix:   factory.prefix,
 		TeamName:     teamName,
 		PipelineName: pipelineName,
+		Version:      factory.version,
 	}
 }
