@@ -209,6 +209,67 @@ local publish_job(bump) = {
   ]
 };
 
+local check_prs(type) = {
+  local base_image =
+    if type == "alpine" then "alpine-edge"
+    else if type == "ubuntu" then "ubuntu-bionic",
+
+  name: "prs-" + type,
+  serial: true,
+  public: true,
+  plan: [
+    {
+      aggregate: [
+        {
+          get: "resource-pr",
+          trigger: true,
+          version: "every"
+        },
+        {
+          get: base_image,
+          params: {save: true},
+          trigger: true
+        }
+      ] + extra_gets
+    },
+    {
+      put: resource+"-resource",
+      resource: "resource-pr",
+      params: {
+        path: "resource-pr",
+        context: "status-" + type,
+        status: "pending"
+      },
+      get_params: {fetch_merge: true}
+    },
+    {
+      put: "resource-image-dev-" + type,
+      params: {
+        load_base: base_image,
+        tag: resource+"-resource/.git/id",
+        tag_prefix: "pr-" + type + "-",
+        dockerfile: resource+"-resource/dockerfiles/" + type + "/Dockerfile",
+      } + build_params,
+      on_failure: {
+        put: "resource-pr",
+        params: {
+          path: "resource-pr",
+          context: "status-" + type,
+          status: "failure"
+        }
+      },
+      on_success: {
+        put: "resource-pr",
+        params: {
+          path: "resource-pr",
+          context: "status-" + type,
+          status: "success"
+        }
+      }
+    }
+  ]
+};
+
 {
   resource_types: [
     {
@@ -388,118 +449,8 @@ local publish_job(bump) = {
         }
       ]
     },
-    {
-      name: "prs-alpine",
-      serial: true,
-      public: true,
-      plan: [
-        {
-          aggregate: [
-            {
-              get: "resource-pr",
-              trigger: true,
-              version: "every"
-            },
-            {
-              get: "alpine-edge",
-              params: {save: true},
-              trigger: true
-            },
-          ] + extra_gets
-        },
-        {
-          put: resource+"-resource",
-          resource: "resource-pr",
-          params: {
-            path: "resource-pr",
-            context: "status-alpine",
-            status: "pending"
-          },
-          get_params: {fetch_merge: true}
-        },
-        {
-          put: "resource-image-dev-alpine",
-          params: {
-            load_base: "alpine-edge",
-            tag: resource+"-resource/.git/id",
-            tag_prefix: "pr-alpine-",
-            dockerfile: resource+"-resource/dockerfiles/alpine/Dockerfile",
-          } + build_params,
-          on_failure: {
-            put: "resource-pr",
-            params: {
-              path: "resource-pr",
-              context: "status-alpine",
-              status: "failure"
-            }
-          },
-          on_success: {
-            put: "resource-pr",
-            params: {
-              path: "resource-pr",
-              context: "status-alpine",
-              status: "success"
-            }
-          }
-        }
-      ]
-    },
-    {
-      name: "prs-ubuntu",
-      serial: true,
-      public: true,
-      plan: [
-        {
-          aggregate: [
-            {
-              get: "resource-pr",
-              trigger: true,
-              version: "every"
-            },
-            {
-              get: "ubuntu-bionic",
-              params: {save: true},
-              trigger: true
-            },
-          ] + extra_gets
-        },
-        {
-          put: resource+"-resource",
-          resource: "resource-pr",
-          params: {
-            path: "resource-pr",
-            context: "status-ubuntu",
-            status: "pending"
-          },
-          get_params: {fetch_merge: true}
-        },
-        {
-          put: "resource-image-dev-ubuntu",
-          params: {
-            load_base: "ubuntu-bionic",
-            tag: resource+"-resource/.git/id",
-            tag_prefix: "pr-ubuntu-",
-            dockerfile: resource+"-resource/dockerfiles/ubuntu/Dockerfile",
-          } + build_params,
-          on_failure: {
-            put: "resource-pr",
-            params: {
-              path: "resource-pr",
-              context: "status-ubuntu",
-              status: "failure"
-            }
-          },
-          on_success: {
-            put: "resource-pr",
-            params: {
-              path: "resource-pr",
-              context: "status-ubuntu",
-              status: "success"
-            }
-          }
-        }
-      ]
-    },
+    check_prs("alpine"),
+    check_prs("ubuntu"),
     publish_job("major"),
     publish_job("minor"),
     publish_job("patch")
