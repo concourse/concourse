@@ -7,12 +7,12 @@ module Dashboard.Pipeline exposing
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Models exposing (Pipeline)
-import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Duration
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter, onMouseLeave)
+import Message.DashboardMsgs exposing (Msg(..))
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)

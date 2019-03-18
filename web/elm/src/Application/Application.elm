@@ -9,10 +9,10 @@ module Application.Application exposing
     , view
     )
 
-import Application.Msgs as Msgs exposing (Msg(..), NavIndex)
 import Concourse
 import Html exposing (Html)
 import Http
+import Message.ApplicationMsgs as Msgs exposing (Msg(..), NavIndex)
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), LayoutDispatch(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))

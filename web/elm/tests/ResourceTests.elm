@@ -1,7 +1,6 @@
 module ResourceTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
 import Concourse
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -17,12 +16,13 @@ import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
+import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
+import Message.ResourceMsgs
+import Message.SubPageMsgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Resource.Models as Models
-import Resource.Msgs
-import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -222,7 +222,7 @@ all =
                     |> givenResourceIsNotPinned
                     |> givenVersionsWithoutPagination
                     |> update
-                        (Resource.Msgs.ExpandVersionedResource versionID)
+                        (Message.ResourceMsgs.ExpandVersionedResource versionID)
                     |> Tuple.first
                     |> givenVersionsWithoutPagination
                     |> queryView
@@ -234,7 +234,7 @@ all =
                     |> givenResourceIsNotPinned
                     |> givenVersionsWithoutPagination
                     |> update
-                        (Resource.Msgs.ExpandVersionedResource versionID)
+                        (Message.ResourceMsgs.ExpandVersionedResource versionID)
                     |> Tuple.first
                     |> handleCallback
                         (Callback.InputToFetched
@@ -270,7 +270,7 @@ all =
                     |> givenResourceIsNotPinned
                     |> givenVersionsWithoutPagination
                     |> update
-                        (Resource.Msgs.ExpandVersionedResource versionID)
+                        (Message.ResourceMsgs.ExpandVersionedResource versionID)
                     |> Tuple.first
                     |> handleCallback
                         (Callback.OutputOfFetched
@@ -542,10 +542,10 @@ all =
                             }
                         , mouseEnterMsg =
                             resourceMsg <|
-                                Resource.Msgs.Hover Models.PreviousPage
+                                Message.ResourceMsgs.Hover Models.PreviousPage
                         , mouseLeaveMsg =
                             resourceMsg <|
-                                Resource.Msgs.Hover Models.None
+                                Message.ResourceMsgs.Hover Models.None
                         }
                     ]
                 ]
@@ -633,7 +633,7 @@ all =
                         |> Event.simulate Event.click
                         |> Event.expect
                             (resourceMsg <|
-                                Resource.Msgs.ToggleVersion
+                                Message.ResourceMsgs.ToggleVersion
                                     Models.Disable
                                     versionID
                             )
@@ -692,7 +692,7 @@ all =
                         |> Event.simulate Event.click
                         |> Event.expect
                             (resourceMsg <|
-                                Resource.Msgs.ToggleVersion
+                                Message.ResourceMsgs.ToggleVersion
                                     Models.Enable
                                     disabledVersionID
                             )
@@ -703,7 +703,7 @@ all =
                         |> givenVersionsWithoutPagination
                         |> Application.update
                             (resourceMsg <|
-                                Resource.Msgs.ToggleVersion
+                                Message.ResourceMsgs.ToggleVersion
                                     Models.Enable
                                     disabledVersionID
                             )
@@ -719,7 +719,7 @@ all =
                         |> givenVersionsWithoutPagination
                         |> Application.update
                             (resourceMsg <|
-                                Resource.Msgs.ToggleVersion
+                                Message.ResourceMsgs.ToggleVersion
                                     Models.Enable
                                     disabledVersionID
                             )
@@ -742,7 +742,7 @@ all =
                         |> givenVersionsWithoutPagination
                         |> Application.update
                             (resourceMsg <|
-                                Resource.Msgs.ToggleVersion
+                                Message.ResourceMsgs.ToggleVersion
                                     Models.Enable
                                     disabledVersionID
                             )
@@ -855,7 +855,7 @@ all =
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseEnter
                             |> Event.expect
-                                (resourceMsg Resource.Msgs.TogglePinBarTooltip)
+                                (resourceMsg Message.ResourceMsgs.TogglePinBarTooltip)
                 , test "TogglePinBarTooltip causes tooltip to appear" <|
                     \_ ->
                         init
@@ -921,7 +921,7 @@ all =
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseLeave
                             |> Event.expect
-                                (resourceMsg Resource.Msgs.TogglePinBarTooltip)
+                                (resourceMsg Message.ResourceMsgs.TogglePinBarTooltip)
                 , test "when mousing off pin bar, tooltip disappears" <|
                     \_ ->
                         init
@@ -950,7 +950,7 @@ all =
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOver
                             |> Event.expect
-                                (resourceMsg Resource.Msgs.ToggleVersionTooltip)
+                                (resourceMsg Message.ResourceMsgs.ToggleVersionTooltip)
                 , test "mousing over an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
@@ -992,7 +992,7 @@ all =
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOut
                             |> Event.expect
-                                (resourceMsg Resource.Msgs.ToggleVersionTooltip)
+                                (resourceMsg Message.ResourceMsgs.ToggleVersionTooltip)
                 , test "mousing off an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
@@ -1046,7 +1046,7 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> update Resource.Msgs.TogglePinBarTooltip
+                        |> update Message.ResourceMsgs.TogglePinBarTooltip
                         |> Tuple.first
                         |> queryView
                         |> Query.hasNot pinBarTooltipSelector
@@ -1065,7 +1065,7 @@ all =
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.click
                         |> Event.expect
-                            (resourceMsg Resource.Msgs.UnpinVersion)
+                            (resourceMsg Message.ResourceMsgs.UnpinVersion)
             , test "mousing over pin icon triggers PinIconHover msg" <|
                 \_ ->
                     init
@@ -1074,12 +1074,12 @@ all =
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseEnter
                         |> Event.expect
-                            (resourceMsg <| Resource.Msgs.PinIconHover True)
+                            (resourceMsg <| Message.ResourceMsgs.PinIconHover True)
             , test "TogglePinIconHover msg causes pin icon to have dark background" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> update (Resource.Msgs.PinIconHover True)
+                        |> update (Message.ResourceMsgs.PinIconHover True)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
@@ -1088,20 +1088,20 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> update (Resource.Msgs.PinIconHover True)
+                        |> update (Message.ResourceMsgs.PinIconHover True)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseLeave
                         |> Event.expect
-                            (resourceMsg <| Resource.Msgs.PinIconHover False)
+                            (resourceMsg <| Message.ResourceMsgs.PinIconHover False)
             , test "second TogglePinIconHover msg causes pin icon to have transparent background color" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> update (Resource.Msgs.PinIconHover True)
+                        |> update (Message.ResourceMsgs.PinIconHover True)
                         |> Tuple.first
-                        |> update (Resource.Msgs.PinIconHover False)
+                        |> update (Message.ResourceMsgs.PinIconHover False)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
@@ -1151,7 +1151,7 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (resourceMsg Resource.Msgs.UnpinVersion)
+                        |> Event.expect (resourceMsg Message.ResourceMsgs.UnpinVersion)
             , test "pin button on pinned version shows transition state when (UnpinVersion) is received" <|
                 \_ ->
                     init
@@ -1640,7 +1640,7 @@ all =
                         , describe "when editing the textarea" <|
                             let
                                 givenUserEditedComment =
-                                    update (Resource.Msgs.EditComment "foo")
+                                    update (Message.ResourceMsgs.EditComment "foo")
                                         >> Tuple.first
                             in
                             [ test "input in textarea produces EditComment msg" <|
@@ -1653,7 +1653,7 @@ all =
                                         |> Event.simulate (Event.input "foo")
                                         |> Event.expect
                                             (resourceMsg <|
-                                                Resource.Msgs.EditComment "foo"
+                                                Message.ResourceMsgs.EditComment "foo"
                                             )
                             , test "EditComment updates textarea value" <|
                                 \_ ->
@@ -1718,11 +1718,11 @@ all =
                                     }
                                 , mouseEnterMsg =
                                     resourceMsg <|
-                                        Resource.Msgs.Hover
+                                        Message.ResourceMsgs.Hover
                                             Models.SaveComment
                                 , mouseLeaveMsg =
                                     resourceMsg <|
-                                        Resource.Msgs.Hover
+                                        Message.ResourceMsgs.Hover
                                             Models.None
                                 , updateFunc =
                                     \msg ->
@@ -1750,7 +1750,7 @@ all =
                                         |> Event.simulate Event.focus
                                         |> Event.expect
                                             (resourceMsg
-                                                Resource.Msgs.FocusTextArea
+                                                Message.ResourceMsgs.FocusTextArea
                                             )
                             , test
                                 ("keydown subscription active when "
@@ -1853,7 +1853,7 @@ all =
                                         |> Event.simulate Event.blur
                                         |> Event.expect
                                             (resourceMsg
-                                                Resource.Msgs.BlurTextArea
+                                                Message.ResourceMsgs.BlurTextArea
                                             )
                             , test "Ctrl-Enter after blurring input does nothing" <|
                                 \_ ->
@@ -1894,7 +1894,7 @@ all =
                                         |> Event.simulate Event.click
                                         |> Event.expect
                                             (resourceMsg <|
-                                                Resource.Msgs.SaveComment "foo"
+                                                Message.ResourceMsgs.SaveComment "foo"
                                             )
                             , test "SaveComment msg makes API call" <|
                                 \_ ->
@@ -1903,7 +1903,7 @@ all =
                                         |> givenResourcePinnedWithComment
                                         |> givenUserEditedComment
                                         |> update
-                                            (Resource.Msgs.SaveComment "foo")
+                                            (Message.ResourceMsgs.SaveComment "foo")
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ ( Effects.SubPage 1
@@ -1925,7 +1925,7 @@ all =
                                             |> givenResourcePinnedWithComment
                                             |> givenUserEditedComment
                                             |> update
-                                                (Resource.Msgs.SaveComment "foo")
+                                                (Message.ResourceMsgs.SaveComment "foo")
                                             |> Tuple.first
 
                                     viewButton : Application.Model -> Query.Single Msgs.Msg
@@ -1955,7 +1955,7 @@ all =
                                     \_ ->
                                         givenCommentSavingInProgress
                                             |> update
-                                                (Resource.Msgs.Hover
+                                                (Message.ResourceMsgs.Hover
                                                     Models.SaveComment
                                                 )
                                             |> Tuple.first
@@ -1976,7 +1976,7 @@ all =
                                             |> givenResourcePinnedWithComment
                                             |> givenUserEditedComment
                                             |> update
-                                                (Resource.Msgs.SaveComment
+                                                (Message.ResourceMsgs.SaveComment
                                                     "foo"
                                                 )
                                             |> Tuple.first
@@ -2007,7 +2007,7 @@ all =
                                             |> givenResourcePinnedWithComment
                                             |> givenUserEditedComment
                                             |> update
-                                                (Resource.Msgs.SaveComment
+                                                (Message.ResourceMsgs.SaveComment
                                                     "foo"
                                                 )
                                             |> Tuple.first
@@ -2031,7 +2031,7 @@ all =
                                             |> givenResourcePinnedWithComment
                                             |> givenUserEditedComment
                                             |> update
-                                                (Resource.Msgs.SaveComment
+                                                (Message.ResourceMsgs.SaveComment
                                                     "foo"
                                                 )
                                             |> Tuple.first
@@ -2041,7 +2041,7 @@ all =
                                                 )
                                             |> Tuple.first
                                             |> update
-                                                (Resource.Msgs.Hover
+                                                (Message.ResourceMsgs.Hover
                                                     Models.SaveComment
                                                 )
                                             |> Tuple.first
@@ -2066,7 +2066,7 @@ all =
                                             |> givenResourcePinnedWithComment
                                             |> givenUserEditedComment
                                             |> update
-                                                (Resource.Msgs.SaveComment
+                                                (Message.ResourceMsgs.SaveComment
                                                     "foo"
                                                 )
                                             |> Tuple.first
@@ -2092,7 +2092,7 @@ all =
                                         |> givenUserIsAuthorized
                                         |> givenResourcePinnedWithComment
                                         |> update
-                                            (Resource.Msgs.EditComment
+                                            (Message.ResourceMsgs.EditComment
                                                 "some pin comment"
                                             )
                                         |> Tuple.first
@@ -2111,12 +2111,12 @@ all =
                                         |> givenUserIsAuthorized
                                         |> givenResourcePinnedWithComment
                                         |> update
-                                            (Resource.Msgs.EditComment
+                                            (Message.ResourceMsgs.EditComment
                                                 "some pin comment"
                                             )
                                         |> Tuple.first
                                         |> update
-                                            (Resource.Msgs.Hover
+                                            (Message.ResourceMsgs.Hover
                                                 Models.SaveComment
                                             )
                                         |> Tuple.first
@@ -2136,7 +2136,7 @@ all =
                                         |> givenUserIsAuthorized
                                         |> givenResourcePinnedDynamically
                                         |> update
-                                            (Resource.Msgs.EditComment "")
+                                            (Message.ResourceMsgs.EditComment "")
                                         |> Tuple.first
                                         |> commentBar
                                         |> Query.find [ tag "button" ]
@@ -2414,7 +2414,7 @@ all =
                         |> Query.find pinButtonSelector
                         |> Event.simulate Event.click
                         |> Event.expect
-                            (resourceMsg <| Resource.Msgs.PinVersion versionID)
+                            (resourceMsg <| Message.ResourceMsgs.PinVersion versionID)
             , test "pin button on 'v1' shows transition state when (PinVersion v1) is received" <|
                 \_ ->
                     init
@@ -2656,10 +2656,10 @@ all =
                         }
                     , mouseEnterMsg =
                         resourceMsg <|
-                            Resource.Msgs.Hover Models.CheckButton
+                            Message.ResourceMsgs.Hover Models.CheckButton
                     , mouseLeaveMsg =
                         resourceMsg <|
-                            Resource.Msgs.Hover Models.None
+                            Message.ResourceMsgs.Hover Models.None
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2693,12 +2693,12 @@ all =
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (resourceMsg (Resource.Msgs.CheckRequested False))
+                            |> Event.expect (resourceMsg (Message.ResourceMsgs.CheckRequested False))
                 , test "Check msg redirects to login" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> update (Resource.Msgs.CheckRequested False)
+                            |> update (Message.ResourceMsgs.CheckRequested False)
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
@@ -2710,7 +2710,7 @@ all =
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
-                            |> update (Resource.Msgs.CheckRequested False)
+                            |> update (Message.ResourceMsgs.CheckRequested False)
                             |> Tuple.first
                             |> checkBar UserStateLoggedOut
                             |> Query.find [ tag "h3" ]
@@ -2755,9 +2755,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        resourceMsg <| Resource.Msgs.Hover Models.CheckButton
+                        resourceMsg <| Message.ResourceMsgs.Hover Models.CheckButton
                     , mouseLeaveMsg =
-                        resourceMsg <| Resource.Msgs.Hover Models.None
+                        resourceMsg <| Message.ResourceMsgs.Hover Models.None
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2791,13 +2791,13 @@ all =
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (resourceMsg (Resource.Msgs.CheckRequested True))
+                            |> Event.expect (resourceMsg (Message.ResourceMsgs.CheckRequested True))
                 , test "Check msg has CheckResource side effect" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update (Resource.Msgs.CheckRequested True)
+                            |> update (Message.ResourceMsgs.CheckRequested True)
                             |> Tuple.second
                             |> Expect.equal
                                 [ ( Effects.SubPage 1
@@ -2815,7 +2815,7 @@ all =
                         givenCheckInProgress =
                             givenResourceIsNotPinned
                                 >> givenUserIsAuthorized
-                                >> update (Resource.Msgs.CheckRequested True)
+                                >> update (Message.ResourceMsgs.CheckRequested True)
                                 >> Tuple.first
                     in
                     [ test "check bar text says 'currently checking'" <|
@@ -2884,9 +2884,9 @@ all =
                             }
                         , mouseEnterMsg =
                             resourceMsg <|
-                                Resource.Msgs.Hover Models.CheckButton
+                                Message.ResourceMsgs.Hover Models.CheckButton
                         , mouseLeaveMsg =
-                            resourceMsg <| Resource.Msgs.Hover Models.None
+                            resourceMsg <| Message.ResourceMsgs.Hover Models.None
                         , hoveredSelector =
                             { description = "black button with white refresh icon"
                             , selector =
@@ -2917,7 +2917,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update (Resource.Msgs.CheckRequested True)
+                            |> update (Message.ResourceMsgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback (Callback.Checked <| Ok ())
                             |> Tuple.first
@@ -2941,7 +2941,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update (Resource.Msgs.CheckRequested True)
+                            |> update (Message.ResourceMsgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback (Callback.Checked <| Ok ())
                             |> Tuple.second
@@ -2969,7 +2969,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update (Resource.Msgs.CheckRequested True)
+                            |> update (Message.ResourceMsgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback
                                 (Callback.Checked <|
@@ -3005,7 +3005,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update (Resource.Msgs.CheckRequested True)
+                            |> update (Message.ResourceMsgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback
                                 (Callback.Checked <|
@@ -3036,7 +3036,7 @@ all =
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
-                            |> update (Resource.Msgs.CheckRequested True)
+                            |> update (Message.ResourceMsgs.CheckRequested True)
                             |> Tuple.first
                             |> handleCallback
                                 (Callback.Checked <|
@@ -3098,9 +3098,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        resourceMsg <| Resource.Msgs.Hover Models.CheckButton
+                        resourceMsg <| Message.ResourceMsgs.Hover Models.CheckButton
                     , mouseLeaveMsg =
-                        resourceMsg <| Resource.Msgs.Hover Models.None
+                        resourceMsg <| Message.ResourceMsgs.Hover Models.None
                     , hoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =
@@ -3231,7 +3231,7 @@ init =
 
 
 update :
-    Resource.Msgs.Msg
+    Message.ResourceMsgs.Msg
     -> Application.Model
     -> ( Application.Model, List ( Effects.LayoutDispatch, String, Effects.Effect ) )
 update =
@@ -3246,9 +3246,9 @@ handleCallback =
     Application.handleCallback (Effects.SubPage 1)
 
 
-resourceMsg : Resource.Msgs.Msg -> Msgs.Msg
+resourceMsg : Message.ResourceMsgs.Msg -> Msgs.Msg
 resourceMsg =
-    SubPage.Msgs.ResourceMsg >> Msgs.SubMsg 1
+    Message.SubPageMsgs.ResourceMsg >> Msgs.SubMsg 1
 
 
 givenUserIsAuthorized : Application.Model -> Application.Model
@@ -3359,31 +3359,31 @@ queryView =
 
 togglePinBarTooltip : Application.Model -> Application.Model
 togglePinBarTooltip =
-    update Resource.Msgs.TogglePinBarTooltip
+    update Message.ResourceMsgs.TogglePinBarTooltip
         >> Tuple.first
 
 
 toggleVersionTooltip : Application.Model -> Application.Model
 toggleVersionTooltip =
-    update Resource.Msgs.ToggleVersionTooltip
+    update Message.ResourceMsgs.ToggleVersionTooltip
         >> Tuple.first
 
 
 clickToPin : Models.VersionId -> Application.Model -> Application.Model
 clickToPin versionID =
-    update (Resource.Msgs.PinVersion versionID)
+    update (Message.ResourceMsgs.PinVersion versionID)
         >> Tuple.first
 
 
 clickToUnpin : Application.Model -> Application.Model
 clickToUnpin =
-    update Resource.Msgs.UnpinVersion
+    update Message.ResourceMsgs.UnpinVersion
         >> Tuple.first
 
 
 clickToDisable : Models.VersionId -> Application.Model -> Application.Model
 clickToDisable versionID =
-    update (Resource.Msgs.ToggleVersion Models.Disable versionID)
+    update (Message.ResourceMsgs.ToggleVersion Models.Disable versionID)
         >> Tuple.first
 
 
@@ -3463,13 +3463,13 @@ givenVersionsWithPagination =
 
 givenTextareaFocused : Application.Model -> Application.Model
 givenTextareaFocused =
-    update Resource.Msgs.FocusTextArea
+    update Message.ResourceMsgs.FocusTextArea
         >> Tuple.first
 
 
 givenTextareaBlurred : Application.Model -> Application.Model
 givenTextareaBlurred =
-    update Resource.Msgs.BlurTextArea
+    update Message.ResourceMsgs.BlurTextArea
         >> Tuple.first
 
 

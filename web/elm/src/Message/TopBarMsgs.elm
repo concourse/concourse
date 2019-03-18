@@ -1,4 +1,4 @@
-module TopBar.Msgs exposing (Msg(..))
+module Message.TopBarMsgs exposing (Msg(..))
 
 import Concourse
 import Routes

@@ -42,11 +42,11 @@ import Html.Events
         , onMouseLeave
         )
 import Http
-import Job.Msgs exposing (Hoverable(..), Msg(..))
 import Job.Styles as Styles
 import LoadingIndicator
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
+import Message.JobMsgs exposing (Hoverable(..), Msg(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import RemoteData exposing (WebData)
 import Routes

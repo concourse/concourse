@@ -1,16 +1,16 @@
 module DashboardSearchTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
-import Dashboard.Msgs
 import Expect exposing (Expectation)
+import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback
+import Message.DashboardMsgs
 import Message.Effects as Effects
-import SubPage.Msgs
+import Message.SubPageMsgs
+import Message.TopBarMsgs
 import Test exposing (Test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, id, style, text)
-import TopBar.Msgs
 
 
 describe : String -> model -> List (model -> Test) -> Test
@@ -58,9 +58,9 @@ all =
         [ context "after focusing the search bar"
             (Application.update
                 (Msgs.SubMsg 1 <|
-                    SubPage.Msgs.DashboardMsg <|
-                        Dashboard.Msgs.FromTopBar
-                            TopBar.Msgs.FocusMsg
+                    Message.SubPageMsgs.DashboardMsg <|
+                        Message.DashboardMsgs.FromTopBar
+                            Message.TopBarMsgs.FocusMsg
                 )
                 >> Tuple.first
             )
@@ -72,9 +72,9 @@ all =
             , context "after clicking 'status:' in the dropdown"
                 (Application.update
                     (Msgs.SubMsg 1 <|
-                        SubPage.Msgs.DashboardMsg <|
-                            Dashboard.Msgs.FromTopBar <|
-                                TopBar.Msgs.FilterMsg "status:"
+                        Message.SubPageMsgs.DashboardMsg <|
+                            Message.DashboardMsgs.FromTopBar <|
+                                Message.TopBarMsgs.FilterMsg "status:"
                     )
                     >> Tuple.first
                 )
@@ -86,9 +86,9 @@ all =
                 , context "after clicking 'status: paused'"
                     (Application.update
                         (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.DashboardMsg <|
-                                Dashboard.Msgs.FromTopBar <|
-                                    TopBar.Msgs.FilterMsg "status: paused"
+                            Message.SubPageMsgs.DashboardMsg <|
+                                Message.DashboardMsgs.FromTopBar <|
+                                    Message.TopBarMsgs.FilterMsg "status: paused"
                         )
                         >> Tuple.first
                     )
@@ -128,9 +128,9 @@ all =
                 >> Tuple.first
                 >> Application.update
                     (Msgs.SubMsg 1 <|
-                        SubPage.Msgs.DashboardMsg <|
-                            Dashboard.Msgs.FromTopBar <|
-                                TopBar.Msgs.FilterMsg "asdf"
+                        Message.SubPageMsgs.DashboardMsg <|
+                            Message.DashboardMsgs.FromTopBar <|
+                                Message.TopBarMsgs.FilterMsg "asdf"
                     )
                 >> Tuple.first
                 >> Application.view

@@ -1,15 +1,15 @@
 module FlySuccessTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
 import Expect exposing (Expectation)
-import FlySuccess.Msgs
 import Html.Attributes as Attr
 import Http
+import Message.ApplicationMsgs as Msgs
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import SubPage.Msgs
+import Message.FlySuccessMsgs
+import Message.SubPageMsgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -163,8 +163,8 @@ tokenCopied =
         (steps tokenSendFailed
             >> Application.update
                 (Msgs.SubMsg 1 <|
-                    SubPage.Msgs.FlySuccessMsg <|
-                        FlySuccess.Msgs.CopyToken
+                    Message.SubPageMsgs.FlySuccessMsg <|
+                        Message.FlySuccessMsgs.CopyToken
                 )
             >> Tuple.first
         )
@@ -571,8 +571,8 @@ buttonClickHandler =
         Event.simulate Event.click
             >> Event.expect
                 (Msgs.SubMsg 1 <|
-                    SubPage.Msgs.FlySuccessMsg <|
-                        FlySuccess.Msgs.CopyToken
+                    Message.SubPageMsgs.FlySuccessMsg <|
+                        Message.FlySuccessMsgs.CopyToken
                 )
 
 
@@ -674,13 +674,13 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.FlySuccessMsg <|
-                            FlySuccess.Msgs.CopyTokenButtonHover
+                        Message.SubPageMsgs.FlySuccessMsg <|
+                            Message.FlySuccessMsgs.CopyTokenButtonHover
                                 True
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.FlySuccessMsg <|
-                            FlySuccess.Msgs.CopyTokenButtonHover
+                        Message.SubPageMsgs.FlySuccessMsg <|
+                            Message.FlySuccessMsgs.CopyTokenButtonHover
                                 False
                 , hoveredSelector =
                     { description = "darker background"

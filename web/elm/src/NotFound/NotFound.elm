@@ -4,8 +4,8 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
 import Message.Callback exposing (Callback)
 import Message.Effects as Effects exposing (Effect)
+import Message.NotFoundMsgs exposing (Msg(..))
 import NotFound.Model exposing (Model)
-import NotFound.Msgs exposing (Msg(..))
 import Routes
 import TopBar.Model
 import TopBar.Styles

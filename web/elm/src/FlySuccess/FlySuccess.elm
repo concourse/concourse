@@ -15,7 +15,6 @@ import FlySuccess.Models
         , isClicked
         , isPending
         )
-import FlySuccess.Msgs exposing (Msg(..))
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
@@ -23,6 +22,7 @@ import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
+import Message.FlySuccessMsgs exposing (Msg(..))
 import RemoteData
 import Routes
 import TopBar.Model

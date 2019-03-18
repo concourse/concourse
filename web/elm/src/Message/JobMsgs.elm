@@ -1,7 +1,7 @@
-module Job.Msgs exposing (Hoverable(..), Msg(..))
+module Message.JobMsgs exposing (Hoverable(..), Msg(..))
 
+import Message.TopBarMsgs
 import Routes
-import TopBar.Msgs
 
 
 type Msg
@@ -9,7 +9,7 @@ type Msg
     | TogglePaused
     | NavTo Routes.Route
     | Hover Hoverable
-    | FromTopBar TopBar.Msgs.Msg
+    | FromTopBar Message.TopBarMsgs.Msg
 
 
 type Hoverable

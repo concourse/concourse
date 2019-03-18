@@ -1,20 +1,21 @@
 module PipelineTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
-import Build.Msgs
 import Char
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
+import Message.ApplicationMsgs as Msgs
+import Message.BuildMsgs
 import Message.Callback as Callback
 import Message.Effects as Effects
+import Message.PipelineMsgs exposing (Msg(..))
+import Message.ResourceMsgs
+import Message.SubPageMsgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
-import Pipeline.Msgs exposing (Msg(..))
+import Message.TopBarMsgs
 import Pipeline.Pipeline as Pipeline exposing (update)
-import Resource.Msgs
 import Routes
-import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -28,7 +29,6 @@ import Test.Html.Selector as Selector
         , tag
         , text
         )
-import TopBar.Msgs
 
 
 rspecStyleDescribe : String -> model -> List (model -> Test) -> Test
@@ -568,10 +568,10 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseEnter
-                        >> Event.expect (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Event.expect (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                 , it "TogglePinIconDropdown msg causes pin icon to have light grey circular background" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -584,7 +584,7 @@ all =
                             ]
                 , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to appear" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -593,7 +593,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "on TogglePinIconDropdown, pin badge has no other children" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -604,7 +604,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources contains resource name" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -614,7 +614,7 @@ all =
                         >> Query.has [ tag "li", containing [ text "resource" ] ]
                 , it "dropdown list of pinned resources shows resource names in bold" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -626,7 +626,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources shows pinned version of each resource" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -637,7 +637,7 @@ all =
                         >> Query.has [ tag "table", containing [ text "v1" ] ]
                 , it "dropdown list of pinned resources has white background" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -647,7 +647,7 @@ all =
                         >> Query.has [ style [ ( "background-color", "#ffffff" ) ] ]
                 , it "dropdown list of pinned resources is drawn over other elements on the page" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -657,7 +657,7 @@ all =
                         >> Query.has [ style [ ( "z-index", "1" ) ] ]
                 , it "dropdown list of pinned resources has dark grey text" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -667,7 +667,7 @@ all =
                         >> Query.has [ style [ ( "color", "#1e1d1d" ) ] ]
                 , it "dropdown list has upward-pointing arrow" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -683,7 +683,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources is offset below and left of the pin icon" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -700,7 +700,7 @@ all =
                             ]
                 , it "dropdown list of pinned resources stretches horizontally to fit content" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -713,7 +713,7 @@ all =
                             ]
                 , it "dropdown list of pinned resources has no bullet points" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -726,7 +726,7 @@ all =
                             ]
                 , it "dropdown list has comfortable padding" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -739,7 +739,7 @@ all =
                             ]
                 , it "dropdown list arrow is centered below the pin icon above the list" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -771,10 +771,10 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseLeave
-                        >> Event.expect (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Event.expect (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                 , it "clicking a pinned resource sends a Navigation Msg" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -783,7 +783,7 @@ all =
                         >> Event.simulate Event.click
                         >> Event.expect
                             (wrapTopBarMessage <|
-                                TopBar.Msgs.GoToRoute <|
+                                Message.TopBarMsgs.GoToRoute <|
                                     Routes.Resource
                                         { id =
                                             { teamName = "team"
@@ -795,9 +795,9 @@ all =
                             )
                 , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to disappear" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -806,7 +806,7 @@ all =
                         >> Query.hasNot [ tag "ul" ]
                 , it "pinned resources in the dropdown should have a pointer cursor" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage TopBar.Msgs.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage Message.TopBarMsgs.TogglePinIconDropdown)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -936,7 +936,7 @@ all =
                         |> Event.simulate Event.click
                         |> Event.expect
                             (wrapTopBarMessage <|
-                                TopBar.Msgs.GoToRoute <|
+                                Message.TopBarMsgs.GoToRoute <|
                                     Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                             )
             , describe "build page"
@@ -952,9 +952,9 @@ all =
                             |> Event.simulate Event.click
                             |> Event.expect
                                 (Msgs.SubMsg 1 <|
-                                    SubPage.Msgs.BuildMsg <|
-                                        Build.Msgs.FromTopBar <|
-                                            TopBar.Msgs.GoToRoute <|
+                                    Message.SubPageMsgs.BuildMsg <|
+                                        Message.BuildMsgs.FromTopBar <|
+                                            Message.TopBarMsgs.GoToRoute <|
                                                 Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                                 )
                 , test "there should be a / between pipeline and job in breadcrumb" <|
@@ -1001,9 +1001,9 @@ all =
                             |> Event.simulate Event.click
                             |> Event.expect
                                 (Msgs.SubMsg 1 <|
-                                    SubPage.Msgs.ResourceMsg <|
-                                        Resource.Msgs.TopBarMsg <|
-                                            TopBar.Msgs.GoToRoute <|
+                                    Message.SubPageMsgs.ResourceMsg <|
+                                        Message.ResourceMsgs.TopBarMsg <|
+                                            Message.TopBarMsgs.GoToRoute <|
                                                 Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                                 )
                 , test "there should be a / between pipeline and resource in breadcrumb" <|
@@ -1144,9 +1144,9 @@ givenMultiplePinnedResources =
         >> Tuple.first
 
 
-wrapTopBarMessage : TopBar.Msgs.Msg -> Msgs.Msg
+wrapTopBarMessage : Message.TopBarMsgs.Msg -> Msgs.Msg
 wrapTopBarMessage =
-    Pipeline.Msgs.FromTopBar >> SubPage.Msgs.PipelineMsg >> Msgs.SubMsg 1
+    Message.PipelineMsgs.FromTopBar >> Message.SubPageMsgs.PipelineMsg >> Msgs.SubMsg 1
 
 
 testTopBarPositioning : String -> String -> Test

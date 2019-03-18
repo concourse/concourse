@@ -36,7 +36,6 @@ import Concourse.BuildStatus
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Group.Tag as Tag
 import Dashboard.Models as Models
-import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
 import Date exposing (Date)
@@ -46,6 +45,7 @@ import Html.Events exposing (on, onMouseEnter)
 import Json.Decode
 import List.Extra
 import Maybe.Extra
+import Message.DashboardMsgs exposing (Msg(..))
 import Monocle.Optional
 import Ordering exposing (Ordering)
 import Set

@@ -31,8 +31,8 @@ import Json.Decode
 import Json.Encode
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
+import Message.PipelineMsgs exposing (Msg(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
-import Pipeline.Msgs exposing (Msg(..))
 import Pipeline.Styles as Styles
 import RemoteData exposing (..)
 import Routes

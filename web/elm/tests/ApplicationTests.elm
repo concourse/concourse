@@ -1,13 +1,13 @@
 module ApplicationTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
 import Concourse.PipelineStatus as PipelineStatus
-import Dashboard.Msgs
 import Expect
+import Message.ApplicationMsgs as Msgs
+import Message.DashboardMsgs
 import Message.Effects as Effects
+import Message.SubPageMsgs
 import Message.Subscription as Subscription exposing (Delivery(..))
-import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (style)
@@ -195,8 +195,8 @@ all =
                     |> Tuple.first
                     |> Application.update
                         (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.DashboardMsg <|
-                                Dashboard.Msgs.TogglePipelinePaused pipelineIdentifier pipelineStatus
+                            Message.SubPageMsgs.DashboardMsg <|
+                                Message.DashboardMsgs.TogglePipelinePaused pipelineIdentifier pipelineStatus
                         )
                     |> Tuple.second
                     |> Expect.equal [ ( Effects.SubPage 1, "real-token", Effects.SendTogglePipelineRequest pipelineIdentifier True ) ]

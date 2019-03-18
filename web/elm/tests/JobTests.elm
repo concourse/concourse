@@ -1,7 +1,6 @@
 module JobTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
 import Concourse exposing (Build, BuildId, BuildStatus(..), Job)
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -17,12 +16,13 @@ import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
 import Job.Job as Job exposing (update)
-import Job.Msgs exposing (Msg(..))
+import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
+import Message.JobMsgs exposing (Msg(..))
+import Message.SubPageMsgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import RemoteData
-import SubPage.Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -268,8 +268,8 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.update
                         (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.JobMsg <|
-                                Job.Msgs.Hover Job.Msgs.Toggle
+                            Message.SubPageMsgs.JobMsg <|
+                                Message.JobMsgs.Hover Message.JobMsgs.Toggle
                         )
                     >> Tuple.first
                     >> Application.view
@@ -312,12 +312,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.Toggle
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.Toggle
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.None
                 }
             , defineHoverBehaviour
                 { name = "play/pause button when job is paused"
@@ -348,12 +348,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.Toggle
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.Toggle
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.None
                 }
             , test "trigger build button has background of the header color, faded" <|
                 init { disabled = False, paused = False }
@@ -375,8 +375,8 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.update
                         (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.JobMsg <|
-                                Job.Msgs.Hover Job.Msgs.Trigger
+                            Message.SubPageMsgs.JobMsg <|
+                                Message.JobMsgs.Hover Message.JobMsgs.Trigger
                         )
                     >> Tuple.first
                     >> Application.view
@@ -441,12 +441,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.Trigger
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.Trigger
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.None
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
@@ -501,12 +501,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.Trigger
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.Trigger
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.None
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
@@ -883,12 +883,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.PreviousPage
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.PreviousPage
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                        Message.SubPageMsgs.JobMsg <|
+                            Message.JobMsgs.Hover Message.JobMsgs.None
                 }
             , test "JobBuildsFetched" <|
                 \_ ->

@@ -1,11 +1,11 @@
-module Pipeline.Msgs exposing (Msg(..))
+module Message.PipelineMsgs exposing (Msg(..))
 
 import Concourse
-import TopBar.Msgs
+import Message.TopBarMsgs
 
 
 type Msg
     = PipelineIdentifierFetched Concourse.PipelineIdentifier
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
-    | FromTopBar TopBar.Msgs.Msg
+    | FromTopBar Message.TopBarMsgs.Msg

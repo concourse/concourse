@@ -16,7 +16,6 @@ import Build.Models as Models
         , Hoverable(..)
         , Model
         )
-import Build.Msgs exposing (Msg(..))
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.StepTree as StepTree
@@ -52,6 +51,7 @@ import Keyboard
 import Keycodes
 import LoadingIndicator
 import Maybe.Extra
+import Message.BuildMsgs exposing (Msg(..))
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))

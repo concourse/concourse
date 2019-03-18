@@ -7,6 +7,7 @@ import Html.Attributes as Attr
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Subscription exposing (Delivery(..))
+import Message.TopBarMsgs as Msgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -22,7 +23,6 @@ import Test.Html.Selector as Selector
         , text
         )
 import TopBar.Model as Model
-import TopBar.Msgs as Msgs
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState(..))
 

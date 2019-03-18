@@ -13,22 +13,23 @@ module DashboardTests exposing
     )
 
 import Application.Application as Application
-import Application.Msgs
 import Char
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Group as Group
-import Dashboard.Msgs as Msgs
 import Date exposing (Date)
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import List.Extra
+import Message.ApplicationMsgs
 import Message.Callback as Callback
+import Message.DashboardMsgs as Msgs
 import Message.Effects as Effects
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.TopBarMsgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -45,7 +46,6 @@ import Test.Html.Selector
         , text
         )
 import Time exposing (Time)
-import TopBar.Msgs
 import UserState
 
 
@@ -464,7 +464,7 @@ all =
                     |> givenDataAndUser
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> Dashboard.update (Msgs.FromTopBar TopBar.Msgs.LogOut)
+                    |> Dashboard.update (Msgs.FromTopBar Message.TopBarMsgs.LogOut)
                     |> showsLoadingState
         , test "links to specific builds" <|
             \_ ->
@@ -2168,7 +2168,7 @@ all =
                     initFromApplication
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> Application.update
-                            (Application.Msgs.DeliveryReceived <|
+                            (Message.ApplicationMsgs.DeliveryReceived <|
                                 WindowResized { width = 1229, height = 300 }
                             )
                         |> Tuple.first
@@ -2263,7 +2263,7 @@ all =
                         initFromApplication
                             |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
-                                (Application.Msgs.DeliveryReceived <|
+                                (Message.ApplicationMsgs.DeliveryReceived <|
                                     WindowResized { width = 800, height = 300 }
                                 )
                             |> Tuple.first
@@ -2279,7 +2279,7 @@ all =
                         initFromApplication
                             |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
-                                (Application.Msgs.DeliveryReceived <|
+                                (Message.ApplicationMsgs.DeliveryReceived <|
                                     WindowResized { width = 800, height = 300 }
                                 )
                             |> Tuple.first
@@ -2718,7 +2718,7 @@ all =
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Application.update
-                            (Application.Msgs.DeliveryReceived Moused)
+                            (Message.ApplicationMsgs.DeliveryReceived Moused)
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
@@ -2739,7 +2739,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.update
-                        (Application.Msgs.DeliveryReceived <|
+                        (Message.ApplicationMsgs.DeliveryReceived <|
                             ClockTicked FiveSeconds 0
                         )
                     |> Tuple.second
@@ -2756,7 +2756,7 @@ afterSeconds : Int -> Application.Model -> Application.Model
 afterSeconds n =
     List.repeat n
         (Application.update
-            (Application.Msgs.DeliveryReceived <| ClockTicked OneSecond 1000)
+            (Message.ApplicationMsgs.DeliveryReceived <| ClockTicked OneSecond 1000)
             >> Tuple.first
         )
         |> List.foldr (>>) identity

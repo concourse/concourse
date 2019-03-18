@@ -15,7 +15,6 @@ import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Models as Models
-import Dashboard.Msgs as Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Dashboard.SubState as SubState
 import Dashboard.Text as Text
@@ -33,8 +32,10 @@ import Html.Attributes
         )
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Callback exposing (Callback(..))
+import Message.DashboardMsgs as Msgs exposing (Msg(..))
 import Message.Effects exposing (Effect(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopBarMsgs
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
@@ -45,7 +46,6 @@ import Routes
 import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
 import TopBar.Model
-import TopBar.Msgs
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
@@ -336,7 +336,7 @@ update msg ( model, effects ) =
                     TopBar.update m ( model, effects )
             in
             case m of
-                TopBar.Msgs.LogOut ->
+                Message.TopBarMsgs.LogOut ->
                     ( { newModel | state = RemoteData.NotAsked }, topBarEffects )
 
                 _ ->

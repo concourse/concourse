@@ -58,10 +58,10 @@ import List.Extra
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..), runEffect, setTitle)
+import Message.ResourceMsgs exposing (Msg(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
-import Resource.Msgs exposing (Msg(..))
 import Resource.Styles
 import Routes
 import Spinner

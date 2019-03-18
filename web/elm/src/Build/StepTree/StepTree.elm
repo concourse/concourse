@@ -12,7 +12,6 @@ module Build.StepTree.StepTree exposing
 import Ansi.Log
 import Array exposing (Array)
 import Build.Models exposing (Hoverable(..), StepHeaderType(..))
-import Build.Msgs exposing (Msg(..))
 import Build.StepTree.Models
     exposing
         ( HookedStep
@@ -43,6 +42,7 @@ import DictView
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
+import Message.BuildMsgs exposing (Msg(..))
 import Message.Effects exposing (Effect(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner

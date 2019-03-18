@@ -3,11 +3,11 @@ module Dashboard.Footer exposing (Model, showFooter, tick, toggleHelp, view)
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group exposing (Group)
-import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Message.DashboardMsgs exposing (Msg(..))
 import Routes
 import ScreenSize
 

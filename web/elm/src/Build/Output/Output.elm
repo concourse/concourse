@@ -9,7 +9,6 @@ module Build.Output.Output exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Msgs exposing (Msg(..))
 import Build.Output.Models exposing (OutputModel, OutputState(..))
 import Build.StepTree.Models as StepTree
     exposing
@@ -38,6 +37,7 @@ import Html.Attributes
         )
 import Http
 import LoadingIndicator
+import Message.BuildMsgs exposing (Msg(..))
 import Message.Effects exposing (Effect(..))
 import NotAuthorized
 import Routes exposing (StepID)

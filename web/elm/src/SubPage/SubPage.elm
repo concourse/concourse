@@ -19,6 +19,7 @@ import Html exposing (Html)
 import Job.Job as Job
 import Message.Callback exposing (Callback)
 import Message.Effects exposing (Effect)
+import Message.SubPageMsgs exposing (Msg(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
 import NotFound.Model
 import NotFound.NotFound as NotFound
@@ -26,7 +27,6 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
-import SubPage.Msgs exposing (Msg(..))
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 

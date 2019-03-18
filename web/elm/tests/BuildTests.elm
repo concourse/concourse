@@ -1,11 +1,9 @@
 module BuildTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
 import Array
 import Build.Build as Build
 import Build.Models as Models
-import Build.Msgs
 import Build.StepTree.Models as STModels
 import Char
 import Concourse exposing (BuildPrepStatus(..))
@@ -21,6 +19,8 @@ import Dict
 import Expect
 import Html.Attributes as Attr
 import Keycodes
+import Message.ApplicationMsgs as Msgs
+import Message.BuildMsgs
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
@@ -873,7 +873,7 @@ all =
                     givenHistoryAndDetailsFetched
                         >> Tuple.mapSecond (always [])
                         >> Build.update
-                            (Build.Msgs.Hover <| Just Models.Trigger)
+                            (Message.BuildMsgs.Hover <| Just Models.Trigger)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -985,8 +985,8 @@ all =
                                     }
                             ]
                         }
-                    , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Trigger
-                    , mouseLeaveMsg = Build.Msgs.Hover Nothing
+                    , mouseEnterMsg = Message.BuildMsgs.Hover <| Just Models.Trigger
+                    , mouseLeaveMsg = Message.BuildMsgs.Hover Nothing
                     }
                 ]
             ]
@@ -1046,7 +1046,7 @@ all =
             , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
                     >> Tuple.mapSecond (always [])
-                    >> Build.update (Build.Msgs.Hover (Just Models.Abort))
+                    >> Build.update (Message.BuildMsgs.Hover (Just Models.Abort))
                     >> Tuple.first
                     >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
@@ -1503,12 +1503,12 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseEnter
                             >> Event.expect
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.BuildMsgs.Hover <| Just <| Models.FirstOccurrence "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.BuildMsgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1528,7 +1528,7 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.BuildMsgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
@@ -1584,7 +1584,7 @@ all =
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.BuildMsgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1597,7 +1597,7 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseLeave
                             >> Event.expect
-                                (Build.Msgs.Hover Nothing)
+                                (Message.BuildMsgs.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
@@ -1605,13 +1605,13 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.BuildMsgs.Hover <| Just <| Models.FirstOccurrence "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
                             >> flip (,) []
-                            >> Build.update (Build.Msgs.Hover Nothing)
+                            >> Build.update (Message.BuildMsgs.Hover Nothing)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1631,7 +1631,7 @@ all =
                         >> Build.handleDelivery (ClockTicked OneSecond 0)
                         >> Tuple.first
                         >> flip (,) []
-                        >> Build.update (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                        >> Build.update (Message.BuildMsgs.Hover <| Just <| Models.FirstOccurrence "foo")
                         >> Tuple.first
                         >> flip (,) []
                         >> Build.handleDelivery (ClockTicked OneSecond 1)

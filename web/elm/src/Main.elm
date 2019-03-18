@@ -1,8 +1,8 @@
 module Main exposing (main)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
 import Concourse
+import Message.ApplicationMsgs as Msgs
 import Message.Effects as Effects
 import Message.Subscription as Subscription
 import Navigation

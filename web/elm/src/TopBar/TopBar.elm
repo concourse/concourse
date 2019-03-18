@@ -30,6 +30,7 @@ import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Subscription exposing (Delivery(..))
+import Message.TopBarMsgs exposing (Msg(..))
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
@@ -42,7 +43,6 @@ import TopBar.Model
         , PipelineState(..)
         , isPaused
         )
-import TopBar.Msgs exposing (Msg(..))
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
 import Window
