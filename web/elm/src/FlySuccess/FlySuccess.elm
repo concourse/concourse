@@ -22,7 +22,7 @@ import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.FlySuccessMsgs exposing (Msg(..))
+import Message.Message exposing (Message(..))
 import RemoteData
 import Routes
 import TopBar.Model
@@ -77,8 +77,13 @@ handleCallback msg ( model, effects ) =
             TopBar.handleCallback msg ( model, effects )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
-update msg ( model, effects ) =
+update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg =
+    TopBar.update msg >> updateBody msg
+
+
+updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody msg ( model, effects ) =
     case msg of
         CopyTokenButtonHover hovered ->
             ( { model | buttonState = hover hovered model.buttonState }
@@ -88,18 +93,18 @@ update msg ( model, effects ) =
         CopyToken ->
             ( { model | buttonState = Clicked }, effects )
 
-        FromTopBar msg ->
-            TopBar.update msg ( model, effects )
+        _ ->
+            ( model, effects )
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
+            [ TopBar.view userState TopBar.Model.None model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ Html.div
                     [ id "success-card"
@@ -122,7 +127,7 @@ view userState model =
         ]
 
 
-body : Model -> List (Html Msg)
+body : Model -> List (Html Message)
 body model =
     let
         elemList =
@@ -170,7 +175,7 @@ body model =
                 ]
 
 
-paragraph : { identifier : String, lines : Text.Paragraph } -> Html Msg
+paragraph : { identifier : String, lines : Text.Paragraph } -> Html Message
 paragraph { identifier, lines } =
     lines
         |> List.map Html.text
@@ -181,7 +186,7 @@ paragraph { identifier, lines } =
             ]
 
 
-button : Model -> Html Msg
+button : Model -> Html Message
 button { tokenTransfer, authToken, buttonState } =
     Html.span
         [ id "copy-token"

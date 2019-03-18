@@ -4,7 +4,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
 import Message.Callback exposing (Callback)
 import Message.Effects as Effects exposing (Effect)
-import Message.NotFoundMsgs exposing (Msg(..))
+import Message.Message exposing (Message(..))
 import NotFound.Model exposing (Model)
 import Routes
 import TopBar.Model
@@ -37,11 +37,9 @@ init flags =
     )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
 update msg ( model, effects ) =
-    case msg of
-        FromTopBar m ->
-            TopBar.update m ( model, effects )
+    TopBar.update msg ( model, effects )
 
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
@@ -49,14 +47,14 @@ handleCallback msg ( model, effects ) =
     TopBar.handleCallback msg ( model, effects )
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
+            [ TopBar.view userState TopBar.Model.None model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ Html.div [ class "notfound" ]
                     [ Html.div [ class "title" ] [ Html.text "404" ]

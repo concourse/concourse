@@ -29,8 +29,8 @@ import Html.Events exposing (..)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
+import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..))
-import Message.TopBarMsgs exposing (Msg(..))
 import QueryString
 import RemoteData exposing (RemoteData)
 import Routes
@@ -321,7 +321,7 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Msg -> ( Model r, List Effect ) -> ( Model r, List Effect )
+update : Message -> ( Model r, List Effect ) -> ( Model r, List Effect )
 update msg ( model, effects ) =
     case msg of
         FilterMsg query ->
@@ -390,6 +390,9 @@ update msg ( model, effects ) =
         ShowSearchInput ->
             showSearchInput model
 
+        _ ->
+            ( model, effects )
+
 
 screenResize : Window.Size -> Model r -> Model r
 screenResize size model =
@@ -446,7 +449,7 @@ showSearchInput model =
             Debug.log "attempting to show search input on a breadcrumbs page" ( model, [] )
 
 
-view : UserState -> PipelineState -> Model r -> Html Msg
+view : UserState -> PipelineState -> Model r -> Html Message
 view userState pipelineState model =
     Html.div
         [ id "top-bar-app"
@@ -460,7 +463,7 @@ view userState pipelineState model =
         )
 
 
-viewPauseToggle : PipelineState -> List (Html Msg)
+viewPauseToggle : PipelineState -> List (Html Message)
 viewPauseToggle pipelineState =
     case pipelineState of
         HasPipeline { isPaused, pipeline } ->
@@ -476,7 +479,7 @@ viewPauseToggle pipelineState =
             []
 
 
-viewLogin : UserState -> Model r -> Bool -> List (Html Msg)
+viewLogin : UserState -> Model r -> Bool -> List (Html Message)
 viewLogin userState model isPaused =
     if showLogin model then
         [ Html.div [ id "login-component", style Styles.loginComponent ] <|
@@ -497,7 +500,7 @@ showLogin model =
             True
 
 
-viewLoginState : UserState -> Bool -> Bool -> List (Html Msg)
+viewLoginState : UserState -> Bool -> Bool -> List (Html Message)
 viewLoginState userState isUserMenuExpanded isPaused =
     case userState of
         UserStateUnknown ->
@@ -540,7 +543,7 @@ userDisplayName user =
             List.filter (not << String.isEmpty) [ user.userName, user.name, user.email ]
 
 
-viewMiddleSection : Model r -> List (Html Msg)
+viewMiddleSection : Model r -> List (Html Message)
 viewMiddleSection model =
     case model.middleSection of
         Empty ->
@@ -564,7 +567,7 @@ viewMiddleSection model =
             [ Html.div [ id "breadcrumbs", style Styles.breadcrumbContainer ] (viewBreadcrumbs r) ]
 
 
-viewSearch : { query : String, dropdown : Dropdown } -> Model r -> List (Html Msg)
+viewSearch : { query : String, dropdown : Dropdown } -> Model r -> List (Html Message)
 viewSearch r model =
     [ Html.div
         [ id "search-container"
@@ -592,7 +595,7 @@ viewSearch r model =
     ]
 
 
-viewDropdownItems : { query : String, dropdown : Dropdown } -> Model r -> List (Html Msg)
+viewDropdownItems : { query : String, dropdown : Dropdown } -> Model r -> List (Html Message)
 viewDropdownItems { query, dropdown } model =
     case dropdown of
         Hidden ->
@@ -600,7 +603,7 @@ viewDropdownItems { query, dropdown } model =
 
         Shown { selectedIdx } ->
             let
-                dropdownItem : Int -> String -> Html Msg
+                dropdownItem : Int -> String -> Html Message
                 dropdownItem idx text =
                     Html.li
                         [ onMouseDown (FilterMsg text)
@@ -641,7 +644,7 @@ viewDropdownItems { query, dropdown } model =
             ]
 
 
-viewConcourseLogo : List (Html Msg)
+viewConcourseLogo : List (Html Message)
 viewConcourseLogo =
     [ Html.a
         [ style Styles.concourseLogo, href "/" ]
@@ -649,7 +652,7 @@ viewConcourseLogo =
     ]
 
 
-viewBreadcrumbs : Routes.Route -> List (Html Msg)
+viewBreadcrumbs : Routes.Route -> List (Html Message)
 viewBreadcrumbs route =
     case route of
         Routes.Pipeline { id } ->
@@ -677,7 +680,7 @@ viewBreadcrumbs route =
             []
 
 
-breadcrumbComponent : String -> String -> List (Html Msg)
+breadcrumbComponent : String -> String -> List (Html Message)
 breadcrumbComponent componentType name =
     [ Html.div
         [ style (Styles.breadcrumbComponent componentType) ]
@@ -686,14 +689,14 @@ breadcrumbComponent componentType name =
     ]
 
 
-viewBreadcrumbSeparator : Html Msg
+viewBreadcrumbSeparator : Html Message
 viewBreadcrumbSeparator =
     Html.li
         [ class "breadcrumb-separator", style <| Styles.breadcrumbItem False ]
         [ Html.text "/" ]
 
 
-viewPipelineBreadcrumb : Concourse.PipelineIdentifier -> Html Msg
+viewPipelineBreadcrumb : Concourse.PipelineIdentifier -> Html Message
 viewPipelineBreadcrumb pipelineId =
     Html.li
         [ id "breadcrumb-pipeline"
@@ -703,7 +706,7 @@ viewPipelineBreadcrumb pipelineId =
         (breadcrumbComponent "pipeline" pipelineId.pipelineName)
 
 
-viewJobBreadcrumb : String -> Html Msg
+viewJobBreadcrumb : String -> Html Message
 viewJobBreadcrumb jobName =
     Html.li
         [ id "breadcrumb-job"
@@ -712,7 +715,7 @@ viewJobBreadcrumb jobName =
         (breadcrumbComponent "job" jobName)
 
 
-viewResourceBreadcrumb : String -> Html Msg
+viewResourceBreadcrumb : String -> Html Message
 viewResourceBreadcrumb resourceName =
     Html.li
         [ id "breadcrumb-resource"
@@ -747,7 +750,7 @@ dropdownOptions { query, teams } =
             []
 
 
-viewPin : PipelineState -> Model r -> List (Html Msg)
+viewPin : PipelineState -> Model r -> List (Html Message)
 viewPin pipelineState model =
     case pipelineState of
         HasPipeline { pinnedResources, pipeline } ->
@@ -780,7 +783,7 @@ viewPin pipelineState model =
             []
 
 
-viewPinDropdown : List ( String, Concourse.Version ) -> Concourse.PipelineIdentifier -> Model r -> List (Html Msg)
+viewPinDropdown : List ( String, Concourse.Version ) -> Concourse.PipelineIdentifier -> Model r -> List (Html Message)
 viewPinDropdown pinnedResources pipeline model =
     if model.isPinMenuExpanded then
         [ Html.ul

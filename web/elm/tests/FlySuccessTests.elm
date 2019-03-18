@@ -8,7 +8,7 @@ import Http
 import Message.ApplicationMsgs as Msgs
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.FlySuccessMsgs
+import Message.Message
 import Message.SubPageMsgs
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -164,7 +164,7 @@ tokenCopied =
             >> Application.update
                 (Msgs.SubMsg 1 <|
                     Message.SubPageMsgs.FlySuccessMsg <|
-                        Message.FlySuccessMsgs.CopyToken
+                        Message.Message.CopyToken
                 )
             >> Tuple.first
         )
@@ -572,7 +572,7 @@ buttonClickHandler =
             >> Event.expect
                 (Msgs.SubMsg 1 <|
                     Message.SubPageMsgs.FlySuccessMsg <|
-                        Message.FlySuccessMsgs.CopyToken
+                        Message.Message.CopyToken
                 )
 
 
@@ -675,12 +675,12 @@ all =
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
                         Message.SubPageMsgs.FlySuccessMsg <|
-                            Message.FlySuccessMsgs.CopyTokenButtonHover
+                            Message.Message.CopyTokenButtonHover
                                 True
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
                         Message.SubPageMsgs.FlySuccessMsg <|
-                            Message.FlySuccessMsgs.CopyTokenButtonHover
+                            Message.Message.CopyTokenButtonHover
                                 False
                 , hoveredSelector =
                     { description = "darker background"

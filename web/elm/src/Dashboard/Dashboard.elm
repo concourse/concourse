@@ -34,8 +34,8 @@ import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Callback exposing (Callback(..))
 import Message.DashboardMsgs as Msgs exposing (Msg(..))
 import Message.Effects exposing (Effect(..))
+import Message.Message
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
-import Message.TopBarMsgs
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
@@ -336,7 +336,7 @@ update msg ( model, effects ) =
                     TopBar.update m ( model, effects )
             in
             case m of
-                Message.TopBarMsgs.LogOut ->
+                Message.Message.LogOut ->
                     ( { newModel | state = RemoteData.NotAsked }, topBarEffects )
 
                 _ ->

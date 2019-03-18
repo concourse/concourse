@@ -1,10 +1,10 @@
-module Message.TopBarMsgs exposing (Msg(..))
+module Message.Message exposing (Message(..))
 
 import Concourse
 import Routes
 
 
-type Msg
+type Message
     = LogIn
     | LogOut
     | FilterMsg String
@@ -15,3 +15,7 @@ type Msg
     | TogglePinIconDropdown
     | TogglePipelinePaused Concourse.PipelineIdentifier Bool
     | GoToRoute Routes.Route
+    | ToggleGroup Concourse.PipelineGroup
+    | SetGroups (List String)
+    | CopyTokenButtonHover Bool
+    | CopyToken

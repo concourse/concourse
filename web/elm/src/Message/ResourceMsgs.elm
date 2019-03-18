@@ -1,7 +1,7 @@
 module Message.ResourceMsgs exposing (Msg(..))
 
 import Concourse.Pagination exposing (Page, Paginated)
-import Message.TopBarMsgs
+import Message.Message
 import Resource.Models as Models
 import Routes
 
@@ -18,7 +18,7 @@ type Msg
     | PinIconHover Bool
     | Hover Models.Hoverable
     | CheckRequested Bool
-    | TopBarMsg Message.TopBarMsgs.Msg
+    | TopBarMsg Message.Message.Message
     | EditComment String
     | SaveComment String
     | FocusTextArea

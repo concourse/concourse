@@ -6,8 +6,8 @@ import Expect exposing (..)
 import Html.Attributes as Attr
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
+import Message.Message as Msgs
 import Message.Subscription exposing (Delivery(..))
-import Message.TopBarMsgs as Msgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -45,7 +45,7 @@ it desc expectationFunc subject =
         \_ -> expectationFunc subject
 
 
-update : Msgs.Msg -> Model.Model {} -> ( Model.Model {}, List Effects.Effect )
+update : Msgs.Message -> Model.Model {} -> ( Model.Model {}, List Effects.Effect )
 update msg =
     flip (,) [] >> TopBar.update msg
 
@@ -1011,7 +1011,7 @@ onePipeline teamName =
     }
 
 
-viewNormally : ( Model.Model {}, List Effects.Effect ) -> Query.Single Msgs.Msg
+viewNormally : ( Model.Model {}, List Effects.Effect ) -> Query.Single Msgs.Message
 viewNormally =
     Tuple.first >> TopBar.view UserStateLoggedOut Model.None >> Query.fromHtml
 

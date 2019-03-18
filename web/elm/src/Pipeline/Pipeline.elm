@@ -31,7 +31,7 @@ import Json.Decode
 import Json.Encode
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.PipelineMsgs exposing (Msg(..))
+import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Pipeline.Styles as Styles
 import RemoteData exposing (..)
@@ -245,20 +245,22 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
-update msg ( model, effects ) =
-    case msg of
-        PipelineIdentifierFetched pipelineIdentifier ->
-            ( model, effects ++ [ FetchPipeline pipelineIdentifier ] )
+update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg =
+    TopBar.update msg >> updateBody msg
 
+
+updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody msg ( model, effects ) =
+    case msg of
         ToggleGroup group ->
             ( model, effects ++ [ NavigateTo <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
 
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
-        FromTopBar msg ->
-            TopBar.update msg ( model, effects )
+        _ ->
+            ( model, effects )
 
 
 getPinnedResources : Model -> List ( String, Concourse.Version )
@@ -283,7 +285,7 @@ subscriptions model =
     ]
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState model =
     let
         pipelineState =
@@ -296,7 +298,7 @@ view userState model =
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
             [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| TopBar.view userState pipelineState model
+            [ TopBar.view userState pipelineState model
             , Html.div
                 [ Html.Attributes.style TopBar.Styles.pipelinePageBelowTopBar
                 , id "page-below-top-bar"
@@ -311,7 +313,7 @@ isPaused p =
     RemoteData.withDefault False (RemoteData.map .paused p)
 
 
-viewSubPage : Model -> Html Msg
+viewSubPage : Model -> Html Message
 viewSubPage model =
     Html.div [ class "pipeline-view" ]
         [ viewGroupsBar model
@@ -392,7 +394,7 @@ viewSubPage model =
         ]
 
 
-viewGroupsBar : Model -> Html Msg
+viewGroupsBar : Model -> Html Message
 viewGroupsBar model =
     let
         groupList =
@@ -429,7 +431,7 @@ viewGroup :
         , pipelineLocator : Concourse.PipelineIdentifier
     }
     -> Concourse.PipelineGroup
-    -> Html Msg
+    -> Html Message
 viewGroup { selectedGroups, pipelineLocator } grp =
     let
         url =

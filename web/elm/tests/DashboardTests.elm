@@ -28,8 +28,8 @@ import Message.ApplicationMsgs
 import Message.Callback as Callback
 import Message.DashboardMsgs as Msgs
 import Message.Effects as Effects
+import Message.Message
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
-import Message.TopBarMsgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -464,7 +464,7 @@ all =
                     |> givenDataAndUser
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> Dashboard.update (Msgs.FromTopBar Message.TopBarMsgs.LogOut)
+                    |> Dashboard.update (Msgs.FromTopBar Message.Message.LogOut)
                     |> showsLoadingState
         , test "links to specific builds" <|
             \_ ->

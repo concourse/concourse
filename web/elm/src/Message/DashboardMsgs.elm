@@ -4,7 +4,7 @@ import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus)
 import Dashboard.Models as Models
-import Message.TopBarMsgs
+import Message.Message
 
 
 type Msg
@@ -17,4 +17,4 @@ type Msg
     | PipelineButtonHover (Maybe Models.Pipeline)
     | CliHover (Maybe Cli.Cli)
     | TopCliHover (Maybe Cli.Cli)
-    | FromTopBar Message.TopBarMsgs.Msg
+    | FromTopBar Message.Message.Message

@@ -2,7 +2,7 @@ module Message.BuildMsgs exposing (Msg(..))
 
 import Build.Models exposing (Hoverable)
 import Concourse
-import Message.TopBarMsgs
+import Message.Message
 import Routes exposing (StepID)
 import StrictEvents
 
@@ -19,4 +19,4 @@ type Msg
     | SwitchTab String Int
     | SetHighlight String Int
     | ExtendHighlight String Int
-    | FromTopBar Message.TopBarMsgs.Msg
+    | FromTopBar Message.Message.Message
