@@ -1,11 +1,13 @@
-module Message.Message exposing (Message(..))
+module Message.Message exposing (Hoverable(..), Message(..))
 
+import Build.Models
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page, Paginated)
 import Dashboard.Models
 import Resource.Models
-import Routes
+import Routes exposing (StepID)
+import StrictEvents
 
 
 type Message
@@ -50,3 +52,26 @@ type Message
     | SaveComment String
     | FocusTextArea
     | BlurTextArea
+      -- Job
+    | TriggerBuildJob
+    | TogglePaused
+    | HoverJob Hoverable
+      -- Build
+    | SwitchToBuild Concourse.Build
+    | HoverBuild (Maybe Build.Models.Hoverable)
+    | TriggerBuild (Maybe Concourse.JobIdentifier)
+    | AbortBuild Int
+    | ScrollBuilds StrictEvents.MouseWheelEvent
+    | RevealCurrentBuildInHistory
+    | ToggleStep String
+    | SwitchTab String Int
+    | SetHighlight String Int
+    | ExtendHighlight String Int
+
+
+type Hoverable
+    = Toggle
+    | Trigger
+    | PreviousPage
+    | NextPage
+    | None

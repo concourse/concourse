@@ -42,8 +42,8 @@ import DictView
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
-import Message.BuildMsgs exposing (Msg(..))
 import Message.Effects exposing (Effect(..))
+import Message.Message exposing (Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
 import StrictEvents
@@ -368,12 +368,12 @@ updateTooltip { hoveredElement, hoveredCounter } model =
     ( { model | tooltip = newTooltip }, [] )
 
 
-view : StepTreeModel -> Html Msg
+view : StepTreeModel -> Html Message
 view model =
     viewTree model model.tree
 
 
-viewTree : StepTreeModel -> StepTree -> Html Msg
+viewTree : StepTreeModel -> StepTree -> Html Message
 viewTree model tree =
     case tree of
         Task step ->
@@ -424,7 +424,7 @@ viewTree model tree =
             viewHooked "ensure" model step hook
 
 
-viewTab : StepID -> Int -> Int -> StepTree -> Html Msg
+viewTab : StepID -> Int -> Int -> StepTree -> Html Message
 viewTab id currentTab idx step =
     let
         tab =
@@ -435,12 +435,12 @@ viewTab id currentTab idx step =
         [ Html.a [ onClick (SwitchTab id tab) ] [ Html.text (toString tab) ] ]
 
 
-viewSeq : StepTreeModel -> StepTree -> Html Msg
+viewSeq : StepTreeModel -> StepTree -> Html Message
 viewSeq model tree =
     Html.div [ class "seq" ] [ viewTree model tree ]
 
 
-viewHooked : String -> StepTreeModel -> StepTree -> StepTree -> Html Msg
+viewHooked : String -> StepTreeModel -> StepTree -> StepTree -> Html Message
 viewHooked name model step hook =
     Html.div [ class "hooked" ]
         [ Html.div [ class "step" ] [ viewTree model step ]
@@ -460,7 +460,7 @@ autoExpanded state =
     isActive state && state /= StepStateSucceeded
 
 
-viewStep : StepTreeModel -> Step -> StepHeaderType -> Html Msg
+viewStep : StepTreeModel -> Step -> StepHeaderType -> Html Message
 viewStep model { id, name, log, state, error, expanded, version, metadata, firstOccurrence, timestamps } headerType =
     Html.div
         [ classList
@@ -510,12 +510,12 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
         ]
 
 
-viewLogs : Ansi.Log.Model -> Dict Int Date -> Highlight -> String -> List (Html Msg)
+viewLogs : Ansi.Log.Model -> Dict Int Date -> Highlight -> String -> List (Html Message)
 viewLogs { lines } timestamps hl id =
     Array.toList <| Array.indexedMap (\idx -> viewTimestampedLine timestamps hl id (idx + 1)) lines
 
 
-viewTimestampedLine : Dict Int Date -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Msg
+viewTimestampedLine : Dict Int Date -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Message
 viewTimestampedLine timestamps hl id lineNo line =
     let
         highlighted =
@@ -543,14 +543,14 @@ viewTimestampedLine timestamps hl id lineNo line =
         ]
 
 
-viewLine : Ansi.Log.Line -> Html Msg
+viewLine : Ansi.Log.Line -> Html Message
 viewLine line =
     Html.td [ class "timestamped-content" ]
         [ Ansi.Log.viewLine line
         ]
 
 
-viewTimestamp : Highlight -> String -> ( Int, Maybe Date ) -> Html Msg
+viewTimestamp : Highlight -> String -> ( Int, Maybe Date ) -> Html Message
 viewTimestamp hl id ( line, date ) =
     Html.a
         [ href (showHighlight (HighlightLine id line))
@@ -565,21 +565,21 @@ viewTimestamp hl id ( line, date ) =
         ]
 
 
-viewVersion : Maybe Version -> Html Msg
+viewVersion : Maybe Version -> Html Message
 viewVersion version =
     Maybe.withDefault Dict.empty version
         |> Dict.map (always Html.text)
         |> DictView.view []
 
 
-viewMetadata : List MetadataField -> Html Msg
+viewMetadata : List MetadataField -> Html Message
 viewMetadata =
     List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] ))
         >> Dict.fromList
         >> DictView.view []
 
 
-viewStepState : StepState -> Html Msg
+viewStepState : StepState -> Html Message
 viewStepState state =
     case state of
         StepStateRunning ->
@@ -628,13 +628,13 @@ viewStepState state =
                 []
 
 
-viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Msg
+viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Message
 viewStepHeaderIcon headerType tooltip id =
     let
         eventHandlers =
             if headerType == StepHeaderGet True then
-                [ onMouseLeave <| Hover Nothing
-                , onMouseEnter <| Hover (Just (FirstOccurrence id))
+                [ onMouseLeave <| HoverBuild Nothing
+                , onMouseEnter <| HoverBuild (Just (FirstOccurrence id))
                 ]
 
             else

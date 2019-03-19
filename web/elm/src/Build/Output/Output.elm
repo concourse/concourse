@@ -37,8 +37,8 @@ import Html.Attributes
         )
 import Http
 import LoadingIndicator
-import Message.BuildMsgs exposing (Msg(..))
 import Message.Effects exposing (Effect(..))
+import Message.Message exposing (Message(..))
 import NotAuthorized
 import Routes exposing (StepID)
 
@@ -332,7 +332,7 @@ setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
 
 
-view : Concourse.Build -> OutputModel -> Html Msg
+view : Concourse.Build -> OutputModel -> Html Message
 view build { steps, errors, state } =
     Html.div [ class "steps" ]
         [ viewErrors errors
@@ -344,7 +344,7 @@ viewStepTree :
     Concourse.Build
     -> Maybe StepTreeModel
     -> OutputState
-    -> Html Msg
+    -> Html Message
 viewStepTree build steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
@@ -363,7 +363,7 @@ viewStepTree build steps state =
             Html.div [] []
 
 
-viewErrors : Maybe Ansi.Log.Model -> Html msg
+viewErrors : Maybe Ansi.Log.Model -> Html Message
 viewErrors errors =
     case errors of
         Nothing ->

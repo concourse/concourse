@@ -46,7 +46,7 @@ import Job.Styles as Styles
 import LoadingIndicator
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.JobMsgs exposing (Hoverable(..), Msg(..))
+import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import RemoteData exposing (WebData)
 import Routes
@@ -265,10 +265,15 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
-update action ( model, effects ) =
+update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg =
+    TopBar.update msg >> updateBody msg
+
+
+updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody action ( model, effects ) =
     case action of
-        TriggerBuild ->
+        TriggerBuildJob ->
             ( model, effects ++ [ DoTriggerBuild model.jobIdentifier ] )
 
         TogglePaused ->
@@ -288,14 +293,14 @@ update action ( model, effects ) =
                         effects ++ [ PauseJob model.jobIdentifier ]
                     )
 
-        NavTo route ->
+        GoToRoute route ->
             ( model, effects ++ [ NavigateTo <| Routes.toString route ] )
 
-        Hover hoverable ->
+        HoverJob hoverable ->
             ( { model | hovered = hoverable }, effects )
 
-        FromTopBar m ->
-            TopBar.update m ( model, effects )
+        _ ->
+            ( model, effects )
 
 
 redirectToLoginIfNecessary : Http.Error -> List Effect
@@ -403,14 +408,14 @@ isRunning build =
     Concourse.BuildStatus.isRunning build.status
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
+            [ TopBar.view userState TopBar.Model.None model
             , Html.div
                 [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ viewMainJobsSection model ]
@@ -418,7 +423,7 @@ view userState model =
         ]
 
 
-viewMainJobsSection : Model -> Html Msg
+viewMainJobsSection : Model -> Html Message
 viewMainJobsSection model =
     Html.div [ class "with-fixed-header" ]
         [ case model.job |> RemoteData.toMaybe of
@@ -452,8 +457,8 @@ viewMainJobsSection model =
                                 , style <|
                                     Styles.triggerButton False toggleHovered <|
                                         headerBuildStatus job.finishedBuild
-                                , onMouseEnter <| Hover Toggle
-                                , onMouseLeave <| Hover None
+                                , onMouseEnter <| HoverJob Toggle
+                                , onMouseLeave <| HoverJob None
                                 , onClick TogglePaused
                                 ]
                                 [ Html.div
@@ -469,11 +474,11 @@ viewMainJobsSection model =
                             ]
                         , Html.button
                             [ class "trigger-build"
-                            , onLeftClick TriggerBuild
+                            , onLeftClick TriggerBuildJob
                             , attribute "aria-label" "Trigger Build"
                             , attribute "title" "Trigger Build"
-                            , onMouseEnter <| Hover Trigger
-                            , onMouseLeave <| Hover None
+                            , onMouseEnter <| HoverJob Trigger
+                            , onMouseLeave <| HoverJob None
                             , style <|
                                 Styles.triggerButton job.disableManualTrigger triggerHovered <|
                                     headerBuildStatus job.finishedBuild
@@ -542,7 +547,7 @@ headerBuildStatus finishedBuild =
             build.status
 
 
-viewPaginationBar : Model -> Html Msg
+viewPaginationBar : Model -> Html Message
 viewPaginationBar model =
     Html.div
         [ id "pagination"
@@ -573,11 +578,11 @@ viewPaginationBar model =
                 in
                 Html.div
                     [ style chevronContainer
-                    , onMouseEnter <| Hover PreviousPage
-                    , onMouseLeave <| Hover None
+                    , onMouseEnter <| HoverJob PreviousPage
+                    , onMouseLeave <| HoverJob None
                     ]
                     [ Html.a
-                        [ StrictEvents.onLeftClick <| NavTo jobRoute
+                        [ StrictEvents.onLeftClick <| GoToRoute jobRoute
                         , href <| Routes.toString <| jobRoute
                         , attribute "aria-label" "Previous Page"
                         , style <|
@@ -611,11 +616,11 @@ viewPaginationBar model =
                 in
                 Html.div
                     [ style chevronContainer
-                    , onMouseEnter <| Hover NextPage
-                    , onMouseLeave <| Hover None
+                    , onMouseEnter <| HoverJob NextPage
+                    , onMouseLeave <| HoverJob None
                     ]
                     [ Html.a
-                        [ StrictEvents.onLeftClick <| NavTo jobRoute
+                        [ StrictEvents.onLeftClick <| GoToRoute jobRoute
                         , href <| Routes.toString jobRoute
                         , attribute "aria-label" "Next Page"
                         , style <|
@@ -630,7 +635,7 @@ viewPaginationBar model =
         ]
 
 
-viewBuildWithResources : Model -> BuildWithResources -> Html Msg
+viewBuildWithResources : Model -> BuildWithResources -> Html Message
 viewBuildWithResources model bwr =
     Html.li [ class "js-build" ] <|
         let
@@ -644,18 +649,18 @@ viewBuildWithResources model bwr =
         ]
 
 
-viewBuildHeader : Model -> Concourse.Build -> Html Msg
+viewBuildHeader : Model -> Concourse.Build -> Html Message
 viewBuildHeader model b =
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
-        , StrictEvents.onLeftClick <| NavTo <| Routes.buildRoute b
+        , StrictEvents.onLeftClick <| GoToRoute <| Routes.buildRoute b
         , href <| Routes.toString <| Routes.buildRoute b
         ]
         [ Html.text ("#" ++ b.name)
         ]
 
 
-viewBuildResources : Model -> BuildWithResources -> List (Html Msg)
+viewBuildResources : Model -> BuildWithResources -> List (Html Message)
 viewBuildResources model buildWithResources =
     let
         inputsTable =
@@ -717,7 +722,7 @@ buildResourceIcon direction =
     ]
 
 
-viewBuildInputs : Model -> Concourse.BuildResourcesInput -> Html Msg
+viewBuildInputs : Model -> Concourse.BuildResourcesInput -> Html Message
 viewBuildInputs model bi =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
@@ -729,7 +734,7 @@ viewBuildInputs model bi =
         ]
 
 
-viewBuildOutputs : Model -> Concourse.BuildResourcesOutput -> Html Msg
+viewBuildOutputs : Model -> Concourse.BuildResourcesOutput -> Html Message
 viewBuildOutputs model bo =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
@@ -741,7 +746,7 @@ viewBuildOutputs model bo =
         ]
 
 
-viewVersion : Concourse.Version -> Html Msg
+viewVersion : Concourse.Version -> Html Message
 viewVersion version =
     DictView.view []
         << Dict.map (\_ s -> Html.text s)

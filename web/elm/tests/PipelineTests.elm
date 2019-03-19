@@ -6,7 +6,6 @@ import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
 import Message.ApplicationMsgs as Msgs
-import Message.BuildMsgs
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message exposing (Message(..))
@@ -951,9 +950,8 @@ all =
                             |> Event.expect
                                 (Msgs.SubMsg 1 <|
                                     Message.SubPageMsgs.BuildMsg <|
-                                        Message.BuildMsgs.FromTopBar <|
-                                            Message.Message.GoToRoute <|
-                                                Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                        Message.Message.GoToRoute <|
+                                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                                 )
                 , test "there should be a / between pipeline and job in breadcrumb" <|
                     \_ ->
