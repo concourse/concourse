@@ -541,10 +541,10 @@ all =
                             }
                         , mouseEnterMsg =
                             resourceMsg <|
-                                Message.Message.Hover Models.PreviousPage
+                                Message.Message.HoverRes Models.PreviousPage
                         , mouseLeaveMsg =
                             resourceMsg <|
-                                Message.Message.Hover Models.None
+                                Message.Message.HoverRes Models.None
                         }
                     ]
                 ]
@@ -1717,11 +1717,11 @@ all =
                                     }
                                 , mouseEnterMsg =
                                     resourceMsg <|
-                                        Message.Message.Hover
+                                        Message.Message.HoverRes
                                             Models.SaveComment
                                 , mouseLeaveMsg =
                                     resourceMsg <|
-                                        Message.Message.Hover
+                                        Message.Message.HoverRes
                                             Models.None
                                 , updateFunc =
                                     \msg ->
@@ -1954,7 +1954,7 @@ all =
                                     \_ ->
                                         givenCommentSavingInProgress
                                             |> update
-                                                (Message.Message.Hover
+                                                (Message.Message.HoverRes
                                                     Models.SaveComment
                                                 )
                                             |> Tuple.first
@@ -2040,7 +2040,7 @@ all =
                                                 )
                                             |> Tuple.first
                                             |> update
-                                                (Message.Message.Hover
+                                                (Message.Message.HoverRes
                                                     Models.SaveComment
                                                 )
                                             |> Tuple.first
@@ -2115,7 +2115,7 @@ all =
                                             )
                                         |> Tuple.first
                                         |> update
-                                            (Message.Message.Hover
+                                            (Message.Message.HoverRes
                                                 Models.SaveComment
                                             )
                                         |> Tuple.first
@@ -2655,10 +2655,10 @@ all =
                         }
                     , mouseEnterMsg =
                         resourceMsg <|
-                            Message.Message.Hover Models.CheckButton
+                            Message.Message.HoverRes Models.CheckButton
                     , mouseLeaveMsg =
                         resourceMsg <|
-                            Message.Message.Hover Models.None
+                            Message.Message.HoverRes Models.None
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2754,9 +2754,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        resourceMsg <| Message.Message.Hover Models.CheckButton
+                        resourceMsg <| Message.Message.HoverRes Models.CheckButton
                     , mouseLeaveMsg =
-                        resourceMsg <| Message.Message.Hover Models.None
+                        resourceMsg <| Message.Message.HoverRes Models.None
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2883,9 +2883,9 @@ all =
                             }
                         , mouseEnterMsg =
                             resourceMsg <|
-                                Message.Message.Hover Models.CheckButton
+                                Message.Message.HoverRes Models.CheckButton
                         , mouseLeaveMsg =
-                            resourceMsg <| Message.Message.Hover Models.None
+                            resourceMsg <| Message.Message.HoverRes Models.None
                         , hoveredSelector =
                             { description = "black button with white refresh icon"
                             , selector =
@@ -3097,9 +3097,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        resourceMsg <| Message.Message.Hover Models.CheckButton
+                        resourceMsg <| Message.Message.HoverRes Models.CheckButton
                     , mouseLeaveMsg =
-                        resourceMsg <| Message.Message.Hover Models.None
+                        resourceMsg <| Message.Message.HoverRes Models.None
                     , hoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =

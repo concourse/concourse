@@ -620,7 +620,7 @@ updateBody action ( model, effects ) =
         PinIconHover state ->
             ( { model | pinIconHover = state }, effects )
 
-        Hover hovered ->
+        HoverRes hovered ->
             ( { model | hovered = hovered }, effects )
 
         CheckRequested isAuthorized ->
@@ -826,8 +826,8 @@ paginationMenu { versions, resourceIdentifier, hovered } =
             Just page ->
                 Html.div
                     ([ style chevronContainer
-                     , onMouseEnter <| Hover Models.PreviousPage
-                     , onMouseLeave <| Hover Models.None
+                     , onMouseEnter <| HoverRes Models.PreviousPage
+                     , onMouseLeave <| HoverRes Models.None
                      ]
                         ++ previousButtonEventHandler
                     )
@@ -863,8 +863,8 @@ paginationMenu { versions, resourceIdentifier, hovered } =
             Just page ->
                 Html.div
                     ([ style chevronContainer
-                     , onMouseEnter <| Hover Models.NextPage
-                     , onMouseLeave <| Hover Models.None
+                     , onMouseEnter <| HoverRes Models.NextPage
+                     , onMouseLeave <| HoverRes Models.None
                      ]
                         ++ nextButtonEventHandler
                     )
@@ -993,8 +993,8 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
     in
     Html.div
         ([ style <| Resource.Styles.checkButton isClickable
-         , onMouseEnter <| Hover Models.CheckButton
-         , onMouseLeave <| Hover Models.None
+         , onMouseEnter <| HoverRes Models.CheckButton
+         , onMouseLeave <| HoverRes Models.None
          ]
             ++ (if isClickable then
                     [ onClick (CheckRequested isUserAuthorized) ]
@@ -1094,8 +1094,8 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                                             == Models.SaveComment
                                     , commentChanged = commentChanged
                                     }
-                            , onMouseEnter <| Hover Models.SaveComment
-                            , onMouseLeave <| Hover Models.None
+                            , onMouseEnter <| HoverRes Models.SaveComment
+                            , onMouseLeave <| HoverRes Models.None
                             , onClick <| SaveComment commentState.comment
                             ]
                             (if pinCommentLoading then

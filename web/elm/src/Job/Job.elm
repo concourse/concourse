@@ -46,7 +46,7 @@ import Job.Styles as Styles
 import LoadingIndicator
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (HoverableJob(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import RemoteData exposing (WebData)
 import Routes
@@ -67,7 +67,7 @@ type alias Model =
         , buildsWithResources : Paginated BuildWithResources
         , currentPage : Maybe Page
         , now : Time
-        , hovered : Hoverable
+        , hovered : HoverableJob
         }
 
 

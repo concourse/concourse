@@ -1,4 +1,4 @@
-module Message.Message exposing (Hoverable(..), Message(..))
+module Message.Message exposing (HoverableJob(..), Message(..))
 
 import Build.Models
 import Concourse
@@ -46,7 +46,7 @@ type Message
     | UnpinVersion
     | ToggleVersion Resource.Models.VersionToggleAction Resource.Models.VersionId
     | PinIconHover Bool
-    | Hover Resource.Models.Hoverable
+    | HoverRes Resource.Models.Hoverable
     | CheckRequested Bool
     | EditComment String
     | SaveComment String
@@ -55,7 +55,7 @@ type Message
       -- Job
     | TriggerBuildJob
     | TogglePaused
-    | HoverJob Hoverable
+    | HoverJob HoverableJob
       -- Build
     | SwitchToBuild Concourse.Build
     | HoverBuild (Maybe Build.Models.Hoverable)
@@ -69,7 +69,7 @@ type Message
     | ExtendHighlight String Int
 
 
-type Hoverable
+type HoverableJob
     = Toggle
     | Trigger
     | PreviousPage
