@@ -18,7 +18,7 @@ type containerSweeper struct {
 	interval     time.Duration
 	tsaClient    TSAClient
 	gardenClient garden.Client
-	maxInFlight  int
+	maxInFlight  uint16
 }
 
 func NewContainerSweeper(
@@ -26,7 +26,7 @@ func NewContainerSweeper(
 	sweepInterval time.Duration,
 	tsaClient TSAClient,
 	gardenClient garden.Client,
-	maxInFlight int,
+	maxInFlight uint16,
 ) *containerSweeper {
 	return &containerSweeper{
 		logger:       logger,

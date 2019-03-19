@@ -21,8 +21,6 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
-const SweeperMaxInFlight = 5
-
 type WorkerCommand struct {
 	Worker WorkerConfig
 
@@ -42,7 +40,9 @@ type WorkerCommand struct {
 	HealthcheckBindPort uint16        `long:"healthcheck-bind-port"  default:"8888"     description:"Port on which to listen for health checking requests."`
 	HealthCheckTimeout  time.Duration `long:"healthcheck-timeout"    default:"5s"       description:"HTTP timeout for the full duration of health checking."`
 
-	SweepInterval time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
+	SweepInterval               time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
+	VolumeSweeperMaxInFlight    uint16        `long:"volume-sweeper-max-in-flight" default:"5" description:"Maximum number of volumes which can be swept in parallel."`
+	ContainerSweeperMaxInFlight uint16        `long:"container-sweeper-max-in-flight" default:"5" description:"Maximum number of containers which can be swept in parallel."`
 
 	RebalanceInterval time.Duration `long:"rebalance-interval" description:"Duration after which the registration should be swapped to another random SSH gateway."`
 
@@ -132,7 +132,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.SweepInterval,
 		tsaClient,
 		gardenClient,
-		SweeperMaxInFlight,
+		cmd.ContainerSweeperMaxInFlight,
 	)
 
 	volumeSweeper := worker.NewVolumeSweeper(
@@ -140,7 +140,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.SweepInterval,
 		tsaClient,
 		baggageclaimClient,
-		SweeperMaxInFlight,
+		cmd.VolumeSweeperMaxInFlight,
 	)
 
 	members := grouper.Members{

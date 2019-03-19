@@ -18,7 +18,7 @@ type volumeSweeper struct {
 	interval           time.Duration
 	tsaClient          TSAClient
 	baggageclaimClient baggageclaim.Client
-	maxInFlight        int
+	maxInFlight        uint16
 }
 
 func NewVolumeSweeper(
@@ -26,7 +26,7 @@ func NewVolumeSweeper(
 	sweepInterval time.Duration,
 	tsaClient TSAClient,
 	bcClient baggageclaim.Client,
-	maxInFlight int,
+	maxInFlight uint16,
 ) *volumeSweeper {
 	return &volumeSweeper{
 		logger:             logger,
