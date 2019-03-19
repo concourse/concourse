@@ -7,7 +7,6 @@ module Dashboard.Dashboard exposing
     , view
     )
 
-import Char
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Details as Details
