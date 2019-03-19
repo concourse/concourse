@@ -269,7 +269,6 @@ all =
                     }
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <|
                             Ok
                                 ( 1
@@ -292,7 +291,6 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.PlanAndResourcesFetched 307 <|
                             Ok <|
                                 ( { id = "stepid"
@@ -357,7 +355,6 @@ all =
                     }
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <|
                             Ok
                                 ( 1
@@ -375,7 +372,6 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.PlanAndResourcesFetched 307 <|
                             Ok <|
                                 ( { id = "stepid"
@@ -409,7 +405,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> receiveEvent
@@ -417,12 +412,11 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" }
                         }
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToWindowBottom ]
         , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, theBuild ))
                     |> Tuple.first
                     |> receiveEvent
@@ -435,7 +429,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
@@ -450,7 +443,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
@@ -462,16 +454,14 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" }
                         }
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToWindowBottom ]
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { pipeline =
@@ -501,54 +491,38 @@ all =
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
                     |> Tuple.second
                     |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , csrfToken
-                          , Effects.DoTriggerBuild
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                , jobName = "job"
-                                }
-                          )
+                        [ Effects.DoTriggerBuild
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , jobName = "job"
+                            }
                         ]
         , test "pressing 'gg' scrolls to the top" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
                     |> Tuple.second
-                    |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , csrfToken
-                          , Effects.Scroll Effects.ToWindowTop
-                          )
-                        ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToWindowTop ]
         , test "pressing 'G' scrolls to the bottom" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
                     |> Tuple.second
-                    |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , csrfToken
-                          , Effects.Scroll Effects.ToWindowBottom
-                          )
-                        ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToWindowBottom ]
         , test "pressing and releasing shift, then 'g', does nothing" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
@@ -562,7 +536,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
@@ -679,7 +652,7 @@ all =
             , test "when less than 24h old, shows relative time since build" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
                         |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (2 * Time.second))
                         |> Tuple.first
@@ -690,7 +663,7 @@ all =
             , test "when at least 24h old, shows absolute time of build" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
                         |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (24 * Time.hour))
                         |> Tuple.first
@@ -1940,7 +1913,6 @@ all =
                             }
                             |> Tuple.first
                             |> Application.handleCallback
-                                (Effects.SubPage 1)
                                 (Callback.BuildFetched <|
                                     Ok
                                         ( 1
@@ -1963,7 +1935,6 @@ all =
                                 )
                             |> Tuple.first
                             |> Application.handleCallback
-                                (Effects.SubPage 1)
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
                                         ( { id = "stepid"
@@ -2079,6 +2050,6 @@ darkGrey =
 receiveEvent :
     STModels.BuildEventEnvelope
     -> Application.Model
-    -> ( Application.Model, List ( Effects.LayoutDispatch, Concourse.CSRFToken, Effects.Effect ) )
+    -> ( Application.Model, List Effects.Effect )
 receiveEvent envelope =
     Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])

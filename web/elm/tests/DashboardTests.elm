@@ -2913,7 +2913,7 @@ all =
                             ClockTicked FiveSeconds 0
                         )
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.FetchData ) ]
+                    |> Expect.equal [ Effects.FetchData ]
         ]
 
 
@@ -3082,7 +3082,6 @@ givenDataUnauthenticatedFromApplication :
     -> Application.Model
 givenDataUnauthenticatedFromApplication data =
     Application.handleCallback
-        (Effects.SubPage 1)
         (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
         >> Tuple.first
 

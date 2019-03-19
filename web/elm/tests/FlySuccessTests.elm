@@ -7,7 +7,6 @@ import Html.Attributes as Attr
 import Http
 import Message.ApplicationMsgs as Msgs
 import Message.Callback exposing (Callback(..))
-import Message.Effects as Effects
 import Message.Message
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -139,7 +138,6 @@ tokenSendSuccess =
     setup "when token successfully sent to fly"
         (steps whenOnFlySuccessPage
             >> Application.handleCallback
-                (Effects.SubPage 1)
                 (TokenSentToFly (Ok ()))
             >> Tuple.first
         )
@@ -150,7 +148,6 @@ tokenSendFailed =
     setup "when token failed to send to fly"
         (steps whenOnFlySuccessPage
             >> Application.handleCallback
-                (Effects.SubPage 1)
                 (TokenSentToFly (Err Http.NetworkError))
             >> Tuple.first
         )
@@ -161,9 +158,7 @@ tokenCopied =
     setup "when token copied to clipboard"
         (steps tokenSendFailed
             >> Application.update
-                (Msgs.SubMsg 1 <|
-                    Message.Message.CopyToken
-                )
+                (Msgs.SubMsg <| Message.Message.CopyToken)
             >> Tuple.first
         )
 
@@ -568,9 +563,7 @@ buttonClickHandler =
     property button "sends CopyToken on click" <|
         Event.simulate Event.click
             >> Event.expect
-                (Msgs.SubMsg 1 <|
-                    Message.Message.CopyToken
-                )
+                (Msgs.SubMsg <| Message.Message.CopyToken)
 
 
 
@@ -670,11 +663,11 @@ all =
                     , selector = [ style [ ( "background-color", darkGrey ) ] ]
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg 1 <|
+                    Msgs.SubMsg <|
                         Message.Message.Hover <|
                             Just Message.Message.CopyTokenButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg 1 <|
+                    Msgs.SubMsg <|
                         Message.Message.Hover Nothing
                 , hoveredSelector =
                     { description = "darker background"

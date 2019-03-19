@@ -1,6 +1,5 @@
 port module Message.Effects exposing
     ( Effect(..)
-    , LayoutDispatch(..)
     , ScrollDirection(..)
     , renderPipeline
     , runEffect
@@ -66,11 +65,6 @@ port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
 
 
 port closeEventStream : () -> Cmd msg
-
-
-type LayoutDispatch
-    = SubPage Int
-    | Layout
 
 
 type Effect

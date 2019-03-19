@@ -5,9 +5,7 @@ import Dict exposing (Dict)
 import Expect
 import Http
 import Message.Callback exposing (Callback(..))
-import Message.Effects as Effects
 import NotFound.Model
-import RemoteData
 import Routes
 import ScreenSize
 import SubPage.SubPage exposing (..)
@@ -57,7 +55,6 @@ all =
             [ test "JobNotFound" <|
                 init "/teams/t/pipelines/p/jobs/j"
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (JobFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
@@ -78,7 +75,6 @@ all =
             , test "Resource not found" <|
                 init "/teams/t/pipelines/p/resources/r"
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (ResourceFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
@@ -99,7 +95,6 @@ all =
             , test "Build not found" <|
                 init "/builds/1"
                     >> Application.handleCallback
-                        (Effects.SubPage 0)
                         (BuildFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
@@ -116,7 +111,6 @@ all =
             , test "Pipeline not found" <|
                 init "/teams/t/pipelines/p"
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (PipelineFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel

@@ -5,7 +5,6 @@ import Concourse
 import Expect exposing (Expectation)
 import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback
-import Message.Effects as Effects
 import Message.Message
 import Test exposing (Test)
 import Test.Html.Query as Query
@@ -54,7 +53,6 @@ all =
             }
             |> Tuple.first
             |> Application.handleCallback
-                (Effects.SubPage 1)
                 (Callback.APIDataFetched
                     (Ok
                         ( 0
@@ -83,7 +81,7 @@ all =
         )
         [ context "after focusing the search bar"
             (Application.update
-                (Msgs.SubMsg 1 <|
+                (Msgs.SubMsg <|
                     Message.Message.FocusMsg
                 )
                 >> Tuple.first
@@ -95,7 +93,7 @@ all =
                     >> Query.has [ text "status:" ]
             , context "after clicking 'status:' in the dropdown"
                 (Application.update
-                    (Msgs.SubMsg 1 <|
+                    (Msgs.SubMsg <|
                         Message.Message.FilterMsg "status:"
                     )
                     >> Tuple.first
@@ -107,7 +105,7 @@ all =
                         >> Query.has [ text "status: paused" ]
                 , context "after clicking 'status: paused'"
                     (Application.update
-                        (Msgs.SubMsg 1 <|
+                        (Msgs.SubMsg <|
                             Message.Message.FilterMsg "status: paused"
                         )
                         >> Tuple.first
@@ -123,7 +121,6 @@ all =
             ]
         , it "centers 'no results' message when typing a string with no hits" <|
             Application.handleCallback
-                (Effects.SubPage 1)
                 (Callback.APIDataFetched
                     (Ok
                         ( 0
@@ -147,7 +144,7 @@ all =
                 )
                 >> Tuple.first
                 >> Application.update
-                    (Msgs.SubMsg 1 <|
+                    (Msgs.SubMsg <|
                         Message.Message.FilterMsg "asdf"
                     )
                 >> Tuple.first

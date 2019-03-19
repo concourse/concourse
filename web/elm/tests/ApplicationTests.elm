@@ -1,11 +1,9 @@
 module ApplicationTests exposing (all)
 
 import Application.Application as Application
-import Concourse.PipelineStatus as PipelineStatus
 import Expect
 import Message.ApplicationMsgs as Msgs
 import Message.Effects as Effects
-import Message.Message
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Test exposing (..)
 import Test.Html.Query as Query
@@ -158,9 +156,7 @@ all =
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| NonHrefLinkClicked "/foo/bar")
                     |> Tuple.second
-                    |> Expect.equal
-                        [ ( Effects.Layout, "token", Effects.NavigateTo "/foo/bar" )
-                        ]
+                    |> Expect.equal [ Effects.NavigateTo "/foo/bar" ]
         , test "received token is passed to all subsquent requests" <|
             \_ ->
                 let
@@ -189,10 +185,6 @@ all =
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| TokenReceived <| Just "real-token")
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.SubMsg 1 <|
-                            Message.Message.TogglePipelinePaused pipelineIdentifier True
-                        )
-                    |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, "real-token", Effects.SendTogglePipelineRequest pipelineIdentifier True ) ]
+                    |> .csrfToken
+                    |> Expect.equal "real-token"
         ]

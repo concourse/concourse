@@ -11,21 +11,21 @@ import Navigation
 main : Program Application.Flags Application.Model Msgs.Msg
 main =
     Navigation.programWithFlags Application.locationMsg
-        { init = \flags -> Application.init flags >> Tuple.mapSecond effectsToCmd
-        , update = \msg -> Application.update msg >> Tuple.mapSecond effectsToCmd
+        { init = \flags -> Application.init flags >> effectsToCmd
+        , update = \msg -> Application.update msg >> effectsToCmd
         , view = Application.view
         , subscriptions = Application.subscriptions >> subscriptionsToSub
         }
 
 
-effectsToCmd : List ( Effects.LayoutDispatch, Concourse.CSRFToken, Effects.Effect ) -> Cmd Msgs.Msg
-effectsToCmd =
-    List.map effectToCmd >> Cmd.batch
+effectsToCmd : ( Application.Model, List Effects.Effect ) -> ( Application.Model, Cmd Msgs.Msg )
+effectsToCmd ( model, effs ) =
+    ( model, List.map (effectToCmd model.csrfToken) effs |> Cmd.batch )
 
 
-effectToCmd : ( Effects.LayoutDispatch, Concourse.CSRFToken, Effects.Effect ) -> Cmd Msgs.Msg
-effectToCmd ( disp, csrfToken, eff ) =
-    Effects.runEffect eff csrfToken |> Cmd.map (Msgs.Callback disp)
+effectToCmd : Concourse.CSRFToken -> Effects.Effect -> Cmd Msgs.Msg
+effectToCmd csrfToken eff =
+    Effects.runEffect eff csrfToken |> Cmd.map Msgs.Callback
 
 
 subscriptionsToSub : List Subscription.Subscription -> Sub Msgs.Msg
