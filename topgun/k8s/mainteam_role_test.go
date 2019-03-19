@@ -37,7 +37,7 @@ var _ = Describe("Main team role config", func() {
 		Expect(pods).To(HaveLen(1))
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login(username, password, atcEndpoint)
