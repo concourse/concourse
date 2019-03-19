@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/onsi/gomega/gexec"
@@ -22,7 +23,7 @@ var _ = Describe("team external workers", func() {
 	)
 
 	JustBeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-xw-%d", randomGenerator.Int())
+		releaseName = fmt.Sprintf("topgun-xw-%d-%d", rand.Int(), GinkgoParallelNode())
 		namespace = releaseName
 
 		helmArgs := []string{

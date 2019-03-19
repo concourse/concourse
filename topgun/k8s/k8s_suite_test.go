@@ -42,8 +42,6 @@ var (
 	fly         Fly
 )
 
-var randomGenerator = rand.New(rand.NewSource(GinkgoRandomSeed()))
-
 var _ = SynchronizedBeforeSuite(func() []byte {
 	var parsedEnv environment
 
@@ -69,6 +67,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	envBytes, err := json.Marshal(parsedEnv)
 	Expect(err).ToNot(HaveOccurred())
+
+	rand.Seed(time.Now().UTC().UnixNano())
 
 	return envBytes
 }, func(data []byte) {

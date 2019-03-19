@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+	"math/rand"
 	"path"
 
 	. "github.com/concourse/concourse/topgun"
@@ -16,7 +17,7 @@ var _ = Describe("External PostgreSQL", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-ep-%d", randomGenerator.Int())
+		releaseName = fmt.Sprintf("topgun-ep-%d-%d", rand.Int(), GinkgoParallelNode())
 		namespace = releaseName
 		pgReleaseName = releaseName + "-pg"
 

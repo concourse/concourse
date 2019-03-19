@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/onsi/gomega/gexec"
 
@@ -36,8 +37,8 @@ var _ = Describe("Baggageclaim Drivers", func() {
 
 	DescribeTable("across different node images",
 		func(c Case) {
-			releaseName = fmt.Sprintf("topgun-bd-%s-%s-%d",
-				c.Driver, c.NodeImage, randomGenerator.Int())
+			releaseName = fmt.Sprintf("topgun-bd-%s-%s-%d-%d",
+				c.Driver, c.NodeImage, rand.Int(), GinkgoParallelNode())
 			namespace = releaseName
 
 			helmDeployTestFlags := []string{

@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -21,7 +22,7 @@ var _ = Describe("Worker Rebalancing", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-wr-%d", randomGenerator.Int())
+		releaseName = fmt.Sprintf("topgun-wr-%d-%d", rand.Int(), GinkgoParallelNode())
 		namespace = releaseName
 
 		deployConcourseChart(releaseName,

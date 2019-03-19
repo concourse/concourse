@@ -3,6 +3,7 @@ package k8s_test
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 
 	"github.com/onsi/gomega/gexec"
@@ -26,7 +27,7 @@ var _ = Describe("Garden Config", func() {
 	}
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-gc-%d", randomGenerator.Int())
+		releaseName = fmt.Sprintf("topgun-gc-%d-%d", rand.Int(), GinkgoParallelNode())
 		namespace = releaseName
 		Run(nil, "kubectl", "create", "namespace", namespace)
 	})

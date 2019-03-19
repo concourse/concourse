@@ -3,6 +3,7 @@ package k8s_test
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"path"
 	"time"
@@ -56,7 +57,7 @@ var _ = Describe("Prometheus integration", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-pi-%d", randomGenerator.Int())
+		releaseName = fmt.Sprintf("topgun-pi-%d-%d", rand.Int(), GinkgoParallelNode())
 		namespace = releaseName
 		prometheusReleaseName = releaseName + "-prom"
 

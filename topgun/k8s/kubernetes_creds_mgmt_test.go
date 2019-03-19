@@ -3,6 +3,7 @@ package k8s_test
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/onsi/gomega/gexec"
@@ -24,7 +25,7 @@ var _ = Describe("Kubernetes credential management", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-k8s-cm-%d", randomGenerator.Int())
+		releaseName = fmt.Sprintf("topgun-k8s-cm-%d-%d", rand.Int(), GinkgoParallelNode())
 		namespace = releaseName
 	})
 
