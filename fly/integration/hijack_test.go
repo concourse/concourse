@@ -621,7 +621,6 @@ var _ = Describe("Hijacking", func() {
 			stepName = ""
 			resourceName = ""
 			containerArguments = ""
-			hijackHandlerError = nil
 			attempt = ""
 		})
 
@@ -781,6 +780,62 @@ var _ = Describe("Hijacking", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(255))
+			})
+		})
+	})
+
+	Context("when hijacking a specific container", func() {
+		var (
+			hijackHandlerError []string
+			statusCode         int
+			id                 string
+		)
+
+		BeforeEach(func() {
+			hijackHandlerError = nil
+			statusCode = 0
+			id = ""
+		})
+
+		JustBeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers/container-id"),
+					ghttp.RespondWithJSONEncoded(statusCode, atc.Container{
+						ID:   id,
+						User: user,
+					}),
+				),
+				hijackHandler("container-id", didHijack, hijackHandlerError),
+			)
+		})
+
+		Context("when container exists", func() {
+			BeforeEach(func() {
+				statusCode = 200
+				id = "container-id"
+			})
+			It("should hijack container with associated handle", func() {
+				hijack("--handle", "container-id")
+			})
+		})
+
+		Context("when container does not exist", func() {
+			BeforeEach(func() {
+				statusCode = 404
+			})
+
+			It("should return an approriate error message", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "--handle", "container-id")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(1))
+
+				Expect(sess.Err).To(gbytes.Say("no containers matched the given handle id!\n\nthey may have expired if your build hasn't recently finished.\n"))
 			})
 		})
 	})
