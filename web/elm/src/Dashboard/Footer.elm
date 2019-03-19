@@ -1,15 +1,18 @@
-module Dashboard.Footer exposing (Model, showFooter, tick, toggleHelp, view)
+module Dashboard.Footer exposing (Model, handleDelivery, view)
 
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group exposing (Group)
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
+import Effects
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Routes
 import ScreenSize
+import Subscription exposing (Delivery(..), Interval(..))
+import TopBar.Model exposing (Dropdown(..))
 
 
 type alias Model r =
@@ -21,32 +24,60 @@ type alias Model r =
         , hoveredCliIcon : Maybe Cli.Cli
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , highDensity : Bool
+        , route : Routes.Route
+        , shiftDown : Bool
+        , dropdown : Dropdown
     }
 
 
-showFooter : Model r -> Model r
-showFooter model =
-    { model | hideFooter = False, hideFooterCounter = 0 }
+handleDelivery :
+    Delivery
+    -> ( Model r, List Effects.Effect )
+    -> ( Model r, List Effects.Effect )
+handleDelivery delivery ( model, effects ) =
+    case delivery of
+        KeyDown keyCode ->
+            case keyCode of
+                -- '/' key
+                191 ->
+                    if model.shiftDown && model.dropdown == Hidden then
+                        ( { model
+                            | showHelp =
+                                if
+                                    model.groups
+                                        |> List.concatMap .pipelines
+                                        |> List.isEmpty
+                                then
+                                    False
 
+                                else
+                                    not model.showHelp
+                          }
+                        , effects
+                        )
 
-tick : Model r -> Model r
-tick model =
-    if model.hideFooterCounter > 4 then
-        { model | hideFooter = True }
+                    else
+                        ( model, effects )
 
-    else
-        { model | hideFooterCounter = model.hideFooterCounter + 1 }
+                _ ->
+                    ( { model | hideFooter = False, hideFooterCounter = 0 }
+                    , effects
+                    )
 
+        Moused ->
+            ( { model | hideFooter = False, hideFooterCounter = 0 }, effects )
 
-toggleHelp : Model r -> Model r
-toggleHelp model =
-    { model | showHelp = not (hideHelp model || model.showHelp) }
+        ClockTicked OneSecond time ->
+            ( if model.hideFooterCounter > 4 then
+                { model | hideFooter = True }
 
+              else
+                { model | hideFooterCounter = model.hideFooterCounter + 1 }
+            , effects
+            )
 
-hideHelp : { a | groups : List Group } -> Bool
-hideHelp { groups } =
-    List.isEmpty (groups |> List.concatMap .pipelines)
+        _ ->
+            ( model, effects )
 
 
 view : Model r -> List (Html Msg)
@@ -64,7 +95,7 @@ view model =
 keyboardHelp : Html Msg
 keyboardHelp =
     Html.div
-        [ class "keyboard-help" ]
+        [ class "keyboard-help", id "keyboard-help" ]
         [ Html.div
             [ class "help-title" ]
             [ Html.text "keyboard shortcuts" ]
@@ -96,7 +127,7 @@ infoBar :
         | hoveredCliIcon : Maybe Cli.Cli
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , highDensity : Bool
+        , route : Routes.Route
         , groups : List Group
     }
     -> Html Msg
@@ -118,7 +149,7 @@ legend :
     { a
         | groups : List Group
         , screenSize : ScreenSize.ScreenSize
-        , highDensity : Bool
+        , route : Routes.Route
     }
     -> List (Html Msg)
 legend model =
@@ -148,7 +179,7 @@ legend model =
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
                 ++ legendSeparator model.screenSize
-                ++ [ toggleView model.highDensity ]
+                ++ [ toggleView (model.route == Routes.Dashboard Routes.HighDensity) ]
         ]
 
 

@@ -108,10 +108,11 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = topBar.isUserMenuExpanded
             , isPinMenuExpanded = topBar.isPinMenuExpanded
-            , middleSection = topBar.middleSection
-            , teams = topBar.teams
+            , route = topBar.route
+            , groups = topBar.groups
+            , dropdown = topBar.dropdown
             , screenSize = topBar.screenSize
-            , highDensity = topBar.highDensity
+            , shiftDown = topBar.shiftDown
             }
     in
     ( model
@@ -212,11 +213,11 @@ subscriptions model =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar action ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody action ( model, effects ) =
     case action of
         ResourceFetched (Ok resource) ->
             ( { model
@@ -627,7 +628,7 @@ update action ( model, effects ) =
             else
                 ( model, effects ++ [ RedirectToLogin ] )
 
-        TopBarMsg msg ->
+        FromTopBar msg ->
             TopBar.update msg ( model, effects )
 
         EditComment input ->
@@ -696,7 +697,7 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map TopBarMsg <| TopBar.view userState TopBar.Model.None model
+            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ subpageView userState model
                 , commentBar userState model

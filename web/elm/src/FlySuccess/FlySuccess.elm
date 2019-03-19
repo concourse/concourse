@@ -48,10 +48,11 @@ init { authToken, flyPort } =
                     RemoteData.Failure NoFlyPort
       , isUserMenuExpanded = topBar.isUserMenuExpanded
       , isPinMenuExpanded = topBar.isPinMenuExpanded
-      , middleSection = topBar.middleSection
-      , teams = topBar.teams
+      , route = topBar.route
+      , groups = topBar.groups
+      , dropdown = topBar.dropdown
       , screenSize = topBar.screenSize
-      , highDensity = topBar.highDensity
+      , shiftDown = topBar.shiftDown
       }
     , topBarEffects
         ++ (case flyPort of

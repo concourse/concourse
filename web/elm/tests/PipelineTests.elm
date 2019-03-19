@@ -1002,7 +1002,7 @@ all =
                             |> Event.expect
                                 (Msgs.SubMsg 1 <|
                                     SubPage.Msgs.ResourceMsg <|
-                                        Resource.Msgs.TopBarMsg <|
+                                        Resource.Msgs.FromTopBar <|
                                             TopBar.Msgs.GoToRoute <|
                                                 Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                                 )
