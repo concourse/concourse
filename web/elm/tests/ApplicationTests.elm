@@ -4,8 +4,8 @@ import Application.Application as Application
 import Concourse.PipelineStatus as PipelineStatus
 import Expect
 import Message.ApplicationMsgs as Msgs
-import Message.DashboardMsgs
 import Message.Effects as Effects
+import Message.Message
 import Message.SubPageMsgs
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Test exposing (..)
@@ -167,9 +167,6 @@ all =
                 let
                     pipelineIdentifier =
                         { pipelineName = "p", teamName = "t" }
-
-                    pipelineStatus =
-                        PipelineStatus.PipelineStatusPaused
                 in
                 Application.init
                     { turbulenceImgSrc = ""
@@ -196,7 +193,7 @@ all =
                     |> Application.update
                         (Msgs.SubMsg 1 <|
                             Message.SubPageMsgs.DashboardMsg <|
-                                Message.DashboardMsgs.TogglePipelinePaused pipelineIdentifier pipelineStatus
+                                Message.Message.TogglePipelinePaused pipelineIdentifier True
                         )
                     |> Tuple.second
                     |> Expect.equal [ ( Effects.SubPage 1, "real-token", Effects.SendTogglePipelineRequest pipelineIdentifier True ) ]

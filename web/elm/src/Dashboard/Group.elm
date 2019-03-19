@@ -45,7 +45,7 @@ import Html.Events exposing (on, onMouseEnter)
 import Json.Decode
 import List.Extra
 import Maybe.Extra
-import Message.DashboardMsgs exposing (Msg(..))
+import Message.Message exposing (Message(..))
 import Monocle.Optional
 import Ordering exposing (Ordering)
 import Set
@@ -413,7 +413,7 @@ view :
     , pipelineRunningKeyframes : String
     }
     -> Group
-    -> Html Msg
+    -> Html Message
 view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } group =
     let
         pipelines =
@@ -472,7 +472,7 @@ view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } gr
         ]
 
 
-hdView : String -> Group -> Html Msg
+hdView : String -> Group -> Html Message
 hdView pipelineRunningKeyframes group =
     let
         header =
@@ -504,7 +504,7 @@ hdView pipelineRunningKeyframes group =
                 List.append [ Html.div [ class "dashboard-team-name-wrapper" ] (header ++ [ p ]) ] ps
 
 
-pipelineNotSetView : Html msg
+pipelineNotSetView : Html Message
 pipelineNotSetView =
     Html.div
         [ class "card" ]
@@ -517,7 +517,7 @@ pipelineNotSetView =
         ]
 
 
-pipelineDropAreaView : DragState -> DropState -> String -> Int -> Html Msg
+pipelineDropAreaView : DragState -> DropState -> String -> Int -> Html Message
 pipelineDropAreaView dragState dropState teamName index =
     let
         ( active, over ) =

@@ -10,7 +10,6 @@ import Message.BuildMsgs
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message exposing (Message(..))
-import Message.ResourceMsgs
 import Message.SubPageMsgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Pipeline.Pipeline as Pipeline exposing (update)
@@ -1001,9 +1000,8 @@ all =
                             |> Event.expect
                                 (Msgs.SubMsg 1 <|
                                     Message.SubPageMsgs.ResourceMsg <|
-                                        Message.ResourceMsgs.TopBarMsg <|
-                                            Message.Message.GoToRoute <|
-                                                Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                        Message.Message.GoToRoute <|
+                                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                                 )
                 , test "there should be a / between pipeline and resource in breadcrumb" <|
                     \_ ->

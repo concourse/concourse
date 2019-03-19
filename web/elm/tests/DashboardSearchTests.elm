@@ -4,7 +4,6 @@ import Application.Application as Application
 import Expect exposing (Expectation)
 import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback
-import Message.DashboardMsgs
 import Message.Effects as Effects
 import Message.Message
 import Message.SubPageMsgs
@@ -59,8 +58,7 @@ all =
             (Application.update
                 (Msgs.SubMsg 1 <|
                     Message.SubPageMsgs.DashboardMsg <|
-                        Message.DashboardMsgs.FromTopBar
-                            Message.Message.FocusMsg
+                        Message.Message.FocusMsg
                 )
                 >> Tuple.first
             )
@@ -73,8 +71,7 @@ all =
                 (Application.update
                     (Msgs.SubMsg 1 <|
                         Message.SubPageMsgs.DashboardMsg <|
-                            Message.DashboardMsgs.FromTopBar <|
-                                Message.Message.FilterMsg "status:"
+                            Message.Message.FilterMsg "status:"
                     )
                     >> Tuple.first
                 )
@@ -87,8 +84,7 @@ all =
                     (Application.update
                         (Msgs.SubMsg 1 <|
                             Message.SubPageMsgs.DashboardMsg <|
-                                Message.DashboardMsgs.FromTopBar <|
-                                    Message.Message.FilterMsg "status: paused"
+                                Message.Message.FilterMsg "status: paused"
                         )
                         >> Tuple.first
                     )
@@ -129,8 +125,7 @@ all =
                 >> Application.update
                     (Msgs.SubMsg 1 <|
                         Message.SubPageMsgs.DashboardMsg <|
-                            Message.DashboardMsgs.FromTopBar <|
-                                Message.Message.FilterMsg "asdf"
+                            Message.Message.FilterMsg "asdf"
                     )
                 >> Tuple.first
                 >> Application.view

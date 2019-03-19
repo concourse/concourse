@@ -12,13 +12,13 @@ import Duration
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter, onMouseLeave)
-import Message.DashboardMsgs exposing (Msg(..))
+import Message.Message exposing (Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
 
 
-pipelineNotSetView : Html msg
+pipelineNotSetView : Html Message
 pipelineNotSetView =
     Html.div [ class "card" ]
         [ Html.div
@@ -45,7 +45,7 @@ hdPipelineView :
     { pipeline : Pipeline
     , pipelineRunningKeyframes : String
     }
-    -> Html Msg
+    -> Html Message
 hdPipelineView { pipeline, pipelineRunningKeyframes } =
     Html.a
         [ class "card"
@@ -84,7 +84,7 @@ pipelineView :
     , hovered : Bool
     , pipelineRunningKeyframes : String
     }
-    -> Html Msg
+    -> Html Message
 pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
     Html.div
         [ style Styles.pipelineCard
@@ -104,7 +104,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
         ]
 
 
-headerView : Pipeline -> Html Msg
+headerView : Pipeline -> Html Message
 headerView pipeline =
     Html.a
         [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
@@ -128,7 +128,7 @@ headerView pipeline =
         ]
 
 
-bodyView : Pipeline -> Html Msg
+bodyView : Pipeline -> Html Message
 bodyView pipeline =
     Html.div
         [ class "card-body"
@@ -137,7 +137,7 @@ bodyView pipeline =
         [ DashboardPreview.view pipeline.jobs ]
 
 
-footerView : Pipeline -> Time -> Bool -> Html Msg
+footerView : Pipeline -> Time -> Bool -> Html Message
 footerView pipeline now hovered =
     let
         spacer =
@@ -167,7 +167,7 @@ footerView pipeline now hovered =
         ]
 
 
-visibilityView : Bool -> Html Msg
+visibilityView : Bool -> Html Message
 visibilityView public =
     Html.div
         [ style
@@ -223,7 +223,7 @@ statusAgeText pipeline now =
             sinceTransitionText details now
 
 
-transitionView : Time -> Pipeline -> Html a
+transitionView : Time -> Pipeline -> Html Message
 transitionView time pipeline =
     Html.div
         [ class "build-duration"
@@ -232,7 +232,7 @@ transitionView time pipeline =
         [ Html.text <| statusAgeText pipeline time ]
 
 
-pauseToggleView : Pipeline -> Bool -> Html Msg
+pauseToggleView : Pipeline -> Bool -> Html Message
 pauseToggleView pipeline hovered =
     Html.a
         [ style
@@ -257,7 +257,10 @@ pauseToggleView pipeline hovered =
                     "0.5"
               )
             ]
-        , onLeftClick <| TogglePipelinePaused { teamName = pipeline.teamName, pipelineName = pipeline.name } pipeline.status
+        , onLeftClick <|
+            TogglePipelinePaused
+                { teamName = pipeline.teamName, pipelineName = pipeline.name }
+                (pipeline.status == PipelineStatus.PipelineStatusPaused)
         , onMouseEnter <| PipelineButtonHover <| Just pipeline
         , onMouseLeave <| PipelineButtonHover Nothing
         ]

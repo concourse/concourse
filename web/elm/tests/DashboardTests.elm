@@ -26,9 +26,8 @@ import Html.Attributes as Attr
 import List.Extra
 import Message.ApplicationMsgs
 import Message.Callback as Callback
-import Message.DashboardMsgs as Msgs
 import Message.Effects as Effects
-import Message.Message
+import Message.Message as Msgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Routes
 import Test exposing (..)
@@ -127,7 +126,7 @@ all =
                 hasWelcomeCard : (() -> ( Dashboard.Model, List Effects.Effect )) -> List Test
                 hasWelcomeCard setup =
                     let
-                        subject : () -> Query.Single Msgs.Msg
+                        subject : () -> Query.Single Msgs.Message
                         subject =
                             setup
                                 >> queryView
@@ -176,7 +175,7 @@ all =
                             >> Query.has [ style [ ( "padding", "40px" ) ] ]
                     , describe "body" <|
                         let
-                            body : () -> Query.Single Msgs.Msg
+                            body : () -> Query.Single Msgs.Message
                             body =
                                 subject >> Query.children [] >> Query.index 1
                         in
@@ -354,7 +353,7 @@ all =
                         ]
                     , describe "ascii art" <|
                         let
-                            art : () -> Query.Single Msgs.Msg
+                            art : () -> Query.Single Msgs.Message
                             art =
                                 subject >> Query.children [] >> Query.index 2
                         in
@@ -464,7 +463,7 @@ all =
                     |> givenDataAndUser
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> Dashboard.update (Msgs.FromTopBar Message.Message.LogOut)
+                    |> Dashboard.update Msgs.LogOut
                     |> showsLoadingState
         , test "links to specific builds" <|
             \_ ->
@@ -721,11 +720,11 @@ all =
             ]
         , describe "pipeline cards" <|
             let
-                findHeader : Query.Single Msgs.Msg -> Query.Single Msgs.Msg
+                findHeader : Query.Single Msgs.Message -> Query.Single Msgs.Message
                 findHeader =
                     Query.find [ class "card-header" ]
 
-                findBody : Query.Single Msgs.Msg -> Query.Single Msgs.Msg
+                findBody : Query.Single Msgs.Message -> Query.Single Msgs.Message
                 findBody =
                     Query.find [ class "card-body" ]
 
@@ -733,7 +732,7 @@ all =
                     Concourse.BuildStatus
                     -> Bool
                     -> ( Dashboard.Model, List Effects.Effect )
-                    -> Query.Single Msgs.Msg
+                    -> Query.Single Msgs.Message
                 pipelineWithStatus status isRunning =
                     let
                         jobFunc =
@@ -761,7 +760,7 @@ all =
             in
             [ describe "when team has no visible pipelines" <|
                 let
-                    noPipelinesCard : () -> Query.Single Msgs.Msg
+                    noPipelinesCard : () -> Query.Single Msgs.Message
                     noPipelinesCard _ =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
@@ -781,7 +780,7 @@ all =
                 in
                 [ describe "header" <|
                     let
-                        header : () -> Query.Single Msgs.Msg
+                        header : () -> Query.Single Msgs.Message
                         header =
                             noPipelinesCard
                                 >> findHeader
@@ -825,7 +824,7 @@ all =
                     ]
                 , describe "body" <|
                     let
-                        body : () -> Query.Single Msgs.Msg
+                        body : () -> Query.Single Msgs.Message
                         body =
                             noPipelinesCard
                                 >> Query.find [ class "card-body" ]
@@ -904,7 +903,7 @@ all =
                         |> Query.has [ style [ ( "margin", "25px" ) ] ]
             , describe "header" <|
                 let
-                    header : () -> Query.Single Msgs.Msg
+                    header : () -> Query.Single Msgs.Message
                     header _ =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
@@ -961,7 +960,7 @@ all =
                             >> Query.children []
                             >> Query.first
 
-                    isSolid : String -> Query.Single Msgs.Msg -> Expectation
+                    isSolid : String -> Query.Single Msgs.Message -> Expectation
                     isSolid color =
                         Query.has
                             [ style
@@ -1080,7 +1079,7 @@ all =
                             givenTwoJobs :
                                 Concourse.BuildStatus
                                 -> Concourse.BuildStatus
-                                -> Query.Single Msgs.Msg
+                                -> Query.Single Msgs.Message
                             givenTwoJobs firstStatus secondStatus =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated
@@ -1257,7 +1256,7 @@ all =
                                 givenTwoJobs :
                                     Concourse.BuildStatus
                                     -> Concourse.BuildStatus
-                                    -> Query.Single Msgs.Msg
+                                    -> Query.Single Msgs.Message
                                 givenTwoJobs firstStatus secondStatus =
                                     whenOnDashboard { highDensity = False }
                                         |> givenDataUnauthenticated
@@ -1311,14 +1310,14 @@ all =
                 ]
             , describe "on HD view" <|
                 let
-                    setup : () -> Query.Single Msgs.Msg
+                    setup : () -> Query.Single Msgs.Message
                     setup _ =
                         whenOnDashboard { highDensity = True }
                             |> givenDataUnauthenticated
                                 (oneTeamOnePipeline "team")
                             |> queryView
 
-                    noPipelines : () -> Query.Single Msgs.Msg
+                    noPipelines : () -> Query.Single Msgs.Message
                     noPipelines _ =
                         whenOnDashboard { highDensity = True }
                             |> givenDataUnauthenticated
@@ -1329,14 +1328,14 @@ all =
                                 )
                             |> queryView
 
-                    card : Query.Single Msgs.Msg -> Query.Single Msgs.Msg
+                    card : Query.Single Msgs.Message -> Query.Single Msgs.Message
                     card =
                         Query.find
                             [ class "card"
                             , containing [ text "pipeline" ]
                             ]
 
-                    cardText : Query.Single Msgs.Msg -> Query.Single Msgs.Msg
+                    cardText : Query.Single Msgs.Message -> Query.Single Msgs.Message
                     cardText =
                         card
                             >> Query.children []
@@ -1441,7 +1440,7 @@ all =
                         >> Query.count (Expect.equal 2)
                 , describe "resource error triangle" <|
                     let
-                        givenResourceError : () -> Query.Single Msgs.Msg
+                        givenResourceError : () -> Query.Single Msgs.Message
                         givenResourceError _ =
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
@@ -2878,7 +2877,7 @@ whenOnDashboard { highDensity } =
         }
 
 
-queryView : ( Dashboard.Model, List Effects.Effect ) -> Query.Single Msgs.Msg
+queryView : ( Dashboard.Model, List Effects.Effect ) -> Query.Single Msgs.Message
 queryView =
     Tuple.first
         >> Dashboard.view UserState.UserStateLoggedOut
@@ -3267,14 +3266,14 @@ teamHeaderSelector =
     [ class <| .sectionHeaderClass Group.stickyHeaderConfig ]
 
 
-teamHeaderHasNoPill : String -> Query.Single Msgs.Msg -> Expectation
+teamHeaderHasNoPill : String -> Query.Single Msgs.Message -> Expectation
 teamHeaderHasNoPill teamName =
     Query.find (teamHeaderSelector ++ [ containing [ text teamName ] ])
         >> Query.children []
         >> Query.count (Expect.equal 1)
 
 
-teamHeaderHasPill : String -> String -> Query.Single Msgs.Msg -> Expectation
+teamHeaderHasPill : String -> String -> Query.Single Msgs.Message -> Expectation
 teamHeaderHasPill teamName pillText =
     Query.find (teamHeaderSelector ++ [ containing [ text teamName ] ])
         >> Query.children []

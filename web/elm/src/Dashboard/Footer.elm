@@ -7,7 +7,7 @@ import Dashboard.Styles as Styles
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
-import Message.DashboardMsgs exposing (Msg(..))
+import Message.Message exposing (Message(..))
 import Routes
 import ScreenSize
 
@@ -49,7 +49,7 @@ hideHelp { groups } =
     List.isEmpty (groups |> List.concatMap .pipelines)
 
 
-view : Model r -> List (Html Msg)
+view : Model r -> List (Html Message)
 view model =
     if model.showHelp then
         [ keyboardHelp ]
@@ -61,7 +61,7 @@ view model =
         []
 
 
-keyboardHelp : Html Msg
+keyboardHelp : Html Message
 keyboardHelp =
     Html.div
         [ class "keyboard-help" ]
@@ -99,7 +99,7 @@ infoBar :
         , highDensity : Bool
         , groups : List Group
     }
-    -> Html Msg
+    -> Html Message
 infoBar model =
     Html.div
         [ id "dashboard-info"
@@ -120,7 +120,7 @@ legend :
         , screenSize : ScreenSize.ScreenSize
         , highDensity : Bool
     }
-    -> List (Html Msg)
+    -> List (Html Message)
 legend model =
     if hideLegend model then
         []
@@ -154,7 +154,7 @@ legend model =
 
 concourseInfo :
     { a | version : String, hoveredCliIcon : Maybe Cli.Cli }
-    -> List (Html Msg)
+    -> List (Html Message)
 concourseInfo { version, hoveredCliIcon } =
     [ Html.div [ id "concourse-info", style Styles.info ]
         [ Html.div [ style Styles.infoItem ]
@@ -174,7 +174,7 @@ hideLegend { groups } =
     List.isEmpty (groups |> List.concatMap .pipelines)
 
 
-legendItem : PipelineStatus -> Html Msg
+legendItem : PipelineStatus -> Html Message
 legendItem status =
     Html.div [ style Styles.legendItem ]
         [ Html.div
@@ -185,7 +185,7 @@ legendItem status =
         ]
 
 
-toggleView : Bool -> Html Msg
+toggleView : Bool -> Html Message
 toggleView highDensity =
     Html.a
         [ style Styles.highDensityToggle
@@ -197,7 +197,7 @@ toggleView highDensity =
         ]
 
 
-legendSeparator : ScreenSize.ScreenSize -> List (Html Msg)
+legendSeparator : ScreenSize.ScreenSize -> List (Html Message)
 legendSeparator screenSize =
     case screenSize of
         ScreenSize.Mobile ->
@@ -216,7 +216,7 @@ legendSeparator screenSize =
             ]
 
 
-cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Msg
+cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Message
 cliIcon hoveredCliIcon cli =
     Html.a
         [ href (Cli.downloadUrl cli)

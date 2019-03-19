@@ -32,9 +32,8 @@ import Html.Attributes
         )
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Callback exposing (Callback(..))
-import Message.DashboardMsgs as Msgs exposing (Msg(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message
+import Message.Message as Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
@@ -231,12 +230,14 @@ handleDeliveryWithoutTopBar delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
-update msg ( model, effects ) =
-    case msg of
-        TogglePipelinePaused pipelineIdentifier pipelineStatus ->
-            ( model, effects ++ [ SendTogglePipelineRequest pipelineIdentifier (pipelineStatus == PipelineStatus.PipelineStatusPaused) ] )
+update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg =
+    TopBar.update msg >> updateBody msg
 
+
+updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody msg ( model, effects ) =
+    case msg of
         DragStart teamName index ->
             let
                 newModel =
@@ -330,17 +331,11 @@ update msg ( model, effects ) =
         TopCliHover state ->
             ( { model | hoveredTopCliIcon = state }, effects )
 
-        FromTopBar m ->
-            let
-                ( newModel, topBarEffects ) =
-                    TopBar.update m ( model, effects )
-            in
-            case m of
-                Message.Message.LogOut ->
-                    ( { newModel | state = RemoteData.NotAsked }, topBarEffects )
+        LogOut ->
+            ( { model | state = RemoteData.NotAsked }, effects )
 
-                _ ->
-                    ( newModel, topBarEffects )
+        _ ->
+            ( model, effects )
 
 
 subscriptions : Model -> List Subscription
@@ -353,12 +348,12 @@ subscriptions model =
     ]
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
+            [ TopBar.view userState TopBar.Model.None model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ dashboardView model
                 ]
@@ -366,7 +361,7 @@ view userState model =
         ]
 
 
-dashboardView : Model -> Html Msg
+dashboardView : Model -> Html Message
 dashboardView model =
     let
         mainContent =
@@ -413,13 +408,13 @@ welcomeCard :
         , groups : List Group.Group
         , userState : UserState.UserState
     }
-    -> List (Html Msg)
+    -> List (Html Message)
 welcomeCard { hoveredTopCliIcon, groups, userState } =
     let
         noPipelines =
             List.isEmpty (groups |> List.concatMap .pipelines)
 
-        cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Msg
+        cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Message
         cliIcon hoveredTopCliIcon cli =
             Html.a
                 [ href (Cli.downloadUrl cli)
@@ -473,7 +468,7 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
         []
 
 
-loginInstruction : UserState.UserState -> List (Html Msg)
+loginInstruction : UserState.UserState -> List (Html Message)
 loginInstruction userState =
     case userState of
         UserState.UserStateLoggedIn _ ->
@@ -494,7 +489,7 @@ loginInstruction userState =
             ]
 
 
-noResultsView : String -> Html Msg
+noResultsView : String -> Html Message
 noResultsView query =
     let
         boldedQuery =
@@ -510,7 +505,7 @@ noResultsView query =
         ]
 
 
-helpView : { a | showHelp : Bool } -> Html Msg
+helpView : { a | showHelp : Bool } -> Html Message
 helpView { showHelp } =
     Html.div
         [ classList
@@ -543,7 +538,7 @@ helpView { showHelp } =
         ]
 
 
-turbulenceView : String -> Html Msg
+turbulenceView : String -> Html Message
 turbulenceView path =
     Html.div
         [ class "error-message" ]
@@ -564,7 +559,7 @@ pipelinesView :
     , userState : UserState.UserState
     , highDensity : Bool
     }
-    -> List (Html Msg)
+    -> List (Html Message)
 pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query, userState, highDensity } =
     let
         filteredGroups =
