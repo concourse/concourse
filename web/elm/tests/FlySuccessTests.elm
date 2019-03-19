@@ -9,7 +9,6 @@ import Message.ApplicationMsgs as Msgs
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message
-import Message.SubPageMsgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -163,8 +162,7 @@ tokenCopied =
         (steps tokenSendFailed
             >> Application.update
                 (Msgs.SubMsg 1 <|
-                    Message.SubPageMsgs.FlySuccessMsg <|
-                        Message.Message.CopyToken
+                    Message.Message.CopyToken
                 )
             >> Tuple.first
         )
@@ -571,8 +569,7 @@ buttonClickHandler =
         Event.simulate Event.click
             >> Event.expect
                 (Msgs.SubMsg 1 <|
-                    Message.SubPageMsgs.FlySuccessMsg <|
-                        Message.Message.CopyToken
+                    Message.Message.CopyToken
                 )
 
 
@@ -674,14 +671,12 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.SubPageMsgs.FlySuccessMsg <|
-                            Message.Message.CopyTokenButtonHover
-                                True
+                        Message.Message.CopyTokenButtonHover
+                            True
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.SubPageMsgs.FlySuccessMsg <|
-                            Message.Message.CopyTokenButtonHover
-                                False
+                        Message.Message.CopyTokenButtonHover
+                            False
                 , hoveredSelector =
                     { description = "darker background"
                     , selector =

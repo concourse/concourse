@@ -6,7 +6,6 @@ import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message
-import Message.SubPageMsgs
 import Test exposing (Test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, id, style, text)
@@ -57,8 +56,7 @@ all =
         [ context "after focusing the search bar"
             (Application.update
                 (Msgs.SubMsg 1 <|
-                    Message.SubPageMsgs.DashboardMsg <|
-                        Message.Message.FocusMsg
+                    Message.Message.FocusMsg
                 )
                 >> Tuple.first
             )
@@ -70,8 +68,7 @@ all =
             , context "after clicking 'status:' in the dropdown"
                 (Application.update
                     (Msgs.SubMsg 1 <|
-                        Message.SubPageMsgs.DashboardMsg <|
-                            Message.Message.FilterMsg "status:"
+                        Message.Message.FilterMsg "status:"
                     )
                     >> Tuple.first
                 )
@@ -83,8 +80,7 @@ all =
                 , context "after clicking 'status: paused'"
                     (Application.update
                         (Msgs.SubMsg 1 <|
-                            Message.SubPageMsgs.DashboardMsg <|
-                                Message.Message.FilterMsg "status: paused"
+                            Message.Message.FilterMsg "status: paused"
                         )
                         >> Tuple.first
                     )
@@ -124,8 +120,7 @@ all =
                 >> Tuple.first
                 >> Application.update
                     (Msgs.SubMsg 1 <|
-                        Message.SubPageMsgs.DashboardMsg <|
-                            Message.Message.FilterMsg "asdf"
+                        Message.Message.FilterMsg "asdf"
                     )
                 >> Tuple.first
                 >> Application.view

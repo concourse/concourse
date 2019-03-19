@@ -6,7 +6,6 @@ import Expect
 import Message.ApplicationMsgs as Msgs
 import Message.Effects as Effects
 import Message.Message
-import Message.SubPageMsgs
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Test exposing (..)
 import Test.Html.Query as Query
@@ -192,8 +191,7 @@ all =
                     |> Tuple.first
                     |> Application.update
                         (Msgs.SubMsg 1 <|
-                            Message.SubPageMsgs.DashboardMsg <|
-                                Message.Message.TogglePipelinePaused pipelineIdentifier True
+                            Message.Message.TogglePipelinePaused pipelineIdentifier True
                         )
                     |> Tuple.second
                     |> Expect.equal [ ( Effects.SubPage 1, "real-token", Effects.SendTogglePipelineRequest pipelineIdentifier True ) ]

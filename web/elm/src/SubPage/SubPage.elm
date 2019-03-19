@@ -19,7 +19,7 @@ import Html exposing (Html)
 import Job.Job as Job
 import Message.Callback exposing (Callback)
 import Message.Effects exposing (Effect)
-import Message.SubPageMsgs exposing (Msg(..))
+import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
 import NotFound.Model
 import NotFound.NotFound as NotFound
@@ -207,46 +207,42 @@ handleDelivery notFound route delivery model =
 update :
     String
     -> Routes.Route
-    -> Msg
+    -> Message
     -> Model
     -> ( Model, List Effect )
 update notFound route msg mdl =
-    case ( msg, mdl ) of
-        ( BuildMsg msg, BuildModel model ) ->
+    case mdl of
+        BuildModel model ->
             Build.update msg ( model, [] )
                 |> Tuple.mapFirst BuildModel
                 |> handleNotFound notFound route
 
-        ( JobMsg message, JobModel model ) ->
-            Job.update message ( model, [] )
+        JobModel model ->
+            Job.update msg ( model, [] )
                 |> Tuple.mapFirst JobModel
                 |> handleNotFound notFound route
 
-        ( PipelineMsg message, PipelineModel model ) ->
-            Pipeline.update message ( model, [] )
+        PipelineModel model ->
+            Pipeline.update msg ( model, [] )
                 |> Tuple.mapFirst PipelineModel
                 |> handleNotFound notFound route
 
-        ( ResourceMsg message, ResourceModel model ) ->
-            Resource.update message ( model, [] )
+        ResourceModel model ->
+            Resource.update msg ( model, [] )
                 |> Tuple.mapFirst ResourceModel
                 |> handleNotFound notFound route
 
-        ( DashboardMsg message, DashboardModel model ) ->
-            Dashboard.update message ( model, [] )
+        DashboardModel model ->
+            Dashboard.update msg ( model, [] )
                 |> Tuple.mapFirst DashboardModel
 
-        ( FlySuccessMsg message, FlySuccessModel model ) ->
-            FlySuccess.update message ( model, [] )
+        FlySuccessModel model ->
+            FlySuccess.update msg ( model, [] )
                 |> Tuple.mapFirst FlySuccessModel
 
-        ( NotFoundMsg message, NotFoundModel model ) ->
-            NotFound.update message ( model, [] )
+        NotFoundModel model ->
+            NotFound.update msg ( model, [] )
                 |> Tuple.mapFirst NotFoundModel
-
-        unknown ->
-            flip always (Debug.log "impossible combination" unknown) <|
-                ( mdl, [] )
 
 
 urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
@@ -283,36 +279,29 @@ urlUpdate route model =
             ( model, [] )
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState mdl =
     case mdl of
         BuildModel model ->
             Build.view userState model
-                |> Html.map BuildMsg
 
         JobModel model ->
             Job.view userState model
-                |> Html.map JobMsg
 
         PipelineModel model ->
             Pipeline.view userState model
-                |> Html.map PipelineMsg
 
         ResourceModel model ->
             Resource.view userState model
-                |> Html.map ResourceMsg
 
         DashboardModel model ->
             Dashboard.view userState model
-                |> Html.map DashboardMsg
 
         NotFoundModel model ->
             NotFound.view userState model
-                |> Html.map NotFoundMsg
 
         FlySuccessModel model ->
             FlySuccess.view userState model
-                |> Html.map FlySuccessMsg
 
 
 subscriptions : Model -> List Subscription

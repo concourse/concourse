@@ -9,7 +9,6 @@ import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message exposing (Message(..))
-import Message.SubPageMsgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Pipeline.Pipeline as Pipeline exposing (update)
 import Routes
@@ -949,9 +948,8 @@ all =
                             |> Event.simulate Event.click
                             |> Event.expect
                                 (Msgs.SubMsg 1 <|
-                                    Message.SubPageMsgs.BuildMsg <|
-                                        Message.Message.GoToRoute <|
-                                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                    Message.Message.GoToRoute <|
+                                        Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                                 )
                 , test "there should be a / between pipeline and job in breadcrumb" <|
                     \_ ->
@@ -997,9 +995,8 @@ all =
                             |> Event.simulate Event.click
                             |> Event.expect
                                 (Msgs.SubMsg 1 <|
-                                    Message.SubPageMsgs.ResourceMsg <|
-                                        Message.Message.GoToRoute <|
-                                            Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
+                                    Message.Message.GoToRoute <|
+                                        Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                                 )
                 , test "there should be a / between pipeline and resource in breadcrumb" <|
                     \_ ->
@@ -1141,7 +1138,7 @@ givenMultiplePinnedResources =
 
 wrapTopBarMessage : Message.Message.Message -> Msgs.Msg
 wrapTopBarMessage =
-    Message.SubPageMsgs.PipelineMsg >> Msgs.SubMsg 1
+    Msgs.SubMsg 1
 
 
 testTopBarPositioning : String -> String -> Test

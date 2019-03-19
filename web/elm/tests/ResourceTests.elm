@@ -20,7 +20,6 @@ import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message
-import Message.SubPageMsgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Resource.Models as Models
 import Test exposing (..)
@@ -3248,7 +3247,7 @@ handleCallback =
 
 resourceMsg : Message.Message.Message -> Msgs.Msg
 resourceMsg =
-    Message.SubPageMsgs.ResourceMsg >> Msgs.SubMsg 1
+    Msgs.SubMsg 1
 
 
 givenUserIsAuthorized : Application.Model -> Application.Model
