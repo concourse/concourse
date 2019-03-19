@@ -147,16 +147,13 @@ all =
 
                 loadingIndicatorSelector : List Selector.Selector
                 loadingIndicatorSelector =
-                    [ style [ ( "display", "flex" ) ]
-                    , containing
-                        [ style
-                            [ ( "animation"
-                              , "container-rotate 1568ms linear infinite"
-                              )
-                            , ( "height", "14px" )
-                            , ( "width", "14px" )
-                            , ( "margin", "7px" )
-                            ]
+                    [ style
+                        [ ( "animation"
+                          , "container-rotate 1568ms linear infinite"
+                          )
+                        , ( "height", "14px" )
+                        , ( "width", "14px" )
+                        , ( "margin", "7px" )
                         ]
                     ]
             in

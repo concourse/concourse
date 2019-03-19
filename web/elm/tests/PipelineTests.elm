@@ -1149,8 +1149,10 @@ testTopBarPositioning pageName url =
                 init url
                     |> Application.view
                     |> Query.fromHtml
-                    |> Query.find [ id "page-including-top-bar" ]
-                    |> Query.has [ style [ ( "height", "100%" ) ] ]
+                    |> Query.has
+                        [ id "page-including-top-bar"
+                        , style [ ( "height", "100%" ) ]
+                        ]
         , test "lower section fills the whole screen as well" <|
             \_ ->
                 init url

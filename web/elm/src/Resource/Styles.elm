@@ -18,6 +18,7 @@ module Resource.Styles exposing
     , headerHeight
     , headerLastCheckedSection
     , headerResourceName
+    , pageBelowTopBar
     , pagination
     , pinBar
     , pinBarTooltip
@@ -46,6 +47,14 @@ commentBarHeight =
 bodyPadding : Int
 bodyPadding =
     10
+
+
+pageBelowTopBar : List ( String, String )
+pageBelowTopBar =
+    [ ( "padding-top", "54px" )
+    , ( "height", "100%" )
+    , ( "display", "block" )
+    ]
 
 
 pinBar : { isPinned : Bool } -> List ( String, String )

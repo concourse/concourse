@@ -52,20 +52,17 @@ var _ = Describe("Fly CLI", func() {
                 {
                   "id": 3,
 									"version": {"version":"3","another":"field"},
-									"enabled": true,
-									"metadata": null
+									"enabled": true
                 },
                 {
                   "id": 2,
 									"version": {"version":"2","another":"field"},
-									"enabled": false,
-									"metadata": null
+									"enabled": false
                 },
                 {
                   "id": 1,
 									"version": {"version":"1","another":"field"},
-									"enabled": true,
-									"metadata": null
+									"enabled": true
                 }
               ]`))
 					})

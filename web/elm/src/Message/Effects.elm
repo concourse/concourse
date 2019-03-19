@@ -10,7 +10,7 @@ port module Message.Effects exposing
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Dashboard.Group
-import Dashboard.Models
+import Dashboard.Group.Models
 import Dom
 import Favicon
 import Json.Encode
@@ -114,7 +114,7 @@ type Effect
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline)
+    | SendOrderPipelinesRequest String (List Dashboard.Group.Models.Pipeline)
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames Dashboard.Group.StickyHeaderConfig
@@ -122,9 +122,10 @@ type Effect
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
-    | ForceFocus String
     | OpenBuildEventStream { url : String, eventTypes : List String }
     | CloseBuildEventStream
+    | Focus String
+    | Blur String
 
 
 type ScrollDirection
@@ -328,8 +329,12 @@ runEffect effect csrfToken =
         LoadToken ->
             loadToken ()
 
-        ForceFocus dom ->
-            Dom.focus dom
+        Focus id ->
+            Dom.focus id
+                |> Task.attempt (always EmptyCallback)
+
+        Blur id ->
+            Dom.blur id
                 |> Task.attempt (always EmptyCallback)
 
         OpenBuildEventStream config ->

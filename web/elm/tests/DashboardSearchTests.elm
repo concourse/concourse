@@ -1,6 +1,7 @@
 module DashboardSearchTests exposing (all)
 
 import Application.Application as Application
+import Concourse
 import Expect exposing (Expectation)
 import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback
@@ -51,6 +52,33 @@ all =
             , username = ""
             , password = ""
             }
+            |> Tuple.first
+            |> Application.handleCallback
+                (Effects.SubPage 1)
+                (Callback.APIDataFetched
+                    (Ok
+                        ( 0
+                        , { teams =
+                                [ Concourse.Team 1 "team1"
+                                , Concourse.Team 2 "team2"
+                                ]
+                          , pipelines =
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team1"
+                                  , groups = []
+                                  }
+                                ]
+                          , jobs = []
+                          , resources = []
+                          , user = Nothing
+                          , version = ""
+                          }
+                        )
+                    )
+                )
             |> Tuple.first
         )
         [ context "after focusing the search bar"

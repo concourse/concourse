@@ -185,6 +185,12 @@ all =
                     >> Expect.equal
                         [ ( Effects.SubPage 1, csrfToken, Effects.NavigateTo "/" ) ]
             ]
+        , test "has default layout" <|
+            \_ ->
+                init
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "display", "block" ) ] ]
         , test "subscribes to the five second interval" <|
             \_ ->
                 init

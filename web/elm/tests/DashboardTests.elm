@@ -13,7 +13,6 @@ module DashboardTests exposing
     )
 
 import Application.Application as Application
-import Char
 import Concourse
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
@@ -23,8 +22,9 @@ import Date exposing (Date)
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
+import Keycodes
 import List.Extra
-import Message.ApplicationMsgs
+import Message.ApplicationMsgs as ApplicationMsgs
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Msgs
@@ -398,7 +398,9 @@ all =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated (apiData [])
                                     |> queryView
-                                    |> Query.find [ class "dashboard-content" ]
+                                    |> Query.find [ id "page-below-top-bar" ]
+                                    |> Query.children []
+                                    |> Query.first
                                     |> Query.children []
                                     |> Query.count (Expect.equal 1)
                        ]
@@ -453,6 +455,114 @@ all =
                                 [ style [ ( "line-height", "42px" ) ] ]
                             ]
             ]
+        , test "high density view has no vertical scroll" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            [ ( "height", "100%" )
+                            , ( "box-sizing", "border-box" )
+                            ]
+                        ]
+        , test "high density body aligns contents vertically" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "flex-direction", "column" )
+                            ]
+                        ]
+        , test "high density pipelines view fills vertical space" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+        , test "high density pipelines view has padding" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "padding", "60px" ) ] ]
+        , test "high density pipelines view wraps columns" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "flex-flow", "column wrap" )
+                            ]
+                        ]
+        , test "normal density pipelines view has default layout" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has
+                        [ style
+                            [ ( "display", "initial" )
+                            , ( "padding", "0" )
+                            ]
+                        ]
+        , test "high density view left-aligns contents" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "align-content", "flex-start" ) ] ]
+        , test "high density view has no overlapping top bar" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "padding-top", "54px" ) ] ]
+        , test "high density view has no overlapping bottom bar" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "padding-bottom", "50px" ) ] ]
         , test "top bar has bold font" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -517,16 +627,12 @@ all =
                                     )
                             )
                             >> queryView
-                            >> Expect.all
-                                [ Query.find
-                                    [ class "card-footer" ]
-                                    >> Query.children []
-                                    >> Query.first
-                                    >> Query.children []
-                                    >> Query.index -1
-                                    >> Query.has [ text "pending" ]
-                                , Query.hasNot [ tag "input" ]
-                                ]
+                            >> Query.find [ class "card-footer" ]
+                            >> Query.children []
+                            >> Query.first
+                            >> Query.children []
+                            >> Query.index -1
+                            >> Query.has [ text "pending" ]
                         ]
         , test "HD view redirects to no pipelines view when pipelines disappear" <|
             \_ ->
@@ -564,6 +670,23 @@ all =
                         )
                     |> queryView
                     |> Query.hasNot [ tag "input" ]
+        , test "typing '?' in search bar does not toggle help" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.handleCallback
+                        (Callback.APIDataFetched <|
+                            Ok
+                                ( 0
+                                , apiData
+                                    [ ( "team", [ "pipeline" ] ) ]
+                                    Nothing
+                                )
+                        )
+                    |> Dashboard.update Msgs.FocusMsg
+                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
+                    |> Dashboard.handleDelivery (KeyDown 191)
+                    |> queryView
+                    |> Query.hasNot [ id "keyboard-help" ]
         , test "bottom bar appears when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -611,9 +734,19 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Dashboard.handleDelivery (KeyDown (Char.toCode '?'))
+                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
+                    |> Dashboard.handleDelivery (KeyDown 191)
                     |> queryView
                     |> Query.has [ id "dashboard-info" ]
+        , test "on HD view, team names have increased letter spacing" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ class "dashboard-team-name-wrapper" ]
+                    |> Query.has [ style [ ( "letter-spacing", ".2em" ) ] ]
         , describe "team pills"
             [ test
                 ("shows team name with no pill when unauthenticated "
@@ -2168,7 +2301,7 @@ all =
                     initFromApplication
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> Application.update
-                            (Message.ApplicationMsgs.DeliveryReceived <|
+                            (ApplicationMsgs.DeliveryReceived <|
                                 WindowResized { width = 1229, height = 300 }
                             )
                         |> Tuple.first
@@ -2263,7 +2396,7 @@ all =
                         initFromApplication
                             |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
-                                (Message.ApplicationMsgs.DeliveryReceived <|
+                                (ApplicationMsgs.DeliveryReceived <|
                                     WindowResized { width = 800, height = 300 }
                                 )
                             |> Tuple.first
@@ -2279,7 +2412,7 @@ all =
                         initFromApplication
                             |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
-                                (Message.ApplicationMsgs.DeliveryReceived <|
+                                (ApplicationMsgs.DeliveryReceived <|
                                     WindowResized { width = 800, height = 300 }
                                 )
                             |> Tuple.first
@@ -2727,11 +2860,32 @@ all =
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Application.update
-                            (Message.ApplicationMsgs.DeliveryReceived Moused)
+                            (ApplicationMsgs.DeliveryReceived Moused)
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.has [ id "dashboard-info" ]
+            , test "is replaced by keyboard help when pressing '?'" <|
+                \_ ->
+                    initFromApplication
+                        |> givenDataUnauthenticatedFromApplication
+                            (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Application.update
+                            (ApplicationMsgs.DeliveryReceived <|
+                                KeyDown Keycodes.shift
+                            )
+                        |> Tuple.first
+                        |> Application.update
+                            (ApplicationMsgs.DeliveryReceived <|
+                                KeyDown 191
+                            )
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Expect.all
+                            [ Query.hasNot [ id "dashboard-info" ]
+                            , Query.has [ id "keyboard-help" ]
+                            ]
             ]
         , test "subscribes to one and five second timers" <|
             \_ ->
@@ -2744,11 +2898,18 @@ all =
                         , List.member (Subscription.OnClockTick FiveSeconds)
                             >> Expect.true "doesn't have five second timer"
                         ]
+        , test "subscribes to keyups" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Tuple.first
+                    |> Dashboard.subscriptions
+                    |> List.member Subscription.OnKeyUp
+                    |> Expect.true "doesn't subscribe to keyups?"
         , test "auto refreshes data every five seconds" <|
             \_ ->
                 initFromApplication
                     |> Application.update
-                        (Message.ApplicationMsgs.DeliveryReceived <|
+                        (ApplicationMsgs.DeliveryReceived <|
                             ClockTicked FiveSeconds 0
                         )
                     |> Tuple.second
@@ -2765,7 +2926,7 @@ afterSeconds : Int -> Application.Model -> Application.Model
 afterSeconds n =
     List.repeat n
         (Application.update
-            (Message.ApplicationMsgs.DeliveryReceived <| ClockTicked OneSecond 1000)
+            (ApplicationMsgs.DeliveryReceived <| ClockTicked OneSecond 1000)
             >> Tuple.first
         )
         |> List.foldr (>>) identity

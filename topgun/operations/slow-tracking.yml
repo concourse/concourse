@@ -1,3 +1,0 @@
-- type: replace
-  path: /instance_groups/name=web/jobs/name=web/properties/build_tracker_interval?
-  value: 5m

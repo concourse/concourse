@@ -3,18 +3,16 @@ module Dashboard.Models exposing
     , DragState(..)
     , DropState(..)
     , FooterModel
-    , Group
     , Model
-    , Pipeline
     , SubState
     , tick
     )
 
 import Concourse
-import Concourse.PipelineStatus as PipelineStatus
-import Dashboard.Group.Tag as Tag
+import Dashboard.Group.Models
 import Message.Message as Message
 import RemoteData
+import Routes
 import ScreenSize
 import Time exposing (Time)
 import TopBar.Model
@@ -63,32 +61,16 @@ tick now substate =
     { substate | now = now }
 
 
-type alias Pipeline =
-    { id : Int
-    , name : String
-    , teamName : String
-    , public : Bool
-    , jobs : List Concourse.Job
-    , resourceError : Bool
-    , status : PipelineStatus.PipelineStatus
-    }
-
-
 type alias FooterModel r =
     { r
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
-        , groups : List Group
+        , groups : List Dashboard.Group.Models.Group
         , hovered : Maybe Message.Hoverable
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , highDensity : Bool
-    }
-
-
-type alias Group =
-    { pipelines : List Pipeline
-    , teamName : String
-    , tag : Maybe Tag.Tag
+        , route : Routes.Route
+        , shiftDown : Bool
+        , dropdown : TopBar.Model.Dropdown
     }

@@ -6,7 +6,7 @@ module Dashboard.Pipeline exposing
 
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
-import Dashboard.Models exposing (Pipeline)
+import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
 import Duration
 import Html exposing (..)

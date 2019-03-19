@@ -106,7 +106,6 @@ init flags =
           , browsingIndex = 0
           , autoScroll = True
           , previousKeyPress = Nothing
-          , shiftDown = False
           , previousTriggerBuildByKey = False
           , showHelp = False
           , highlight = flags.highlight
@@ -114,10 +113,11 @@ init flags =
           , hoveredCounter = 0
           , isUserMenuExpanded = topBar.isUserMenuExpanded
           , isPinMenuExpanded = topBar.isPinMenuExpanded
-          , middleSection = topBar.middleSection
-          , teams = topBar.teams
+          , route = topBar.route
+          , groups = topBar.groups
+          , dropdown = topBar.dropdown
           , screenSize = topBar.screenSize
-          , highDensity = topBar.highDensity
+          , shiftDown = topBar.shiftDown
           }
         , topBarEffects ++ [ GetCurrentTime ]
         )
@@ -207,11 +207,11 @@ getUpdateMessage model =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar action ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody action ( model, effects ) =
     case action of
         BuildTriggered (Ok build) ->
             ( { model | history = build :: model.history }

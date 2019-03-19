@@ -106,10 +106,11 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = topBar.isUserMenuExpanded
             , isPinMenuExpanded = topBar.isPinMenuExpanded
-            , middleSection = topBar.middleSection
-            , teams = topBar.teams
+            , route = topBar.route
+            , groups = topBar.groups
+            , dropdown = topBar.dropdown
             , screenSize = topBar.screenSize
-            , highDensity = topBar.highDensity
+            , shiftDown = topBar.shiftDown
             }
     in
     ( model
@@ -210,11 +211,11 @@ subscriptions model =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar action ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody action ( model, effects ) =
     case action of
         ResourceFetched (Ok resource) ->
             ( { model
@@ -663,7 +664,10 @@ view userState model =
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
             [ TopBar.view userState TopBar.Model.None model
-            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+            , Html.div
+                [ id "page-below-top-bar"
+                , style Resource.Styles.pageBelowTopBar
+                ]
                 [ subpageView userState model
                 , commentBar userState model
                 ]

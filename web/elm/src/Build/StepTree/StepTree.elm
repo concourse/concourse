@@ -40,7 +40,7 @@ import Debug
 import Dict exposing (Dict)
 import DictView
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, href, style)
+import Html.Attributes exposing (attribute, class, classList, href, style, target)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
@@ -574,9 +574,25 @@ viewVersion version =
 
 viewMetadata : List MetadataField -> Html Message
 viewMetadata =
-    List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] ))
-        >> Dict.fromList
-        >> DictView.view []
+        List.map
+            (\{ name, value } ->
+                ( name
+                , Html.pre []
+                    [ if String.startsWith "http://" value || String.startsWith "https://" value then
+                        Html.a
+                            [ href value
+                            , target "_blank"
+                            , style [ ( "text-decoration-line", "underline" ) ]
+                            ]
+                            [ Html.text value ]
+
+                      else
+                        Html.text value
+                    ]
+                )
+            )
+            >> Dict.fromList
+            >> DictView.view []
 
 
 viewStepState : StepState -> Html Message

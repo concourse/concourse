@@ -22,9 +22,6 @@ type WebCommand struct {
 }
 
 func (WebCommand) lessenRequirements(command *flags.Command) {
-	// defaults to address from external URL
-	command.FindOptionByLongName("tsa-peer-ip").Required = false
-
 	// defaults to atc external URL
 	command.FindOptionByLongName("tsa-atc-url").Required = false
 
