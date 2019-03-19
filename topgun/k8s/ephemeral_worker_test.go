@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/onsi/gomega/gexec"
@@ -20,7 +21,7 @@ var _ = Describe("Ephemeral workers", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-ew-%d", randomGenerator.Int())
+		releaseName = fmt.Sprintf("topgun-ew-%d-%d", rand.Int(), GinkgoParallelNode())
 		namespace = releaseName
 
 		deployConcourseChart(releaseName,

@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
@@ -23,9 +24,8 @@ var _ = Describe("Container Limits", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-cl-%d", randomGenerator.Int())
+		releaseName = fmt.Sprintf("topgun-cl-%d-%d", rand.Int(), GinkgoParallelNode())
 		namespace = releaseName
-		Run(nil, "kubectl", "create", "namespace", namespace)
 	})
 
 	JustBeforeEach(func() {
