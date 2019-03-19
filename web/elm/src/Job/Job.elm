@@ -413,7 +413,7 @@ view userState model =
             ]
             [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
             , Html.div
-                [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+                [ id "page-below-top-bar", style Styles.pageBelowTopBar ]
                 [ viewMainJobsSection model ]
             ]
         ]

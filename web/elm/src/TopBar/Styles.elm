@@ -51,6 +51,9 @@ pageBelowTopBar : List ( String, String )
 pageBelowTopBar =
     [ ( "padding-top", "54px" )
     , ( "height", "100%" )
+    , ( "padding-bottom", "50px" )
+    , ( "box-sizing", "border-box" )
+    , ( "display", "flex" )
     ]
 
 
