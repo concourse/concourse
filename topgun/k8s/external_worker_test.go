@@ -29,8 +29,8 @@ var _ = Describe("team external workers", func() {
 			"--set=worker.replicas=1",
 			"--set=concourse.worker.team=main",
 
-			"--set=secrets.teamKeys[0].team=main",
-			"--set=secrets.teamKeys[0].key=" + workerKey,
+			"--set=secrets.teamAuthorizedKeys[0].team=main",
+			"--set=secrets.teamAuthorizedKeys[0].key=" + workerKey,
 
 			"--set=web.env[0].name=CONCOURSE_TSA_AUTHORIZED_KEYS",
 			"--set=web.env[0].value=",
