@@ -48,7 +48,7 @@ import LoadingIndicator
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
-import Message.Message exposing (HoverableBuild(..), Message(..))
+import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import RemoteData exposing (WebData)
 import Routes
@@ -344,7 +344,7 @@ updateBody msg ( model, effects ) =
                 ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
             )
 
-        HoverBuild state ->
+        Hover state ->
             let
                 newModel =
                     { model | hoveredElement = state, hoveredCounter = 0 }
@@ -1026,7 +1026,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                                     job.disableManualTrigger
 
                         buttonHovered =
-                            hoveredElement == Just TriggerB
+                            hoveredElement == Just TriggerBuildButton
 
                         buttonHighlight =
                             buttonHovered && not buttonDisabled
@@ -1037,10 +1037,10 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                         , attribute "aria-label" "Trigger Build"
                         , attribute "title" "Trigger Build"
                         , onLeftClick <| TriggerBuild build.job
-                        , onMouseEnter <| HoverBuild <| Just TriggerB
-                        , onFocus <| HoverBuild <| Just TriggerB
-                        , onMouseLeave <| HoverBuild Nothing
-                        , onBlur <| HoverBuild Nothing
+                        , onMouseEnter <| Hover <| Just TriggerBuildButton
+                        , onFocus <| Hover <| Just TriggerBuildButton
+                        , onMouseLeave <| Hover Nothing
+                        , onBlur <| Hover Nothing
                         , style <| Styles.triggerButton buttonDisabled buttonHovered build.status
                         ]
                     <|
@@ -1065,7 +1065,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                     Html.text ""
 
         abortHovered =
-            hoveredElement == Just Abort
+            hoveredElement == Just AbortBuildButton
 
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
@@ -1075,10 +1075,10 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                     , attribute "tabindex" "0"
                     , attribute "aria-label" "Abort Build"
                     , attribute "title" "Abort Build"
-                    , onMouseEnter <| HoverBuild (Just Abort)
-                    , onFocus <| HoverBuild (Just Abort)
-                    , onMouseLeave <| HoverBuild Nothing
-                    , onBlur <| HoverBuild Nothing
+                    , onMouseEnter <| Hover <| Just AbortBuildButton
+                    , onFocus <| Hover <| Just AbortBuildButton
+                    , onMouseLeave <| Hover Nothing
+                    , onBlur <| Hover Nothing
                     , style <| Styles.abortButton <| abortHovered
                     ]
                     [ Html.div

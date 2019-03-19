@@ -1,6 +1,5 @@
 module Dashboard.Dashboard exposing
-    ( Model
-    , handleCallback
+    ( handleCallback
     , handleDelivery
     , init
     , subscriptions
@@ -15,8 +14,13 @@ import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Models as Models
+    exposing
+        ( DashboardError(..)
+        , Model
+        , Pipeline
+        , SubState
+        )
 import Dashboard.Styles as Styles
-import Dashboard.SubState as SubState
 import Dashboard.Text as Text
 import Html exposing (Html)
 import Html.Attributes
@@ -33,8 +37,13 @@ import Html.Attributes
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message as Message exposing (Message(..))
-import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.Message as Message exposing (Hoverable(..), Message(..))
+import Message.Subscription
+    exposing
+        ( Delivery(..)
+        , Interval(..)
+        , Subscription(..)
+        )
 import Monocle.Common exposing ((<|>), (=>))
 import Monocle.Lens
 import Monocle.Optional
@@ -57,24 +66,7 @@ type alias Flags =
     }
 
 
-type DashboardError
-    = Turbulence String
-
-
-type alias Model =
-    Footer.Model
-        (TopBar.Model.Model
-            { state : RemoteData.RemoteData DashboardError SubState.SubState
-            , turbulencePath : String
-            , hoveredPipeline : Maybe Models.Pipeline
-            , pipelineRunningKeyframes : String
-            , hoveredTopCliIcon : Maybe Cli.Cli
-            , userState : UserState.UserState
-            }
-        )
-
-
-substateOptional : Monocle.Optional.Optional Model SubState.SubState
+substateOptional : Monocle.Optional.Optional Model SubState
 substateOptional =
     Monocle.Optional.Optional (.state >> RemoteData.toMaybe) (\s m -> { m | state = RemoteData.Success s })
 
@@ -87,12 +79,10 @@ init flags =
     in
     ( { state = RemoteData.NotAsked
       , turbulencePath = flags.turbulencePath
-      , hoveredPipeline = Nothing
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
       , groups = []
-      , hoveredCliIcon = Nothing
-      , hoveredTopCliIcon = Nothing
       , version = ""
+      , hovered = Nothing
       , userState = UserState.UserStateUnknown
       , hideFooter = False
       , hideFooterCounter = 0
@@ -137,7 +127,7 @@ handleCallbackWithoutTopBar msg ( model, effects ) =
                         RemoteData.Success substate ->
                             { model
                                 | state =
-                                    RemoteData.Success (SubState.tick now substate)
+                                    RemoteData.Success (Models.tick now substate)
                             }
 
                         _ ->
@@ -145,8 +135,8 @@ handleCallbackWithoutTopBar msg ( model, effects ) =
                                 | state =
                                     RemoteData.Success
                                         { now = now
-                                        , dragState = Group.NotDragging
-                                        , dropState = Group.NotDropping
+                                        , dragState = Models.NotDragging
+                                        , dropState = Models.NotDropping
                                         }
                             }
 
@@ -219,7 +209,7 @@ handleDeliveryWithoutTopBar delivery ( model, effects ) =
                 newModel =
                     Footer.tick model
               in
-              { newModel | state = RemoteData.map (SubState.tick time) newModel.state }
+              { newModel | state = RemoteData.map (Models.tick time) newModel.state }
             , effects
             )
 
@@ -241,14 +231,14 @@ updateBody msg ( model, effects ) =
         DragStart teamName index ->
             let
                 newModel =
-                    { model | state = RemoteData.map (\s -> { s | dragState = Group.Dragging teamName index }) model.state }
+                    { model | state = RemoteData.map (\s -> { s | dragState = Models.Dragging teamName index }) model.state }
             in
             ( newModel, effects )
 
         DragOver teamName index ->
             let
                 newModel =
-                    { model | state = RemoteData.map (\s -> { s | dropState = Group.Dropping index }) model.state }
+                    { model | state = RemoteData.map (\s -> { s | dropState = Models.Dropping index }) model.state }
             in
             ( newModel, effects )
 
@@ -262,8 +252,8 @@ updateBody msg ( model, effects ) =
             let
                 updatePipelines :
                     ( Group.PipelineIndex, Group.PipelineIndex )
-                    -> Group.Group
-                    -> ( Group.Group, List Effect )
+                    -> Models.Group
+                    -> ( Models.Group, List Effect )
                 updatePipelines ( dragIndex, dropIndex ) group =
                     let
                         newGroup =
@@ -273,7 +263,7 @@ updateBody msg ( model, effects ) =
                     , [ SendOrderPipelinesRequest newGroup.teamName newGroup.pipelines ]
                     )
 
-                dragDropOptional : Monocle.Optional.Optional Model ( Group.DragState, Group.DropState )
+                dragDropOptional : Monocle.Optional.Optional Model ( Models.DragState, Models.DropState )
                 dragDropOptional =
                     substateOptional
                         =|> Monocle.Lens.tuple
@@ -287,11 +277,11 @@ updateBody msg ( model, effects ) =
                             Group.dragIndexOptional
                             Group.dropIndexOptional
 
-                groupsLens : Monocle.Lens.Lens Model (List Group.Group)
+                groupsLens : Monocle.Lens.Lens Model (List Models.Group)
                 groupsLens =
                     Monocle.Lens.Lens .groups (\b a -> { a | groups = b })
 
-                groupOptional : Monocle.Optional.Optional Model Group.Group
+                groupOptional : Monocle.Optional.Optional Model Models.Group
                 groupOptional =
                     (substateOptional
                         =|> Details.dragStateLens
@@ -302,7 +292,7 @@ updateBody msg ( model, effects ) =
                                     <|= Group.findGroupOptional teamName
                             )
 
-                bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group.Group )
+                bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Models.Group )
                 bigOptional =
                     Monocle.Optional.tuple
                         dragDropIndexOptional
@@ -318,18 +308,12 @@ updateBody msg ( model, effects ) =
                                 in
                                 ( ( t, newG ), msg )
                             )
-                        |> Tuple.mapFirst (dragDropOptional.set ( Group.NotDragging, Group.NotDropping ))
+                        |> Tuple.mapFirst (dragDropOptional.set ( Models.NotDragging, Models.NotDropping ))
             in
             ( newModel, effects ++ unAccumulatedEffects )
 
-        PipelineButtonHover state ->
-            ( { model | hoveredPipeline = state }, effects )
-
-        CliHover state ->
-            ( { model | hoveredCliIcon = state }, effects )
-
-        TopCliHover state ->
-            ( { model | hoveredTopCliIcon = state }, effects )
+        Hover hovered ->
+            ( { model | hovered = hovered }, effects )
 
         LogOut ->
             ( { model | state = RemoteData.NotAsked }, effects )
@@ -384,7 +368,7 @@ dashboardView model =
                                 { groups = model.groups
                                 , substate = substate
                                 , query = TopBar.query model
-                                , hoveredPipeline = model.hoveredPipeline
+                                , hovered = model.hovered
                                 , pipelineRunningKeyframes =
                                     model.pipelineRunningKeyframes
                                 , userState = model.userState
@@ -404,29 +388,31 @@ dashboardView model =
 
 welcomeCard :
     { a
-        | hoveredTopCliIcon : Maybe Cli.Cli
-        , groups : List Group.Group
+        | hovered : Maybe Hoverable
+        , groups : List Models.Group
         , userState : UserState.UserState
     }
     -> List (Html Message)
-welcomeCard { hoveredTopCliIcon, groups, userState } =
+welcomeCard { hovered, groups, userState } =
     let
         noPipelines =
             List.isEmpty (groups |> List.concatMap .pipelines)
 
-        cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Message
-        cliIcon hoveredTopCliIcon cli =
+        cliIcon : Maybe Hoverable -> Cli.Cli -> Html Message
+        cliIcon hovered cli =
             Html.a
                 [ href (Cli.downloadUrl cli)
                 , attribute "aria-label" <| Cli.label cli
                 , style <|
                     Styles.topCliIcon
-                        { hovered = hoveredTopCliIcon == Just cli
+                        { hovered =
+                            hovered
+                                == (Just <| Message.WelcomeCardCliIcon cli)
                         , cli = cli
                         }
                 , id <| "top-cli-" ++ Cli.id cli
-                , onMouseEnter <| TopCliHover <| Just cli
-                , onMouseLeave <| TopCliHover Nothing
+                , onMouseEnter <| Hover <| Just <| Message.WelcomeCardCliIcon cli
+                , onMouseLeave <| Hover Nothing
                 ]
                 []
     in
@@ -452,7 +438,7 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
                         [ style [ ( "margin-right", "10px" ) ] ]
                         [ Html.text Text.cliInstructions ]
                     ]
-                        ++ List.map (cliIcon hoveredTopCliIcon) Cli.clis
+                        ++ List.map (cliIcon hovered) Cli.clis
                 , Html.div
                     []
                     [ Html.text Text.setPipelineInstructions ]
@@ -551,16 +537,16 @@ turbulenceView path =
 
 
 pipelinesView :
-    { groups : List Group.Group
-    , substate : SubState.SubState
-    , hoveredPipeline : Maybe Models.Pipeline
+    { groups : List Models.Group
+    , substate : Models.SubState
+    , hovered : Maybe Message.Hoverable
     , pipelineRunningKeyframes : String
     , query : String
     , userState : UserState.UserState
     , highDensity : Bool
     }
     -> List (Html Message)
-pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, query, userState, highDensity } =
+pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, userState, highDensity } =
     let
         filteredGroups =
             groups |> filter query |> List.sortWith Group.ordering
@@ -584,7 +570,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
                             { dragState = substate.dragState
                             , dropState = substate.dropState
                             , now = substate.now
-                            , hoveredPipeline = hoveredPipeline
+                            , hovered = hovered
                             , pipelineRunningKeyframes = pipelineRunningKeyframes
                             }
                         )
@@ -596,7 +582,10 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
         groupViews
 
 
-handleKeyPressed : Char -> ( Footer.Model r, List Effect ) -> ( Footer.Model r, List Effect )
+handleKeyPressed :
+    Char
+    -> ( Models.FooterModel r, List Effect )
+    -> ( Models.FooterModel r, List Effect )
 handleKeyPressed key ( model, effects ) =
     case key of
         '/' ->
@@ -617,12 +606,12 @@ filterTerms =
         >> List.filter (not << String.isEmpty)
 
 
-filter : String -> List Group.Group -> List Group.Group
+filter : String -> List Models.Group -> List Models.Group
 filter =
     filterTerms >> flip (List.foldl filterGroupsByTerm)
 
 
-filterPipelinesByTerm : String -> Group.Group -> Group.Group
+filterPipelinesByTerm : String -> Models.Group -> Models.Group
 filterPipelinesByTerm term ({ pipelines } as group) =
     let
         searchStatus =
@@ -648,7 +637,7 @@ filterPipelinesByTerm term ({ pipelines } as group) =
     }
 
 
-filterGroupsByTerm : String -> List Group.Group -> List Group.Group
+filterGroupsByTerm : String -> List Models.Group -> List Models.Group
 filterGroupsByTerm term groups =
     let
         searchTeams =

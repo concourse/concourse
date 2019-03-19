@@ -22,7 +22,7 @@ import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (Hoverable(..), Message(..))
 import RemoteData
 import Routes
 import TopBar.Model
@@ -85,8 +85,13 @@ update msg =
 updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
 updateBody msg ( model, effects ) =
     case msg of
-        CopyTokenButtonHover hovered ->
-            ( { model | buttonState = hover hovered model.buttonState }
+        Hover (Just CopyTokenButton) ->
+            ( { model | buttonState = hover True model.buttonState }
+            , effects
+            )
+
+        Hover Nothing ->
+            ( { model | buttonState = hover False model.buttonState }
             , effects
             )
 
@@ -191,8 +196,8 @@ button { tokenTransfer, authToken, buttonState } =
     Html.span
         [ id "copy-token"
         , style <| Styles.button buttonState
-        , onMouseEnter <| CopyTokenButtonHover True
-        , onMouseLeave <| CopyTokenButtonHover False
+        , onMouseEnter <| Hover <| Just CopyTokenButton
+        , onMouseLeave <| Hover Nothing
         , onClick CopyToken
         , attribute "data-clipboard-text" authToken
         ]

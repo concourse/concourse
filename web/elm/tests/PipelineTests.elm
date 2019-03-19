@@ -548,14 +548,14 @@ all =
                         >> Query.find pinBadgeSelector
                         >> Query.findAll [ tag "div", containing [ text "2" ] ]
                         >> Query.count (Expect.equal 1)
-                , it "before TogglePinIconDropdown msg no list of pinned resources is visible" <|
+                , it "before Hover msg no list of pinned resources is visible" <|
                     givenPinnedResource
                         >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.hasNot [ tag "ul" ]
-                , it "mousing over pin icon sends TogglePinIconDropdown msg" <|
+                , it "mousing over pin icon sends Hover msg" <|
                     givenPinnedResource
                         >> Application.view
                         >> Query.fromHtml
@@ -564,10 +564,10 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseEnter
-                        >> Event.expect (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
-                , it "TogglePinIconDropdown msg causes pin icon to have light grey circular background" <|
+                        >> Event.expect (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                , it "Hover msg causes pin icon to have light grey circular background" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -578,18 +578,18 @@ all =
                                 , ( "border-radius", "50%" )
                                 ]
                             ]
-                , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to appear" <|
+                , it "Hover msg causes dropdown list of pinned resources to appear" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children [ tag "ul" ]
                         >> Query.count (Expect.equal 1)
-                , it "on TogglePinIconDropdown, pin badge has no other children" <|
+                , it "on Hover, pin badge has no other children" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -600,7 +600,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources contains resource name" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -610,7 +610,7 @@ all =
                         >> Query.has [ tag "li", containing [ text "resource" ] ]
                 , it "dropdown list of pinned resources shows resource names in bold" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -622,7 +622,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources shows pinned version of each resource" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -633,7 +633,7 @@ all =
                         >> Query.has [ tag "table", containing [ text "v1" ] ]
                 , it "dropdown list of pinned resources has white background" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -643,7 +643,7 @@ all =
                         >> Query.has [ style [ ( "background-color", "#ffffff" ) ] ]
                 , it "dropdown list of pinned resources is drawn over other elements on the page" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -653,7 +653,7 @@ all =
                         >> Query.has [ style [ ( "z-index", "1" ) ] ]
                 , it "dropdown list of pinned resources has dark grey text" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -663,7 +663,7 @@ all =
                         >> Query.has [ style [ ( "color", "#1e1d1d" ) ] ]
                 , it "dropdown list has upward-pointing arrow" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -679,7 +679,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources is offset below and left of the pin icon" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -696,7 +696,7 @@ all =
                             ]
                 , it "dropdown list of pinned resources stretches horizontally to fit content" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -709,7 +709,7 @@ all =
                             ]
                 , it "dropdown list of pinned resources has no bullet points" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -722,7 +722,7 @@ all =
                             ]
                 , it "dropdown list has comfortable padding" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -735,7 +735,7 @@ all =
                             ]
                 , it "dropdown list arrow is centered below the pin icon above the list" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -758,7 +758,7 @@ all =
                                 , ( "position", "absolute" )
                                 ]
                             ]
-                , it "mousing off the pin icon sends TogglePinIconDropdown msg" <|
+                , it "mousing off the pin icon sends Hover Nothing msg" <|
                     givenPinnedResource
                         >> Application.view
                         >> Query.fromHtml
@@ -767,10 +767,10 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseLeave
-                        >> Event.expect (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Event.expect (wrapTopBarMessage <| Message.Message.Hover Nothing)
                 , it "clicking a pinned resource sends a Navigation Msg" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -789,11 +789,11 @@ all =
                                         , page = Nothing
                                         }
                             )
-                , it "TogglePinIconDropdown msg causes dropdown list of pinned resources to disappear" <|
+                , it "Hover msg causes dropdown list of pinned resources to disappear" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover Nothing)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -802,7 +802,7 @@ all =
                         >> Query.hasNot [ tag "ul" ]
                 , it "pinned resources in the dropdown should have a pointer cursor" <|
                     givenPinnedResource
-                        >> Application.update (wrapTopBarMessage Message.Message.TogglePinIconDropdown)
+                        >> Application.update (wrapTopBarMessage <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml

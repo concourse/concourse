@@ -16,9 +16,9 @@ import Application.Application as Application
 import Char
 import Concourse
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Group as Group
+import Dashboard.Models as Models
 import Date exposing (Date)
 import Dict
 import Expect exposing (Expectation)
@@ -123,7 +123,7 @@ all =
     describe "Dashboard"
         [ describe "welcome card" <|
             let
-                hasWelcomeCard : (() -> ( Dashboard.Model, List Effects.Effect )) -> List Test
+                hasWelcomeCard : (() -> ( Models.Model, List Effects.Effect )) -> List Test
                 hasWelcomeCard setup =
                     let
                         subject : () -> Query.Single Msgs.Message
@@ -279,8 +279,11 @@ all =
                                             ]
                                                 ++ iconSelector { size = "32px", image = "apple-logo.svg" }
                                         }
-                                    , mouseEnterMsg = Msgs.TopCliHover <| List.Extra.getAt 0 Cli.clis
-                                    , mouseLeaveMsg = Msgs.TopCliHover Nothing
+                                    , mouseEnterMsg =
+                                        Msgs.Hover <|
+                                            Maybe.map Msgs.WelcomeCardCliIcon <|
+                                                List.Extra.getAt 0 Cli.clis
+                                    , mouseLeaveMsg = Msgs.Hover Nothing
                                     , hoveredSelector =
                                         { description = "white apple icon"
                                         , selector =
@@ -307,8 +310,11 @@ all =
                                             ]
                                                 ++ iconSelector { size = "32px", image = "windows-logo.svg" }
                                         }
-                                    , mouseEnterMsg = Msgs.TopCliHover <| List.Extra.getAt 1 Cli.clis
-                                    , mouseLeaveMsg = Msgs.TopCliHover Nothing
+                                    , mouseEnterMsg =
+                                        Msgs.Hover <|
+                                            Maybe.map Msgs.WelcomeCardCliIcon <|
+                                                List.Extra.getAt 1 Cli.clis
+                                    , mouseLeaveMsg = Msgs.Hover Nothing
                                     , hoveredSelector =
                                         { description = "white windows icon"
                                         , selector =
@@ -335,8 +341,11 @@ all =
                                             ]
                                                 ++ iconSelector { size = "32px", image = "linux-logo.svg" }
                                         }
-                                    , mouseEnterMsg = Msgs.TopCliHover <| List.Extra.getAt 2 Cli.clis
-                                    , mouseLeaveMsg = Msgs.TopCliHover Nothing
+                                    , mouseEnterMsg =
+                                        Msgs.Hover <|
+                                            Maybe.map Msgs.WelcomeCardCliIcon <|
+                                                List.Extra.getAt 2 Cli.clis
+                                    , mouseLeaveMsg = Msgs.Hover Nothing
                                     , hoveredSelector =
                                         { description = "white linux icon"
                                         , selector =
@@ -452,7 +461,7 @@ all =
                     |> Query.has [ style [ ( "font-weight", "700" ) ] ]
         , test "logging out causes pipeline list to reload" <|
             let
-                showsLoadingState : ( Dashboard.Model, List Effects.Effect ) -> Expectation
+                showsLoadingState : ( Models.Model, List Effects.Effect ) -> Expectation
                 showsLoadingState =
                     queryView
                         >> Query.findAll [ class "dashboard-team-group" ]
@@ -731,7 +740,7 @@ all =
                 pipelineWithStatus :
                     Concourse.BuildStatus
                     -> Bool
-                    -> ( Dashboard.Model, List Effects.Effect )
+                    -> ( Models.Model, List Effects.Effect )
                     -> Query.Single Msgs.Message
                 pipelineWithStatus status isRunning =
                     let
@@ -2030,17 +2039,13 @@ all =
                                        ]
                             }
                         , mouseEnterMsg =
-                            Msgs.PipelineButtonHover <|
-                                Just
-                                    { id = 0
-                                    , name = "pipeline"
-                                    , teamName = "team"
-                                    , public = True
-                                    , jobs = []
-                                    , resourceError = False
-                                    , status = PipelineStatus.PipelineStatusPending False
-                                    }
-                        , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
+                            Msgs.Hover <|
+                                Just <|
+                                    Msgs.PipelineButton
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                        , mouseLeaveMsg = Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "a bright 20px square pause button with pointer cursor"
                             , selector =
@@ -2086,17 +2091,13 @@ all =
                                        ]
                             }
                         , mouseEnterMsg =
-                            Msgs.PipelineButtonHover <|
-                                Just
-                                    { id = 0
-                                    , name = "pipeline"
-                                    , teamName = "team"
-                                    , public = True
-                                    , jobs = []
-                                    , resourceError = False
-                                    , status = PipelineStatus.PipelineStatusPaused
-                                    }
-                        , mouseLeaveMsg = Msgs.PipelineButtonHover Nothing
+                            Msgs.Hover <|
+                                Just <|
+                                    Msgs.PipelineButton
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                        , mouseLeaveMsg = Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "an opaque 20px square play button with pointer cursor"
                             , selector =
@@ -2589,8 +2590,11 @@ all =
                                         }
                             }
                         , updateFunc = Dashboard.update
-                        , mouseEnterMsg = Msgs.CliHover <| List.Extra.getAt 0 Cli.clis
-                        , mouseLeaveMsg = Msgs.CliHover Nothing
+                        , mouseEnterMsg =
+                            Msgs.Hover <|
+                                Maybe.map Msgs.FooterCliIcon <|
+                                    List.Extra.getAt 0 Cli.clis
+                        , mouseLeaveMsg = Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "white apple icon"
                             , selector =
@@ -2628,8 +2632,11 @@ all =
                                         }
                             }
                         , updateFunc = Dashboard.update
-                        , mouseEnterMsg = Msgs.CliHover <| List.Extra.getAt 1 Cli.clis
-                        , mouseLeaveMsg = Msgs.CliHover Nothing
+                        , mouseEnterMsg =
+                            Msgs.Hover <|
+                                Maybe.map Msgs.FooterCliIcon <|
+                                    List.Extra.getAt 1 Cli.clis
+                        , mouseLeaveMsg = Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "white windows icon"
                             , selector =
@@ -2667,8 +2674,11 @@ all =
                                         }
                             }
                         , updateFunc = Dashboard.update
-                        , mouseEnterMsg = Msgs.CliHover <| List.Extra.getAt 2 Cli.clis
-                        , mouseLeaveMsg = Msgs.CliHover Nothing
+                        , mouseEnterMsg =
+                            Msgs.Hover <|
+                                Maybe.map Msgs.FooterCliIcon <|
+                                    List.Extra.getAt 2 Cli.clis
+                        , mouseLeaveMsg = Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "white linux icon"
                             , selector =
@@ -2746,7 +2756,7 @@ all =
         ]
 
 
-handleCallback : Callback.Callback -> Dashboard.Model -> ( Dashboard.Model, List Effects.Effect )
+handleCallback : Callback.Callback -> Models.Model -> ( Models.Model, List Effects.Effect )
 handleCallback callback =
     flip (,) [] >> Dashboard.handleCallback callback
 
@@ -2863,7 +2873,7 @@ iconSelector { size, image } =
     ]
 
 
-whenOnDashboard : { highDensity : Bool } -> ( Dashboard.Model, List Effects.Effect )
+whenOnDashboard : { highDensity : Bool } -> ( Models.Model, List Effects.Effect )
 whenOnDashboard { highDensity } =
     Dashboard.init
         { turbulencePath = ""
@@ -2877,7 +2887,7 @@ whenOnDashboard { highDensity } =
         }
 
 
-queryView : ( Dashboard.Model, List Effects.Effect ) -> Query.Single Msgs.Message
+queryView : ( Models.Model, List Effects.Effect ) -> Query.Single Msgs.Message
 queryView =
     Tuple.first
         >> Dashboard.view UserState.UserStateLoggedOut
@@ -2887,8 +2897,8 @@ queryView =
 givenDataAndUser :
     (Maybe Concourse.User -> Concourse.APIData)
     -> Concourse.User
-    -> ( Dashboard.Model, List Effects.Effect )
-    -> ( Dashboard.Model, List Effects.Effect )
+    -> ( Models.Model, List Effects.Effect )
+    -> ( Models.Model, List Effects.Effect )
 givenDataAndUser data user =
     Dashboard.handleCallback
         (Callback.APIDataFetched <| Ok ( 0, data <| Just user ))
@@ -2918,8 +2928,8 @@ givenDataUnauthenticatedFromApplication data =
 
 givenDataUnauthenticated :
     (Maybe Concourse.User -> Concourse.APIData)
-    -> ( Dashboard.Model, List Effects.Effect )
-    -> ( Dashboard.Model, List Effects.Effect )
+    -> ( Models.Model, List Effects.Effect )
+    -> ( Models.Model, List Effects.Effect )
 givenDataUnauthenticated data =
     Dashboard.handleCallback
         (Callback.APIDataFetched <| Ok ( 0, data Nothing ))

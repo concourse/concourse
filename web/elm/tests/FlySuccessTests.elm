@@ -671,12 +671,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.CopyTokenButtonHover
-                            True
+                        Message.Message.Hover <|
+                            Just Message.Message.CopyTokenButton
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.CopyTokenButtonHover
-                            False
+                        Message.Message.Hover Nothing
                 , hoveredSelector =
                     { description = "darker background"
                     , selector =

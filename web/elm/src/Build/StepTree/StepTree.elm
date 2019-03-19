@@ -43,7 +43,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (HoverableBuild(..), Message(..))
+import Message.Message exposing (Hoverable(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
 import StrictEvents
@@ -346,7 +346,7 @@ toggleExpanded { expanded, state } =
 
 updateTooltip :
     { a
-        | hoveredElement : Maybe HoverableBuild
+        | hoveredElement : Maybe Hoverable
         , hoveredCounter : Int
     }
     -> StepTreeModel
@@ -355,7 +355,7 @@ updateTooltip { hoveredElement, hoveredCounter } model =
     let
         newTooltip =
             case hoveredElement of
-                Just (FirstOccurrence id) ->
+                Just (FirstOccurrenceIcon id) ->
                     if hoveredCounter > 0 then
                         Just id
 
@@ -633,8 +633,8 @@ viewStepHeaderIcon headerType tooltip id =
     let
         eventHandlers =
             if headerType == StepHeaderGet True then
-                [ onMouseLeave <| HoverBuild Nothing
-                , onMouseEnter <| HoverBuild (Just (FirstOccurrence id))
+                [ onMouseLeave <| Hover Nothing
+                , onMouseEnter <| Hover <| Just <| FirstOccurrenceIcon id
                 ]
 
             else

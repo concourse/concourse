@@ -1,36 +1,23 @@
-module Dashboard.Footer exposing (Model, showFooter, tick, toggleHelp, view)
+module Dashboard.Footer exposing (showFooter, tick, toggleHelp, view)
 
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
-import Dashboard.Group exposing (Group)
+import Dashboard.Models exposing (FooterModel, Group)
 import Dashboard.Styles as Styles
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
-import Message.Message exposing (Message(..))
+import Message.Message exposing (Hoverable(..), Message(..))
 import Routes
 import ScreenSize
 
 
-type alias Model r =
-    { r
-        | hideFooter : Bool
-        , hideFooterCounter : Int
-        , showHelp : Bool
-        , groups : List Group
-        , hoveredCliIcon : Maybe Cli.Cli
-        , screenSize : ScreenSize.ScreenSize
-        , version : String
-        , highDensity : Bool
-    }
-
-
-showFooter : Model r -> Model r
+showFooter : FooterModel r -> FooterModel r
 showFooter model =
     { model | hideFooter = False, hideFooterCounter = 0 }
 
 
-tick : Model r -> Model r
+tick : FooterModel r -> FooterModel r
 tick model =
     if model.hideFooterCounter > 4 then
         { model | hideFooter = True }
@@ -39,7 +26,7 @@ tick model =
         { model | hideFooterCounter = model.hideFooterCounter + 1 }
 
 
-toggleHelp : Model r -> Model r
+toggleHelp : FooterModel r -> FooterModel r
 toggleHelp model =
     { model | showHelp = not (hideHelp model || model.showHelp) }
 
@@ -49,7 +36,7 @@ hideHelp { groups } =
     List.isEmpty (groups |> List.concatMap .pipelines)
 
 
-view : Model r -> List (Html Message)
+view : FooterModel r -> List (Html Message)
 view model =
     if model.showHelp then
         [ keyboardHelp ]
@@ -93,7 +80,7 @@ keyboardHelp =
 
 infoBar :
     { a
-        | hoveredCliIcon : Maybe Cli.Cli
+        | hovered : Maybe Hoverable
         , screenSize : ScreenSize.ScreenSize
         , version : String
         , highDensity : Bool
@@ -153,9 +140,9 @@ legend model =
 
 
 concourseInfo :
-    { a | version : String, hoveredCliIcon : Maybe Cli.Cli }
+    { a | version : String, hovered : Maybe Hoverable }
     -> List (Html Message)
-concourseInfo { version, hoveredCliIcon } =
+concourseInfo { version, hovered } =
     [ Html.div [ id "concourse-info", style Styles.info ]
         [ Html.div [ style Styles.infoItem ]
             [ Html.text <| "version: v" ++ version ]
@@ -164,7 +151,7 @@ concourseInfo { version, hoveredCliIcon } =
                 [ style [ ( "margin-right", "10px" ) ] ]
                 [ Html.text "cli: " ]
             ]
-                ++ List.map (cliIcon hoveredCliIcon) Cli.clis
+                ++ List.map (cliIcon hovered) Cli.clis
         ]
     ]
 
@@ -216,18 +203,18 @@ legendSeparator screenSize =
             ]
 
 
-cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Message
-cliIcon hoveredCliIcon cli =
+cliIcon : Maybe Hoverable -> Cli.Cli -> Html Message
+cliIcon hovered cli =
     Html.a
         [ href (Cli.downloadUrl cli)
         , attribute "aria-label" <| Cli.label cli
         , style <|
             Styles.infoCliIcon
-                { hovered = hoveredCliIcon == Just cli
+                { hovered = hovered == (Just <| FooterCliIcon cli)
                 , cli = cli
                 }
         , id <| "cli-" ++ Cli.id cli
-        , onMouseEnter <| CliHover <| Just cli
-        , onMouseLeave <| CliHover Nothing
+        , onMouseEnter <| Hover <| Just <| FooterCliIcon cli
+        , onMouseLeave <| Hover Nothing
         ]
         []

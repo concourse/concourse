@@ -873,7 +873,7 @@ all =
                     givenHistoryAndDetailsFetched
                         >> Tuple.mapSecond (always [])
                         >> Build.update
-                            (Message.Message.HoverBuild <| Just Message.Message.TriggerB)
+                            (Message.Message.Hover <| Just Message.Message.TriggerBuildButton)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -985,8 +985,8 @@ all =
                                     }
                             ]
                         }
-                    , mouseEnterMsg = Message.Message.HoverBuild <| Just Message.Message.TriggerB
-                    , mouseLeaveMsg = Message.Message.HoverBuild Nothing
+                    , mouseEnterMsg = Message.Message.Hover <| Just Message.Message.TriggerBuildButton
+                    , mouseLeaveMsg = Message.Message.Hover Nothing
                     }
                 ]
             ]
@@ -1046,7 +1046,7 @@ all =
             , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
                     >> Tuple.mapSecond (always [])
-                    >> Build.update (Message.Message.HoverBuild (Just Message.Message.Abort))
+                    >> Build.update (Message.Message.Hover (Just Message.Message.AbortBuildButton))
                     >> Tuple.first
                     >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
@@ -1503,12 +1503,12 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseEnter
                             >> Event.expect
-                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1528,7 +1528,7 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
@@ -1584,7 +1584,7 @@ all =
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1597,7 +1597,7 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseLeave
                             >> Event.expect
-                                (Message.Message.HoverBuild Nothing)
+                                (Message.Message.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
@@ -1605,13 +1605,13 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
                             >> flip (,) []
-                            >> Build.update (Message.Message.HoverBuild Nothing)
+                            >> Build.update (Message.Message.Hover Nothing)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1631,7 +1631,7 @@ all =
                         >> Build.handleDelivery (ClockTicked OneSecond 0)
                         >> Tuple.first
                         >> flip (,) []
-                        >> Build.update (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
+                        >> Build.update (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                         >> Tuple.first
                         >> flip (,) []
                         >> Build.handleDelivery (ClockTicked OneSecond 1)

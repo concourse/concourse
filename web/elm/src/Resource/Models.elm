@@ -11,7 +11,7 @@ module Resource.Models exposing
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
-import Message.Message exposing (HoverableRes)
+import Message.Message exposing (Hoverable)
 import Pinned exposing (CommentState, ResourcePinState)
 import Time
 import TopBar.Model
@@ -39,10 +39,8 @@ type alias Model =
         , now : Maybe Time.Time
         , resourceIdentifier : Concourse.ResourceIdentifier
         , currentPage : Maybe Page
-        , hovered : Maybe HoverableRes
+        , hovered : Maybe Hoverable
         , versions : Paginated Version
-        , showPinBarTooltip : Bool
-        , pinIconHover : Bool
         , pinCommentLoading : Bool
         , ctrlDown : Bool
         , textAreaFocused : Bool

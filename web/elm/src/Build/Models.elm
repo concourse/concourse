@@ -6,7 +6,7 @@ module Build.Models exposing
 
 import Build.Output.Models exposing (OutputModel)
 import Concourse
-import Message.Message exposing (HoverableBuild)
+import Message.Message exposing (Hoverable)
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight, StepID)
 import Time exposing (Time)
@@ -31,7 +31,7 @@ type alias Model =
         , previousTriggerBuildByKey : Bool
         , showHelp : Bool
         , highlight : Highlight
-        , hoveredElement : Maybe HoverableBuild
+        , hoveredElement : Maybe Hoverable
         , hoveredCounter : Int
         }
 

@@ -267,8 +267,8 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.update
                         (Msgs.SubMsg 1 <|
-                            Message.Message.HoverJob <|
-                                Just Message.Message.Toggle
+                            Message.Message.Hover <|
+                                Just Message.Message.ToggleJobButton
                         )
                     >> Tuple.first
                     >> Application.view
@@ -311,11 +311,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob <|
-                            Just Message.Message.Toggle
+                        Message.Message.Hover <|
+                            Just Message.Message.ToggleJobButton
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Nothing
+                        Message.Message.Hover Nothing
                 }
             , defineHoverBehaviour
                 { name = "play/pause button when job is paused"
@@ -346,11 +346,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob <|
-                            Just Message.Message.Toggle
+                        Message.Message.Hover <|
+                            Just Message.Message.ToggleJobButton
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Nothing
+                        Message.Message.Hover Nothing
                 }
             , test "trigger build button has background of the header color, faded" <|
                 init { disabled = False, paused = False }
@@ -372,8 +372,8 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.update
                         (Msgs.SubMsg 1 <|
-                            Message.Message.HoverJob <|
-                                Just Message.Message.TriggerJ
+                            Message.Message.Hover <|
+                                Just Message.Message.TriggerBuildButton
                         )
                     >> Tuple.first
                     >> Application.view
@@ -438,11 +438,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob <|
-                            Just Message.Message.TriggerJ
+                        Message.Message.Hover <|
+                            Just Message.Message.TriggerBuildButton
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Nothing
+                        Message.Message.Hover Nothing
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
@@ -497,11 +497,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob <|
-                            Just Message.Message.TriggerJ
+                        Message.Message.Hover <|
+                            Just Message.Message.TriggerBuildButton
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Nothing
+                        Message.Message.Hover Nothing
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
@@ -878,11 +878,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob <|
-                            Just Message.Message.PreviousPageJ
+                        Message.Message.Hover <|
+                            Just Message.Message.PreviousPageButton
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Nothing
+                        Message.Message.Hover Nothing
                 }
             , test "JobBuildsFetched" <|
                 \_ ->

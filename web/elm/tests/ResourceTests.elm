@@ -541,11 +541,11 @@ all =
                             }
                         , mouseEnterMsg =
                             resourceMsg <|
-                                Message.Message.HoverRes <|
-                                    Just Message.Message.PreviousPageR
+                                Message.Message.Hover <|
+                                    Just Message.Message.PreviousPageButton
                         , mouseLeaveMsg =
                             resourceMsg <|
-                                Message.Message.HoverRes Nothing
+                                Message.Message.Hover Nothing
                         }
                     ]
                 ]
@@ -855,19 +855,19 @@ all =
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseEnter
                             |> Event.expect
-                                (resourceMsg Message.Message.TogglePinBarTooltip)
+                                (resourceMsg <| Message.Message.Hover <| Just Message.Message.PinBar)
                 , test "TogglePinBarTooltip causes tooltip to appear" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> togglePinBarTooltip
+                            |> hoverOverPinBar
                             |> queryView
                             |> Query.has pinBarTooltipSelector
                 , test "pin bar tooltip has text 'pinned in pipeline config'" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> togglePinBarTooltip
+                            |> hoverOverPinBar
                             |> queryView
                             |> Query.find pinBarTooltipSelector
                             |> Query.has [ text "pinned in pipeline config" ]
@@ -875,7 +875,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> togglePinBarTooltip
+                            |> hoverOverPinBar
                             |> queryView
                             |> Query.find pinBarTooltipSelector
                             |> Query.has
@@ -889,7 +889,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> togglePinBarTooltip
+                            |> hoverOverPinBar
                             |> queryView
                             |> Query.find pinBarTooltipSelector
                             |> Query.has
@@ -898,7 +898,7 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> togglePinBarTooltip
+                            |> hoverOverPinBar
                             |> queryView
                             |> Query.find pinBarTooltipSelector
                             |> Query.has
@@ -907,27 +907,28 @@ all =
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> togglePinBarTooltip
+                            |> hoverOverPinBar
                             |> queryView
                             |> Query.find pinBarTooltipSelector
                             |> Query.has
                                 [ style [ ( "z-index", "2" ) ] ]
-                , test "mousing out of pin bar sends TogglePinBarTooltip message" <|
+                , test "mousing out of pin bar sends Hover Nothing message" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> togglePinBarTooltip
+                            |> hoverOverPinBar
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseLeave
                             |> Event.expect
-                                (resourceMsg Message.Message.TogglePinBarTooltip)
+                                (resourceMsg <| Message.Message.Hover Nothing)
                 , test "when mousing off pin bar, tooltip disappears" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
-                            |> togglePinBarTooltip
-                            |> togglePinBarTooltip
+                            |> hoverOverPinBar
+                            |> update (Message.Message.Hover Nothing)
+                            |> Tuple.first
                             |> queryView
                             |> Query.hasNot pinBarTooltipSelector
                 ]
@@ -950,7 +951,7 @@ all =
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOver
                             |> Event.expect
-                                (resourceMsg Message.Message.ToggleVersionTooltip)
+                                (resourceMsg <| Message.Message.Hover <| Just Message.Message.PinButton)
                 , test "mousing over an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
@@ -967,7 +968,7 @@ all =
                         init
                             |> givenResourcePinnedStatically
                             |> givenVersionsWithoutPagination
-                            |> toggleVersionTooltip
+                            |> hoverOverPinButton
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.has versionTooltipSelector
@@ -976,29 +977,29 @@ all =
                         init
                             |> givenResourcePinnedStatically
                             |> givenVersionsWithoutPagination
-                            |> toggleVersionTooltip
+                            |> hoverOverPinButton
                             |> givenVersionsWithoutPagination
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.has versionTooltipSelector
-                , test "mousing off the pinned version's pin button sends ToggleVersionTooltip" <|
+                , test "mousing off the pinned version's pin button sends Hover Nothing" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
                             |> givenVersionsWithoutPagination
-                            |> toggleVersionTooltip
+                            |> hoverOverPinButton
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOut
                             |> Event.expect
-                                (resourceMsg Message.Message.ToggleVersionTooltip)
+                                (resourceMsg <| Message.Message.Hover Nothing)
                 , test "mousing off an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
                             |> givenVersionsWithoutPagination
-                            |> toggleVersionTooltip
+                            |> hoverOverPinButton
                             |> queryView
                             |> Query.find (versionSelector otherVersion)
                             |> Query.find pinButtonSelector
@@ -1010,8 +1011,9 @@ all =
                         init
                             |> givenResourcePinnedStatically
                             |> givenVersionsWithoutPagination
-                            |> toggleVersionTooltip
-                            |> toggleVersionTooltip
+                            |> hoverOverPinButton
+                            |> update (Message.Message.Hover Nothing)
+                            |> Tuple.first
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.hasNot versionTooltipSelector
@@ -1046,10 +1048,11 @@ all =
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> update Message.Message.TogglePinBarTooltip
-                        |> Tuple.first
                         |> queryView
-                        |> Query.hasNot pinBarTooltipSelector
+                        |> Query.find [ id "pin-bar" ]
+                        |> Event.simulate Event.mouseEnter
+                        |> Event.toResult
+                        |> Expect.err
             , test "pin icon on pin bar has pointer cursor" <|
                 \_ ->
                     init
@@ -1074,34 +1077,34 @@ all =
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseEnter
                         |> Event.expect
-                            (resourceMsg <| Message.Message.PinIconHover True)
+                            (resourceMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
             , test "TogglePinIconHover msg causes pin icon to have dark background" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> update (Message.Message.PinIconHover True)
+                        |> update (Message.Message.Hover <| Just Message.Message.PinIcon)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
                         |> Query.has [ style [ ( "background-color", darkGreyHex ) ] ]
-            , test "mousing off pin icon triggers PinIconHover msg" <|
+            , test "mousing off pin icon triggers Hover Nothing msg" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> update (Message.Message.PinIconHover True)
+                        |> update (Message.Message.Hover <| Just Message.Message.PinIcon)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseLeave
                         |> Event.expect
-                            (resourceMsg <| Message.Message.PinIconHover False)
+                            (resourceMsg <| Message.Message.Hover <| Nothing)
             , test "second TogglePinIconHover msg causes pin icon to have transparent background color" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
-                        |> update (Message.Message.PinIconHover True)
+                        |> update (Message.Message.Hover <| Just Message.Message.PinIcon)
                         |> Tuple.first
-                        |> update (Message.Message.PinIconHover False)
+                        |> update (Message.Message.Hover Nothing)
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "pin-icon" ]
@@ -1234,7 +1237,7 @@ all =
                     init
                         |> givenResourcePinnedDynamically
                         |> givenVersionsWithoutPagination
-                        |> toggleVersionTooltip
+                        |> hoverOverPinButton
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.hasNot versionTooltipSelector
@@ -1718,11 +1721,11 @@ all =
                                     }
                                 , mouseEnterMsg =
                                     resourceMsg <|
-                                        Message.Message.HoverRes <|
-                                            Just Message.Message.SaveCommentR
+                                        Message.Message.Hover <|
+                                            Just Message.Message.SaveCommentButton
                                 , mouseLeaveMsg =
                                     resourceMsg <|
-                                        Message.Message.HoverRes Nothing
+                                        Message.Message.Hover Nothing
                                 , updateFunc =
                                     \msg ->
                                         Application.update msg
@@ -1954,8 +1957,8 @@ all =
                                     \_ ->
                                         givenCommentSavingInProgress
                                             |> update
-                                                (Message.Message.HoverRes <|
-                                                    Just Message.Message.SaveCommentR
+                                                (Message.Message.Hover <|
+                                                    Just Message.Message.SaveCommentButton
                                                 )
                                             |> Tuple.first
                                             |> viewButton
@@ -2040,8 +2043,8 @@ all =
                                                 )
                                             |> Tuple.first
                                             |> update
-                                                (Message.Message.HoverRes <|
-                                                    Just Message.Message.SaveCommentR
+                                                (Message.Message.Hover <|
+                                                    Just Message.Message.SaveCommentButton
                                                 )
                                             |> Tuple.first
                                             |> commentBar
@@ -2115,8 +2118,8 @@ all =
                                             )
                                         |> Tuple.first
                                         |> update
-                                            (Message.Message.HoverRes <|
-                                                Just Message.Message.SaveCommentR
+                                            (Message.Message.Hover <|
+                                                Just Message.Message.SaveCommentButton
                                             )
                                         |> Tuple.first
                                         |> commentBar
@@ -2375,7 +2378,7 @@ all =
                     init
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
-                        |> toggleVersionTooltip
+                        |> hoverOverPinButton
                         |> queryView
                         |> Query.find (versionSelector version)
                         |> Query.hasNot versionTooltipSelector
@@ -2655,11 +2658,11 @@ all =
                         }
                     , mouseEnterMsg =
                         resourceMsg <|
-                            Message.Message.HoverRes <|
+                            Message.Message.Hover <|
                                 Just Message.Message.CheckButton
                     , mouseLeaveMsg =
                         resourceMsg <|
-                            Message.Message.HoverRes Nothing
+                            Message.Message.Hover Nothing
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2755,9 +2758,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        resourceMsg <| Message.Message.HoverRes <| Just Message.Message.CheckButton
+                        resourceMsg <| Message.Message.Hover <| Just Message.Message.CheckButton
                     , mouseLeaveMsg =
-                        resourceMsg <| Message.Message.HoverRes Nothing
+                        resourceMsg <| Message.Message.Hover Nothing
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2884,10 +2887,10 @@ all =
                             }
                         , mouseEnterMsg =
                             resourceMsg <|
-                                Message.Message.HoverRes <|
+                                Message.Message.Hover <|
                                     Just Message.Message.CheckButton
                         , mouseLeaveMsg =
-                            resourceMsg <| Message.Message.HoverRes Nothing
+                            resourceMsg <| Message.Message.Hover Nothing
                         , hoveredSelector =
                             { description = "black button with white refresh icon"
                             , selector =
@@ -3099,9 +3102,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        resourceMsg <| Message.Message.HoverRes <| Just Message.Message.CheckButton
+                        resourceMsg <| Message.Message.Hover <| Just Message.Message.CheckButton
                     , mouseLeaveMsg =
-                        resourceMsg <| Message.Message.HoverRes Nothing
+                        resourceMsg <| Message.Message.Hover Nothing
                     , hoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =
@@ -3358,15 +3361,15 @@ queryView =
         >> Query.fromHtml
 
 
-togglePinBarTooltip : Application.Model -> Application.Model
-togglePinBarTooltip =
-    update Message.Message.TogglePinBarTooltip
+hoverOverPinBar : Application.Model -> Application.Model
+hoverOverPinBar =
+    update (Message.Message.Hover <| Just Message.Message.PinBar)
         >> Tuple.first
 
 
-toggleVersionTooltip : Application.Model -> Application.Model
-toggleVersionTooltip =
-    update Message.Message.ToggleVersionTooltip
+hoverOverPinButton : Application.Model -> Application.Model
+hoverOverPinButton =
+    update (Message.Message.Hover <| Just Message.Message.PinButton)
         >> Tuple.first
 
 

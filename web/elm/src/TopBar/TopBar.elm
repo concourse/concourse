@@ -29,7 +29,7 @@ import Html.Events exposing (..)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import QueryString
 import RemoteData exposing (RemoteData)
@@ -353,8 +353,11 @@ update msg ( model, effects ) =
         ToggleUserMenu ->
             ( { model | isUserMenuExpanded = not model.isUserMenuExpanded }, effects )
 
-        TogglePinIconDropdown ->
-            ( { model | isPinMenuExpanded = not model.isPinMenuExpanded }, effects )
+        Hover (Just PinIcon) ->
+            ( { model | isPinMenuExpanded = True }, effects )
+
+        Hover Nothing ->
+            ( { model | isPinMenuExpanded = False }, effects )
 
         TogglePipelinePaused pipelineIdentifier isPaused ->
             ( model, effects ++ [ SendTogglePipelineRequest pipelineIdentifier isPaused ] )
@@ -761,8 +764,8 @@ viewPin pipelineState model =
                 [ if List.length pinnedResources > 0 then
                     Html.div
                         [ style <| Styles.pinIcon
-                        , onMouseEnter TogglePinIconDropdown
-                        , onMouseLeave TogglePinIconDropdown
+                        , onMouseEnter <| Hover <| Just PinIcon
+                        , onMouseLeave <| Hover Nothing
                         ]
                         ([ Html.div
                             [ style Styles.pinBadge

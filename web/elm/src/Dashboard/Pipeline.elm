@@ -12,7 +12,7 @@ import Duration
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter, onMouseLeave)
-import Message.Message exposing (Message(..))
+import Message.Message exposing (Hoverable(..), Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
@@ -234,6 +234,10 @@ transitionView time pipeline =
 
 pauseToggleView : Pipeline -> Bool -> Html Message
 pauseToggleView pipeline hovered =
+    let
+        pipelineId =
+            { teamName = pipeline.teamName, pipelineName = pipeline.name }
+    in
     Html.a
         [ style
             [ ( "background-image"
@@ -259,9 +263,9 @@ pauseToggleView pipeline hovered =
             ]
         , onLeftClick <|
             TogglePipelinePaused
-                { teamName = pipeline.teamName, pipelineName = pipeline.name }
+                pipelineId
                 (pipeline.status == PipelineStatus.PipelineStatusPaused)
-        , onMouseEnter <| PipelineButtonHover <| Just pipeline
-        , onMouseLeave <| PipelineButtonHover Nothing
+        , onMouseEnter <| Hover <| Just <| PipelineButton pipelineId
+        , onMouseLeave <| Hover <| Nothing
         ]
         []

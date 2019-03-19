@@ -1,7 +1,5 @@
 module Message.Message exposing
-    ( HoverableBuild(..)
-    , HoverableJob(..)
-    , HoverableRes(..)
+    ( Hoverable(..)
     , Message(..)
     , VersionId
     , VersionToggleAction(..)
@@ -10,7 +8,6 @@ module Message.Message exposing
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page, Paginated)
-import Dashboard.Models
 import Routes exposing (StepID)
 import StrictEvents
 
@@ -24,14 +21,11 @@ type Message
     | BlurMsg
     | ToggleUserMenu
     | ShowSearchInput
-    | TogglePinIconDropdown
     | TogglePipelinePaused Concourse.PipelineIdentifier Bool
-    | GoToRoute Routes.Route
       -- Pipeline
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
       -- Fly Success
-    | CopyTokenButtonHover Bool
     | CopyToken
       -- Dashboard
     | DragStart String Int
@@ -39,19 +33,12 @@ type Message
     | DragEnd
     | Tooltip String String
     | TooltipHd String String
-    | PipelineButtonHover (Maybe Dashboard.Models.Pipeline)
-    | CliHover (Maybe Cli.Cli)
-    | TopCliHover (Maybe Cli.Cli)
       -- Resource
     | LoadPage Page
     | ExpandVersionedResource VersionId
-    | TogglePinBarTooltip
-    | ToggleVersionTooltip
     | PinVersion VersionId
     | UnpinVersion
     | ToggleVersion VersionToggleAction VersionId
-    | PinIconHover Bool
-    | HoverRes (Maybe HoverableRes)
     | CheckRequested Bool
     | EditComment String
     | SaveComment String
@@ -60,10 +47,8 @@ type Message
       -- Job
     | TriggerBuildJob
     | TogglePaused
-    | HoverJob (Maybe HoverableJob)
       -- Build
     | SwitchToBuild Concourse.Build
-    | HoverBuild (Maybe HoverableBuild)
     | TriggerBuild (Maybe Concourse.JobIdentifier)
     | AbortBuild Int
     | ScrollBuilds StrictEvents.MouseWheelEvent
@@ -72,26 +57,27 @@ type Message
     | SwitchTab String Int
     | SetHighlight String Int
     | ExtendHighlight String Int
+      -- common
+    | Hover (Maybe Hoverable)
+    | GoToRoute Routes.Route
 
 
-type HoverableJob
-    = Toggle
-    | TriggerJ
-    | PreviousPageJ
-    | NextPageJ
-
-
-type HoverableRes
-    = PreviousPageR
-    | NextPageR
+type Hoverable
+    = ToggleJobButton
+    | TriggerBuildButton
+    | PreviousPageButton
+    | NextPageButton
     | CheckButton
-    | SaveCommentR
-
-
-type HoverableBuild
-    = Abort
-    | TriggerB
-    | FirstOccurrence StepID
+    | SaveCommentButton
+    | AbortBuildButton
+    | FirstOccurrenceIcon StepID
+    | PinIcon
+    | PinButton
+    | PinBar
+    | PipelineButton Concourse.PipelineIdentifier
+    | FooterCliIcon Cli.Cli
+    | WelcomeCardCliIcon Cli.Cli
+    | CopyTokenButton
 
 
 type VersionToggleAction

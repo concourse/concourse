@@ -13,6 +13,7 @@ module SubPage.SubPage exposing
 import Build.Build as Build
 import Build.Models
 import Dashboard.Dashboard as Dashboard
+import Dashboard.Models
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
 import Html exposing (Html)
@@ -37,7 +38,7 @@ type Model
     | ResourceModel Resource.Models.Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model.Model
-    | DashboardModel Dashboard.Model
+    | DashboardModel Dashboard.Models.Model
     | FlySuccessModel FlySuccess.Models.Model
 
 
