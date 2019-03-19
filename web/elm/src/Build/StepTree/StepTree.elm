@@ -11,7 +11,7 @@ module Build.StepTree.StepTree exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Models exposing (Hoverable(..), StepHeaderType(..))
+import Build.Models exposing (StepHeaderType(..))
 import Build.StepTree.Models
     exposing
         ( HookedStep
@@ -43,7 +43,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (HoverableBuild(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
 import StrictEvents
@@ -346,7 +346,7 @@ toggleExpanded { expanded, state } =
 
 updateTooltip :
     { a
-        | hoveredElement : Maybe Hoverable
+        | hoveredElement : Maybe HoverableBuild
         , hoveredCounter : Int
     }
     -> StepTreeModel

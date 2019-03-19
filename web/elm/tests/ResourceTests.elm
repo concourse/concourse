@@ -541,10 +541,11 @@ all =
                             }
                         , mouseEnterMsg =
                             resourceMsg <|
-                                Message.Message.HoverRes Models.PreviousPage
+                                Message.Message.HoverRes <|
+                                    Just Message.Message.PreviousPageR
                         , mouseLeaveMsg =
                             resourceMsg <|
-                                Message.Message.HoverRes Models.None
+                                Message.Message.HoverRes Nothing
                         }
                     ]
                 ]
@@ -633,7 +634,7 @@ all =
                         |> Event.expect
                             (resourceMsg <|
                                 Message.Message.ToggleVersion
-                                    Models.Disable
+                                    Message.Message.Disable
                                     versionID
                             )
             , test "receiving a (ToggleVersion Disable) msg causes the relevant checkbox to go into a transition state" <|
@@ -663,7 +664,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> handleCallback (Callback.VersionToggled Models.Disable versionID (Ok ()))
+                        |> handleCallback (Callback.VersionToggled Message.Message.Disable versionID (Ok ()))
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -674,7 +675,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> handleCallback (Callback.VersionToggled Models.Disable versionID badResponse)
+                        |> handleCallback (Callback.VersionToggled Message.Message.Disable versionID badResponse)
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -692,7 +693,7 @@ all =
                         |> Event.expect
                             (resourceMsg <|
                                 Message.Message.ToggleVersion
-                                    Models.Enable
+                                    Message.Message.Enable
                                     disabledVersionID
                             )
             , test "receiving a (ToggleVersion Enable) msg causes the relevant checkbox to go into a transition state" <|
@@ -703,7 +704,7 @@ all =
                         |> Application.update
                             (resourceMsg <|
                                 Message.Message.ToggleVersion
-                                    Models.Enable
+                                    Message.Message.Enable
                                     disabledVersionID
                             )
                         |> Tuple.first
@@ -719,13 +720,13 @@ all =
                         |> Application.update
                             (resourceMsg <|
                                 Message.Message.ToggleVersion
-                                    Models.Enable
+                                    Message.Message.Enable
                                     disabledVersionID
                             )
                         |> Tuple.first
                         |> handleCallback
                             (Callback.VersionToggled
-                                Models.Enable
+                                Message.Message.Enable
                                 disabledVersionID
                                 (Ok ())
                             )
@@ -742,13 +743,13 @@ all =
                         |> Application.update
                             (resourceMsg <|
                                 Message.Message.ToggleVersion
-                                    Models.Enable
+                                    Message.Message.Enable
                                     disabledVersionID
                             )
                         |> Tuple.first
                         |> handleCallback
                             (Callback.VersionToggled
-                                Models.Enable
+                                Message.Message.Enable
                                 disabledVersionID
                                 badResponse
                             )
@@ -1717,12 +1718,11 @@ all =
                                     }
                                 , mouseEnterMsg =
                                     resourceMsg <|
-                                        Message.Message.HoverRes
-                                            Models.SaveComment
+                                        Message.Message.HoverRes <|
+                                            Just Message.Message.SaveCommentR
                                 , mouseLeaveMsg =
                                     resourceMsg <|
-                                        Message.Message.HoverRes
-                                            Models.None
+                                        Message.Message.HoverRes Nothing
                                 , updateFunc =
                                     \msg ->
                                         Application.update msg
@@ -1954,8 +1954,8 @@ all =
                                     \_ ->
                                         givenCommentSavingInProgress
                                             |> update
-                                                (Message.Message.HoverRes
-                                                    Models.SaveComment
+                                                (Message.Message.HoverRes <|
+                                                    Just Message.Message.SaveCommentR
                                                 )
                                             |> Tuple.first
                                             |> viewButton
@@ -2040,8 +2040,8 @@ all =
                                                 )
                                             |> Tuple.first
                                             |> update
-                                                (Message.Message.HoverRes
-                                                    Models.SaveComment
+                                                (Message.Message.HoverRes <|
+                                                    Just Message.Message.SaveCommentR
                                                 )
                                             |> Tuple.first
                                             |> commentBar
@@ -2115,8 +2115,8 @@ all =
                                             )
                                         |> Tuple.first
                                         |> update
-                                            (Message.Message.HoverRes
-                                                Models.SaveComment
+                                            (Message.Message.HoverRes <|
+                                                Just Message.Message.SaveCommentR
                                             )
                                         |> Tuple.first
                                         |> commentBar
@@ -2655,10 +2655,11 @@ all =
                         }
                     , mouseEnterMsg =
                         resourceMsg <|
-                            Message.Message.HoverRes Models.CheckButton
+                            Message.Message.HoverRes <|
+                                Just Message.Message.CheckButton
                     , mouseLeaveMsg =
                         resourceMsg <|
-                            Message.Message.HoverRes Models.None
+                            Message.Message.HoverRes Nothing
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2754,9 +2755,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        resourceMsg <| Message.Message.HoverRes Models.CheckButton
+                        resourceMsg <| Message.Message.HoverRes <| Just Message.Message.CheckButton
                     , mouseLeaveMsg =
-                        resourceMsg <| Message.Message.HoverRes Models.None
+                        resourceMsg <| Message.Message.HoverRes Nothing
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2883,9 +2884,10 @@ all =
                             }
                         , mouseEnterMsg =
                             resourceMsg <|
-                                Message.Message.HoverRes Models.CheckButton
+                                Message.Message.HoverRes <|
+                                    Just Message.Message.CheckButton
                         , mouseLeaveMsg =
-                            resourceMsg <| Message.Message.HoverRes Models.None
+                            resourceMsg <| Message.Message.HoverRes Nothing
                         , hoveredSelector =
                             { description = "black button with white refresh icon"
                             , selector =
@@ -3097,9 +3099,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        resourceMsg <| Message.Message.HoverRes Models.CheckButton
+                        resourceMsg <| Message.Message.HoverRes <| Just Message.Message.CheckButton
                     , mouseLeaveMsg =
-                        resourceMsg <| Message.Message.HoverRes Models.None
+                        resourceMsg <| Message.Message.HoverRes Nothing
                     , hoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =
@@ -3382,7 +3384,7 @@ clickToUnpin =
 
 clickToDisable : Models.VersionId -> Application.Model -> Application.Model
 clickToDisable versionID =
-    update (Message.Message.ToggleVersion Models.Disable versionID)
+    update (Message.Message.ToggleVersion Message.Message.Disable versionID)
         >> Tuple.first
 
 

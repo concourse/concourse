@@ -873,7 +873,7 @@ all =
                     givenHistoryAndDetailsFetched
                         >> Tuple.mapSecond (always [])
                         >> Build.update
-                            (Message.Message.HoverBuild <| Just Models.Trigger)
+                            (Message.Message.HoverBuild <| Just Message.Message.TriggerB)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -985,7 +985,7 @@ all =
                                     }
                             ]
                         }
-                    , mouseEnterMsg = Message.Message.HoverBuild <| Just Models.Trigger
+                    , mouseEnterMsg = Message.Message.HoverBuild <| Just Message.Message.TriggerB
                     , mouseLeaveMsg = Message.Message.HoverBuild Nothing
                     }
                 ]
@@ -1046,7 +1046,7 @@ all =
             , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
                     >> Tuple.mapSecond (always [])
-                    >> Build.update (Message.Message.HoverBuild (Just Models.Abort))
+                    >> Build.update (Message.Message.HoverBuild (Just Message.Message.Abort))
                     >> Tuple.first
                     >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
@@ -1503,12 +1503,12 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseEnter
                             >> Event.expect
-                                (Message.Message.HoverBuild <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Message.Message.HoverBuild <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1528,7 +1528,7 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Message.Message.HoverBuild <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
@@ -1584,7 +1584,7 @@ all =
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Message.Message.HoverBuild <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1605,7 +1605,7 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Message.Message.HoverBuild <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
@@ -1631,7 +1631,7 @@ all =
                         >> Build.handleDelivery (ClockTicked OneSecond 0)
                         >> Tuple.first
                         >> flip (,) []
-                        >> Build.update (Message.Message.HoverBuild <| Just <| Models.FirstOccurrence "foo")
+                        >> Build.update (Message.Message.HoverBuild <| Just <| Message.Message.FirstOccurrence "foo")
                         >> Tuple.first
                         >> flip (,) []
                         >> Build.handleDelivery (ClockTicked OneSecond 1)

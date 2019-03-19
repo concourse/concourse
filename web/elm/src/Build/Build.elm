@@ -10,12 +10,7 @@ module Build.Build exposing
     , view
     )
 
-import Build.Models as Models
-    exposing
-        ( BuildPageType(..)
-        , Hoverable(..)
-        , Model
-        )
+import Build.Models as Models exposing (BuildPageType(..), Model)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.StepTree as StepTree
@@ -53,7 +48,7 @@ import LoadingIndicator
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
-import Message.Message exposing (Message(..))
+import Message.Message exposing (HoverableBuild(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import RemoteData exposing (WebData)
 import Routes
@@ -1031,7 +1026,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                                     job.disableManualTrigger
 
                         buttonHovered =
-                            hoveredElement == Just Trigger
+                            hoveredElement == Just TriggerB
 
                         buttonHighlight =
                             buttonHovered && not buttonDisabled
@@ -1042,8 +1037,8 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                         , attribute "aria-label" "Trigger Build"
                         , attribute "title" "Trigger Build"
                         , onLeftClick <| TriggerBuild build.job
-                        , onMouseEnter <| HoverBuild (Just Trigger)
-                        , onFocus <| HoverBuild (Just Trigger)
+                        , onMouseEnter <| HoverBuild <| Just TriggerB
+                        , onFocus <| HoverBuild <| Just TriggerB
                         , onMouseLeave <| HoverBuild Nothing
                         , onBlur <| HoverBuild Nothing
                         , style <| Styles.triggerButton buttonDisabled buttonHovered build.status

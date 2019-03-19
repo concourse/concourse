@@ -15,6 +15,7 @@ import Dom
 import Favicon
 import Json.Encode
 import Message.Callback exposing (Callback(..))
+import Message.Message exposing (VersionId, VersionToggleAction(..))
 import Navigation
 import Network.Build
 import Network.BuildPlan
@@ -28,7 +29,6 @@ import Network.Pipeline
 import Network.Resource
 import Network.User
 import Process
-import Resource.Models exposing (VersionId, VersionToggleAction(..))
 import Scroll
 import Task
 import Time exposing (Time)

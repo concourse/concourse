@@ -1,12 +1,12 @@
 module Build.Models exposing
     ( BuildPageType(..)
-    , Hoverable(..)
     , Model
     , StepHeaderType(..)
     )
 
 import Build.Output.Models exposing (OutputModel)
 import Concourse
+import Message.Message exposing (HoverableBuild)
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight, StepID)
 import Time exposing (Time)
@@ -31,7 +31,7 @@ type alias Model =
         , previousTriggerBuildByKey : Bool
         , showHelp : Bool
         , highlight : Highlight
-        , hoveredElement : Maybe Hoverable
+        , hoveredElement : Maybe HoverableBuild
         , hoveredCounter : Int
         }
 
@@ -52,9 +52,3 @@ type StepHeaderType
     = StepHeaderPut
     | StepHeaderGet Bool
     | StepHeaderTask
-
-
-type Hoverable
-    = Abort
-    | Trigger
-    | FirstOccurrence StepID

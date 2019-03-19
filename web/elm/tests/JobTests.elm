@@ -267,7 +267,8 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.update
                         (Msgs.SubMsg 1 <|
-                            Message.Message.HoverJob Message.Message.Toggle
+                            Message.Message.HoverJob <|
+                                Just Message.Message.Toggle
                         )
                     >> Tuple.first
                     >> Application.view
@@ -310,10 +311,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.Toggle
+                        Message.Message.HoverJob <|
+                            Just Message.Message.Toggle
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.None
+                        Message.Message.HoverJob Nothing
                 }
             , defineHoverBehaviour
                 { name = "play/pause button when job is paused"
@@ -344,10 +346,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.Toggle
+                        Message.Message.HoverJob <|
+                            Just Message.Message.Toggle
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.None
+                        Message.Message.HoverJob Nothing
                 }
             , test "trigger build button has background of the header color, faded" <|
                 init { disabled = False, paused = False }
@@ -369,7 +372,8 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.update
                         (Msgs.SubMsg 1 <|
-                            Message.Message.HoverJob Message.Message.Trigger
+                            Message.Message.HoverJob <|
+                                Just Message.Message.TriggerJ
                         )
                     >> Tuple.first
                     >> Application.view
@@ -434,10 +438,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.Trigger
+                        Message.Message.HoverJob <|
+                            Just Message.Message.TriggerJ
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.None
+                        Message.Message.HoverJob Nothing
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
@@ -492,10 +497,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.Trigger
+                        Message.Message.HoverJob <|
+                            Just Message.Message.TriggerJ
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.None
+                        Message.Message.HoverJob Nothing
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
@@ -872,10 +878,11 @@ all =
                     }
                 , mouseEnterMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.PreviousPage
+                        Message.Message.HoverJob <|
+                            Just Message.Message.PreviousPageJ
                 , mouseLeaveMsg =
                     Msgs.SubMsg 1 <|
-                        Message.Message.HoverJob Message.Message.None
+                        Message.Message.HoverJob Nothing
                 }
             , test "JobBuildsFetched" <|
                 \_ ->

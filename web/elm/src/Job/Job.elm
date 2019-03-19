@@ -67,7 +67,7 @@ type alias Model =
         , buildsWithResources : Paginated BuildWithResources
         , currentPage : Maybe Page
         , now : Time
-        , hovered : HoverableJob
+        , hovered : Maybe HoverableJob
         }
 
 
@@ -107,7 +107,7 @@ init flags =
                 }
             , now = 0
             , currentPage = flags.paging
-            , hovered = None
+            , hovered = Nothing
             , isUserMenuExpanded = topBar.isUserMenuExpanded
             , isPinMenuExpanded = topBar.isPinMenuExpanded
             , middleSection = topBar.middleSection
@@ -433,10 +433,10 @@ viewMainJobsSection model =
             Just job ->
                 let
                     toggleHovered =
-                        model.hovered == Toggle
+                        model.hovered == Just Toggle
 
                     triggerHovered =
-                        model.hovered == Trigger
+                        model.hovered == Just TriggerJ
                 in
                 Html.div [ class "fixed-header" ]
                     [ Html.div
@@ -449,7 +449,6 @@ viewMainJobsSection model =
                               )
                             ]
                         ]
-                        -- TODO really?
                         [ Html.div
                             [ style [ ( "display", "flex" ) ] ]
                             [ Html.button
@@ -457,8 +456,8 @@ viewMainJobsSection model =
                                 , style <|
                                     Styles.triggerButton False toggleHovered <|
                                         headerBuildStatus job.finishedBuild
-                                , onMouseEnter <| HoverJob Toggle
-                                , onMouseLeave <| HoverJob None
+                                , onMouseEnter <| HoverJob <| Just Toggle
+                                , onMouseLeave <| HoverJob Nothing
                                 , onClick TogglePaused
                                 ]
                                 [ Html.div
@@ -477,8 +476,8 @@ viewMainJobsSection model =
                             , onLeftClick TriggerBuildJob
                             , attribute "aria-label" "Trigger Build"
                             , attribute "title" "Trigger Build"
-                            , onMouseEnter <| HoverJob Trigger
-                            , onMouseLeave <| HoverJob None
+                            , onMouseEnter <| HoverJob <| Just TriggerJ
+                            , onMouseLeave <| HoverJob Nothing
                             , style <|
                                 Styles.triggerButton job.disableManualTrigger triggerHovered <|
                                     headerBuildStatus job.finishedBuild
@@ -578,8 +577,8 @@ viewPaginationBar model =
                 in
                 Html.div
                     [ style chevronContainer
-                    , onMouseEnter <| HoverJob PreviousPage
-                    , onMouseLeave <| HoverJob None
+                    , onMouseEnter <| HoverJob <| Just PreviousPageJ
+                    , onMouseLeave <| HoverJob Nothing
                     ]
                     [ Html.a
                         [ StrictEvents.onLeftClick <| GoToRoute jobRoute
@@ -589,7 +588,7 @@ viewPaginationBar model =
                             chevron
                                 { direction = "left"
                                 , enabled = True
-                                , hovered = model.hovered == PreviousPage
+                                , hovered = model.hovered == Just PreviousPageJ
                                 }
                         ]
                         []
@@ -616,8 +615,8 @@ viewPaginationBar model =
                 in
                 Html.div
                     [ style chevronContainer
-                    , onMouseEnter <| HoverJob NextPage
-                    , onMouseLeave <| HoverJob None
+                    , onMouseEnter <| HoverJob <| Just NextPageJ
+                    , onMouseLeave <| HoverJob Nothing
                     ]
                     [ Html.a
                         [ StrictEvents.onLeftClick <| GoToRoute jobRoute
@@ -627,7 +626,7 @@ viewPaginationBar model =
                             chevron
                                 { direction = "right"
                                 , enabled = True
-                                , hovered = model.hovered == NextPage
+                                , hovered = model.hovered == Just NextPageJ
                                 }
                         ]
                         []

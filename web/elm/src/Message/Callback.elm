@@ -4,7 +4,7 @@ import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Json.Encode
-import Resource.Models exposing (VersionId, VersionToggleAction)
+import Message.Message exposing (VersionId, VersionToggleAction)
 import Time exposing (Time)
 import Window
 

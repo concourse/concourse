@@ -58,7 +58,7 @@ import List.Extra
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..), setTitle)
-import Message.Message exposing (Message(..))
+import Message.Message as Message exposing (Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
@@ -92,7 +92,7 @@ init flags =
             , checkStatus = Models.CheckingSuccessfully
             , checkError = ""
             , checkSetupError = ""
-            , hovered = Models.None
+            , hovered = Nothing
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
             , currentPage = flags.paging
@@ -388,16 +388,16 @@ handleCallbackWithoutTopBar action ( model, effects ) =
                 newEnabledState : Models.VersionEnabledState
                 newEnabledState =
                     case ( result, action ) of
-                        ( Ok (), Models.Enable ) ->
+                        ( Ok (), Message.Enable ) ->
                             Models.Enabled
 
-                        ( Ok (), Models.Disable ) ->
+                        ( Ok (), Message.Disable ) ->
                             Models.Disabled
 
-                        ( Err _, Models.Enable ) ->
+                        ( Err _, Message.Enable ) ->
                             Models.Disabled
 
-                        ( Err _, Models.Disable ) ->
+                        ( Err _, Message.Disable ) ->
                             Models.Enabled
             in
             ( updateVersion versionID (\v -> { v | enabled = newEnabledState }) model
@@ -779,7 +779,7 @@ paginationMenu :
     { a
         | versions : Paginated Models.Version
         , resourceIdentifier : Concourse.ResourceIdentifier
-        , hovered : Models.Hoverable
+        , hovered : Maybe Message.HoverableRes
     }
     -> Html Message
 paginationMenu { versions, resourceIdentifier, hovered } =
@@ -826,8 +826,8 @@ paginationMenu { versions, resourceIdentifier, hovered } =
             Just page ->
                 Html.div
                     ([ style chevronContainer
-                     , onMouseEnter <| HoverRes Models.PreviousPage
-                     , onMouseLeave <| HoverRes Models.None
+                     , onMouseEnter <| HoverRes <| Just Message.PreviousPageR
+                     , onMouseLeave <| HoverRes Nothing
                      ]
                         ++ previousButtonEventHandler
                     )
@@ -840,7 +840,7 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                             chevron
                                 { direction = "left"
                                 , enabled = True
-                                , hovered = hovered == Models.PreviousPage
+                                , hovered = hovered == Just Message.PreviousPageR
                                 }
                         ]
                         []
@@ -863,8 +863,8 @@ paginationMenu { versions, resourceIdentifier, hovered } =
             Just page ->
                 Html.div
                     ([ style chevronContainer
-                     , onMouseEnter <| HoverRes Models.NextPage
-                     , onMouseLeave <| HoverRes Models.None
+                     , onMouseEnter <| HoverRes <| Just Message.NextPageR
+                     , onMouseLeave <| HoverRes Nothing
                      ]
                         ++ nextButtonEventHandler
                     )
@@ -877,7 +877,7 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                             chevron
                                 { direction = "right"
                                 , enabled = True
-                                , hovered = hovered == Models.NextPage
+                                , hovered = hovered == Just Message.NextPageR
                                 }
                         ]
                         []
@@ -890,7 +890,7 @@ checkSection :
         | checkStatus : Models.CheckStatus
         , checkSetupError : String
         , checkError : String
-        , hovered : Models.Hoverable
+        , hovered : Maybe Message.HoverableRes
         , userState : UserState
         , teamName : String
     }
@@ -959,7 +959,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
 
 checkButton :
     { a
-        | hovered : Models.Hoverable
+        | hovered : Maybe Message.HoverableRes
         , userState : UserState
         , teamName : String
         , checkStatus : Models.CheckStatus
@@ -968,7 +968,7 @@ checkButton :
 checkButton ({ hovered, userState, teamName, checkStatus } as params) =
     let
         isHovered =
-            hovered == Models.CheckButton
+            hovered == Just Message.CheckButton
 
         isCurrentlyChecking =
             checkStatus == Models.CurrentlyChecking
@@ -993,8 +993,8 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
     in
     Html.div
         ([ style <| Resource.Styles.checkButton isClickable
-         , onMouseEnter <| HoverRes Models.CheckButton
-         , onMouseLeave <| HoverRes Models.None
+         , onMouseEnter <| HoverRes <| Just Message.CheckButton
+         , onMouseLeave <| HoverRes Nothing
          ]
             ++ (if isClickable then
                     [ onClick (CheckRequested isUserAuthorized) ]
@@ -1028,7 +1028,7 @@ commentBar :
         { a
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
-            , hovered : Models.Hoverable
+            , hovered : Maybe Message.HoverableRes
             , pinCommentLoading : Bool
         }
     -> Html Message
@@ -1091,11 +1091,11 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                                         not pinCommentLoading
                                             && commentChanged
                                             && hovered
-                                            == Models.SaveComment
+                                            == Just Message.SaveCommentR
                                     , commentChanged = commentChanged
                                     }
-                            , onMouseEnter <| HoverRes Models.SaveComment
-                            , onMouseLeave <| HoverRes Models.None
+                            , onMouseEnter <| HoverRes <| Just Message.SaveCommentR
+                            , onMouseLeave <| HoverRes Nothing
                             , onClick <| SaveComment commentState.comment
                             ]
                             (if pinCommentLoading then
@@ -1322,13 +1322,13 @@ viewEnabledCheckbox ({ enabled, id, pinState } as params) =
         clickHandler =
             case enabled of
                 Models.Enabled ->
-                    [ onClick <| ToggleVersion Models.Disable id ]
+                    [ onClick <| ToggleVersion Message.Disable id ]
 
                 Models.Changing ->
                     []
 
                 Models.Disabled ->
-                    [ onClick <| ToggleVersion Models.Enable id ]
+                    [ onClick <| ToggleVersion Message.Enable id ]
     in
     Html.div
         ([ Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"

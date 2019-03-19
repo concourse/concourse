@@ -1,11 +1,16 @@
-module Message.Message exposing (HoverableJob(..), Message(..))
+module Message.Message exposing
+    ( HoverableBuild(..)
+    , HoverableJob(..)
+    , HoverableRes(..)
+    , Message(..)
+    , VersionId
+    , VersionToggleAction(..)
+    )
 
-import Build.Models
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page, Paginated)
 import Dashboard.Models
-import Resource.Models
 import Routes exposing (StepID)
 import StrictEvents
 
@@ -39,14 +44,14 @@ type Message
     | TopCliHover (Maybe Cli.Cli)
       -- Resource
     | LoadPage Page
-    | ExpandVersionedResource Resource.Models.VersionId
+    | ExpandVersionedResource VersionId
     | TogglePinBarTooltip
     | ToggleVersionTooltip
-    | PinVersion Resource.Models.VersionId
+    | PinVersion VersionId
     | UnpinVersion
-    | ToggleVersion Resource.Models.VersionToggleAction Resource.Models.VersionId
+    | ToggleVersion VersionToggleAction VersionId
     | PinIconHover Bool
-    | HoverRes Resource.Models.Hoverable
+    | HoverRes (Maybe HoverableRes)
     | CheckRequested Bool
     | EditComment String
     | SaveComment String
@@ -55,10 +60,10 @@ type Message
       -- Job
     | TriggerBuildJob
     | TogglePaused
-    | HoverJob HoverableJob
+    | HoverJob (Maybe HoverableJob)
       -- Build
     | SwitchToBuild Concourse.Build
-    | HoverBuild (Maybe Build.Models.Hoverable)
+    | HoverBuild (Maybe HoverableBuild)
     | TriggerBuild (Maybe Concourse.JobIdentifier)
     | AbortBuild Int
     | ScrollBuilds StrictEvents.MouseWheelEvent
@@ -71,7 +76,28 @@ type Message
 
 type HoverableJob
     = Toggle
-    | Trigger
-    | PreviousPage
-    | NextPage
-    | None
+    | TriggerJ
+    | PreviousPageJ
+    | NextPageJ
+
+
+type HoverableRes
+    = PreviousPageR
+    | NextPageR
+    | CheckButton
+    | SaveCommentR
+
+
+type HoverableBuild
+    = Abort
+    | TriggerB
+    | FirstOccurrence StepID
+
+
+type VersionToggleAction
+    = Enable
+    | Disable
+
+
+type alias VersionId =
+    Concourse.VersionedResourceIdentifier
