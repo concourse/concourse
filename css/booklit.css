@@ -74,6 +74,7 @@ table,
 tr,
 td {
   padding: 0;
+  padding-right: 50px;
   border-collapse: collapse;
 }
 h1 code,
