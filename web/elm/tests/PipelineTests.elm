@@ -5,11 +5,11 @@ import Char
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
-import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message exposing (Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.TopLevelMessage as Msgs
 import Pipeline.Pipeline as Pipeline exposing (update)
 import Routes
 import Test exposing (..)
@@ -560,10 +560,10 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseEnter
-                        >> Event.expect (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Event.expect (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                 , it "Hover msg causes pin icon to have light grey circular background" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -576,7 +576,7 @@ all =
                             ]
                 , it "Hover msg causes dropdown list of pinned resources to appear" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -585,7 +585,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "on Hover, pin badge has no other children" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -596,7 +596,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources contains resource name" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -606,7 +606,7 @@ all =
                         >> Query.has [ tag "li", containing [ text "resource" ] ]
                 , it "dropdown list of pinned resources shows resource names in bold" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -618,7 +618,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources shows pinned version of each resource" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -629,7 +629,7 @@ all =
                         >> Query.has [ tag "table", containing [ text "v1" ] ]
                 , it "dropdown list of pinned resources has white background" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -639,7 +639,7 @@ all =
                         >> Query.has [ style [ ( "background-color", "#ffffff" ) ] ]
                 , it "dropdown list of pinned resources is drawn over other elements on the page" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -649,7 +649,7 @@ all =
                         >> Query.has [ style [ ( "z-index", "1" ) ] ]
                 , it "dropdown list of pinned resources has dark grey text" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -659,7 +659,7 @@ all =
                         >> Query.has [ style [ ( "color", "#1e1d1d" ) ] ]
                 , it "dropdown list has upward-pointing arrow" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -675,7 +675,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources is offset below and left of the pin icon" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -692,7 +692,7 @@ all =
                             ]
                 , it "dropdown list of pinned resources stretches horizontally to fit content" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -705,7 +705,7 @@ all =
                             ]
                 , it "dropdown list of pinned resources has no bullet points" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -718,7 +718,7 @@ all =
                             ]
                 , it "dropdown list has comfortable padding" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -731,7 +731,7 @@ all =
                             ]
                 , it "dropdown list arrow is centered below the pin icon above the list" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -763,10 +763,10 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseLeave
-                        >> Event.expect (Msgs.SubMsg <| Message.Message.Hover Nothing)
-                , it "clicking a pinned resource sends a Navigation Msg" <|
+                        >> Event.expect (Msgs.Update <| Message.Message.Hover Nothing)
+                , it "clicking a pinned resource sends a Navigation TopLevelMessage" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -774,7 +774,7 @@ all =
                         >> Query.find [ tag "li" ]
                         >> Event.simulate Event.click
                         >> Event.expect
-                            (Msgs.SubMsg <|
+                            (Msgs.Update <|
                                 Message.Message.GoToRoute <|
                                     Routes.Resource
                                         { id =
@@ -787,9 +787,9 @@ all =
                             )
                 , it "Hover msg causes dropdown list of pinned resources to disappear" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover Nothing)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover Nothing)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -798,7 +798,7 @@ all =
                         >> Query.hasNot [ tag "ul" ]
                 , it "pinned resources in the dropdown should have a pointer cursor" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
                         >> Application.view
                         >> Query.fromHtml
@@ -926,7 +926,7 @@ all =
                         |> Query.first
                         |> Event.simulate Event.click
                         |> Event.expect
-                            (Msgs.SubMsg <|
+                            (Msgs.Update <|
                                 Message.Message.GoToRoute <|
                                     Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                             )
@@ -942,7 +942,7 @@ all =
                             |> Query.index 0
                             |> Event.simulate Event.click
                             |> Event.expect
-                                (Msgs.SubMsg <|
+                                (Msgs.Update <|
                                     Message.Message.GoToRoute <|
                                         Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                                 )
@@ -989,7 +989,7 @@ all =
                             |> Query.index 0
                             |> Event.simulate Event.click
                             |> Event.expect
-                                (Msgs.SubMsg <|
+                                (Msgs.Update <|
                                     Message.Message.GoToRoute <|
                                         Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
                                 )

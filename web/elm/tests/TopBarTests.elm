@@ -8,11 +8,11 @@ import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
 import Keycodes
-import Message.ApplicationMsgs as ApplicationMsgs
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message as Msgs
 import Message.Subscription exposing (Delivery(..))
+import Message.TopLevelMessage as ApplicationMsgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -190,7 +190,7 @@ all =
                     , it "has link to the relevant pipeline page" <|
                         Event.simulate Event.click
                             >> Event.expect
-                                (ApplicationMsgs.SubMsg <|
+                                (ApplicationMsgs.Update <|
                                     Msgs.GoToRoute <|
                                         Routes.Pipeline
                                             { id =
@@ -315,7 +315,7 @@ all =
                     Query.find [ id "login-container" ]
                         >> Event.simulate Event.click
                         >> Event.expect
-                            (ApplicationMsgs.SubMsg Msgs.ToggleUserMenu)
+                            (ApplicationMsgs.Update Msgs.ToggleUserMenu)
                 , it "does not render the logout button" <|
                     Query.children []
                         >> Query.index -1
@@ -332,7 +332,7 @@ all =
                 ]
             , it "clicking a pinned resource navigates to the pinned resource page" <|
                 Application.update
-                    (ApplicationMsgs.SubMsg <|
+                    (ApplicationMsgs.Update <|
                         Msgs.GoToRoute
                             (Routes.Resource
                                 { id =
@@ -412,7 +412,7 @@ all =
                     (Callback.UserFetched <| Ok sampleUser)
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg Msgs.ToggleUserMenu)
+                        (ApplicationMsgs.Update Msgs.ToggleUserMenu)
                     >> Tuple.first
                     >> Application.view
                     >> Query.fromHtml
@@ -422,7 +422,7 @@ all =
                     (Callback.UserFetched <| Ok sampleUser)
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg Msgs.ToggleUserMenu)
+                        (ApplicationMsgs.Update Msgs.ToggleUserMenu)
                     >> Tuple.first
                     >> Application.view
                     >> Query.fromHtml
@@ -447,20 +447,20 @@ all =
                                     ]
                                 ]
                         ]
-            , it "when logout is clicked, a LogOut Msg is sent" <|
+            , it "when logout is clicked, a LogOut TopLevelMessage is sent" <|
                 Application.handleCallback
                     (Callback.UserFetched <| Ok sampleUser)
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg Msgs.ToggleUserMenu)
+                        (ApplicationMsgs.Update Msgs.ToggleUserMenu)
                     >> Tuple.first
                     >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "logout-button" ]
                     >> Event.simulate Event.click
                     >> Event.expect
-                        (ApplicationMsgs.SubMsg Msgs.LogOut)
-            , it "shows 'login' when LoggedOut Msg is successful" <|
+                        (ApplicationMsgs.Update Msgs.LogOut)
+            , it "shows 'login' when LoggedOut TopLevelMessage is successful" <|
                 Application.handleCallback
                     (Callback.LoggedOut <| Ok ())
                     >> Tuple.first
@@ -556,7 +556,7 @@ all =
             [ it "redirects to login page when you click login" <|
                 Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg Msgs.LogIn)
+                        (ApplicationMsgs.Update Msgs.LogIn)
                     >> Tuple.second
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
@@ -592,7 +592,7 @@ all =
                 Query.find [ id "breadcrumb-pipeline" ]
                     >> Event.simulate Event.click
                     >> Event.expect
-                        (ApplicationMsgs.SubMsg <|
+                        (ApplicationMsgs.Update <|
                             Msgs.GoToRoute <|
                                 Routes.Pipeline
                                     { id =
@@ -651,7 +651,7 @@ all =
                 Query.find [ id "breadcrumb-pipeline" ]
                     >> Event.simulate Event.click
                     >> Event.expect
-                        (ApplicationMsgs.SubMsg <|
+                        (ApplicationMsgs.Update <|
                             Msgs.GoToRoute <|
                                 Routes.Pipeline
                                     { id =
@@ -715,7 +715,7 @@ all =
                 Query.find [ id "breadcrumb-pipeline" ]
                     >> Event.simulate Event.click
                     >> Event.expect
-                        (ApplicationMsgs.SubMsg <|
+                        (ApplicationMsgs.Update <|
                             Msgs.GoToRoute <|
                                 Routes.Pipeline
                                     { id =
@@ -785,7 +785,7 @@ all =
                     >> Query.find [ id "search-clear" ]
                     >> Event.simulate Event.click
                     >> Event.expect
-                        (ApplicationMsgs.SubMsg <| Msgs.FilterMsg "")
+                        (ApplicationMsgs.Update <| Msgs.FilterMsg "")
             , it "clear search button has full opacity when there is a query" <|
                 Application.view
                     >> Query.fromHtml
@@ -973,7 +973,7 @@ all =
                         >> Query.has [ id "login-component" ]
                 , context "after clicking the search icon"
                     (Application.update
-                        (ApplicationMsgs.SubMsg Msgs.ShowSearchInput)
+                        (ApplicationMsgs.Update Msgs.ShowSearchInput)
                     )
                     [ it "tells the ui to focus on the search bar" <|
                         Tuple.second
@@ -1029,7 +1029,7 @@ all =
                     , context "after the focus returns"
                         (Tuple.first
                             >> Application.update
-                                (ApplicationMsgs.SubMsg Msgs.FocusMsg)
+                                (ApplicationMsgs.Update Msgs.FocusMsg)
                             >> Tuple.first
                         )
                         [ it "should display a dropdown of options" <|
@@ -1062,7 +1062,7 @@ all =
                                 >> Query.has [ style [ ( "width", "100%" ) ] ]
                         , context "after the search is blurred"
                             (Application.update
-                                (ApplicationMsgs.SubMsg Msgs.BlurMsg)
+                                (ApplicationMsgs.Update Msgs.BlurMsg)
                                 >> Tuple.first
                                 >> Application.view
                                 >> Query.fromHtml
@@ -1084,12 +1084,12 @@ all =
                             ]
                         , context "after the search is blurred with a search query"
                             (Application.update
-                                (ApplicationMsgs.SubMsg <|
+                                (ApplicationMsgs.Update <|
                                     Msgs.FilterMsg "query"
                                 )
                                 >> Tuple.first
                                 >> Application.update
-                                    (ApplicationMsgs.SubMsg <| Msgs.BlurMsg)
+                                    (ApplicationMsgs.Update <| Msgs.BlurMsg)
                                 >> Tuple.first
                                 >> Application.view
                                 >> Query.fromHtml
@@ -1153,10 +1153,10 @@ all =
                 )
               <|
                 Application.update
-                    (ApplicationMsgs.SubMsg Msgs.FocusMsg)
+                    (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg <|
+                        (ApplicationMsgs.Update <|
                             Msgs.FilterMsg "status:"
                         )
                     >> Tuple.first
@@ -1176,13 +1176,13 @@ all =
                         ]
             , it "after typing `status: pending` the dropdown is empty" <|
                 Application.update
-                    (ApplicationMsgs.SubMsg Msgs.FocusMsg)
+                    (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg <| Msgs.FilterMsg "status:")
+                        (ApplicationMsgs.Update <| Msgs.FilterMsg "status:")
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg <|
+                        (ApplicationMsgs.Update <|
                             Msgs.FilterMsg "status: pending"
                         )
                     >> Tuple.first
@@ -1235,7 +1235,7 @@ all =
             )
             [ it "should display a dropdown of status options when the search bar is focused" <|
                 Application.update
-                    (ApplicationMsgs.SubMsg Msgs.FocusMsg)
+                    (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
                     >> Application.view
                     >> Query.fromHtml
@@ -1291,7 +1291,7 @@ all =
                     )
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg Msgs.FocusMsg)
+                        (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
                     >> Application.view
                     >> Query.fromHtml
@@ -1331,7 +1331,7 @@ all =
                     )
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg Msgs.FocusMsg)
+                        (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
                     >> Application.view
                     >> Query.fromHtml
@@ -1391,7 +1391,7 @@ all =
                 , it "sends FocusMsg when focusing on search bar" <|
                     Query.find [ id TopBar.searchInputId ]
                         >> Event.simulate Event.focus
-                        >> Event.expect (ApplicationMsgs.SubMsg Msgs.FocusMsg)
+                        >> Event.expect (ApplicationMsgs.Update Msgs.FocusMsg)
                 ]
             , it "hitting '/' focuses search input" <|
                 Application.update
@@ -1439,7 +1439,7 @@ all =
                     >> Query.findAll [ id "search-dropdown" ]
                     >> Query.count (Expect.equal 0)
             , context "after receiving FocusMsg"
-                (Application.update (ApplicationMsgs.SubMsg Msgs.FocusMsg))
+                (Application.update (ApplicationMsgs.Update Msgs.FocusMsg))
                 ([ testDropdown [] [ 0, 1 ] ]
                     ++ [ context "after down arrow keypress"
                             (Tuple.first
@@ -1548,10 +1548,10 @@ all =
                        ]
                 )
             , context "after receiving FocusMsg and then BlurMsg"
-                (Application.update (ApplicationMsgs.SubMsg Msgs.FocusMsg)
+                (Application.update (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.SubMsg Msgs.BlurMsg)
+                        (ApplicationMsgs.Update Msgs.BlurMsg)
                     >> viewNormally
                 )
                 [ it "hides the dropdown" <|
@@ -1612,7 +1612,7 @@ onePipeline teamName =
 
 viewNormally :
     ( Application.Model, List Effects.Effect )
-    -> Query.Single ApplicationMsgs.Msg
+    -> Query.Single ApplicationMsgs.TopLevelMessage
 viewNormally =
     Tuple.first >> Application.view >> Query.fromHtml
 
@@ -1632,7 +1632,7 @@ testDropdown selecteds notSelecteds =
             Query.find [ id TopBar.searchInputId ]
                 >> Event.simulate (Event.input "test")
                 >> Event.expect
-                    (ApplicationMsgs.SubMsg <| Msgs.FilterMsg "test")
+                    (ApplicationMsgs.Update <| Msgs.FilterMsg "test")
         , context "dropdown elements"
             (Query.findAll [ tag "li" ])
             [ it "have the same width and padding as search bar" <|
@@ -1674,18 +1674,18 @@ testDropdown selecteds notSelecteds =
                 >> Query.find [ tag "li", containing [ text "team: " ] ]
                 >> Event.simulate Event.mouseDown
                 >> Event.expect
-                    (ApplicationMsgs.SubMsg <| Msgs.FilterMsg "team: ")
+                    (ApplicationMsgs.Update <| Msgs.FilterMsg "team: ")
         , it "when status is clicked, it should trigger a FilterMsg for status" <|
             Query.find [ id "search-dropdown" ]
                 >> Query.find [ tag "li", containing [ text "status: " ] ]
                 >> Event.simulate Event.mouseDown
                 >> Event.expect
-                    (ApplicationMsgs.SubMsg <| Msgs.FilterMsg "status: ")
+                    (ApplicationMsgs.Update <| Msgs.FilterMsg "status: ")
         , it "sends BlurMsg when blurring the search bar" <|
             Query.find [ id TopBar.searchInputId ]
                 >> Event.simulate Event.blur
                 >> Event.expect
-                    (ApplicationMsgs.SubMsg Msgs.BlurMsg)
+                    (ApplicationMsgs.Update Msgs.BlurMsg)
         , context "selected highlighting"
             (Query.findAll [ tag "li" ])
             (List.concat

@@ -19,11 +19,11 @@ import Dict
 import Expect
 import Html.Attributes as Attr
 import Keycodes
-import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.TopLevelMessage as Msgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event

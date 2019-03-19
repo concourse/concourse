@@ -5,9 +5,9 @@ import DashboardTests exposing (defineHoverBehaviour, iconSelector)
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Http
-import Message.ApplicationMsgs as Msgs
 import Message.Callback exposing (Callback(..))
 import Message.Message
+import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -158,7 +158,7 @@ tokenCopied =
     setup "when token copied to clipboard"
         (steps tokenSendFailed
             >> Application.update
-                (Msgs.SubMsg <| Message.Message.CopyToken)
+                (Msgs.Update <| Message.Message.CopyToken)
             >> Tuple.first
         )
 
@@ -177,7 +177,7 @@ allCases =
 
 
 type alias Query =
-    Application.Model -> Query.Single Msgs.Msg
+    Application.Model -> Query.Single Msgs.TopLevelMessage
 
 
 topBar : Query
@@ -235,7 +235,7 @@ buttonIcon =
 
 
 type alias Assertion =
-    Query.Single Msgs.Msg -> Expectation
+    Query.Single Msgs.TopLevelMessage -> Expectation
 
 
 type alias Property =
@@ -563,7 +563,7 @@ buttonClickHandler =
     property button "sends CopyToken on click" <|
         Event.simulate Event.click
             >> Event.expect
-                (Msgs.SubMsg <| Message.Message.CopyToken)
+                (Msgs.Update <| Message.Message.CopyToken)
 
 
 
@@ -663,11 +663,11 @@ all =
                     , selector = [ style [ ( "background-color", darkGrey ) ] ]
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover <|
                             Just Message.Message.CopyTokenButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover Nothing
                 , hoveredSelector =
                     { description = "darker background"

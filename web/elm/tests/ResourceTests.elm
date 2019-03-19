@@ -16,11 +16,11 @@ import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
-import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.TopLevelMessage as Msgs
 import Resource.Models as Models
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -540,11 +540,11 @@ all =
                                 ]
                             }
                         , mouseEnterMsg =
-                            Msgs.SubMsg <|
+                            Msgs.Update <|
                                 Message.Message.Hover <|
                                     Just Message.Message.PreviousPageButton
                         , mouseLeaveMsg =
-                            Msgs.SubMsg <|
+                            Msgs.Update <|
                                 Message.Message.Hover Nothing
                         }
                     ]
@@ -632,7 +632,7 @@ all =
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
                         |> Event.expect
-                            (Msgs.SubMsg <|
+                            (Msgs.Update <|
                                 Message.Message.ToggleVersion
                                     Message.Message.Disable
                                     versionID
@@ -691,7 +691,7 @@ all =
                         |> Query.find checkboxSelector
                         |> Event.simulate Event.click
                         |> Event.expect
-                            (Msgs.SubMsg <|
+                            (Msgs.Update <|
                                 Message.Message.ToggleVersion
                                     Message.Message.Enable
                                     disabledVersionID
@@ -702,7 +702,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> Application.update
-                            (Msgs.SubMsg <|
+                            (Msgs.Update <|
                                 Message.Message.ToggleVersion
                                     Message.Message.Enable
                                     disabledVersionID
@@ -718,7 +718,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> Application.update
-                            (Msgs.SubMsg <|
+                            (Msgs.Update <|
                                 Message.Message.ToggleVersion
                                     Message.Message.Enable
                                     disabledVersionID
@@ -741,7 +741,7 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> Application.update
-                            (Msgs.SubMsg <|
+                            (Msgs.Update <|
                                 Message.Message.ToggleVersion
                                     Message.Message.Enable
                                     disabledVersionID
@@ -855,7 +855,7 @@ all =
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseEnter
                             |> Event.expect
-                                (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinBar)
+                                (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinBar)
                 , test "TogglePinBarTooltip causes tooltip to appear" <|
                     \_ ->
                         init
@@ -921,7 +921,7 @@ all =
                             |> Query.find [ id "pin-bar" ]
                             |> Event.simulate Event.mouseLeave
                             |> Event.expect
-                                (Msgs.SubMsg <| Message.Message.Hover Nothing)
+                                (Msgs.Update <| Message.Message.Hover Nothing)
                 , test "when mousing off pin bar, tooltip disappears" <|
                     \_ ->
                         init
@@ -951,7 +951,7 @@ all =
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOver
                             |> Event.expect
-                                (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinButton)
+                                (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinButton)
                 , test "mousing over an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
@@ -993,7 +993,7 @@ all =
                             |> Query.find pinButtonSelector
                             |> Event.simulate Event.mouseOut
                             |> Event.expect
-                                (Msgs.SubMsg <| Message.Message.Hover Nothing)
+                                (Msgs.Update <| Message.Message.Hover Nothing)
                 , test "mousing off an unpinned version's pin button doesn't send any msg" <|
                     \_ ->
                         init
@@ -1068,7 +1068,7 @@ all =
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.click
                         |> Event.expect
-                            (Msgs.SubMsg Message.Message.UnpinVersion)
+                            (Msgs.Update Message.Message.UnpinVersion)
             , test "mousing over pin icon triggers PinIconHover msg" <|
                 \_ ->
                     init
@@ -1077,7 +1077,7 @@ all =
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseEnter
                         |> Event.expect
-                            (Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                            (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
             , test "TogglePinIconHover msg causes pin icon to have dark background" <|
                 \_ ->
                     init
@@ -1097,7 +1097,7 @@ all =
                         |> Query.find [ id "pin-icon" ]
                         |> Event.simulate Event.mouseLeave
                         |> Event.expect
-                            (Msgs.SubMsg <| Message.Message.Hover <| Nothing)
+                            (Msgs.Update <| Message.Message.Hover <| Nothing)
             , test "second TogglePinIconHover msg causes pin icon to have transparent background color" <|
                 \_ ->
                     init
@@ -1154,7 +1154,7 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> Event.simulate Event.click
-                        |> Event.expect (Msgs.SubMsg Message.Message.UnpinVersion)
+                        |> Event.expect (Msgs.Update Message.Message.UnpinVersion)
             , test "pin button on pinned version shows transition state when (UnpinVersion) is received" <|
                 \_ ->
                     init
@@ -1281,7 +1281,7 @@ all =
                             [ style [ ( "padding-bottom", "300px" ) ] ]
             , describe "pin comment bar" <|
                 let
-                    commentBar : Application.Model -> Query.Single Msgs.Msg
+                    commentBar : Application.Model -> Query.Single Msgs.TopLevelMessage
                     commentBar =
                         queryView
                             >> Query.find [ id "comment-bar" ]
@@ -1331,7 +1331,7 @@ all =
                                 ]
                 , describe "contents" <|
                     let
-                        contents : Application.Model -> Query.Single Msgs.Msg
+                        contents : Application.Model -> Query.Single Msgs.TopLevelMessage
                         contents =
                             commentBar >> Query.children [] >> Query.first
                     in
@@ -1361,7 +1361,7 @@ all =
                                     ]
                     , describe "header" <|
                         let
-                            header : Application.Model -> Query.Single Msgs.Msg
+                            header : Application.Model -> Query.Single Msgs.TopLevelMessage
                             header =
                                 contents >> Query.children [] >> Query.first
                         in
@@ -1652,7 +1652,7 @@ all =
                                         |> textarea
                                         |> Event.simulate (Event.input "foo")
                                         |> Event.expect
-                                            (Msgs.SubMsg <|
+                                            (Msgs.Update <|
                                                 Message.Message.EditComment "foo"
                                             )
                             , test "EditComment updates textarea value" <|
@@ -1717,11 +1717,11 @@ all =
                                         ]
                                     }
                                 , mouseEnterMsg =
-                                    Msgs.SubMsg <|
+                                    Msgs.Update <|
                                         Message.Message.Hover <|
                                             Just Message.Message.SaveCommentButton
                                 , mouseLeaveMsg =
-                                    Msgs.SubMsg <|
+                                    Msgs.Update <|
                                         Message.Message.Hover Nothing
                                 , updateFunc =
                                     \msg ->
@@ -1748,7 +1748,7 @@ all =
                                         |> Query.find [ tag "textarea" ]
                                         |> Event.simulate Event.focus
                                         |> Event.expect
-                                            (Msgs.SubMsg
+                                            (Msgs.Update
                                                 Message.Message.FocusTextArea
                                             )
                             , test
@@ -1842,7 +1842,7 @@ all =
                                         |> Query.find [ tag "textarea" ]
                                         |> Event.simulate Event.blur
                                         |> Event.expect
-                                            (Msgs.SubMsg
+                                            (Msgs.Update
                                                 Message.Message.BlurTextArea
                                             )
                             , test "Ctrl-Enter after blurring input does nothing" <|
@@ -1883,7 +1883,7 @@ all =
                                         |> Query.find [ tag "button" ]
                                         |> Event.simulate Event.click
                                         |> Event.expect
-                                            (Msgs.SubMsg <|
+                                            (Msgs.Update <|
                                                 Message.Message.SaveComment "foo"
                                             )
                             , test "SaveComment msg makes API call" <|
@@ -1915,7 +1915,7 @@ all =
                                                 (Message.Message.SaveComment "foo")
                                             |> Tuple.first
 
-                                    viewButton : Application.Model -> Query.Single Msgs.Msg
+                                    viewButton : Application.Model -> Query.Single Msgs.TopLevelMessage
                                     viewButton =
                                         commentBar
                                             >> Query.find [ tag "button" ]
@@ -2210,7 +2210,7 @@ all =
                         |> Query.hasNot purpleOutlineSelector
             , describe "version headers" <|
                 let
-                    allVersions : () -> Query.Multiple Msgs.Msg
+                    allVersions : () -> Query.Multiple Msgs.TopLevelMessage
                     allVersions _ =
                         init
                             |> givenResourceIsNotPinned
@@ -2395,7 +2395,7 @@ all =
                         |> Query.find pinButtonSelector
                         |> Event.simulate Event.click
                         |> Event.expect
-                            (Msgs.SubMsg <| Message.Message.PinVersion versionID)
+                            (Msgs.Update <| Message.Message.PinVersion versionID)
             , test "pin button on 'v1' shows transition state when (PinVersion v1) is received" <|
                 \_ ->
                     init
@@ -2636,11 +2636,11 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        Msgs.SubMsg <|
+                        Msgs.Update <|
                             Message.Message.Hover <|
                                 Just Message.Message.CheckButton
                     , mouseLeaveMsg =
-                        Msgs.SubMsg <|
+                        Msgs.Update <|
                             Message.Message.Hover Nothing
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
@@ -2675,7 +2675,7 @@ all =
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (Msgs.SubMsg (Message.Message.CheckRequested False))
+                            |> Event.expect (Msgs.Update (Message.Message.CheckRequested False))
                 , test "Check msg redirects to login" <|
                     \_ ->
                         init
@@ -2732,9 +2732,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.CheckButton
+                        Msgs.Update <| Message.Message.Hover <| Just Message.Message.CheckButton
                     , mouseLeaveMsg =
-                        Msgs.SubMsg <| Message.Message.Hover Nothing
+                        Msgs.Update <| Message.Message.Hover Nothing
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2768,7 +2768,7 @@ all =
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click
-                            |> Event.expect (Msgs.SubMsg (Message.Message.CheckRequested True))
+                            |> Event.expect (Msgs.Update (Message.Message.CheckRequested True))
                 , test "Check msg has CheckResource side effect" <|
                     \_ ->
                         init
@@ -2857,11 +2857,11 @@ all =
                                 ]
                             }
                         , mouseEnterMsg =
-                            Msgs.SubMsg <|
+                            Msgs.Update <|
                                 Message.Message.Hover <|
                                     Just Message.Message.CheckButton
                         , mouseLeaveMsg =
-                            Msgs.SubMsg <| Message.Message.Hover Nothing
+                            Msgs.Update <| Message.Message.Hover Nothing
                         , hoveredSelector =
                             { description = "black button with white refresh icon"
                             , selector =
@@ -3059,9 +3059,9 @@ all =
                             ]
                         }
                     , mouseEnterMsg =
-                        Msgs.SubMsg <| Message.Message.Hover <| Just Message.Message.CheckButton
+                        Msgs.Update <| Message.Message.Hover <| Just Message.Message.CheckButton
                     , mouseLeaveMsg =
-                        Msgs.SubMsg <| Message.Message.Hover Nothing
+                        Msgs.Update <| Message.Message.Hover Nothing
                     , hoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =
@@ -3196,7 +3196,7 @@ update :
     -> Application.Model
     -> ( Application.Model, List Effects.Effect )
 update =
-    Msgs.SubMsg >> Application.update
+    Msgs.Update >> Application.update
 
 
 givenUserIsAuthorized : Application.Model -> Application.Model
@@ -3298,7 +3298,7 @@ givenResourceIsNotPinned =
         >> Tuple.first
 
 
-queryView : Application.Model -> Query.Single Msgs.Msg
+queryView : Application.Model -> Query.Single Msgs.TopLevelMessage
 queryView =
     Application.view
         >> Query.fromHtml

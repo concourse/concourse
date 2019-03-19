@@ -2,9 +2,9 @@ module ApplicationTests exposing (all)
 
 import Application.Application as Application
 import Expect
-import Message.ApplicationMsgs as Msgs
 import Message.Effects as Effects
 import Message.Subscription as Subscription exposing (Delivery(..))
+import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (style)

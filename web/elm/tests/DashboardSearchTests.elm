@@ -3,9 +3,9 @@ module DashboardSearchTests exposing (all)
 import Application.Application as Application
 import Concourse
 import Expect exposing (Expectation)
-import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback
 import Message.Message
+import Message.TopLevelMessage as Msgs
 import Test exposing (Test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, id, style, text)
@@ -81,7 +81,7 @@ all =
         )
         [ context "after focusing the search bar"
             (Application.update
-                (Msgs.SubMsg <|
+                (Msgs.Update <|
                     Message.Message.FocusMsg
                 )
                 >> Tuple.first
@@ -93,7 +93,7 @@ all =
                     >> Query.has [ text "status:" ]
             , context "after clicking 'status:' in the dropdown"
                 (Application.update
-                    (Msgs.SubMsg <|
+                    (Msgs.Update <|
                         Message.Message.FilterMsg "status:"
                     )
                     >> Tuple.first
@@ -105,7 +105,7 @@ all =
                         >> Query.has [ text "status: paused" ]
                 , context "after clicking 'status: paused'"
                     (Application.update
-                        (Msgs.SubMsg <|
+                        (Msgs.Update <|
                             Message.Message.FilterMsg "status: paused"
                         )
                         >> Tuple.first
@@ -144,7 +144,7 @@ all =
                 )
                 >> Tuple.first
                 >> Application.update
-                    (Msgs.SubMsg <|
+                    (Msgs.Update <|
                         Message.Message.FilterMsg "asdf"
                     )
                 >> Tuple.first

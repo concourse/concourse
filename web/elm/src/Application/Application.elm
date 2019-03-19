@@ -12,10 +12,10 @@ module Application.Application exposing
 import Concourse
 import Html exposing (Html)
 import Http
-import Message.ApplicationMsgs as Msgs exposing (Msg(..))
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
 import Navigation
 import Routes
 import SubPage.SubPage as SubPage
@@ -72,28 +72,19 @@ init flags location =
             -- We've refreshed on the page and we're not
             -- getting it from query params
             if flags.csrfToken == "" then
-                LoadToken
+                [ LoadToken ]
 
             else
-                SaveToken flags.csrfToken
-
-        stripCSRFTokenParamCmd =
-            if flags.csrfToken == "" then
-                []
-
-            else
-                [ Effects.ModifyUrl <| Routes.toString route ]
+                [ SaveToken flags.csrfToken
+                , Effects.ModifyUrl <| Routes.toString route
+                ]
     in
-    ( model
-    , [ FetchUser, handleTokenEffect ]
-        ++ stripCSRFTokenParamCmd
-        ++ subEffects
-    )
+    ( model, [ FetchUser ] ++ handleTokenEffect ++ subEffects )
 
 
-locationMsg : Navigation.Location -> Msg
+locationMsg : Navigation.Location -> TopLevelMessage
 locationMsg =
-    RouteChanged << Routes.parsePath
+    Routes.parsePath >> RouteChanged >> DeliveryReceived
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
@@ -149,16 +140,10 @@ subpageHandleCallback model callback =
     ( { model | subModel = subModel }, effects )
 
 
-update : Msg -> Model -> ( Model, List Effect )
+update : TopLevelMessage -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
-        Msgs.ModifyUrl route ->
-            ( model, [ Effects.ModifyUrl <| Routes.toString route ] )
-
-        RouteChanged route ->
-            urlUpdate route model
-
-        SubMsg m ->
+        Update m ->
             let
                 ( subModel, subEffects ) =
                     SubPage.update
@@ -201,6 +186,9 @@ handleDeliveryForApplication delivery model =
         TokenReceived (Just tokenValue) ->
             ( { model | csrfToken = tokenValue }, [] )
 
+        RouteChanged route ->
+            urlUpdate route model
+
         _ ->
             ( model, [] )
 
@@ -242,9 +230,9 @@ urlUpdate route model =
     )
 
 
-view : Model -> Html Msg
+view : Model -> Html TopLevelMessage
 view model =
-    Html.map SubMsg (SubPage.view model.userState model.subModel)
+    Html.map Update (SubPage.view model.userState model.subModel)
 
 
 subscriptions : Model -> List Subscription

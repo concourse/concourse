@@ -24,11 +24,11 @@ import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Keycodes
 import List.Extra
-import Message.ApplicationMsgs as ApplicationMsgs
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Msgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.TopLevelMessage as ApplicationMsgs
 import Routes
 import Test exposing (..)
 import Test.Html.Event as Event

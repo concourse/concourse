@@ -16,11 +16,11 @@ import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
 import Job.Job as Job exposing (update)
-import Message.ApplicationMsgs as Msgs
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message exposing (Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.TopLevelMessage as Msgs
 import RemoteData
 import Test exposing (..)
 import Test.Html.Query as Query
@@ -261,7 +261,7 @@ all =
             , test "hover play/pause has background of the header color" <|
                 init { disabled = False, paused = False }
                     >> Application.update
-                        (Msgs.SubMsg <|
+                        (Msgs.Update <|
                             Message.Message.Hover <|
                                 Just Message.Message.ToggleJobButton
                         )
@@ -305,11 +305,11 @@ all =
                                 }
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover <|
                             Just Message.Message.ToggleJobButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover Nothing
                 }
             , defineHoverBehaviour
@@ -340,11 +340,11 @@ all =
                                 }
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover <|
                             Just Message.Message.ToggleJobButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover Nothing
                 }
             , test "trigger build button has background of the header color, faded" <|
@@ -366,7 +366,7 @@ all =
             , test "hovered trigger build button has background of the header color" <|
                 init { disabled = False, paused = False }
                     >> Application.update
-                        (Msgs.SubMsg <|
+                        (Msgs.Update <|
                             Message.Message.Hover <|
                                 Just Message.Message.TriggerBuildButton
                         )
@@ -432,11 +432,11 @@ all =
                                 }
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover <|
                             Just Message.Message.TriggerBuildButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover Nothing
                 }
             , defineHoverBehaviour
@@ -491,11 +491,11 @@ all =
                         ]
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover <|
                             Just Message.Message.TriggerBuildButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover Nothing
                 }
             , test "inputs icon on build" <|
@@ -868,11 +868,11 @@ all =
                         ]
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover <|
                             Just Message.Message.PreviousPageButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg <|
+                    Msgs.Update <|
                         Message.Message.Hover Nothing
                 }
             , test "JobBuildsFetched" <|
