@@ -56,7 +56,6 @@ import Spinner
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
 import Time exposing (Time)
-import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)

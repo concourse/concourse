@@ -41,7 +41,6 @@ import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
 import TopBar.Model
-import TopBar.Msgs
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)

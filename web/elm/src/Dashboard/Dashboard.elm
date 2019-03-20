@@ -52,7 +52,6 @@ import RemoteData
 import Routes
 import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
-import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)

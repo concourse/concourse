@@ -7,7 +7,6 @@ import Message.Effects as Effects exposing (Effect)
 import Message.Message exposing (Message(..))
 import NotFound.Model exposing (Model)
 import Routes
-import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)

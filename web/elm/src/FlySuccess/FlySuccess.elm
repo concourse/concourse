@@ -25,7 +25,6 @@ import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import RemoteData
 import Routes
-import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
