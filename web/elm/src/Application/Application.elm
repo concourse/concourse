@@ -172,9 +172,11 @@ handleDelivery delivery model =
                 model.subModel
 
         ( newModel, applicationEffects ) =
-            handleDeliveryForApplication delivery model
+            handleDeliveryForApplication
+                delivery
+                { model | subModel = newSubmodel }
     in
-    ( { newModel | subModel = newSubmodel }, subPageEffects ++ applicationEffects )
+    ( newModel, subPageEffects ++ applicationEffects )
 
 
 handleDeliveryForApplication : Delivery -> Model -> ( Model, List Effect )
