@@ -20,4 +20,5 @@ type alias Pipeline =
     , jobs : List Concourse.Job
     , resourceError : Bool
     , status : PipelineStatus.PipelineStatus
+    , isToggleLoading : Bool
     }

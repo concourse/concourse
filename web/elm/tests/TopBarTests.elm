@@ -324,6 +324,8 @@ all =
                         >> Query.hasNot [ id "logout-button" ]
                 , it "renders pause pipeline button" <|
                     Query.find [ id "top-bar-pause-toggle" ]
+                        >> Query.children []
+                        >> Query.first
                         >> Query.has
                             [ style [ ( "background-image", "url(/public/images/ic-pause-white.svg)" ) ] ]
                 , it "draws lighter grey line to the left of pause pipeline button" <|
@@ -1640,6 +1642,8 @@ all =
                     Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-pause-toggle" ]
+                        >> Query.children []
+                        >> Query.first
                 , updateFunc =
                     \msg ->
                         Application.update msg
@@ -1648,37 +1652,29 @@ all =
                     { description = "faded play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "17px" )
-                            , ( "border-left"
-                              , "1px solid " ++ almostWhite
-                              )
+                            [ ( "opacity", "0.5" )
+                            , ( "margin", "17px" )
                             , ( "cursor", "pointer" )
                             ]
-                        , containing <|
-                            [ style [ ( "opacity", "0.5" ) ] ]
-                                ++ iconSelector
-                                    { size = "20px"
-                                    , image = "ic-play-white.svg"
-                                    }
                         ]
+                            ++ iconSelector
+                                { size = "20px"
+                                , image = "ic-play-white.svg"
+                                }
                     }
                 , hoveredSelector =
                     { description = "white play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "17px" )
-                            , ( "border-left"
-                              , "1px solid " ++ almostWhite
-                              )
+                            [ ( "opacity", "1" )
+                            , ( "margin", "17px" )
                             , ( "cursor", "pointer" )
                             ]
-                        , containing <|
-                            [ style [ ( "opacity", "1" ) ] ]
-                                ++ iconSelector
-                                    { size = "20px"
-                                    , image = "ic-play-white.svg"
-                                    }
                         ]
+                            ++ iconSelector
+                                { size = "20px"
+                                , image = "ic-play-white.svg"
+                                }
                     }
                 , mouseEnterMsg =
                     ApplicationMsgs.Update <|
@@ -1699,6 +1695,8 @@ all =
                     Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-pause-toggle" ]
+                        >> Query.children []
+                        >> Query.first
                 , updateFunc =
                     \msg ->
                         Application.update msg
@@ -1707,37 +1705,29 @@ all =
                     { description = "faded play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "17px" )
-                            , ( "border-left"
-                              , "1px solid " ++ almostWhite
-                              )
+                            [ ( "opacity", "0.5" )
+                            , ( "margin", "17px" )
                             , ( "cursor", "pointer" )
                             ]
-                        , containing <|
-                            [ style [ ( "opacity", "0.5" ) ] ]
-                                ++ iconSelector
-                                    { size = "20px"
-                                    , image = "ic-play-white.svg"
-                                    }
                         ]
+                            ++ iconSelector
+                                { size = "20px"
+                                , image = "ic-play-white.svg"
+                                }
                     }
                 , hoveredSelector =
                     { description = "white play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "17px" )
-                            , ( "border-left"
-                              , "1px solid " ++ almostWhite
-                              )
+                            [ ( "opacity", "1" )
+                            , ( "margin", "17px" )
                             , ( "cursor", "pointer" )
                             ]
-                        , containing <|
-                            [ style [ ( "opacity", "1" ) ] ]
-                                ++ iconSelector
-                                    { size = "20px"
-                                    , image = "ic-play-white.svg"
-                                    }
                         ]
+                            ++ iconSelector
+                                { size = "20px"
+                                , image = "ic-play-white.svg"
+                                }
                     }
                 , mouseEnterMsg =
                     ApplicationMsgs.Update <|
@@ -1758,6 +1748,8 @@ all =
                     Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "top-bar-pause-toggle" ]
+                        >> Query.children []
+                        >> Query.first
                 , updateFunc =
                     \msg ->
                         Application.update msg
@@ -1766,37 +1758,29 @@ all =
                     { description = "faded play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "17px" )
-                            , ( "border-left"
-                              , "1px solid " ++ almostWhite
-                              )
+                            [ ( "opacity", "0.5" )
+                            , ( "margin", "17px" )
                             , ( "cursor", "default" )
                             ]
-                        , containing <|
-                            [ style [ ( "opacity", "0.5" ) ] ]
-                                ++ iconSelector
-                                    { size = "20px"
-                                    , image = "ic-play-white.svg"
-                                    }
                         ]
+                            ++ iconSelector
+                                { size = "20px"
+                                , image = "ic-play-white.svg"
+                                }
                     }
                 , hoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
                         [ style
-                            [ ( "padding", "17px" )
-                            , ( "border-left"
-                              , "1px solid " ++ almostWhite
-                              )
+                            [ ( "margin", "17px" )
                             , ( "cursor", "default" )
+                            , ( "opacity", "0.5" )
                             ]
-                        , containing <|
-                            [ style [ ( "opacity", "0.5" ) ] ]
-                                ++ iconSelector
-                                    { size = "20px"
-                                    , image = "ic-play-white.svg"
-                                    }
                         ]
+                            ++ iconSelector
+                                { size = "20px"
+                                , image = "ic-play-white.svg"
+                                }
                     }
                 , mouseEnterMsg =
                     ApplicationMsgs.Update <|
@@ -1816,6 +1800,8 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-pause-toggle" ]
+                        |> Query.children []
+                        |> Query.first
                         |> Event.simulate Event.click
                         |> Event.expect toggleMsg
             , test "play button unclickable for non-members" <|
@@ -1825,6 +1811,8 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-pause-toggle" ]
+                        |> Query.children []
+                        |> Query.first
                         |> Event.simulate Event.click
                         |> Event.toResult
                         |> Expect.err
@@ -1846,6 +1834,8 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-pause-toggle" ]
+                        |> Query.children []
+                        |> Query.first
                         |> Query.has
                             [ style
                                 [ ( "animation"
@@ -1861,7 +1851,7 @@ all =
                         |> Application.update toggleMsg
                         |> Tuple.first
                         |> Application.handleCallback
-                            (Callback.PipelineToggled <| Ok ())
+                            (Callback.PipelineToggled pipelineIdentifier <| Ok ())
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
@@ -1874,11 +1864,13 @@ all =
                         |> Application.update toggleMsg
                         |> Tuple.first
                         |> Application.handleCallback
-                            (Callback.PipelineToggled <| Ok ())
+                            (Callback.PipelineToggled pipelineIdentifier <| Ok ())
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-pause-toggle" ]
+                        |> Query.children []
+                        |> Query.first
                         |> Query.has
                             (iconSelector
                                 { size = "20px"
@@ -1889,7 +1881,7 @@ all =
                 \_ ->
                     givenPipelinePaused
                         |> Application.handleCallback
-                            (Callback.PipelineToggled <|
+                            (Callback.PipelineToggled pipelineIdentifier <|
                                 Err <|
                                     Http.BadStatus
                                         { url = "http://example.com"
@@ -1908,7 +1900,7 @@ all =
                 \_ ->
                     givenPipelinePaused
                         |> Application.handleCallback
-                            (Callback.PipelineToggled <|
+                            (Callback.PipelineToggled pipelineIdentifier <|
                                 Err <|
                                     Http.BadStatus
                                         { url = "http://example.com"

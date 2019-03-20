@@ -1,65 +1,65 @@
 module PauseToggle exposing (view)
 
+import Concourse
 import Html exposing (Html)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (Hoverable(..), Message(..))
 import Spinner
-import TopBar.Model exposing (PipelineState)
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
 
 
 view :
-    UserState
-    -> Maybe PipelineState
+    String
+    -> UserState
+    ->
+        { a
+            | isPaused : Bool
+            , pipeline : Concourse.PipelineIdentifier
+            , isToggleHovered : Bool
+            , isToggleLoading : Bool
+        }
     -> Html Message
-view userState pipelineState =
-    case pipelineState of
-        Just { isPaused, pipeline, isToggleHovered, isToggleLoading } ->
-            let
-                isAnonymous =
-                    UserState.user userState == Nothing
+view margin userState { isPaused, pipeline, isToggleHovered, isToggleLoading } =
+    let
+        isAnonymous =
+            UserState.user userState == Nothing
 
-                isMember =
-                    UserState.isMember
-                        { teamName = pipeline.teamName
-                        , userState = userState
-                        }
+        isMember =
+            UserState.isMember
+                { teamName = pipeline.teamName
+                , userState = userState
+                }
 
-                isClickable =
-                    isAnonymous || isMember
-            in
-            Html.div
-                ([ id "top-bar-pause-toggle"
-                 , style <|
-                    Styles.pauseToggle
-                        { isPaused = isPaused
-                        , isClickable = isClickable
-                        }
-                 , onMouseEnter <| Hover <| Just <| PipelineButton pipeline
-                 , onMouseLeave <| Hover Nothing
-                 ]
-                    ++ (if isClickable then
-                            [ onClick <| TogglePipelinePaused pipeline isPaused ]
+        isClickable =
+            isAnonymous || isMember
+    in
+    if isToggleLoading then
+        Spinner.spinner { size = "20px", margin = margin }
 
-                        else
-                            []
-                       )
-                )
-                [ if isToggleLoading then
-                    Spinner.spinner { size = "20px", margin = "0" }
-
-                  else
-                    Html.div
-                        [ style <|
-                            Styles.pauseToggleIcon
-                                { isPaused = isPaused
-                                , isHovered = isClickable && isToggleHovered
-                                }
+    else
+        Html.div
+            ([ style <|
+                Styles.pauseToggleIcon
+                    { isPaused = isPaused
+                    , isHovered = isClickable && isToggleHovered
+                    , isClickable = isClickable
+                    , margin = margin
+                    }
+             , onMouseEnter <|
+                Hover <|
+                    Just <|
+                        PipelineButton pipeline
+             , onMouseLeave <| Hover Nothing
+             ]
+                ++ (if isClickable then
+                        [ onClick <|
+                            TogglePipelinePaused pipeline isPaused
                         ]
-                        []
-                ]
 
-        Nothing ->
-            Html.text ""
+                    else
+                        []
+                   )
+            )
+            []

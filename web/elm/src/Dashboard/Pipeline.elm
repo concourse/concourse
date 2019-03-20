@@ -13,9 +13,11 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter, onMouseLeave)
 import Message.Message exposing (Hoverable(..), Message(..))
+import PauseToggle
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
+import UserState exposing (UserState)
 
 
 pipelineNotSetView : Html Message
@@ -83,9 +85,10 @@ pipelineView :
     , pipeline : Pipeline
     , hovered : Bool
     , pipelineRunningKeyframes : String
+    , userState : UserState
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState } =
     Html.div
         [ style Styles.pipelineCard
         ]
@@ -100,7 +103,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
             []
         , headerView pipeline
         , bodyView pipeline
-        , footerView pipeline now hovered
+        , footerView userState pipeline now hovered
         ]
 
 
@@ -137,8 +140,8 @@ bodyView pipeline =
         [ DashboardPreview.view pipeline.jobs ]
 
 
-footerView : Pipeline -> Time -> Bool -> Html Message
-footerView pipeline now hovered =
+footerView : UserState -> Pipeline -> Time -> Bool -> Html Message
+footerView userState pipeline now hovered =
     let
         spacer =
             Html.div [ style [ ( "width", "13.5px" ) ] ] []
@@ -161,7 +164,17 @@ footerView pipeline now hovered =
             ]
           <|
             List.intersperse spacer
-                [ pauseToggleView pipeline hovered
+                [ PauseToggle.view "0"
+                    userState
+                    { isPaused =
+                        pipeline.status == PipelineStatus.PipelineStatusPaused
+                    , pipeline =
+                        { pipelineName = pipeline.name
+                        , teamName = pipeline.teamName
+                        }
+                    , isToggleHovered = hovered
+                    , isToggleLoading = pipeline.isToggleLoading
+                    }
                 , visibilityView pipeline.public
                 ]
         ]
@@ -230,42 +243,3 @@ transitionView time pipeline =
         , style <| Styles.pipelineCardTransitionAge pipeline.status
         ]
         [ Html.text <| statusAgeText pipeline time ]
-
-
-pauseToggleView : Pipeline -> Bool -> Html Message
-pauseToggleView pipeline hovered =
-    let
-        pipelineId =
-            { teamName = pipeline.teamName, pipelineName = pipeline.name }
-    in
-    Html.a
-        [ style
-            [ ( "background-image"
-              , case pipeline.status of
-                    PipelineStatus.PipelineStatusPaused ->
-                        "url(/public/images/ic-play-white.svg)"
-
-                    _ ->
-                        "url(/public/images/ic-pause-white.svg)"
-              )
-            , ( "background-position", "50% 50%" )
-            , ( "background-repeat", "no-repeat" )
-            , ( "width", "20px" )
-            , ( "height", "20px" )
-            , ( "cursor", "pointer" )
-            , ( "opacity"
-              , if hovered then
-                    "1"
-
-                else
-                    "0.5"
-              )
-            ]
-        , onLeftClick <|
-            TogglePipelinePaused
-                pipelineId
-                (pipeline.status == PipelineStatus.PipelineStatusPaused)
-        , onMouseEnter <| Hover <| Just <| PipelineButton pipelineId
-        , onMouseLeave <| Hover <| Nothing
-        ]
-        []

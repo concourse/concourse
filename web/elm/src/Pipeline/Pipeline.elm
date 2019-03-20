@@ -183,7 +183,7 @@ handleCallbackBody callback ( model, effects ) =
                 _ ->
                     renderIfNeeded ( { model | experiencingTurbulence = True }, effects )
 
-        PipelineToggled (Ok ()) ->
+        PipelineToggled _ (Ok ()) ->
             ( { model
                 | pipeline =
                     RemoteData.map
@@ -194,7 +194,7 @@ handleCallbackBody callback ( model, effects ) =
             , effects
             )
 
-        PipelineToggled (Err err) ->
+        PipelineToggled _ (Err err) ->
             let
                 newModel =
                     { model | isToggleLoading = False }

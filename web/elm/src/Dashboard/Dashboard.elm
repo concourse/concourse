@@ -34,6 +34,7 @@ import Html.Attributes
         , style
         )
 import Html.Events exposing (onMouseEnter, onMouseLeave)
+import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message as Message exposing (Hoverable(..), Message(..))
@@ -192,6 +193,9 @@ handleCallbackBody msg ( model, effects ) =
             in
             ( { model | screenSize = newSize }, effects )
 
+        PipelineToggled _ _ ->
+            ( model, effects ++ [ FetchData ] )
+
         _ ->
             ( model, effects )
 
@@ -313,6 +317,28 @@ updateBody msg ( model, effects ) =
 
         LogOut ->
             ( { model | state = RemoteData.NotAsked }, effects )
+
+        TogglePipelinePaused pipelineId isPaused ->
+            let
+                newGroups =
+                    model.groups
+                        |> List.Extra.updateIf
+                            (.teamName >> (==) pipelineId.teamName)
+                            (\g ->
+                                let
+                                    newPipelines =
+                                        g.pipelines
+                                            |> List.Extra.updateIf
+                                                (.name >> (==) pipelineId.pipelineName)
+                                                (\p -> { p | isToggleLoading = True })
+                                in
+                                { g | pipelines = newPipelines }
+                            )
+            in
+            ( { model | groups = newGroups }
+            , effects
+                ++ [ SendTogglePipelineRequest pipelineId isPaused ]
+            )
 
         _ ->
             ( model, effects )
@@ -531,6 +557,7 @@ pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, user
                             , now = substate.now
                             , hovered = hovered
                             , pipelineRunningKeyframes = pipelineRunningKeyframes
+                            , userState = userState
                             }
                         )
     in

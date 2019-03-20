@@ -49,6 +49,7 @@ import Ordering exposing (Ordering)
 import Set
 import Time exposing (Time)
 import TopBar.Styles as NTBS
+import UserState exposing (UserState)
 
 
 ordering : Ordering Group
@@ -197,6 +198,7 @@ allPipelines data =
                                     && r.failingToCheck
                             )
                 , status = pipelineStatus p jobs
+                , isToggleLoading = False
                 }
             )
 
@@ -392,10 +394,11 @@ view :
     , now : Time
     , hovered : Maybe Hoverable
     , pipelineRunningKeyframes : String
+    , userState : UserState
     }
     -> Group
     -> Html Message
-view { dragState, dropState, now, hovered, pipelineRunningKeyframes } group =
+view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState } group =
     let
         pipelines =
             if List.isEmpty group.pipelines then
@@ -436,6 +439,7 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes } group =
                                             hovered
                                                 == (Just <| PipelineButton pipelineId)
                                         , pipelineRunningKeyframes = pipelineRunningKeyframes
+                                        , userState = userState
                                         }
                                     ]
                                 ]

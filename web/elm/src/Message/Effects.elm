@@ -245,13 +245,13 @@ runEffect effect csrfToken =
             Network.FlyToken.sendTokenToFly authToken flyPort
                 |> Task.attempt TokenSentToFly
 
-        SendTogglePipelineRequest { teamName, pipelineName } isPaused ->
+        SendTogglePipelineRequest pipelineIdentifier isPaused ->
             Network.Pipeline.togglePause
                 isPaused
-                teamName
-                pipelineName
+                pipelineIdentifier.teamName
+                pipelineIdentifier.pipelineName
                 csrfToken
-                |> Task.attempt PipelineToggled
+                |> Task.attempt (PipelineToggled pipelineIdentifier)
 
         ShowTooltip ( teamName, pipelineName ) ->
             tooltip ( teamName, pipelineName )

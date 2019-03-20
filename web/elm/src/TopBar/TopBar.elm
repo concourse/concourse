@@ -384,9 +384,23 @@ view userState pipelineState model =
         [ viewConcourseLogo
         , viewMiddleSection model
         , viewPin pipelineState model
-        , PauseToggle.view userState pipelineState
+        , viewPauseToggle userState pipelineState
         , Login.view userState model (isPaused pipelineState)
         ]
+
+
+viewPauseToggle : UserState -> Maybe PipelineState -> Html Message
+viewPauseToggle userState pipelineState =
+    case pipelineState of
+        Just ({ isPaused } as ps) ->
+            Html.div
+                [ id "top-bar-pause-toggle"
+                , style <| Styles.pauseToggle isPaused
+                ]
+                [ PauseToggle.view "17px" userState ps ]
+
+        Nothing ->
+            Html.text ""
 
 
 viewLogin : UserState -> Model r -> Bool -> List (Html Message)

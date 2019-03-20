@@ -32,8 +32,8 @@ module TopBar.Styles exposing
     )
 
 import Colors
-import ScreenSize exposing (ScreenSize(..))
 import Routes
+import ScreenSize exposing (ScreenSize(..))
 
 
 pageHeaderHeight : Float
@@ -253,32 +253,26 @@ breadcrumbItem clickable =
     ]
 
 
-pauseToggle :
-    { isPaused : Bool, isClickable : Bool }
-    -> List ( String, String )
-pauseToggle { isPaused, isClickable } =
-    [ ( "padding", "17px" )
-    , ( "border-left"
+pauseToggle : Bool -> List ( String, String )
+pauseToggle isPaused =
+    [ ( "border-left"
       , if isPaused then
             "1px solid rgba(255, 255, 255, 0.5)"
 
         else
             "1px solid #3d3c3c"
       )
-    , ( "cursor"
-      , if isClickable then
-            "pointer"
-
-        else
-            "default"
-      )
     ]
 
 
 pauseToggleIcon :
-    { isPaused : Bool, isHovered : Bool }
+    { isPaused : Bool
+    , isHovered : Bool
+    , isClickable : Bool
+    , margin : String
+    }
     -> List ( String, String )
-pauseToggleIcon { isPaused, isHovered } =
+pauseToggleIcon { isPaused, isHovered, isClickable, margin } =
     [ ( "background-image"
       , if isPaused then
             "url(/public/images/ic-play-white.svg)"
@@ -290,12 +284,20 @@ pauseToggleIcon { isPaused, isHovered } =
     , ( "background-repeat", "no-repeat" )
     , ( "width", "20px" )
     , ( "height", "20px" )
+    , ( "margin", margin )
     , ( "opacity"
       , if isHovered then
             "1"
 
         else
             "0.5"
+      )
+    , ( "cursor"
+      , if isClickable then
+            "pointer"
+
+        else
+            "default"
       )
     ]
 

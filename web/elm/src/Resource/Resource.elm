@@ -67,7 +67,6 @@ import Routes
 import Spinner
 import StrictEvents
 import Time exposing (Time)
-import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
