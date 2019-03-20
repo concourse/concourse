@@ -35,7 +35,7 @@ func (command *ChecklistCommand) Execute([]string) error {
 
 	pipelineName := string(command.Pipeline)
 
-	config, _, _, _, err := target.Team().PipelineConfig(pipelineName)
+	config, _, _, err := target.Team().PipelineConfig(pipelineName)
 	if err != nil {
 		return err
 	}

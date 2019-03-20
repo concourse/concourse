@@ -31,10 +31,6 @@ func (team *team) Resource(pipelineName string, resourceName string) (atc.Resour
 }
 
 func (team *team) ListResources(pipelineName string) ([]atc.Resource, error) {
-	if pipelineName == "" {
-		return []atc.Resource{}, NameRequiredError("pipeline")
-	}
-
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"team_name":     team.name,
