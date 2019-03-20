@@ -1,4 +1,4 @@
-module NotAuthorized exposing (view)
+module Views.NotAuthorized exposing (view)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, src)

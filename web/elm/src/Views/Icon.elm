@@ -1,4 +1,4 @@
-module Views exposing (icon)
+module Views.Icon exposing (icon)
 
 import Html exposing (Html)
 import Html.Attributes exposing (style)
