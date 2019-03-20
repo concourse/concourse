@@ -28,7 +28,6 @@ import Concourse.Pagination
 import Date exposing (Date)
 import Date.Format
 import Dict
-import DictView
 import Duration exposing (Duration)
 import Effects exposing (Effect(..), runEffect, setTitle)
 import Html exposing (Html)
@@ -63,7 +62,6 @@ import Resource.Models as Models exposing (Model)
 import Resource.Msgs exposing (Msg(..))
 import Resource.Styles
 import Routes
-import Spinner
 import StrictEvents
 import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
@@ -72,6 +70,8 @@ import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
+import Views.DictView as DictView
+import Views.Spinner as Spinner
 
 
 type alias Flags =

@@ -38,9 +38,9 @@ import Html.Attributes
         , title
         )
 import Http
-import LoadingIndicator
-import NotAuthorized
 import Routes exposing (StepID)
+import Views.LoadingIndicator as LoadingIndicator
+import Views.NotAuthorized as NotAuthorized
 
 
 type OutMsg

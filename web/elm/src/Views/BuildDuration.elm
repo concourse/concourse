@@ -1,4 +1,4 @@
-module BuildDuration exposing (show, view)
+module Views.BuildDuration exposing (show, view)
 
 import Concourse
 import Date exposing (Date)

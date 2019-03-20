@@ -1,8 +1,8 @@
-module LoadingIndicator exposing (view)
+module Views.LoadingIndicator exposing (view)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, style)
-import Spinner
+import Views.Spinner as Spinner
 
 
 view : Html x

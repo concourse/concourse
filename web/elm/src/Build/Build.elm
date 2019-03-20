@@ -21,7 +21,6 @@ import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
-import BuildDuration
 import Callback exposing (Callback(..))
 import Char
 import Concourse
@@ -53,11 +52,9 @@ import Http
 import Keyboard
 import Keycodes
 import List.Extra
-import LoadingIndicator
 import Maybe.Extra
 import RemoteData exposing (WebData)
 import Routes
-import Spinner
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
 import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
@@ -67,7 +64,10 @@ import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
-import Views
+import Views.BuildDuration as BuildDuration
+import Views.Icon as Icon
+import Views.LoadingIndicator as LoadingIndicator
+import Views.Spinner as Spinner
 
 
 type StepRenderingState
@@ -980,7 +980,7 @@ viewBuildPrep prep =
                         , ( "align-items", "center" )
                         ]
                     ]
-                    [ Views.icon
+                    [ Icon.icon
                         { sizePx = 15, image = "ic-cogs.svg" }
                         [ style
                             [ ( "margin", "6.5px" )
