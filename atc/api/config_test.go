@@ -280,12 +280,8 @@ var _ = Describe("Config API", func() {
 									err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
 									Expect(err).NotTo(HaveOccurred())
 
-									rawConfig, err := json.Marshal(pipelineConfig)
-									Expect(err).NotTo(HaveOccurred())
-
 									Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{
-										Config:    &pipelineConfig,
-										RawConfig: atc.RawConfig(rawConfig),
+										Config: pipelineConfig,
 									}))
 								})
 							})

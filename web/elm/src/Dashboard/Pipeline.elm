@@ -15,7 +15,6 @@ import Html.Events exposing (on, onMouseEnter, onMouseLeave)
 import Message.Message exposing (Hoverable(..), Message(..))
 import PauseToggle
 import Routes
-import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
 import UserState exposing (UserState)
 

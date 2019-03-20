@@ -2,11 +2,11 @@
 package internalfakes
 
 import (
-	http "net/http"
-	sync "sync"
+	"net/http"
+	"sync"
 
-	internal "github.com/concourse/concourse/go-concourse/concourse/internal"
-	sse "github.com/vito/go-sse/sse"
+	"github.com/concourse/concourse/go-concourse/concourse/internal"
+	"github.com/vito/go-sse/sse"
 )
 
 type FakeConnection struct {

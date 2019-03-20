@@ -3,8 +3,6 @@ package flaghelpers
 import (
 	"errors"
 	"strings"
-
-	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type ResourceFlag struct {
@@ -17,14 +15,6 @@ func (resource *ResourceFlag) UnmarshalFlag(value string) error {
 
 	if len(vs) != 2 {
 		return errors.New("argument format should be <pipeline>/<resource>")
-	}
-
-	if vs[0] == "" {
-		return concourse.NameRequiredError("pipeline")
-	}
-
-	if vs[1] == "" {
-		return concourse.NameRequiredError("resource")
 	}
 
 	resource.PipelineName = vs[0]

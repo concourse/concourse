@@ -47,7 +47,7 @@ func flyrcPath() string {
 	return filepath.Join(userHomeDir(), ".flyrc")
 }
 
-func DeleteTarget(targetName TargetName) error {
+func LogoutTarget(targetName TargetName) error {
 	flyTargets, err := LoadTargets()
 	if err != nil {
 		return err
@@ -57,6 +57,56 @@ func DeleteTarget(targetName TargetName) error {
 		if target.Token != nil {
 			*target.Token = TargetToken{}
 		}
+	}
+
+	return writeTargets(flyrcPath(), flyTargets)
+}
+
+func DeleteTarget(targetName TargetName) error {
+	flyTargets, err := LoadTargets()
+	if err != nil {
+		return err
+	}
+
+	delete(flyTargets.Targets, targetName)
+
+	return writeTargets(flyrcPath(), flyTargets)
+}
+
+func DeleteAllTargets() error {
+	return writeTargets(flyrcPath(), &targetDetailsYAML{})
+}
+
+func UpdateTargetProps(targetName TargetName, targetProps TargetProps) error {
+	flyTargets, err := LoadTargets()
+	if err != nil {
+		return err
+	}
+
+	target := flyTargets.Targets[targetName]
+
+	if targetProps.API != "" {
+		target.API = targetProps.API
+	}
+
+	if targetProps.TeamName != "" {
+		target.TeamName = targetProps.TeamName
+	}
+
+	flyTargets.Targets[targetName] = target
+
+	return writeTargets(flyrcPath(), flyTargets)
+}
+
+func UpdateTargetName(targetName TargetName, newTargetName TargetName) error {
+	flyTargets, err := LoadTargets()
+	if err != nil {
+		return err
+	}
+
+	if newTargetName != "" {
+		flyTargets.Targets[newTargetName] = flyTargets.Targets[targetName]
+		delete(flyTargets.Targets, targetName)
 	}
 
 	return writeTargets(flyrcPath(), flyTargets)
