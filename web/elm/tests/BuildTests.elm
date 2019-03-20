@@ -2163,18 +2163,28 @@ all =
                                 )
                     , test "has passport officer icon" <|
                         let
-                            url =
+                            imgUrl =
                                 "/public/images/passport-officer-ic.svg"
+
+                            eventsUrl =
+                                "http://localhost:8080/api/v1/builds/307/events"
                         in
                         fetchPlanWithGetStep
                             >> flip (,) []
-                            >> Build.handleDelivery (EventsReceived <| Err "server burned down")
+                            >> Build.handleDelivery
+                                (EventsReceived <|
+                                    Ok
+                                        [ { data = STModels.NetworkError
+                                          , url = eventsUrl
+                                          }
+                                        ]
+                                )
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.find [ class "not-authorized" ]
                             >> Query.find [ tag "img" ]
-                            >> Query.has [ attribute <| Attr.src url ]
+                            >> Query.has [ attribute <| Attr.src imgUrl ]
                     ]
                 ]
             , describe "get step with metadata" <|
