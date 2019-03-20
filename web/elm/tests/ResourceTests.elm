@@ -43,7 +43,7 @@ import UserState exposing (UserState(..))
 
 commentButtonBlue : String
 commentButtonBlue =
-    "#196AC8"
+    "#196ac8"
 
 
 teamName : String
@@ -105,7 +105,7 @@ disabledVersion =
 
 purpleHex : String
 purpleHex =
-    "#5C3BD1"
+    "#5c3bd1"
 
 
 fadedBlackHex : String
@@ -186,6 +186,12 @@ all =
                     >> Expect.equal
                         [ ( Effects.SubPage 1, csrfToken, Effects.NavigateTo "/" ) ]
             ]
+        , test "has default layout" <|
+            \_ ->
+                init
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "display", "block" ) ] ]
         , test "subscribes to the five second interval" <|
             \_ ->
                 init

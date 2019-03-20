@@ -7,7 +7,7 @@ module TopBar.Model exposing
     )
 
 import Concourse
-import RemoteData
+import Dashboard.Group exposing (Group)
 import Routes
 import ScreenSize exposing (ScreenSize)
 
@@ -16,10 +16,11 @@ type alias Model r =
     { r
         | isUserMenuExpanded : Bool
         , isPinMenuExpanded : Bool
-        , middleSection : MiddleSection
-        , teams : RemoteData.WebData (List Concourse.Team)
+        , route : Routes.Route
+        , groups : List Group
+        , dropdown : Dropdown
         , screenSize : ScreenSize
-        , highDensity : Bool
+        , shiftDown : Bool
     }
 
 
@@ -30,7 +31,7 @@ type alias Model r =
 type MiddleSection
     = Breadcrumbs Routes.Route
     | MinifiedSearch
-    | SearchBar { query : String, dropdown : Dropdown }
+    | SearchBar
     | Empty
 
 

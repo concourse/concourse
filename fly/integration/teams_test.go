@@ -169,10 +169,6 @@ var _ = Describe("Fly CLI", func() {
 
 					Eventually(sess).Should(gexec.Exit(0))
 					Expect(sess.Out).To(PrintTable(ui.Table{
-						Headers: ui.TableRow{
-							{Contents: "name", Color: color.New(color.Bold)},
-							{Contents: "auth", Color: color.New(color.Bold)},
-						},
 						Data: []ui.TableRow{
 							{{Contents: "a-team/owner"}, {Contents: "none"}, {Contents: "github:github-org"}},
 							{{Contents: "b-team/member"}, {Contents: "github:github-user"}, {Contents: "none"}},

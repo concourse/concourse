@@ -28,17 +28,17 @@ groupsList =
 groupItem : Bool -> List ( String, String )
 groupItem selected =
     [ ( "font-size", "14px" )
-    , ( "background", "rgba(151, 151, 151, 0.1)" )
+    , ( "background", Colors.groupBackground )
     , ( "margin", "5px" )
     , ( "padding", "10px" )
     ]
         ++ (if selected then
                 [ ( "opacity", "1" )
-                , ( "border", "1px solid #979797" )
+                , ( "border", "1px solid " ++ Colors.selectedGroupBorder )
                 ]
 
             else
                 [ ( "opacity", "0.6" )
-                , ( "border", "1px solid #2b2a2a" )
+                , ( "border", "1px solid " ++ Colors.unselectedGroupBorder )
                 ]
            )

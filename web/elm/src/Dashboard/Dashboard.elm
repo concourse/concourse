@@ -9,7 +9,6 @@ module Dashboard.Dashboard exposing
     )
 
 import Callback exposing (Callback(..))
-import Char
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Details as Details
@@ -84,7 +83,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.Dashboard { searchType = flags.searchType } }
+            TopBar.init { route = Routes.Dashboard flags.searchType }
     in
     ( { state = RemoteData.NotAsked
       , turbulencePath = flags.turbulencePath
@@ -100,10 +99,10 @@ init flags =
       , showHelp = False
       , isUserMenuExpanded = topBar.isUserMenuExpanded
       , isPinMenuExpanded = topBar.isPinMenuExpanded
-      , middleSection = topBar.middleSection
-      , teams = topBar.teams
+      , route = topBar.route
+      , dropdown = topBar.dropdown
       , screenSize = topBar.screenSize
-      , highDensity = topBar.highDensity
+      , shiftDown = topBar.shiftDown
       }
     , [ FetchData
       , PinTeamNames Group.stickyHeaderConfig
@@ -116,11 +115,11 @@ init flags =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar msg ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody msg ( model, effects ) =
     case msg of
         APIDataFetched (Err _) ->
             ( { model | state = RemoteData.Failure (Turbulence model.turbulencePath) }, effects )
@@ -159,14 +158,18 @@ handleCallbackWithoutTopBar msg ( model, effects ) =
                         Nothing ->
                             UserState.UserStateLoggedOut
             in
-            if model.highDensity && noPipelines then
+            if model.route == Routes.Dashboard Routes.HighDensity && noPipelines then
                 ( { newModel
-                    | highDensity = False
-                    , groups = groups
+                    | groups = groups
+                    , route = Routes.dashboardRoute False
                     , version = apiData.version
                     , userState = userState
                   }
-                , effects ++ [ ModifyUrl <| Routes.toString <| Routes.dashboardRoute False ]
+                , effects
+                    ++ [ ModifyUrl <|
+                            Routes.toString <|
+                                Routes.dashboardRoute False
+                       ]
                 )
 
             else
@@ -181,7 +184,11 @@ handleCallbackWithoutTopBar msg ( model, effects ) =
         LoggedOut (Ok ()) ->
             ( { model | userState = UserState.UserStateLoggedOut }
             , effects
-                ++ [ NavigateTo <| Routes.toString <| Routes.dashboardRoute model.highDensity
+                ++ [ NavigateTo <|
+                        Routes.toString <|
+                            Routes.dashboardRoute <|
+                                model.route
+                                    == Routes.Dashboard Routes.HighDensity
                    , FetchData
                    ]
             )
@@ -203,24 +210,16 @@ handleCallbackWithoutTopBar msg ( model, effects ) =
 
 handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
 handleDelivery delivery =
-    TopBar.handleDelivery delivery >> handleDeliveryWithoutTopBar delivery
+    TopBar.handleDelivery delivery
+        >> Footer.handleDelivery delivery
+        >> handleDeliveryBody delivery
 
 
-handleDeliveryWithoutTopBar : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
-handleDeliveryWithoutTopBar delivery ( model, effects ) =
+handleDeliveryBody : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDeliveryBody delivery ( model, effects ) =
     case delivery of
-        KeyDown keycode ->
-            handleKeyPressed (Char.fromCode keycode) ( model, effects )
-
-        Moused ->
-            ( Footer.showFooter model, effects )
-
         ClockTicked OneSecond time ->
-            ( let
-                newModel =
-                    Footer.tick model
-              in
-              { newModel | state = RemoteData.map (SubState.tick time) newModel.state }
+            ( { model | state = RemoteData.map (SubState.tick time) model.state }
             , effects
             )
 
@@ -234,8 +233,8 @@ handleDeliveryWithoutTopBar delivery ( model, effects ) =
 update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
 update msg ( model, effects ) =
     case msg of
-        TogglePipelinePaused pipeline ->
-            ( model, effects ++ [ SendTogglePipelineRequest pipeline ] )
+        TogglePipelinePaused pipelineIdentifier pipelineStatus ->
+            ( model, effects ++ [ SendTogglePipelineRequest pipelineIdentifier (pipelineStatus == PipelineStatus.PipelineStatusPaused) ] )
 
         DragStart teamName index ->
             let
@@ -349,62 +348,59 @@ subscriptions model =
     , OnClockTick FiveSeconds
     , OnMouse
     , OnKeyDown
+    , OnKeyUp
     , OnWindowResize
     ]
 
 
 view : UserState -> Model -> Html Msg
 view userState model =
-    Html.div []
-        [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
-            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
-                [ dashboardView model
-                ]
-            ]
-        ]
-
-
-dashboardView : Model -> Html Msg
-dashboardView model =
-    let
-        mainContent =
-            case model.state of
-                RemoteData.NotAsked ->
-                    [ Html.text "" ]
-
-                RemoteData.Loading ->
-                    [ Html.text "" ]
-
-                RemoteData.Failure (Turbulence path) ->
-                    [ turbulenceView path ]
-
-                RemoteData.Success substate ->
-                    [ Html.div
-                        [ class "dashboard-content" ]
-                      <|
-                        welcomeCard model
-                            ++ pipelinesView
-                                { groups = model.groups
-                                , substate = substate
-                                , query = TopBar.query model
-                                , hoveredPipeline = model.hoveredPipeline
-                                , pipelineRunningKeyframes =
-                                    model.pipelineRunningKeyframes
-                                , userState = model.userState
-                                , highDensity = model.highDensity
-                                }
-                    ]
-                        ++ Footer.view model
-    in
     Html.div
-        [ classList
-            [ ( .pageBodyClass Group.stickyHeaderConfig, True )
-            , ( "dashboard-hd", model.highDensity )
-            ]
+        [ style TopBar.Styles.pageIncludingTopBar
+        , id "page-including-top-bar"
         ]
-        mainContent
+        [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
+        , Html.div
+            [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+            (dashboardView model)
+        ]
+
+
+dashboardView : Model -> List (Html Msg)
+dashboardView model =
+    case model.state of
+        RemoteData.NotAsked ->
+            [ Html.text "" ]
+
+        RemoteData.Loading ->
+            [ Html.text "" ]
+
+        RemoteData.Failure (Turbulence path) ->
+            [ turbulenceView path ]
+
+        RemoteData.Success substate ->
+            let
+                highDensity =
+                    model.route == Routes.Dashboard Routes.HighDensity
+            in
+            [ Html.div
+                [ class <| .pageBodyClass Group.stickyHeaderConfig
+                , style <| Styles.content highDensity
+                ]
+              <|
+                welcomeCard model
+                    :: pipelinesView
+                        { groups = model.groups
+                        , substate = substate
+                        , query = Routes.extractQuery model.route
+                        , hoveredPipeline = model.hoveredPipeline
+                        , pipelineRunningKeyframes =
+                            model.pipelineRunningKeyframes
+                        , userState = model.userState
+                        , highDensity = highDensity
+                        }
+            , Footer.view model
+            ]
 
 
 welcomeCard :
@@ -413,7 +409,7 @@ welcomeCard :
         , groups : List Group.Group
         , userState : UserState.UserState
     }
-    -> List (Html Msg)
+    -> Html Msg
 welcomeCard { hoveredTopCliIcon, groups, userState } =
     let
         noPipelines =
@@ -436,7 +432,7 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
                 []
     in
     if noPipelines then
-        [ Html.div
+        Html.div
             [ id "welcome-card"
             , style Styles.welcomeCard
             ]
@@ -467,10 +463,9 @@ welcomeCard { hoveredTopCliIcon, groups, userState } =
                 [ style Styles.asciiArt ]
                 [ Html.text Text.asciiArt ]
             ]
-        ]
 
     else
-        []
+        Html.text ""
 
 
 loginInstruction : UserState.UserState -> List (Html Msg)
@@ -507,39 +502,6 @@ noResultsView query =
         [ Html.text "No results for "
         , boldedQuery
         , Html.text " matched your search."
-        ]
-
-
-helpView : { a | showHelp : Bool } -> Html Msg
-helpView { showHelp } =
-    Html.div
-        [ classList
-            [ ( "keyboard-help", True )
-            , ( "hidden", not showHelp )
-            ]
-        ]
-        [ Html.div
-            [ class "help-title" ]
-            [ Html.text "keyboard shortcuts" ]
-        , Html.div
-            [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span
-                    [ class "key" ]
-                    [ Html.text "/" ]
-                ]
-            , Html.text "search"
-            ]
-        , Html.div [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span
-                    [ class "key" ]
-                    [ Html.text "?" ]
-                ]
-            , Html.text "hide/show help"
-            ]
         ]
 
 
@@ -580,7 +542,7 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
         groupViews =
             if highDensity then
                 groupsToDisplay
-                    |> List.map (Group.hdView pipelineRunningKeyframes)
+                    |> List.concatMap (Group.hdView pipelineRunningKeyframes)
 
             else
                 groupsToDisplay
@@ -599,19 +561,6 @@ pipelinesView { groups, substate, hoveredPipeline, pipelineRunningKeyframes, que
 
     else
         groupViews
-
-
-handleKeyPressed : Char -> ( Footer.Model r, List Effect ) -> ( Footer.Model r, List Effect )
-handleKeyPressed key ( model, effects ) =
-    case key of
-        '/' ->
-            ( model, effects )
-
-        '?' ->
-            ( Footer.toggleHelp model, effects )
-
-        _ ->
-            ( Footer.showFooter model, effects )
 
 
 filterTerms : String -> List String

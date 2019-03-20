@@ -22,21 +22,12 @@ func (s *Server) CreateBuild(team db.Team) http.Handler {
 			return
 		}
 
-		build, err := team.CreateOneOffBuild()
+		build, err := team.CreateStartedBuild(plan)
 		if err != nil {
 			hLog.Error("failed-to-create-one-off-build", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		engineBuild, err := s.engine.CreateBuild(hLog, build, plan)
-		if err != nil {
-			hLog.Error("failed-to-start-build", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		go engineBuild.Resume(hLog)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)

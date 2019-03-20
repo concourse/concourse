@@ -7,6 +7,7 @@ module DashboardTests exposing
     , givenDataAndUser
     , givenDataUnauthenticated
     , iconSelector
+    , isColorWithStripes
     , middleGrey
     , white
     )
@@ -26,6 +27,7 @@ import Dict
 import Effects
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
+import Keycodes
 import List.Extra
 import Routes
 import Subscription exposing (Delivery(..), Interval(..))
@@ -75,7 +77,7 @@ green =
 
 blue : String
 blue =
-    "#4a90e2"
+    "#3498db"
 
 
 darkGrey : String
@@ -100,12 +102,12 @@ brown =
 
 white : String
 white =
-    "#fff"
+    "#ffffff"
 
 
 fadedGreen : String
 fadedGreen =
-    "#284834"
+    "#419867"
 
 
 orange : String
@@ -389,7 +391,9 @@ all =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated (apiData [])
                                     |> queryView
-                                    |> Query.find [ class "dashboard-content" ]
+                                    |> Query.find [ id "page-below-top-bar" ]
+                                    |> Query.children []
+                                    |> Query.first
                                     |> Query.children []
                                     |> Query.count (Expect.equal 1)
                        ]
@@ -444,6 +448,114 @@ all =
                                 [ style [ ( "line-height", "42px" ) ] ]
                             ]
             ]
+        , test "high density view has no vertical scroll" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            [ ( "height", "100%" )
+                            , ( "box-sizing", "border-box" )
+                            ]
+                        ]
+        , test "high density body aligns contents vertically" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "flex-direction", "column" )
+                            ]
+                        ]
+        , test "high density pipelines view fills vertical space" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+        , test "high density pipelines view has padding" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "padding", "60px" ) ] ]
+        , test "high density pipelines view wraps columns" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "flex-flow", "column wrap" )
+                            ]
+                        ]
+        , test "normal density pipelines view has default layout" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has
+                        [ style
+                            [ ( "display", "initial" )
+                            , ( "padding", "0" )
+                            ]
+                        ]
+        , test "high density view left-aligns contents" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "align-content", "flex-start" ) ] ]
+        , test "high density view has no overlapping top bar" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "padding-top", "54px" ) ] ]
+        , test "high density view has no overlapping bottom bar" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "padding-bottom", "50px" ) ] ]
         , test "top bar has bold font" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -508,16 +620,12 @@ all =
                                     )
                             )
                             >> queryView
-                            >> Expect.all
-                                [ Query.find
-                                    [ class "card-footer" ]
-                                    >> Query.children []
-                                    >> Query.first
-                                    >> Query.children []
-                                    >> Query.index -1
-                                    >> Query.has [ text "pending" ]
-                                , Query.hasNot [ tag "input" ]
-                                ]
+                            >> Query.find [ class "card-footer" ]
+                            >> Query.children []
+                            >> Query.first
+                            >> Query.children []
+                            >> Query.index -1
+                            >> Query.has [ text "pending" ]
                         ]
         , test "HD view redirects to no pipelines view when pipelines disappear" <|
             \_ ->
@@ -555,6 +663,23 @@ all =
                         )
                     |> queryView
                     |> Query.hasNot [ tag "input" ]
+        , test "typing '?' in search bar does not toggle help" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.handleCallback
+                        (Callback.APIDataFetched <|
+                            Ok
+                                ( 0
+                                , apiData
+                                    [ ( "team", [ "pipeline" ] ) ]
+                                    Nothing
+                                )
+                        )
+                    |> Dashboard.update (Msgs.FromTopBar TopBar.Msgs.FocusMsg)
+                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
+                    |> Dashboard.handleDelivery (KeyDown 191)
+                    |> queryView
+                    |> Query.hasNot [ id "keyboard-help" ]
         , test "bottom bar appears when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -602,9 +727,19 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Dashboard.handleDelivery (KeyDown (Char.toCode '?'))
+                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
+                    |> Dashboard.handleDelivery (KeyDown 191)
                     |> queryView
                     |> Query.has [ id "dashboard-info" ]
+        , test "on HD view, team names have increased letter spacing" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ class "dashboard-team-name-wrapper" ]
+                    |> Query.has [ style [ ( "letter-spacing", ".2em" ) ] ]
         , describe "team pills"
             [ test
                 ("shows team name with no pill when unauthenticated "
@@ -966,50 +1101,6 @@ all =
                             [ style
                                 [ ( "background-color", color ) ]
                             ]
-
-                    isColorWithStripes : String -> String -> Query.Single Msgs.Msg -> Expectation
-                    isColorWithStripes color stripeColor =
-                        Query.has
-                            [ style
-                                [ ( "background-image"
-                                  , "repeating-linear-gradient(-115deg,"
-                                        ++ stripeColor
-                                        ++ " 0,"
-                                        ++ stripeColor
-                                        ++ " 10px,"
-                                        ++ color
-                                        ++ " 0,"
-                                        ++ color
-                                        ++ " 16px)"
-                                  )
-                                , ( "background-size", "106px 114px" )
-                                , ( "animation"
-                                  , pipelineRunningKeyframes ++ " 3s linear infinite"
-                                  )
-                                ]
-                            ]
-
-                    isColorWithStripesHd : String -> String -> Query.Single Msgs.Msg -> Expectation
-                    isColorWithStripesHd color stripeColor =
-                        Query.has
-                            [ style
-                                [ ( "background-image"
-                                  , "repeating-linear-gradient(-115deg,"
-                                        ++ stripeColor
-                                        ++ " 0,"
-                                        ++ stripeColor
-                                        ++ " 10px,"
-                                        ++ color
-                                        ++ " 0,"
-                                        ++ color
-                                        ++ " 16px)"
-                                  )
-                                , ( "background-size", "106px 114px" )
-                                , ( "animation"
-                                  , pipelineRunningKeyframes ++ " 3s linear infinite"
-                                  )
-                                ]
-                            ]
                 in
                 [ describe "non-HD view"
                     [ test "is 7px tall" <|
@@ -1053,7 +1144,7 @@ all =
                                     Concourse.BuildStatusSucceeded
                                     True
                                 |> findBanner
-                                |> isColorWithStripes green darkGrey
+                                |> isColorWithStripes { thin = green, thick = darkGrey }
                     , test "is grey when pipeline is pending" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1069,7 +1160,7 @@ all =
                                     Concourse.BuildStatusStarted
                                     True
                                 |> findBanner
-                                |> isColorWithStripes lightGrey darkGrey
+                                |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
                     , test "is red when pipeline is failing" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1085,7 +1176,7 @@ all =
                                     Concourse.BuildStatusFailed
                                     True
                                 |> findBanner
-                                |> isColorWithStripes red darkGrey
+                                |> isColorWithStripes { thin = red, thick = darkGrey }
                     , test "is amber when pipeline is erroring" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1101,7 +1192,7 @@ all =
                                     Concourse.BuildStatusErrored
                                     True
                                 |> findBanner
-                                |> isColorWithStripes amber darkGrey
+                                |> isColorWithStripes { thin = amber, thick = darkGrey }
                     , test "is brown when pipeline is aborted" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1117,7 +1208,7 @@ all =
                                     Concourse.BuildStatusAborted
                                     True
                                 |> findBanner
-                                |> isColorWithStripes brown darkGrey
+                                |> isColorWithStripes { thin = brown, thick = darkGrey }
                     , describe "status priorities" <|
                         let
                             givenTwoJobs :
@@ -1230,7 +1321,7 @@ all =
                                         Concourse.BuildStatusSucceeded
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd green darkGrey
+                                    |> isColorWithStripes { thin = green, thick = darkGrey }
                         , test "is grey when pipeline is pending" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1246,7 +1337,7 @@ all =
                                         Concourse.BuildStatusStarted
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd lightGrey darkGrey
+                                    |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
                         , test "is red when pipeline is failing" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1262,7 +1353,7 @@ all =
                                         Concourse.BuildStatusFailed
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd red darkGrey
+                                    |> isColorWithStripes { thin = red, thick = darkGrey }
                         , test "is amber when pipeline is erroring" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1278,7 +1369,7 @@ all =
                                         Concourse.BuildStatusErrored
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd amber darkGrey
+                                    |> isColorWithStripes { thin = amber, thick = darkGrey }
                         , test "is brown when pipeline is aborted" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1294,7 +1385,7 @@ all =
                                         Concourse.BuildStatusAborted
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd brown darkGrey
+                                    |> isColorWithStripes { thin = brown, thick = darkGrey }
                         , describe "status priorities" <|
                             let
                                 givenTwoJobs :
@@ -2766,6 +2857,27 @@ all =
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.has [ id "dashboard-info" ]
+            , test "is replaced by keyboard help when pressing '?'" <|
+                \_ ->
+                    initFromApplication
+                        |> givenDataUnauthenticatedFromApplication
+                            (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived <|
+                                KeyDown Keycodes.shift
+                            )
+                        |> Tuple.first
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived <|
+                                KeyDown 191
+                            )
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Expect.all
+                            [ Query.hasNot [ id "dashboard-info" ]
+                            , Query.has [ id "keyboard-help" ]
+                            ]
             ]
         , test "subscribes to one and five second timers" <|
             \_ ->
@@ -2778,6 +2890,13 @@ all =
                         , List.member (Subscription.OnClockTick FiveSeconds)
                             >> Expect.true "doesn't have five second timer"
                         ]
+        , test "subscribes to keyups" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Tuple.first
+                    |> Dashboard.subscriptions
+                    |> List.member Subscription.OnKeyUp
+                    |> Expect.true "doesn't subscribe to keyups?"
         , test "auto refreshes data every five seconds" <|
             \_ ->
                 initFromApplication
@@ -3325,3 +3444,26 @@ teamHeaderHasPill teamName pillText =
             [ Query.count (Expect.equal 2)
             , Query.index 1 >> Query.has [ text pillText ]
             ]
+
+
+isColorWithStripes : { thick : String, thin : String } -> Query.Single msg -> Expectation
+isColorWithStripes { thick, thin } =
+    Query.has
+        [ style
+            [ ( "background-image"
+              , "repeating-linear-gradient(-115deg,"
+                    ++ thick
+                    ++ " 0,"
+                    ++ thick
+                    ++ " 10px,"
+                    ++ thin
+                    ++ " 0,"
+                    ++ thin
+                    ++ " 16px)"
+              )
+            , ( "background-size", "106px 114px" )
+            , ( "animation"
+              , pipelineRunningKeyframes ++ " 3s linear infinite"
+              )
+            ]
+        ]

@@ -112,6 +112,24 @@ func (f *Fly) GetVersions(pipeline string, resource string) []Version {
 	return versions
 }
 
+func (f *Fly) GetUserRole(teamName string) []string {
+
+	type RoleInfo struct {
+		Teams map[string][]string `json:"teams"`
+	}
+	var teamsInfo RoleInfo = RoleInfo{}
+
+	sess := f.Start("userinfo", "--json")
+	<-sess.Exited
+	Expect(sess.ExitCode()).To(BeZero())
+
+	err := json.Unmarshal(sess.Out.Contents(), &teamsInfo)
+	Expect(err).ToNot(HaveOccurred())
+
+	return teamsInfo.Teams[teamName]
+
+}
+
 func BuildBinary() string {
 	flyBinPath, err := gexec.Build("github.com/concourse/concourse/fly")
 	Expect(err).ToNot(HaveOccurred())

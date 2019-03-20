@@ -1,7 +1,13 @@
--- TODO: explicit exposing
-
-
-module Network.Job exposing (fetchAllJobs, fetchJob, fetchJobs, fetchJobsRaw, pause, pauseUnpause, triggerBuild, unpause)
+module Network.Job exposing
+    ( fetchAllJobs
+    , fetchJob
+    , fetchJobs
+    , fetchJobsRaw
+    , pause
+    , pauseUnpause
+    , triggerBuild
+    , unpause
+    )
 
 import Concourse
 import Http

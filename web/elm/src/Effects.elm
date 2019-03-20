@@ -131,7 +131,7 @@ type Effect
     | DoCheck Concourse.ResourceIdentifier
     | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
-    | SendTogglePipelineRequest Dashboard.Models.Pipeline
+    | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
     | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline)
@@ -142,10 +142,11 @@ type Effect
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
-    | ForceFocus String
     | OpenBuildEventStream { url : String, eventTypes : List String }
     | CloseBuildEventStream
     | CheckIsVisible String
+    | Focus String
+    | Blur String
 
 
 type ScrollDirection
@@ -271,8 +272,8 @@ runEffect effect csrfToken =
             Network.FlyToken.sendTokenToFly authToken flyPort
                 |> Task.attempt TokenSentToFly
 
-        SendTogglePipelineRequest pipeline ->
-            Network.Pipeline.togglePause pipeline.status pipeline.teamName pipeline.name csrfToken
+        SendTogglePipelineRequest pipelineIdentifier isPaused ->
+            Network.Pipeline.togglePause isPaused pipelineIdentifier.teamName pipelineIdentifier.pipelineName csrfToken
                 |> Task.attempt (always EmptyCallback)
 
         ShowTooltip ( teamName, pipelineName ) ->
@@ -349,8 +350,12 @@ runEffect effect csrfToken =
         LoadToken ->
             loadToken ()
 
-        ForceFocus dom ->
-            Dom.focus dom
+        Focus id ->
+            Dom.focus id
+                |> Task.attempt (always EmptyCallback)
+
+        Blur id ->
+            Dom.blur id
                 |> Task.attempt (always EmptyCallback)
 
         OpenBuildEventStream config ->

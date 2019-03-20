@@ -59,10 +59,8 @@ var _ = Describe("ContainerProvider", func() {
 
 		ctx                context.Context
 		containerSpec      ContainerSpec
-		workerSpec         WorkerSpec
 		fakeContainerOwner *dbfakes.FakeContainerOwner
 		containerMetadata  db.ContainerMetadata
-		resourceTypes      creds.VersionedResourceTypes
 
 		findOrCreateErr       error
 		findOrCreateContainer Container
@@ -237,22 +235,6 @@ var _ = Describe("ContainerProvider", func() {
 				Memory: &memory,
 			},
 		}
-
-		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Type:   "some-type",
-					Source: atc.Source{"some": "((secret-source))"},
-				},
-				Version: atc.Version{"some": "version"},
-			},
-		})
-
-		workerSpec = WorkerSpec{
-			TeamID:        73410,
-			ResourceType:  "registry-image",
-			ResourceTypes: resourceTypes,
-		}
 	})
 
 	CertsVolumeExists := func() {
@@ -274,8 +256,6 @@ var _ = Describe("ContainerProvider", func() {
 				fakeImageFetchingDelegate,
 				containerMetadata,
 				containerSpec,
-				workerSpec,
-				resourceTypes,
 				fakeImage,
 			)
 		})

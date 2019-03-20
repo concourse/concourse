@@ -11,7 +11,6 @@ module Job.Job exposing
     , view
     )
 
-import Build.Styles as Styles
 import BuildDuration
 import Callback exposing (Callback(..))
 import Colors
@@ -46,6 +45,7 @@ import Html.Events
         )
 import Http
 import Job.Msgs exposing (Hoverable(..), Msg(..))
+import Job.Styles as Styles
 import LoadingIndicator
 import RemoteData exposing (WebData)
 import Routes
@@ -110,10 +110,11 @@ init flags =
             , hovered = None
             , isUserMenuExpanded = topBar.isUserMenuExpanded
             , isPinMenuExpanded = topBar.isPinMenuExpanded
-            , middleSection = topBar.middleSection
-            , teams = topBar.teams
+            , route = topBar.route
+            , groups = topBar.groups
+            , dropdown = topBar.dropdown
             , screenSize = topBar.screenSize
-            , highDensity = topBar.highDensity
+            , shiftDown = topBar.shiftDown
             }
     in
     ( model
@@ -160,11 +161,11 @@ getUpdateMessage model =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar callback ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody callback ( model, effects ) =
     case callback of
         BuildTriggered (Ok build) ->
             ( model
@@ -412,7 +413,7 @@ view userState model =
             ]
             [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
             , Html.div
-                [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+                [ id "page-below-top-bar", style Styles.pageBelowTopBar ]
                 [ viewMainJobsSection model ]
             ]
         ]
@@ -426,14 +427,22 @@ viewMainJobsSection model =
                 LoadingIndicator.view
 
             Just job ->
+                let
+                    toggleHovered =
+                        model.hovered == Toggle
+
+                    triggerHovered =
+                        model.hovered == Trigger
+                in
                 Html.div [ class "fixed-header" ]
                     [ Html.div
-                        [ class <|
-                            "build-header "
-                                ++ headerBuildStatusClass job.finishedBuild
+                        [ class "build-header"
                         , style
                             [ ( "display", "flex" )
                             , ( "justify-content", "space-between" )
+                            , ( "background"
+                              , Colors.buildStatusColor True <| headerBuildStatus job.finishedBuild
+                              )
                             ]
                         ]
                         -- TODO really?
@@ -441,34 +450,19 @@ viewMainJobsSection model =
                             [ style [ ( "display", "flex" ) ] ]
                             [ Html.button
                                 [ id "pause-toggle"
-                                , style <| Styles.triggerButton False
+                                , style <|
+                                    Styles.triggerButton False toggleHovered <|
+                                        headerBuildStatus job.finishedBuild
                                 , onMouseEnter <| Hover Toggle
                                 , onMouseLeave <| Hover None
                                 , onClick TogglePaused
                                 ]
                                 [ Html.div
-                                    [ style
-                                        [ ( "background-image"
-                                          , "url(/public/images/"
-                                                ++ (if job.paused then
-                                                        "ic-play-circle-outline.svg)"
-
-                                                    else
-                                                        "ic-pause-circle-outline-white.svg)"
-                                                   )
-                                          )
-                                        , ( "background-position", "50% 50%" )
-                                        , ( "background-repeat", "no-repeat" )
-                                        , ( "width", "40px" )
-                                        , ( "height", "40px" )
-                                        , ( "opacity"
-                                          , if model.hovered == Toggle then
-                                                "1"
-
-                                            else
-                                                "0.5"
-                                          )
-                                        ]
+                                    [ style <|
+                                        Styles.pauseToggleIcon
+                                            { paused = job.paused
+                                            , hovered = toggleHovered
+                                            }
                                     ]
                                     []
                                 ]
@@ -482,23 +476,19 @@ viewMainJobsSection model =
                             , onMouseEnter <| Hover Trigger
                             , onMouseLeave <| Hover None
                             , style <|
-                                Styles.triggerButton job.disableManualTrigger
+                                Styles.triggerButton job.disableManualTrigger triggerHovered <|
+                                    headerBuildStatus job.finishedBuild
                             ]
                           <|
                             [ Html.div
                                 [ style <|
                                     Styles.triggerIcon <|
-                                        model.hovered
-                                            == Trigger
+                                        triggerHovered
                                             && not job.disableManualTrigger
                                 ]
                                 []
                             ]
-                                ++ (if
-                                        job.disableManualTrigger
-                                            && model.hovered
-                                            == Trigger
-                                    then
+                                ++ (if job.disableManualTrigger && triggerHovered then
                                         [ Html.div
                                             [ style Styles.triggerTooltip ]
                                             [ Html.text <|
@@ -543,14 +533,14 @@ viewMainJobsSection model =
         ]
 
 
-headerBuildStatusClass : Maybe Concourse.Build -> String
-headerBuildStatusClass finishedBuild =
+headerBuildStatus : Maybe Concourse.Build -> Concourse.BuildStatus
+headerBuildStatus finishedBuild =
     case finishedBuild of
         Nothing ->
-            ""
+            Concourse.BuildStatusPending
 
         Just build ->
-            Concourse.BuildStatus.show build.status
+            build.status
 
 
 viewPaginationBar : Model -> Html Msg

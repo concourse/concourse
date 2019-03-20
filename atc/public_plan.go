@@ -19,7 +19,7 @@ func (plan Plan) Public() *json.RawMessage {
 		DependentGet   *json.RawMessage `json:"dependent_get,omitempty"`
 		Timeout        *json.RawMessage `json:"timeout,omitempty"`
 		Retry          *json.RawMessage `json:"retry,omitempty"`
-		UserArtifact   *json.RawMessage `json:"user_artifact,omitempty"`
+		ArtifactInput  *json.RawMessage `json:"artifact_input,omitempty"`
 		ArtifactOutput *json.RawMessage `json:"artifact_output,omitempty"`
 	}
 
@@ -73,8 +73,8 @@ func (plan Plan) Public() *json.RawMessage {
 		public.Retry = plan.Retry.Public()
 	}
 
-	if plan.UserArtifact != nil {
-		public.UserArtifact = plan.UserArtifact.Public()
+	if plan.ArtifactInput != nil {
+		public.ArtifactInput = plan.ArtifactInput.Public()
 	}
 
 	if plan.ArtifactOutput != nil {
@@ -224,7 +224,7 @@ func (plan RetryPlan) Public() *json.RawMessage {
 	return enc(public)
 }
 
-func (plan UserArtifactPlan) Public() *json.RawMessage {
+func (plan ArtifactInputPlan) Public() *json.RawMessage {
 	return enc(plan)
 }
 

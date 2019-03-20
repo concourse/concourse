@@ -108,10 +108,11 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = topBar.isUserMenuExpanded
             , isPinMenuExpanded = topBar.isPinMenuExpanded
-            , middleSection = topBar.middleSection
-            , teams = topBar.teams
+            , route = topBar.route
+            , groups = topBar.groups
+            , dropdown = topBar.dropdown
             , screenSize = topBar.screenSize
-            , highDensity = topBar.highDensity
+            , shiftDown = topBar.shiftDown
             }
     in
     ( model
@@ -212,11 +213,11 @@ subscriptions model =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar action ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody action ( model, effects ) =
     case action of
         ResourceFetched (Ok resource) ->
             ( { model
@@ -627,7 +628,7 @@ update action ( model, effects ) =
             else
                 ( model, effects ++ [ RedirectToLogin ] )
 
-        TopBarMsg msg ->
+        FromTopBar msg ->
             TopBar.update msg ( model, effects )
 
         EditComment input ->
@@ -696,8 +697,11 @@ view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map TopBarMsg <| TopBar.view userState TopBar.Model.None model
-            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+            [ Html.map FromTopBar <| TopBar.view userState TopBar.Model.None model
+            , Html.div
+                [ id "page-below-top-bar"
+                , style Resource.Styles.pageBelowTopBar
+                ]
                 [ subpageView userState model
                 , commentBar userState model
                 ]
@@ -926,11 +930,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         statusIcon =
             case checkStatus of
                 Models.CurrentlyChecking ->
-                    Spinner.spinner "14px"
-                        [ Html.Attributes.style
-                            [ ( "margin", "7px" )
-                            ]
-                        ]
+                    Spinner.spinner { size = "14px", margin = "7px" }
 
                 _ ->
                     Html.div
@@ -1098,7 +1098,7 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                             , onClick <| SaveComment commentState.comment
                             ]
                             (if pinCommentLoading then
-                                [ Spinner.spinner "12px" [] ]
+                                [ Spinner.spinner { size = "12px", margin = "0px" } ]
 
                              else
                                 [ Html.text "save" ]
@@ -1340,7 +1340,7 @@ viewEnabledCheckbox ({ enabled, id, pinState } as params) =
                 []
 
             Models.Changing ->
-                [ Spinner.spinner "12.5px" [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ] ]
+                [ Spinner.spinner { size = "12.5px", margin = "6.25px" } ]
 
             Models.Disabled ->
                 []
@@ -1392,7 +1392,7 @@ viewPinButton { versionID, pinState } =
                     []
 
             InTransition ->
-                [ Spinner.spinner "12.5px" [ Html.Attributes.style [ ( "margin", "6.25px" ) ] ] ]
+                [ Spinner.spinner { size = "12.5px", margin = "6.25px" } ]
 
             _ ->
                 []

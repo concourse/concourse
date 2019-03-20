@@ -21,6 +21,7 @@ type aggregateCollector struct {
 	volumeCollector                     Collector
 	containerCollector                  Collector
 	resourceConfigCheckSessionCollector Collector
+	artifactCollector                   Collector
 }
 
 func NewCollector(
@@ -29,6 +30,7 @@ func NewCollector(
 	resourceCacheUses Collector,
 	resourceConfigs Collector,
 	resourceCaches Collector,
+	artifactCollector Collector,
 	volumes Collector,
 	containers Collector,
 	resourceConfigCheckSessionCollector Collector,
@@ -39,6 +41,7 @@ func NewCollector(
 		resourceCacheUseCollector:           resourceCacheUses,
 		resourceConfigCollector:             resourceConfigs,
 		resourceCacheCollector:              resourceCaches,
+		artifactCollector:                   artifactCollector,
 		volumeCollector:                     volumes,
 		containerCollector:                  containers,
 		resourceConfigCheckSessionCollector: resourceConfigCheckSessionCollector,
@@ -78,6 +81,11 @@ func (c *aggregateCollector) Run(ctx context.Context) error {
 	err = c.resourceConfigCheckSessionCollector.Run(ctx)
 	if err != nil {
 		logger.Error("resource-config-check-session-collector", err)
+	}
+
+	err = c.artifactCollector.Run(ctx)
+	if err != nil {
+		logger.Error("artifact-collector", err)
 	}
 
 	err = c.containerCollector.Run(ctx)

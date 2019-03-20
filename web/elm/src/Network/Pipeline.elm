@@ -1,7 +1,6 @@
 module Network.Pipeline exposing (fetchPipeline, fetchPipelines, order, togglePause)
 
 import Concourse
-import Concourse.PipelineStatus
 import Http
 import Json.Decode
 import Json.Encode
@@ -39,13 +38,13 @@ fetchPipelines =
 
 
 togglePause :
-    Concourse.PipelineStatus.PipelineStatus
+    Bool
     -> String
     -> String
     -> Concourse.CSRFToken
     -> Task Http.Error ()
-togglePause status =
-    if status == Concourse.PipelineStatus.PipelineStatusPaused then
+togglePause isPaused =
+    if isPaused then
         putAction "unpause"
 
     else

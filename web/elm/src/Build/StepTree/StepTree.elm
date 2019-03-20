@@ -42,7 +42,7 @@ import Dict exposing (Dict)
 import DictView
 import Effects exposing (Effect(..))
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, href, style)
+import Html.Attributes exposing (attribute, class, classList, href, style, target)
 import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import Spinner
@@ -573,18 +573,33 @@ viewVersion version =
 
 
 viewMetadata : List MetadataField -> Html Msg
-viewMetadata metadata =
-    DictView.view []
-        << Dict.fromList
-    <|
-        List.map (\{ name, value } -> ( name, Html.pre [] [ Html.text value ] )) metadata
+viewMetadata =
+        List.map
+            (\{ name, value } ->
+                ( name
+                , Html.pre []
+                    [ if String.startsWith "http://" value || String.startsWith "https://" value then
+                        Html.a
+                            [ href value
+                            , target "_blank"
+                            , style [ ( "text-decoration-line", "underline" ) ]
+                            ]
+                            [ Html.text value ]
+
+                      else
+                        Html.text value
+                    ]
+                )
+            )
+            >> Dict.fromList
+            >> DictView.view []
 
 
 viewStepState : StepState -> Html Msg
 viewStepState state =
     case state of
         StepStateRunning ->
-            Spinner.spinner "14px" [ style [ ( "margin", "7px" ) ] ]
+            Spinner.spinner { size = "14px", margin = "7px" }
 
         StepStatePending ->
             Html.div

@@ -116,7 +116,6 @@ init flags =
           , browsingIndex = 0
           , autoScroll = True
           , previousKeyPress = Nothing
-          , shiftDown = False
           , previousTriggerBuildByKey = False
           , showHelp = False
           , highlight = flags.highlight
@@ -124,11 +123,12 @@ init flags =
           , hoveredCounter = 0
           , isUserMenuExpanded = topBar.isUserMenuExpanded
           , isPinMenuExpanded = topBar.isPinMenuExpanded
-          , middleSection = topBar.middleSection
-          , teams = topBar.teams
+          , route = topBar.route
+          , groups = topBar.groups
+          , dropdown = topBar.dropdown
           , screenSize = topBar.screenSize
-          , highDensity = topBar.highDensity
           , fetchingHistory = False
+          , shiftDown = topBar.shiftDown
           }
         , topBarEffects ++ [ GetCurrentTime ]
         )
@@ -227,11 +227,11 @@ getUpdateMessage model =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar action ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody action ( model, effects ) =
     case action of
         BuildTriggered (Ok build) ->
             ( { model | history = build :: model.history }
@@ -1045,17 +1045,14 @@ viewBuildPrepStatus : Concourse.BuildPrepStatus -> Html Msg
 viewBuildPrepStatus status =
     case status of
         Concourse.BuildPrepStatusUnknown ->
-            Html.i
-                [ class "fa fa-fw fa-circle-o-notch"
-                , title "thinking..."
-                ]
-                []
+            Html.div
+                [ title "thinking..." ]
+                [ Spinner.spinner { size = "12px", margin = "0 5px 0 0" } ]
 
         Concourse.BuildPrepStatusBlocking ->
-            Spinner.spinner "12px"
-                [ style [ ( "margin-right", "5px" ) ]
-                , title "blocking"
-                ]
+            Html.div
+                [ title "blocking" ]
+                [ Spinner.spinner { size = "12px", margin = "0 5px 0 0" } ]
 
         Concourse.BuildPrepStatusNotBlocking ->
             Html.div
@@ -1110,7 +1107,7 @@ viewBuildHeader build model =
                         , onFocus <| Hover (Just Trigger)
                         , onMouseLeave <| Hover Nothing
                         , onBlur <| Hover Nothing
-                        , style <| Styles.triggerButton buttonDisabled
+                        , style <| Styles.triggerButton buttonDisabled buttonHovered build.status
                         ]
                     <|
                         [ Html.div
@@ -1133,6 +1130,9 @@ viewBuildHeader build model =
                 Nothing ->
                     Html.text ""
 
+        abortHovered =
+            model.hoveredElement == Just Abort
+
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
                 Html.button
@@ -1145,14 +1145,10 @@ viewBuildHeader build model =
                     , onFocus <| Hover (Just Abort)
                     , onMouseLeave <| Hover Nothing
                     , onBlur <| Hover Nothing
-                    , style Styles.abortButton
+                    , style <| Styles.abortButton <| abortHovered
                     ]
                     [ Html.div
-                        [ style <|
-                            Styles.abortIcon <|
-                                model.hoveredElement
-                                    == Just Abort
-                        ]
+                        [ style <| Styles.abortIcon <| abortHovered ]
                         []
                     ]
 
@@ -1180,11 +1176,8 @@ viewBuildHeader build model =
     Html.div [ class "fixed-header" ]
         [ Html.div
             [ id "build-header"
-            , class ("build-header " ++ Concourse.BuildStatus.show build.status)
-            , style
-                [ ( "display", "flex" )
-                , ( "justify-content", "space-between" )
-                ]
+            , class "build-header"
+            , style <| Styles.header build.status
             ]
             [ Html.div []
                 [ Html.h1 [] [ buildTitle ]
@@ -1219,11 +1212,8 @@ viewHistory currentBuild builds =
 viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Msg
 viewHistoryItem currentBuild build =
     Html.li
-        [ if build.id == currentBuild.id then
-            class (Concourse.BuildStatus.show currentBuild.status ++ " current")
-
-          else
-            class (Concourse.BuildStatus.show build.status)
+        [ classList [ ( "current", build.id == currentBuild.id ) ]
+        , style <| Styles.historyItem build.status
         , id <| toString build.id
         ]
         [ Html.a

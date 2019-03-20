@@ -26,8 +26,8 @@ type JobFunc func(worker.Worker)
 
 func (f JobFunc) Name() string { return "" }
 
-func (f JobFunc) Run(workerClient worker.Worker) {
-	f(workerClient)
+func (f JobFunc) Run(gardenClient worker.Worker) {
+	f(gardenClient)
 }
 
 //go:generate counterfeiter . WorkerJobRunner
@@ -61,7 +61,7 @@ func (runner *workerJobRunner) Try(logger lager.Logger, workerName string, job J
 	})
 
 	runner.workersL.Lock()
-	workerClient, found := runner.workers[workerName]
+	gardenWorker, found := runner.workers[workerName]
 	runner.workersL.Unlock()
 
 	if !found {
@@ -71,7 +71,7 @@ func (runner *workerJobRunner) Try(logger lager.Logger, workerName string, job J
 	}
 
 	go func() {
-		job.Run(workerClient)
+		job.Run(gardenWorker)
 	}()
 }
 

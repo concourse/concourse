@@ -472,11 +472,13 @@ view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } gr
         ]
 
 
-hdView : String -> Group -> Html Msg
+hdView : String -> Group -> List (Html Msg)
 hdView pipelineRunningKeyframes group =
     let
         header =
-            [ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+            [ Html.div
+                [ class "dashboard-team-name" ]
+                [ Html.text group.teamName ]
             ]
                 ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view True) group.tag)
 
@@ -494,14 +496,19 @@ hdView pipelineRunningKeyframes group =
                                 }
                         )
     in
-    Html.div [ class "pipeline-wrapper" ] <|
-        case teamPipelines of
-            [] ->
-                header
+    case teamPipelines of
+        [] ->
+            header
 
-            p :: ps ->
-                -- Wrap the team name and the first pipeline together so the team name is not the last element in a column
-                List.append [ Html.div [ class "dashboard-team-name-wrapper" ] (header ++ [ p ]) ] ps
+        p :: ps ->
+            -- Wrap the team name and the first pipeline together so
+            -- the team name is not the last element in a column
+            Html.div
+                [ class "dashboard-team-name-wrapper"
+                , style Styles.teamNameHd
+                ]
+                (header ++ [ p ])
+                :: ps
 
 
 pipelineNotSetView : Html msg

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	gclient "code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/lager"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -143,8 +142,32 @@ func (provider *dbWorkerProvider) FindWorkerForContainer(
 	return worker, true, err
 }
 
+func (provider *dbWorkerProvider) FindWorkerForVolume(
+	logger lager.Logger,
+	teamID int,
+	handle string,
+) (Worker, bool, error) {
+	logger = logger.Session("worker-for-volume")
+	team := provider.dbTeamFactory.GetByID(teamID)
+
+	dbWorker, found, err := team.FindWorkerForVolume(handle)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker, 0)
+	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
+		return nil, false, nil
+	}
+	return worker, true, err
+}
+
 func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker, buildContainersCount int) Worker {
-	gcf := NewGardenConnectionFactory(
+	gcf := NewGardenClientFactory(
 		provider.dbWorkerFactory,
 		logger.Session("garden-connection"),
 		savedWorker.Name(),
@@ -152,7 +175,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		provider.retryBackOffFactory,
 	)
 
-	gClient := gclient.New(NewRetryableConnection(gcf.BuildConnection()))
+	gClient := gcf.NewClient()
 
 	bClient := bclient.New("", transport.NewBaggageclaimRoundTripper(
 		savedWorker.Name(),

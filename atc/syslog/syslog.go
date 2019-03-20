@@ -19,7 +19,7 @@ type Syslog struct {
 	writer *sl.Writer
 	closed bool
 
-	mu     sync.RWMutex
+	mu sync.RWMutex
 }
 
 func Dial(transport, address string, caCerts []string) (*Syslog, error) {

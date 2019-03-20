@@ -55,7 +55,7 @@ var _ = Describe("Resource Put", func() {
 		attachOutError = nil
 
 		outScriptProcess = new(gfakes.FakeProcess)
-		outScriptProcess.IDReturns(TaskProcessID)
+		outScriptProcess.IDReturns(ResourceProcessID)
 		outScriptProcess.WaitStub = func() (int, error) {
 			return outScriptExitStatus, nil
 		}
@@ -191,7 +191,7 @@ var _ = Describe("Resource Put", func() {
 				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 				pid, io := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal(TaskProcessID))
+				Expect(pid).To(Equal(ResourceProcessID))
 
 				// send request on stdin in case process hasn't read it yet
 				request, err := ioutil.ReadAll(io.Stdin)
@@ -289,7 +289,7 @@ var _ = Describe("Resource Put", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 				spec, _ := fakeContainer.RunArgsForCall(0)
-				Expect(spec.ID).To(Equal(TaskProcessID))
+				Expect(spec.ID).To(Equal(ResourceProcessID))
 			})
 
 			It("uses the same working directory for all actions", func() {

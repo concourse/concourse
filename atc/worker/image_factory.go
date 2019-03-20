@@ -16,7 +16,7 @@ import (
 type ImageFactory interface {
 	GetImage(
 		logger lager.Logger,
-		workerClient Worker,
+		worker Worker,
 		volumeClient VolumeClient,
 		imageSpec ImageSpec,
 		teamID int,

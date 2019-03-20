@@ -5,8 +5,7 @@ import (
 	"errors"
 
 	. "github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/worker"
-
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,7 +19,7 @@ var _ = Describe("LogErrorStep", func() {
 		fakeStep     *execfakes.FakeStep
 		fakeDelegate *execfakes.FakeBuildStepDelegate
 
-		repo  *worker.ArtifactRepository
+		repo  *artifact.Repository
 		state *execfakes.FakeRunState
 
 		step Step
@@ -32,7 +31,7 @@ var _ = Describe("LogErrorStep", func() {
 		fakeStep = new(execfakes.FakeStep)
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 
-		repo = worker.NewArtifactRepository()
+		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 
