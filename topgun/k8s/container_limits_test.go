@@ -1,8 +1,6 @@
 package k8s_test
 
 import (
-	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
@@ -16,16 +14,13 @@ import (
 var _ = Describe("Container Limits", func() {
 	var (
 		proxySession        *gexec.Session
-		releaseName         string
-		namespace           string
 		atcEndpoint         string
 		nodeImage           string
 		helmDeployTestFlags []string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-cl-%d-%d", rand.Int(), GinkgoParallelNode())
-		namespace = releaseName
+		setReleaseNameAndNamespace("cl")
 	})
 
 	JustBeforeEach(func() {

@@ -2,8 +2,6 @@ package k8s_test
 
 import (
 	"encoding/json"
-	"fmt"
-	"math/rand"
 	"net/http"
 
 	"github.com/onsi/gomega/gexec"
@@ -16,8 +14,6 @@ import (
 var _ = Describe("Garden Config", func() {
 	var (
 		proxySession        *gexec.Session
-		releaseName         string
-		namespace           string
 		gardenEndpoint      string
 		helmDeployTestFlags []string
 	)
@@ -27,8 +23,7 @@ var _ = Describe("Garden Config", func() {
 	}
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-gc-%d-%d", rand.Int(), GinkgoParallelNode())
-		namespace = releaseName
+		setReleaseNameAndNamespace("gc")
 		Run(nil, "kubectl", "create", "namespace", namespace)
 	})
 

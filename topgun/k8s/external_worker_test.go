@@ -1,8 +1,6 @@
 package k8s_test
 
 import (
-	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/onsi/gomega/gexec"
@@ -16,15 +14,12 @@ var _ = Describe("team external workers", func() {
 
 	var (
 		proxySession *gexec.Session
-		releaseName  string
-		namespace    string
 		atcEndpoint  string
 		workerKey    string
 	)
 
 	JustBeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-xw-%d-%d", rand.Int(), GinkgoParallelNode())
-		namespace = releaseName
+		setReleaseNameAndNamespace("xw")
 
 		helmArgs := []string{
 			"--set=worker.replicas=1",

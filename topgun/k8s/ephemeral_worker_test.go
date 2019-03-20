@@ -2,7 +2,6 @@ package k8s_test
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/onsi/gomega/gexec"
@@ -15,14 +14,11 @@ import (
 var _ = Describe("Ephemeral workers", func() {
 	var (
 		proxySession *gexec.Session
-		releaseName  string
-		namespace    string
 		atcEndpoint  string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-ew-%d-%d", rand.Int(), GinkgoParallelNode())
-		namespace = releaseName
+		setReleaseNameAndNamespace("ew")
 
 		deployConcourseChart(releaseName,
 			// TODO: https://github.com/concourse/concourse/issues/2827

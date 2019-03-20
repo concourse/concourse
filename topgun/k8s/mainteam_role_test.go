@@ -1,9 +1,6 @@
 package k8s_test
 
 import (
-	"fmt"
-	"math/rand"
-
 	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
@@ -14,8 +11,6 @@ import (
 var _ = Describe("Main team role config", func() {
 	var (
 		proxySession        *gexec.Session
-		releaseName         string
-		namespace           string
 		atcEndpoint         string
 		helmDeployTestFlags []string
 		username            = "test-viewer"
@@ -23,8 +18,7 @@ var _ = Describe("Main team role config", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-mt-%d-%d", rand.Int(), GinkgoParallelNode())
-		namespace = releaseName
+		setReleaseNameAndNamespace("mt")
 		Run(nil, "kubectl", "create", "namespace", namespace)
 	})
 

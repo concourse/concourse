@@ -1,8 +1,6 @@
 package k8s_test
 
 import (
-	"fmt"
-	"math/rand"
 	"path"
 
 	. "github.com/concourse/concourse/topgun"
@@ -11,14 +9,11 @@ import (
 
 var _ = Describe("External PostgreSQL", func() {
 	var (
-		releaseName   string
 		pgReleaseName string
-		namespace     string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-ep-%d-%d", rand.Int(), GinkgoParallelNode())
-		namespace = releaseName
+		setReleaseNameAndNamespace("ep")
 		pgReleaseName = releaseName + "-pg"
 
 		helmDeploy(pgReleaseName,
