@@ -16,7 +16,6 @@ import (
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/worker/image/imagefakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -151,7 +150,6 @@ var _ = Describe("Image", func() {
 				fakeVolumeClient,
 				worker.ImageSpec{
 					ImageArtifactSource: fakeImageArtifactSource,
-					ImageArtifactName:   "some-image-artifact-name",
 					Privileged:          true,
 				},
 				42,

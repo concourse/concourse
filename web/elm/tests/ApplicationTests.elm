@@ -1,13 +1,10 @@
 module ApplicationTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
-import Concourse.PipelineStatus as PipelineStatus
-import Dashboard.Msgs
-import Effects
 import Expect
-import SubPage.Msgs
-import Subscription exposing (Delivery(..))
+import Message.Effects as Effects
+import Message.Subscription as Subscription exposing (Delivery(..))
+import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (style)
@@ -159,17 +156,12 @@ all =
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| NonHrefLinkClicked "/foo/bar")
                     |> Tuple.second
-                    |> Expect.equal
-                        [ ( Effects.Layout, "token", Effects.NavigateTo "/foo/bar" )
-                        ]
+                    |> Expect.equal [ Effects.NavigateTo "/foo/bar" ]
         , test "received token is passed to all subsquent requests" <|
             \_ ->
                 let
                     pipelineIdentifier =
                         { pipelineName = "p", teamName = "t" }
-
-                    pipelineStatus =
-                        PipelineStatus.PipelineStatusPaused
                 in
                 Application.init
                     { turbulenceImgSrc = ""
@@ -193,11 +185,6 @@ all =
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| TokenReceived <| Just "real-token")
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.DashboardMsg <|
-                                Dashboard.Msgs.TogglePipelinePaused pipelineIdentifier pipelineStatus
-                        )
-                    |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, "real-token", Effects.SendTogglePipelineRequest pipelineIdentifier True ) ]
+                    |> .csrfToken
+                    |> Expect.equal "real-token"
         ]

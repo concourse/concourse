@@ -52,6 +52,7 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, int, bool) {
 
 type ResourceConfig struct {
 	Name         string  `yaml:"name" json:"name" mapstructure:"name"`
+	Public       bool    `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
 	WebhookToken string  `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
 	Type         string  `yaml:"type" json:"type" mapstructure:"type"`
 	Source       Source  `yaml:"source" json:"source" mapstructure:"source"`

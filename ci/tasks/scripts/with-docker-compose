@@ -10,12 +10,20 @@ start_docker
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
 
 pushd concourse
-  ./ci/tasks/scripts/generate-keys
+  if [ "$BUILD" = "true" ]; then
+    docker-compose \
+      -f docker-compose.yml \
+      -f ci/overrides/docker-compose.ci.yml \
+      up --build -d
+  else
+    ./ci/tasks/scripts/generate-keys
 
-  docker-compose \
-    -f docker-compose.yml \
-    -f ci/overrides/docker-compose.ci.yml \
-    up --no-build -d
+    docker-compose \
+      -f docker-compose.yml \
+      -f ci/overrides/docker-compose.ci.yml \
+      -f ci/overrides/docker-compose.no-build.yml \
+      up --no-build -d
+  fi
 popd
 
 "$@"

@@ -1,16 +1,14 @@
 module DashboardSearchTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
-import Callback
-import Dashboard.Msgs
-import Effects
+import Concourse
 import Expect exposing (Expectation)
-import SubPage.Msgs
+import Message.Callback as Callback
+import Message.Message
+import Message.TopLevelMessage as Msgs
 import Test exposing (Test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, id, style, text)
-import TopBar.Msgs
 
 
 describe : String -> model -> List (model -> Test) -> Test
@@ -54,13 +52,37 @@ all =
             , password = ""
             }
             |> Tuple.first
+            |> Application.handleCallback
+                (Callback.APIDataFetched
+                    (Ok
+                        ( 0
+                        , { teams =
+                                [ Concourse.Team 1 "team1"
+                                , Concourse.Team 2 "team2"
+                                ]
+                          , pipelines =
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team1"
+                                  , groups = []
+                                  }
+                                ]
+                          , jobs = []
+                          , resources = []
+                          , user = Nothing
+                          , version = ""
+                          }
+                        )
+                    )
+                )
+            |> Tuple.first
         )
         [ context "after focusing the search bar"
             (Application.update
-                (Msgs.SubMsg 1 <|
-                    SubPage.Msgs.DashboardMsg <|
-                        Dashboard.Msgs.FromTopBar
-                            TopBar.Msgs.FocusMsg
+                (Msgs.Update <|
+                    Message.Message.FocusMsg
                 )
                 >> Tuple.first
             )
@@ -71,10 +93,8 @@ all =
                     >> Query.has [ text "status:" ]
             , context "after clicking 'status:' in the dropdown"
                 (Application.update
-                    (Msgs.SubMsg 1 <|
-                        SubPage.Msgs.DashboardMsg <|
-                            Dashboard.Msgs.FromTopBar <|
-                                TopBar.Msgs.FilterMsg "status:"
+                    (Msgs.Update <|
+                        Message.Message.FilterMsg "status:"
                     )
                     >> Tuple.first
                 )
@@ -85,10 +105,8 @@ all =
                         >> Query.has [ text "status: paused" ]
                 , context "after clicking 'status: paused'"
                     (Application.update
-                        (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.DashboardMsg <|
-                                Dashboard.Msgs.FromTopBar <|
-                                    TopBar.Msgs.FilterMsg "status: paused"
+                        (Msgs.Update <|
+                            Message.Message.FilterMsg "status: paused"
                         )
                         >> Tuple.first
                     )
@@ -103,7 +121,6 @@ all =
             ]
         , it "centers 'no results' message when typing a string with no hits" <|
             Application.handleCallback
-                (Effects.SubPage 1)
                 (Callback.APIDataFetched
                     (Ok
                         ( 0
@@ -127,10 +144,8 @@ all =
                 )
                 >> Tuple.first
                 >> Application.update
-                    (Msgs.SubMsg 1 <|
-                        SubPage.Msgs.DashboardMsg <|
-                            Dashboard.Msgs.FromTopBar <|
-                                TopBar.Msgs.FilterMsg "asdf"
+                    (Msgs.Update <|
+                        Message.Message.FilterMsg "asdf"
                     )
                 >> Tuple.first
                 >> Application.view

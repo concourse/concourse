@@ -175,6 +175,16 @@ type FakeResource struct {
 	pipelineNameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	PublicStub        func() bool
+	publicMutex       sync.RWMutex
+	publicArgsForCall []struct {
+	}
+	publicReturns struct {
+		result1 bool
+	}
+	publicReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	ReloadStub        func() (bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct {
@@ -1212,6 +1222,58 @@ func (fake *FakeResource) PipelineNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeResource) Public() bool {
+	fake.publicMutex.Lock()
+	ret, specificReturn := fake.publicReturnsOnCall[len(fake.publicArgsForCall)]
+	fake.publicArgsForCall = append(fake.publicArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Public", []interface{}{})
+	fake.publicMutex.Unlock()
+	if fake.PublicStub != nil {
+		return fake.PublicStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.publicReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) PublicCallCount() int {
+	fake.publicMutex.RLock()
+	defer fake.publicMutex.RUnlock()
+	return len(fake.publicArgsForCall)
+}
+
+func (fake *FakeResource) PublicCalls(stub func() bool) {
+	fake.publicMutex.Lock()
+	defer fake.publicMutex.Unlock()
+	fake.PublicStub = stub
+}
+
+func (fake *FakeResource) PublicReturns(result1 bool) {
+	fake.publicMutex.Lock()
+	defer fake.publicMutex.Unlock()
+	fake.PublicStub = nil
+	fake.publicReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeResource) PublicReturnsOnCall(i int, result1 bool) {
+	fake.publicMutex.Lock()
+	defer fake.publicMutex.Unlock()
+	fake.PublicStub = nil
+	if fake.publicReturnsOnCall == nil {
+		fake.publicReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.publicReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeResource) Reload() (bool, error) {
 	fake.reloadMutex.Lock()
 	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
@@ -2104,6 +2166,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.pipelineIDMutex.RUnlock()
 	fake.pipelineNameMutex.RLock()
 	defer fake.pipelineNameMutex.RUnlock()
+	fake.publicMutex.RLock()
+	defer fake.publicMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
 	fake.resourceConfigIDMutex.RLock()

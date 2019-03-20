@@ -1,34 +1,20 @@
 module Resource.Models exposing
     ( CheckStatus(..)
-    , Hoverable(..)
     , Model
     , PageError(..)
     , PinnedVersion
     , Version
     , VersionEnabledState(..)
     , VersionId
-    , VersionToggleAction(..)
     )
 
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
+import Message.Message exposing (Hoverable)
 import Pinned exposing (CommentState, ResourcePinState)
 import Time
 import TopBar.Model
-
-
-type Hoverable
-    = PreviousPage
-    | NextPage
-    | CheckButton
-    | SaveComment
-    | None
-
-
-type VersionToggleAction
-    = Enable
-    | Disable
 
 
 type PageError
@@ -53,10 +39,8 @@ type alias Model =
         , now : Maybe Time.Time
         , resourceIdentifier : Concourse.ResourceIdentifier
         , currentPage : Maybe Page
-        , hovered : Hoverable
+        , hovered : Maybe Hoverable
         , versions : Paginated Version
-        , showPinBarTooltip : Bool
-        , pinIconHover : Bool
         , pinCommentLoading : Bool
         , ctrlDown : Bool
         , textAreaFocused : Bool

@@ -19,7 +19,7 @@ type PublicBuildOutput struct {
 
 type ResourceVersion struct {
 	ID       int             `json:"id"`
-	Metadata []MetadataField `json:"metadata"`
+	Metadata []MetadataField `json:"metadata,omitempty"`
 	Version  Version         `json:"version"`
 	Enabled  bool            `json:"enabled"`
 }

@@ -11,12 +11,10 @@ module Pipeline.Pipeline exposing
     , view
     )
 
-import Callback exposing (Callback(..))
 import Char
 import Colors
 import Concourse
 import Concourse.Cli as Cli
-import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -31,12 +29,14 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Decode
 import Json.Encode
-import Pipeline.Msgs exposing (Msg(..))
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
+import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Pipeline.Styles as Styles
 import RemoteData exposing (..)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
@@ -97,10 +97,11 @@ init flags =
             , selectedGroups = flags.selectedGroups
             , isUserMenuExpanded = topBar.isUserMenuExpanded
             , isPinMenuExpanded = topBar.isPinMenuExpanded
-            , middleSection = topBar.middleSection
-            , teams = topBar.teams
+            , route = topBar.route
+            , groups = topBar.groups
+            , dropdown = topBar.dropdown
             , screenSize = topBar.screenSize
-            , highDensity = topBar.highDensity
+            , shiftDown = topBar.shiftDown
             }
     in
     ( model, [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )
@@ -148,11 +149,11 @@ getUpdateMessage model =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar callback ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody callback ( model, effects ) =
     let
         redirectToLoginIfUnauthenticated status =
             if status.code == 401 then
@@ -275,38 +276,37 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
-update msg ( model, effects ) =
-    case msg of
-        PipelineIdentifierFetched pipelineIdentifier ->
-            ( model, effects ++ [ FetchPipeline pipelineIdentifier ] )
+update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg =
+    TopBar.update msg >> updateBody msg
 
+
+updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody msg ( model, effects ) =
+    case msg of
         ToggleGroup group ->
             ( model, effects ++ [ NavigateTo <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
 
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
-        FromTopBar msg ->
-            let
-                ( newModel, newEffects ) =
-                    TopBar.update msg ( model, effects )
-            in
-            case msg of
-                TopBar.Msgs.TogglePipelinePaused pipelineIdentifier isPaused ->
-                    ( { newModel | isToggleLoading = True }
-                    , newEffects
-                        ++ [ SendTogglePipelineRequest
-                                pipelineIdentifier
-                                isPaused
-                           ]
-                    )
+        TogglePipelinePaused pipelineIdentifier isPaused ->
+            ( { model | isToggleLoading = True }
+            , effects
+                ++ [ SendTogglePipelineRequest
+                        pipelineIdentifier
+                        isPaused
+                   ]
+            )
 
-                TopBar.Msgs.Hover isHovered ->
-                    ( { newModel | isToggleHovered = isHovered }, newEffects )
+        Hover (Just (PipelineButton _)) ->
+            ( { model | isToggleHovered = True }, effects )
 
-                _ ->
-                    ( newModel, newEffects )
+        Hover Nothing ->
+            ( { model | isToggleHovered = False }, effects )
+
+        _ ->
+            ( model, effects )
 
 
 getPinnedResources : Model -> List ( String, Concourse.Version )
@@ -331,7 +331,7 @@ subscriptions model =
     ]
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState model =
     let
         pipelineState =
@@ -346,7 +346,7 @@ view userState model =
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
             [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ Html.map FromTopBar <| TopBar.view userState pipelineState model
+            [ TopBar.view userState pipelineState model
             , Html.div
                 [ Html.Attributes.style TopBar.Styles.pipelinePageBelowTopBar
                 , id "page-below-top-bar"
@@ -361,7 +361,7 @@ isPaused p =
     RemoteData.withDefault False (RemoteData.map .paused p)
 
 
-viewSubPage : Model -> Html Msg
+viewSubPage : Model -> Html Message
 viewSubPage model =
     Html.div [ class "pipeline-view" ]
         [ viewGroupsBar model
@@ -442,7 +442,7 @@ viewSubPage model =
         ]
 
 
-viewGroupsBar : Model -> Html Msg
+viewGroupsBar : Model -> Html Message
 viewGroupsBar model =
     let
         groupList =
@@ -479,7 +479,7 @@ viewGroup :
         , pipelineLocator : Concourse.PipelineIdentifier
     }
     -> Concourse.PipelineGroup
-    -> Html Msg
+    -> Html Message
 viewGroup { selectedGroups, pipelineLocator } grp =
     let
         url =

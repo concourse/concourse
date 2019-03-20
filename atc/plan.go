@@ -9,7 +9,7 @@ type Plan struct {
 	Get       *GetPlan       `json:"get,omitempty"`
 	Put       *PutPlan       `json:"put,omitempty"`
 	Task      *TaskPlan      `json:"task,omitempty"`
-	OnAbort   *OnAbortPlan   `json:"on_abort,ommitempty"`
+	OnAbort   *OnAbortPlan   `json:"on_abort,omitempty"`
 	Ensure    *EnsurePlan    `json:"ensure,omitempty"`
 	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
 	OnFailure *OnFailurePlan `json:"on_failure,omitempty"`
@@ -18,7 +18,7 @@ type Plan struct {
 	Retry     *RetryPlan     `json:"retry,omitempty"`
 
 	// used for 'fly execute'
-	UserArtifact   *UserArtifactPlan   `json:"user_artifact,omitempty"`
+	ArtifactInput  *ArtifactInputPlan  `json:"artifact_input,omitempty"`
 	ArtifactOutput *ArtifactOutputPlan `json:"artifact_output,omitempty"`
 
 	// deprecated, kept for backwards compatibility to be able to show old builds
@@ -27,8 +27,9 @@ type Plan struct {
 
 type PlanID string
 
-type UserArtifactPlan struct {
-	Name string `json:"name"`
+type ArtifactInputPlan struct {
+	ArtifactID int    `json:"artifact_id"`
+	Name       string `json:"name"`
 }
 
 type ArtifactOutputPlan struct {

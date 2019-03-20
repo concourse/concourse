@@ -33,6 +33,7 @@ module TopBar.Styles exposing
 
 import Colors
 import ScreenSize exposing (ScreenSize(..))
+import Routes
 
 
 pageHeaderHeight : Float
@@ -52,6 +53,9 @@ pageBelowTopBar : List ( String, String )
 pageBelowTopBar =
     [ ( "padding-top", "54px" )
     , ( "height", "100%" )
+    , ( "padding-bottom", "50px" )
+    , ( "box-sizing", "border-box" )
+    , ( "display", "flex" )
     ]
 
 
@@ -84,13 +88,13 @@ topBar isPaused =
 showSearchContainer :
     { a
         | screenSize : ScreenSize
-        , highDensity : Bool
+        , route : Routes.Route
     }
     -> List ( String, String )
-showSearchContainer { screenSize, highDensity } =
+showSearchContainer { screenSize, route } =
     let
         flexLayout =
-            if highDensity then
+            if route == Routes.Dashboard Routes.HighDensity then
                 []
 
             else

@@ -321,7 +321,7 @@ func (scanner *resourceScanner) check(
 		Type: db.ContainerTypeCheck,
 	}
 
-	chosenWorker, err := scanner.pool.FindOrChooseWorker(logger, owner, containerSpec, workerSpec, scanner.strategy)
+	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, scanner.strategy)
 	if err != nil {
 		logger.Error("failed-to-choose-a-worker", err)
 		chkErr := resourceConfigScope.SetCheckError(err)

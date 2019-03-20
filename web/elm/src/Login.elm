@@ -4,28 +4,18 @@ import Concourse
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, href, id, style)
 import Html.Events exposing (onClick)
+import Message.Message exposing (Message(..))
 import ScreenSize exposing (ScreenSize(..))
-import TopBar.Model exposing (MiddleSection(..))
+import TopBar.Model exposing (MiddleSection(..), Model, middleSection)
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
 
 
-type Msg
-    = LogIn
-    | ToggleUserMenu
-    | LogOut
-
-
 view :
     UserState
-    ->
-        { a
-            | screenSize : ScreenSize
-            , middleSection : MiddleSection
-            , isUserMenuExpanded : Bool
-        }
+    -> Model r
     -> Bool
-    -> Html Msg
+    -> Html Message
 view userState model isPaused =
     if showLogin model then
         Html.div [ id "login-component", style Styles.loginComponent ] <|
@@ -36,18 +26,18 @@ view userState model isPaused =
 
 
 showLogin :
-    { a | middleSection : MiddleSection, screenSize : ScreenSize }
+    Model r
     -> Bool
 showLogin model =
-    case model.middleSection of
-        SearchBar _ ->
+    case middleSection model of
+        SearchBar ->
             model.screenSize /= Mobile
 
         _ ->
             True
 
 
-viewLoginState : UserState -> Bool -> Bool -> List (Html Msg)
+viewLoginState : UserState -> Bool -> Bool -> List (Html Message)
 viewLoginState userState isUserMenuExpanded isPaused =
     case userState of
         UserStateUnknown ->

@@ -1,13 +1,10 @@
 module BuildTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
 import Array
 import Build.Build as Build
 import Build.Models as Models
-import Build.Msgs
 import Build.StepTree.Models as STModels
-import Callback
 import Char
 import Concourse exposing (BuildPrepStatus(..))
 import DashboardTests
@@ -19,12 +16,15 @@ import DashboardTests
         )
 import Date
 import Dict
-import Effects
 import Expect
 import Html.Attributes as Attr
 import Keycodes
+import Message.Callback as Callback
+import Message.Effects as Effects
+import Message.Message
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.TopLevelMessage as Msgs
 import Routes
-import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -269,7 +269,6 @@ all =
                     }
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <|
                             Ok
                                 ( 1
@@ -292,7 +291,6 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.PlanAndResourcesFetched 307 <|
                             Ok <|
                                 ( { id = "stepid"
@@ -357,7 +355,6 @@ all =
                     }
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <|
                             Ok
                                 ( 1
@@ -375,7 +372,6 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.PlanAndResourcesFetched 307 <|
                             Ok <|
                                 ( { id = "stepid"
@@ -409,7 +405,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> receiveEvent
@@ -417,12 +412,11 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" }
                         }
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToWindowBottom ]
         , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, theBuild ))
                     |> Tuple.first
                     |> receiveEvent
@@ -435,7 +429,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
@@ -450,7 +443,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
@@ -462,16 +454,14 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" }
                         }
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToWindowBottom ]
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { pipeline =
@@ -501,54 +491,38 @@ all =
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
                     |> Tuple.second
                     |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , csrfToken
-                          , Effects.DoTriggerBuild
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                , jobName = "job"
-                                }
-                          )
+                        [ Effects.DoTriggerBuild
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , jobName = "job"
+                            }
                         ]
         , test "pressing 'gg' scrolls to the top" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
                     |> Tuple.second
-                    |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , csrfToken
-                          , Effects.Scroll Effects.ToWindowTop
-                          )
-                        ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToWindowTop ]
         , test "pressing 'G' scrolls to the bottom" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
                     |> Tuple.second
-                    |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , csrfToken
-                          , Effects.Scroll Effects.ToWindowBottom
-                          )
-                        ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToWindowBottom ]
         , test "pressing and releasing shift, then 'g', does nothing" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
@@ -562,7 +536,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
@@ -679,7 +652,7 @@ all =
             , test "when less than 24h old, shows relative time since build" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
                         |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (2 * Time.second))
                         |> Tuple.first
@@ -690,7 +663,7 @@ all =
             , test "when at least 24h old, shows absolute time of build" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
                         |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (24 * Time.hour))
                         |> Tuple.first
@@ -873,7 +846,7 @@ all =
                     givenHistoryAndDetailsFetched
                         >> Tuple.mapSecond (always [])
                         >> Build.update
-                            (Build.Msgs.Hover <| Just Models.Trigger)
+                            (Message.Message.Hover <| Just Message.Message.TriggerBuildButton)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -985,8 +958,8 @@ all =
                                     }
                             ]
                         }
-                    , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Trigger
-                    , mouseLeaveMsg = Build.Msgs.Hover Nothing
+                    , mouseEnterMsg = Message.Message.Hover <| Just Message.Message.TriggerBuildButton
+                    , mouseLeaveMsg = Message.Message.Hover Nothing
                     }
                 ]
             ]
@@ -1046,7 +1019,7 @@ all =
             , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
                     >> Tuple.mapSecond (always [])
-                    >> Build.update (Build.Msgs.Hover (Just Models.Abort))
+                    >> Build.update (Message.Message.Hover (Just Message.Message.AbortBuildButton))
                     >> Tuple.first
                     >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
@@ -1503,12 +1476,12 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseEnter
                             >> Event.expect
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1528,7 +1501,7 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
@@ -1584,7 +1557,7 @@ all =
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1597,7 +1570,7 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseLeave
                             >> Event.expect
-                                (Build.Msgs.Hover Nothing)
+                                (Message.Message.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
@@ -1605,13 +1578,13 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
                             >> flip (,) []
-                            >> Build.update (Build.Msgs.Hover Nothing)
+                            >> Build.update (Message.Message.Hover Nothing)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1631,7 +1604,7 @@ all =
                         >> Build.handleDelivery (ClockTicked OneSecond 0)
                         >> Tuple.first
                         >> flip (,) []
-                        >> Build.update (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                        >> Build.update (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                         >> Tuple.first
                         >> flip (,) []
                         >> Build.handleDelivery (ClockTicked OneSecond 1)
@@ -1907,6 +1880,139 @@ all =
                             >> Query.has [ attribute <| Attr.src url ]
                     ]
                 ]
+            , describe "get step with metadata" <|
+                let
+                    httpURLText =
+                        "http://some-url"
+
+                    httpsURLText =
+                        "https://some-url"
+
+                    plainText =
+                        "plain-text"
+
+                    metadataView =
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = "csrf_token"
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { href = ""
+                            , host = ""
+                            , hostname = ""
+                            , protocol = ""
+                            , origin = ""
+                            , port_ = ""
+                            , pathname = "/teams/t/pipelines/p/jobs/j/builds/307"
+                            , search = ""
+                            , hash = "#Lstepid:1"
+                            , username = ""
+                            , password = ""
+                            }
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.BuildFetched <|
+                                    Ok
+                                        ( 1
+                                        , { id = 307
+                                          , name = "307"
+                                          , job =
+                                                Just
+                                                    { teamName = "t"
+                                                    , pipelineName = "p"
+                                                    , jobName = "j"
+                                                    }
+                                          , status = Concourse.BuildStatusStarted
+                                          , duration =
+                                                { startedAt = Nothing
+                                                , finishedAt = Nothing
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "stepid"
+                                          , step =
+                                                Concourse.BuildStepGet
+                                                    "step"
+                                                    (Just <| Dict.fromList [ ( "version", "1" ) ])
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    EventsReceived <|
+                                        Ok <|
+                                            [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                              , data =
+                                                    STModels.FinishGet
+                                                        { source = "stdout"
+                                                        , id = "stepid"
+                                                        }
+                                                        1
+                                                        (Dict.fromList [ ( "version", "1" ) ])
+                                                        [ { name = "http-url"
+                                                          , value = httpURLText
+                                                          }
+                                                        , { name = "https-url"
+                                                          , value = httpsURLText
+                                                          }
+                                                        , { name = "plain-text"
+                                                          , value = plainText
+                                                          }
+                                                        ]
+                                              }
+                                            ]
+                                )
+                            |> Tuple.first
+                            |> Application.view
+                            |> Query.fromHtml
+                in
+                [ test "should show hyperlink if metadata starts with 'http://'" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text httpURLText ]
+                                ]
+                            |> Query.has
+                                [ tag "a"
+                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href httpURLText
+                                ]
+                , test "should show hyperlink if metadata starts with 'https://'" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text httpsURLText ]
+                                ]
+                            |> Query.has
+                                [ tag "a"
+                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href httpsURLText
+                                ]
+                , test "should not show hyperlink if metadata is plain text" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text plainText ]
+                                ]
+                            |> Query.hasNot
+                                [ tag "a"
+                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href plainText
+                                ]
+                ]
             ]
         ]
 
@@ -1944,6 +2050,6 @@ darkGrey =
 receiveEvent :
     STModels.BuildEventEnvelope
     -> Application.Model
-    -> ( Application.Model, List ( Effects.LayoutDispatch, Concourse.CSRFToken, Effects.Effect ) )
+    -> ( Application.Model, List Effects.Effect )
 receiveEvent envelope =
     Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])

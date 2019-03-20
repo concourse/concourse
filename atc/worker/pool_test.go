@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -30,62 +29,7 @@ var _ = Describe("Pool", func() {
 		pool = NewPool(fakeProvider)
 	})
 
-	Describe("FindContainerByHandle", func() {
-		var (
-			foundContainer Container
-			found          bool
-			findErr        error
-		)
-
-		JustBeforeEach(func() {
-			foundContainer, found, findErr = pool.FindContainerByHandle(
-				logger,
-				4567,
-				"some-handle",
-			)
-		})
-
-		Context("when a worker is found with the container", func() {
-			var fakeWorker *workerfakes.FakeWorker
-			var fakeContainer *workerfakes.FakeContainer
-
-			BeforeEach(func() {
-				fakeWorker = new(workerfakes.FakeWorker)
-				fakeProvider.FindWorkerForContainerReturns(fakeWorker, true, nil)
-
-				fakeContainer = new(workerfakes.FakeContainer)
-				fakeWorker.FindContainerByHandleReturns(fakeContainer, true, nil)
-			})
-
-			It("succeeds", func() {
-				Expect(found).To(BeTrue())
-				Expect(findErr).NotTo(HaveOccurred())
-			})
-
-			It("returns the created container", func() {
-				Expect(foundContainer).To(Equal(fakeContainer))
-			})
-
-			It("finds on the particular worker", func() {
-				Expect(fakeWorker.FindContainerByHandleCallCount()).To(Equal(1))
-
-				_, actualTeamID, actualHandle := fakeProvider.FindWorkerForContainerArgsForCall(0)
-				Expect(actualTeamID).To(Equal(4567))
-				Expect(actualHandle).To(Equal("some-handle"))
-			})
-		})
-
-		Context("when no worker is found with the container", func() {
-			BeforeEach(func() {
-				fakeProvider.FindWorkerForContainerReturns(nil, false, nil)
-			})
-
-			It("returns no container, false, and no error", func() {
-			})
-		})
-	})
-
-	Describe("FindOrChooseWorker", func() {
+	Describe("FindOrChooseWorkerForContainer", func() {
 		var (
 			spec          ContainerSpec
 			workerSpec    WorkerSpec
@@ -170,7 +114,7 @@ var _ = Describe("Pool", func() {
 		})
 
 		JustBeforeEach(func() {
-			chosenWorker, chooseErr = pool.FindOrChooseWorker(
+			chosenWorker, chooseErr = pool.FindOrChooseWorkerForContainer(
 				logger,
 				fakeOwner,
 				spec,

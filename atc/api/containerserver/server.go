@@ -11,7 +11,7 @@ import (
 type Server struct {
 	logger lager.Logger
 
-	workerPool              worker.Pool
+	workerClient            worker.Client
 	variablesFactory        creds.VariablesFactory
 	interceptTimeoutFactory InterceptTimeoutFactory
 	containerRepository     db.ContainerRepository
@@ -20,7 +20,7 @@ type Server struct {
 
 func NewServer(
 	logger lager.Logger,
-	workerPool worker.Pool,
+	workerClient worker.Client,
 	variablesFactory creds.VariablesFactory,
 	interceptTimeoutFactory InterceptTimeoutFactory,
 	containerRepository db.ContainerRepository,
@@ -28,7 +28,7 @@ func NewServer(
 ) *Server {
 	return &Server{
 		logger:                  logger,
-		workerPool:              workerPool,
+		workerClient:            workerClient,
 		variablesFactory:        variablesFactory,
 		interceptTimeoutFactory: interceptTimeoutFactory,
 		containerRepository:     containerRepository,

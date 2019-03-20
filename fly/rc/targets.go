@@ -157,7 +157,7 @@ func writeTargets(configFileLocation string, targetsToWrite *targetDetailsYAML) 
 		return err
 	}
 
-	err = ioutil.WriteFile(configFileLocation, yamlBytes, os.ModePerm)
+	err = ioutil.WriteFile(configFileLocation, yamlBytes, os.FileMode(0600))
 	if err != nil {
 		return err
 	}

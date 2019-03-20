@@ -142,6 +142,30 @@ func (provider *dbWorkerProvider) FindWorkerForContainer(
 	return worker, true, err
 }
 
+func (provider *dbWorkerProvider) FindWorkerForVolume(
+	logger lager.Logger,
+	teamID int,
+	handle string,
+) (Worker, bool, error) {
+	logger = logger.Session("worker-for-volume")
+	team := provider.dbTeamFactory.GetByID(teamID)
+
+	dbWorker, found, err := team.FindWorkerForVolume(handle)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker, 0)
+	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
+		return nil, false, nil
+	}
+	return worker, true, err
+}
+
 func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker, buildContainersCount int) Worker {
 	gcf := NewGardenClientFactory(
 		provider.dbWorkerFactory,

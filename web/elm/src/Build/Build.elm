@@ -10,19 +10,12 @@ module Build.Build exposing
     , view
     )
 
-import Build.Models as Models
-    exposing
-        ( BuildPageType(..)
-        , Hoverable(..)
-        , Model
-        )
-import Build.Msgs exposing (Msg(..))
+import Build.Models as Models exposing (BuildPageType(..), Model)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
 import BuildDuration
-import Callback exposing (Callback(..))
 import Char
 import Concourse
 import Concourse.BuildStatus
@@ -31,7 +24,6 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
-import Effects exposing (Effect(..), ScrollDirection(..), runEffect)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -54,12 +46,15 @@ import Keyboard
 import Keycodes
 import LoadingIndicator
 import Maybe.Extra
+import Message.Callback exposing (Callback(..))
+import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
+import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import RemoteData exposing (WebData)
 import Routes
 import Spinner
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Time exposing (Time)
 import TopBar.Model
 import TopBar.Styles
@@ -111,7 +106,6 @@ init flags =
           , browsingIndex = 0
           , autoScroll = True
           , previousKeyPress = Nothing
-          , shiftDown = False
           , previousTriggerBuildByKey = False
           , showHelp = False
           , highlight = flags.highlight
@@ -119,10 +113,11 @@ init flags =
           , hoveredCounter = 0
           , isUserMenuExpanded = topBar.isUserMenuExpanded
           , isPinMenuExpanded = topBar.isPinMenuExpanded
-          , middleSection = topBar.middleSection
-          , teams = topBar.teams
+          , route = topBar.route
+          , groups = topBar.groups
+          , dropdown = topBar.dropdown
           , screenSize = topBar.screenSize
-          , highDensity = topBar.highDensity
+          , shiftDown = topBar.shiftDown
           }
         , topBarEffects ++ [ GetCurrentTime ]
         )
@@ -212,11 +207,11 @@ getUpdateMessage model =
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
 handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackWithoutTopBar msg
+    TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackWithoutTopBar : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackWithoutTopBar action ( model, effects ) =
+handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody action ( model, effects ) =
     case action of
         BuildTriggered (Ok build) ->
             ( { model | history = build :: model.history }
@@ -335,8 +330,13 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
-update msg ( model, effects ) =
+update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update msg =
+    TopBar.update msg >> updateBody msg
+
+
+updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody msg ( model, effects ) =
     case msg of
         SwitchToBuild build ->
             ( model
@@ -394,11 +394,11 @@ update msg ( model, effects ) =
             else
                 ( model, effects ++ [ Scroll (Builds -event.deltaX) ] )
 
-        NavTo route ->
+        GoToRoute route ->
             ( model, effects ++ [ NavigateTo <| Routes.toString route ] )
 
-        FromTopBar m ->
-            TopBar.update m ( model, effects )
+        _ ->
+            ( model, effects )
 
 
 getScrollBehavior : Model -> ScrollBehavior
@@ -708,18 +708,18 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
         ( model, effects )
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ TopBar.view userState Nothing model |> Html.map FromTopBar
+            [ TopBar.view userState Nothing model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pipelinePageBelowTopBar ] [ viewBuildPage model ]
             ]
         ]
 
 
-viewBuildPage : Model -> Html Msg
+viewBuildPage : Model -> Html Message
 viewBuildPage model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
@@ -878,7 +878,7 @@ mmDDYY d =
     Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
 
 
-viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Msg
+viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Message
 viewBuildOutput build output =
     case output of
         Just o ->
@@ -888,7 +888,7 @@ viewBuildOutput build output =
             Html.div [] []
 
 
-viewBuildPrep : Maybe Concourse.BuildPrep -> Html Msg
+viewBuildPrep : Maybe Concourse.BuildPrep -> Html Message
 viewBuildPrep prep =
     case prep of
         Just prep ->
@@ -926,29 +926,29 @@ viewBuildPrep prep =
             Html.div [] []
 
 
-viewBuildPrepInputs : Dict String Concourse.BuildPrepStatus -> List (Html Msg)
+viewBuildPrepInputs : Dict String Concourse.BuildPrepStatus -> List (Html Message)
 viewBuildPrepInputs inputs =
     List.map viewBuildPrepInput (Dict.toList inputs)
 
 
-viewBuildPrepInput : ( String, Concourse.BuildPrepStatus ) -> Html Msg
+viewBuildPrepInput : ( String, Concourse.BuildPrepStatus ) -> Html Message
 viewBuildPrepInput ( name, status ) =
     viewBuildPrepLi ("discovering any new versions of " ++ name) status Dict.empty
 
 
-viewBuildPrepDetails : Dict String String -> Html Msg
+viewBuildPrepDetails : Dict String String -> Html Message
 viewBuildPrepDetails details =
     Html.ul [ class "details" ]
         (List.map viewDetailItem (Dict.toList details))
 
 
-viewDetailItem : ( String, String ) -> Html Msg
+viewDetailItem : ( String, String ) -> Html Message
 viewDetailItem ( name, status ) =
     Html.li []
         [ Html.text (name ++ " - " ++ status) ]
 
 
-viewBuildPrepLi : String -> Concourse.BuildPrepStatus -> Dict String String -> Html Msg
+viewBuildPrepLi : String -> Concourse.BuildPrepStatus -> Dict String String -> Html Message
 viewBuildPrepLi text status details =
     Html.li
         [ classList
@@ -970,7 +970,7 @@ viewBuildPrepLi text status details =
         ]
 
 
-viewBuildPrepStatus : Concourse.BuildPrepStatus -> Html Msg
+viewBuildPrepStatus : Concourse.BuildPrepStatus -> Html Message
 viewBuildPrepStatus status =
     case status of
         Concourse.BuildPrepStatusUnknown ->
@@ -1001,7 +1001,7 @@ viewBuildPrepStatus status =
                 []
 
 
-viewBuildHeader : Concourse.Build -> Model -> Html Msg
+viewBuildHeader : Concourse.Build -> Model -> Html Message
 viewBuildHeader build { now, job, history, hoveredElement } =
     let
         triggerButton =
@@ -1026,7 +1026,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                                     job.disableManualTrigger
 
                         buttonHovered =
-                            hoveredElement == Just Trigger
+                            hoveredElement == Just TriggerBuildButton
 
                         buttonHighlight =
                             buttonHovered && not buttonDisabled
@@ -1037,8 +1037,8 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                         , attribute "aria-label" "Trigger Build"
                         , attribute "title" "Trigger Build"
                         , onLeftClick <| TriggerBuild build.job
-                        , onMouseEnter <| Hover (Just Trigger)
-                        , onFocus <| Hover (Just Trigger)
+                        , onMouseEnter <| Hover <| Just TriggerBuildButton
+                        , onFocus <| Hover <| Just TriggerBuildButton
                         , onMouseLeave <| Hover Nothing
                         , onBlur <| Hover Nothing
                         , style <| Styles.triggerButton buttonDisabled buttonHovered build.status
@@ -1065,7 +1065,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                     Html.text ""
 
         abortHovered =
-            hoveredElement == Just Abort
+            hoveredElement == Just AbortBuildButton
 
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
@@ -1075,8 +1075,8 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                     , attribute "tabindex" "0"
                     , attribute "aria-label" "Abort Build"
                     , attribute "title" "Abort Build"
-                    , onMouseEnter <| Hover (Just Abort)
-                    , onFocus <| Hover (Just Abort)
+                    , onMouseEnter <| Hover <| Just AbortBuildButton
+                    , onFocus <| Hover <| Just AbortBuildButton
                     , onMouseLeave <| Hover Nothing
                     , onBlur <| Hover Nothing
                     , style <| Styles.abortButton <| abortHovered
@@ -1097,7 +1097,7 @@ viewBuildHeader build { now, job, history, hoveredElement } =
                             Routes.Job { id = jobId, page = Nothing }
                     in
                     Html.a
-                        [ StrictEvents.onLeftClick <| NavTo jobRoute
+                        [ StrictEvents.onLeftClick <| GoToRoute jobRoute
                         , href <| Routes.toString jobRoute
                         ]
                         [ Html.span [ class "build-name" ] [ Html.text jobId.jobName ]
@@ -1132,18 +1132,18 @@ viewBuildHeader build { now, job, history, hoveredElement } =
         ]
 
 
-lazyViewHistory : Concourse.Build -> List Concourse.Build -> Html Msg
+lazyViewHistory : Concourse.Build -> List Concourse.Build -> Html Message
 lazyViewHistory currentBuild builds =
     Html.Lazy.lazy2 viewHistory currentBuild builds
 
 
-viewHistory : Concourse.Build -> List Concourse.Build -> Html Msg
+viewHistory : Concourse.Build -> List Concourse.Build -> Html Message
 viewHistory currentBuild builds =
     Html.ul [ id "builds" ]
         (List.map (viewHistoryItem currentBuild) builds)
 
 
-viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Msg
+viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Message
 viewHistoryItem currentBuild build =
     Html.li
         (if build.id == currentBuild.id then
@@ -1163,7 +1163,7 @@ viewHistoryItem currentBuild build =
         ]
 
 
-durationTitle : Date -> List (Html Msg) -> Html Msg
+durationTitle : Date -> List (Html Message) -> Html Message
 durationTitle date content =
     Html.div [ title (Date.Format.format "%b" date) ] content
 

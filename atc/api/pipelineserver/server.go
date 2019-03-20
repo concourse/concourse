@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/engine"
 )
 
 type Server struct {
@@ -12,7 +11,6 @@ type Server struct {
 	teamFactory     db.TeamFactory
 	rejector        auth.Rejector
 	pipelineFactory db.PipelineFactory
-	engine          engine.Engine
 	externalURL     string
 }
 
@@ -21,7 +19,6 @@ func NewServer(
 	teamFactory db.TeamFactory,
 	pipelineFactory db.PipelineFactory,
 	externalURL string,
-	engine engine.Engine,
 ) *Server {
 	return &Server{
 		logger:          logger,
@@ -29,6 +26,5 @@ func NewServer(
 		rejector:        auth.UnauthorizedRejector{},
 		pipelineFactory: pipelineFactory,
 		externalURL:     externalURL,
-		engine:          engine,
 	}
 }

@@ -2,7 +2,6 @@ package engine
 
 import (
 	"fmt"
-	"io"
 	"strconv"
 	"sync"
 	"time"
@@ -15,31 +14,29 @@ import (
 
 const trackLockDuration = time.Minute
 
-func NewDBEngine(engines Engines, peerURL string) Engine {
+func NewDBEngine(engines Engines) Engine {
 	return &dbEngine{
 		engines:   engines,
-		peerURL:   peerURL,
 		releaseCh: make(chan struct{}),
 		waitGroup: new(sync.WaitGroup),
 	}
 }
 
 type UnknownEngineError struct {
-	Engine string
+	Schema string
 }
 
 func (err UnknownEngineError) Error() string {
-	return fmt.Sprintf("unknown build engine: %s", err.Engine)
+	return fmt.Sprintf("unknown build engine schema: %s", err.Schema)
 }
 
 type dbEngine struct {
 	engines   Engines
-	peerURL   string
 	releaseCh chan struct{}
 	waitGroup *sync.WaitGroup
 }
 
-func (*dbEngine) Name() string {
+func (*dbEngine) Schema() string {
 	return "db"
 }
 
@@ -51,7 +48,7 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 		return nil, err
 	}
 
-	started, err := build.Start(buildEngine.Name(), createdBuild.Metadata(), plan)
+	started, err := build.Start(buildEngine.Schema(), plan)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +59,6 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 
 	return &dbBuild{
 		engines:   engine.engines,
-		peerURL:   engine.peerURL,
 		releaseCh: engine.releaseCh,
 		waitGroup: engine.waitGroup,
 		build:     build,
@@ -72,7 +68,6 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 func (engine *dbEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	return &dbBuild{
 		engines:   engine.engines,
-		peerURL:   engine.peerURL,
 		releaseCh: engine.releaseCh,
 		waitGroup: engine.waitGroup,
 		build:     build,
@@ -97,7 +92,6 @@ func (engine *dbEngine) ReleaseAll(logger lager.Logger) {
 
 type dbBuild struct {
 	engines   Engines
-	peerURL   string
 	releaseCh chan struct{}
 	build     db.Build
 	waitGroup *sync.WaitGroup
@@ -147,9 +141,9 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		return nil
 	}
 
-	buildEngineName := build.build.Engine()
-	// if there's an engine, there's a real build to abort
-	if buildEngineName == "" {
+	schema := build.build.Schema()
+	// if there's an schema, there's a real build to abort
+	if schema == "" {
 		// otherwise, CreateBuild had not yet tried to start the build, and so it
 		// will see the conflict when it tries to transition, and abort itself.
 		//
@@ -159,10 +153,11 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		return build.build.Finish(db.BuildStatusAborted)
 	}
 
-	buildEngine, found := build.engines.Lookup(buildEngineName)
+	buildEngine, found := build.engines.Lookup(schema)
 	if !found {
-		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
-		return UnknownEngineError{buildEngineName}
+		err := UnknownEngineError{schema}
+		logger.Error("unknown-engine", err, lager.Data{"schema": schema})
+		return err
 	}
 
 	// find the real build to abort...
@@ -193,12 +188,6 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	defer lock.Release()
 
-	err = build.build.TrackedBy(build.peerURL)
-	if err != nil {
-		logger.Error("failed-to-update-build-tracker", err)
-		return
-	}
-
 	found, err := build.build.Reload()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
@@ -210,9 +199,9 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	buildEngineName := build.build.Engine()
-	if buildEngineName == "" {
-		logger.Error("build-has-no-engine", err)
+	schema := build.build.Schema()
+	if schema == "" {
+		logger.Error("build-has-no-schema", err)
 		return
 	}
 
@@ -223,11 +212,11 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	buildEngine, found := build.engines.Lookup(buildEngineName)
+	buildEngine, found := build.engines.Lookup(schema)
 	if !found {
-		err := UnknownEngineError{Engine: buildEngineName}
-		logger.Error("unknown-build-engine", err, lager.Data{
-			"engine": buildEngineName,
+		err := UnknownEngineError{schema}
+		logger.Error("unknown-engine", err, lager.Data{
+			"schema": schema,
 		})
 		build.finishWithError(logger, err)
 		return
@@ -303,50 +292,6 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 			TeamName:      build.build.TeamName(),
 		}.Emit(logger)
 	}
-}
-
-func (build *dbBuild) ReceiveInput(logger lager.Logger, id atc.PlanID, input io.ReadCloser) {
-	buildEngineName := build.build.Engine()
-	if buildEngineName == "" {
-		logger.Info("sending-input-to-build-with-no-engine")
-		return
-	}
-
-	buildEngine, found := build.engines.Lookup(buildEngineName)
-	if !found {
-		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
-		return
-	}
-
-	engineBuild, err := buildEngine.LookupBuild(logger, build.build)
-	if err != nil {
-		logger.Error("failed-to-lookup-build-in-engine", err)
-		return
-	}
-
-	engineBuild.ReceiveInput(logger, id, input)
-}
-
-func (build *dbBuild) SendOutput(logger lager.Logger, id atc.PlanID, output io.Writer) {
-	buildEngineName := build.build.Engine()
-	if buildEngineName == "" {
-		logger.Info("sending-input-to-build-with-no-engine")
-		return
-	}
-
-	buildEngine, found := build.engines.Lookup(buildEngineName)
-	if !found {
-		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
-		return
-	}
-
-	engineBuild, err := buildEngine.LookupBuild(logger, build.build)
-	if err != nil {
-		logger.Error("failed-to-lookup-build-in-engine", err)
-		return
-	}
-
-	engineBuild.SendOutput(logger, id, output)
 }
 
 func (build *dbBuild) finishWithError(logger lager.Logger, finishErr error) {

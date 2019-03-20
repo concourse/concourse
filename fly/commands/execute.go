@@ -46,32 +46,22 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
-	includeIgnored := command.IncludeIgnored
-
-	taskTemplate := templatehelpers.NewYamlTemplateWithParams(command.TaskConfig, command.VarsFrom, command.Var, command.YAMLVar)
-	taskTemplateEvaluated, err := taskTemplate.Evaluate(false, false)
+	taskConfig, err := command.CreateTaskConfig(args)
 	if err != nil {
 		return err
 	}
 
-	taskConfig, err := config.OverrideTaskParams(taskTemplateEvaluated, args)
-	if err != nil {
-		return err
-	}
+	planFactory := atc.NewPlanFactory(time.Now().Unix())
 
-	client := target.Client()
-
-	fact := atc.NewPlanFactory(time.Now().Unix())
-
-	inputMappings := executehelpers.DetermineInputMappings(command.InputMappings)
-	inputs, imageResource, err := executehelpers.DetermineInputs(
-		fact,
+	inputs, inputMappings, imageResource, err := executehelpers.DetermineInputs(
+		planFactory,
 		target.Team(),
 		taskConfig.Inputs,
 		command.Inputs,
-		inputMappings,
+		command.InputMappings,
 		command.Image,
 		command.InputsFrom,
+		command.IncludeIgnored,
 	)
 	if err != nil {
 		return err
@@ -82,7 +72,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	}
 
 	outputs, err := executehelpers.DetermineOutputs(
-		fact,
+		planFactory,
 		taskConfig.Outputs,
 		command.Outputs,
 	)
@@ -91,7 +81,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	}
 
 	plan, err := executehelpers.CreateBuildPlan(
-		fact,
+		planFactory,
 		target,
 		command.Privileged,
 		inputs,
@@ -105,6 +95,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
+	client := target.Client()
 	clientURL, err := url.Parse(client.URL())
 	if err != nil {
 		return err
@@ -118,22 +109,16 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-
-		buildURL, err = url.Parse(fmt.Sprintf("/teams/%s/pipelines/%s/builds/%s", build.TeamName, build.PipelineName, build.Name))
-		if err != nil {
-			return err
-		}
-
 	} else {
 		build, err = target.Team().CreateBuild(plan)
 		if err != nil {
 			return err
 		}
+	}
 
-		buildURL, err = url.Parse(fmt.Sprintf("/builds/%d", build.ID))
-		if err != nil {
-			return err
-		}
+	buildURL, err = url.Parse(fmt.Sprintf("/builds/%d", build.ID))
+	if err != nil {
+		return err
 	}
 
 	fmt.Printf("executing build %d at %s \n", build.ID, clientURL.ResolveReference(buildURL))
@@ -144,31 +129,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
-	inputChan := make(chan interface{})
-	go func() {
-		for _, i := range inputs {
-			if i.Path != "" {
-				executehelpers.Upload(client, build.ID, i, includeIgnored)
-			}
-		}
-		close(inputChan)
-	}()
-
-	var outputChans []chan (interface{})
-	if len(outputs) > 0 {
-		for i, output := range outputs {
-			outputChans = append(outputChans, make(chan interface{}, 1))
-			go func(o executehelpers.Output, outputChan chan<- interface{}) {
-				if o.Path != "" {
-					executehelpers.Download(client, build.ID, o)
-				}
-
-				close(outputChan)
-			}(output, outputChans[i])
-		}
-	}
-
-	eventSource, err := client.BuildEvents(fmt.Sprintf("%d", build.ID))
+	eventSource, err := client.BuildEvents(strconv.Itoa(build.ID))
 	if err != nil {
 		return err
 	}
@@ -178,17 +139,46 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	exitCode := eventstream.Render(os.Stdout, eventSource, renderOptions)
 	eventSource.Close()
 
-	<-inputChan
+	artifactList, err := client.ListBuildArtifacts(strconv.Itoa(build.ID))
+	if err != nil {
+		return err
+	}
 
-	if len(outputs) > 0 {
-		for _, outputChan := range outputChans {
-			<-outputChan
+	artifacts := map[string]atc.WorkerArtifact{}
+
+	for _, artifact := range artifactList {
+		artifacts[artifact.Name] = artifact
+	}
+
+	for _, output := range outputs {
+		if artifact, ok := artifacts[output.Name]; ok {
+			err = executehelpers.Download(target.Team(), artifact.ID, output.Path)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	os.Exit(exitCode)
 
 	return nil
+}
+
+func (command *ExecuteCommand) CreateTaskConfig(args []string) (atc.TaskConfig, error) {
+
+	taskTemplate := templatehelpers.NewYamlTemplateWithParams(
+		command.TaskConfig,
+		command.VarsFrom,
+		command.Var,
+		command.YAMLVar,
+	)
+
+	taskTemplateEvaluated, err := taskTemplate.Evaluate(false, false)
+	if err != nil {
+		return atc.TaskConfig{}, err
+	}
+
+	return config.OverrideTaskParams(taskTemplateEvaluated, args)
 }
 
 func abortOnSignal(

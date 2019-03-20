@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -94,54 +93,4 @@ func (s *Scheduler) ensurePendingBuildExists(
 	}
 
 	return nil
-}
-
-type Waiter interface {
-	Wait()
-}
-
-func (s *Scheduler) TriggerImmediately(
-	logger lager.Logger,
-	job db.Job,
-	resources db.Resources,
-	resourceTypes atc.VersionedResourceTypes,
-) (db.Build, Waiter, error) {
-	logger = logger.Session("trigger-immediately", lager.Data{"job_name": job.Name()})
-
-	build, err := job.CreateBuild()
-	if err != nil {
-		logger.Error("failed-to-create-job-build", err)
-		return nil, nil, err
-	}
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
-		nextPendingBuilds, err := job.GetPendingBuilds()
-		if err != nil {
-			logger.Error("failed-to-get-next-pending-build-for-job", err)
-			return
-		}
-
-		err = s.BuildStarter.TryStartPendingBuildsForJob(logger, job, resources, resourceTypes, nextPendingBuilds)
-		if err != nil {
-			logger.Error("failed-to-start-next-pending-build-for-job", err, lager.Data{"job-name": job.Name()})
-			return
-		}
-	}()
-
-	return build, wg, nil
-}
-
-func (s *Scheduler) SaveNextInputMapping(logger lager.Logger, job db.Job, resources db.Resources) error {
-	versions, err := s.Pipeline.LoadVersionsDB()
-	if err != nil {
-		logger.Error("failed-to-load-versions-db", err)
-		return err
-	}
-
-	_, err = s.InputMapper.SaveNextInputMapping(logger, versions, job, resources)
-	return err
 }

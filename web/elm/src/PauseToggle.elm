@@ -3,9 +3,9 @@ module PauseToggle exposing (view)
 import Html exposing (Html)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Message.Message exposing (Hoverable(..), Message(..))
 import Spinner
 import TopBar.Model exposing (PipelineState)
-import TopBar.Msgs exposing (Msg(..))
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
 
@@ -13,7 +13,7 @@ import UserState exposing (UserState(..))
 view :
     UserState
     -> Maybe PipelineState
-    -> Html Msg
+    -> Html Message
 view userState pipelineState =
     case pipelineState of
         Just { isPaused, pipeline, isToggleHovered, isToggleLoading } ->
@@ -37,8 +37,8 @@ view userState pipelineState =
                         { isPaused = isPaused
                         , isClickable = isClickable
                         }
-                 , onMouseEnter <| Hover True
-                 , onMouseLeave <| Hover False
+                 , onMouseEnter <| Hover <| Just <| PipelineButton pipeline
+                 , onMouseLeave <| Hover Nothing
                  ]
                     ++ (if isClickable then
                             [ onClick <| TogglePipelinePaused pipeline isPaused ]

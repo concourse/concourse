@@ -1,13 +1,11 @@
 module SubPageTests exposing (all)
 
 import Application.Application as Application
-import Callback exposing (Callback(..))
 import Dict exposing (Dict)
-import Effects
 import Expect
 import Http
+import Message.Callback exposing (Callback(..))
 import NotFound.Model
-import RemoteData
 import Routes
 import ScreenSize
 import SubPage.SubPage exposing (..)
@@ -57,7 +55,6 @@ all =
             [ test "JobNotFound" <|
                 init "/teams/t/pipelines/p/jobs/j"
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (JobFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
@@ -78,7 +75,6 @@ all =
             , test "Resource not found" <|
                 init "/teams/t/pipelines/p/resources/r"
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (ResourceFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
@@ -99,7 +95,6 @@ all =
             , test "Build not found" <|
                 init "/builds/1"
                     >> Application.handleCallback
-                        (Effects.SubPage 0)
                         (BuildFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
@@ -116,7 +111,6 @@ all =
             , test "Pipeline not found" <|
                 init "/teams/t/pipelines/p"
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (PipelineFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
@@ -141,9 +135,10 @@ notFound : Routes.Route -> NotFound.Model.Model
 notFound route =
     { notFoundImgSrc = "notfound.svg"
     , isUserMenuExpanded = False
-    , middleSection = TopBar.Model.Breadcrumbs route
-    , teams = RemoteData.Loading
+    , groups = []
     , screenSize = ScreenSize.Desktop
-    , highDensity = False
+    , dropdown = TopBar.Model.Hidden
     , isPinMenuExpanded = False
+    , route = route
+    , shiftDown = False
     }

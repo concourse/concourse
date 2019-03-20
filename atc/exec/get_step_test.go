@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -36,6 +37,7 @@ var _ = Describe("GetStep", func() {
 
 		fakeWorker                *workerfakes.FakeWorker
 		fakePool                  *workerfakes.FakePool
+		fakeClient                *workerfakes.FakeClient
 		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResourceFetcher       *resourcefakes.FakeFetcher
@@ -50,7 +52,7 @@ var _ = Describe("GetStep", func() {
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 		resourceTypes       atc.VersionedResourceTypes
 
-		artifactRepository *worker.ArtifactRepository
+		artifactRepository *artifact.Repository
 		state              *execfakes.FakeRunState
 
 		factory exec.Factory
@@ -76,6 +78,7 @@ var _ = Describe("GetStep", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakePool = new(workerfakes.FakePool)
+		fakeClient = new(workerfakes.FakeClient)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
@@ -86,7 +89,7 @@ var _ = Describe("GetStep", func() {
 		}
 		fakeVariablesFactory.NewVariablesReturns(variables)
 
-		artifactRepository = worker.NewArtifactRepository()
+		artifactRepository = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(artifactRepository)
 
@@ -119,7 +122,7 @@ var _ = Describe("GetStep", func() {
 			VersionedResourceTypes: resourceTypes,
 		}
 
-		factory = exec.NewGardenFactory(fakePool, fakeResourceFetcher, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{}, fakeStrategy, fakeResourceFactory)
+		factory = exec.NewGardenFactory(fakePool, fakeClient, fakeResourceFetcher, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{}, fakeStrategy, fakeResourceFactory)
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 	})
@@ -146,8 +149,8 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("finds or chooses a worker", func() {
-		Expect(fakePool.FindOrChooseWorkerCallCount()).To(Equal(1))
-		_, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerArgsForCall(0)
+		Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+		_, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID), teamID)))
 		Expect(actualContainerSpec).To(Equal(worker.ContainerSpec{
 			ImageSpec: worker.ImageSpec{
@@ -168,7 +171,7 @@ var _ = Describe("GetStep", func() {
 	Context("when find or choosing worker succeeds", func() {
 		BeforeEach(func() {
 			fakeWorker.NameReturns("some-worker")
-			fakePool.FindOrChooseWorkerReturns(fakeWorker, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 		})
 
 		It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
@@ -566,7 +569,7 @@ var _ = Describe("GetStep", func() {
 		disaster := errors.New("oh no")
 
 		BeforeEach(func() {
-			fakePool.FindOrChooseWorkerReturns(nil, disaster)
+			fakePool.FindOrChooseWorkerForContainerReturns(nil, disaster)
 		})
 
 		It("does not finish the step via the delegate", func() {

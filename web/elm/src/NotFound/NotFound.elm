@@ -1,11 +1,11 @@
 module NotFound.NotFound exposing (handleCallback, init, update, view)
 
-import Callback exposing (Callback)
-import Effects exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
+import Message.Callback exposing (Callback)
+import Message.Effects as Effects exposing (Effect)
+import Message.Message exposing (Message(..))
 import NotFound.Model exposing (Model)
-import NotFound.Msgs exposing (Msg(..))
 import Routes
 import TopBar.Model
 import TopBar.Styles
@@ -28,20 +28,19 @@ init flags =
     ( { notFoundImgSrc = flags.notFoundImgSrc
       , isUserMenuExpanded = topBar.isUserMenuExpanded
       , isPinMenuExpanded = topBar.isPinMenuExpanded
-      , middleSection = topBar.middleSection
-      , teams = topBar.teams
+      , groups = topBar.groups
+      , route = topBar.route
+      , dropdown = topBar.dropdown
       , screenSize = topBar.screenSize
-      , highDensity = topBar.highDensity
+      , shiftDown = topBar.shiftDown
       }
     , topBarEffects ++ [ Effects.SetTitle "Not Found " ]
     )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
 update msg ( model, effects ) =
-    case msg of
-        FromTopBar m ->
-            TopBar.update m ( model, effects )
+    TopBar.update msg ( model, effects )
 
 
 handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
@@ -49,14 +48,14 @@ handleCallback msg ( model, effects ) =
     TopBar.handleCallback msg ( model, effects )
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState Nothing model |> Html.map FromTopBar
+            [ TopBar.view userState Nothing model
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ Html.div [ class "notfound" ]
                     [ Html.div [ class "title" ] [ Html.text "404" ]

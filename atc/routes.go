@@ -98,8 +98,9 @@ const (
 	DestroyTeam    = "DestroyTeam"
 	ListTeamBuilds = "ListTeamBuilds"
 
-	SendInputToBuildPlan    = "SendInputToBuildPlan"
-	ReadOutputFromBuildPlan = "ReadOutputFromBuildPlan"
+	CreateArtifact     = "CreateArtifact"
+	GetArtifact        = "GetArtifact"
+	ListBuildArtifacts = "ListBuildArtifacts"
 )
 
 const (
@@ -116,12 +117,11 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},
 	{Path: "/api/v1/builds/:build_id", Method: "GET", Name: GetBuild},
 	{Path: "/api/v1/builds/:build_id/plan", Method: "GET", Name: GetBuildPlan},
-	{Path: "/api/v1/builds/:build_id/plan/:plan_id/input", Method: "PUT", Name: SendInputToBuildPlan},
-	{Path: "/api/v1/builds/:build_id/plan/:plan_id/output", Method: "GET", Name: ReadOutputFromBuildPlan},
 	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},
 	{Path: "/api/v1/builds/:build_id/resources", Method: "GET", Name: BuildResources},
 	{Path: "/api/v1/builds/:build_id/abort", Method: "PUT", Name: AbortBuild},
 	{Path: "/api/v1/builds/:build_id/preparation", Method: "GET", Name: GetBuildPreparation},
+	{Path: "/api/v1/builds/:build_id/artifacts", Method: "GET", Name: ListBuildArtifacts},
 
 	{Path: "/api/v1/jobs", Method: "GET", Name: ListAllJobs},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", Method: "GET", Name: ListJobs},
@@ -203,4 +203,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/rename", Method: "PUT", Name: RenameTeam},
 	{Path: "/api/v1/teams/:team_name", Method: "DELETE", Name: DestroyTeam},
 	{Path: "/api/v1/teams/:team_name/builds", Method: "GET", Name: ListTeamBuilds},
+
+	{Path: "/api/v1/teams/:team_name/artifacts", Method: "POST", Name: CreateArtifact},
+	{Path: "/api/v1/teams/:team_name/artifacts/:artifact_id", Method: "GET", Name: GetArtifact},
 })

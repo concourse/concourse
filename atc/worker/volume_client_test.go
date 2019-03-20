@@ -8,15 +8,13 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/worker"
-
-	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -635,6 +633,109 @@ var _ = Describe("VolumeClient", func() {
 						Expect(found).To(BeTrue())
 
 						Expect(volume).To(Equal(worker.NewVolume(bcVolume, dbVolume, volumeClient)))
+					})
+				})
+			})
+		})
+	})
+
+	Describe("CreateVolume", func() {
+		var err error
+		var workerVolume worker.Volume
+
+		BeforeEach(func() {
+			fakeLockFactory.AcquireReturns(nil, false, errors.New("nope"))
+		})
+
+		JustBeforeEach(func() {
+			workerVolume, err = volumeClient.CreateVolume(testLogger, worker.VolumeSpec{}, 42, "some-mount", db.VolumeTypeArtifact)
+		})
+
+		Context("when trying to create a new volume", func() {
+
+			Context("when creating the volume in the db fails", func() {
+				BeforeEach(func() {
+					fakeDBVolumeRepository.CreateVolumeReturns(nil, errors.New("nope"))
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when creating the volume in the db succeeds", func() {
+				var fakeCreatingVolume *dbfakes.FakeCreatingVolume
+
+				BeforeEach(func() {
+					fakeCreatingVolume = new(dbfakes.FakeCreatingVolume)
+
+					fakeDBVolumeRepository.CreateVolumeReturns(fakeCreatingVolume, nil)
+				})
+
+				Context("when it fails to acquire a lock", func() {
+					BeforeEach(func() {
+						fakeLockFactory.AcquireReturns(nil, false, errors.New("nope"))
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+
+				Context("when it acquires the lock", func() {
+					BeforeEach(func() {
+						fakeLockFactory.AcquireReturns(fakeLock, true, nil)
+					})
+
+					It("creates volume in baggageclaim", func() {
+						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+					})
+
+					Context("when creating the volume in baggage claim fails", func() {
+						BeforeEach(func() {
+							fakeBaggageclaimClient.CreateVolumeReturns(nil, errors.New("nope"))
+						})
+
+						It("errors", func() {
+							Expect(err).To(HaveOccurred())
+						})
+					})
+
+					Context("when creating the volume in baggage claim succeeds", func() {
+						var fakeBGVolume *baggageclaimfakes.FakeVolume
+
+						BeforeEach(func() {
+							fakeBGVolume = new(baggageclaimfakes.FakeVolume)
+							fakeBaggageclaimClient.CreateVolumeReturns(fakeBGVolume, nil)
+						})
+
+						It("transitions the volume to created in the db", func() {
+							Expect(fakeCreatingVolume.CreatedCallCount()).To(Equal(1))
+						})
+
+						Context("when transitioning the build fails", func() {
+							BeforeEach(func() {
+								fakeCreatingVolume.CreatedReturns(nil, errors.New("nope"))
+							})
+
+							It("errors", func() {
+								Expect(err).To(HaveOccurred())
+							})
+						})
+
+						Context("when transitioning the build succeeds", func() {
+							var fakeCreatedVolume *dbfakes.FakeCreatedVolume
+
+							BeforeEach(func() {
+								fakeCreatedVolume = new(dbfakes.FakeCreatedVolume)
+								fakeCreatingVolume.CreatedReturns(fakeCreatedVolume, nil)
+							})
+
+							It("returns a new volume with the bg volume and created volume", func() {
+								Expect(err).NotTo(HaveOccurred())
+								Expect(workerVolume).To(Equal(worker.NewVolume(fakeBGVolume, fakeCreatedVolume, volumeClient)))
+							})
+						})
 					})
 				})
 			})

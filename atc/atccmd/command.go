@@ -87,7 +87,6 @@ type RunCommand struct {
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
-	PeerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -164,13 +163,6 @@ type RunCommand struct {
 		AuthFlags     skycmd.AuthFlags
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
-}
-
-func (cmd *RunCommand) PeerURLOrDefault() flag.URL {
-	if cmd.PeerURL.URL == nil {
-		cmd.PeerURL = cmd.defaultURL()
-	}
-	return cmd.PeerURL
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -328,7 +320,7 @@ func (cmd *RunCommand) Execute(args []string) error {
 
 func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
 	if cmd.ExternalURL.URL == nil {
-		cmd.ExternalURL = cmd.defaultURL()
+		cmd.ExternalURL = cmd.DefaultURL()
 	}
 
 	if len(positionalArguments) != 0 {
@@ -537,31 +529,14 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-
-	defaultLimits, err := cmd.parseDefaultLimits()
-	if err != nil {
-		return nil, err
-	}
+	workerClient := worker.NewClient(pool, workerProvider)
 
 	variablesFactory, err := cmd.variablesFactory(logger)
 	if err != nil {
 		return nil, err
 	}
 
-	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
-
-	engine := cmd.constructEngine(pool, resourceFetcher, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits, buildContainerStrategy, resourceFactory)
-
-	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
-		pool,
-		resourceFactory,
-		dbResourceConfigFactory,
-		cmd.ResourceTypeCheckingInterval,
-		cmd.ResourceCheckingInterval,
-		engine,
-		checkContainerStrategy,
-	)
 
 	radarScannerFactory := radar.NewScannerFactory(
 		pool,
@@ -597,11 +572,8 @@ func (cmd *RunCommand) constructAPIMembers(
 		gcContainerDestroyer,
 		dbBuildFactory,
 		dbResourceConfigFactory,
-		engine,
-		pool,
-		workerProvider,
+		workerClient,
 		drain,
-		radarSchedulerFactory,
 		radarScannerFactory,
 		variablesFactory,
 		credsManagers,
@@ -741,6 +713,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -754,7 +727,18 @@ func (cmd *RunCommand) constructBackendMembers(
 
 	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
-	engine := cmd.constructEngine(pool, resourceFetcher, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits, buildContainerStrategy, resourceFactory)
+
+	engine := cmd.constructEngine(
+		pool,
+		workerClient,
+		resourceFetcher,
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		variablesFactory,
+		defaultLimits,
+		buildContainerStrategy,
+		resourceFactory,
+	)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		pool,
@@ -768,6 +752,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
+	dbArtifactLifecycle := db.NewArtifactLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	bus := dbConn.Bus()
@@ -813,6 +798,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
 				gc.NewResourceConfigCollector(dbResourceConfigFactory),
 				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
+				gc.NewArtifactCollector(dbArtifactLifecycle),
 				gc.NewVolumeCollector(
 					dbVolumeRepository,
 					cmd.GC.MissingGracePeriod,
@@ -975,7 +961,7 @@ func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
 		RoundTripper: httpClient.Transport,
 
 		SourceHost: cmd.ExternalURL.URL.Host,
-		TargetURL:  cmd.defaultURL().URL,
+		TargetURL:  cmd.DefaultURL().URL,
 	}
 
 	return httpClient, nil
@@ -1040,7 +1026,7 @@ func (cmd *RunCommand) defaultBindIP() net.IP {
 	return net.ParseIP(URL)
 }
 
-func (cmd *RunCommand) defaultURL() flag.URL {
+func (cmd *RunCommand) DefaultURL() flag.URL {
 	return flag.URL{
 		URL: &url.URL{
 			Scheme: "http",
@@ -1207,6 +1193,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 
 func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
+	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
@@ -1217,6 +1204,7 @@ func (cmd *RunCommand) constructEngine(
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerPool,
+		workerClient,
 		resourceFetcher,
 		resourceCacheFactory,
 		resourceConfigFactory,
@@ -1234,7 +1222,7 @@ func (cmd *RunCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURLOrDefault().String())
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine})
 }
 
 func (cmd *RunCommand) constructHTTPHandler(
@@ -1281,11 +1269,8 @@ func (cmd *RunCommand) constructAPIHandler(
 	gcContainerDestroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
-	engine engine.Engine,
-	workerPool worker.Pool,
-	workerProvider worker.WorkerProvider,
+	workerClient worker.Client,
 	drain <-chan struct{},
-	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
 	variablesFactory creds.VariablesFactory,
 	credsManagers creds.Managers,
@@ -1325,14 +1310,10 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbBuildFactory,
 		resourceConfigFactory,
 
-		cmd.PeerURLOrDefault().String(),
 		buildserver.NewEventHandler,
 		drain,
 
-		engine,
-		workerPool,
-		workerProvider,
-		radarSchedulerFactory,
+		workerClient,
 		radarScannerFactory,
 
 		reconfigurableSink,

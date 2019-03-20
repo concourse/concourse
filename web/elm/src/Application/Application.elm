@@ -9,16 +9,16 @@ module Application.Application exposing
     , view
     )
 
-import Application.Msgs as Msgs exposing (Msg(..), NavIndex)
-import Callback exposing (Callback(..))
 import Concourse
-import Effects exposing (Effect(..), LayoutDispatch(..))
 import Html exposing (Html)
 import Http
+import Message.Callback exposing (Callback(..))
+import Message.Effects as Effects exposing (Effect(..))
+import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
 import Navigation
 import Routes
 import SubPage.SubPage as SubPage
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import UserState exposing (UserState(..))
 
 
@@ -31,14 +31,8 @@ type alias Flags =
     }
 
 
-anyNavIndex : NavIndex
-anyNavIndex =
-    -1
-
-
 type alias Model =
-    { navIndex : NavIndex
-    , subModel : SubPage.Model
+    { subModel : SubPage.Model
     , turbulenceImgSrc : String
     , notFoundImgSrc : String
     , csrfToken : String
@@ -49,7 +43,7 @@ type alias Model =
     }
 
 
-init : Flags -> Navigation.Location -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
+init : Flags -> Navigation.Location -> ( Model, List Effect )
 init flags location =
     let
         route =
@@ -63,12 +57,8 @@ init flags location =
                 }
                 route
 
-        navIndex =
-            1
-
         model =
-            { navIndex = navIndex
-            , subModel = subModel
+            { subModel = subModel
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
@@ -82,138 +72,96 @@ init flags location =
             -- We've refreshed on the page and we're not
             -- getting it from query params
             if flags.csrfToken == "" then
-                ( Layout, flags.csrfToken, LoadToken )
+                [ LoadToken ]
 
             else
-                ( Layout, flags.csrfToken, SaveToken flags.csrfToken )
-
-        stripCSRFTokenParamCmd =
-            if flags.csrfToken == "" then
-                []
-
-            else
-                [ ( Layout, flags.csrfToken, Effects.ModifyUrl <| Routes.toString route ) ]
+                [ SaveToken flags.csrfToken
+                , Effects.ModifyUrl <| Routes.toString route
+                ]
     in
-    ( model
-    , [ ( Layout, flags.csrfToken, FetchUser ), handleTokenEffect ]
-        ++ stripCSRFTokenParamCmd
-        ++ List.map (\ef -> ( SubPage navIndex, flags.csrfToken, ef )) subEffects
-    )
+    ( model, [ FetchUser ] ++ handleTokenEffect ++ subEffects )
 
 
-locationMsg : Navigation.Location -> Msg
+locationMsg : Navigation.Location -> TopLevelMessage
 locationMsg =
-    RouteChanged << Routes.parsePath
+    Routes.parsePath >> RouteChanged >> DeliveryReceived
 
 
-handleCallback :
-    LayoutDispatch
-    -> Callback
-    -> Model
-    -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
-handleCallback disp callback model =
-    case disp of
-        SubPage navIndex ->
-            case callback of
-                ResourcesFetched (Ok fetchedResources) ->
-                    if validNavIndex model.navIndex navIndex then
-                        subpageHandleCallback model callback navIndex
+handleCallback : Callback -> Model -> ( Model, List Effect )
+handleCallback callback model =
+    case callback of
+        BuildTriggered (Err err) ->
+            ( model, redirectToLoginIfNecessary model err )
 
-                    else
-                        ( model, [] )
+        BuildAborted (Err err) ->
+            ( model, redirectToLoginIfNecessary model err )
 
-                BuildTriggered (Err err) ->
-                    ( model, redirectToLoginIfNecessary model err navIndex )
+        PausedToggled (Err err) ->
+            ( model, redirectToLoginIfNecessary model err )
 
-                BuildAborted (Err err) ->
-                    ( model, redirectToLoginIfNecessary model err navIndex )
+        JobBuildsFetched (Err err) ->
+            ( model, redirectToLoginIfNecessary model err )
 
-                PausedToggled (Err err) ->
-                    ( model, redirectToLoginIfNecessary model err navIndex )
+        InputToFetched (Err err) ->
+            ( model, redirectToLoginIfNecessary model err )
 
-                JobBuildsFetched (Err err) ->
-                    ( model, redirectToLoginIfNecessary model err navIndex )
+        OutputOfFetched (Err err) ->
+            ( model, redirectToLoginIfNecessary model err )
 
-                InputToFetched (Err err) ->
-                    ( model, redirectToLoginIfNecessary model err navIndex )
+        LoggedOut (Ok ()) ->
+            subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 
-                OutputOfFetched (Err err) ->
-                    ( model, redirectToLoginIfNecessary model err navIndex )
+        APIDataFetched (Ok ( time, data )) ->
+            subpageHandleCallback
+                { model | userState = data.user |> Maybe.map UserStateLoggedIn |> Maybe.withDefault UserStateLoggedOut }
+                callback
 
-                LoggedOut (Ok ()) ->
-                    subpageHandleCallback { model | userState = UserStateLoggedOut } callback navIndex
+        APIDataFetched (Err err) ->
+            subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 
-                APIDataFetched (Ok ( time, data )) ->
-                    subpageHandleCallback
-                        { model | userState = data.user |> Maybe.map UserStateLoggedIn |> Maybe.withDefault UserStateLoggedOut }
-                        callback
-                        navIndex
+        UserFetched (Ok user) ->
+            subpageHandleCallback { model | userState = UserStateLoggedIn user } callback
 
-                APIDataFetched (Err err) ->
-                    subpageHandleCallback { model | userState = UserStateLoggedOut } callback navIndex
+        UserFetched (Err _) ->
+            subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 
-                -- otherwise, pass down
-                _ ->
-                    subpageHandleCallback model callback navIndex
-
-        Layout ->
-            case callback of
-                UserFetched (Ok user) ->
-                    subpageHandleCallback { model | userState = UserStateLoggedIn user } callback model.navIndex
-
-                UserFetched (Err _) ->
-                    subpageHandleCallback { model | userState = UserStateLoggedOut } callback model.navIndex
-
-                _ ->
-                    ( model, [] )
+        -- otherwise, pass down
+        _ ->
+            subpageHandleCallback model callback
 
 
-subpageHandleCallback : Model -> Callback -> Int -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
-subpageHandleCallback model callback navIndex =
+subpageHandleCallback : Model -> Callback -> ( Model, List Effect )
+subpageHandleCallback model callback =
     let
         ( subModel, effects ) =
             SubPage.handleCallback callback model.subModel
                 |> SubPage.handleNotFound model.notFoundImgSrc model.route
     in
-    ( { model | subModel = subModel }
-    , List.map (\ef -> ( SubPage navIndex, model.csrfToken, ef )) effects
-    )
+    ( { model | subModel = subModel }, effects )
 
 
-update : Msg -> Model -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
+update : TopLevelMessage -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
-        Msgs.ModifyUrl route ->
-            ( model, [ ( Layout, model.csrfToken, Effects.ModifyUrl <| Routes.toString route ) ] )
+        Update m ->
+            let
+                ( subModel, subEffects ) =
+                    SubPage.update
+                        model.notFoundImgSrc
+                        model.route
+                        m
+                        model.subModel
+            in
+            ( { model | subModel = subModel }, subEffects )
 
-        RouteChanged route ->
-            urlUpdate route model
-
-        SubMsg navIndex m ->
-            if validNavIndex model.navIndex navIndex then
-                let
-                    ( subModel, subEffects ) =
-                        SubPage.update
-                            model.notFoundImgSrc
-                            model.route
-                            m
-                            model.subModel
-                in
-                ( { model | subModel = subModel }
-                , List.map (\ef -> ( SubPage navIndex, model.csrfToken, ef )) subEffects
-                )
-
-            else
-                ( model, [] )
-
-        Callback dispatch callback ->
-            handleCallback dispatch callback model
+        Callback callback ->
+            handleCallback callback model
 
         DeliveryReceived delivery ->
             handleDelivery delivery model
 
 
-handleDelivery : Delivery -> Model -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
+handleDelivery : Delivery -> Model -> ( Model, List Effect )
 handleDelivery delivery model =
     let
         ( newSubmodel, subPageEffects ) =
@@ -226,30 +174,31 @@ handleDelivery delivery model =
         ( newModel, applicationEffects ) =
             handleDeliveryForApplication delivery model
     in
-    ( { newModel | subModel = newSubmodel }
-    , List.map (\ef -> ( SubPage model.navIndex, model.csrfToken, ef )) subPageEffects ++ applicationEffects
-    )
+    ( { newModel | subModel = newSubmodel }, subPageEffects ++ applicationEffects )
 
 
-handleDeliveryForApplication : Delivery -> Model -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
+handleDeliveryForApplication : Delivery -> Model -> ( Model, List Effect )
 handleDeliveryForApplication delivery model =
     case delivery of
         NonHrefLinkClicked route ->
-            ( model, [ ( Layout, model.csrfToken, NavigateTo route ) ] )
+            ( model, [ NavigateTo route ] )
 
         TokenReceived (Just tokenValue) ->
             ( { model | csrfToken = tokenValue }, [] )
+
+        RouteChanged route ->
+            urlUpdate route model
 
         _ ->
             ( model, [] )
 
 
-redirectToLoginIfNecessary : Model -> Http.Error -> NavIndex -> List ( LayoutDispatch, Concourse.CSRFToken, Effect )
-redirectToLoginIfNecessary model err navIndex =
+redirectToLoginIfNecessary : Model -> Http.Error -> List Effect
+redirectToLoginIfNecessary model err =
     case err of
         Http.BadStatus { status } ->
             if status.code == 401 then
-                [ ( SubPage navIndex, model.csrfToken, RedirectToLogin ) ]
+                [ RedirectToLogin ]
 
             else
                 []
@@ -258,25 +207,9 @@ redirectToLoginIfNecessary model err navIndex =
             []
 
 
-validNavIndex : NavIndex -> NavIndex -> Bool
-validNavIndex modelNavIndex navIndex =
-    if navIndex == anyNavIndex then
-        True
-
-    else
-        navIndex == modelNavIndex
-
-
-urlUpdate : Routes.Route -> Model -> ( Model, List ( LayoutDispatch, Concourse.CSRFToken, Effect ) )
+urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
 urlUpdate route model =
     let
-        navIndex =
-            if route == model.route then
-                model.navIndex
-
-            else
-                model.navIndex + 1
-
         ( newSubmodel, subEffects ) =
             if route == model.route then
                 ( model.subModel, [] )
@@ -292,19 +225,14 @@ urlUpdate route model =
                     }
                     route
     in
-    ( { model
-        | navIndex = navIndex
-        , subModel = newSubmodel
-        , route = route
-      }
-    , List.map (\ef -> ( SubPage navIndex, model.csrfToken, ef )) subEffects
-        ++ [ ( Layout, model.csrfToken, SetFavIcon Nothing ) ]
+    ( { model | subModel = newSubmodel, route = route }
+    , subEffects ++ [ SetFavIcon Nothing ]
     )
 
 
-view : Model -> Html Msg
+view : Model -> Html TopLevelMessage
 view model =
-    Html.map (SubMsg model.navIndex) (SubPage.view model.userState model.subModel)
+    Html.map Update (SubPage.view model.userState model.subModel)
 
 
 subscriptions : Model -> List Subscription

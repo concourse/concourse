@@ -1,8 +1,5 @@
 module Dashboard.Group exposing
-    ( DragState(..)
-    , DropState(..)
-    , Group
-    , PipelineIndex
+    ( PipelineIndex
     , StickyHeaderConfig
     , allPipelines
     , allTeamNames
@@ -34,9 +31,9 @@ module Dashboard.Group exposing
 import Concourse
 import Concourse.BuildStatus
 import Concourse.PipelineStatus as PipelineStatus
+import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Group.Tag as Tag
-import Dashboard.Models as Models
-import Dashboard.Msgs exposing (Msg(..))
+import Dashboard.Models as Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
 import Date exposing (Date)
@@ -46,18 +43,12 @@ import Html.Events exposing (on, onMouseEnter)
 import Json.Decode
 import List.Extra
 import Maybe.Extra
+import Message.Message exposing (Hoverable(..), Message(..))
 import Monocle.Optional
 import Ordering exposing (Ordering)
 import Set
 import Time exposing (Time)
 import TopBar.Styles as NTBS
-
-
-type alias Group =
-    { pipelines : List Models.Pipeline
-    , teamName : String
-    , tag : Maybe Tag.Tag
-    }
 
 
 ordering : Ordering Group
@@ -101,11 +92,6 @@ findGroupOptional teamName =
 
 type alias PipelineIndex =
     Int
-
-
-type DragState
-    = NotDragging
-    | Dragging Concourse.TeamName PipelineIndex
 
 
 teamNameOptional : Monocle.Optional.Optional DragState Concourse.TeamName
@@ -163,11 +149,6 @@ setDragIndex dragIndex dragState =
             NotDragging
 
 
-type DropState
-    = NotDropping
-    | Dropping PipelineIndex
-
-
 dropIndex : DropState -> Maybe PipelineIndex
 dropIndex dropState =
     case dropState of
@@ -188,7 +169,7 @@ setDropIndex dropIndex dropState =
             NotDropping
 
 
-allPipelines : Concourse.APIData -> List Models.Pipeline
+allPipelines : Concourse.APIData -> List Pipeline
 allPipelines data =
     data.pipelines
         |> List.map
@@ -349,7 +330,7 @@ shiftPipelines dragIndex dropIndex group =
 -- to the 'length of this file' tire fire
 
 
-shiftPipelineTo : Models.Pipeline -> Int -> List Models.Pipeline -> List Models.Pipeline
+shiftPipelineTo : Pipeline -> Int -> List Pipeline -> List Pipeline
 shiftPipelineTo pipeline position pipelines =
     case pipelines of
         [] ->
@@ -391,7 +372,7 @@ groups apiData =
         |> List.map (group (allPipelines apiData) apiData.user)
 
 
-group : List Models.Pipeline -> Maybe Concourse.User -> String -> Group
+group : List Pipeline -> Maybe Concourse.User -> String -> Group
 group allPipelines user teamName =
     { pipelines = List.filter (.teamName >> (==) teamName) allPipelines
     , teamName = teamName
@@ -409,12 +390,12 @@ view :
     { dragState : DragState
     , dropState : DropState
     , now : Time
-    , hoveredPipeline : Maybe Models.Pipeline
+    , hovered : Maybe Hoverable
     , pipelineRunningKeyframes : String
     }
     -> Group
-    -> Html Msg
-view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } group =
+    -> Html Message
+view { dragState, dropState, now, hovered, pipelineRunningKeyframes } group =
     let
         pipelines =
             if List.isEmpty group.pipelines then
@@ -424,6 +405,12 @@ view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } gr
                 List.append
                     (List.indexedMap
                         (\i pipeline ->
+                            let
+                                pipelineId =
+                                    { pipelineName = pipeline.name
+                                    , teamName = pipeline.teamName
+                                    }
+                            in
                             Html.div [ class "pipeline-wrapper" ]
                                 [ pipelineDropAreaView dragState dropState group.teamName i
                                 , Html.div
@@ -445,7 +432,9 @@ view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } gr
                                     [ Pipeline.pipelineView
                                         { now = now
                                         , pipeline = pipeline
-                                        , hovered = hoveredPipeline == Just pipeline
+                                        , hovered =
+                                            hovered
+                                                == (Just <| PipelineButton pipelineId)
                                         , pipelineRunningKeyframes = pipelineRunningKeyframes
                                         }
                                     ]
@@ -472,11 +461,13 @@ view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } gr
         ]
 
 
-hdView : String -> Group -> Html Msg
+hdView : String -> Group -> List (Html Message)
 hdView pipelineRunningKeyframes group =
     let
         header =
-            [ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+            [ Html.div
+                [ class "dashboard-team-name" ]
+                [ Html.text group.teamName ]
             ]
                 ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view True) group.tag)
 
@@ -494,17 +485,22 @@ hdView pipelineRunningKeyframes group =
                                 }
                         )
     in
-    Html.div [ class "pipeline-wrapper" ] <|
-        case teamPipelines of
-            [] ->
-                header
+    case teamPipelines of
+        [] ->
+            header
 
-            p :: ps ->
-                -- Wrap the team name and the first pipeline together so the team name is not the last element in a column
-                List.append [ Html.div [ class "dashboard-team-name-wrapper" ] (header ++ [ p ]) ] ps
+        p :: ps ->
+            -- Wrap the team name and the first pipeline together so
+            -- the team name is not the last element in a column
+            Html.div
+                [ class "dashboard-team-name-wrapper"
+                , style Styles.teamNameHd
+                ]
+                (header ++ [ p ])
+                :: ps
 
 
-pipelineNotSetView : Html msg
+pipelineNotSetView : Html Message
 pipelineNotSetView =
     Html.div
         [ class "card" ]
@@ -517,7 +513,7 @@ pipelineNotSetView =
         ]
 
 
-pipelineDropAreaView : DragState -> DropState -> String -> Int -> Html Msg
+pipelineDropAreaView : DragState -> DropState -> String -> Int -> Html Message
 pipelineDropAreaView dragState dropState teamName index =
     let
         ( active, over ) =
