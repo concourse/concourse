@@ -36,6 +36,7 @@ type alias Model =
         , hoveredElement : Maybe Hoverable
         , hoveredCounter : Int
         , fetchingHistory : Bool
+        , scrolledToCurrentBuild : Bool
         }
 
 

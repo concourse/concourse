@@ -121,13 +121,14 @@ init flags =
           , highlight = flags.highlight
           , hoveredElement = Nothing
           , hoveredCounter = 0
+          , fetchingHistory = False
+          , scrolledToCurrentBuild = False
           , isUserMenuExpanded = topBar.isUserMenuExpanded
           , isPinMenuExpanded = topBar.isPinMenuExpanded
           , route = topBar.route
           , groups = topBar.groups
           , dropdown = topBar.dropdown
           , screenSize = topBar.screenSize
-          , fetchingHistory = False
           , shiftDown = topBar.shiftDown
           }
         , topBarEffects ++ [ GetCurrentTime ]
@@ -356,13 +357,18 @@ handleDelivery delivery ( model, effects ) =
                         |> Maybe.map ((==) id)
                         |> Maybe.withDefault False
 
+                hasNextPage =
+                    model.nextPage /= Nothing
+
                 needsToFetchMorePages =
-                    not model.fetchingHistory && lastBuildVisible && model.nextPage /= Nothing
+                    not model.fetchingHistory && lastBuildVisible && hasNextPage
             in
             case currentJob model of
                 Just job ->
                     if needsToFetchMorePages then
-                        ( { model | fetchingHistory = True }, effects ++ [ FetchBuildHistory job model.nextPage ] )
+                        ( { model | fetchingHistory = True }
+                        , effects ++ [ FetchBuildHistory job model.nextPage ]
+                        )
 
                     else
                         ( model, effects )
@@ -372,16 +378,19 @@ handleDelivery delivery ( model, effects ) =
 
         ElementVisible ( id, False ) ->
             let
-                needsToScrollToCurrentBuild =
+                currentBuildInvisible =
                     model.currentBuild
                         |> RemoteData.toMaybe
                         |> Maybe.map (.build >> .id >> toString)
                         |> Maybe.map ((==) id)
                         |> Maybe.withDefault False
+
+                shouldScroll =
+                    currentBuildInvisible && not model.scrolledToCurrentBuild
             in
-            ( model
+            ( { model | scrolledToCurrentBuild = True }
             , effects
-                ++ (if needsToScrollToCurrentBuild then
+                ++ (if shouldScroll then
                         [ Scroll <| ToId id ]
 
                     else

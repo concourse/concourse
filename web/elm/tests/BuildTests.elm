@@ -1050,6 +1050,32 @@ all =
                             (Subscription.ElementVisible ( "1", False ))
                         >> Tuple.second
                         >> Expect.equal [ Effects.Scroll <| Effects.ToId "1" ]
+                , test "does not scroll to current build more than once" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", False ))
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", False ))
+                        >> Tuple.second
+                        >> Expect.equal []
                 , test "if build is not present in history, fetches more" <|
                     givenBuildFetched
                         >> Tuple.mapSecond (always [])
