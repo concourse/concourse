@@ -95,9 +95,9 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 	return configs
 }
 
-var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, r.space, r.nonce, r.check_error, c.check_error").
+var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, r.space, r.nonce, r.check_error, s.check_error").
 	From("resource_types r").
-	LeftJoin("resource_configs c ON r.resource_config_id = c.id").
+	LeftJoin("resource_config_scopes s ON r.resource_config_id = s.resource_config_id").
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {

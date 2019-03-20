@@ -42,12 +42,11 @@ type PutStep struct {
 	tags         atc.Tags
 	inputs       PutInputs
 
-	delegate              PutDelegate
-	resourceFactory       resource.ResourceFactory
-	resourceConfigFactory db.ResourceConfigFactory
-	planID                atc.PlanID
-	containerMetadata     db.ContainerMetadata
-	stepMetadata          StepMetadata
+	delegate          PutDelegate
+	resourceFactory   resource.ResourceFactory
+	planID            atc.PlanID
+	containerMetadata db.ContainerMetadata
+	stepMetadata      StepMetadata
 
 	resourceTypes creds.VersionedResourceTypes
 
@@ -66,7 +65,6 @@ func NewPutStep(
 	inputs PutInputs,
 	delegate PutDelegate,
 	resourceFactory resource.ResourceFactory,
-	resourceConfigFactory db.ResourceConfigFactory,
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	stepMetadata StepMetadata,
@@ -75,20 +73,19 @@ func NewPutStep(
 	return &PutStep{
 		build: build,
 
-		resourceType:          resourceType,
-		name:                  name,
-		resource:              resourceName,
-		source:                source,
-		params:                params,
-		tags:                  tags,
-		inputs:                inputs,
-		delegate:              delegate,
-		resourceFactory:       resourceFactory,
-		resourceConfigFactory: resourceConfigFactory,
-		planID:                planID,
-		containerMetadata:     containerMetadata,
-		stepMetadata:          stepMetadata,
-		resourceTypes:         resourceTypes,
+		resourceType:      resourceType,
+		name:              name,
+		resource:          resourceName,
+		source:            source,
+		params:            params,
+		tags:              tags,
+		inputs:            inputs,
+		delegate:          delegate,
+		resourceFactory:   resourceFactory,
+		planID:            planID,
+		containerMetadata: containerMetadata,
+		stepMetadata:      stepMetadata,
+		resourceTypes:     resourceTypes,
 	}
 }
 
@@ -139,12 +136,6 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(logger, step.resourceType, source, step.resourceTypes)
-	if err != nil {
-		logger.Error("failed-to-find-or-create-resource-config", err)
-		return err
-	}
-
 	putResource, err := step.resourceFactory.NewResource(
 		ctx,
 		logger,
@@ -154,7 +145,6 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		workerSpec,
 		step.resourceTypes,
 		step.delegate,
-		resourceConfig,
 	)
 	if err != nil {
 		return err
@@ -193,10 +183,34 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		if step.resource != "" {
 			logger = logger.WithData(lager.Data{"step": step.name, "resource": step.resource, "resource-type": step.resourceType, "version": step.versionInfo.Version})
 
+			pipeline, found, err := step.build.Pipeline()
+			if err != nil {
+				return err
+			}
+
+			if !found {
+				return ErrPipelineNotFound{step.build.PipelineName()}
+			}
+
+			dbResource, found, err := pipeline.Resource(step.resource)
+			if err != nil {
+				return err
+			}
+
+			if !found {
+				return ErrResourceNotFound{step.resource}
+			}
+
 			for _, v := range versions {
-				err = step.build.SaveOutput(resourceConfig, v, step.name, step.resource)
+				err = step.build.SaveOutput(logger, v, step.name, step.resource)
 				if err != nil {
 					logger.Error("failed-to-save-output", err, lager.Data{"version": v.Version})
+					return err
+				}
+
+				err = dbResource.SaveMetadata(v.Space, v.Version, v.Metadata)
+				if err != nil {
+					logger.Error("failed-to-save-metadata", err, lager.Data{"version": v.Version})
 					return err
 				}
 			}

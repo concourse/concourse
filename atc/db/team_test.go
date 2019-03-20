@@ -440,7 +440,10 @@ var _ = Describe("Team", func() {
 				pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()))
+				vrt, err := pipelineResourceTypes.Deserialize()
+				Expect(err).ToNot(HaveOccurred())
+
+				resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.NewVersionedResourceTypes(variables, vrt))
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceContainer, err = defaultWorker.CreateContainer(
@@ -1683,9 +1686,6 @@ var _ = Describe("Team", func() {
 				},
 			})
 
-			err = resource.SetResourceConfig(rc.ID())
-			Expect(err).ToNot(HaveOccurred())
-
 			rcv, found, err := rc.FindVersion(atc.Space("space"), atc.Version{"version": "v1"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -1745,9 +1745,6 @@ var _ = Describe("Team", func() {
 					Version: atc.Version{"version": "v2"},
 				},
 			})
-
-			err = resource.SetResourceConfig(rc.ID())
-			Expect(err).ToNot(HaveOccurred())
 
 			rcv, found, err := rc.FindVersion(atc.Space("space"), atc.Version{"version": "v1"})
 			Expect(err).ToNot(HaveOccurred())
@@ -2368,11 +2365,14 @@ var _ = Describe("Team", func() {
 						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 						Expect(err).ToNot(HaveOccurred())
 
+						vrt, err := pipelineResourceTypes.Deserialize()
+						Expect(err).ToNot(HaveOccurred())
+
 						resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 							logger,
 							defaultResource.Type(),
 							defaultResource.Source(),
-							creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()),
+							creds.NewVersionedResourceTypes(variables, vrt),
 						)
 						Expect(err).ToNot(HaveOccurred())
 

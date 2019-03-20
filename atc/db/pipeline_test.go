@@ -979,7 +979,7 @@ var _ = Describe("Pipeline", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(beforeVR).ToNot(BeEmpty())
 
-				saveVersions(resourceConfig, []atc.SpaceVersion{
+				saveVersions(resourceConfigScope, []atc.SpaceVersion{
 					atc.SpaceVersion{
 						Version: atc.Version{"version": "4"},
 						Space:   atc.Space("space"),
@@ -1031,7 +1031,7 @@ var _ = Describe("Pipeline", func() {
 				Expect(savedVR).ToNot(BeEmpty())
 				Expect(savedVR[0].Version()).To(Equal(db.Version{"version": "1"}))
 
-				saveVersions(resourceConfig, []atc.SpaceVersion{
+				saveVersions(resourceConfigScope, []atc.SpaceVersion{
 					atc.SpaceVersion{
 						Version: atc.Version{"version": "2"},
 						Space:   atc.Space("space"),
@@ -1382,9 +1382,6 @@ var _ = Describe("Pipeline", func() {
 				resourceConfigScope, err = savedResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfigScope.SaveVersions([]atc.Version{{"version": "1"}})
-				Expect(err).ToNot(HaveOccurred())
-
 				saveVersions(resourceConfigScope, []atc.SpaceVersion{
 					atc.SpaceVersion{
 						Version: atc.Version{"version": "1"},
@@ -1564,7 +1561,7 @@ var _ = Describe("Pipeline", func() {
 				Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
 			})
 
-			It("will not cache versions whose check order is zero", func() {
+			It("will not cache versions that are partial", func() {
 				saveVersions(resourceConfigScope, []atc.SpaceVersion{
 					atc.SpaceVersion{
 						Version: atc.Version{"version": "2"},
@@ -1572,10 +1569,9 @@ var _ = Describe("Pipeline", func() {
 					},
 				})
 
-				By("creating a new version but not updating the check order yet")
-				created, err := resourceConfigScope.SaveUncheckedVersion(atc.Space("space"), atc.Version{"version": "1"}, nil)
+				By("creating a new partial version")
+				err := resourceConfigScope.SavePartialVersion(atc.Space("space"), atc.Version{"version": "1"}, nil)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
 
 				build, err := job.CreateBuild()
 				Expect(err).ToNot(HaveOccurred())
@@ -2089,11 +2085,11 @@ var _ = Describe("Pipeline", func() {
 				},
 			})
 
-			err = dbBuild.SaveOutput(resourceConfigScope, atc.SpaceVersion{
+			err = dbBuild.SaveOutput(logger, atc.SpaceVersion{
 				Space:   atc.Space("space"),
 				Version: atc.Version{"version": "v1"},
 				Metadata: atc.Metadata{
-					atc.MetadaField{
+					atc.MetadataField{
 						Name:  "some",
 						Value: "value",
 					},
@@ -2105,13 +2101,13 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = dbSecondBuild.SaveOutput(resourceConfigScope, atc.SpaceVersion{
+			err = dbSecondBuild.SaveOutput(logger, atc.SpaceVersion{
 				Space:   atc.Space("space"),
 				Version: atc.Version{"version": "v1"},
 			}, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			err = dbSecondBuild.SaveOutput(resourceConfig, atc.SpaceVersion{
+			err = dbSecondBuild.SaveOutput(logger, atc.SpaceVersion{
 				Space:   atc.Space("space"),
 				Version: atc.Version{"version": "v3"},
 			}, "some-output-name", "some-resource")
@@ -2240,16 +2236,13 @@ var _ = Describe("Pipeline", func() {
 				},
 			})
 
-			err = resourceTypeConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"version": "2"})
+			err = resourceTypeScope.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"version": "2"})
 			Expect(err).ToNot(HaveOccurred())
 
 			otherResourceTypeScope, err := otherResourceType.SetResourceConfig(logger, atc.Source{"some": "other-type-source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = otherResourceTypeScope.SaveDefaultSpace(atc.Space("space"))
-			Expect(err).ToNot(HaveOccurred())
-
-			err = otherResourceType.SetResourceConfig(otherResourceTypeConfig.ID())
 			Expect(err).ToNot(HaveOccurred())
 
 			saveVersions(otherResourceTypeScope, []atc.SpaceVersion{

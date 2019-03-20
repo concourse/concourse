@@ -16,13 +16,12 @@ import (
 )
 
 type gardenFactory struct {
-	workerClient          worker.Client
-	resourceFetcher       resource.Fetcher
-	resourceFactory       resource.ResourceFactory
-	resourceCacheFactory  db.ResourceCacheFactory
-	resourceConfigFactory db.ResourceConfigFactory
-	variablesFactory      creds.VariablesFactory
-	defaultLimits         atc.ContainerLimits
+	workerClient         worker.Client
+	resourceFetcher      resource.Fetcher
+	resourceFactory      resource.ResourceFactory
+	resourceCacheFactory db.ResourceCacheFactory
+	variablesFactory     creds.VariablesFactory
+	defaultLimits        atc.ContainerLimits
 }
 
 func NewGardenFactory(
@@ -30,18 +29,16 @@ func NewGardenFactory(
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
-	resourceConfigFactory db.ResourceConfigFactory,
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
 ) Factory {
 	return &gardenFactory{
-		workerClient:          workerClient,
-		resourceFetcher:       resourceFetcher,
-		resourceFactory:       resourceFactory,
-		resourceCacheFactory:  resourceCacheFactory,
-		resourceConfigFactory: resourceConfigFactory,
-		variablesFactory:      variablesFactory,
-		defaultLimits:         defaultLimits,
+		workerClient:         workerClient,
+		resourceFetcher:      resourceFetcher,
+		resourceFactory:      resourceFactory,
+		resourceCacheFactory: resourceCacheFactory,
+		variablesFactory:     variablesFactory,
+		defaultLimits:        defaultLimits,
 	}
 }
 
@@ -121,7 +118,6 @@ func (factory *gardenFactory) Put(
 
 		delegate,
 		factory.resourceFactory,
-		factory.resourceConfigFactory,
 		plan.ID,
 		workerMetadata,
 		stepMetadata,

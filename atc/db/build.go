@@ -879,7 +879,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", "spaces.name", firstOccurrence).
 		From("resource_versions versions, build_resource_config_version_inputs inputs, builds, resources, spaces").
 		Where(sq.Eq{"builds.id": b.id}).
-		Where(sq.NotEq{"versions.check_order": 0}).
+		Where(sq.NotEq{"versions.partial": true}).
 		Where(sq.Expr("inputs.build_id = builds.id")).
 		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("resources.resource_config_scope_id = spaces.resource_config_scope_id")).
@@ -934,7 +934,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	rows, err = psql.Select("outputs.name", "versions.version", "spaces.name").
 		From("resource_versions versions, build_resource_config_version_outputs outputs, builds, resources, spaces").
 		Where(sq.Eq{"builds.id": b.id}).
-		Where(sq.NotEq{"versions.check_order": 0}).
+		Where(sq.NotEq{"versions.partial": true}).
 		Where(sq.Expr("outputs.build_id = builds.id")).
 		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).

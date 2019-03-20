@@ -236,7 +236,7 @@ var _ = Describe("ResourceType", func() {
 					},
 				})
 
-				err = resourceTypeConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"version": "2"})
+				err = resourceTypeScope.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"version": "2"})
 				Expect(err).ToNot(HaveOccurred())
 			})
 

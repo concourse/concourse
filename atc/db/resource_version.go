@@ -82,6 +82,7 @@ var resourceVersionQuery = psql.Select(`
 	LeftJoin("spaces s ON v.space_id = s.id").
 	Where(sq.NotEq{
 		"v.check_order": 0,
+		"v.partial":     true,
 	})
 
 // This query is for finding ALL resource config versions (even ones that have a check order of 0)

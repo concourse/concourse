@@ -28,8 +28,8 @@ var _ = Describe("PutStep", func() {
 
 		pipelineResourceName string
 
-		fakeResourceFactory       *resourcefakes.FakeResourceFactory
-		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+		fakeResourceFactory *resourcefakes.FakeResourceFactory
+		fakeDBResource      *dbfakes.FakeResource
 
 		variables creds.Variables
 
@@ -59,16 +59,17 @@ var _ = Describe("PutStep", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
+		fakeDBResource = new(dbfakes.FakeResource)
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(42)
 		fakeBuild.TeamIDReturns(123)
+		fakeBuild.PipelineNameReturns("pipeline")
 
 		planID = atc.PlanID("some-plan-id")
 
 		pipelineResourceName = "some-resource"
 
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
-		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		variables = template.StaticVariables{
 			"custom-param": "source",
 			"source-param": "super-secret-source",
@@ -116,7 +117,6 @@ var _ = Describe("PutStep", func() {
 			putInputs,
 			fakeDelegate,
 			fakeResourceFactory,
-			fakeResourceConfigFactory,
 			planID,
 			containerMetadata,
 			stepMetadata,
@@ -145,19 +145,13 @@ var _ = Describe("PutStep", func() {
 
 		Context("when the tracker can initialize the resource", func() {
 			var (
-				fakeResource       *resourcefakes.FakeResource
-				fakeResourceConfig *dbfakes.FakeResourceConfig
-				versions           []atc.SpaceVersion
+				fakeResource *resourcefakes.FakeResource
+				versions     []atc.SpaceVersion
 			)
 
 			BeforeEach(func() {
 				fakeResource = new(resourcefakes.FakeResource)
 				fakeResourceFactory.NewResourceReturns(fakeResource, nil)
-
-				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-				fakeResourceConfig.IDReturns(1)
-
-				fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
 				versions = []atc.SpaceVersion{
 					{
@@ -175,18 +169,10 @@ var _ = Describe("PutStep", func() {
 				fakeResource.PutReturns(versions, nil)
 			})
 
-			It("finds or creates a resource config", func() {
-				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-				_, actualResourceType, actualSource, actualResourceTypes := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-				Expect(actualResourceType).To(Equal("some-resource-type"))
-				Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
-				Expect(actualResourceTypes).To(Equal(resourceTypes))
-			})
-
 			It("initializes the resource with the correct type, session, and sources with no inputs specified (meaning it takes all artifacts)", func() {
 				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 
-				_, _, owner, cm, containerSpec, workerSpec, actualResourceTypes, delegate, resourceConfig := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, _, owner, cm, containerSpec, workerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
 				Expect(cm).To(Equal(containerMetadata))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
 
@@ -217,7 +203,6 @@ var _ = Describe("PutStep", func() {
 				))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
 				Expect(delegate).To(Equal(fakeDelegate))
-				Expect(resourceConfig.ID()).To(Equal(1))
 			})
 
 			Context("when the inputs are specified", func() {
@@ -264,231 +249,322 @@ var _ = Describe("PutStep", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 			})
 
-			Context("when a version is returned", func() {
-				It("reports the created version info", func() {
-					info := putStep.VersionInfo()
-					Expect(info.Space).To(Equal(atc.Space("space")))
-					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-					Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
-				})
-			})
+			Context("when finding the pipeline succeeds", func() {
+				var fakePipeline *dbfakes.FakePipeline
 
-			Context("when no versions are returned", func() {
 				BeforeEach(func() {
-					versions = []atc.SpaceVersion{}
-					fakeResource.PutReturns(versions, nil)
+					fakePipeline = new(dbfakes.FakePipeline)
+					fakeBuild.PipelineReturns(fakePipeline, true, nil)
 				})
 
-				It("reports empty created version info", func() {
-					info := putStep.VersionInfo()
-					Expect(info.Space).To(Equal(atc.Space("")))
-					Expect(info.Version).To(BeNil())
-					Expect(info.Metadata).To(BeNil())
-				})
-			})
+				It("finds the resource", func() {
+					Expect(fakePipeline.ResourceCallCount()).To(Equal(1))
 
-			Context("when multiple versions are returned", func() {
-				BeforeEach(func() {
-					versions = []atc.SpaceVersion{
-						{
-							Space:   atc.Space("space"),
-							Version: atc.Version{"some": "version"},
-							Metadata: atc.Metadata{
-								atc.MetadataField{
-									Name:  "some",
-									Value: "metadata",
+					Expect(fakePipeline.ResourceArgsForCall(0)).To(Equal(pipelineResourceName))
+				})
+
+				Context("when finding the resource succeeds", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(fakeDBResource, true, nil)
+					})
+
+					Context("when a version is returned", func() {
+						It("reports the created version info", func() {
+							info := putStep.VersionInfo()
+							Expect(info.Space).To(Equal(atc.Space("space")))
+							Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+							Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+						})
+					})
+
+					Context("when no versions are returned", func() {
+						BeforeEach(func() {
+							versions = []atc.SpaceVersion{}
+							fakeResource.PutReturns(versions, nil)
+						})
+
+						It("reports empty created version info", func() {
+							info := putStep.VersionInfo()
+							Expect(info.Space).To(Equal(atc.Space("")))
+							Expect(info.Version).To(BeNil())
+							Expect(info.Metadata).To(BeNil())
+						})
+					})
+
+					Context("when multiple versions are returned", func() {
+						BeforeEach(func() {
+							versions = []atc.SpaceVersion{
+								{
+									Space:   atc.Space("space"),
+									Version: atc.Version{"some": "version"},
+									Metadata: atc.Metadata{
+										atc.MetadataField{
+											Name:  "some",
+											Value: "metadata",
+										},
+									},
 								},
-							},
-						},
-						{
-							Space:   atc.Space("space"),
-							Version: atc.Version{"some": "other-version"},
-							Metadata: atc.Metadata{
-								atc.MetadataField{
-									Name:  "some",
-									Value: "other-metadata",
+								{
+									Space:   atc.Space("space"),
+									Version: atc.Version{"some": "other-version"},
+									Metadata: atc.Metadata{
+										atc.MetadataField{
+											Name:  "some",
+											Value: "other-metadata",
+										},
+									},
 								},
-							},
-						},
-					}
+							}
 
-					fakeResource.PutReturns(versions, nil)
-				})
+							fakeResource.PutReturns(versions, nil)
+						})
 
-				It("reports the latest version returned from the put step into the version info", func() {
-					info := putStep.VersionInfo()
-					Expect(info.Space).To(Equal(atc.Space("space")))
-					Expect(info.Version).To(Equal(atc.Version{"some": "other-version"}))
-					Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "other-metadata"}}))
-				})
-			})
+						It("reports the latest version returned from the put step into the version info", func() {
+							info := putStep.VersionInfo()
+							Expect(info.Space).To(Equal(atc.Space("space")))
+							Expect(info.Version).To(Equal(atc.Version{"some": "other-version"}))
+							Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "other-metadata"}}))
+						})
+					})
 
-			It("is successful", func() {
-				Expect(putStep.Succeeded()).To(BeTrue())
-			})
+					Context("when a version is returned by the put", func() {
+						It("saves the build output", func() {
+							Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
-			Context("when a version is returned by the put", func() {
-				It("saves the build output", func() {
-					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
-
-					resourceConfig, spaceVersion, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
-					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
-					Expect(spaceVersion).To(Equal(atc.SpaceVersion{
-						Space:   atc.Space("space"),
-						Version: atc.Version{"some": "version"},
-						Metadata: atc.Metadata{
-							atc.MetadataField{
-								Name:  "some",
-								Value: "metadata",
-							},
-						},
-					}))
-					Expect(outputName).To(Equal("some-name"))
-					Expect(resourceName).To(Equal("some-resource"))
-				})
-			})
-
-			Context("when multiple versions are return by the put", func() {
-				BeforeEach(func() {
-					versions = []atc.SpaceVersion{
-						{
-							Space:   atc.Space("space"),
-							Version: atc.Version{"some": "version"},
-							Metadata: atc.Metadata{
-								atc.MetadataField{
-									Name:  "some",
-									Value: "metadata",
+							_, spaceVersion, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
+							Expect(spaceVersion).To(Equal(atc.SpaceVersion{
+								Space:   atc.Space("space"),
+								Version: atc.Version{"some": "version"},
+								Metadata: atc.Metadata{
+									atc.MetadataField{
+										Name:  "some",
+										Value: "metadata",
+									},
 								},
-							},
-						},
-						{
-							Space:   atc.Space("space"),
-							Version: atc.Version{"some": "other-version"},
-							Metadata: atc.Metadata{
-								atc.MetadataField{
-									Name:  "some",
-									Value: "other-metadata",
+							}))
+							Expect(outputName).To(Equal("some-name"))
+							Expect(resourceName).To(Equal("some-resource"))
+						})
+
+						It("saves the metadata", func() {
+							Expect(fakeDBResource.SaveMetadataCallCount()).To(Equal(1))
+
+							actualSpace, actualVersion, actualMetadata := fakeDBResource.SaveMetadataArgsForCall(0)
+							Expect(actualSpace).To(Equal(atc.Space("space")))
+							Expect(actualVersion).To(Equal(atc.Version{"some": "version"}))
+							Expect(actualMetadata).To(Equal(atc.Metadata{atc.MetadataField{Name: "some", Value: "metadata"}}))
+						})
+
+						It("is successful", func() {
+							Expect(putStep.Succeeded()).To(BeTrue())
+						})
+
+						Context("when it fails to save metadata for the resource", func() {
+							disaster := errors.New("oops")
+
+							BeforeEach(func() {
+								fakeDBResource.SaveMetadataReturns(disaster)
+							})
+
+							It("returns an error", func() {
+								Expect(stepErr).To(Equal(disaster))
+							})
+						})
+					})
+
+					Context("when multiple versions are return by the put", func() {
+						var fakePipeline *dbfakes.FakePipeline
+
+						BeforeEach(func() {
+							versions = []atc.SpaceVersion{
+								{
+									Space:   atc.Space("space"),
+									Version: atc.Version{"some": "version"},
+									Metadata: atc.Metadata{
+										atc.MetadataField{
+											Name:  "some",
+											Value: "metadata",
+										},
+									},
 								},
-							},
-						},
-					}
+								{
+									Space:   atc.Space("space"),
+									Version: atc.Version{"some": "other-version"},
+									Metadata: atc.Metadata{
+										atc.MetadataField{
+											Name:  "some",
+											Value: "other-metadata",
+										},
+									},
+								},
+							}
 
-					fakeResource.PutReturns(versions, nil)
-				})
+							fakeResource.PutReturns(versions, nil)
 
-				It("saves the build output for all versions", func() {
-					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(2))
+							fakePipeline = new(dbfakes.FakePipeline)
+							fakeBuild.PipelineReturns(fakePipeline, true, nil)
+							fakePipeline.ResourceReturns(fakeDBResource, true, nil)
+						})
 
-					resourceConfig, spaceVersion, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
-					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
-					Expect(spaceVersion).To(Equal(atc.SpaceVersion{
-						Space:   atc.Space("space"),
-						Version: atc.Version{"some": "version"},
-						Metadata: atc.Metadata{
-							atc.MetadataField{
-								Name:  "some",
-								Value: "metadata",
-							},
-						},
-					}))
-					Expect(outputName).To(Equal("some-name"))
-					Expect(resourceName).To(Equal("some-resource"))
+						It("saves the build output for all versions", func() {
+							Expect(fakeBuild.SaveOutputCallCount()).To(Equal(2))
 
-					resourceConfig, spaceVersion, outputName, resourceName = fakeBuild.SaveOutputArgsForCall(1)
-					Expect(resourceConfig.ID()).To(Equal(fakeResourceConfig.ID()))
-					Expect(spaceVersion).To(Equal(atc.SpaceVersion{
-						Space:   atc.Space("space"),
-						Version: atc.Version{"some": "other-version"},
-						Metadata: atc.Metadata{
-							atc.MetadataField{
-								Name:  "some",
-								Value: "other-metadata",
-							},
-						},
-					}))
-					Expect(outputName).To(Equal("some-name"))
-					Expect(resourceName).To(Equal("some-resource"))
-				})
-			})
+							_, spaceVersion, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
+							Expect(spaceVersion).To(Equal(atc.SpaceVersion{
+								Space:   atc.Space("space"),
+								Version: atc.Version{"some": "version"},
+								Metadata: atc.Metadata{
+									atc.MetadataField{
+										Name:  "some",
+										Value: "metadata",
+									},
+								},
+							}))
+							Expect(outputName).To(Equal("some-name"))
+							Expect(resourceName).To(Equal("some-resource"))
 
-			Context("when the resource is blank", func() {
-				BeforeEach(func() {
-					pipelineResourceName = ""
-				})
+							_, spaceVersion, outputName, resourceName = fakeBuild.SaveOutputArgsForCall(1)
+							Expect(spaceVersion).To(Equal(atc.SpaceVersion{
+								Space:   atc.Space("space"),
+								Version: atc.Version{"some": "other-version"},
+								Metadata: atc.Metadata{
+									atc.MetadataField{
+										Name:  "some",
+										Value: "other-metadata",
+									},
+								},
+							}))
+							Expect(outputName).To(Equal("some-name"))
+							Expect(resourceName).To(Equal("some-resource"))
+						})
 
-				It("is successful", func() {
-					Expect(putStep.Succeeded()).To(BeTrue())
-				})
+						It("saves the metadata for all the versions", func() {
+							Expect(fakeDBResource.SaveMetadataCallCount()).To(Equal(2))
 
-				It("does not save the build output", func() {
-					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(0))
-				})
-			})
+							actualSpace, actualVersion, actualMetadata := fakeDBResource.SaveMetadataArgsForCall(0)
+							Expect(actualSpace).To(Equal(atc.Space("space")))
+							Expect(actualVersion).To(Equal(atc.Version{"some": "version"}))
+							Expect(actualMetadata).To(Equal(atc.Metadata{atc.MetadataField{Name: "some", Value: "metadata"}}))
 
-			It("finishes via the delegate", func() {
-				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
-				_, status, info := fakeDelegate.FinishedArgsForCall(0)
-				Expect(status).To(Equal(exec.ExitStatus(0)))
-				Expect(info.Space).To(Equal(atc.Space("space")))
-				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
-			})
+							actualSpace, actualVersion, actualMetadata = fakeDBResource.SaveMetadataArgsForCall(1)
+							Expect(actualSpace).To(Equal(atc.Space("space")))
+							Expect(actualVersion).To(Equal(atc.Version{"some": "other-version"}))
+							Expect(actualMetadata).To(Equal(atc.Metadata{atc.MetadataField{Name: "some", Value: "other-metadata"}}))
+						})
+					})
 
-			It("stores the version info as the step result", func() {
-				Expect(state.StoreResultCallCount()).To(Equal(1))
-				sID, sVal := state.StoreResultArgsForCall(0)
-				Expect(sID).To(Equal(planID))
-				Expect(sVal).To(Equal(exec.VersionInfo{
-					Space:    atc.Space("space"),
-					Version:  atc.Version{"some": "version"},
-					Metadata: []atc.MetadataField{{"some", "metadata"}},
-				}))
-			})
+					Context("when the resource is blank", func() {
+						BeforeEach(func() {
+							pipelineResourceName = ""
+						})
 
-			Context("when finding or creating resource config fails", func() {
-				disaster := errors.New("no")
+						It("is successful", func() {
+							Expect(putStep.Succeeded()).To(BeTrue())
+						})
 
-				BeforeEach(func() {
-					fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, disaster)
-				})
+						It("does not save the build output", func() {
+							Expect(fakeBuild.SaveOutputCallCount()).To(Equal(0))
+						})
+					})
 
-				It("returns the error", func() {
-					Expect(stepErr).To(Equal(disaster))
-				})
-			})
+					It("finishes via the delegate", func() {
+						Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+						_, status, info := fakeDelegate.FinishedArgsForCall(0)
+						Expect(status).To(Equal(exec.ExitStatus(0)))
+						Expect(info.Space).To(Equal(atc.Space("space")))
+						Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+						Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+					})
 
-			Context("when saving the build output fails", func() {
-				disaster := errors.New("nope")
+					It("stores the version info as the step result", func() {
+						Expect(state.StoreResultCallCount()).To(Equal(1))
+						sID, sVal := state.StoreResultArgsForCall(0)
+						Expect(sID).To(Equal(planID))
+						Expect(sVal).To(Equal(exec.VersionInfo{
+							Space:    atc.Space("space"),
+							Version:  atc.Version{"some": "version"},
+							Metadata: []atc.MetadataField{{"some", "metadata"}},
+						}))
+					})
 
-				BeforeEach(func() {
-					fakeBuild.SaveOutputReturns(disaster)
-				})
+					Context("when saving the build output fails", func() {
+						disaster := errors.New("nope")
 
-				It("returns the error", func() {
-					Expect(stepErr).To(Equal(disaster))
-				})
-			})
+						BeforeEach(func() {
+							fakeBuild.SaveOutputReturns(disaster)
+						})
 
-			Context("when performing the put exits unsuccessfully", func() {
-				BeforeEach(func() {
-					fakeResource.PutReturns(nil, atc.ErrResourceScriptFailed{
-						ExitStatus: 42,
+						It("returns the error", func() {
+							Expect(stepErr).To(Equal(disaster))
+						})
+					})
+
+					Context("when performing the put exits unsuccessfully", func() {
+						BeforeEach(func() {
+							fakeResource.PutReturns(nil, atc.ErrResourceScriptFailed{
+								ExitStatus: 42,
+							})
+						})
+
+						It("finishes the step via the delegate", func() {
+							Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+							_, status, info := fakeDelegate.FinishedArgsForCall(0)
+							Expect(status).To(Equal(exec.ExitStatus(42)))
+							Expect(info).To(BeZero())
+						})
+
+						It("returns nil", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
+						})
+
+						It("is not successful", func() {
+							Expect(putStep.Succeeded()).To(BeFalse())
+						})
+					})
+
+					Context("when it fails to find the resource", func() {
+						disaster := errors.New("oops")
+
+						BeforeEach(func() {
+							fakePipeline.ResourceReturns(nil, false, disaster)
+						})
+
+						It("returns an error", func() {
+							Expect(stepErr).To(Equal(disaster))
+						})
+					})
+
+					Context("when the resource is not found", func() {
+						BeforeEach(func() {
+							fakePipeline.ResourceReturns(nil, false, nil)
+						})
+
+						It("returns an ErrResourceNotFound", func() {
+							Expect(stepErr).To(Equal(exec.ErrResourceNotFound{"some-resource"}))
+						})
 					})
 				})
 
-				It("finishes the step via the delegate", func() {
-					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
-					_, status, info := fakeDelegate.FinishedArgsForCall(0)
-					Expect(status).To(Equal(exec.ExitStatus(42)))
-					Expect(info).To(BeZero())
+				Context("when it fails to find the pipeline", func() {
+					disaster := errors.New("oops")
+
+					BeforeEach(func() {
+						fakeBuild.PipelineReturns(nil, false, disaster)
+					})
+
+					It("returns an error", func() {
+						Expect(stepErr).To(Equal(disaster))
+					})
 				})
 
-				It("returns nil", func() {
-					Expect(stepErr).ToNot(HaveOccurred())
-				})
+				Context("when the pipeline is not found", func() {
+					BeforeEach(func() {
+						fakeBuild.PipelineReturns(nil, false, nil)
+					})
 
-				It("is not successful", func() {
-					Expect(putStep.Succeeded()).To(BeFalse())
+					It("returns an ErrPipelineNotFound", func() {
+						Expect(stepErr).To(Equal(exec.ErrPipelineNotFound{"pipeline"}))
+					})
 				})
 			})
 

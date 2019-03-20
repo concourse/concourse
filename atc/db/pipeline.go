@@ -705,7 +705,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.Expr("r.resource_config_scope_id = s.resource_config_scope_id")).
 		Where(sq.NotEq{
-			"v.check_order": 0,
+			"v.partial": true,
 		}).
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
@@ -742,7 +742,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.Expr("r.resource_config_scope_id = s.resource_config_scope_id")).
 		Where(sq.NotEq{
-			"v.check_order": 0,
+			"v.partial": true,
 		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
@@ -786,7 +786,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("resources r ON r.resource_config_scope_id = s.resource_config_scope_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.NotEq{
-			"v.check_order": 0,
+			"v.partial": true,
 		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,

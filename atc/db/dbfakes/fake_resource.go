@@ -104,6 +104,22 @@ type FakeResource struct {
 	enableVersionReturnsOnCall map[int]struct {
 		result1 error
 	}
+	GetMetadataStub        func(atc.Space, atc.Version) (atc.Metadata, bool, error)
+	getMetadataMutex       sync.RWMutex
+	getMetadataArgsForCall []struct {
+		arg1 atc.Space
+		arg2 atc.Version
+	}
+	getMetadataReturns struct {
+		result1 atc.Metadata
+		result2 bool
+		result3 error
+	}
+	getMetadataReturnsOnCall map[int]struct {
+		result1 atc.Metadata
+		result2 bool
+		result3 error
+	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
 	iDArgsForCall []struct {
@@ -221,6 +237,19 @@ type FakeResource struct {
 		result1 int
 		result2 bool
 		result3 error
+	}
+	SaveMetadataStub        func(atc.Space, atc.Version, atc.Metadata) error
+	saveMetadataMutex       sync.RWMutex
+	saveMetadataArgsForCall []struct {
+		arg1 atc.Space
+		arg2 atc.Version
+		arg3 atc.Metadata
+	}
+	saveMetadataReturns struct {
+		result1 error
+	}
+	saveMetadataReturnsOnCall map[int]struct {
+		result1 error
 	}
 	SetCheckSetupErrorStub        func(error) error
 	setCheckSetupErrorMutex       sync.RWMutex
@@ -824,6 +853,73 @@ func (fake *FakeResource) EnableVersionReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeResource) GetMetadata(arg1 atc.Space, arg2 atc.Version) (atc.Metadata, bool, error) {
+	fake.getMetadataMutex.Lock()
+	ret, specificReturn := fake.getMetadataReturnsOnCall[len(fake.getMetadataArgsForCall)]
+	fake.getMetadataArgsForCall = append(fake.getMetadataArgsForCall, struct {
+		arg1 atc.Space
+		arg2 atc.Version
+	}{arg1, arg2})
+	fake.recordInvocation("GetMetadata", []interface{}{arg1, arg2})
+	fake.getMetadataMutex.Unlock()
+	if fake.GetMetadataStub != nil {
+		return fake.GetMetadataStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.getMetadataReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeResource) GetMetadataCallCount() int {
+	fake.getMetadataMutex.RLock()
+	defer fake.getMetadataMutex.RUnlock()
+	return len(fake.getMetadataArgsForCall)
+}
+
+func (fake *FakeResource) GetMetadataCalls(stub func(atc.Space, atc.Version) (atc.Metadata, bool, error)) {
+	fake.getMetadataMutex.Lock()
+	defer fake.getMetadataMutex.Unlock()
+	fake.GetMetadataStub = stub
+}
+
+func (fake *FakeResource) GetMetadataArgsForCall(i int) (atc.Space, atc.Version) {
+	fake.getMetadataMutex.RLock()
+	defer fake.getMetadataMutex.RUnlock()
+	argsForCall := fake.getMetadataArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeResource) GetMetadataReturns(result1 atc.Metadata, result2 bool, result3 error) {
+	fake.getMetadataMutex.Lock()
+	defer fake.getMetadataMutex.Unlock()
+	fake.GetMetadataStub = nil
+	fake.getMetadataReturns = struct {
+		result1 atc.Metadata
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResource) GetMetadataReturnsOnCall(i int, result1 atc.Metadata, result2 bool, result3 error) {
+	fake.getMetadataMutex.Lock()
+	defer fake.getMetadataMutex.Unlock()
+	fake.GetMetadataStub = nil
+	if fake.getMetadataReturnsOnCall == nil {
+		fake.getMetadataReturnsOnCall = make(map[int]struct {
+			result1 atc.Metadata
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getMetadataReturnsOnCall[i] = struct {
+		result1 atc.Metadata
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeResource) ID() int {
 	fake.iDMutex.Lock()
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
@@ -1421,6 +1517,68 @@ func (fake *FakeResource) ResourceVersionIDReturnsOnCall(i int, result1 int, res
 	}{result1, result2, result3}
 }
 
+func (fake *FakeResource) SaveMetadata(arg1 atc.Space, arg2 atc.Version, arg3 atc.Metadata) error {
+	fake.saveMetadataMutex.Lock()
+	ret, specificReturn := fake.saveMetadataReturnsOnCall[len(fake.saveMetadataArgsForCall)]
+	fake.saveMetadataArgsForCall = append(fake.saveMetadataArgsForCall, struct {
+		arg1 atc.Space
+		arg2 atc.Version
+		arg3 atc.Metadata
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SaveMetadata", []interface{}{arg1, arg2, arg3})
+	fake.saveMetadataMutex.Unlock()
+	if fake.SaveMetadataStub != nil {
+		return fake.SaveMetadataStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.saveMetadataReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) SaveMetadataCallCount() int {
+	fake.saveMetadataMutex.RLock()
+	defer fake.saveMetadataMutex.RUnlock()
+	return len(fake.saveMetadataArgsForCall)
+}
+
+func (fake *FakeResource) SaveMetadataCalls(stub func(atc.Space, atc.Version, atc.Metadata) error) {
+	fake.saveMetadataMutex.Lock()
+	defer fake.saveMetadataMutex.Unlock()
+	fake.SaveMetadataStub = stub
+}
+
+func (fake *FakeResource) SaveMetadataArgsForCall(i int) (atc.Space, atc.Version, atc.Metadata) {
+	fake.saveMetadataMutex.RLock()
+	defer fake.saveMetadataMutex.RUnlock()
+	argsForCall := fake.saveMetadataArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeResource) SaveMetadataReturns(result1 error) {
+	fake.saveMetadataMutex.Lock()
+	defer fake.saveMetadataMutex.Unlock()
+	fake.SaveMetadataStub = nil
+	fake.saveMetadataReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) SaveMetadataReturnsOnCall(i int, result1 error) {
+	fake.saveMetadataMutex.Lock()
+	defer fake.saveMetadataMutex.Unlock()
+	fake.SaveMetadataStub = nil
+	if fake.saveMetadataReturnsOnCall == nil {
+		fake.saveMetadataReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveMetadataReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResource) SetCheckSetupError(arg1 error) error {
 	fake.setCheckSetupErrorMutex.Lock()
 	ret, specificReturn := fake.setCheckSetupErrorReturnsOnCall[len(fake.setCheckSetupErrorArgsForCall)]
@@ -2008,6 +2166,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.disableVersionMutex.RUnlock()
 	fake.enableVersionMutex.RLock()
 	defer fake.enableVersionMutex.RUnlock()
+	fake.getMetadataMutex.RLock()
+	defer fake.getMetadataMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.lastCheckedMutex.RLock()
@@ -2030,6 +2190,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.resourceConfigScopeIDMutex.RUnlock()
 	fake.resourceVersionIDMutex.RLock()
 	defer fake.resourceVersionIDMutex.RUnlock()
+	fake.saveMetadataMutex.RLock()
+	defer fake.saveMetadataMutex.RUnlock()
 	fake.setCheckSetupErrorMutex.RLock()
 	defer fake.setCheckSetupErrorMutex.RUnlock()
 	fake.setPinCommentMutex.RLock()

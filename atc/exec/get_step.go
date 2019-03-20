@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
-	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -15,22 +14,6 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
-
-type ErrPipelineNotFound struct {
-	PipelineName string
-}
-
-func (e ErrPipelineNotFound) Error() string {
-	return fmt.Sprintf("pipeline '%s' not found", e.PipelineName)
-}
-
-type ErrResourceNotFound struct {
-	ResourceName string
-}
-
-func (e ErrResourceNotFound) Error() string {
-	return fmt.Sprintf("resource '%s' not found", e.ResourceName)
-}
 
 //go:generate counterfeiter . GetDelegate
 
@@ -183,13 +166,34 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		db.NewBuildStepContainerOwner(step.buildID, step.planID, step.teamID),
 	)
 
+	var dbResource db.Resource
+	if step.resource != "" {
+		pipeline, found, err := step.build.Pipeline()
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return ErrPipelineNotFound{step.build.PipelineName()}
+		}
+
+		dbResource, found, err = pipeline.Resource(step.resource)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return ErrResourceNotFound{step.resource}
+		}
+	}
+
 	volume, err := step.resourceFetcher.Fetch(
 		ctx,
 		logger,
 		resource.Session{
 			Metadata: step.containerMetadata,
 		},
-		NewGetEventHandler(resourceCache.ResourceConfig(), space, version),
+		NewGetEventHandler(dbResource, space, version),
 		step.tags,
 		step.teamID,
 		step.resourceTypes,
@@ -208,15 +212,18 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	resourceVersion, found, err := resourceCache.ResourceConfig().FindUncheckedVersion(space, version)
-	if err != nil {
-		logger.Error("failed-to-find-resource-version", err, lager.Data{"version": version})
-		return err
-	}
+	var resourceMetadata atc.Metadata
+	if dbResource != nil {
+		var found bool
+		resourceMetadata, found, err = dbResource.GetMetadata(space, version)
+		if err != nil {
+			logger.Error("failed-to-get-resource-version-metadata", err, lager.Data{"version": version})
+			return err
+		}
 
-	if !found {
-		logger.Error("resource-version-not-found", err, lager.Data{"version": version})
-		return nil
+		if !found {
+			logger.Error("resource-version-not-found", err, lager.Data{"version": version})
+		}
 	}
 
 	state.Artifacts().RegisterSource(worker.ArtifactName(step.name), &getArtifactSource{
@@ -228,7 +235,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 
 	step.delegate.Finished(logger, 0, VersionInfo{
 		Version:  version,
-		Metadata: resourceVersion.Metadata().ToATCMetadata(),
+		Metadata: resourceMetadata,
 	})
 
 	return nil

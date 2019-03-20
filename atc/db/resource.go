@@ -51,6 +51,9 @@ type Resource interface {
 	PinVersion(rcvID int) error
 	UnpinVersion() error
 
+	SaveMetadata(atc.Space, atc.Version, atc.Metadata) error
+	GetMetadata(atc.Space, atc.Version) (atc.Metadata, bool, error)
+
 	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
 
@@ -265,7 +268,7 @@ func (r *resource) ResourceVersionID(version atc.Version) (int, bool, error) {
 		Join("spaces s ON s.id = rv.space_id").
 		Join("resources r ON s.resource_config_scope_id = r.resource_config_scope_id").
 		Where(sq.Eq{"r.id": r.ID(), "version": requestedVersion}).
-		Where(sq.NotEq{"rv.check_order": 0}).
+		Where(sq.NotEq{"rv.partial": true}).
 		RunWith(r.conn).
 		QueryRow().
 		Scan(&id)
@@ -310,7 +313,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 				AND r.id = d.resource_id
 			)
 		FROM resource_versions v, spaces s, resources r
-		WHERE r.id = $1 AND r.resource_config_scope_id = s.resource_config_scope_id AND s.id = v.space_id AND v.check_order != 0
+		WHERE r.id = $1 AND r.resource_config_scope_id = s.resource_config_scope_id AND s.id = v.space_id AND v.partial != true
 	`
 
 	var rows *sql.Rows
@@ -507,6 +510,69 @@ func (r *resource) UnpinVersion() error {
 	}
 
 	return nil
+}
+
+func (r *resource) SaveMetadata(space atc.Space, version atc.Version, metadata atc.Metadata) error {
+	versionJSON, err := json.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.conn.Exec(`UPDATE resource_versions
+		SET metadata = $1
+		FROM spaces, resources
+		WHERE resources.id = $2
+		AND resources.resource_config_scope_id = spaces.resource_config_scope_id
+		AND spaces.name = $3
+		AND spaces.id = resource_versions.space_id
+		AND resource_versions.version = $4;`, metadataJSON, r.id, space, versionJSON)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *resource) GetMetadata(space atc.Space, version atc.Version) (atc.Metadata, bool, error) {
+	versionJSON, err := json.Marshal(version)
+	if err != nil {
+		return nil, false, err
+	}
+
+	var metadataBlob sql.NullString
+	err = psql.Select("metadata").
+		From("resource_versions rv").
+		Join("spaces s ON rv.space_id = s.id").
+		Join("resources r ON r.resource_config_scope_id = s.resource_config_scope_id").
+		Where(sq.Eq{
+			"r.id":       r.id,
+			"s.name":     space,
+			"rv.version": versionJSON,
+		}).
+		RunWith(r.conn).
+		QueryRow().
+		Scan(&metadataBlob)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	var metadata atc.Metadata
+	if metadataBlob.Valid {
+		err = json.Unmarshal([]byte(metadataBlob.String), &metadata)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	return metadata, true, nil
 }
 
 func (r *resource) toggleVersion(rvID int, enable bool) error {

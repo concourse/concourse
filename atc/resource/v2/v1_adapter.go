@@ -41,12 +41,11 @@ func (a *V1Adapter) Get(
 	space atc.Space,
 	version atc.Version,
 ) error {
-	versionedSource, err := a.resource.Get(context, volume, ioConfig, source, params, version)
+	_, err := a.resource.Get(context, volume, ioConfig, source, params, version)
 	if err != nil {
 		return err
 	}
 
-	err = eventHandler.SaveMetadata(versionedSource.Metadata())
 	return err
 }
 

@@ -717,7 +717,7 @@ var _ = Describe("Job", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			saveVersions(resourceConfig, []atc.SpaceVersion{
+			saveVersions(resourceConfigScope, []atc.SpaceVersion{
 				atc.SpaceVersion{
 					Space:   atc.Space("space"),
 					Version: atc.Version{"version": "v1"},

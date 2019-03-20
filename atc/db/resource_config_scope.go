@@ -28,8 +28,6 @@ type ResourceConfigScope interface {
 	CheckError() error
 	DefaultSpace() atc.Space
 
-	SaveUncheckedVersion(space atc.Space, version atc.Version, metadata ResourceConfigMetadataFields) (bool, error)
-	FindUncheckedVersion(atc.Space, atc.Version) (ResourceVersion, bool, error)
 	FindVersion(atc.Space, atc.Version) (ResourceVersion, bool, error)
 	LatestVersions() ([]ResourceVersion, error)
 
@@ -69,137 +67,7 @@ func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourc
 func (r *resourceConfigScope) DefaultSpace() atc.Space        { return r.defaultSpace }
 func (r *resourceConfigScope) CheckError() error              { return r.checkError }
 
-// SaveUncheckedVersion is used by the "get" and "put" step to find or create of a
-// resource config version. We want to do an upsert because there will be cases
-// where resource config versions can become outdated while the versions
-// associated to it are still valid. This will be special case where we save
-// the version with a check order of 0 in order to avoid using this version
-// until we do a proper check. Note that this method will not bump the cache
-// index for the pipeline because we want to ignore these versions until the
-// check orders get updated. The bumping of the index will be done in
-// SaveOutput for the put step.
-func (r *resourceConfigScope) SaveUncheckedVersion(space atc.Space, version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer Rollback(tx)
-
-	newVersion, err := saveResourceVersion(tx, r, space, version, metadata.ToATCMetadata(), false)
-	if err != nil {
-		return false, err
-	}
-
-	return newVersion, tx.Commit()
-}
-
-func (r *resourceConfigScope) FindUncheckedVersion(space atc.Space, version atc.Version) (ResourceVersion, bool, error) {
-	return r.findVersion(space, version, uncheckedResourceVersionQuery)
-}
-
 func (r *resourceConfigScope) FindVersion(space atc.Space, version atc.Version) (ResourceVersion, bool, error) {
-	return r.findVersion(space, version, resourceVersionQuery)
-}
-
-// SavePartialVersion stores a version into the db for a resource config
-// Each version will also have its check order field updated incrementally.
-//
-// In the case of a check resource from an older version, the versions
-// that already exist in the DB will be re-ordered using
-// incrementCheckOrderWhenNewerVersion to input the correct check order
-func (r *resourceConfigScope) SavePartialVersion(space atc.Space, version atc.Version, metadata atc.Metadata) error {
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	_, err = saveResourceVersion(tx, r, space, version, metadata, true)
-	if err != nil {
-		return err
-	}
-
-	versionJSON, err := json.Marshal(version)
-	if err != nil {
-		return err
-	}
-
-	err = incrementCheckOrder(tx, r, space, string(versionJSON))
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (r *resourceConfigScope) SaveDefaultSpace(defaultSpace atc.Space) error {
-	_, err := psql.Update("resource_configs").
-		Set("default_space", defaultSpace).
-		Where(sq.Eq{"id": r.id}).
-		RunWith(r.conn).
-		Exec()
-	return err
-}
-
-func (r *resourceConfigScope) SaveSpace(space atc.Space) error {
-	_, err := psql.Insert("spaces").
-		Columns("resource_config_id", "name").
-		Values(r.id, space).
-		Suffix("ON CONFLICT DO NOTHING").
-		RunWith(r.conn).
-		Exec()
-	return err
-}
-
-func (r *resourceConfigScope) SaveSpaceLatestVersion(space atc.Space, version atc.Version) error {
-	versionBlob, err := json.Marshal(version)
-	if err != nil {
-		return err
-	}
-
-	latestIdQuery := fmt.Sprintf(`( SELECT v.id FROM resource_versions v, spaces s
-																	WHERE version_md5 = md5('%s')
-																	AND s.id = v.space_id
-																	AND s.name = '%s'
-																	AND s.resource_config_id = %d )`, versionBlob, space, r.id)
-
-	_, err = psql.Update("spaces").
-		Set("latest_resource_version_id", sq.Expr(latestIdQuery)).
-		Where(sq.Eq{
-			"resource_config_id": r.id,
-			"name":               space,
-		}).
-		RunWith(r.conn).
-		Exec()
-
-	return err
-}
-
-func (r *resourceConfigScope) FinishSavingVersions() error {
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	_, err = tx.Exec(`UPDATE resource_versions
-		SET partial = false
-		FROM spaces
-		WHERE spaces.resource_config_id = $1
-		AND spaces.id = resource_versions.space_id;`, r.id)
-
-	err = bumpCacheIndexForPipelinesUsingResourceConfigScope(r.conn, r.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (r *resourceConfigScope) findVersion(space atc.Space, version atc.Version, query sq.SelectBuilder) (ResourceVersion, bool, error) {
 	rcv := &resourceVersion{
 		resourceConfigScope: r,
 		conn:                r.conn,
@@ -210,7 +78,7 @@ func (r *resourceConfigScope) findVersion(space atc.Space, version atc.Version, 
 		return nil, false, err
 	}
 
-	row := query.
+	row := resourceVersionQuery.
 		Where(sq.Eq{
 			"s.resource_config_scope_id": r.id,
 			"s.name":                     space,
@@ -229,6 +97,100 @@ func (r *resourceConfigScope) findVersion(space atc.Space, version atc.Version, 
 	}
 
 	return rcv, true, nil
+}
+
+// SavePartialVersion stores a version into the db for a resource config
+// Each version will also have its check order field updated incrementally.
+//
+// In the case of a check resource from an older version, the versions
+// that already exist in the DB will be re-ordered using
+// incrementCheckOrderWhenNewerVersion to input the correct check order
+func (r *resourceConfigScope) SavePartialVersion(space atc.Space, version atc.Version, metadata atc.Metadata) error {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	err = saveResourceVersion(tx, r, space, version, metadata, true)
+	if err != nil {
+		return err
+	}
+
+	versionJSON, err := json.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	err = incrementCheckOrder(tx, r, space, string(versionJSON))
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// XXX: Does the default space need to exist???
+func (r *resourceConfigScope) SaveDefaultSpace(defaultSpace atc.Space) error {
+	_, err := psql.Update("resource_config_scopes").
+		Set("default_space", defaultSpace).
+		Where(sq.Eq{"id": r.id}).
+		RunWith(r.conn).
+		Exec()
+	return err
+}
+
+func (r *resourceConfigScope) SaveSpace(space atc.Space) error {
+	_, err := psql.Insert("spaces").
+		Columns("resource_config_scope_id", "name").
+		Values(r.id, space).
+		Suffix("ON CONFLICT DO NOTHING").
+		RunWith(r.conn).
+		Exec()
+	return err
+}
+
+func (r *resourceConfigScope) SaveSpaceLatestVersion(space atc.Space, version atc.Version) error {
+	versionBlob, err := json.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	latestIdQuery := fmt.Sprintf(`( SELECT v.id FROM resource_versions v, spaces s
+																	WHERE version_md5 = md5('%s')
+																	AND s.id = v.space_id
+																	AND s.name = '%s'
+																	AND s.resource_config_scope_id = %d )`, versionBlob, space, r.id)
+
+	_, err = psql.Update("spaces").
+		Set("latest_resource_version_id", sq.Expr(latestIdQuery)).
+		Where(sq.Eq{
+			"resource_config_scope_id": r.id,
+			"name":                     space,
+		}).
+		RunWith(r.conn).
+		Exec()
+
+	return err
+}
+
+func (r *resourceConfigScope) FinishSavingVersions() error {
+	_, err := r.conn.Exec(`UPDATE resource_versions
+		SET partial = false
+		FROM spaces
+		WHERE spaces.resource_config_scope_id = $1
+		AND spaces.id = resource_versions.space_id;`, r.id)
+	if err != nil {
+		return err
+	}
+
+	err = bumpCacheIndexForPipelinesUsingResourceConfigScope(r.conn, r.id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *resourceConfigScope) LatestVersions() ([]ResourceVersion, error) {
@@ -334,30 +296,40 @@ func (r *resourceConfigScope) UpdateLastChecked(
 	return true, nil
 }
 
-func saveResourceVersion(tx Tx, r ResourceConfigScope, space atc.Space, version atc.Version, metadata atc.Metadata, partial bool) (bool, error) {
+func saveResourceVersion(tx Tx, r ResourceConfigScope, space atc.Space, version atc.Version, metadata atc.Metadata, partial bool) error {
 	versionJSON, err := json.Marshal(version)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	var checkOrder int
-	err = tx.QueryRow(`
+	if len(metadata) > 0 {
+		_, err = tx.Exec(`
 		INSERT INTO resource_versions (space_id, version, version_md5, metadata, partial)
 		SELECT s.id, $2, md5($3), $4, $6
 		FROM spaces s WHERE s.resource_config_scope_id = $1 AND s.name = $5
 		ON CONFLICT (space_id, version_md5) DO UPDATE SET metadata = $4
-		RETURNING check_order
-		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON), string(space), partial).Scan(&checkOrder)
-	if err != nil {
-		return false, err
+		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON), string(space), partial)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = tx.Exec(`
+		INSERT INTO resource_versions (space_id, version, version_md5, metadata, partial)
+		SELECT s.id, $2, md5($3), $4, $6
+		FROM spaces s WHERE s.resource_config_scope_id = $1 AND s.name = $5
+		ON CONFLICT (space_id, version_md5) DO NOTHING
+		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON), string(space), partial)
+		if err != nil {
+			return err
+		}
 	}
 
-	return checkOrder == 0, nil
+	return nil
 }
 
 // increment the check order if the version's check order is less than the
@@ -376,7 +348,7 @@ func incrementCheckOrder(tx Tx, r ResourceConfigScope, space atc.Space, version 
 
 		UPDATE resource_versions
 		SET check_order = mc.co + 1
-		FROM max_checkorder mc
+		FROM max_checkorder mc, spaces s
 		WHERE space_id = s.id
 		AND s.resource_config_scope_id = $1
 		AND s.name = $3

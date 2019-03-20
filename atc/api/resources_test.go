@@ -717,8 +717,8 @@ var _ = Describe("Resources API", func() {
 					"version-key-1": "version-value-1",
 					"version-key-2": "version-value-2",
 				}, nil)
-				resourceType1.ResourceConfigCheckErrorReturns(nil)
 				resourceType1.CheckErrorReturns(nil)
+				resourceType1.CheckSetupErrorReturns(nil)
 				resourceType1.CheckSetupErrorReturns(nil)
 
 				resourceType2 := new(dbfakes.FakeResourceType)
@@ -734,8 +734,8 @@ var _ = Describe("Resources API", func() {
 				resourceType2.VersionReturns(map[string]string{
 					"version-key-2": "version-value-2",
 				}, nil)
-				resourceType2.ResourceConfigCheckErrorReturns(errors.New("sup"))
 				resourceType2.CheckErrorReturns(errors.New("sup"))
+				resourceType2.CheckSetupErrorReturns(errors.New("sup"))
 				resourceType2.CheckSetupErrorReturns(errors.New("sup"))
 
 				fakePipeline.ResourceTypesReturns(db.ResourceTypes{
@@ -1384,7 +1384,7 @@ var _ = Describe("Resources API", func() {
 									},
 								})
 
-								fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
+								fakeResourceConfigScope.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 							})
 
 							It("tries to scan with the latest versions", func() {
@@ -1403,7 +1403,7 @@ var _ = Describe("Resources API", func() {
 
 						Context("when the latest versions are not found", func() {
 							BeforeEach(func() {
-								fakeResourceConfig.LatestVersionsReturns(nil, nil)
+								fakeResourceConfigScope.LatestVersionsReturns(nil, nil)
 							})
 
 							It("tries to scan with no version specified", func() {
@@ -1419,7 +1419,7 @@ var _ = Describe("Resources API", func() {
 
 						Context("when failing to get latest versions for resource", func() {
 							BeforeEach(func() {
-								fakeResourceConfig.LatestVersionsReturns(nil, errors.New("disaster"))
+								fakeResourceConfigScope.LatestVersionsReturns(nil, errors.New("disaster"))
 							})
 
 							It("does not scan from version", func() {

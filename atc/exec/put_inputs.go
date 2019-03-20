@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -76,7 +76,7 @@ type putInputSource struct {
 func (s *putInputSource) Source() worker.ArtifactSource { return s.source }
 
 func (s *putInputSource) DestinationPath() string {
-	return resource.ResourcesDir("put/" + string(s.name))
+	return atc.ResourcesDir("put/" + string(s.name))
 }
 
 type PutResourceSource struct {

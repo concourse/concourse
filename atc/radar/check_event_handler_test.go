@@ -142,13 +142,17 @@ var _ = Describe("Check Event Handler", func() {
 			It("saves the latest versions", func() {
 				Expect(fakeResourceConfigScope.SaveSpaceLatestVersionCallCount()).To(Equal(2))
 
+				actualSpaces := map[atc.Space]atc.Version{}
 				space, version := fakeResourceConfigScope.SaveSpaceLatestVersionArgsForCall(0)
-				Expect(space).To(Equal(atc.Space("space")))
-				Expect(version).To(Equal(atc.Version{"ref": "v1"}))
+				actualSpaces[space] = version
 
 				space, version = fakeResourceConfigScope.SaveSpaceLatestVersionArgsForCall(1)
-				Expect(space).To(Equal(atc.Space("other-space")))
-				Expect(version).To(Equal(atc.Version{"ref": "v2"}))
+				actualSpaces[space] = version
+
+				Expect(actualSpaces).To(Equal(map[atc.Space]atc.Version{
+					atc.Space("space"):       atc.Version{"ref": "v1"},
+					atc.Space("other-space"): atc.Version{"ref": "v2"},
+				}))
 			})
 		})
 	})

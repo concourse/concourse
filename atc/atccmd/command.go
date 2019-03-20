@@ -548,12 +548,11 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory, defaultLimits)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		dbConn,
 		resourceFactory,
-		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
@@ -562,7 +561,6 @@ func (cmd *RunCommand) constructAPIMembers(
 	radarScannerFactory := radar.NewScannerFactory(
 		dbConn,
 		resourceFactory,
-		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
@@ -745,12 +743,11 @@ func (cmd *RunCommand) constructBackendMembers(
 	if err != nil {
 		return nil, err
 	}
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, variablesFactory, defaultLimits)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		dbConn,
 		resourceFactory,
-		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
@@ -1207,7 +1204,6 @@ func (cmd *RunCommand) constructEngine(
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
-	resourceConfigFactory db.ResourceConfigFactory,
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
 ) engine.Engine {
@@ -1216,7 +1212,6 @@ func (cmd *RunCommand) constructEngine(
 		resourceFetcher,
 		resourceFactory,
 		resourceCacheFactory,
-		resourceConfigFactory,
 		variablesFactory,
 		defaultLimits,
 	)

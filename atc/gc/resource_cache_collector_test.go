@@ -35,6 +35,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 			var jobCache db.UsedResourceCache
 
 			var resource db.Resource
+			var scope db.ResourceConfigScope
 
 			BeforeEach(func() {
 				resourceCacheUseCollector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
@@ -76,7 +77,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				_, err = resource.SetResourceConfig(
+				scope, err = resource.SetResourceConfig(
 					logger,
 					atc.Source{
 						"some": "source",
@@ -119,15 +120,15 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 				Context("when the cache is an input to a job", func() {
 					BeforeEach(func() {
-						var versionID int
 						var spaceID int
 						err = psql.Insert("spaces").
-							Columns("name", "resource_config_id").
-							Values("space", jobCache.ResourceConfig().ID()).
+							Columns("name", "resource_config_scope_id").
+							Values("space", scope.ID()).
 							Suffix("RETURNING id").
 							RunWith(dbConn).QueryRow().Scan(&spaceID)
 						Expect(err).NotTo(HaveOccurred())
 
+						var versionID int
 						version := `{"some":"version"}`
 						err = psql.Insert("resource_versions").
 							Columns("version", "version_md5", "metadata", "space_id", "partial").

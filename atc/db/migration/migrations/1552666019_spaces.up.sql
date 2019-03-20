@@ -1,9 +1,9 @@
 BEGIN;
   CREATE TABLE spaces (
     id serial PRIMARY KEY,
-    resource_config_id integer REFERENCES resource_configs (id) ON DELETE CASCADE,
+    resource_config_scope_id integer REFERENCES resource_config_scopes (id) ON DELETE CASCADE,
     name text NOT NULL,
-    UNIQUE (resource_config_id, name)
+    UNIQUE (resource_config_scope_id, name)
   );
 
   CREATE TABLE resource_versions (
@@ -22,7 +22,7 @@ BEGIN;
   ALTER TABLE resource_versions
     ADD CONSTRAINT space_id_and_version_md5_unique UNIQUE (space_id, version_md5);
 
-  ALTER TABLE resource_configs
+  ALTER TABLE resource_config_scopes
     ADD COLUMN "default_space" text;
 
   ALTER TABLE resource_types

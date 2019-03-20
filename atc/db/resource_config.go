@@ -301,8 +301,9 @@ func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFact
 
 	var scopeID int
 	var checkErr error
+	var defaultSpace atc.Space
 
-	rows, err := psql.Select("id, check_error").
+	rows, err := psql.Select("id, check_error, default_space").
 		From("resource_config_scopes").
 		Where(sq.Eq{
 			"resource_id":        resourceID,
@@ -316,14 +317,19 @@ func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFact
 
 	if rows.Next() {
 		var checkErrBlob sql.NullString
+		var defSpace sql.NullString
 
-		err = rows.Scan(&scopeID, &checkErrBlob)
+		err = rows.Scan(&scopeID, &checkErrBlob, &defSpace)
 		if err != nil {
 			return nil, err
 		}
 
 		if checkErrBlob.Valid {
 			checkErr = errors.New(checkErrBlob.String)
+		}
+
+		if defSpace.Valid {
+			defaultSpace = atc.Space(defSpace.String)
 		}
 
 		err = rows.Close()
@@ -380,6 +386,7 @@ func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFact
 		id:             scopeID,
 		resource:       uniqueResource,
 		resourceConfig: resourceConfig,
+		defaultSpace:   defaultSpace,
 		checkError:     checkErr,
 		conn:           conn,
 		lockFactory:    lockFactory,

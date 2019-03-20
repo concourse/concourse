@@ -14,6 +14,7 @@ import (
 
 var _ = Describe("Resource Config Scope", func() {
 	var resourceScope db.ResourceConfigScope
+	var resource db.Resource
 
 	BeforeEach(func() {
 		setupTx, err := dbConn.Begin()
@@ -40,7 +41,8 @@ var _ = Describe("Resource Config Scope", func() {
 		}, db.ConfigVersion(0), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		resource, found, err := pipeline.Resource("some-resource")
+		var found bool
+		resource, found, err = pipeline.Resource("some-resource")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
@@ -50,27 +52,17 @@ var _ = Describe("Resource Config Scope", func() {
 
 	Describe("LatestVersions", func() {
 		var (
-			resourceConfig db.ResourceConfig
-			latestCV       []db.ResourceVersion
+			latestCV  []db.ResourceVersion
+			latestErr error
 		)
 
-		Context("when the resource config exists", func() {
+		JustBeforeEach(func() {
+			latestCV, latestErr = resourceScope.LatestVersions()
+		})
+
+		Context("when the version exists", func() {
 			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "some-type",
-				}
-				_, err = brt.FindOrCreate(setupTx)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				resourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				saveVersions(resourceConfig, []atc.SpaceVersion{
+				saveVersions(resourceScope, []atc.SpaceVersion{
 					atc.SpaceVersion{
 						Version: atc.Version{"ref": "v1"},
 						Space:   atc.Space("space"),
@@ -80,165 +72,150 @@ var _ = Describe("Resource Config Scope", func() {
 						Space:   atc.Space("space"),
 					},
 				})
-
-				err = resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
-				Expect(err).ToNot(HaveOccurred())
-
-				latestCV, err = resourceConfig.LatestVersions()
-				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("gets latest version of resource", func() {
-				Expect(latestCV).To(HaveLen(1))
-				Expect(latestCV[0].Version()).To(Equal(db.Version{"ref": "v3"}))
-				Expect(latestCV[0].CheckOrder()).To(Equal(2))
+			Context("when the scope has a latest version set", func() {
+				BeforeEach(func() {
+					err := resourceScope.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("gets latest version of resource", func() {
+					Expect(latestErr).ToNot(HaveOccurred())
+
+					Expect(latestCV).To(HaveLen(1))
+					Expect(latestCV[0].Version()).To(Equal(db.Version{"ref": "v3"}))
+					Expect(latestCV[0].CheckOrder()).To(Equal(2))
+				})
+			})
+
+			Context("when the scope does not have the latest version set", func() {
+				It("returns nil", func() {
+					Expect(latestErr).ToNot(HaveOccurred())
+					Expect(latestCV).To(Equal([]db.ResourceVersion{}))
+				})
+			})
+		})
+
+		Context("when the version does not exist", func() {
+			It("returns nil", func() {
+				Expect(latestErr).ToNot(HaveOccurred())
+				Expect(latestCV).To(Equal([]db.ResourceVersion{}))
 			})
 		})
 	})
 
 	Describe("FindVersion", func() {
 		var (
-			resourceConfig db.ResourceConfig
-			latestCV       db.ResourceVersion
-			found          bool
+			latestCV db.ResourceVersion
+			found    bool
+			findErr  error
+
+			findVersion atc.Version
+			findSpace   atc.Space
 		)
 
 		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
-
-			saveVersions(resourceConfig, []atc.SpaceVersion{
+			saveVersions(resourceScope, []atc.SpaceVersion{
 				atc.SpaceVersion{
 					Version: atc.Version{"ref": "v1"},
 					Space:   atc.Space("space"),
+					Metadata: atc.Metadata{
+						atc.MetadataField{
+							Name:  "some",
+							Value: "metadata",
+						},
+					},
 				},
 				atc.SpaceVersion{
 					Version: atc.Version{"ref": "v3"},
 					Space:   atc.Space("space"),
+					Metadata: atc.Metadata{
+						atc.MetadataField{
+							Name:  "other",
+							Value: "metadata",
+						},
+					},
 				},
 			})
 		})
 
+		JustBeforeEach(func() {
+			latestCV, found, findErr = resourceScope.FindVersion(findSpace, findVersion)
+		})
+
 		Context("when the version exists", func() {
 			BeforeEach(func() {
-				var err error
-				latestCV, found, err = resourceConfig.FindVersion(atc.Space("space"), atc.Version{"ref": "v1"})
-				Expect(err).ToNot(HaveOccurred())
+				findSpace = atc.Space("space")
+				findVersion = atc.Version{"ref": "v1"}
 			})
 
 			It("gets the version of resource", func() {
+				Expect(findErr).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(latestCV.ResourceConfig().ID()).To(Equal(resourceConfig.ID()))
+				Expect(latestCV.ResourceConfigScope().ID()).To(Equal(resourceScope.ID()))
 				Expect(latestCV.Version()).To(Equal(db.Version{"ref": "v1"}))
+				Expect(latestCV.Space()).To(Equal(atc.Space("space")))
+				Expect(latestCV.Partial()).To(BeFalse())
+				Expect(latestCV.Metadata()).To(Equal(db.ResourceConfigMetadataFields{{Name: "some", Value: "metadata"}}))
 				Expect(latestCV.CheckOrder()).To(Equal(1))
 			})
 		})
 
 		Context("when the version does not exist", func() {
 			BeforeEach(func() {
-				var err error
-				latestCV, found, err = resourceConfig.FindVersion(atc.Space("space"), atc.Version{"ref": "v2"})
-				Expect(err).ToNot(HaveOccurred())
+				findSpace = atc.Space("space")
+				findVersion = atc.Version{"ref": "v2"}
 			})
 
 			It("does not get the version of resource", func() {
+				Expect(findErr).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})
 
 		Context("when the space does not exist", func() {
 			BeforeEach(func() {
-				var err error
-				latestCV, found, err = resourceConfig.FindVersion(atc.Space("non-existant"), atc.Version{"ref": "v2"})
-				Expect(err).ToNot(HaveOccurred())
+				findSpace = atc.Space("non-existant")
+				findVersion = atc.Version{"ref": "v2"}
 			})
 
 			It("does not get the version of resource", func() {
+				Expect(findErr).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when the version is partial", func() {
+			BeforeEach(func() {
+				err := resourceScope.SavePartialVersion(atc.Space("space"), atc.Version{"ref": "partial"}, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				findSpace = atc.Space("space")
+				findVersion = atc.Version{"ref": "partial"}
+			})
+
+			It("does not get the version of resource", func() {
+				Expect(findErr).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})
 	})
 
-	Describe("FindUncheckedVersion", func() {
-		var (
-			resourceConfig db.ResourceConfig
-			latestCV       db.ResourceVersion
-			found          bool
-		)
-
-		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-			_, err = brt.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfig.SaveSpace(atc.Space("space"))
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = resourceConfig.SaveUncheckedVersion(atc.Space("space"), atc.Version{"ref": "v1"}, nil)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		JustBeforeEach(func() {
-			var err error
-			latestCV, found, err = resourceConfig.FindUncheckedVersion(atc.Space("space"), atc.Version{"ref": "v1"})
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("gets the version of resource", func() {
-			Expect(found).To(BeTrue())
-
-			Expect(latestCV.ResourceConfig().ID()).To(Equal(resourceConfig.ID()))
-			Expect(latestCV.Version()).To(Equal(db.Version{"ref": "v1"}))
-			Expect(latestCV.CheckOrder()).To(Equal(0))
-		})
-	})
-
 	Describe("SaveDefaultSpace", func() {
 		var (
-			resourceConfig  db.ResourceConfig
 			defaultSpace    string
 			defaultSpaceErr error
 		)
 
-		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-			_, err = brt.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		JustBeforeEach(func() {
-			defaultSpaceErr = resourceConfig.SaveDefaultSpace(atc.Space(defaultSpace))
+			defaultSpaceErr = resourceScope.SaveDefaultSpace(atc.Space(defaultSpace))
 		})
 
 		Context("when the space exists", func() {
 			BeforeEach(func() {
-				err := resourceConfig.SaveSpace(atc.Space("space"))
+				err := resourceScope.SaveSpace(atc.Space("space"))
 				Expect(err).ToNot(HaveOccurred())
 
 				defaultSpace = "space"
@@ -247,76 +224,80 @@ var _ = Describe("Resource Config Scope", func() {
 			It("saves the default space", func() {
 				Expect(defaultSpaceErr).ToNot(HaveOccurred())
 
-				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
+				resourceScope, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(resourceConfig.DefaultSpace()).To(Equal(atc.Space("space")))
+				Expect(resourceScope.DefaultSpace()).To(Equal(atc.Space("space")))
+			})
+		})
+
+		// XXX: Is this supposed to save even if it doesn't exist???
+		Context("when the space does not exist", func() {
+			BeforeEach(func() {
+				defaultSpace = "space"
+			})
+
+			It("still saves the default space", func() {
+				Expect(defaultSpaceErr).ToNot(HaveOccurred())
+
+				resourceScope, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(resourceScope.DefaultSpace()).To(Equal(atc.Space("space")))
 			})
 		})
 	})
 
 	Describe("SavePartialVersion/SaveSpace", func() {
-		var (
-			resourceConfig db.ResourceConfig
-			spaceVersion   atc.SpaceVersion
-		)
-
-		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-			_, err = brt.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			spaceVersion = atc.SpaceVersion{
-				Space:   "space",
-				Version: atc.Version{"some": "version"},
-				Metadata: atc.Metadata{
-					atc.MetadataField{
-						Name:  "some",
-						Value: "metadata",
-					},
-				},
-			}
-		})
-
-		It("saves the version if the space exists", func() {
-			saveVersions(resourceConfig, []atc.SpaceVersion{spaceVersion})
-
-			err := resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"some": "version"})
-			Expect(err).ToNot(HaveOccurred())
-
-			latestVR, err := resourceConfig.LatestVersions()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(latestVR).ToNot(BeEmpty())
-			Expect(latestVR[0].Version()).To(Equal(db.Version{"some": "version"}))
-			Expect(latestVR[0].CheckOrder()).To(Equal(1))
-		})
-
-		Context("when the space does not exist", func() {
+		Context("when the space exists", func() {
 			BeforeEach(func() {
-				spaceVersion = atc.SpaceVersion{
-					Space:   "unknown-space",
-					Version: atc.Version{"some": "version"},
-					Metadata: atc.Metadata{
-						atc.MetadataField{
-							Name:  "some",
-							Value: "metadata",
-						},
-					},
-				}
+				err := resourceScope.SaveSpace(atc.Space("space"))
+				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("does not save the version", func() {
-				err := resourceConfig.SavePartialVersion(spaceVersion.Space, spaceVersion.Version, spaceVersion.Metadata)
-				Expect(err).To(HaveOccurred())
+			It("saves the partial version successfully", func() {
+				err := resourceScope.SavePartialVersion(atc.Space("space"), atc.Version{"some": "version"}, nil)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("when the version is partial", func() {
+				BeforeEach(func() {
+					err := resourceScope.SavePartialVersion(atc.Space("space"), atc.Version{"some": "version"}, nil)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("is not found", func() {
+					version, found, err := resourceScope.FindVersion(atc.Space("space"), atc.Version{"some": "version"})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+					Expect(version).To(BeNil())
+				})
+			})
+
+			Context("when the version is finished saving", func() {
+				BeforeEach(func() {
+					err := resourceScope.SavePartialVersion(atc.Space("space"), atc.Version{"some": "version"}, nil)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = resourceScope.FinishSavingVersions()
+					Expect(err).ToNot(HaveOccurred())
+
+					err = resourceScope.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"some": "version"})
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("is found", func() {
+					version, found, err := resourceScope.FindVersion(atc.Space("space"), atc.Version{"some": "version"})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(version.Space()).To(Equal(atc.Space("space")))
+					Expect(version.Version()).To(Equal(db.Version{"some": "version"}))
+					Expect(version.Partial()).To(BeFalse())
+
+					latestVR, err := resourceScope.LatestVersions()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(latestVR).ToNot(BeEmpty())
+					Expect(latestVR[0].Version()).To(Equal(db.Version{"some": "version"}))
+					Expect(latestVR[0].CheckOrder()).To(Equal(1))
+				})
 			})
 		})
 
@@ -333,12 +314,12 @@ var _ = Describe("Resource Config Scope", func() {
 					},
 				}
 
-				saveVersions(resourceConfig, originalVersionSlice)
+				saveVersions(resourceScope, originalVersionSlice)
 
-				err := resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
+				err := resourceScope.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
 				Expect(err).ToNot(HaveOccurred())
 
-				latestVR, err := resourceConfig.LatestVersions()
+				latestVR, err := resourceScope.LatestVersions()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(latestVR[0].Version()).To(Equal(db.Version{"ref": "v3"}))
 				Expect(latestVR[0].CheckOrder()).To(Equal(2))
@@ -354,12 +335,12 @@ var _ = Describe("Resource Config Scope", func() {
 					},
 				}
 
-				saveVersions(resourceConfig, pretendCheckResults)
+				saveVersions(resourceScope, pretendCheckResults)
 
-				err = resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
+				err = resourceScope.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
 				Expect(err).ToNot(HaveOccurred())
 
-				latestVR, err = resourceConfig.LatestVersions()
+				latestVR, err = resourceScope.LatestVersions()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(latestVR[0].Version()).To(Equal(db.Version{"ref": "v3"}))
 				Expect(latestVR[0].CheckOrder()).To(Equal(4))
@@ -383,12 +364,12 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			It("does not change the check order", func() {
-				saveVersions(resourceConfig, newVersionSlice)
+				saveVersions(resourceScope, newVersionSlice)
 
-				err := resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
+				err := resourceScope.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"ref": "v3"})
 				Expect(err).ToNot(HaveOccurred())
 
-				latestVR, err := resourceConfig.LatestVersions()
+				latestVR, err := resourceScope.LatestVersions()
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(latestVR[0].Version()).To(Equal(db.Version{"ref": "v3"}))
@@ -399,27 +380,12 @@ var _ = Describe("Resource Config Scope", func() {
 
 	Describe("SaveSpaceLatestVersion/LatestVersions", func() {
 		var (
-			resourceConfig db.ResourceConfig
-			spaceVersion   atc.SpaceVersion
-			spaceVersion2  atc.SpaceVersion
+			spaceVersion  atc.SpaceVersion
+			spaceVersion2 atc.SpaceVersion
 		)
 
 		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-			_, err = brt.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"source-config": "some-value"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfig.SaveSpace(atc.Space("space"))
+			err := resourceScope.SaveSpace(atc.Space("space"))
 			Expect(err).ToNot(HaveOccurred())
 
 			otherSpaceVersion := atc.SpaceVersion{
@@ -444,9 +410,9 @@ var _ = Describe("Resource Config Scope", func() {
 				},
 			}
 
-			saveVersions(resourceConfig, []atc.SpaceVersion{otherSpaceVersion, spaceVersion})
+			saveVersions(resourceScope, []atc.SpaceVersion{otherSpaceVersion, spaceVersion})
 
-			err = resourceConfig.SaveSpace(atc.Space("space2"))
+			err = resourceScope.SaveSpace(atc.Space("space2"))
 			Expect(err).ToNot(HaveOccurred())
 
 			spaceVersion2 = atc.SpaceVersion{
@@ -460,24 +426,46 @@ var _ = Describe("Resource Config Scope", func() {
 				},
 			}
 
-			saveVersions(resourceConfig, []atc.SpaceVersion{spaceVersion2})
+			saveVersions(resourceScope, []atc.SpaceVersion{spaceVersion2})
 		})
 
 		Context("when the version exists", func() {
 			BeforeEach(func() {
-				err := resourceConfig.SaveSpaceLatestVersion(spaceVersion.Space, spaceVersion.Version)
+				err := resourceScope.SaveSpaceLatestVersion(spaceVersion.Space, spaceVersion.Version)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfig.SaveSpaceLatestVersion(spaceVersion2.Space, spaceVersion2.Version)
+				err = resourceScope.SaveSpaceLatestVersion(spaceVersion2.Space, spaceVersion2.Version)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("saves the version into the space", func() {
-				latestVersions, err := resourceConfig.LatestVersions()
-				Expect(err).ToNot(HaveOccurred())
+				latestVersions, latestErr := resourceScope.LatestVersions()
+				Expect(latestErr).ToNot(HaveOccurred())
 				Expect(latestVersions).To(HaveLen(2))
 				Expect(latestVersions[0].Version()).To(Equal(db.Version(spaceVersion.Version)))
 				Expect(latestVersions[1].Version()).To(Equal(db.Version(spaceVersion2.Version)))
+			})
+		})
+
+		Context("when the version does not exist", func() {
+			It("does not save the version into the space", func() {
+				err := resourceScope.SaveSpaceLatestVersion(spaceVersion.Space, atc.Version{"non-existant": "version"})
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVersions, latestErr := resourceScope.LatestVersions()
+				Expect(latestErr).ToNot(HaveOccurred())
+				Expect(latestVersions).To(HaveLen(0))
+			})
+		})
+
+		Context("when the space does not exist", func() {
+			It("does not save the version into the space", func() {
+				err := resourceScope.SaveSpaceLatestVersion(atc.Space("non-existant-space"), atc.Version{"some": "version"})
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVersions, latestErr := resourceScope.LatestVersions()
+				Expect(latestErr).ToNot(HaveOccurred())
+				Expect(latestVersions).To(HaveLen(0))
 			})
 		})
 	})
@@ -499,10 +487,13 @@ var _ = Describe("Resource Config Scope", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).ToNot(HaveOccurred())
 
+			vrt, err := pipelineResourceTypes.Deserialize()
+			Expect(err).ToNot(HaveOccurred())
+
 			resourceConfigScope, err = someResource.SetResourceConfig(
 				logger,
 				someResource.Source(),
-				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
+				creds.NewVersionedResourceTypes(template.StaticVariables{}, vrt),
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -580,10 +571,13 @@ var _ = Describe("Resource Config Scope", func() {
 			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 			Expect(err).ToNot(HaveOccurred())
 
+			vrt, err := pipelineResourceTypes.Deserialize()
+			Expect(err).ToNot(HaveOccurred())
+
 			resourceConfigScope, err = someResource.SetResourceConfig(
 				logger,
 				someResource.Source(),
-				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
+				creds.NewVersionedResourceTypes(template.StaticVariables{}, vrt),
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -598,6 +592,10 @@ var _ = Describe("Resource Config Scope", func() {
 				lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(acquired).To(BeTrue())
+			})
+
+			AfterEach(func() {
+				_ = lock.Release()
 			})
 
 			It("does not get the lock", func() {
@@ -652,15 +650,15 @@ var _ = Describe("Resource Config Scope", func() {
 	})
 })
 
-func saveVersions(resourceConfig db.ResourceConfig, versions []atc.SpaceVersion) {
+func saveVersions(resourceConfigScope db.ResourceConfigScope, versions []atc.SpaceVersion) {
 	for _, version := range versions {
-		err := resourceConfig.SaveSpace(version.Space)
+		err := resourceConfigScope.SaveSpace(version.Space)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = resourceConfig.SavePartialVersion(version.Space, version.Version, version.Metadata)
+		err = resourceConfigScope.SavePartialVersion(version.Space, version.Version, version.Metadata)
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	err := resourceConfig.FinishSavingVersions()
+	err := resourceConfigScope.FinishSavingVersions()
 	Expect(err).ToNot(HaveOccurred())
 }
