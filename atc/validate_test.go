@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ValidateConfig", func() {
+var _ = FDescribe("ValidateConfig", func() {
 	var (
 		config Config
 

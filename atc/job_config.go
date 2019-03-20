@@ -11,6 +11,8 @@ type JobConfig struct {
 	RawMaxInFlight       int      `yaml:"max_in_flight,omitempty" json:"max_in_flight,omitempty" mapstructure:"max_in_flight"`
 	BuildLogsToRetain    int      `yaml:"build_logs_to_retain,omitempty" json:"build_logs_to_retain,omitempty" mapstructure:"build_logs_to_retain"`
 
+	BuildLogRetention *BuildLogRetention `yaml:"build_log_retention,omitempty" json:"build_log_retention,omitempty" mapstructure:"build_log_retention"`
+
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
 
 	Abort   *PlanConfig `yaml:"on_abort,omitempty" json:"on_abort,omitempty" mapstructure:"on_abort"`
@@ -18,6 +20,11 @@ type JobConfig struct {
 	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
 	Ensure  *PlanConfig `yaml:"ensure,omitempty" json:"ensure,omitempty" mapstructure:"ensure"`
 	Success *PlanConfig `yaml:"on_success,omitempty" json:"on_success,omitempty" mapstructure:"on_success"`
+}
+
+type BuildLogRetention struct {
+	Builds int `yaml:"builds,omitempty" json:"builds,omitempty" mapstructure:"builds"`
+	Days int   `yaml:"days,omitempty" json:"days,omitempty" mapstructure:"days"`
 }
 
 func (config JobConfig) Hooks() Hooks {

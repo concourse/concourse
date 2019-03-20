@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -25,7 +26,7 @@ var _ = Describe("BuildLogCollector", func() {
 	BeforeEach(func() {
 		fakePipelineFactory = new(dbfakes.FakePipelineFactory)
 		batchSize = 5
-		buildLogRetainCalc = NewBuildLogRetentionCalculator(0, 0)
+		buildLogRetainCalc = NewBuildLogRetentionCalculator(0, 0, 0, 0)
 	})
 
 	JustBeforeEach(func() {
@@ -362,6 +363,134 @@ var _ = Describe("BuildLogCollector", func() {
 					Expect(err).To(Equal(disaster))
 				})
 			})
+
+			Context("when only count is set", func() {
+				BeforeEach(func() {
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{sbTime(7, time.Now().Add(-23 * time.Hour)), sbTime(6, time.Now().Add(-49 * time.Hour))}, db.Pagination{}, nil
+						} else if page == (db.Page{Limit:1}) {
+							return []db.Build{sbTime(7, time.Now().Add(-23 * time.Hour))}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return nil, db.Pagination{}, nil
+					}
+
+					fakeJob.ConfigReturns(atc.JobConfig{
+						BuildLogRetention: &atc.BuildLogRetention{
+							Builds: 1,
+							Days:   0,
+						},
+					})
+
+					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
+					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
+				})
+
+				It("should delete 1 build event", func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
+					Expect(actualBuildIDs).To(ConsistOf(6))
+				})
+			})
+
+			Context("when only date is set", func() {
+				BeforeEach(func() {
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{sbTime(7, time.Now().Add(-23 * time.Hour)), sbTime(6, time.Now().Add(-49 * time.Hour))}, db.Pagination{}, nil
+						} else if page == (db.Page{Limit:1}) {
+							return []db.Build{sbTime(7, time.Now().Add(-23 * time.Hour))}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return nil, db.Pagination{}, nil
+					}
+
+					fakeJob.ConfigReturns(atc.JobConfig{
+						BuildLogRetention: &atc.BuildLogRetention{
+							Builds: 0,
+							Days:   3,
+						},
+					})
+
+					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
+					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
+				})
+
+				It("should delete nothing, because of the date retention", func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when count and date are set > 0", func() {
+				BeforeEach(func() {
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{sbTime(7, time.Now().Add(-23 * time.Hour)), sbTime(6, time.Now().Add(-49 * time.Hour))}, db.Pagination{}, nil
+						} else if page == (db.Page{Limit:1}) {
+							return []db.Build{sbTime(7, time.Now().Add(-23 * time.Hour))}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return nil, db.Pagination{}, nil
+					}
+
+					fakeJob.ConfigReturns(atc.JobConfig{
+						BuildLogRetention: &atc.BuildLogRetention{
+							Builds: 1,
+							Days:   3,
+						},
+					})
+
+					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
+					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
+				})
+
+				It("should delete nothing, because of the date retention", func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when only date is set", func() {
+				BeforeEach(func() {
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 5, Limit: 5}) {
+							return []db.Build{sbTime(7, time.Now().Add(-23 * time.Hour)), sbTime(6, time.Now().Add(-49 * time.Hour))}, db.Pagination{}, nil
+						} else if page == (db.Page{Limit:1}) {
+							return []db.Build{sbTime(7, time.Now().Add(-23 * time.Hour))}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return nil, db.Pagination{}, nil
+					}
+
+					fakeJob.ConfigReturns(atc.JobConfig{
+						BuildLogRetention: &atc.BuildLogRetention{
+							Builds: 0,
+							Days:   1,
+						},
+					})
+
+					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
+					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
+				})
+
+				It("should delete before that", func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
+					Expect(actualBuildIDs).To(ConsistOf(6))
+				})
+			})
 		})
 
 		Context("when FirstLoggedBuildID == 1", func() {
@@ -380,7 +509,7 @@ var _ = Describe("BuildLogCollector", func() {
 
 			Context("when we install a custom build log retention calculator", func() {
 				BeforeEach(func() {
-					buildLogRetainCalc = NewBuildLogRetentionCalculator(3, 3)
+					buildLogRetainCalc = NewBuildLogRetentionCalculator(3, 3,0, 0)
 
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
 						if page == (db.Page{Since: 2, Limit: 1}) {
@@ -633,6 +762,14 @@ var _ = Describe("BuildLogCollector", func() {
 func sb(id int) db.Build {
 	build := new(dbfakes.FakeBuild)
 	build.IDReturns(id)
+	build.IsRunningReturns(false)
+	return build
+}
+
+func sbTime(id int, start time.Time) db.Build {
+	build := new(dbfakes.FakeBuild)
+	build.IDReturns(id)
+	build.StartTimeReturns(start)
 	build.IsRunningReturns(false)
 	return build
 }

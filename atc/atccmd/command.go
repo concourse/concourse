@@ -151,6 +151,9 @@ type RunCommand struct {
 	DefaultBuildLogsToRetain uint64 `long:"default-build-logs-to-retain" description:"Default build logs to retain, 0 means all"`
 	MaxBuildLogsToRetain     uint64 `long:"max-build-logs-to-retain" description:"Maximum build logs to retain, 0 means not specified. Will override values configured in jobs"`
 
+	DefaultDaysToRetainBuildLogs uint64 `long:"default-days-to-retain-build-logs" description:"Default days to retain build logs. 0 means unlimited"`
+	MaxDaysToRetainBuildLogs     uint64 `long:"max-days-to-retain-build-logs" description:"Maximum days to retain build logs, 0 means not specified. Will override values configured in jobs"`
+
 	DefaultCpuLimit    *int    `long:"default-task-cpu-limit" description:"Default max number of cpu shares per task, 0 means unlimited"`
 	DefaultMemoryLimit *string `long:"default-task-memory-limit" description:"Default maximum memory per task, 0 means unlimited"`
 
@@ -830,6 +833,8 @@ func (cmd *RunCommand) constructBackendMembers(
 				gc.NewBuildLogRetentionCalculator(
 					cmd.DefaultBuildLogsToRetain,
 					cmd.MaxBuildLogsToRetain,
+					cmd.DefaultDaysToRetainBuildLogs,
+					cmd.MaxDaysToRetainBuildLogs,
 				),
 				syslogDrainConfigured,
 			),
