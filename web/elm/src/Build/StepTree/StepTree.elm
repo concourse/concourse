@@ -277,6 +277,11 @@ isFirstOccurrence resources step =
                 isFirstOccurrence rest step
 
 
+finished : StepTreeModel -> StepTreeModel
+finished root =
+    { root | tree = finishTree root.tree }
+
+
 toggleStep : StepID -> StepTreeModel -> ( StepTreeModel, List Effect )
 toggleStep id root =
     ( updateAt
@@ -285,11 +290,6 @@ toggleStep id root =
         root
     , []
     )
-
-
-finished : StepTreeModel -> ( StepTreeModel, List Effect )
-finished root =
-    ( { root | tree = finishTree root.tree }, [] )
 
 
 switchTab : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
@@ -574,25 +574,25 @@ viewVersion version =
 
 viewMetadata : List MetadataField -> Html Message
 viewMetadata =
-        List.map
-            (\{ name, value } ->
-                ( name
-                , Html.pre []
-                    [ if String.startsWith "http://" value || String.startsWith "https://" value then
-                        Html.a
-                            [ href value
-                            , target "_blank"
-                            , style [ ( "text-decoration-line", "underline" ) ]
-                            ]
-                            [ Html.text value ]
+    List.map
+        (\{ name, value } ->
+            ( name
+            , Html.pre []
+                [ if String.startsWith "http://" value || String.startsWith "https://" value then
+                    Html.a
+                        [ href value
+                        , target "_blank"
+                        , style [ ( "text-decoration-line", "underline" ) ]
+                        ]
+                        [ Html.text value ]
 
-                      else
-                        Html.text value
-                    ]
-                )
+                  else
+                    Html.text value
+                ]
             )
-            >> Dict.fromList
-            >> DictView.view []
+        )
+        >> Dict.fromList
+        >> DictView.view []
 
 
 viewStepState : StepState -> Html Message

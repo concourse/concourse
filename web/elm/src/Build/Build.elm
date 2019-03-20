@@ -24,6 +24,7 @@ import Date exposing (Date)
 import Date.Format
 import Debug
 import Dict exposing (Dict)
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -146,7 +147,7 @@ subscriptions model =
            )
 
 
-changeToBuild : Flags -> ( Model, List Effect ) -> ( Model, List Effect )
+changeToBuild : Flags -> ET Model
 changeToBuild { highlight, pageType } ( model, effects ) =
     if model.browsingIndex > 0 && pageType == model.page then
         ( { model | highlight = highlight }, effects )
@@ -206,12 +207,12 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback : Callback -> ET Model
 handleCallback msg =
     TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody : Callback -> ET Model
 handleCallbackBody action ( model, effects ) =
     case action of
         BuildTriggered (Ok build) ->
@@ -279,7 +280,7 @@ handleCallbackBody action ( model, effects ) =
             ( model, effects )
 
 
-handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
         KeyDown keycode ->
@@ -315,28 +316,27 @@ handleDelivery delivery ( model, effects ) =
             ( { model | autoScroll = distanceFromBottom == 0 }, effects )
 
         EventsReceived envelopes ->
-            envelopes
-                |> Build.Output.Output.handleEnvelopes
-                |> flip updateOutput
-                    ( model
-                    , case getScrollBehavior model of
-                        ScrollWindow ->
-                            effects ++ [ Effects.Scroll Effects.ToWindowBottom ]
+            updateOutput
+                (Build.Output.Output.handleEnvelopes envelopes)
+                ( model
+                , case getScrollBehavior model of
+                    ScrollWindow ->
+                        effects ++ [ Effects.Scroll Effects.ToWindowBottom ]
 
-                        NoScroll ->
-                            effects
-                    )
+                    NoScroll ->
+                        effects
+                )
 
         _ ->
             ( model, effects )
 
 
-update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg =
     TopBar.update msg >> updateBody msg
 
 
-updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
         SwitchToBuild build ->
@@ -426,8 +426,7 @@ getScrollBehavior model =
 
 updateOutput :
     (OutputModel -> ( OutputModel, List Effect, Build.Output.Output.OutMsg ))
-    -> ( Model, List Effect )
-    -> ( Model, List Effect )
+    -> ET Model
 updateOutput updater ( model, effects ) =
     let
         currentBuild =
@@ -448,7 +447,7 @@ updateOutput updater ( model, effects ) =
             ( model, effects )
 
 
-handleKeyPressed : Keyboard.KeyCode -> ( Model, List Effect ) -> ( Model, List Effect )
+handleKeyPressed : Keyboard.KeyCode -> ET Model
 handleKeyPressed key ( model, effects ) =
     let
         currentBuild =
@@ -555,7 +554,7 @@ prevBuild builds build =
             Nothing
 
 
-handleBuildFetched : Int -> Concourse.Build -> ( Model, List Effect ) -> ( Model, List Effect )
+handleBuildFetched : Int -> Concourse.Build -> ET Model
 handleBuildFetched browsingIndex build ( model, effects ) =
     if browsingIndex == model.browsingIndex then
         let
@@ -635,7 +634,7 @@ pollUntilStarted browsingIndex buildId =
     ]
 
 
-initBuildOutput : Concourse.Build -> ( Model, List Effect ) -> ( Model, List Effect )
+initBuildOutput : Concourse.Build -> ET Model
 initBuildOutput build ( model, effects ) =
     let
         ( output, outputCmd ) =
@@ -651,7 +650,7 @@ initBuildOutput build ( model, effects ) =
     )
 
 
-handleBuildJobFetched : Concourse.Job -> ( Model, List Effect ) -> ( Model, List Effect )
+handleBuildJobFetched : Concourse.Job -> ET Model
 handleBuildJobFetched job ( model, effects ) =
     let
         withJobDetails =
@@ -662,10 +661,7 @@ handleBuildJobFetched job ( model, effects ) =
     )
 
 
-handleHistoryFetched :
-    Paginated Concourse.Build
-    -> ( Model, List Effect )
-    -> ( Model, List Effect )
+handleHistoryFetched : Paginated Concourse.Build -> ET Model
 handleHistoryFetched history ( model, effects ) =
     let
         withBuilds =
@@ -689,11 +685,7 @@ handleHistoryFetched history ( model, effects ) =
             Debug.crash "impossible"
 
 
-handleBuildPrepFetched :
-    Int
-    -> Concourse.BuildPrep
-    -> ( Model, List Effect )
-    -> ( Model, List Effect )
+handleBuildPrepFetched : Int -> Concourse.BuildPrep -> ET Model
 handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
     if browsingIndex == model.browsingIndex then
         ( { model
@@ -1169,7 +1161,7 @@ durationTitle date content =
     Html.div [ title (Date.Format.format "%b" date) ] content
 
 
-handleOutMsg : Build.Output.Output.OutMsg -> ( Model, List Effect ) -> ( Model, List Effect )
+handleOutMsg : Build.Output.Output.OutMsg -> ET Model
 handleOutMsg outMsg ( model, effects ) =
     case outMsg of
         Build.Output.Output.OutNoop ->

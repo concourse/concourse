@@ -1,5 +1,6 @@
 module NotFound.NotFound exposing (handleCallback, init, update, view)
 
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
 import Message.Callback exposing (Callback)
@@ -38,12 +39,12 @@ init flags =
     )
 
 
-update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg ( model, effects ) =
     TopBar.update msg ( model, effects )
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback : Callback -> ET Model
 handleCallback msg ( model, effects ) =
     TopBar.handleCallback msg ( model, effects )
 

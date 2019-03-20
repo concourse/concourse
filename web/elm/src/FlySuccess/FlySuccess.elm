@@ -5,6 +5,7 @@ module FlySuccess.FlySuccess exposing
     , view
     )
 
+import EffectTransformer exposing (ET)
 import FlySuccess.Models
     exposing
         ( ButtonState(..)
@@ -65,7 +66,7 @@ init { authToken, flyPort } =
     )
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback : Callback -> ET Model
 handleCallback msg ( model, effects ) =
     case msg of
         TokenSentToFly (Ok ()) ->
@@ -78,12 +79,12 @@ handleCallback msg ( model, effects ) =
             TopBar.handleCallback msg ( model, effects )
 
 
-update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg =
     TopBar.update msg >> updateBody msg
 
 
-updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
         Hover (Just CopyTokenButton) ->

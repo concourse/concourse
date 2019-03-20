@@ -14,6 +14,7 @@ import Build.Build as Build
 import Build.Models
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models
+import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
 import Html exposing (Html)
@@ -104,7 +105,7 @@ init flags route =
                 |> Tuple.mapFirst FlySuccessModel
 
 
-handleNotFound : String -> Routes.Route -> ( Model, List Effect ) -> ( Model, List Effect )
+handleNotFound : String -> Routes.Route -> ET Model
 handleNotFound notFound route ( model, effects ) =
     case getUpdateMessage model of
         UpdateMsg.NotFound ->
@@ -138,15 +139,14 @@ getUpdateMessage model =
 
 
 genericUpdate :
-    (( Build.Models.Model, List Effect ) -> ( Build.Models.Model, List Effect ))
-    -> (( Job.Model, List Effect ) -> ( Job.Model, List Effect ))
-    -> (( Resource.Models.Model, List Effect ) -> ( Resource.Models.Model, List Effect ))
-    -> (( Pipeline.Model, List Effect ) -> ( Pipeline.Model, List Effect ))
-    -> (( Dashboard.Models.Model, List Effect ) -> ( Dashboard.Models.Model, List Effect ))
-    -> (( NotFound.Model.Model, List Effect ) -> ( NotFound.Model.Model, List Effect ))
-    -> (( FlySuccess.Models.Model, List Effect ) -> ( FlySuccess.Models.Model, List Effect ))
-    -> ( Model, List Effect )
-    -> ( Model, List Effect )
+    ET Build.Models.Model
+    -> ET Job.Model
+    -> ET Resource.Models.Model
+    -> ET Pipeline.Model
+    -> ET Dashboard.Models.Model
+    -> ET NotFound.Model.Model
+    -> ET FlySuccess.Models.Model
+    -> ET Model
 genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
     case model of
         BuildModel model ->
@@ -178,7 +178,7 @@ genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
                 |> Tuple.mapFirst NotFoundModel
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback : Callback -> ET Model
 handleCallback callback =
     genericUpdate
         (Build.handleCallback callback)
@@ -190,7 +190,7 @@ handleCallback callback =
         (FlySuccess.handleCallback callback)
 
 
-handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery : Delivery -> ET Model
 handleDelivery delivery =
     genericUpdate
         (Build.handleDelivery delivery)
@@ -202,7 +202,7 @@ handleDelivery delivery =
         identity
 
 
-update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg =
     genericUpdate
         (Build.update msg)
@@ -214,7 +214,7 @@ update msg =
         (FlySuccess.update msg)
 
 
-urlUpdate : Routes.Route -> ( Model, List Effect ) -> ( Model, List Effect )
+urlUpdate : Routes.Route -> ET Model
 urlUpdate route =
     genericUpdate
         (case route of

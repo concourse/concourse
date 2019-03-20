@@ -15,6 +15,7 @@ import Char
 import Colors
 import Concourse
 import Concourse.Cli as Cli
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -106,8 +107,7 @@ changeToPipelineAndGroups :
     { pipelineLocator : Concourse.PipelineIdentifier
     , selectedGroups : List String
     }
-    -> ( Model, List Effect )
-    -> ( Model, List Effect )
+    -> ET Model
 changeToPipelineAndGroups { pipelineLocator, selectedGroups } ( model, effects ) =
     if model.pipelineLocator == pipelineLocator then
         let
@@ -126,13 +126,6 @@ changeToPipelineAndGroups { pipelineLocator, selectedGroups } ( model, effects )
                     }
         in
         ( newModel, effects ++ newEffects )
-
-
-loadPipeline : Concourse.PipelineIdentifier -> Model -> ( Model, List Effect )
-loadPipeline pipelineLocator model =
-    ( { model | pipelineLocator = pipelineLocator }
-    , [ FetchPipeline pipelineLocator, FetchVersion, ResetPipelineFocus ]
-    )
 
 
 timeUntilHidden : Time
@@ -155,12 +148,12 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback : Callback -> ET Model
 handleCallback msg =
     TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody : Callback -> ET Model
 handleCallbackBody callback ( model, effects ) =
     let
         redirectToLoginIfUnauthenticated status =
@@ -225,7 +218,7 @@ handleCallbackBody callback ( model, effects ) =
             ( model, effects )
 
 
-handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
         KeyDown keycode ->
@@ -259,12 +252,12 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg =
     TopBar.update msg >> updateBody msg
 
 
-updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
         ToggleGroup group ->
@@ -512,7 +505,7 @@ activeGroups model =
             groups
 
 
-renderIfNeeded : ( Model, List Effect ) -> ( Model, List Effect )
+renderIfNeeded : ET Model
 renderIfNeeded ( model, effects ) =
     case ( model.fetchedResources, model.fetchedJobs ) of
         ( Just fetchedResources, Just fetchedJobs ) ->
