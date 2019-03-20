@@ -46,7 +46,7 @@ func (build *execBuild) buildTimeoutStep(logger lager.Logger, plan atc.Plan) exe
 		timeout = plan.Timeout.Duration
 	case plan.Get != nil:
 	case plan.Put != nil:
-	case plan.UserArtifact != nil:
+	case plan.ArtifactInput != nil:
 	case plan.ArtifactOutput != nil:
 		innerPlan = plan
 		timeout = build.defaultStepTimeout.String()
