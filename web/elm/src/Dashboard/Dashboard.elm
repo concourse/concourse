@@ -21,6 +21,7 @@ import Dashboard.Models as Models
         )
 import Dashboard.Styles as Styles
 import Dashboard.Text as Text
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -102,12 +103,12 @@ init flags =
     )
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback : Callback -> ET Model
 handleCallback msg =
     TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody : Callback -> ET Model
 handleCallbackBody msg ( model, effects ) =
     case msg of
         APIDataFetched (Err _) ->
@@ -200,14 +201,14 @@ handleCallbackBody msg ( model, effects ) =
             ( model, effects )
 
 
-handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery : Delivery -> ET Model
 handleDelivery delivery =
     TopBar.handleDelivery delivery
         >> Footer.handleDelivery delivery
         >> handleDeliveryBody delivery
 
 
-handleDeliveryBody : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDeliveryBody : Delivery -> ET Model
 handleDeliveryBody delivery ( model, effects ) =
     case delivery of
         ClockTicked OneSecond time ->
@@ -220,12 +221,12 @@ handleDeliveryBody delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg =
     TopBar.update msg >> updateBody msg
 
 
-updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
         DragStart teamName index ->

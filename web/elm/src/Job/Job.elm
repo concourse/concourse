@@ -25,6 +25,7 @@ import Concourse.Pagination
         )
 import Dict exposing (Dict)
 import DictView
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -126,8 +127,8 @@ init flags =
     )
 
 
-changeToJob : Flags -> Model -> ( Model, List Effect )
-changeToJob flags model =
+changeToJob : Flags -> ET Model
+changeToJob flags ( model, effects ) =
     ( { model
         | currentPage = flags.paging
         , buildsWithResources =
@@ -138,7 +139,7 @@ changeToJob flags model =
                 }
             }
       }
-    , [ FetchJobBuilds model.jobIdentifier flags.paging ]
+    , effects ++ [ FetchJobBuilds model.jobIdentifier flags.paging ]
     )
 
 
@@ -159,12 +160,12 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback : Callback -> ET Model
 handleCallback msg =
     TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody : Callback -> ET Model
 handleCallbackBody callback ( model, effects ) =
     case callback of
         BuildTriggered (Ok build) ->
@@ -248,7 +249,7 @@ handleCallbackBody callback ( model, effects ) =
             ( model, effects )
 
 
-handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
         ClockTicked OneSecond time ->
@@ -266,12 +267,12 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg =
     TopBar.update msg >> updateBody msg
 
 
-updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody : Message -> ET Model
 updateBody action ( model, effects ) =
     case action of
         TriggerBuildJob ->
@@ -387,7 +388,7 @@ updateResourcesIfNeeded bwr =
             Just <| FetchBuildResources bwr.build.id
 
 
-handleJobBuildsFetched : Paginated Concourse.Build -> ( Model, List Effect ) -> ( Model, List Effect )
+handleJobBuildsFetched : Paginated Concourse.Build -> ET Model
 handleJobBuildsFetched paginatedBuilds ( model, effects ) =
     let
         newPage =

@@ -843,9 +843,7 @@ all =
                         >> Tuple.mapSecond (always [])
                         >> Build.update
                             (Message.Message.ScrollBuilds
-                                { deltaX = 0
-                                , deltaY = 0
-                                }
+                                { deltaX = 0, deltaY = 0 }
                             )
                         >> Tuple.second
                         >> List.member (Effects.CheckIsVisible "1")

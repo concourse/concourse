@@ -29,6 +29,7 @@ import Date.Format
 import Dict
 import DictView
 import Duration exposing (Duration)
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -117,8 +118,8 @@ init flags =
     )
 
 
-changeToResource : Flags -> Model -> ( Model, List Effect )
-changeToResource flags model =
+changeToResource : Flags -> ET Model
+changeToResource flags ( model, effects ) =
     ( { model
         | currentPage = flags.paging
         , versions =
@@ -126,7 +127,7 @@ changeToResource flags model =
             , pagination = { previousPage = Nothing, nextPage = Nothing }
             }
       }
-    , [ FetchVersionedResources model.resourceIdentifier flags.paging ]
+    , effects ++ [ FetchVersionedResources model.resourceIdentifier flags.paging ]
     )
 
 
@@ -208,12 +209,12 @@ subscriptions model =
     ]
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback : Callback -> ET Model
 handleCallback msg =
     TopBar.handleCallback msg >> handleCallbackBody msg
 
 
-handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallbackBody : Callback -> ET Model
 handleCallbackBody action ( model, effects ) =
     case action of
         ResourceFetched (Ok resource) ->
@@ -448,7 +449,7 @@ handleCallbackBody action ( model, effects ) =
             ( model, effects )
 
 
-handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
         KeyDown keycode ->
@@ -491,12 +492,12 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg =
     TopBar.update msg >> updateBody msg
 
 
-updateBody : Message -> ( Model, List Effect ) -> ( Model, List Effect )
+updateBody : Message -> ET Model
 updateBody action ( model, effects ) =
     case action of
         LoadPage page ->

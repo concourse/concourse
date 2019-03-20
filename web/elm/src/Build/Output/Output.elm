@@ -220,20 +220,18 @@ handleEvent event ( model, effects, outmsg ) =
 
         BuildStatus status date ->
             let
-                ( newSt, newEffects ) =
-                    case model.steps of
-                        Just st ->
-                            if not <| Concourse.BuildStatus.isRunning status then
-                                Build.StepTree.StepTree.finished st
-                                    |> Tuple.mapFirst Just
+                newSt =
+                    model.steps
+                        |> Maybe.map
+                            (\st ->
+                                if Concourse.BuildStatus.isRunning status then
+                                    st
 
-                            else
-                                ( Just st, [] )
-
-                        Nothing ->
-                            ( Nothing, [] )
+                                else
+                                    Build.StepTree.StepTree.finished st
+                            )
             in
-            ( { model | steps = newSt }, effects ++ newEffects, OutBuildStatus status date )
+            ( { model | steps = newSt }, effects, OutBuildStatus status date )
 
         BuildError message ->
             ( { model

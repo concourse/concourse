@@ -6,8 +6,8 @@ module Build.Models exposing
 
 import Build.Output.Models exposing (OutputModel)
 import Concourse
-import Message.Message exposing (Hoverable)
 import Concourse.Pagination exposing (Page)
+import Message.Message exposing (Hoverable)
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight, StepID)
 import Time exposing (Time)

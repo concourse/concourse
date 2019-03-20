@@ -13,6 +13,7 @@ import Array
 import Concourse
 import Dashboard.Group.Models exposing (Group)
 import Dict
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes as HA
     exposing
@@ -86,7 +87,7 @@ queryStringFromSearch query =
                 QueryString.add "search" query QueryString.empty
 
 
-handleCallback : Callback -> ( Model r, List Effect ) -> ( Model r, List Effect )
+handleCallback : Callback -> ET (Model r)
 handleCallback callback ( model, effects ) =
     case callback of
         LoggedOut (Ok ()) ->
@@ -151,7 +152,7 @@ arrowDown options dropdown =
             Hidden
 
 
-handleDelivery : Delivery -> ( Model r, List Effect ) -> ( Model r, List Effect )
+handleDelivery : Delivery -> ET (Model r)
 handleDelivery delivery ( model, effects ) =
     case delivery of
         KeyUp keyCode ->
@@ -259,7 +260,7 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Message -> ( Model r, List Effect ) -> ( Model r, List Effect )
+update : Message -> ET (Model r)
 update msg ( model, effects ) =
     case msg of
         FilterMsg query ->
@@ -316,7 +317,7 @@ update msg ( model, effects ) =
             ( newModel, effects )
 
         ShowSearchInput ->
-            showSearchInput model
+            showSearchInput ( model, effects )
 
         _ ->
             ( model, effects )
@@ -353,26 +354,26 @@ screenResize size model =
                     newModel
 
 
-showSearchInput : Model r -> ( Model r, List Effect )
-showSearchInput model =
+showSearchInput : ET (Model r)
+showSearchInput ( model, effects ) =
     let
         newModel =
             { model | dropdown = Shown { selectedIdx = Nothing } }
     in
     case middleSection model of
         MinifiedSearch ->
-            ( newModel, [ Focus searchInputId ] )
+            ( newModel, effects ++ [ Focus searchInputId ] )
 
         SearchBar ->
-            ( model, [] )
+            ( model, effects )
 
         Empty ->
             Debug.log "attempting to show search input when search is gone"
-                ( model, [] )
+                ( model, effects )
 
         Breadcrumbs _ ->
             Debug.log "attempting to show search input on a breadcrumbs page"
-                ( model, [] )
+                ( model, effects )
 
 
 view : UserState -> Maybe PipelineState -> Model r -> Html Message

@@ -88,11 +88,6 @@ port scrollDown : () -> Cmd msg
 port checkIsVisible : String -> Cmd msg
 
 
-type LayoutDispatch
-    = SubPage Int
-    | Layout
-
-
 type Effect
     = FetchJob Concourse.JobIdentifier
     | FetchJobs Concourse.PipelineIdentifier
