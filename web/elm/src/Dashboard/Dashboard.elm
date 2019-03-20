@@ -34,8 +34,9 @@ import Html.Attributes
         , src
         , style
         )
-import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
+import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message as Message exposing (Hoverable(..), Message(..))
@@ -54,6 +55,7 @@ import RemoteData
 import Routes
 import ScreenSize
 import Simple.Fuzzy exposing (filter, match, root)
+import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
@@ -88,7 +90,6 @@ init flags =
       , hideFooterCounter = 0
       , showHelp = False
       , isUserMenuExpanded = topBar.isUserMenuExpanded
-      , isPinMenuExpanded = topBar.isPinMenuExpanded
       , route = topBar.route
       , dropdown = topBar.dropdown
       , screenSize = topBar.screenSize
@@ -362,7 +363,58 @@ view userState model =
         [ style TopBar.Styles.pageIncludingTopBar
         , id "page-including-top-bar"
         ]
-        [ TopBar.view userState Nothing model
+        [ Html.div
+            [ id "top-bar-app"
+            , style <| TopBar.Styles.topBar False
+            ]
+          <|
+            [ TopBar.viewConcourseLogo ]
+                ++ (case model.route of
+                        Routes.Dashboard (Routes.Normal query) ->
+                            let
+                                q =
+                                    Maybe.withDefault "" query
+
+                                isDropDownHidden =
+                                    model.dropdown == TopBar.Model.Hidden
+
+                                isMobile =
+                                    model.screenSize == ScreenSize.Mobile
+
+                                noPipelines =
+                                    model.groups
+                                        |> List.concatMap .pipelines
+                                        |> List.isEmpty
+                            in
+                            if noPipelines then
+                                [ Login.view userState model False ]
+
+                            else if isDropDownHidden && isMobile && q == "" then
+                                [ Html.div
+                                    [ style <|
+                                        TopBar.Styles.showSearchContainer model
+                                    ]
+                                    [ Html.a
+                                        [ id "show-search-button"
+                                        , onClick ShowSearchInput
+                                        , style TopBar.Styles.searchButton
+                                        ]
+                                        []
+                                    ]
+                                , Login.view userState model False
+                                ]
+
+                            else if isMobile then
+                                [ TopBar.viewSearch model ]
+
+                            else
+                                [ TopBar.viewSearch model
+                                , Login.view userState model False
+                                ]
+
+                        _ ->
+                            [ Login.view userState model False ]
+                   )
         , Html.div
             [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
             (dashboardView model)

@@ -15,6 +15,7 @@ import Char
 import Colors
 import Concourse
 import Concourse.Cli as Cli
+import Dict
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
@@ -27,13 +28,16 @@ import Html.Attributes
         , width
         )
 import Html.Attributes.Aria exposing (ariaLabel)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
 import Json.Decode
 import Json.Encode
+import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import PauseToggle
 import Pipeline.Styles as Styles
 import RemoteData exposing (..)
 import Routes
@@ -41,7 +45,7 @@ import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
-import TopBar.Model
+import TopBar.Model exposing (PipelineState)
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
@@ -64,6 +68,7 @@ type alias Model =
         , hideLegendCounter : Time
         , isToggleHovered : Bool
         , isToggleLoading : Bool
+        , isPinMenuExpanded : Bool
         }
 
 
@@ -95,8 +100,8 @@ init flags =
             , isToggleHovered = False
             , isToggleLoading = False
             , selectedGroups = flags.selectedGroups
+            , isPinMenuExpanded = False
             , isUserMenuExpanded = topBar.isUserMenuExpanded
-            , isPinMenuExpanded = topBar.isPinMenuExpanded
             , route = topBar.route
             , groups = topBar.groups
             , dropdown = topBar.dropdown
@@ -307,8 +312,13 @@ updateBody msg ( model, effects ) =
         Hover (Just (PipelineButton _)) ->
             ( { model | isToggleHovered = True }, effects )
 
+        Hover (Just PinIcon) ->
+            ( { model | isPinMenuExpanded = True }, effects )
+
         Hover Nothing ->
-            ( { model | isToggleHovered = False }, effects )
+            ( { model | isToggleHovered = False, isPinMenuExpanded = False }
+            , effects
+            )
 
         _ ->
             ( model, effects )
@@ -350,8 +360,21 @@ view userState model =
     in
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
-            [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ TopBar.view userState pipelineState model
+            [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar
+            , id "page-including-top-bar"
+            ]
+            [ Html.div
+                [ id "top-bar-app"
+                , Html.Attributes.style <|
+                    TopBar.Styles.topBar <|
+                        isPaused model.pipeline
+                ]
+                [ TopBar.viewConcourseLogo
+                , TopBar.viewBreadcrumbs model.route
+                , viewPin pipelineState model
+                , viewPauseToggle userState pipelineState
+                , Login.view userState model <| isPaused model.pipeline
+                ]
             , Html.div
                 [ Html.Attributes.style TopBar.Styles.pipelinePageBelowTopBar
                 , id "page-below-top-bar"
@@ -359,6 +382,106 @@ view userState model =
                 [ viewSubPage model ]
             ]
         ]
+
+
+viewPin : Maybe PipelineState -> Model -> Html Message
+viewPin pipelineState model =
+    case pipelineState of
+        Just { pinnedResources, pipeline } ->
+            Html.div
+                [ Html.Attributes.style <|
+                    Styles.pinIconContainer model.isPinMenuExpanded
+                , id "pin-icon"
+                ]
+                [ if List.length pinnedResources > 0 then
+                    Html.div
+                        [ Html.Attributes.style <| Styles.pinIcon
+                        , onMouseEnter <| Hover <| Just PinIcon
+                        , onMouseLeave <| Hover Nothing
+                        ]
+                        ([ Html.div
+                            [ Html.Attributes.style Styles.pinBadge
+                            , id "pin-badge"
+                            ]
+                            [ Html.div []
+                                [ Html.text <|
+                                    toString <|
+                                        List.length pinnedResources
+                                ]
+                            ]
+                         ]
+                            ++ viewPinDropdown pinnedResources pipeline model
+                        )
+
+                  else
+                    Html.div [ Html.Attributes.style <| Styles.pinIcon ] []
+                ]
+
+        Nothing ->
+            Html.text ""
+
+
+viewPinDropdown :
+    List ( String, Concourse.Version )
+    -> Concourse.PipelineIdentifier
+    -> Model
+    -> List (Html Message)
+viewPinDropdown pinnedResources pipeline model =
+    if model.isPinMenuExpanded then
+        [ Html.ul
+            [ Html.Attributes.style Styles.pinIconDropdown ]
+            (pinnedResources
+                |> List.map
+                    (\( resourceName, pinnedVersion ) ->
+                        Html.li
+                            [ onClick <|
+                                GoToRoute <|
+                                    Routes.Resource
+                                        { id =
+                                            { teamName = pipeline.teamName
+                                            , pipelineName = pipeline.pipelineName
+                                            , resourceName = resourceName
+                                            }
+                                        , page = Nothing
+                                        }
+                            , Html.Attributes.style Styles.pinDropdownCursor
+                            ]
+                            [ Html.div
+                                [ Html.Attributes.style Styles.pinText ]
+                                [ Html.text resourceName ]
+                            , Html.table []
+                                (pinnedVersion
+                                    |> Dict.toList
+                                    |> List.map
+                                        (\( k, v ) ->
+                                            Html.tr []
+                                                [ Html.td [] [ Html.text k ]
+                                                , Html.td [] [ Html.text v ]
+                                                ]
+                                        )
+                                )
+                            ]
+                    )
+            )
+        , Html.div [ Html.Attributes.style Styles.pinHoverHighlight ] []
+        ]
+
+    else
+        []
+
+
+viewPauseToggle : UserState -> Maybe PipelineState -> Html Message
+viewPauseToggle userState pipelineState =
+    case pipelineState of
+        Just ({ isPaused } as ps) ->
+            Html.div
+                [ id "top-bar-pause-toggle"
+                , Html.Attributes.style <| Styles.pauseToggle isPaused
+                ]
+                [ PauseToggle.view "17px" userState ps ]
+
+        Nothing ->
+            Html.text ""
 
 
 isPaused : WebData Concourse.Pipeline -> Bool

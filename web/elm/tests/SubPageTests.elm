@@ -138,7 +138,6 @@ notFound route =
     , groups = []
     , screenSize = ScreenSize.Desktop
     , dropdown = TopBar.Model.Hidden
-    , isPinMenuExpanded = False
     , route = route
     , shiftDown = False
     }

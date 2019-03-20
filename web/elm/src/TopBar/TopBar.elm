@@ -6,13 +6,14 @@ module TopBar.TopBar exposing
     , queryStringFromSearch
     , searchInputId
     , update
-    , view
+    , viewBreadcrumbs
+    , viewConcourseLogo
+    , viewSearch
     )
 
 import Array
 import Concourse
 import Dashboard.Group.Models exposing (Group)
-import Dict
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes as HA
@@ -30,12 +31,10 @@ import Html.Attributes as HA
 import Html.Events exposing (..)
 import Http
 import Keycodes
-import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
-import PauseToggle
 import QueryString
 import Routes
 import ScreenSize exposing (ScreenSize(..))
@@ -46,7 +45,6 @@ import TopBar.Model
         , Model
         , PipelineState
         , isPaused
-        , middleSection
         )
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
@@ -65,7 +63,6 @@ type alias Flags =
 init : Flags -> ( Model {}, List Effect )
 init { route } =
     ( { isUserMenuExpanded = False
-      , isPinMenuExpanded = False
       , route = route
       , groups = []
       , dropdown = Hidden
@@ -174,63 +171,48 @@ handleDelivery delivery ( model, effects ) =
                 case keyCode of
                     -- up arrow
                     38 ->
-                        case middleSection model of
-                            SearchBar ->
-                                ( { model
-                                    | dropdown =
-                                        arrowUp options model.dropdown
-                                  }
-                                , effects
-                                )
-
-                            _ ->
-                                ( model, effects )
+                        ( { model
+                            | dropdown =
+                                arrowUp options model.dropdown
+                          }
+                        , effects
+                        )
 
                     -- down arrow
                     40 ->
-                        case middleSection model of
-                            SearchBar ->
-                                ( { model
-                                    | dropdown =
-                                        arrowDown options model.dropdown
-                                  }
-                                , effects
-                                )
-
-                            _ ->
-                                ( model, effects )
+                        ( { model
+                            | dropdown =
+                                arrowDown options model.dropdown
+                          }
+                        , effects
+                        )
 
                     -- enter key
                     13 ->
-                        case middleSection model of
-                            SearchBar ->
-                                case model.dropdown of
-                                    Shown { selectedIdx } ->
-                                        case selectedIdx of
-                                            Nothing ->
-                                                ( model, effects )
-
-                                            Just selectedIdx ->
-                                                let
-                                                    options =
-                                                        Array.fromList (dropdownOptions model)
-
-                                                    selectedItem =
-                                                        Array.get selectedIdx options
-                                                            |> Maybe.withDefault (Routes.extractQuery model.route)
-                                                in
-                                                ( { model
-                                                    | dropdown = Shown { selectedIdx = Nothing }
-                                                    , route = Routes.Dashboard (Routes.Normal (Just selectedItem))
-                                                  }
-                                                , [ ModifyUrl <|
-                                                        queryStringFromSearch
-                                                            selectedItem
-                                                  ]
-                                                )
-
-                                    _ ->
+                        case model.dropdown of
+                            Shown { selectedIdx } ->
+                                case selectedIdx of
+                                    Nothing ->
                                         ( model, effects )
+
+                                    Just selectedIdx ->
+                                        let
+                                            options =
+                                                Array.fromList (dropdownOptions model)
+
+                                            selectedItem =
+                                                Array.get selectedIdx options
+                                                    |> Maybe.withDefault (Routes.extractQuery model.route)
+                                        in
+                                        ( { model
+                                            | dropdown = Shown { selectedIdx = Nothing }
+                                            , route = Routes.Dashboard (Routes.Normal (Just selectedItem))
+                                          }
+                                        , [ ModifyUrl <|
+                                                queryStringFromSearch
+                                                    selectedItem
+                                          ]
+                                        )
 
                             _ ->
                                 ( model, effects )
@@ -283,36 +265,20 @@ update msg ( model, effects ) =
         ToggleUserMenu ->
             ( { model | isUserMenuExpanded = not model.isUserMenuExpanded }, effects )
 
-        Hover (Just PinIcon) ->
-            ( { model | isPinMenuExpanded = True }, effects )
-
-        Hover Nothing ->
-            ( { model | isPinMenuExpanded = False }, effects )
-
         TogglePipelinePaused _ _ ->
             ( model, effects )
 
         FocusMsg ->
             let
                 newModel =
-                    case middleSection model of
-                        SearchBar ->
-                            { model | dropdown = Shown { selectedIdx = Nothing } }
-
-                        _ ->
-                            model
+                    { model | dropdown = Shown { selectedIdx = Nothing } }
             in
             ( newModel, effects )
 
         BlurMsg ->
             let
                 newModel =
-                    case middleSection model of
-                        SearchBar ->
-                            { model | dropdown = Hidden }
-
-                        _ ->
-                            model
+                    { model | dropdown = Hidden }
             in
             ( newModel, effects )
 
@@ -332,92 +298,42 @@ screenResize size model =
         newModel =
             { model | screenSize = newSize }
     in
-    case middleSection model of
-        Breadcrumbs r ->
+    case newSize of
+        ScreenSize.Desktop ->
+            { newModel | dropdown = Hidden }
+
+        ScreenSize.BigDesktop ->
+            { newModel | dropdown = Hidden }
+
+        ScreenSize.Mobile ->
             newModel
-
-        Empty ->
-            newModel
-
-        SearchBar ->
-            newModel
-
-        MinifiedSearch ->
-            case newSize of
-                ScreenSize.Desktop ->
-                    { newModel | dropdown = Hidden }
-
-                ScreenSize.BigDesktop ->
-                    { newModel | dropdown = Hidden }
-
-                ScreenSize.Mobile ->
-                    newModel
 
 
 showSearchInput : ET (Model r)
 showSearchInput ( model, effects ) =
-    let
-        newModel =
-            { model | dropdown = Shown { selectedIdx = Nothing } }
-    in
-    case middleSection model of
-        MinifiedSearch ->
-            ( newModel, effects ++ [ Focus searchInputId ] )
+    case model.route of
+        Routes.Dashboard (Routes.Normal query) ->
+            let
+                q =
+                    Maybe.withDefault "" query
 
-        SearchBar ->
+                isDropDownHidden =
+                    model.dropdown == TopBar.Model.Hidden
+
+                isMobile =
+                    model.screenSize == ScreenSize.Mobile
+
+                newModel =
+                    { model | dropdown = Shown { selectedIdx = Nothing } }
+            in
+            if isDropDownHidden && isMobile && q == "" then
+                ( newModel, effects ++ [ Focus searchInputId ] )
+
+            else
+                ( model, effects )
+
+        _ ->
             ( model, effects )
-
-        Empty ->
-            Debug.log "attempting to show search input when search is gone"
-                ( model, effects )
-
-        Breadcrumbs _ ->
-            Debug.log "attempting to show search input on a breadcrumbs page"
-                ( model, effects )
-
-
-view : UserState -> Maybe PipelineState -> Model r -> Html Message
-view userState pipelineState model =
-    Html.div
-        [ id "top-bar-app"
-        , style <| Styles.topBar <| isPaused pipelineState
-        ]
-        [ viewConcourseLogo
-        , viewMiddleSection model
-        , viewPin pipelineState model
-        , viewPauseToggle userState pipelineState
-        , Login.view userState model (isPaused pipelineState)
-        ]
-
-
-viewPauseToggle : UserState -> Maybe PipelineState -> Html Message
-viewPauseToggle userState pipelineState =
-    case pipelineState of
-        Just ({ isPaused } as ps) ->
-            Html.div
-                [ id "top-bar-pause-toggle"
-                , style <| Styles.pauseToggle isPaused
-                ]
-                [ PauseToggle.view "17px" userState ps ]
-
-        Nothing ->
-            Html.text ""
-
-
-viewLogin : UserState -> Model r -> Bool -> List (Html Message)
-viewLogin userState model isPaused =
-    if showLogin model then
-        [ Html.div [ id "login-component", style Styles.loginComponent ] <|
-            viewLoginState userState model.isUserMenuExpanded isPaused
-        ]
-
-    else
-        []
-
-
-showLogin : Model r -> Bool
-showLogin model =
-    model.screenSize /= Mobile || middleSection model /= SearchBar
 
 
 viewLoginState : UserState -> Bool -> Bool -> List (Html Message)
@@ -461,32 +377,6 @@ userDisplayName user =
     Maybe.withDefault user.id <|
         List.head <|
             List.filter (not << String.isEmpty) [ user.userName, user.name, user.email ]
-
-
-viewMiddleSection : Model r -> Html Message
-viewMiddleSection model =
-    case middleSection model of
-        Empty ->
-            Html.text ""
-
-        MinifiedSearch ->
-            Html.div
-                [ style <| Styles.showSearchContainer model ]
-                [ Html.a
-                    [ id "show-search-button"
-                    , onClick ShowSearchInput
-                    , style Styles.searchButton
-                    ]
-                    []
-                ]
-
-        SearchBar ->
-            viewSearch model
-
-        Breadcrumbs r ->
-            Html.div
-                [ id "breadcrumbs", style Styles.breadcrumbContainer ]
-                (viewBreadcrumbs r)
 
 
 viewSearch :
@@ -564,32 +454,48 @@ viewConcourseLogo =
     Html.a [ style Styles.concourseLogo, href "/" ] []
 
 
-viewBreadcrumbs : Routes.Route -> List (Html Message)
+viewBreadcrumbs : Routes.Route -> Html Message
 viewBreadcrumbs route =
-    case route of
-        Routes.Pipeline { id } ->
-            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName } ]
+    Html.div
+        [ id "breadcrumbs", style Styles.breadcrumbContainer ]
+    <|
+        case route of
+            Routes.Pipeline { id } ->
+                [ viewPipelineBreadcrumb
+                    { teamName = id.teamName
+                    , pipelineName = id.pipelineName
+                    }
+                ]
 
-        Routes.Build { id } ->
-            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
-            , viewBreadcrumbSeparator
-            , viewJobBreadcrumb id.jobName
-            ]
+            Routes.Build { id } ->
+                [ viewPipelineBreadcrumb
+                    { teamName = id.teamName
+                    , pipelineName = id.pipelineName
+                    }
+                , viewBreadcrumbSeparator
+                , viewJobBreadcrumb id.jobName
+                ]
 
-        Routes.Resource { id } ->
-            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
-            , viewBreadcrumbSeparator
-            , viewResourceBreadcrumb id.resourceName
-            ]
+            Routes.Resource { id } ->
+                [ viewPipelineBreadcrumb
+                    { teamName = id.teamName
+                    , pipelineName = id.pipelineName
+                    }
+                , viewBreadcrumbSeparator
+                , viewResourceBreadcrumb id.resourceName
+                ]
 
-        Routes.Job { id } ->
-            [ viewPipelineBreadcrumb { teamName = id.teamName, pipelineName = id.pipelineName }
-            , viewBreadcrumbSeparator
-            , viewJobBreadcrumb id.jobName
-            ]
+            Routes.Job { id } ->
+                [ viewPipelineBreadcrumb
+                    { teamName = id.teamName
+                    , pipelineName = id.pipelineName
+                    }
+                , viewBreadcrumbSeparator
+                , viewJobBreadcrumb id.jobName
+                ]
 
-        _ ->
-            []
+            _ ->
+                []
 
 
 breadcrumbComponent : String -> String -> List (Html Message)
@@ -664,80 +570,3 @@ dropdownOptions { route, groups } =
 
         _ ->
             []
-
-
-viewPin : Maybe PipelineState -> Model r -> Html Message
-viewPin pipelineState model =
-    case pipelineState of
-        Just { pinnedResources, pipeline } ->
-            Html.div
-                [ style <| Styles.pinIconContainer model.isPinMenuExpanded
-                , id "pin-icon"
-                ]
-                [ if List.length pinnedResources > 0 then
-                    Html.div
-                        [ style <| Styles.pinIcon
-                        , onMouseEnter <| Hover <| Just PinIcon
-                        , onMouseLeave <| Hover Nothing
-                        ]
-                        ([ Html.div
-                            [ style Styles.pinBadge
-                            , id "pin-badge"
-                            ]
-                            [ Html.div [] [ Html.text <| toString <| List.length pinnedResources ]
-                            ]
-                         ]
-                            ++ viewPinDropdown pinnedResources pipeline model
-                        )
-
-                  else
-                    Html.div [ style <| Styles.pinIcon ] []
-                ]
-
-        Nothing ->
-            Html.text ""
-
-
-viewPinDropdown : List ( String, Concourse.Version ) -> Concourse.PipelineIdentifier -> Model r -> List (Html Message)
-viewPinDropdown pinnedResources pipeline model =
-    if model.isPinMenuExpanded then
-        [ Html.ul
-            [ style Styles.pinIconDropdown ]
-            (pinnedResources
-                |> List.map
-                    (\( resourceName, pinnedVersion ) ->
-                        Html.li
-                            [ onClick <|
-                                GoToRoute <|
-                                    Routes.Resource
-                                        { id =
-                                            { teamName = pipeline.teamName
-                                            , pipelineName = pipeline.pipelineName
-                                            , resourceName = resourceName
-                                            }
-                                        , page = Nothing
-                                        }
-                            , style Styles.pinDropdownCursor
-                            ]
-                            [ Html.div
-                                [ style Styles.pinText ]
-                                [ Html.text resourceName ]
-                            , Html.table []
-                                (pinnedVersion
-                                    |> Dict.toList
-                                    |> List.map
-                                        (\( k, v ) ->
-                                            Html.tr []
-                                                [ Html.td [] [ Html.text k ]
-                                                , Html.td [] [ Html.text v ]
-                                                ]
-                                        )
-                                )
-                            ]
-                    )
-            )
-        , Html.div [ style Styles.pinHoverHighlight ] []
-        ]
-
-    else
-        []

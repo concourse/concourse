@@ -47,6 +47,7 @@ import Keyboard
 import Keycodes
 import List.Extra
 import LoadingIndicator
+import Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
@@ -119,7 +120,6 @@ init flags =
           , fetchingHistory = False
           , scrolledToCurrentBuild = False
           , isUserMenuExpanded = topBar.isUserMenuExpanded
-          , isPinMenuExpanded = topBar.isPinMenuExpanded
           , route = topBar.route
           , groups = topBar.groups
           , dropdown = topBar.dropdown
@@ -779,12 +779,23 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
 
 view : UserState -> Model -> Html Message
 view userState model =
-    Html.div []
+    Html.div
+        [ style TopBar.Styles.pageIncludingTopBar
+        , id "page-including-top-bar"
+        ]
         [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ TopBar.view userState Nothing model
-            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pipelinePageBelowTopBar ] [ viewBuildPage model ]
+            [ id "top-bar-app"
+            , style <| TopBar.Styles.topBar False
             ]
+            [ TopBar.viewConcourseLogo
+            , TopBar.viewBreadcrumbs model.route
+            , Login.view userState model False
+            ]
+        , Html.div
+            [ id "page-below-top-bar"
+            , style TopBar.Styles.pipelinePageBelowTopBar
+            ]
+            [ viewBuildPage model ]
         ]
 
 

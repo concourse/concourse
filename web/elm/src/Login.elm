@@ -5,8 +5,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, href, id, style)
 import Html.Events exposing (onClick)
 import Message.Message exposing (Message(..))
-import ScreenSize exposing (ScreenSize(..))
-import TopBar.Model exposing (MiddleSection(..), Model, middleSection)
+import TopBar.Model exposing (MiddleSection(..), Model)
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
 
@@ -17,24 +16,8 @@ view :
     -> Bool
     -> Html Message
 view userState model isPaused =
-    if showLogin model then
-        Html.div [ id "login-component", style Styles.loginComponent ] <|
-            viewLoginState userState model.isUserMenuExpanded isPaused
-
-    else
-        Html.text ""
-
-
-showLogin :
-    Model r
-    -> Bool
-showLogin model =
-    case middleSection model of
-        SearchBar ->
-            model.screenSize /= Mobile
-
-        _ ->
-            True
+    Html.div [ id "login-component", style Styles.loginComponent ] <|
+        viewLoginState userState model.isUserMenuExpanded isPaused
 
 
 viewLoginState : UserState -> Bool -> Bool -> List (Html Message)

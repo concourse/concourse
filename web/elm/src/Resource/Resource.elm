@@ -56,6 +56,7 @@ import Html.Events
 import Http
 import Keycodes
 import List.Extra
+import Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..), setTitle)
@@ -105,7 +106,6 @@ init flags =
             , ctrlDown = False
             , textAreaFocused = False
             , isUserMenuExpanded = topBar.isUserMenuExpanded
-            , isPinMenuExpanded = topBar.isPinMenuExpanded
             , route = topBar.route
             , groups = topBar.groups
             , dropdown = topBar.dropdown
@@ -662,8 +662,17 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ TopBar.view userState Nothing model
+            [ style TopBar.Styles.pageIncludingTopBar
+            , id "page-including-top-bar"
+            ]
+            [ Html.div
+                [ id "top-bar-app"
+                , style <| TopBar.Styles.topBar False
+                ]
+                [ TopBar.viewConcourseLogo
+                , TopBar.viewBreadcrumbs model.route
+                , Login.view userState model False
+                ]
             , Html.div
                 [ id "page-below-top-bar"
                 , style Resource.Styles.pageBelowTopBar

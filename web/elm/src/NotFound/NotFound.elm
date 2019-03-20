@@ -3,6 +3,7 @@ module NotFound.NotFound exposing (handleCallback, init, update, view)
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
+import Login
 import Message.Callback exposing (Callback)
 import Message.Effects as Effects exposing (Effect)
 import Message.Message exposing (Message(..))
@@ -27,7 +28,6 @@ init flags =
     in
     ( { notFoundImgSrc = flags.notFoundImgSrc
       , isUserMenuExpanded = topBar.isUserMenuExpanded
-      , isPinMenuExpanded = topBar.isPinMenuExpanded
       , groups = topBar.groups
       , route = topBar.route
       , dropdown = topBar.dropdown
@@ -55,8 +55,18 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState Nothing model
-            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+            [ Html.div
+                [ id "top-bar-app"
+                , style <| TopBar.Styles.topBar False
+                ]
+                [ TopBar.viewConcourseLogo
+                , TopBar.viewBreadcrumbs model.route
+                , Login.view userState model False
+                ]
+            , Html.div
+                [ id "page-below-top-bar"
+                , style TopBar.Styles.pageBelowTopBar
+                ]
                 [ Html.div [ class "notfound" ]
                     [ Html.div [ class "title" ] [ Html.text "404" ]
                     , Html.div [ class "reason" ] [ Html.text "this page was not found" ]

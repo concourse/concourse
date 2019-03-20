@@ -21,6 +21,7 @@ import FlySuccess.Text as Text
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
@@ -47,7 +48,6 @@ init { authToken, flyPort } =
                 Nothing ->
                     RemoteData.Failure NoFlyPort
       , isUserMenuExpanded = topBar.isUserMenuExpanded
-      , isPinMenuExpanded = topBar.isPinMenuExpanded
       , route = topBar.route
       , groups = topBar.groups
       , dropdown = topBar.dropdown
@@ -110,7 +110,13 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState Nothing model
+            [ Html.div
+                [ id "top-bar-app"
+                , style <| TopBar.Styles.topBar False
+                ]
+                [ TopBar.viewConcourseLogo
+                , Login.view userState model False
+                ]
             , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
                 [ Html.div
                     [ id "success-card"

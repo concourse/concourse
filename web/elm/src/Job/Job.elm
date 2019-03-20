@@ -45,6 +45,7 @@ import Html.Events
 import Http
 import Job.Styles as Styles
 import LoadingIndicator
+import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
@@ -110,7 +111,6 @@ init flags =
             , currentPage = flags.paging
             , hovered = Nothing
             , isUserMenuExpanded = topBar.isUserMenuExpanded
-            , isPinMenuExpanded = topBar.isPinMenuExpanded
             , route = topBar.route
             , groups = topBar.groups
             , dropdown = topBar.dropdown
@@ -417,7 +417,14 @@ view userState model =
             [ style TopBar.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
-            [ TopBar.view userState Nothing model
+            [ Html.div
+                [ id "top-bar-app"
+                , style <| TopBar.Styles.topBar False
+                ]
+                [ TopBar.viewConcourseLogo
+                , TopBar.viewBreadcrumbs model.route
+                , Login.view userState model False
+                ]
             , Html.div
                 [ id "page-below-top-bar", style Styles.pageBelowTopBar ]
                 [ viewMainJobsSection model ]

@@ -4,7 +4,6 @@ module TopBar.Model exposing
     , Model
     , PipelineState
     , isPaused
-    , middleSection
     )
 
 import Concourse
@@ -16,7 +15,6 @@ import ScreenSize exposing (ScreenSize(..))
 type alias Model r =
     { r
         | isUserMenuExpanded : Bool
-        , isPinMenuExpanded : Bool
         , route : Routes.Route
         , groups : List Group
         , dropdown : Dropdown
@@ -34,30 +32,6 @@ type MiddleSection
     | MinifiedSearch
     | SearchBar
     | Empty
-
-
-middleSection : Model r -> MiddleSection
-middleSection { route, dropdown, screenSize, groups } =
-    case route of
-        Routes.Dashboard (Routes.Normal query) ->
-            let
-                q =
-                    Maybe.withDefault "" query
-            in
-            if groups |> List.concatMap .pipelines |> List.isEmpty then
-                Empty
-
-            else if dropdown == Hidden && screenSize == Mobile && q == "" then
-                MinifiedSearch
-
-            else
-                SearchBar
-
-        Routes.Dashboard Routes.HighDensity ->
-            Empty
-
-        _ ->
-            Breadcrumbs route
 
 
 type Dropdown
