@@ -134,7 +134,8 @@ subpageHandleCallback : Model -> Callback -> ( Model, List Effect )
 subpageHandleCallback model callback =
     let
         ( subModel, effects ) =
-            SubPage.handleCallback callback model.subModel
+            ( model.subModel, [] )
+                |> SubPage.handleCallback callback
                 |> SubPage.handleNotFound model.notFoundImgSrc model.route
     in
     ( { model | subModel = subModel }, effects )
@@ -146,11 +147,9 @@ update msg model =
         Update m ->
             let
                 ( subModel, subEffects ) =
-                    SubPage.update
-                        model.notFoundImgSrc
-                        model.route
-                        m
-                        model.subModel
+                    ( model.subModel, [] )
+                        |> SubPage.update m
+                        |> SubPage.handleNotFound model.notFoundImgSrc model.route
             in
             ( { model | subModel = subModel }, subEffects )
 
@@ -165,11 +164,9 @@ handleDelivery : Delivery -> Model -> ( Model, List Effect )
 handleDelivery delivery model =
     let
         ( newSubmodel, subPageEffects ) =
-            SubPage.handleDelivery
-                model.notFoundImgSrc
-                model.route
-                delivery
-                model.subModel
+            ( model.subModel, [] )
+                |> SubPage.handleDelivery delivery
+                |> SubPage.handleNotFound model.notFoundImgSrc model.route
 
         ( newModel, applicationEffects ) =
             handleDeliveryForApplication delivery model
@@ -215,7 +212,7 @@ urlUpdate route model =
                 ( model.subModel, [] )
 
             else if routeMatchesModel route model then
-                SubPage.urlUpdate route model.subModel
+                SubPage.urlUpdate route ( model.subModel, [] )
 
             else
                 SubPage.init

@@ -97,7 +97,7 @@ init flags =
             TopBar.init { route = route }
     in
     changeToBuild
-        flags.pageType
+        flags
         ( { page = flags.pageType
           , now = Nothing
           , job = Nothing
@@ -146,10 +146,10 @@ subscriptions model =
            )
 
 
-changeToBuild : BuildPageType -> ( Model, List Effect ) -> ( Model, List Effect )
-changeToBuild page ( model, effects ) =
-    if model.browsingIndex > 0 && page == model.page then
-        ( model, effects )
+changeToBuild : Flags -> ( Model, List Effect ) -> ( Model, List Effect )
+changeToBuild { highlight, pageType } ( model, effects ) =
+    if model.browsingIndex > 0 && pageType == model.page then
+        ( { model | highlight = highlight }, effects )
 
     else
         let
@@ -165,9 +165,10 @@ changeToBuild page ( model, effects ) =
             | browsingIndex = newIndex
             , currentBuild = newBuild
             , autoScroll = True
-            , page = page
+            , page = pageType
+            , highlight = highlight
           }
-        , case page of
+        , case pageType of
             OneOffBuildPage buildId ->
                 effects
                     ++ [ CloseBuildEventStream

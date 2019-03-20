@@ -118,8 +118,8 @@ init flags =
     )
 
 
-changeToResource : Flags -> Model -> ( Model, List Effect )
-changeToResource flags model =
+changeToResource : Flags -> ( Model, List Effect ) -> ( Model, List Effect )
+changeToResource flags ( model, effects ) =
     ( { model
         | currentPage = flags.paging
         , versions =
@@ -127,7 +127,7 @@ changeToResource flags model =
             , pagination = { previousPage = Nothing, nextPage = Nothing }
             }
       }
-    , [ FetchVersionedResources model.resourceIdentifier flags.paging ]
+    , effects ++ [ FetchVersionedResources model.resourceIdentifier flags.paging ]
     )
 
 

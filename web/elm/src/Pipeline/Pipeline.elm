@@ -102,17 +102,30 @@ init flags =
     ( model, [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )
 
 
-changeToPipelineAndGroups : Flags -> Model -> ( Model, List Effect )
-changeToPipelineAndGroups flags model =
-    if model.pipelineLocator == flags.pipelineLocator then
+changeToPipelineAndGroups :
+    { pipelineLocator : Concourse.PipelineIdentifier
+    , selectedGroups : List String
+    }
+    -> ( Model, List Effect )
+    -> ( Model, List Effect )
+changeToPipelineAndGroups { pipelineLocator, selectedGroups } ( model, effects ) =
+    if model.pipelineLocator == pipelineLocator then
         let
-            ( newModel, effects ) =
-                renderIfNeeded ( { model | selectedGroups = flags.selectedGroups }, [] )
+            ( newModel, newEffects ) =
+                renderIfNeeded ( { model | selectedGroups = selectedGroups }, [] )
         in
-        ( newModel, effects ++ [ ResetPipelineFocus ] )
+        ( newModel, effects ++ newEffects ++ [ ResetPipelineFocus ] )
 
     else
-        init flags
+        let
+            ( newModel, newEffects ) =
+                init
+                    { pipelineLocator = pipelineLocator
+                    , selectedGroups = selectedGroups
+                    , turbulenceImgSrc = model.turbulenceImgSrc
+                    }
+        in
+        ( newModel, effects ++ newEffects )
 
 
 loadPipeline : Concourse.PipelineIdentifier -> Model -> ( Model, List Effect )

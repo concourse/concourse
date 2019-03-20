@@ -126,8 +126,8 @@ init flags =
     )
 
 
-changeToJob : Flags -> Model -> ( Model, List Effect )
-changeToJob flags model =
+changeToJob : Flags -> ( Model, List Effect ) -> ( Model, List Effect )
+changeToJob flags ( model, effects ) =
     ( { model
         | currentPage = flags.paging
         , buildsWithResources =
@@ -138,7 +138,7 @@ changeToJob flags model =
                 }
             }
       }
-    , [ FetchJobBuilds model.jobIdentifier flags.paging ]
+    , effects ++ [ FetchJobBuilds model.jobIdentifier flags.paging ]
     )
 
 
