@@ -80,6 +80,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
+
+	SetDefaultEventuallyTimeout(30 * time.Second)
+	SetDefaultConsistentlyDuration(30 * time.Second)
+
 	tmp, err := ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
