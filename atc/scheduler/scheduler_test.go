@@ -20,7 +20,6 @@ var _ = Describe("Scheduler", func() {
 		fakePipeline     *dbfakes.FakePipeline
 		fakeInputMapper  *inputmapperfakes.FakeInputMapper
 		fakeBuildStarter *schedulerfakes.FakeBuildStarter
-		fakeScanner      *schedulerfakes.FakeScanner
 
 		scheduler *Scheduler
 
@@ -31,13 +30,11 @@ var _ = Describe("Scheduler", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeInputMapper = new(inputmapperfakes.FakeInputMapper)
 		fakeBuildStarter = new(schedulerfakes.FakeBuildStarter)
-		fakeScanner = new(schedulerfakes.FakeScanner)
 
 		scheduler = &Scheduler{
 			Pipeline:     fakePipeline,
 			InputMapper:  fakeInputMapper,
 			BuildStarter: fakeBuildStarter,
-			Scanner:      fakeScanner,
 		}
 
 		disaster = errors.New("bad thing")

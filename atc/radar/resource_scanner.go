@@ -382,19 +382,29 @@ func (scanner *resourceScanner) check(
 
 	if len(newVersions) == 0 || (!saveGiven && reflect.DeepEqual(newVersions, []atc.Version{fromVersion})) {
 		logger.Debug("no-new-versions")
-		return nil
+	} else {
+		logger.Info("versions-found", lager.Data{
+			"versions": newVersions,
+			"total":    len(newVersions),
+		})
+
+		err = resourceConfigScope.SaveVersions(newVersions)
+		if err != nil {
+			logger.Error("failed-to-save-resource-config-versions", err, lager.Data{
+				"versions": newVersions,
+			})
+
+			return err
+		}
 	}
 
-	logger.Info("versions-found", lager.Data{
-		"versions": newVersions,
-		"total":    len(newVersions),
-	})
-
-	err = resourceConfigScope.SaveVersions(newVersions)
+	updated, err := resourceConfigScope.UpdateLastCheckFinished()
 	if err != nil {
-		logger.Error("failed-to-save-resource-config-versions", err, lager.Data{
-			"versions": newVersions,
-		})
+		return err
+	}
+
+	if !updated {
+		logger.Debug("did-not-update-last-check-finished")
 	}
 
 	return nil

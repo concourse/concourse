@@ -30,6 +30,7 @@ type Resource interface {
 	CheckEvery() string
 	CheckTimeout() string
 	LastChecked() time.Time
+	LastCheckFinished() time.Time
 	Tags() atc.Tags
 	CheckSetupError() error
 	CheckError() error
@@ -59,7 +60,7 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, rs.last_checked, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, rs.check_error, rp.version, rp.comment_text").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, rs.last_checked, rs.last_check_finished, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, rs.check_error, rp.version, rp.comment_text").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -79,6 +80,7 @@ type resource struct {
 	checkEvery            string
 	checkTimeout          string
 	lastChecked           time.Time
+	lastCheckFinished     time.Time
 	tags                  atc.Tags
 	checkSetupError       error
 	checkError            error
@@ -143,6 +145,7 @@ func (r *resource) Source() atc.Source               { return r.source }
 func (r *resource) CheckEvery() string               { return r.checkEvery }
 func (r *resource) CheckTimeout() string             { return r.checkTimeout }
 func (r *resource) LastChecked() time.Time           { return r.lastChecked }
+func (r *resource) LastCheckFinished() time.Time     { return r.lastCheckFinished }
 func (r *resource) Tags() atc.Tags                   { return r.tags }
 func (r *resource) CheckSetupError() error           { return r.checkSetupError }
 func (r *resource) CheckError() error                { return r.checkError }
@@ -590,15 +593,16 @@ func scanResource(r *resource, row scannable) error {
 	var (
 		configBlob                                                                  []byte
 		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, apiPinnedVersion, pinComment sql.NullString
-		lastChecked                                                                 pq.NullTime
+		lastChecked, lastCheckFinished                                              pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastChecked, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastChecked, &lastCheckFinished, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
 	if err != nil {
 		return err
 	}
 
 	r.lastChecked = lastChecked.Time
+	r.lastCheckFinished = lastCheckFinished.Time
 
 	es := r.conn.EncryptionStrategy()
 
