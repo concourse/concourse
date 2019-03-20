@@ -209,12 +209,14 @@ local publish_job(bump) = {
   ]
 };
 
-local check_prs(type) = {
-  local base_image =
-    if type == "alpine" then "alpine-edge"
-    else if type == "ubuntu" then "ubuntu-bionic",
+local determine_base(distro) =
+  if distro == "alpine" then
+    "alpine-edge"
+  else if distro == "ubuntu" then
+    "ubuntu-bionic";
 
-  name: "prs-" + type,
+local validate_pr(distro) = {
+  name: "prs-" + distro,
   serial: true,
   public: true,
   plan: [
@@ -226,7 +228,7 @@ local check_prs(type) = {
           version: "every"
         },
         {
-          get: base_image,
+          get: determine_base(distro),
           params: {save: true},
           trigger: true
         }
@@ -237,24 +239,24 @@ local check_prs(type) = {
       resource: "resource-pr",
       params: {
         path: "resource-pr",
-        context: "status-" + type,
+        context: "status-" + distro,
         status: "pending"
       },
       get_params: {fetch_merge: true}
     },
     {
-      put: "resource-image-dev-" + type,
+      put: "resource-image-dev-" + distro,
       params: {
-        load_base: base_image,
+        load_base: determine_base(distro),
         tag: resource+"-resource/.git/id",
-        tag_prefix: "pr-" + type + "-",
-        dockerfile: resource+"-resource/dockerfiles/" + type + "/Dockerfile",
+        tag_prefix: "pr-" + distro + "-",
+        dockerfile: resource+"-resource/dockerfiles/" + distro + "/Dockerfile",
       } + build_params,
       on_failure: {
         put: "resource-pr",
         params: {
           path: "resource-pr",
-          context: "status-" + type,
+          context: "status-" + distro,
           status: "failure"
         }
       },
@@ -262,10 +264,37 @@ local check_prs(type) = {
         put: "resource-pr",
         params: {
           path: "resource-pr",
-          context: "status-" + type,
+          context: "status-" + distro,
           status: "success"
         }
       }
+    }
+  ]
+};
+
+local build_image(distro) = {
+  name: "build-" + distro,
+  plan: [
+    {
+      aggregate: [
+        {
+          get: resource+"-resource",
+          resource: "resource-repo",
+          trigger: true
+        },
+        {
+          get: determine_base(distro),
+          params: {save: true},
+          trigger: true
+        },
+      ] + extra_gets,
+    },
+    {
+      put: "resource-image-dev-" + distro,
+      params: {
+        load_base: determine_base(distro),
+        dockerfile: resource+"-resource/dockerfiles/" + distro + "/Dockerfile",
+      } + build_params
     }
   ]
 };
@@ -397,60 +426,10 @@ local check_prs(type) = {
     }
   ] + extra_resources,
   jobs: [
-    {
-      name: "build-alpine",
-      plan: [
-        {
-          aggregate: [
-            {
-              get: resource+"-resource",
-              resource: "resource-repo",
-              trigger: true
-            },
-            {
-              get: "alpine-edge",
-              params: {save: true},
-              trigger: true
-            },
-          ] + extra_gets,
-        },
-        {
-          put: "resource-image-dev-alpine",
-          params: {
-            load_base: "alpine-edge",
-            dockerfile: resource+"-resource/dockerfiles/alpine/Dockerfile",
-          } + build_params
-        }
-      ]
-    },
-    {
-      name: "build-ubuntu",
-      plan: [
-        {
-          aggregate: [
-            {
-              get: resource+"-resource",
-              resource: "resource-repo",
-              trigger: true
-            },
-            {
-              get: "ubuntu-bionic",
-              params: {save: true},
-              trigger: true
-            },
-          ] + extra_gets,
-        },
-        {
-          put: "resource-image-dev-ubuntu",
-          params: {
-            load_base: "ubuntu-bionic",
-            dockerfile: resource+"-resource/dockerfiles/ubuntu/Dockerfile",
-          } + build_params
-        }
-      ]
-    },
-    check_prs("alpine"),
-    check_prs("ubuntu"),
+    build_image("alpine"),
+    build_image("ubuntu"),
+    validate_pr("alpine"),
+    validate_pr("ubuntu"),
     publish_job("major"),
     publish_job("minor"),
     publish_job("patch")
