@@ -30,7 +30,6 @@ func (team *team) CreateArtifact(src io.Reader) (atc.WorkerArtifact, error) {
 }
 
 func (team *team) GetArtifact(artifactID int) (io.ReadCloser, error) {
-
 	params := rata.Params{
 		"team_name":   team.Name(),
 		"artifact_id": strconv.Itoa(artifactID),
