@@ -1,4 +1,9 @@
-port module Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..), runSubscription)
+port module Message.Subscription exposing
+    ( Delivery(..)
+    , Interval(..)
+    , Subscription(..)
+    , runSubscription
+    )
 
 import Build.StepTree.Models exposing (BuildEventEnvelope)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
@@ -7,7 +12,6 @@ import Json.Encode
 import Keyboard
 import Mouse
 import Routes
-import Scroll
 import Time
 import Window
 
@@ -21,16 +25,23 @@ port tokenReceived : (Maybe String -> msg) -> Sub msg
 port eventSource : (Json.Encode.Value -> msg) -> Sub msg
 
 
+port scrolledToBottom : (Bool -> msg) -> Sub msg
+
+
+port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
+
+
 type Subscription
     = OnClockTick Interval
     | OnMouse
     | OnKeyDown
     | OnKeyUp
-    | OnScrollFromWindowBottom
+    | OnScrollToBottom
     | OnWindowResize
     | FromEventSource ( String, List String )
     | OnNonHrefLinkClicked
     | OnTokenReceived
+    | OnElementVisible
 
 
 type Delivery
@@ -38,12 +49,13 @@ type Delivery
     | KeyUp Keyboard.KeyCode
     | Moused
     | ClockTicked Interval Time.Time
-    | ScrolledFromWindowBottom Scroll.FromBottom
+    | ScrolledToBottom Bool
     | WindowResized Window.Size
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
     | EventsReceived (Result String (List BuildEventEnvelope))
     | RouteChanged Routes.Route
+    | ElementVisible ( String, Bool )
 
 
 type Interval
@@ -70,8 +82,8 @@ runSubscription s =
         OnKeyUp ->
             Keyboard.ups KeyUp
 
-        OnScrollFromWindowBottom ->
-            Scroll.fromWindowBottom ScrolledFromWindowBottom
+        OnScrollToBottom ->
+            scrolledToBottom ScrolledToBottom
 
         OnWindowResize ->
             Window.resizes WindowResized
@@ -88,6 +100,9 @@ runSubscription s =
 
         OnTokenReceived ->
             tokenReceived TokenReceived
+
+        OnElementVisible ->
+            reportIsVisible ElementVisible
 
 
 intervalToTime : Interval -> Time.Time

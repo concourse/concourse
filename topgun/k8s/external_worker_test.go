@@ -25,26 +25,13 @@ var _ = Describe("team external workers", func() {
 		releaseName = fmt.Sprintf("topgun-xw-%d", randomGenerator.Int())
 		namespace = releaseName
 
-		Run(nil, "kubectl", "create", "namespace", namespace)
-
-		configMapCreationArgs := []string{
-			"create",
-			"configmap",
-			"main-worker-public-key",
-			"--namespace=" + namespace,
-			"--from-literal=main-worker-public-key=" + workerKey,
-		}
-
-		Run(nil, "kubectl", configMapCreationArgs...)
-
 		helmArgs := []string{
 			"--set=worker.replicas=1",
 			"--set=concourse.worker.team=main",
-			"--set=concourse.web.tsa.teamAuthorizedKeys=main:/authorized-team-keys/main-worker-public-key",
-			"--set=web.additionalVolumes[0].name=main-worker-public-key",
-			"--set=web.additionalVolumes[0].configMap.name=main-worker-public-key",
-			"--set=web.additionalVolumeMounts[0].name=main-worker-public-key",
-			"--set=web.additionalVolumeMounts[0].mountPath=/authorized-team-keys",
+
+			"--set=secrets.teamAuthorizedKeys[0].team=main",
+			"--set=secrets.teamAuthorizedKeys[0].key=" + workerKey,
+
 			"--set=web.env[0].name=CONCOURSE_TSA_AUTHORIZED_KEYS",
 			"--set=web.env[0].value=",
 		}

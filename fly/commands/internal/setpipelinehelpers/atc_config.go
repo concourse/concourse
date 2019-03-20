@@ -45,14 +45,10 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	if err != nil {
 		return err
 	}
-	existingConfig, _, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
-	errorMessages := []string{}
+
+	existingConfig, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
 	if err != nil {
-		if configError, ok := err.(concourse.PipelineConfigError); ok {
-			errorMessages = configError.ErrorMessages
-		} else {
-			return err
-		}
+		return err
 	}
 
 	var newConfig atc.Config
@@ -62,10 +58,6 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	}
 
 	diffExists := diff(existingConfig, newConfig)
-
-	if len(errorMessages) > 0 {
-		displayhelpers.ShowErrors("Error loading existing config", errorMessages)
-	}
 
 	if !diffExists {
 		fmt.Println("no changes to apply")

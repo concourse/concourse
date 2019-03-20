@@ -56,15 +56,10 @@ var _ = Describe("CheckResourceType", func() {
 		BeforeEach(func() {
 			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resource-types/myresource/check"
 
-			atcResponse := atc.CheckResponseBody{
-				ExitStatus: 1,
-				Stderr:     "internal server error",
-			}
-
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
-					ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, atcResponse),
+					ghttp.RespondWith(http.StatusInternalServerError, "generic error"),
 				),
 			)
 		})
@@ -73,9 +68,9 @@ var _ = Describe("CheckResourceType", func() {
 			_, err := team.CheckResourceType("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).To(HaveOccurred())
 
-			cre, ok := err.(concourse.CheckResourceError)
+			cre, ok := err.(concourse.GenericError)
 			Expect(ok).To(BeTrue())
-			Expect(cre.Error()).To(ContainSubstring("internal server error"))
+			Expect(cre.Error()).To(Equal("generic error"))
 		})
 	})
 

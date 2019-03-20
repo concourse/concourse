@@ -28,7 +28,6 @@ import Network.Pipeline
 import Network.Resource
 import Network.User
 import Process
-import Scroll
 import Task
 import Time exposing (Time)
 import Window
@@ -65,6 +64,27 @@ port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
 
 
 port closeEventStream : () -> Cmd msg
+
+
+port scrollIntoView : String -> Cmd msg
+
+
+port scrollElement : ( String, Float ) -> Cmd msg
+
+
+port scrollToBottom : () -> Cmd msg
+
+
+port scrollToTop : () -> Cmd msg
+
+
+port scrollUp : () -> Cmd msg
+
+
+port scrollDown : () -> Cmd msg
+
+
+port checkIsVisible : String -> Cmd msg
 
 
 type Effect
@@ -118,17 +138,18 @@ type Effect
     | LoadToken
     | OpenBuildEventStream { url : String, eventTypes : List String }
     | CloseBuildEventStream
+    | CheckIsVisible String
     | Focus String
     | Blur String
 
 
 type ScrollDirection
-    = ToWindowTop
+    = ToTop
     | Down
     | Up
-    | ToWindowBottom
-    | Builds Float
-    | ToCurrentBuild
+    | ToBottom
+    | Element String Float
+    | ToId String
 
 
 runEffect : Effect -> Concourse.CSRFToken -> Cmd Callback
@@ -315,7 +336,7 @@ runEffect effect csrfToken =
                 |> Task.attempt BuildAborted
 
         Scroll dir ->
-            Task.perform (always EmptyCallback) (scrollInDirection dir)
+            scrollInDirection dir
 
         SaveToken tokenValue ->
             saveToken tokenValue
@@ -337,24 +358,27 @@ runEffect effect csrfToken =
         CloseBuildEventStream ->
             closeEventStream ()
 
+        CheckIsVisible id ->
+            checkIsVisible id
 
-scrollInDirection : ScrollDirection -> Task.Task x ()
+
+scrollInDirection : ScrollDirection -> Cmd Callback
 scrollInDirection dir =
     case dir of
-        ToWindowTop ->
-            Scroll.toWindowTop
+        ToTop ->
+            scrollToTop ()
 
         Down ->
-            Scroll.scrollDown
+            scrollDown ()
 
         Up ->
-            Scroll.scrollUp
+            scrollUp ()
 
-        ToWindowBottom ->
-            Scroll.toWindowBottom
+        ToBottom ->
+            scrollToBottom ()
 
-        Builds delta ->
-            Scroll.scroll "builds" delta
+        Element id delta ->
+            scrollElement ( id, delta )
 
-        ToCurrentBuild ->
-            Scroll.scrollIntoView "#builds .current"
+        ToId id ->
+            scrollIntoView id

@@ -58,9 +58,10 @@ test('does not show team name when user is logged in another non-main team and h
   let web = await Web.build(t.context.url, t.context.guestUsername, t.context.guestPassword);
   await web.login(t);
   await web.page.goto(web.route('/'));
-  await web.page.waitFor('.dashboard-content', {timeout: 90000});
-  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  const element = await web.page.$(group);
+  const myGroup = `.dashboard-team-group[data-team-name="${t.context.guestTeamName}"]`;
+  const otherGroup = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
+  await web.page.waitFor(myGroup);
+  const element = await web.page.$(otherGroup);
   t.falsy(element);
 })
 

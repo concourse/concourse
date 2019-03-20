@@ -19,13 +19,13 @@ func formatErr(groupName string, err error) string {
 	return fmt.Sprintf("invalid %s:\n%s\n", groupName, strings.Join(indented, "\n"))
 }
 
-type Warning struct {
+type ConfigWarning struct {
 	Type    string `json:"type"`
 	Message string `json:"message"`
 }
 
-func (c Config) Validate() ([]Warning, []string) {
-	warnings := []Warning{}
+func (c Config) Validate() ([]ConfigWarning, []string) {
+	warnings := []ConfigWarning{}
 	errorMessages := []string{}
 
 	groupsErr := validateGroups(c)
@@ -190,9 +190,9 @@ func usedResources(c Config) map[string]bool {
 	return usedResources
 }
 
-func validateJobs(c Config) ([]Warning, error) {
+func validateJobs(c Config) ([]ConfigWarning, error) {
 	errorMessages := []string{}
-	warnings := []Warning{}
+	warnings := []ConfigWarning{}
 
 	names := map[string]int{}
 
@@ -301,7 +301,7 @@ func (ft foundTypes) IsValid() (bool, string) {
 	return true, ""
 }
 
-func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []string) {
+func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning, []string) {
 	foundTypes := foundTypes{
 		identifier: identifier,
 		found:      make(map[string]bool),
@@ -332,11 +332,11 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []st
 	}
 
 	if valid, message := foundTypes.IsValid(); !valid {
-		return []Warning{}, []string{message}
+		return []ConfigWarning{}, []string{message}
 	}
 
 	errorMessages := []string{}
-	warnings := []Warning{}
+	warnings := []ConfigWarning{}
 
 	switch {
 	case plan.Do != nil:
@@ -471,7 +471,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []st
 		}
 
 		if plan.TaskConfig != nil && (plan.TaskConfig.RootfsURI != "" || plan.TaskConfig.ImageResource != nil) && plan.ImageArtifactName != "" {
-			warnings = append(warnings, Warning{
+			warnings = append(warnings, ConfigWarning{
 				Type:    "pipeline",
 				Message: identifier + " specifies an image artifact to use as the container's image but also specifies an image or image resource in the task configuration; the image artifact takes precedence",
 			})

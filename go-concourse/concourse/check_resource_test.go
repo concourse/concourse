@@ -75,7 +75,7 @@ var _ = Describe("CheckResource", func() {
 			_, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).To(HaveOccurred())
 
-			cre, ok := err.(concourse.CheckResourceError)
+			cre, ok := err.(concourse.CommandFailedError)
 			Expect(ok).To(BeTrue())
 			Expect(cre.Error()).To(Equal("check failed with exit status '1':\nbad version\n"))
 		})
@@ -98,9 +98,9 @@ var _ = Describe("CheckResource", func() {
 			_, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).To(HaveOccurred())
 
-			cre, ok := err.(concourse.CheckResourceError)
+			cre, ok := err.(concourse.GenericError)
 			Expect(ok).To(BeTrue())
-			Expect(cre.Error()).To(Equal("check failed with exit status '70':\nunknown server error\n"))
+			Expect(cre.Error()).To(Equal("unknown server error"))
 		})
 	})
 })
