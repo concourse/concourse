@@ -145,15 +145,7 @@ handleEnvelopes action model =
 
         Err err ->
             flip always (Debug.log "failed to get event" err) <|
-                if model.eventSourceOpened then
-                    -- connection could have dropped out of the blue;
-                    -- just let the browser handle reconnecting
-                    ( model, [], OutNoop )
-
-                else
-                    -- assume request was rejected because auth is required;
-                    -- no way to really tell
-                    ( { model | state = NotAuthorized }, [], OutNoop )
+                ( model, [], OutNoop )
 
 
 handleEnvelope :
@@ -259,6 +251,17 @@ handleEvent event ( model, effects, outmsg ) =
             , effects
             , outmsg
             )
+
+        NetworkError ->
+            if model.eventSourceOpened then
+                -- connection could have dropped out of the blue;
+                -- just let the browser handle reconnecting
+                ( model, effects, outmsg )
+
+            else
+                -- assume request was rejected because auth is required;
+                -- no way to really tell
+                ( { model | state = NotAuthorized }, effects, outmsg )
 
 
 updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel

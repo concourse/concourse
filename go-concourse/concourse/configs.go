@@ -4,19 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error) {
+func (team *team) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"team_name":     team.name,
@@ -36,26 +34,15 @@ func (team *team) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig
 
 	switch err.(type) {
 	case nil:
-		version := responseHeaders.Get(atc.ConfigVersionHeader)
-
-		if len(configResponse.Errors) > 0 {
-			return atc.Config{}, configResponse.RawConfig, version, false, PipelineConfigError{configResponse.Errors}
-		}
-
-		return *configResponse.Config, configResponse.RawConfig, version, true, nil
+		return configResponse.Config,
+			responseHeaders.Get(atc.ConfigVersionHeader),
+			true,
+			nil
 	case internal.ResourceNotFoundError:
-		return atc.Config{}, atc.RawConfig(""), "", false, nil
+		return atc.Config{}, "", false, nil
 	default:
-		return atc.Config{}, atc.RawConfig(""), "", false, err
+		return atc.Config{}, "", false, err
 	}
-}
-
-type configValidationError struct {
-	ErrorMessages []string `json:"errors"`
-}
-
-func (c configValidationError) Error() string {
-	return fmt.Sprintf("invalid configuration:\n%s", strings.Join(c.ErrorMessages, "\n"))
 }
 
 type ConfigWarning struct {
@@ -98,14 +85,15 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersio
 	if err != nil {
 		if unexpectedResponseError, ok := err.(internal.UnexpectedResponseError); ok {
 			if unexpectedResponseError.StatusCode == http.StatusBadRequest {
-				var validationErr configValidationError
-
+				var validationErr atc.SaveConfigResponse
 				err = json.Unmarshal([]byte(unexpectedResponseError.Body), &validationErr)
 				if err != nil {
 					return false, false, []ConfigWarning{}, err
 				}
 
-				return false, false, []ConfigWarning{}, validationErr
+				return false, false, []ConfigWarning{}, InvalidConfigError{
+					Errors: validationErr.Errors,
+				}
 			}
 		}
 

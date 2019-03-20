@@ -17,6 +17,7 @@ type VaultManager struct {
 	URL string `long:"url" description:"Vault server address used to access secrets."`
 
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	SharedPath string `long:"shared-path" description:"Path under which to lookup shared credentials."`
 
 	Cache    bool          `long:"cache" description:"Cache returned secrets for their lease duration in memory"`
 	MaxLease time.Duration `long:"max-lease" description:"If the cache is enabled, and this is set, override secrets lease duration with a maximum value"`
@@ -131,5 +132,5 @@ func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.Vari
 		sr = NewCache(manager.Client, manager.MaxLease)
 	}
 
-	return NewVaultFactory(sr, ra.LoggedIn(), manager.PathPrefix), nil
+	return NewVaultFactory(sr, ra.LoggedIn(), manager.PathPrefix, manager.SharedPath), nil
 }

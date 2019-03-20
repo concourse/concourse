@@ -23,9 +23,7 @@ decodeBuildEventEnvelope =
                 Json.Decode.string
 
         urlDecoder =
-            Json.Decode.field
-                "target"
-                (Json.Decode.field "url" Json.Decode.string)
+            Json.Decode.at ["target", "url"] Json.Decode.string
 
         dataDecoder =
             typeDecoder
@@ -37,6 +35,9 @@ decodeBuildEventEnvelope =
 
                             "open" ->
                                 Json.Decode.succeed Opened
+
+                            "error" ->
+                                Json.Decode.succeed NetworkError
 
                             _ ->
                                 Json.Decode.field "data" Json.Decode.string
