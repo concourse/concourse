@@ -2,6 +2,7 @@ module Dashboard.Styles exposing
     ( asciiArt
     , cardBody
     , cardFooter
+    , content
     , highDensityIcon
     , highDensityToggle
     , info
@@ -14,6 +15,7 @@ module Dashboard.Styles exposing
     , noPipelineCardHd
     , noPipelineCardHeader
     , noPipelineCardTextHd
+    , noResults
     , pipelineCard
     , pipelineCardBanner
     , pipelineCardBannerHd
@@ -28,39 +30,41 @@ module Dashboard.Styles exposing
     , previewPlaceholder
     , resourceErrorTriangle
     , runningLegendItem
+    , striped
+    , teamNameHd
     , topCliIcon
     , welcomeCard
     , welcomeCardBody
     , welcomeCardTitle
     )
 
+import Application.Styles
 import Colors
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import ScreenSize
-import Styles
 
 
-statusColor : PipelineStatus -> String
-statusColor status =
-    case status of
-        PipelineStatusPaused ->
-            Colors.paused
+content : Bool -> List ( String, String )
+content highDensity =
+    [ ( "align-content", "flex-start" )
+    , ( "display"
+      , if highDensity then
+            "flex"
 
-        PipelineStatusSucceeded _ ->
-            Colors.success
+        else
+            "initial"
+      )
+    , ( "flex-flow", "column wrap" )
+    , ( "padding"
+      , if highDensity then
+            "60px"
 
-        PipelineStatusPending _ ->
-            Colors.pending
-
-        PipelineStatusFailed _ ->
-            Colors.failure
-
-        PipelineStatusErrored _ ->
-            Colors.error
-
-        PipelineStatusAborted _ ->
-            Colors.aborted
+        else
+            "0"
+      )
+    , ( "flex-grow", "1" )
+    ]
 
 
 pipelineCard : List ( String, String )
@@ -78,7 +82,7 @@ pipelineCardBanner :
 pipelineCardBanner { status, pipelineRunningKeyframes } =
     let
         color =
-            statusColor status
+            Colors.statusColor status
 
         isRunning =
             Concourse.PipelineStatus.isRunning status
@@ -169,6 +173,12 @@ previewPlaceholder =
     ]
 
 
+teamNameHd : List ( String, String )
+teamNameHd =
+    [ ( "letter-spacing", ".2em" )
+    ]
+
+
 pipelineCardHd : PipelineStatus -> List ( String, String )
 pipelineCardHd status =
     [ ( "display", "flex" )
@@ -214,7 +224,7 @@ pipelineCardBannerHd :
 pipelineCardBannerHd { status, pipelineRunningKeyframes } =
     let
         color =
-            statusColor status
+            Colors.statusColor status
 
         isRunning =
             Concourse.PipelineStatus.isRunning status
@@ -228,10 +238,15 @@ solid color =
     [ ( "background-color", color ) ]
 
 
-striped : String -> String -> List ( String, String )
-striped pipelineRunningKeyframes color =
+striped :
+    { pipelineRunningKeyframes : String
+    , thickColor : String
+    , thinColor : String
+    }
+    -> List ( String, String )
+striped { pipelineRunningKeyframes, thickColor, thinColor } =
     [ ( "background-image"
-      , withStripes color Colors.card
+      , withStripes thickColor thinColor
       )
     , ( "background-size", "106px 114px" )
     , ( "animation"
@@ -241,25 +256,29 @@ striped pipelineRunningKeyframes color =
 
 
 withStripes : String -> String -> String
-withStripes color stripeColor =
+withStripes thickColor thinColor =
     "repeating-linear-gradient(-115deg,"
-        ++ stripeColor
+        ++ thickColor
         ++ " 0,"
-        ++ stripeColor
+        ++ thickColor
         ++ " 10px,"
-        ++ color
+        ++ thinColor
         ++ " 0,"
-        ++ color
+        ++ thinColor
         ++ " 16px)"
 
 
 texture : String -> Bool -> String -> List ( String, String )
-texture pipelineRunningKeyframes isRunning =
+texture pipelineRunningKeyframes isRunning color =
     if isRunning then
-        striped pipelineRunningKeyframes
+        striped
+            { pipelineRunningKeyframes = pipelineRunningKeyframes
+            , thickColor = Colors.card
+            , thinColor = color
+            }
 
     else
-        solid
+        solid color
 
 
 pipelineCardFooter : List ( String, String )
@@ -305,7 +324,7 @@ pipelineStatusIcon pipelineStatus =
 
 pipelineCardTransitionAge : PipelineStatus -> List ( String, String )
 pipelineCardTransitionAge status =
-    [ ( "color", statusColor status )
+    [ ( "color", Colors.statusColor status )
     , ( "font-size", "18px" )
     , ( "line-height", "20px" )
     , ( "letter-spacing", "0.05em" )
@@ -512,4 +531,12 @@ asciiArt =
     , ( "color", Colors.asciiArt )
     , ( "z-index", "1" )
     ]
-        ++ Styles.disableInteraction
+        ++ Application.Styles.disableInteraction
+
+
+noResults : List ( String, String )
+noResults =
+    [ ( "text-align", "center" )
+    , ( "font-size", "13px" )
+    , ( "margin-top", "20px" )
+    ]

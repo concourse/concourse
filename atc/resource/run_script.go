@@ -12,7 +12,7 @@ import (
 
 const resourceResultPropertyName = "concourse:resource-result"
 
-const TaskProcessID = "resource"
+const ResourceProcessID = "resource"
 
 type ErrResourceScriptFailed struct {
 	Path       string
@@ -75,10 +75,10 @@ func (resource *resource) runScript(
 	var process garden.Process
 
 	if recoverable {
-		process, err = resource.container.Attach(TaskProcessID, processIO)
+		process, err = resource.container.Attach(ResourceProcessID, processIO)
 		if err != nil {
 			process, err = resource.container.Run(garden.ProcessSpec{
-				ID:   TaskProcessID,
+				ID:   ResourceProcessID,
 				Path: path,
 				Args: args,
 			}, processIO)

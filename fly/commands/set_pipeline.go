@@ -52,6 +52,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	atcConfig := setpipelinehelpers.ATCConfig{
 		Team:             target.Team(),
 		PipelineName:     pipelineName,
+		TargetName:       Fly.Target,
 		Target:           target.Client().URL(),
 		SkipInteraction:  command.SkipInteractive,
 		CheckCredentials: command.CheckCredentials,

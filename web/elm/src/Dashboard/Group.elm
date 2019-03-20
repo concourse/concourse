@@ -34,7 +34,6 @@ module Dashboard.Group exposing
 import Concourse
 import Concourse.BuildStatus
 import Concourse.PipelineStatus as PipelineStatus
-import Dashboard.APIData exposing (APIData)
 import Dashboard.Group.Tag as Tag
 import Dashboard.Models as Models
 import Dashboard.Msgs exposing (Msg(..))
@@ -48,10 +47,10 @@ import Json.Decode
 import List.Extra
 import Maybe.Extra
 import Monocle.Optional
-import NewTopBar.Styles as NTBS
 import Ordering exposing (Ordering)
 import Set
 import Time exposing (Time)
+import TopBar.Styles as NTBS
 
 
 type alias Group =
@@ -189,7 +188,7 @@ setDropIndex dropIndex dropState =
             NotDropping
 
 
-allPipelines : APIData -> List Models.Pipeline
+allPipelines : Concourse.APIData -> List Models.Pipeline
 allPipelines data =
     data.pipelines
         |> List.map
@@ -374,7 +373,7 @@ shiftPipelineTo pipeline position pipelines =
                 p :: shiftPipelineTo pipeline (position - 1) ps
 
 
-allTeamNames : APIData -> List String
+allTeamNames : Concourse.APIData -> List String
 allTeamNames apiData =
     Set.union
         (Set.fromList (List.map .teamName apiData.pipelines))
@@ -382,7 +381,7 @@ allTeamNames apiData =
         |> Set.toList
 
 
-groups : APIData -> List Group
+groups : Concourse.APIData -> List Group
 groups apiData =
     let
         teamNames =
@@ -473,11 +472,13 @@ view { dragState, dropState, now, hoveredPipeline, pipelineRunningKeyframes } gr
         ]
 
 
-hdView : String -> Group -> Html Msg
+hdView : String -> Group -> List (Html Msg)
 hdView pipelineRunningKeyframes group =
     let
         header =
-            [ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+            [ Html.div
+                [ class "dashboard-team-name" ]
+                [ Html.text group.teamName ]
             ]
                 ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view True) group.tag)
 
@@ -495,14 +496,19 @@ hdView pipelineRunningKeyframes group =
                                 }
                         )
     in
-    Html.div [ class "pipeline-wrapper" ] <|
-        case teamPipelines of
-            [] ->
-                header
+    case teamPipelines of
+        [] ->
+            header
 
-            p :: ps ->
-                -- Wrap the team name and the first pipeline together so the team name is not the last element in a column
-                List.append [ Html.div [ class "dashboard-team-name-wrapper" ] (header ++ [ p ]) ] ps
+        p :: ps ->
+            -- Wrap the team name and the first pipeline together so
+            -- the team name is not the last element in a column
+            Html.div
+                [ class "dashboard-team-name-wrapper"
+                , style Styles.teamNameHd
+                ]
+                (header ++ [ p ])
+                :: ps
 
 
 pipelineNotSetView : Html msg

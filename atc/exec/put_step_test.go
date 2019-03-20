@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -29,6 +30,9 @@ var _ = Describe("PutStep", func() {
 
 		pipelineResourceName string
 
+		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
+		fakePool                  *workerfakes.FakePool
+		fakeWorker                *workerfakes.FakeWorker
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 
@@ -45,7 +49,7 @@ var _ = Describe("PutStep", func() {
 
 		resourceTypes creds.VersionedResourceTypes
 
-		repo  *worker.ArtifactRepository
+		repo  *artifact.Repository
 		state *execfakes.FakeRunState
 
 		stdoutBuf *gbytes.Buffer
@@ -68,6 +72,9 @@ var _ = Describe("PutStep", func() {
 
 		pipelineResourceName = "some-resource"
 
+		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+		fakePool = new(workerfakes.FakePool)
+		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		variables = template.StaticVariables{
@@ -81,7 +88,7 @@ var _ = Describe("PutStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
-		repo = worker.NewArtifactRepository()
+		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 
@@ -116,12 +123,14 @@ var _ = Describe("PutStep", func() {
 			[]string{"some", "tags"},
 			putInputs,
 			fakeDelegate,
-			fakeResourceFactory,
+			fakePool,
 			fakeResourceConfigFactory,
 			planID,
 			containerMetadata,
 			stepMetadata,
 			resourceTypes,
+			fakeStrategy,
+			fakeResourceFactory,
 		)
 
 		stepErr = putStep.Run(ctx, state)
@@ -152,9 +161,6 @@ var _ = Describe("PutStep", func() {
 			)
 
 			BeforeEach(func() {
-				fakeResource = new(resourcefakes.FakeResource)
-				fakeResourceFactory.NewResourceReturns(fakeResource, nil)
-
 				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 				fakeResourceConfig.IDReturns(1)
 
@@ -164,16 +170,37 @@ var _ = Describe("PutStep", func() {
 				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
 				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
 
+				fakeWorker.NameReturns("some-worker")
+				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
+
+				fakeResource = new(resourcefakes.FakeResource)
 				fakeResource.PutReturns(fakeVersionedSource, nil)
+				fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
 			})
 
-			It("initializes the resource with the correct type, session, and sources with no inputs specified (meaning it takes all artifacts)", func() {
-				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
+			It("finds/chooses a worker and creates a container with the correct type, session, and sources with no inputs specified (meaning it takes all artifacts)", func() {
+				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+				_, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+				Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
+				Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+					ResourceType: "some-resource-type",
+				}))
+				Expect(actualContainerSpec.Tags).To(Equal([]string{"some", "tags"}))
+				Expect(actualContainerSpec.TeamID).To(Equal(123))
+				Expect(actualContainerSpec.Env).To(Equal([]string{"a=1", "b=2"}))
+				Expect(actualContainerSpec.Dir).To(Equal("/tmp/build/put"))
+				Expect(actualContainerSpec.Inputs).To(HaveLen(3))
+				Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
+					TeamID:        123,
+					Tags:          []string{"some", "tags"},
+					ResourceType:  "some-resource-type",
+					ResourceTypes: resourceTypes,
+				}))
+				Expect(strategy).To(Equal(fakeStrategy))
 
-				_, _, owner, cm, containerSpec, workerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, _, delegate, owner, cm, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(cm).To(Equal(containerMetadata))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
-
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "some-resource-type",
 				}))
@@ -182,13 +209,6 @@ var _ = Describe("PutStep", func() {
 				Expect(containerSpec.Env).To(Equal([]string{"a=1", "b=2"}))
 				Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
 				Expect(containerSpec.Inputs).To(HaveLen(3))
-
-				Expect(workerSpec).To(Equal(worker.WorkerSpec{
-					TeamID:        123,
-					Tags:          []string{"some", "tags"},
-					ResourceType:  "some-resource-type",
-					ResourceTypes: resourceTypes,
-				}))
 
 				Expect([]worker.ArtifactSource{
 					containerSpec.Inputs[0].Source(),
@@ -208,8 +228,8 @@ var _ = Describe("PutStep", func() {
 					putInputs = exec.NewSpecificInputs([]string{"some-source", "some-other-source"})
 				})
 
-				It("initializes the resource with specified inputs", func() {
-					_, _, _, _, containerSpec, _, _, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				It("initializes the container with specified inputs", func() {
+					_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(containerSpec.Inputs).To(HaveLen(2))
 					Expect([]worker.ArtifactSource{
 						containerSpec.Inputs[0].Source(),
@@ -358,11 +378,24 @@ var _ = Describe("PutStep", func() {
 			})
 		})
 
-		Context("when the resource factory fails to create the put resource", func() {
+		Context("when find or choosing a worker fails", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeResourceFactory.NewResourceReturns(nil, disaster)
+				fakePool.FindOrChooseWorkerForContainerReturns(nil, disaster)
+			})
+
+			It("returns the failure", func() {
+				Expect(stepErr).To(Equal(disaster))
+			})
+		})
+
+		Context("when find or creating a container fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
+				fakeWorker.FindOrCreateContainerReturns(nil, disaster)
 			})
 
 			It("returns the failure", func() {

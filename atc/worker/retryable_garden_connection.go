@@ -12,7 +12,7 @@ type RetryableConnection struct {
 	gconn.Connection
 }
 
-func NewRetryableConnection(connection gconn.Connection) *RetryableConnection {
+func NewRetryableConnection(connection gconn.Connection) gconn.Connection {
 	return &RetryableConnection{
 		Connection: connection,
 	}

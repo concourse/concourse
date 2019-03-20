@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -135,8 +134,7 @@ var _ = Describe("Workers API", func() {
 			ttl       string
 			certsPath string
 
-			response         *http.Response
-			fakeGardenWorker *workerfakes.FakeWorker
+			response *http.Response
 		)
 
 		BeforeEach(func() {
@@ -162,9 +160,6 @@ var _ = Describe("Workers API", func() {
 			ttl = "30s"
 			fakeaccess.IsAuthorizedReturns(true)
 			fakeaccess.IsSystemReturns(true)
-
-			fakeGardenWorker = new(workerfakes.FakeWorker)
-			fakeWorkerProvider.NewGardenWorkerReturns(fakeGardenWorker)
 		})
 
 		JustBeforeEach(func() {

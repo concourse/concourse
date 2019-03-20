@@ -13,10 +13,9 @@ module Resource.Models exposing
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
-import NewTopBar.Model
 import Pinned exposing (CommentState, ResourcePinState)
-import Routes
 import Time
+import TopBar.Model
 
 
 type Hoverable
@@ -44,25 +43,24 @@ type CheckStatus
 
 
 type alias Model =
-    { pageStatus : Result PageError ()
-    , checkStatus : CheckStatus
-    , checkError : String
-    , checkSetupError : String
-    , lastChecked : Maybe Date
-    , pinnedVersion : PinnedVersion
-    , now : Maybe Time.Time
-    , resourceIdentifier : Concourse.ResourceIdentifier
-    , currentPage : Maybe Page
-    , hovered : Hoverable
-    , versions : Paginated Version
-    , csrfToken : String
-    , showPinBarTooltip : Bool
-    , pinIconHover : Bool
-    , topBar : NewTopBar.Model.Model
-    , pinCommentLoading : Bool
-    , ctrlDown : Bool
-    , textAreaFocused : Bool
-    }
+    TopBar.Model.Model
+        { pageStatus : Result PageError ()
+        , checkStatus : CheckStatus
+        , checkError : String
+        , checkSetupError : String
+        , lastChecked : Maybe Date
+        , pinnedVersion : PinnedVersion
+        , now : Maybe Time.Time
+        , resourceIdentifier : Concourse.ResourceIdentifier
+        , currentPage : Maybe Page
+        , hovered : Hoverable
+        , versions : Paginated Version
+        , showPinBarTooltip : Bool
+        , pinIconHover : Bool
+        , pinCommentLoading : Bool
+        , ctrlDown : Bool
+        , textAreaFocused : Bool
+        }
 
 
 type alias PinnedVersion =

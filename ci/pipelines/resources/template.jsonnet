@@ -5,10 +5,12 @@ local build_params =
     {
       build: resource+"-resource",
       build_args: {
-        DOCKER_USERNAME: "((registry_image_resource_docker.username))",
-        DOCKER_PASSWORD: "((registry_image_resource_docker.password))",
         DOCKER_PRIVATE_REPO: "((registry_image_resource_docker.private_repo))",
+        DOCKER_PRIVATE_USERNAME: "((registry_image_resource_docker.username))",
+        DOCKER_PRIVATE_PASSWORD: "((registry_image_resource_docker.password))",
         DOCKER_PUSH_REPO: "((registry_image_resource_docker.push_repo))",
+        DOCKER_PUSH_USERNAME: "((registry_image_resource_docker.username))",
+        DOCKER_PUSH_PASSWORD: "((registry_image_resource_docker.password))",
       }
     }
   else if resource == "semver" then
@@ -84,7 +86,7 @@ local extra_gets =
     [
       {
         get: "fly",
-        params: {globs: ["fly_linux_amd64"]}
+        params: {globs: ["fly-*-linux-amd64.tgz"]}
       }
     ]
   else

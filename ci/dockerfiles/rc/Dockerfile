@@ -35,5 +35,4 @@ RUN apt update && apt install -y \
 
 COPY --from=assets /usr/local/concourse /usr/local/concourse
 
-
 ENTRYPOINT ["dumb-init", "/usr/local/concourse/bin/concourse"]

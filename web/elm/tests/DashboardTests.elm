@@ -7,17 +7,19 @@ module DashboardTests exposing
     , givenDataAndUser
     , givenDataUnauthenticated
     , iconSelector
+    , isColorWithStripes
     , middleGrey
     , white
     )
 
+import Application.Application as Application
+import Application.Msgs
 import Callback
 import Char
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus
-import Dashboard
-import Dashboard.APIData as APIData
+import Dashboard.Dashboard as Dashboard
 import Dashboard.Group as Group
 import Dashboard.Msgs as Msgs
 import Date exposing (Date)
@@ -25,10 +27,10 @@ import Dict
 import Effects
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
-import Html.Styled as HS
+import Keycodes
 import List.Extra
-import NewTopBar.Msgs
 import Routes
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -44,6 +46,7 @@ import Test.Html.Selector
         , text
         )
 import Time exposing (Time)
+import TopBar.Msgs
 import UserState
 
 
@@ -74,7 +77,7 @@ green =
 
 blue : String
 blue =
-    "#4a90e2"
+    "#3498db"
 
 
 darkGrey : String
@@ -99,12 +102,12 @@ brown =
 
 white : String
 white =
-    "#fff"
+    "#ffffff"
 
 
 fadedGreen : String
 fadedGreen =
-    "#284834"
+    "#419867"
 
 
 orange : String
@@ -122,7 +125,7 @@ all =
     describe "Dashboard"
         [ describe "welcome card" <|
             let
-                hasWelcomeCard : (() -> Dashboard.Model) -> List Test
+                hasWelcomeCard : (() -> ( Dashboard.Model, List Effects.Effect )) -> List Test
                 hasWelcomeCard setup =
                     let
                         subject : () -> Query.Single Msgs.Msg
@@ -267,7 +270,7 @@ all =
                                     { name = "os x cli icon"
                                     , setup = setup ()
                                     , query = queryView >> Query.find [ id "top-cli-osx" ]
-                                    , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
+                                    , updateFunc = Dashboard.update
                                     , unhoveredSelector =
                                         { description = "grey apple icon"
                                         , selector =
@@ -295,7 +298,7 @@ all =
                                     { name = "windows cli icon"
                                     , setup = setup ()
                                     , query = queryView >> Query.find [ id "top-cli-windows" ]
-                                    , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
+                                    , updateFunc = Dashboard.update
                                     , unhoveredSelector =
                                         { description = "grey windows icon"
                                         , selector =
@@ -323,7 +326,7 @@ all =
                                     { name = "linux cli icon"
                                     , setup = setup ()
                                     , query = queryView >> Query.find [ id "top-cli-linux" ]
-                                    , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
+                                    , updateFunc = Dashboard.update
                                     , unhoveredSelector =
                                         { description = "grey linux icon"
                                         , selector =
@@ -388,7 +391,9 @@ all =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated (apiData [])
                                     |> queryView
-                                    |> Query.find [ class "dashboard-content" ]
+                                    |> Query.find [ id "page-below-top-bar" ]
+                                    |> Query.children []
+                                    |> Query.first
                                     |> Query.children []
                                     |> Query.count (Expect.equal 1)
                        ]
@@ -443,6 +448,114 @@ all =
                                 [ style [ ( "line-height", "42px" ) ] ]
                             ]
             ]
+        , test "high density view has no vertical scroll" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            [ ( "height", "100%" )
+                            , ( "box-sizing", "border-box" )
+                            ]
+                        ]
+        , test "high density body aligns contents vertically" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "flex-direction", "column" )
+                            ]
+                        ]
+        , test "high density pipelines view fills vertical space" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+        , test "high density pipelines view has padding" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "padding", "60px" ) ] ]
+        , test "high density pipelines view wraps columns" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has
+                        [ style
+                            [ ( "display", "flex" )
+                            , ( "flex-flow", "column wrap" )
+                            ]
+                        ]
+        , test "normal density pipelines view has default layout" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has
+                        [ style
+                            [ ( "display", "initial" )
+                            , ( "padding", "0" )
+                            ]
+                        ]
+        , test "high density view left-aligns contents" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ style [ ( "align-content", "flex-start" ) ] ]
+        , test "high density view has no overlapping top bar" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "padding-top", "54px" ) ] ]
+        , test "high density view has no overlapping bottom bar" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "padding-bottom", "50px" ) ] ]
         , test "top bar has bold font" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -451,7 +564,7 @@ all =
                     |> Query.has [ style [ ( "font-weight", "700" ) ] ]
         , test "logging out causes pipeline list to reload" <|
             let
-                showsLoadingState : Dashboard.Model -> Expectation
+                showsLoadingState : ( Dashboard.Model, List Effects.Effect ) -> Expectation
                 showsLoadingState =
                     queryView
                         >> Query.findAll [ class "dashboard-team-group" ]
@@ -462,8 +575,7 @@ all =
                     |> givenDataAndUser
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> Dashboard.update (Msgs.FromTopBar NewTopBar.Msgs.LogOut)
-                    |> Tuple.first
+                    |> Dashboard.update (Msgs.FromTopBar TopBar.Msgs.LogOut)
                     |> showsLoadingState
         , test "links to specific builds" <|
             \_ ->
@@ -487,7 +599,8 @@ all =
         , test "HD view redirects to normal view when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
-                    |> Dashboard.handleCallback
+                    |> Tuple.first
+                    |> handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( 0
@@ -497,28 +610,22 @@ all =
                     |> Expect.all
                         [ Tuple.second
                             >> Expect.equal [ Effects.ModifyUrl "/" ]
-                        , Tuple.first
-                            >> Dashboard.handleCallback
-                                (Callback.APIDataFetched <|
-                                    Ok
-                                        ( 0
-                                        , apiData
-                                            [ ( "team", [ "pipeline" ] ) ]
-                                            Nothing
-                                        )
-                                )
-                            >> Tuple.first
+                        , Dashboard.handleCallback
+                            (Callback.APIDataFetched <|
+                                Ok
+                                    ( 0
+                                    , apiData
+                                        [ ( "team", [ "pipeline" ] ) ]
+                                        Nothing
+                                    )
+                            )
                             >> queryView
-                            >> Expect.all
-                                [ Query.find
-                                    [ class "card-footer" ]
-                                    >> Query.children []
-                                    >> Query.first
-                                    >> Query.children []
-                                    >> Query.index -1
-                                    >> Query.has [ text "pending" ]
-                                , Query.hasNot [ tag "input" ]
-                                ]
+                            >> Query.find [ class "card-footer" ]
+                            >> Query.children []
+                            >> Query.first
+                            >> Query.children []
+                            >> Query.index -1
+                            >> Query.has [ text "pending" ]
                         ]
         , test "HD view redirects to no pipelines view when pipelines disappear" <|
             \_ ->
@@ -531,7 +638,7 @@ all =
                                 )
                         )
                     |> Tuple.first
-                    |> Dashboard.handleCallback
+                    |> handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( 0
@@ -541,8 +648,7 @@ all =
                     |> Expect.all
                         [ Tuple.second
                             >> Expect.equal [ Effects.ModifyUrl "/" ]
-                        , Tuple.first
-                            >> queryView
+                        , queryView
                             >> Query.has [ text "welcome to concourse!" ]
                         ]
         , test "no search bar when there are no pipelines" <|
@@ -555,9 +661,25 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Tuple.first
                     |> queryView
                     |> Query.hasNot [ tag "input" ]
+        , test "typing '?' in search bar does not toggle help" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Dashboard.handleCallback
+                        (Callback.APIDataFetched <|
+                            Ok
+                                ( 0
+                                , apiData
+                                    [ ( "team", [ "pipeline" ] ) ]
+                                    Nothing
+                                )
+                        )
+                    |> Dashboard.update (Msgs.FromTopBar TopBar.Msgs.FocusMsg)
+                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
+                    |> Dashboard.handleDelivery (KeyDown 191)
+                    |> queryView
+                    |> Query.hasNot [ id "keyboard-help" ]
         , test "bottom bar appears when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -568,7 +690,6 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Tuple.first
                     |> queryView
                     |> Query.has [ id "dashboard-info" ]
         , test "bottom bar has no legend when there are no pipelines" <|
@@ -581,7 +702,6 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Tuple.first
                     |> queryView
                     |> Query.hasNot [ id "legend" ]
         , test "concourse info is right-justified when there are no pipelines" <|
@@ -594,7 +714,6 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Tuple.first
                     |> queryView
                     |> Query.find [ id "dashboard-info" ]
                     |> Query.has [ style [ ( "justify-content", "flex-end" ) ] ]
@@ -608,11 +727,19 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Tuple.first
-                    |> Dashboard.update (Msgs.KeyPressed (Char.toCode '?'))
-                    |> Tuple.first
+                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
+                    |> Dashboard.handleDelivery (KeyDown 191)
                     |> queryView
                     |> Query.has [ id "dashboard-info" ]
+        , test "on HD view, team names have increased letter spacing" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> queryView
+                    |> Query.find [ class "dashboard-team-name-wrapper" ]
+                    |> Query.has [ style [ ( "letter-spacing", ".2em" ) ] ]
         , describe "team pills"
             [ test
                 ("shows team name with no pill when unauthenticated "
@@ -739,7 +866,7 @@ all =
                 pipelineWithStatus :
                     Concourse.BuildStatus
                     -> Bool
-                    -> Dashboard.Model
+                    -> ( Dashboard.Model, List Effects.Effect )
                     -> Query.Single Msgs.Msg
                 pipelineWithStatus status isRunning =
                     let
@@ -974,50 +1101,6 @@ all =
                             [ style
                                 [ ( "background-color", color ) ]
                             ]
-
-                    isColorWithStripes : String -> String -> Query.Single Msgs.Msg -> Expectation
-                    isColorWithStripes color stripeColor =
-                        Query.has
-                            [ style
-                                [ ( "background-image"
-                                  , "repeating-linear-gradient(-115deg,"
-                                        ++ stripeColor
-                                        ++ " 0,"
-                                        ++ stripeColor
-                                        ++ " 10px,"
-                                        ++ color
-                                        ++ " 0,"
-                                        ++ color
-                                        ++ " 16px)"
-                                  )
-                                , ( "background-size", "106px 114px" )
-                                , ( "animation"
-                                  , pipelineRunningKeyframes ++ " 3s linear infinite"
-                                  )
-                                ]
-                            ]
-
-                    isColorWithStripesHd : String -> String -> Query.Single Msgs.Msg -> Expectation
-                    isColorWithStripesHd color stripeColor =
-                        Query.has
-                            [ style
-                                [ ( "background-image"
-                                  , "repeating-linear-gradient(-115deg,"
-                                        ++ stripeColor
-                                        ++ " 0,"
-                                        ++ stripeColor
-                                        ++ " 10px,"
-                                        ++ color
-                                        ++ " 0,"
-                                        ++ color
-                                        ++ " 16px)"
-                                  )
-                                , ( "background-size", "106px 114px" )
-                                , ( "animation"
-                                  , pipelineRunningKeyframes ++ " 3s linear infinite"
-                                  )
-                                ]
-                            ]
                 in
                 [ describe "non-HD view"
                     [ test "is 7px tall" <|
@@ -1061,7 +1144,7 @@ all =
                                     Concourse.BuildStatusSucceeded
                                     True
                                 |> findBanner
-                                |> isColorWithStripes green darkGrey
+                                |> isColorWithStripes { thin = green, thick = darkGrey }
                     , test "is grey when pipeline is pending" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1077,7 +1160,7 @@ all =
                                     Concourse.BuildStatusStarted
                                     True
                                 |> findBanner
-                                |> isColorWithStripes lightGrey darkGrey
+                                |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
                     , test "is red when pipeline is failing" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1093,7 +1176,7 @@ all =
                                     Concourse.BuildStatusFailed
                                     True
                                 |> findBanner
-                                |> isColorWithStripes red darkGrey
+                                |> isColorWithStripes { thin = red, thick = darkGrey }
                     , test "is amber when pipeline is erroring" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1109,7 +1192,7 @@ all =
                                     Concourse.BuildStatusErrored
                                     True
                                 |> findBanner
-                                |> isColorWithStripes amber darkGrey
+                                |> isColorWithStripes { thin = amber, thick = darkGrey }
                     , test "is brown when pipeline is aborted" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1125,7 +1208,7 @@ all =
                                     Concourse.BuildStatusAborted
                                     True
                                 |> findBanner
-                                |> isColorWithStripes brown darkGrey
+                                |> isColorWithStripes { thin = brown, thick = darkGrey }
                     , describe "status priorities" <|
                         let
                             givenTwoJobs :
@@ -1180,6 +1263,22 @@ all =
                                     |> findBanner
                                     |> isSolid green
                         ]
+                    , test "does not crash with a circular pipeline" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    (\u ->
+                                        { teams = [ { id = 0, name = "team" } ]
+                                        , pipelines = [ onePipeline "team" ]
+                                        , jobs = circularJobs
+                                        , resources = []
+                                        , version = ""
+                                        , user = u
+                                        }
+                                    )
+                                |> queryView
+                                |> findBanner
+                                |> isSolid green
                     , describe "HD view"
                         [ test "is 8px wide" <|
                             \_ ->
@@ -1222,7 +1321,7 @@ all =
                                         Concourse.BuildStatusSucceeded
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd green darkGrey
+                                    |> isColorWithStripes { thin = green, thick = darkGrey }
                         , test "is grey when pipeline is pending" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1238,7 +1337,7 @@ all =
                                         Concourse.BuildStatusStarted
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd lightGrey darkGrey
+                                    |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
                         , test "is red when pipeline is failing" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1254,7 +1353,7 @@ all =
                                         Concourse.BuildStatusFailed
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd red darkGrey
+                                    |> isColorWithStripes { thin = red, thick = darkGrey }
                         , test "is amber when pipeline is erroring" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1270,7 +1369,7 @@ all =
                                         Concourse.BuildStatusErrored
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd amber darkGrey
+                                    |> isColorWithStripes { thin = amber, thick = darkGrey }
                         , test "is brown when pipeline is aborted" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1286,7 +1385,7 @@ all =
                                         Concourse.BuildStatusAborted
                                         True
                                     |> findBanner
-                                    |> isColorWithStripesHd brown darkGrey
+                                    |> isColorWithStripes { thin = brown, thick = darkGrey }
                         , describe "status priorities" <|
                             let
                                 givenTwoJobs :
@@ -1846,8 +1945,8 @@ all =
                                         [ text "running" ]
                         , test "when not running, status text shows age" <|
                             \_ ->
-                                whenOnDashboard { highDensity = False }
-                                    |> givenDataUnauthenticated
+                                initFromApplication
+                                    |> givenDataUnauthenticatedFromApplication
                                         (\u ->
                                             { teams =
                                                 [ { id = 0, name = "team" } ]
@@ -1864,9 +1963,9 @@ all =
                                             , user = u
                                             }
                                         )
-                                    |> Dashboard.update (Msgs.ClockTick 1000)
-                                    |> Tuple.first
-                                    |> queryView
+                                    |> afterSeconds 1
+                                    |> Application.view
+                                    |> Query.fromHtml
                                     |> findStatusText
                                     |> Query.has
                                         [ text "1s" ]
@@ -2043,15 +2142,15 @@ all =
                                     (oneTeamOnePipeline "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
-                            Dashboard.view UserState.UserStateLoggedOut
-                                >> HS.toUnstyled
+                            Tuple.first
+                                >> Dashboard.view UserState.UserStateLoggedOut
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
                                 >> Query.index -1
                                 >> Query.children []
                                 >> Query.index 0
-                        , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
+                        , updateFunc = Dashboard.update
                         , unhoveredSelector =
                             { description = "a faded 20px square pause button with pointer cursor"
                             , selector =
@@ -2099,15 +2198,15 @@ all =
                                     (oneTeamOnePipelinePaused "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
-                            Dashboard.view UserState.UserStateLoggedOut
-                                >> HS.toUnstyled
+                            Tuple.first
+                                >> Dashboard.view UserState.UserStateLoggedOut
                                 >> Query.fromHtml
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
                                 >> Query.index -1
                                 >> Query.children []
                                 >> Query.index 0
-                        , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
+                        , updateFunc = Dashboard.update
                         , unhoveredSelector =
                             { description = "a transparent 20px square play button with pointer cursor"
                             , selector =
@@ -2200,11 +2299,15 @@ all =
                             ]
             , test "lays out children on two lines when view width is below 1230px" <|
                 \_ ->
-                    whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> Dashboard.update (Msgs.ResizeScreen { width = 1229, height = 300 })
+                    initFromApplication
+                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived <|
+                                WindowResized { width = 1229, height = 300 }
+                            )
                         |> Tuple.first
-                        |> queryView
+                        |> Application.view
+                        |> Query.fromHtml
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has
                             [ style
@@ -2291,11 +2394,15 @@ all =
                             |> Query.has [ style [ ( "display", "flex" ), ( "align-items", "center" ) ] ]
                 , test "the legend separator is gone when the window width is below 812px" <|
                     \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> Dashboard.update (Msgs.ResizeScreen { width = 800, height = 300 })
+                        initFromApplication
+                            |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Application.update
+                                (Application.Msgs.DeliveryReceived <|
+                                    WindowResized { width = 800, height = 300 }
+                                )
                             |> Tuple.first
-                            |> queryView
+                            |> Application.view
+                            |> Query.fromHtml
                             |> Query.find [ id "legend" ]
                             |> Expect.all
                                 [ Query.hasNot [ text "|" ]
@@ -2303,11 +2410,15 @@ all =
                                 ]
                 , test "legend items wrap when window width is below 812px" <|
                     \_ ->
-                        whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> Dashboard.update (Msgs.ResizeScreen { width = 800, height = 300 })
+                        initFromApplication
+                            |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Application.update
+                                (Application.Msgs.DeliveryReceived <|
+                                    WindowResized { width = 800, height = 300 }
+                                )
                             |> Tuple.first
-                            |> queryView
+                            |> Application.view
+                            |> Query.fromHtml
                             |> Query.find [ id "legend" ]
                             |> Query.has
                                 [ style [ ( "flex-wrap", "wrap" ) ]
@@ -2612,7 +2723,7 @@ all =
                                         , size = "20px"
                                         }
                             }
-                        , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
+                        , updateFunc = Dashboard.update
                         , mouseEnterMsg = Msgs.CliHover <| List.Extra.getAt 0 Cli.clis
                         , mouseLeaveMsg = Msgs.CliHover Nothing
                         , hoveredSelector =
@@ -2651,7 +2762,7 @@ all =
                                         , size = "20px"
                                         }
                             }
-                        , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
+                        , updateFunc = Dashboard.update
                         , mouseEnterMsg = Msgs.CliHover <| List.Extra.getAt 1 Cli.clis
                         , mouseLeaveMsg = Msgs.CliHover Nothing
                         , hoveredSelector =
@@ -2690,7 +2801,7 @@ all =
                                         , size = "20px"
                                         }
                             }
-                        , updateFunc = \msg -> Dashboard.update msg >> Tuple.first
+                        , updateFunc = Dashboard.update
                         , mouseEnterMsg = Msgs.CliHover <| List.Extra.getAt 2 Cli.clis
                         , mouseLeaveMsg = Msgs.CliHover Nothing
                         , hoveredSelector =
@@ -2729,24 +2840,117 @@ all =
                 ]
             , test "hides after 6 seconds" <|
                 \_ ->
-                    whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> Dashboard.update (Msgs.ClockTick 1000)
-                        |> Tuple.first
-                        |> queryView
+                    initFromApplication
+                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> afterSeconds 6
+                        |> Application.view
+                        |> Query.fromHtml
                         |> Query.hasNot [ id "dashboard-info" ]
+            , test "reappears on mouse action" <|
+                \_ ->
+                    initFromApplication
+                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> afterSeconds 6
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived Moused)
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Query.has [ id "dashboard-info" ]
+            , test "is replaced by keyboard help when pressing '?'" <|
+                \_ ->
+                    initFromApplication
+                        |> givenDataUnauthenticatedFromApplication
+                            (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived <|
+                                KeyDown Keycodes.shift
+                            )
+                        |> Tuple.first
+                        |> Application.update
+                            (Application.Msgs.DeliveryReceived <|
+                                KeyDown 191
+                            )
+                        |> Tuple.first
+                        |> Application.view
+                        |> Query.fromHtml
+                        |> Expect.all
+                            [ Query.hasNot [ id "dashboard-info" ]
+                            , Query.has [ id "keyboard-help" ]
+                            ]
             ]
+        , test "subscribes to one and five second timers" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Tuple.first
+                    |> Dashboard.subscriptions
+                    |> Expect.all
+                        [ List.member (Subscription.OnClockTick OneSecond)
+                            >> Expect.true "doesn't have one second timer"
+                        , List.member (Subscription.OnClockTick FiveSeconds)
+                            >> Expect.true "doesn't have five second timer"
+                        ]
+        , test "subscribes to keyups" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Tuple.first
+                    |> Dashboard.subscriptions
+                    |> List.member Subscription.OnKeyUp
+                    |> Expect.true "doesn't subscribe to keyups?"
+        , test "auto refreshes data every five seconds" <|
+            \_ ->
+                initFromApplication
+                    |> Application.update
+                        (Application.Msgs.DeliveryReceived <|
+                            ClockTicked FiveSeconds 0
+                        )
+                    |> Tuple.second
+                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.FetchData ) ]
         ]
+
+
+handleCallback : Callback.Callback -> Dashboard.Model -> ( Dashboard.Model, List Effects.Effect )
+handleCallback callback =
+    flip (,) [] >> Dashboard.handleCallback callback
+
+
+afterSeconds : Int -> Application.Model -> Application.Model
+afterSeconds n =
+    List.repeat n
+        (Application.update
+            (Application.Msgs.DeliveryReceived <| ClockTicked OneSecond 1000)
+            >> Tuple.first
+        )
+        |> List.foldr (>>) identity
+
+
+csrfToken : String
+csrfToken =
+    "csrf_token"
+
+
+initFromApplication : Application.Model
+initFromApplication =
+    Application.init
+        { turbulenceImgSrc = ""
+        , notFoundImgSrc = ""
+        , csrfToken = csrfToken
+        , authToken = ""
+        , pipelineRunningKeyframes = ""
+        }
+        { href = ""
+        , host = ""
+        , hostname = ""
+        , protocol = ""
+        , origin = ""
+        , port_ = ""
+        , pathname = "/"
+        , search = ""
+        , hash = ""
+        , username = ""
+        , password = ""
+        }
+        |> Tuple.first
 
 
 defineHoverBehaviour :
@@ -2822,11 +3026,10 @@ iconSelector { size, image } =
     ]
 
 
-whenOnDashboard : { highDensity : Bool } -> Dashboard.Model
+whenOnDashboard : { highDensity : Bool } -> ( Dashboard.Model, List Effects.Effect )
 whenOnDashboard { highDensity } =
     Dashboard.init
-        { csrfToken = ""
-        , turbulencePath = ""
+        { turbulencePath = ""
         , pipelineRunningKeyframes = pipelineRunningKeyframes
         , searchType =
             if highDensity then
@@ -2835,21 +3038,23 @@ whenOnDashboard { highDensity } =
             else
                 Routes.Normal Nothing
         }
-        |> Tuple.first
 
 
-queryView : Dashboard.Model -> Query.Single Msgs.Msg
+queryView : ( Dashboard.Model, List Effects.Effect ) -> Query.Single Msgs.Msg
 queryView =
-    Dashboard.view UserState.UserStateLoggedOut
-        >> HS.toUnstyled
+    Tuple.first
+        >> Dashboard.view UserState.UserStateLoggedOut
         >> Query.fromHtml
 
 
-givenDataAndUser : (Maybe Concourse.User -> APIData.APIData) -> Concourse.User -> Dashboard.Model -> Dashboard.Model
+givenDataAndUser :
+    (Maybe Concourse.User -> Concourse.APIData)
+    -> Concourse.User
+    -> ( Dashboard.Model, List Effects.Effect )
+    -> ( Dashboard.Model, List Effects.Effect )
 givenDataAndUser data user =
     Dashboard.handleCallback
         (Callback.APIDataFetched <| Ok ( 0, data <| Just user ))
-        >> Tuple.first
 
 
 userWithRoles : List ( String, List String ) -> Concourse.User
@@ -2863,14 +3068,27 @@ userWithRoles roles =
     }
 
 
-givenDataUnauthenticated : (Maybe Concourse.User -> APIData.APIData) -> Dashboard.Model -> Dashboard.Model
-givenDataUnauthenticated data =
-    Dashboard.handleCallback
+givenDataUnauthenticatedFromApplication :
+    (Maybe Concourse.User -> Concourse.APIData)
+    -> Application.Model
+    -> Application.Model
+givenDataUnauthenticatedFromApplication data =
+    Application.handleCallback
+        (Effects.SubPage 1)
         (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
         >> Tuple.first
 
 
-givenPipelineWithJob : Maybe Concourse.User -> APIData.APIData
+givenDataUnauthenticated :
+    (Maybe Concourse.User -> Concourse.APIData)
+    -> ( Dashboard.Model, List Effects.Effect )
+    -> ( Dashboard.Model, List Effects.Effect )
+givenDataUnauthenticated data =
+    Dashboard.handleCallback
+        (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
+
+
+givenPipelineWithJob : Maybe Concourse.User -> Concourse.APIData
 givenPipelineWithJob user =
     { teams = []
     , pipelines =
@@ -2914,7 +3132,7 @@ givenPipelineWithJob user =
     }
 
 
-oneTeamOnePipelinePaused : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipelinePaused : String -> Maybe Concourse.User -> Concourse.APIData
 oneTeamOnePipelinePaused teamName user =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
@@ -2933,7 +3151,7 @@ oneTeamOnePipelinePaused teamName user =
     }
 
 
-oneTeamOnePipelineNonPublic : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipelineNonPublic : String -> Maybe Concourse.User -> Concourse.APIData
 oneTeamOnePipelineNonPublic teamName user =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
@@ -2952,7 +3170,7 @@ oneTeamOnePipelineNonPublic teamName user =
     }
 
 
-oneTeamOnePipeline : String -> Maybe Concourse.User -> APIData.APIData
+oneTeamOnePipeline : String -> Maybe Concourse.User -> Concourse.APIData
 oneTeamOnePipeline teamName =
     apiData [ ( teamName, [ "pipeline" ] ) ]
 
@@ -2979,7 +3197,7 @@ onePipelinePaused teamName =
     }
 
 
-apiData : List ( String, List String ) -> Maybe Concourse.User -> APIData.APIData
+apiData : List ( String, List String ) -> Maybe Concourse.User -> Concourse.APIData
 apiData pipelines user =
     { teams = pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team
     , pipelines =
@@ -3093,6 +3311,119 @@ jobWithNameTransitionedAt jobName transitionedAt status =
     }
 
 
+circularJobs : List Concourse.Job
+circularJobs =
+    [ { pipeline =
+            { teamName = "team"
+            , pipelineName = "pipeline"
+            }
+      , name = "jobA"
+      , pipelineName = "pipeline"
+      , teamName = "team"
+      , nextBuild = Nothing
+      , finishedBuild =
+            Just
+                { id = 0
+                , name = "0"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "jobA"
+                        }
+                , status = Concourse.BuildStatusSucceeded
+                , duration =
+                    { startedAt = Nothing
+                    , finishedAt = Nothing
+                    }
+                , reapTime = Nothing
+                }
+      , transitionBuild =
+            Just
+                { id = 1
+                , name = "1"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "jobA"
+                        }
+                , status = Concourse.BuildStatusSucceeded
+                , duration =
+                    { startedAt = Nothing
+                    , finishedAt = Just <| Date.fromTime 0
+                    }
+                , reapTime = Nothing
+                }
+      , paused = False
+      , disableManualTrigger = False
+      , inputs =
+            [ { name = "inA"
+              , resource = "res0"
+              , passed = [ "jobB" ]
+              , trigger = True
+              }
+            ]
+      , outputs = []
+      , groups = []
+      }
+    , { pipeline =
+            { teamName = "team"
+            , pipelineName = "pipeline"
+            }
+      , name = "jobB"
+      , pipelineName = "pipeline"
+      , teamName = "team"
+      , nextBuild = Nothing
+      , finishedBuild =
+            Just
+                { id = 0
+                , name = "0"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "jobB"
+                        }
+                , status = Concourse.BuildStatusSucceeded
+                , duration =
+                    { startedAt = Nothing
+                    , finishedAt = Nothing
+                    }
+                , reapTime = Nothing
+                }
+      , transitionBuild =
+            Just
+                { id = 1
+                , name = "1"
+                , job =
+                    Just
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "jobB"
+                        }
+                , status = Concourse.BuildStatusSucceeded
+                , duration =
+                    { startedAt = Nothing
+                    , finishedAt = Just <| Date.fromTime 0
+                    }
+                , reapTime = Nothing
+                }
+      , paused = False
+      , disableManualTrigger = False
+      , inputs =
+            [ { name = "inB"
+              , resource = "res0"
+              , passed = [ "jobA" ]
+              , trigger = True
+              }
+            ]
+      , outputs = []
+      , groups = []
+      }
+    ]
+
+
 teamHeaderSelector : List Selector
 teamHeaderSelector =
     [ class <| .sectionHeaderClass Group.stickyHeaderConfig ]
@@ -3113,3 +3444,26 @@ teamHeaderHasPill teamName pillText =
             [ Query.count (Expect.equal 2)
             , Query.index 1 >> Query.has [ text pillText ]
             ]
+
+
+isColorWithStripes : { thick : String, thin : String } -> Query.Single msg -> Expectation
+isColorWithStripes { thick, thin } =
+    Query.has
+        [ style
+            [ ( "background-image"
+              , "repeating-linear-gradient(-115deg,"
+                    ++ thick
+                    ++ " 0,"
+                    ++ thick
+                    ++ " 10px,"
+                    ++ thin
+                    ++ " 0,"
+                    ++ thin
+                    ++ " 16px)"
+              )
+            , ( "background-size", "106px 114px" )
+            , ( "animation"
+              , pipelineRunningKeyframes ++ " 3s linear infinite"
+              )
+            ]
+        ]

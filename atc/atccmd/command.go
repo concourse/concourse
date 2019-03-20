@@ -87,7 +87,6 @@ type RunCommand struct {
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
-	PeerURL     flag.URL `long:"peer-url"     description:"URL used to reach this ATC from other ATCs in the cluster."`
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -166,13 +165,6 @@ type RunCommand struct {
 		AuthFlags     skycmd.AuthFlags
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
-}
-
-func (cmd *RunCommand) PeerURLOrDefault() flag.URL {
-	if cmd.PeerURL.URL == nil {
-		cmd.PeerURL = cmd.defaultURL()
-	}
-	return cmd.PeerURL
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -330,7 +322,7 @@ func (cmd *RunCommand) Execute(args []string) error {
 
 func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
 	if cmd.ExternalURL.URL == nil {
-		cmd.ExternalURL = cmd.defaultURL()
+		cmd.ExternalURL = cmd.DefaultURL()
 	}
 
 	if len(positionalArguments) != 0 {
@@ -502,13 +494,16 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
+	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
+	fetchSourceFactory := resource.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
+	resourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFetcherFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
+		resourceFetcher,
+		resourceFactory,
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -519,6 +514,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	if err != nil {
 		return nil, err
 	}
+
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
@@ -534,40 +530,25 @@ func (cmd *RunCommand) constructAPIMembers(
 		cmd.BaggageclaimResponseHeaderTimeout,
 	)
 
-	workerClient := cmd.constructWorkerPool(
-		logger,
-		workerProvider,
-	)
-
-	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
-	resourceFactory := resource.NewResourceFactory(workerClient)
-	defaultLimits, err := cmd.parseDefaultLimits()
-	if err != nil {
-		return nil, err
-	}
+	pool := worker.NewPool(workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider)
 
 	variablesFactory, err := cmd.variablesFactory(logger)
 	if err != nil {
 		return nil, err
 	}
 
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
-
-	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
-		resourceFactory,
-		dbResourceConfigFactory,
-		cmd.ResourceTypeCheckingInterval,
-		cmd.ResourceCheckingInterval,
-		engine,
-	)
+	checkContainerStrategy := worker.NewRandomPlacementStrategy()
 
 	radarScannerFactory := radar.NewScannerFactory(
+		pool,
 		resourceFactory,
 		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
 		variablesFactory,
+		checkContainerStrategy,
 	)
 
 	drain := make(chan struct{})
@@ -593,11 +574,8 @@ func (cmd *RunCommand) constructAPIMembers(
 		gcContainerDestroyer,
 		dbBuildFactory,
 		dbResourceConfigFactory,
-		engine,
 		workerClient,
-		workerProvider,
 		drain,
-		radarSchedulerFactory,
 		radarScannerFactory,
 		variablesFactory,
 		credsManagers,
@@ -700,13 +678,16 @@ func (cmd *RunCommand) constructBackendMembers(
 
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 
+	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	resourceFetcherFactory := resource.NewFetcherFactory(lockFactory, clock.NewClock(), dbResourceCacheFactory)
+	fetchSourceFactory := resource.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
+	resourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFetcherFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
+		resourceFetcher,
+		resourceFactory,
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -717,6 +698,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	if err != nil {
 		return nil, err
 	}
+
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
@@ -731,13 +713,10 @@ func (cmd *RunCommand) constructBackendMembers(
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
 	)
-	workerClient := cmd.constructWorkerPool(
-		logger,
-		workerProvider,
-	)
 
-	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
-	resourceFactory := resource.NewResourceFactory(workerClient)
+	pool := worker.NewPool(workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider)
+
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
 		return nil, err
@@ -747,18 +726,35 @@ func (cmd *RunCommand) constructBackendMembers(
 	if err != nil {
 		return nil, err
 	}
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, dbResourceConfigFactory, variablesFactory, defaultLimits)
+
+	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
+	checkContainerStrategy := worker.NewRandomPlacementStrategy()
+
+	engine := cmd.constructEngine(
+		pool,
+		workerClient,
+		resourceFetcher,
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		variablesFactory,
+		defaultLimits,
+		buildContainerStrategy,
+		resourceFactory,
+	)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
+		pool,
 		resourceFactory,
 		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		engine,
+		checkContainerStrategy,
 	)
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
+	dbArtifactLifecycle := db.NewArtifactLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	bus := dbConn.Bus()
@@ -804,6 +800,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
 				gc.NewResourceConfigCollector(dbResourceConfigFactory),
 				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
+				gc.NewArtifactCollector(dbArtifactLifecycle),
 				gc.NewVolumeCollector(
 					dbVolumeRepository,
 					cmd.GC.MissingGracePeriod,
@@ -966,7 +963,7 @@ func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
 		RoundTripper: httpClient.Transport,
 
 		SourceHost: cmd.ExternalURL.URL.Host,
-		TargetURL:  cmd.defaultURL().URL,
+		TargetURL:  cmd.DefaultURL().URL,
 	}
 
 	return httpClient, nil
@@ -1031,7 +1028,7 @@ func (cmd *RunCommand) defaultBindIP() net.IP {
 	return net.ParseIP(URL)
 }
 
-func (cmd *RunCommand) defaultURL() flag.URL {
+func (cmd *RunCommand) DefaultURL() flag.URL {
 	return flag.URL{
 		URL: &url.URL{
 			Scheme: "http",
@@ -1159,25 +1156,18 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (cmd *RunCommand) constructWorkerPool(
-	logger lager.Logger,
-	workerProvider worker.WorkerProvider,
-) worker.Client {
-
+func (cmd *RunCommand) chooseBuildContainerStrategy() worker.ContainerPlacementStrategy {
 	var strategy worker.ContainerPlacementStrategy
 	switch cmd.ContainerPlacementStrategy {
 	case "random":
 		strategy = worker.NewRandomPlacementStrategy()
 	case "fewest-build-containers":
-		strategy = worker.NewLeastBuildContainersPlacementStrategy()
+		strategy = worker.NewFewestBuildContainersPlacementStrategy()
 	default:
 		strategy = worker.NewVolumeLocalityPlacementStrategy()
 	}
 
-	return worker.NewPool(
-		workerProvider,
-		strategy,
-	)
+	return strategy
 }
 
 func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
@@ -1204,22 +1194,26 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 }
 
 func (cmd *RunCommand) constructEngine(
+	workerPool worker.Pool,
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
-	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
+	strategy worker.ContainerPlacementStrategy,
+	resourceFactory resource.ResourceFactory,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
+		workerPool,
 		workerClient,
 		resourceFetcher,
-		resourceFactory,
 		resourceCacheFactory,
 		resourceConfigFactory,
 		variablesFactory,
 		defaultLimits,
+		strategy,
+		resourceFactory,
 	)
 
 	execV2Engine := engine.NewExecEngine(
@@ -1231,7 +1225,7 @@ func (cmd *RunCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, cmd.PeerURLOrDefault().String())
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine})
 }
 
 func (cmd *RunCommand) constructHTTPHandler(
@@ -1278,11 +1272,8 @@ func (cmd *RunCommand) constructAPIHandler(
 	gcContainerDestroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
-	engine engine.Engine,
 	workerClient worker.Client,
-	workerProvider worker.WorkerProvider,
 	drain <-chan struct{},
-	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
 	variablesFactory creds.VariablesFactory,
 	credsManagers creds.Managers,
@@ -1322,14 +1313,10 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbBuildFactory,
 		resourceConfigFactory,
 
-		cmd.PeerURLOrDefault().String(),
 		buildserver.NewEventHandler,
 		drain,
 
-		engine,
 		workerClient,
-		workerProvider,
-		radarSchedulerFactory,
 		radarScannerFactory,
 
 		reconfigurableSink,

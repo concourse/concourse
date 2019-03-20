@@ -3,6 +3,8 @@ module Build.Styles exposing
     , abortIcon
     , firstOccurrenceTooltip
     , firstOccurrenceTooltipArrow
+    , header
+    , historyItem
     , stepHeader
     , stepHeaderIcon
     , stepStatusIcon
@@ -11,13 +13,68 @@ module Build.Styles exposing
     , triggerTooltip
     )
 
+import Application.Styles
 import Build.Models exposing (StepHeaderType(..))
 import Colors
-import Styles
+import Concourse
+import Dashboard.Styles exposing (striped)
 
 
-triggerButton : Bool -> List ( String, String )
-triggerButton buttonDisabled =
+header : Concourse.BuildStatus -> List ( String, String )
+header status =
+    [ ( "display", "flex" )
+    , ( "justify-content", "space-between" )
+    , ( "background"
+      , case status of
+            Concourse.BuildStatusStarted ->
+                Colors.startedFaded
+
+            Concourse.BuildStatusPending ->
+                Colors.pending
+
+            Concourse.BuildStatusSucceeded ->
+                Colors.success
+
+            Concourse.BuildStatusFailed ->
+                Colors.failure
+
+            Concourse.BuildStatusErrored ->
+                Colors.error
+
+            Concourse.BuildStatusAborted ->
+                Colors.aborted
+      )
+    ]
+
+
+historyItem : Concourse.BuildStatus -> List ( String, String )
+historyItem status =
+    case status of
+        Concourse.BuildStatusStarted ->
+            striped
+                { pipelineRunningKeyframes = "pipeline-running"
+                , thickColor = Colors.startedFaded
+                , thinColor = Colors.started
+                }
+
+        Concourse.BuildStatusPending ->
+            [ ( "background", Colors.pending ) ]
+
+        Concourse.BuildStatusSucceeded ->
+            [ ( "background", Colors.success ) ]
+
+        Concourse.BuildStatusFailed ->
+            [ ( "background", Colors.failure ) ]
+
+        Concourse.BuildStatusErrored ->
+            [ ( "background", Colors.error ) ]
+
+        Concourse.BuildStatusAborted ->
+            [ ( "background", Colors.aborted ) ]
+
+
+triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List ( String, String )
+triggerButton buttonDisabled hovered status =
     [ ( "cursor"
       , if buttonDisabled then
             "default"
@@ -26,22 +83,35 @@ triggerButton buttonDisabled =
             "pointer"
       )
     , ( "position", "relative" )
+    , ( "background-color"
+      , Colors.buildStatusColor (not hovered || buttonDisabled) status
+      )
     ]
         ++ button
 
 
-abortButton : List ( String, String )
-abortButton =
-    ( "cursor", "pointer" ) :: button
+abortButton : Bool -> List ( String, String )
+abortButton isHovered =
+    [ ( "cursor", "pointer" )
+    , ( "background-color"
+      , if isHovered then
+            Colors.failureFaded
+
+        else
+            Colors.failure
+      )
+    ]
+        ++ button
 
 
 button : List ( String, String )
 button =
-    [ ( "background-color", Colors.background )
-    , ( "padding", "10px" )
-    , ( "border", "none" )
+    [ ( "padding", "10px" )
     , ( "outline", "none" )
     , ( "margin", "0" )
+    , ( "border-width", "0 0 0 1px" )
+    , ( "border-color", Colors.background )
+    , ( "border-style", "solid" )
     ]
 
 
@@ -54,13 +124,6 @@ triggerIcon hovered =
       , "url(/public/images/ic-add-circle-outline-white.svg)"
       )
     , ( "background-repeat", "no-repeat" )
-    , ( "opacity"
-      , if hovered then
-            "1"
-
-        else
-            "0.5"
-      )
     ]
 
 
@@ -70,7 +133,7 @@ triggerTooltip =
     , ( "right", "100%" )
     , ( "top", "15px" )
     , ( "width", "300px" )
-    , ( "color", "#ecf0f1" )
+    , ( "color", Colors.buildTooltipBackground )
     , ( "font-size", "12px" )
     , ( "font-family", "Inconsolata,monospace" )
     , ( "padding", "10px" )
@@ -88,13 +151,6 @@ abortIcon hovered =
       , "url(/public/images/ic-abort-circle-outline-white.svg)"
       )
     , ( "background-repeat", "no-repeat" )
-    , ( "opacity"
-      , if hovered then
-            "1"
-
-        else
-            "0.5"
-      )
     ]
 
 
@@ -158,7 +214,7 @@ firstOccurrenceTooltip =
     , ( "width", "6em" )
     , ( "pointer-events", "none" )
     ]
-        ++ Styles.disableInteraction
+        ++ Application.Styles.disableInteraction
 
 
 firstOccurrenceTooltipArrow : List ( String, String )

@@ -1,4 +1,4 @@
-module Keycodes exposing (enter, isControlModifier)
+module Keycodes exposing (enter, isControlModifier, shift)
 
 import Keyboard
 
@@ -21,6 +21,11 @@ rightCommand =
 enter : Keyboard.KeyCode
 enter =
     13
+
+
+shift : Keyboard.KeyCode
+shift =
+    16
 
 
 isControlModifier : Keyboard.KeyCode -> Bool

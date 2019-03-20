@@ -1,0 +1,21 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+params:
+  KUBE_CONFIG:
+  RELEASE_NAME:
+  MAX_TICKS: 180
+
+inputs:
+- name: concourse
+
+caches:
+- path: gopath
+- path: concourse/web/wats/node_modules
+
+run:
+  path: concourse/ci/tasks/scripts/k8s-smoke

@@ -20,7 +20,7 @@ type WorkerFactory interface {
 	Workers() ([]Worker, error)
 	VisibleWorkers([]string) ([]Worker, error)
 
-	FindWorkerForContainerByOwner(ContainerOwner, int, atc.Tags) (Worker, bool, error)
+	FindWorkersForContainerByOwner(ContainerOwner) ([]Worker, error)
 	BuildContainersCountPerWorker() (map[string]int, error)
 }
 
@@ -81,20 +81,13 @@ func (f *workerFactory) Workers() ([]Worker, error) {
 	return getWorkers(f.conn, workersQuery)
 }
 
-//This function can be run with either a db.Tx or a db.Conn
-//in case of Tx the returend worker will not have a connection set on it.
-func getWorker(runner sq.BaseRunner, query sq.SelectBuilder) (Worker, bool, error) {
+func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
 	row := query.
-		RunWith(runner).
+		RunWith(conn).
 		QueryRow()
 
-	conn, success := runner.(Conn)
-	var w *worker
-	if success {
-		w = &worker{conn: conn}
-	} else {
-		w = &worker{}
-	}
+	w := &worker{conn: conn}
+
 	err := scanWorker(w, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -321,36 +314,17 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 	return savedWorker, nil
 }
 
-func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, teamID int, tags atc.Tags) (Worker, bool, error) {
-	var teamWorkers int
-
-	err := psql.Select("COUNT (1)").
-		From("workers").
-		Where(sq.Eq{
-			"team_id": teamID,
-		}).
-		RunWith(f.conn).
-		Scan(&teamWorkers)
-	if err != nil {
-		return nil, false, err
-	}
-
+func (f *workerFactory) FindWorkersForContainerByOwner(owner ContainerOwner) ([]Worker, error) {
 	ownerQuery, found, err := owner.Find(f.conn)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	if !found {
-		return nil, false, nil
+		return []Worker{}, nil
 	}
 
 	ownerEq := sq.Eq{}
-	if teamWorkers > 0 {
-		ownerEq["t.id"] = teamID
-	} else {
-		ownerEq["t.id"] = nil
-	}
-
 	for k, v := range ownerQuery {
 		ownerEq["c."+k] = v
 	}
@@ -359,16 +333,10 @@ func (f *workerFactory) FindWorkerForContainerByOwner(owner ContainerOwner, team
 		ownerEq,
 	}))
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	for _, w := range workers {
-		if tagsMatch(w.Tags(), tags) {
-			return w, true, nil
-		}
-	}
-
-	return nil, false, nil
+	return workers, nil
 }
 
 func (f *workerFactory) BuildContainersCountPerWorker() (map[string]int, error) {
@@ -418,19 +386,10 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	var workerState WorkerState
-
 	if atcWorker.State != "" {
 		workerState = WorkerState(atcWorker.State)
 	} else {
 		workerState = WorkerStateRunning
-	}
-
-	currWorker, found, err := getWorker(tx, workersQuery.Where(sq.Eq{"w.name": atcWorker.Name}))
-
-	if found {
-		if (currWorker.State() == WorkerStateLanding || currWorker.State() == WorkerStateRetiring) && atcWorker.State == "" {
-			workerState = currWorker.State()
-		}
 	}
 
 	var workerVersion *string

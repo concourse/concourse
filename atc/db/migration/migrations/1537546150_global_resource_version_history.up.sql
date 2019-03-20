@@ -45,7 +45,8 @@ BEGIN;
   INSERT INTO build_resource_config_version_inputs (build_id, resource_id, version_md5, name)
   SELECT bi.build_id, vr.resource_id, md5(vr.version), bi.name
   FROM build_inputs bi, versioned_resources vr
-  WHERE bi.versioned_resource_id = vr.id;
+  WHERE bi.versioned_resource_id = vr.id
+  ON CONFLICT DO NOTHING;
 
   CREATE TABLE build_resource_config_version_outputs (
       "build_id" integer NOT NULL REFERENCES builds (id) ON DELETE CASCADE,
@@ -58,9 +59,10 @@ BEGIN;
   ON build_resource_config_version_outputs (build_id, resource_id, version_md5, name);
 
   INSERT INTO build_resource_config_version_outputs (build_id, resource_id, version_md5, name)
-  SELECT bo.build_id, vr.resource_id, md5(vr.version), bo.name
-  FROM build_inputs bo, versioned_resources vr
-  WHERE bo.versioned_resource_id = vr.id;
+  SELECT bo.build_id, vr.resource_id, md5(vr.version), r.name
+  FROM build_outputs bo, versioned_resources vr, resources r
+  WHERE bo.versioned_resource_id = vr.id AND vr.resource_id = r.id
+  ON CONFLICT DO NOTHING;
 
   TRUNCATE TABLE next_build_inputs;
 

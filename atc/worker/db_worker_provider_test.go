@@ -404,7 +404,6 @@ var _ = Describe("DBProvider", func() {
 			Context("creating the connection to garden", func() {
 				var (
 					containerSpec ContainerSpec
-					workerSpec    WorkerSpec
 				)
 
 				JustBeforeEach(func() {
@@ -412,10 +411,6 @@ var _ = Describe("DBProvider", func() {
 						ImageSpec: ImageSpec{
 							ResourceType: "some-resource-a",
 						},
-					}
-
-					workerSpec = WorkerSpec{
-						ResourceType: "some-resource-a",
 					}
 
 					fakeContainer := new(gfakes.FakeContainer)
@@ -426,7 +421,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, workerSpec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -477,17 +472,13 @@ var _ = Describe("DBProvider", func() {
 						},
 					}
 
-					workerSpec := WorkerSpec{
-						ResourceType: "some-resource-a",
-					}
-
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("created-handle")
 
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, workerSpec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(container.Handle()).To(Equal("created-handle"))
@@ -606,25 +597,18 @@ var _ = Describe("DBProvider", func() {
 		})
 	})
 
-	Describe("FindWorkerForContainerByOwner", func() {
+	Describe("FindWorkerForVolume", func() {
 		var (
-			fakeOwner *dbfakes.FakeContainerOwner
-
 			foundWorker Worker
 			found       bool
 			findErr     error
 		)
 
-		BeforeEach(func() {
-			fakeOwner = new(dbfakes.FakeContainerOwner)
-		})
-
 		JustBeforeEach(func() {
-			foundWorker, found, findErr = provider.FindWorkerForContainerByOwner(
+			foundWorker, found, findErr = provider.FindWorkerForVolume(
 				logger,
 				345278,
-				atc.Tags{"some-tag"},
-				fakeOwner,
+				"some-handle",
 			)
 		})
 
@@ -640,7 +624,7 @@ var _ = Describe("DBProvider", func() {
 				workerVersion := "1.1.0"
 				fakeExistingWorker.VersionReturns(&workerVersion)
 
-				fakeDBWorkerFactory.FindWorkerForContainerByOwnerReturns(fakeExistingWorker, true, nil)
+				fakeDBTeam.FindWorkerForVolumeReturns(fakeExistingWorker, true, nil)
 			})
 
 			It("returns true", func() {
@@ -653,11 +637,14 @@ var _ = Describe("DBProvider", func() {
 				Expect(foundWorker.Name()).To(Equal("some-worker"))
 			})
 
-			It("found the worker for the right owner", func() {
-				owner, teamID, tags := fakeDBWorkerFactory.FindWorkerForContainerByOwnerArgsForCall(0)
-				Expect(owner).To(Equal(fakeOwner))
-				Expect(teamID).To(Equal(345278))
-				Expect(tags).To(Equal(atc.Tags{"some-tag"}))
+			It("found the worker for the right handle", func() {
+				handle := fakeDBTeam.FindWorkerForVolumeArgsForCall(0)
+				Expect(handle).To(Equal("some-handle"))
+			})
+
+			It("found the right team", func() {
+				actualTeam := fakeDBTeamFactory.GetByIDArgsForCall(0)
+				Expect(actualTeam).To(Equal(345278))
 			})
 
 			Context("when the worker version is outdated", func() {
@@ -675,7 +662,7 @@ var _ = Describe("DBProvider", func() {
 
 		Context("when the worker is not found", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindWorkerForContainerReturns(nil, false, nil)
+				fakeDBTeam.FindWorkerForVolumeReturns(nil, false, nil)
 			})
 
 			It("returns false", func() {
@@ -689,13 +676,156 @@ var _ = Describe("DBProvider", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeDBWorkerFactory.FindWorkerForContainerByOwnerReturns(nil, false, disaster)
+				fakeDBTeam.FindWorkerForVolumeReturns(nil, false, disaster)
 			})
 
 			It("returns the error", func() {
 				Expect(findErr).To(Equal(disaster))
 				Expect(foundWorker).To(BeNil())
 				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("FindWorkersForContainerByOwner", func() {
+		var (
+			fakeOwner *dbfakes.FakeContainerOwner
+
+			foundWorkers []Worker
+			findErr      error
+		)
+
+		BeforeEach(func() {
+			fakeOwner = new(dbfakes.FakeContainerOwner)
+		})
+
+		JustBeforeEach(func() {
+			foundWorkers, findErr = provider.FindWorkersForContainerByOwner(
+				logger,
+				fakeOwner,
+			)
+		})
+
+		Context("when there is a worker", func() {
+			var fakeExistingWorker *dbfakes.FakeWorker
+
+			BeforeEach(func() {
+				addr := "1.2.3.4:7777"
+
+				fakeExistingWorker = new(dbfakes.FakeWorker)
+				fakeExistingWorker.NameReturns("some-worker")
+				fakeExistingWorker.GardenAddrReturns(&addr)
+				workerVersion := "1.1.0"
+				fakeExistingWorker.VersionReturns(&workerVersion)
+
+				fakeDBWorkerFactory.FindWorkersForContainerByOwnerReturns([]db.Worker{fakeExistingWorker}, nil)
+			})
+
+			It("finds the worker", func() {
+				Expect(foundWorkers).To(HaveLen(1))
+				Expect(foundWorkers[0].Name()).To(Equal("some-worker"))
+				Expect(findErr).ToNot(HaveOccurred())
+			})
+
+			It("found the worker for the right owner", func() {
+				owner := fakeDBWorkerFactory.FindWorkersForContainerByOwnerArgsForCall(0)
+				Expect(owner).To(Equal(fakeOwner))
+			})
+
+			Context("when the worker version is outdated", func() {
+				BeforeEach(func() {
+					fakeExistingWorker.VersionReturns(nil)
+				})
+
+				It("returns an error", func() {
+					Expect(findErr).ToNot(HaveOccurred())
+					Expect(foundWorkers).To(BeNil())
+				})
+			})
+		})
+
+		Context("when there are multiple workers", func() {
+			var fakeExistingWorker *dbfakes.FakeWorker
+			var fakeExistingWorker2 *dbfakes.FakeWorker
+			var fakeExistingWorker3 *dbfakes.FakeWorker
+
+			BeforeEach(func() {
+				addr := "1.2.3.4:7777"
+
+				fakeExistingWorker = new(dbfakes.FakeWorker)
+				fakeExistingWorker.NameReturns("some-worker")
+				fakeExistingWorker.GardenAddrReturns(&addr)
+				workerVersion := "1.1.0"
+				fakeExistingWorker.VersionReturns(&workerVersion)
+
+				addr2 := "1.2.3.5:7777"
+				fakeExistingWorker2 = new(dbfakes.FakeWorker)
+				fakeExistingWorker2.NameReturns("some-worker-2")
+				fakeExistingWorker2.GardenAddrReturns(&addr2)
+				fakeExistingWorker2.VersionReturns(&workerVersion)
+
+				addr3 := "1.2.3.6:7777"
+				fakeExistingWorker3 = new(dbfakes.FakeWorker)
+				fakeExistingWorker3.NameReturns("some-worker-3")
+				fakeExistingWorker3.GardenAddrReturns(&addr3)
+				fakeExistingWorker3.VersionReturns(&workerVersion)
+
+				fakeDBWorkerFactory.FindWorkersForContainerByOwnerReturns([]db.Worker{fakeExistingWorker, fakeExistingWorker2, fakeExistingWorker3}, nil)
+			})
+
+			It("finds both the worker", func() {
+				Expect(foundWorkers).To(HaveLen(3))
+
+				workerNames := []string{}
+				for _, w := range foundWorkers {
+					workerNames = append(workerNames, w.Name())
+				}
+
+				Expect(workerNames).To(ConsistOf([]string{"some-worker", "some-worker-2", "some-worker-3"}))
+				Expect(findErr).ToNot(HaveOccurred())
+			})
+
+			Context("when one of the worker version is outdated", func() {
+				BeforeEach(func() {
+					workerVersionOld := "1.0.0"
+					fakeExistingWorker3.VersionReturns(&workerVersionOld)
+				})
+
+				It("returns the other two workers", func() {
+					Expect(findErr).ToNot(HaveOccurred())
+					Expect(foundWorkers).To(HaveLen(2))
+
+					workerNames := []string{}
+					for _, w := range foundWorkers {
+						workerNames = append(workerNames, w.Name())
+					}
+
+					Expect(workerNames).To(ConsistOf([]string{"some-worker", "some-worker-2"}))
+				})
+			})
+		})
+
+		Context("when the worker is not found", func() {
+			BeforeEach(func() {
+				fakeDBWorkerFactory.FindWorkersForContainerByOwnerReturns([]db.Worker{}, nil)
+			})
+
+			It("returns empty list of workers", func() {
+				Expect(findErr).ToNot(HaveOccurred())
+				Expect(foundWorkers).To(BeNil())
+			})
+		})
+
+		Context("when finding the worker fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeDBWorkerFactory.FindWorkersForContainerByOwnerReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(findErr).To(Equal(disaster))
+				Expect(foundWorkers).To(BeNil())
 			})
 		})
 	})

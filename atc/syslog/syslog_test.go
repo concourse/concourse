@@ -16,8 +16,8 @@ var _ = Describe("Syslog", func() {
 	var server *testServer
 	const (
 		hostname = "hostname"
-		tag = "tag"
-		message = "build 123 log"
+		tag      = "tag"
+		message  = "build 123 log"
 	)
 
 	AfterEach(func() {

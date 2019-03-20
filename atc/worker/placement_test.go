@@ -3,6 +3,7 @@ package worker_test
 import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc/db"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -15,8 +16,9 @@ import (
 var (
 	strategy ContainerPlacementStrategy
 
-	spec    ContainerSpec
-	workers []Worker
+	spec     ContainerSpec
+	metadata db.ContainerMetadata
+	workers  []Worker
 
 	chosenWorker Worker
 	chooseErr    error
@@ -30,7 +32,7 @@ var (
 	logger *lagertest.TestLogger
 )
 
-var _ = Describe("LeastBuildContainersPlacementStrategy", func() {
+var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 	Describe("Choose", func() {
 		var compatibleWorker1 *workerfakes.FakeWorker
 		var compatibleWorker2 *workerfakes.FakeWorker
@@ -38,7 +40,7 @@ var _ = Describe("LeastBuildContainersPlacementStrategy", func() {
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-			strategy = NewLeastBuildContainersPlacementStrategy()
+			strategy = NewFewestBuildContainersPlacementStrategy()
 			compatibleWorker1 = new(workerfakes.FakeWorker)
 			compatibleWorker2 = new(workerfakes.FakeWorker)
 			compatibleWorker3 = new(workerfakes.FakeWorker)
@@ -71,31 +73,15 @@ var _ = Describe("LeastBuildContainersPlacementStrategy", func() {
 
 		Context("when there are multiple workers", func() {
 			BeforeEach(func() {
-				workers = []Worker{compatibleWorker2, compatibleWorker3}
+				workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
 
+				compatibleWorker1.BuildContainersReturns(30)
 				compatibleWorker2.BuildContainersReturns(20)
 				compatibleWorker3.BuildContainersReturns(10)
 			})
 
-			It("picks the one with least amount of containers", func() {
-				Consistently(func() Worker {
-					chosenWorker, chooseErr = strategy.Choose(
-						logger,
-						workers,
-						spec,
-					)
-					Expect(chooseErr).ToNot(HaveOccurred())
-					return chosenWorker
-				}).Should(Equal(compatibleWorker3))
-			})
-
-			Context("when there is more than one worker with the same number of build containers", func() {
-				BeforeEach(func() {
-					workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-					compatibleWorker1.BuildContainersReturns(10)
-				})
-
-				It("picks any of them", func() {
+			Context("when the container is not of type 'check'", func() {
+				It("picks the one with least amount of containers", func() {
 					Consistently(func() Worker {
 						chosenWorker, chooseErr = strategy.Choose(
 							logger,
@@ -104,8 +90,28 @@ var _ = Describe("LeastBuildContainersPlacementStrategy", func() {
 						)
 						Expect(chooseErr).ToNot(HaveOccurred())
 						return chosenWorker
-					}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker3)))
+					}).Should(Equal(compatibleWorker3))
 				})
+
+				Context("when there is more than one worker with the same number of build containers", func() {
+					BeforeEach(func() {
+						workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
+						compatibleWorker1.BuildContainersReturns(10)
+					})
+
+					It("picks any of them", func() {
+						Consistently(func() Worker {
+							chosenWorker, chooseErr = strategy.Choose(
+								logger,
+								workers,
+								spec,
+							)
+							Expect(chooseErr).ToNot(HaveOccurred())
+							return chosenWorker
+						}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker3)))
+					})
+				})
+
 			})
 		})
 	})
@@ -161,19 +167,19 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 			}
 
 			compatibleWorkerOneCache1 = new(workerfakes.FakeWorker)
-			compatibleWorkerOneCache1.SatisfyingReturns(compatibleWorkerOneCache1, nil)
+			compatibleWorkerOneCache1.SatisfiesReturns(true)
 
 			compatibleWorkerOneCache2 = new(workerfakes.FakeWorker)
-			compatibleWorkerOneCache2.SatisfyingReturns(compatibleWorkerOneCache2, nil)
+			compatibleWorkerOneCache2.SatisfiesReturns(true)
 
 			compatibleWorkerTwoCaches = new(workerfakes.FakeWorker)
-			compatibleWorkerTwoCaches.SatisfyingReturns(compatibleWorkerTwoCaches, nil)
+			compatibleWorkerTwoCaches.SatisfiesReturns(true)
 
 			compatibleWorkerNoCaches1 = new(workerfakes.FakeWorker)
-			compatibleWorkerNoCaches1.SatisfyingReturns(compatibleWorkerNoCaches1, nil)
+			compatibleWorkerNoCaches1.SatisfiesReturns(true)
 
 			compatibleWorkerNoCaches2 = new(workerfakes.FakeWorker)
-			compatibleWorkerNoCaches2.SatisfyingReturns(compatibleWorkerNoCaches2, nil)
+			compatibleWorkerNoCaches2.SatisfiesReturns(true)
 		})
 
 		Context("with one having the most local caches", func() {

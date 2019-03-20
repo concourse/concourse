@@ -1,0 +1,42 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -u
+
+readonly RELEASE_NAME="$RELEASE_NAME"
+readonly DIR=$(cd $(dirname $0) && pwd)
+
+main () {
+  eventually_populate_kube_config
+  forward_atc_port
+  run_test
+}
+
+eventually_populate_kube_config() {
+  mkdir -p ~/.kube
+
+  if [[ -f ~/.kube/config ]]; then
+    return 0
+  fi
+
+  if [[ -z $KUBE_CONFIG ]]; then
+    echo "Error: KUBE_CONFIG must be specified when ~/.kube/config doesnt exist"
+    exit 1
+  fi
+
+  echo "$KUBE_CONFIG" >~/.kube/config
+}
+
+forward_atc_port () {
+  kubectl port-forward \
+    --namespace $RELEASE_NAME \
+    deployment/$RELEASE_NAME-web \
+    --pod-running-timeout=5m \
+    8080:8080 &
+}
+
+run_test () {
+  ATC_URL="http://127.0.0.1:8080" $DIR/smoke
+}
+
+main

@@ -4,10 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"github.com/caarlos0/env"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,6 +13,10 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/caarlos0/env"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -39,6 +41,8 @@ var (
 	Environment environment
 	fly         Fly
 )
+
+var randomGenerator = rand.New(rand.NewSource(GinkgoRandomSeed()))
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	var parsedEnv environment
@@ -122,11 +126,15 @@ func helmDeploy(releaseName, namespace, chartDir string, args ...string) {
 
 func deployConcourseChart(releaseName string, args ...string) {
 	helmArgs := []string{
+		"--set=web.livenessProbe.failureThreshold=3",
+		"--set=web.livenessProbe.initialDelaySeconds=3",
+		"--set=web.livenessProbe.periodSeconds=3",
+		"--set=web.livenessProbe.timeoutSeconds=3",
 		"--set=concourse.web.kubernetes.keepNamespaces=false",
 		"--set=postgresql.persistence.enabled=false",
 		"--set=image=" + Environment.ConcourseImageName}
 
-	if Environment.ConcourseImageDigest != "" {
+	if Environment.ConcourseImageTag != "" {
 		helmArgs = append(helmArgs, "--set=imageTag="+Environment.ConcourseImageTag)
 	}
 
@@ -218,8 +226,8 @@ func deletePods(namespace string, flags ...string) []string {
 	return podNames
 }
 
-func startPortForwarding(namespace, service, port string) (*gexec.Session, string) {
-	session := Start(nil, "kubectl", "port-forward", "--namespace="+namespace, "service/"+service, ":"+port)
+func startPortForwarding(namespace, resource, port string) (*gexec.Session, string) {
+	session := Start(nil, "kubectl", "port-forward", "--namespace="+namespace, resource, ":"+port)
 	Eventually(session.Out).Should(gbytes.Say("Forwarding"))
 
 	address := regexp.MustCompile(`127\.0\.0\.1:[0-9]+`).

@@ -83,6 +83,7 @@ func (ra *ReAuther) authLoop() {
 		exp := backoff.NewExponentialBackOff()
 		exp.InitialInterval = ra.base
 		exp.MaxInterval = ra.max
+		exp.MaxElapsedTime = 0
 		exp.Reset()
 
 		for {

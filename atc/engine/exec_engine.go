@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,11 +15,9 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 )
 
-type execMetadata struct {
-	Plan atc.Plan
-}
+type execMetadata atc.Plan
 
-const execEngineName = "exec.v2"
+const execEngineSchema = "exec.v2"
 
 type execEngine struct {
 	factory            exec.Factory
@@ -49,8 +46,8 @@ func NewExecEngine(
 	}
 }
 
-func (engine *execEngine) Name() string {
-	return execEngineName
+func (engine *execEngine) Schema() string {
+	return execEngineSchema
 }
 
 func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
@@ -64,9 +61,7 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan 
 		factory:            engine.factory,
 		defaultStepTimeout: engine.defaultStepTimeout,
 		delegate:           engine.delegateFactory.Delegate(build),
-		metadata: execMetadata{
-			Plan: plan,
-		},
+		metadata:           execMetadata(plan),
 
 		ctx:    ctx,
 		cancel: cancel,
@@ -80,7 +75,7 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var metadata execMetadata
-	err := json.Unmarshal([]byte(build.EngineMetadata()), &metadata)
+	err := json.Unmarshal([]byte(build.PrivatePlan()), &metadata)
 	if err != nil {
 		cancel()
 		logger.Error("invalid-metadata", err)
@@ -153,7 +148,7 @@ func (build *execBuild) Abort(lager.Logger) error {
 }
 
 func (build *execBuild) Resume(logger lager.Logger) {
-	step := build.buildStep(logger, build.metadata.Plan)
+	step := build.buildStep(logger, atc.Plan(build.metadata))
 
 	runCtx := lagerctx.NewContext(build.ctx, logger)
 
@@ -175,14 +170,6 @@ func (build *execBuild) Resume(logger lager.Logger) {
 			return
 		}
 	}
-}
-
-func (build *execBuild) ReceiveInput(logger lager.Logger, plan atc.PlanID, stream io.ReadCloser) {
-	build.runState().SendUserInput(plan, stream)
-}
-
-func (build *execBuild) SendOutput(logger lager.Logger, plan atc.PlanID, output io.Writer) {
-	build.runState().ReadPlanOutput(plan, output)
 }
 
 func (build *execBuild) runState() exec.RunState {
@@ -249,8 +236,8 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 		return build.buildPutStep(logger, plan)
 	}
 
-	if plan.UserArtifact != nil {
-		return build.buildUserArtifactStep(logger, plan)
+	if plan.ArtifactInput != nil {
+		return build.buildArtifactInputStep(logger, plan)
 	}
 
 	if plan.ArtifactOutput != nil {

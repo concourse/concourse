@@ -1,0 +1,30 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source: {repository: concourse/unit}
+
+inputs:
+- name: version
+
+outputs:
+- name: tags
+
+params:
+  MAJOR:
+
+run:
+  path: bash
+  args:
+  - -exc
+  - |
+    version=$(cat version/version)
+    echo $version | cut -d. -f1,2,3 >> tags/tags
+    echo $version | cut -d. -f1,2   >> tags/tags
+
+    if [ "$MAJOR" = "true" ]; then
+      # when pushing a patch for an old version, you won't want to bump the
+      # major tag, so this should be opt-in
+      echo $version | cut -d. -f1   >> tags/tags
+    fi

@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 // ScannerFactory is the same interface as resourceserver/server.go
@@ -19,12 +20,14 @@ type ScannerFactory interface {
 }
 
 type scannerFactory struct {
+	pool                         worker.Pool
 	resourceFactory              resource.ResourceFactory
 	resourceConfigFactory        db.ResourceConfigFactory
 	resourceTypeCheckingInterval time.Duration
 	resourceCheckingInterval     time.Duration
 	externalURL                  string
 	variablesFactory             creds.VariablesFactory
+	strategy                     worker.ContainerPlacementStrategy
 }
 
 var ContainerExpiries = db.ContainerOwnerExpiries{
@@ -34,20 +37,24 @@ var ContainerExpiries = db.ContainerOwnerExpiries{
 }
 
 func NewScannerFactory(
+	pool worker.Pool,
 	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
 	externalURL string,
 	variablesFactory creds.VariablesFactory,
+	strategy worker.ContainerPlacementStrategy,
 ) ScannerFactory {
 	return &scannerFactory{
+		pool:                         pool,
 		resourceFactory:              resourceFactory,
 		resourceConfigFactory:        resourceConfigFactory,
 		resourceCheckingInterval:     resourceCheckingInterval,
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		externalURL:                  externalURL,
 		variablesFactory:             variablesFactory,
+		strategy:                     strategy,
 	}
 }
 
@@ -56,12 +63,14 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 
 	return NewResourceScanner(
 		clock.NewClock(),
+		f.pool,
 		f.resourceFactory,
 		f.resourceConfigFactory,
 		f.resourceCheckingInterval,
 		dbPipeline,
 		f.externalURL,
 		variables,
+		f.strategy,
 	)
 }
 
@@ -70,11 +79,13 @@ func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner 
 
 	return NewResourceTypeScanner(
 		clock.NewClock(),
+		f.pool,
 		f.resourceFactory,
 		f.resourceConfigFactory,
 		f.resourceTypeCheckingInterval,
 		dbPipeline,
 		f.externalURL,
 		variables,
+		f.strategy,
 	)
 }

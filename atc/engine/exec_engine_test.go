@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -577,18 +576,16 @@ var _ = Describe("ExecEngine", func() {
 
 		Context("when the build has a get step", func() {
 			BeforeEach(func() {
-				dbBuild.EngineMetadataReturns(`{
-							"Plan": {
-								"id": "47",
-								"attempts": [1],
-								"get": {
-									"name": "some-get",
-									"resource": "some-input-resource",
-									"type": "get",
-									"source": {"some": "source"},
-									"params": {"some": "params"},
-									"pipeline_id": 2222
-								}
+				dbBuild.PrivatePlanReturns(`{
+							"id": "47",
+							"attempts": [1],
+							"get": {
+								"name": "some-get",
+								"resource": "some-input-resource",
+								"type": "get",
+								"source": {"some": "source"},
+								"params": {"some": "params"},
+								"pipeline_id": 2222
 							}
 						}`,
 				)
@@ -635,7 +632,7 @@ var _ = Describe("ExecEngine", func() {
 
 		Context("when engine metadata is empty", func() {
 			BeforeEach(func() {
-				dbBuild.EngineMetadataReturns("{}")
+				dbBuild.PrivatePlanReturns("{}")
 
 				fakeDelegate := new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)

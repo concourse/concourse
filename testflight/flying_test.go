@@ -294,6 +294,9 @@ run:
 			By("satisfying the job's passed constraint for the first version")
 			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
 
+			By("making sure the second job runs before we use its inputs")
+			fly("trigger-job", "-w", "-j", pipelineName+"/downstream-job")
+
 			By("executing using the first version via -j")
 			execS := flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
 			Expect(execS).To(gbytes.Say("first-version"))
@@ -307,6 +310,9 @@ run:
 
 			By("satisfying the job's passed constraint for the second version")
 			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
+
+			By("making sure the second job runs before we use its inputs")
+			fly("trigger-job", "-w", "-j", pipelineName+"/downstream-job")
 
 			By("now executing using the second version via -j")
 			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
@@ -341,8 +347,6 @@ run:
 
 			fly("set-pipeline", "-n", "-p", pipelineName, "-c", "fixtures/input-mapping-test.yml", "-v", "task_content="+taskFileContents+"")
 
-			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version")
-
 			fly("unpause-pipeline", "-p", pipelineName)
 		})
 
@@ -352,6 +356,9 @@ run:
 
 			By("satisfying the job's passed constraint for the first version")
 			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
+
+			By("making sure the second job runs before we use its inputs")
+			fly("trigger-job", "-w", "-j", pipelineName+"/downstream-job")
 
 			By("executing using the first version via -j")
 			execS := flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job", "-m", "mapped-resource=some-resource")
@@ -366,6 +373,9 @@ run:
 
 			By("satisfying the job's passed constraint for the second version")
 			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
+
+			By("making sure the second job runs before we use its inputs")
+			fly("trigger-job", "-w", "-j", pipelineName+"/downstream-job")
 
 			By("now executing using the second version via -j")
 			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job", "-m", "mapped-resource=some-resource")
@@ -396,8 +406,6 @@ run:
 
 			fly("set-pipeline", "-n", "-p", pipelineName, "-c", "fixtures/image-resource-test.yml", "-v", "task_content="+taskFileContents+"")
 
-			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version")
-
 			fly("unpause-pipeline", "-p", pipelineName)
 		})
 
@@ -407,6 +415,9 @@ run:
 
 			By("satisfying the job's passed constraint for the first version")
 			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
+
+			By("making sure the second job runs before we use its inputs")
+			fly("trigger-job", "-w", "-j", pipelineName+"/downstream-job")
 
 			By("executing using the first version via -j")
 			execS := flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job", "--image", "some-image")
@@ -421,6 +432,9 @@ run:
 
 			By("satisfying the job's passed constraint for the second version")
 			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
+
+			By("making sure the second job runs before we use its inputs")
+			fly("trigger-job", "-w", "-j", pipelineName+"/downstream-job")
 
 			By("now executing using the second version via -j")
 			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job", "--image", "some-image")
@@ -457,6 +471,11 @@ run:
 		})
 
 		Context("when -j is specified", func() {
+			BeforeEach(func() {
+				By("making sure the job runs before we use its inputs")
+				fly("trigger-job", "-w", "-j", pipelineName+"/input-test")
+			})
+
 			It("runs the task without error by infer the pipeline resource types from -j", func() {
 				execS := flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/input-test")
 				Expect(execS).To(gbytes.Say("custom-type-version"))

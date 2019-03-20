@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -9,8 +8,6 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -25,12 +22,16 @@ type WorkerProvider interface {
 		handle string,
 	) (Worker, bool, error)
 
-	FindWorkerForContainerByOwner(
+	FindWorkerForVolume(
 		logger lager.Logger,
 		teamID int,
-		workerTags atc.Tags,
-		owner db.ContainerOwner,
+		handle string,
 	) (Worker, bool, error)
+
+	FindWorkersForContainerByOwner(
+		logger lager.Logger,
+		owner db.ContainerOwner,
+	) ([]Worker, error)
 
 	NewGardenWorker(
 		logger lager.Logger,
@@ -52,18 +53,33 @@ func (err NoCompatibleWorkersError) Error() string {
 	return fmt.Sprintf("no workers satisfying: %s", err.Spec.Description())
 }
 
+//go:generate counterfeiter . Pool
+
+type Pool interface {
+	FindOrChooseWorkerForContainer(
+		lager.Logger,
+		db.ContainerOwner,
+		ContainerSpec,
+		WorkerSpec,
+		ContainerPlacementStrategy,
+	) (Worker, error)
+
+	FindOrChooseWorker(
+		lager.Logger,
+		WorkerSpec,
+	) (Worker, error)
+}
+
 type pool struct {
 	provider WorkerProvider
 
-	rand     *rand.Rand
-	strategy ContainerPlacementStrategy
+	rand *rand.Rand
 }
 
-func NewPool(provider WorkerProvider, strategy ContainerPlacementStrategy) Client {
+func NewPool(provider WorkerProvider) Pool {
 	return &pool{
 		provider: provider,
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
-		strategy: strategy,
 	}
 }
 
@@ -80,12 +96,12 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	compatibleTeamWorkers := []Worker{}
 	compatibleGeneralWorkers := []Worker{}
 	for _, worker := range workers {
-		satisfyingWorker, err := worker.Satisfying(logger, spec)
-		if err == nil {
+		compatible := worker.Satisfies(logger, spec)
+		if compatible {
 			if worker.IsOwnedByTeam() {
-				compatibleTeamWorkers = append(compatibleTeamWorkers, satisfyingWorker)
+				compatibleTeamWorkers = append(compatibleTeamWorkers, worker)
 			} else {
-				compatibleGeneralWorkers = append(compatibleGeneralWorkers, satisfyingWorker)
+				compatibleGeneralWorkers = append(compatibleGeneralWorkers, worker)
 			}
 		}
 	}
@@ -103,80 +119,55 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	}
 }
 
-func (pool *pool) Satisfying(logger lager.Logger, spec WorkerSpec) (Worker, error) {
-	compatibleWorkers, err := pool.allSatisfying(logger, spec)
-	if err != nil {
-		return nil, err
-	}
-	randomWorker := compatibleWorkers[pool.rand.Intn(len(compatibleWorkers))]
-	return randomWorker, nil
-}
-
-func (pool *pool) FindOrCreateContainer(
-	ctx context.Context,
+func (pool *pool) FindOrChooseWorkerForContainer(
 	logger lager.Logger,
-	delegate ImageFetchingDelegate,
 	owner db.ContainerOwner,
-	metadata db.ContainerMetadata,
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
-	resourceTypes creds.VersionedResourceTypes,
-) (Container, error) {
-	worker, found, err := pool.provider.FindWorkerForContainerByOwner(
+	strategy ContainerPlacementStrategy,
+) (Worker, error) {
+	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
 		logger.Session("find-worker"),
-		workerSpec.TeamID,
-		workerSpec.Tags,
 		owner,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	if !found {
-		compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
-		if err != nil {
-			return nil, err
-		}
-
-		worker, err = pool.strategy.Choose(logger, compatibleWorkers, containerSpec)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return worker.FindOrCreateContainer(
-		ctx,
-		logger,
-		delegate,
-		owner,
-		metadata,
-		containerSpec,
-		workerSpec,
-		resourceTypes,
-	)
-}
-
-func (pool *pool) FindContainerByHandle(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
-	worker, found, err := pool.provider.FindWorkerForContainer(
-		logger.Session("find-worker"),
-		teamID,
-		handle,
-	)
+	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	if !found {
-		return nil, false, nil
+	var worker Worker
+dance:
+	for _, w := range workersWithContainer {
+		for _, c := range compatibleWorkers {
+			if w.Name() == c.Name() {
+				worker = c
+				break dance
+			}
+		}
 	}
 
-	return worker.FindContainerByHandle(logger, teamID, handle)
+	if worker == nil {
+		worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return worker, nil
 }
 
-func (*pool) FindResourceTypeByPath(string) (atc.WorkerResourceType, bool) {
-	return atc.WorkerResourceType{}, false
-}
+func (pool *pool) FindOrChooseWorker(
+	logger lager.Logger,
+	workerSpec WorkerSpec,
+) (Worker, error) {
+	workers, err := pool.allSatisfying(logger, workerSpec)
+	if err != nil {
+		return nil, err
+	}
 
-func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
-	return nil, false, errors.New("LookupVolume not implemented for pool")
+	return workers[rand.Intn(len(workers))], nil
 }

@@ -22,22 +22,18 @@ type FakeWorkerFactory struct {
 		result1 map[string]int
 		result2 error
 	}
-	FindWorkerForContainerByOwnerStub        func(db.ContainerOwner, int, atc.Tags) (db.Worker, bool, error)
-	findWorkerForContainerByOwnerMutex       sync.RWMutex
-	findWorkerForContainerByOwnerArgsForCall []struct {
+	FindWorkersForContainerByOwnerStub        func(db.ContainerOwner) ([]db.Worker, error)
+	findWorkersForContainerByOwnerMutex       sync.RWMutex
+	findWorkersForContainerByOwnerArgsForCall []struct {
 		arg1 db.ContainerOwner
-		arg2 int
-		arg3 atc.Tags
 	}
-	findWorkerForContainerByOwnerReturns struct {
-		result1 db.Worker
-		result2 bool
-		result3 error
+	findWorkersForContainerByOwnerReturns struct {
+		result1 []db.Worker
+		result2 error
 	}
-	findWorkerForContainerByOwnerReturnsOnCall map[int]struct {
-		result1 db.Worker
-		result2 bool
-		result3 error
+	findWorkersForContainerByOwnerReturnsOnCall map[int]struct {
+		result1 []db.Worker
+		result2 error
 	}
 	GetWorkerStub        func(string) (db.Worker, bool, error)
 	getWorkerMutex       sync.RWMutex
@@ -166,72 +162,67 @@ func (fake *FakeWorkerFactory) BuildContainersCountPerWorkerReturnsOnCall(i int,
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerFactory) FindWorkerForContainerByOwner(arg1 db.ContainerOwner, arg2 int, arg3 atc.Tags) (db.Worker, bool, error) {
-	fake.findWorkerForContainerByOwnerMutex.Lock()
-	ret, specificReturn := fake.findWorkerForContainerByOwnerReturnsOnCall[len(fake.findWorkerForContainerByOwnerArgsForCall)]
-	fake.findWorkerForContainerByOwnerArgsForCall = append(fake.findWorkerForContainerByOwnerArgsForCall, struct {
+func (fake *FakeWorkerFactory) FindWorkersForContainerByOwner(arg1 db.ContainerOwner) ([]db.Worker, error) {
+	fake.findWorkersForContainerByOwnerMutex.Lock()
+	ret, specificReturn := fake.findWorkersForContainerByOwnerReturnsOnCall[len(fake.findWorkersForContainerByOwnerArgsForCall)]
+	fake.findWorkersForContainerByOwnerArgsForCall = append(fake.findWorkersForContainerByOwnerArgsForCall, struct {
 		arg1 db.ContainerOwner
-		arg2 int
-		arg3 atc.Tags
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("FindWorkerForContainerByOwner", []interface{}{arg1, arg2, arg3})
-	fake.findWorkerForContainerByOwnerMutex.Unlock()
-	if fake.FindWorkerForContainerByOwnerStub != nil {
-		return fake.FindWorkerForContainerByOwnerStub(arg1, arg2, arg3)
+	}{arg1})
+	fake.recordInvocation("FindWorkersForContainerByOwner", []interface{}{arg1})
+	fake.findWorkersForContainerByOwnerMutex.Unlock()
+	if fake.FindWorkersForContainerByOwnerStub != nil {
+		return fake.FindWorkersForContainerByOwnerStub(arg1)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findWorkerForContainerByOwnerReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	fakeReturns := fake.findWorkersForContainerByOwnerReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeWorkerFactory) FindWorkerForContainerByOwnerCallCount() int {
-	fake.findWorkerForContainerByOwnerMutex.RLock()
-	defer fake.findWorkerForContainerByOwnerMutex.RUnlock()
-	return len(fake.findWorkerForContainerByOwnerArgsForCall)
+func (fake *FakeWorkerFactory) FindWorkersForContainerByOwnerCallCount() int {
+	fake.findWorkersForContainerByOwnerMutex.RLock()
+	defer fake.findWorkersForContainerByOwnerMutex.RUnlock()
+	return len(fake.findWorkersForContainerByOwnerArgsForCall)
 }
 
-func (fake *FakeWorkerFactory) FindWorkerForContainerByOwnerCalls(stub func(db.ContainerOwner, int, atc.Tags) (db.Worker, bool, error)) {
-	fake.findWorkerForContainerByOwnerMutex.Lock()
-	defer fake.findWorkerForContainerByOwnerMutex.Unlock()
-	fake.FindWorkerForContainerByOwnerStub = stub
+func (fake *FakeWorkerFactory) FindWorkersForContainerByOwnerCalls(stub func(db.ContainerOwner) ([]db.Worker, error)) {
+	fake.findWorkersForContainerByOwnerMutex.Lock()
+	defer fake.findWorkersForContainerByOwnerMutex.Unlock()
+	fake.FindWorkersForContainerByOwnerStub = stub
 }
 
-func (fake *FakeWorkerFactory) FindWorkerForContainerByOwnerArgsForCall(i int) (db.ContainerOwner, int, atc.Tags) {
-	fake.findWorkerForContainerByOwnerMutex.RLock()
-	defer fake.findWorkerForContainerByOwnerMutex.RUnlock()
-	argsForCall := fake.findWorkerForContainerByOwnerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+func (fake *FakeWorkerFactory) FindWorkersForContainerByOwnerArgsForCall(i int) db.ContainerOwner {
+	fake.findWorkersForContainerByOwnerMutex.RLock()
+	defer fake.findWorkersForContainerByOwnerMutex.RUnlock()
+	argsForCall := fake.findWorkersForContainerByOwnerArgsForCall[i]
+	return argsForCall.arg1
 }
 
-func (fake *FakeWorkerFactory) FindWorkerForContainerByOwnerReturns(result1 db.Worker, result2 bool, result3 error) {
-	fake.findWorkerForContainerByOwnerMutex.Lock()
-	defer fake.findWorkerForContainerByOwnerMutex.Unlock()
-	fake.FindWorkerForContainerByOwnerStub = nil
-	fake.findWorkerForContainerByOwnerReturns = struct {
-		result1 db.Worker
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+func (fake *FakeWorkerFactory) FindWorkersForContainerByOwnerReturns(result1 []db.Worker, result2 error) {
+	fake.findWorkersForContainerByOwnerMutex.Lock()
+	defer fake.findWorkersForContainerByOwnerMutex.Unlock()
+	fake.FindWorkersForContainerByOwnerStub = nil
+	fake.findWorkersForContainerByOwnerReturns = struct {
+		result1 []db.Worker
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeWorkerFactory) FindWorkerForContainerByOwnerReturnsOnCall(i int, result1 db.Worker, result2 bool, result3 error) {
-	fake.findWorkerForContainerByOwnerMutex.Lock()
-	defer fake.findWorkerForContainerByOwnerMutex.Unlock()
-	fake.FindWorkerForContainerByOwnerStub = nil
-	if fake.findWorkerForContainerByOwnerReturnsOnCall == nil {
-		fake.findWorkerForContainerByOwnerReturnsOnCall = make(map[int]struct {
-			result1 db.Worker
-			result2 bool
-			result3 error
+func (fake *FakeWorkerFactory) FindWorkersForContainerByOwnerReturnsOnCall(i int, result1 []db.Worker, result2 error) {
+	fake.findWorkersForContainerByOwnerMutex.Lock()
+	defer fake.findWorkersForContainerByOwnerMutex.Unlock()
+	fake.FindWorkersForContainerByOwnerStub = nil
+	if fake.findWorkersForContainerByOwnerReturnsOnCall == nil {
+		fake.findWorkersForContainerByOwnerReturnsOnCall = make(map[int]struct {
+			result1 []db.Worker
+			result2 error
 		})
 	}
-	fake.findWorkerForContainerByOwnerReturnsOnCall[i] = struct {
-		result1 db.Worker
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+	fake.findWorkersForContainerByOwnerReturnsOnCall[i] = struct {
+		result1 []db.Worker
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeWorkerFactory) GetWorker(arg1 string) (db.Worker, bool, error) {
@@ -556,8 +547,8 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.buildContainersCountPerWorkerMutex.RLock()
 	defer fake.buildContainersCountPerWorkerMutex.RUnlock()
-	fake.findWorkerForContainerByOwnerMutex.RLock()
-	defer fake.findWorkerForContainerByOwnerMutex.RUnlock()
+	fake.findWorkersForContainerByOwnerMutex.RLock()
+	defer fake.findWorkersForContainerByOwnerMutex.RUnlock()
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
 	fake.heartbeatWorkerMutex.RLock()

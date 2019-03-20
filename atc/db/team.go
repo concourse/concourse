@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -13,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/lib/pq"
 )
 
@@ -44,21 +44,26 @@ type Team interface {
 	OrderPipelines([]string) error
 
 	CreateOneOffBuild() (Build, error)
+	CreateStartedBuild(plan atc.Plan) (Build, error)
+
 	PrivateAndPublicBuilds(Page) ([]Build, Pagination, error)
 	Builds(page Page) ([]Build, Pagination, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
 	SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error)
 	Workers() ([]Worker, error)
+	FindVolumeForWorkerArtifact(int) (CreatedVolume, bool, error)
 
 	Containers(lager.Logger) ([]Container, error)
 	IsCheckContainer(string) (bool, error)
 	IsContainerWithinTeam(string, bool) (bool, error)
+
 	FindContainerByHandle(string) (Container, bool, error)
 	FindCheckContainers(lager.Logger, string, string, creds.VariablesFactory) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
+	FindWorkerForVolume(handle string) (Worker, bool, error)
 
 	UpdateProviderAuth(auth atc.TeamAuth) error
 }
@@ -110,9 +115,40 @@ func (t *team) Workers() ([]Worker, error) {
 	}))
 }
 
+func (t *team) FindVolumeForWorkerArtifact(artifactID int) (CreatedVolume, bool, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	artifact, found, err := getWorkerArtifact(tx, t.conn, artifactID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return artifact.Volume(t.ID())
+}
+
 func (t *team) FindWorkerForContainer(handle string) (Worker, bool, error) {
 	return getWorker(t.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
 		sq.Eq{"c.handle": handle},
+	}))
+}
+
+func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
+	return getWorker(t.conn, workersQuery.Join("volumes v ON v.worker_name = w.name").Where(sq.And{
+		sq.Eq{"v.handle": handle},
 	}))
 }
 
@@ -648,6 +684,55 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 	return build, nil
 }
 
+func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	metadata, err := json.Marshal(plan)
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedPlan, nonce, err := t.conn.EncryptionStrategy().Encrypt(metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	build := &build{conn: t.conn, lockFactory: t.lockFactory}
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":         sq.Expr("nextval('one_off_name')"),
+		"team_id":      t.id,
+		"status":       BuildStatusStarted,
+		"start_time":   sq.Expr("now()"),
+		"schema":       "exec.v2",
+		"private_plan": encryptedPlan,
+		"public_plan":  plan.Public(),
+		"nonce":        nonce,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = build.saveEvent(tx, event.Status{
+		Status: atc.StatusStarted,
+		Time:   build.StartTime().Unix(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return build, t.conn.Bus().Notify(buildEventsChannel(build.id))
+}
+
 func (t *team) PrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {
 	newBuildsQuery := buildsQuery.
 		Where(sq.Or{sq.Eq{"p.public": true}, sq.Eq{"t.id": t.id}})
@@ -820,7 +905,7 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string
 		UPDATE jobs
 		SET config = $3, interruptible = $4, active = true, nonce = $5, tags = $6
 		WHERE name = $1 AND pipeline_id = $2
-	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, "{"+strings.Join(groups, ",")+"}")
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, pq.Array(groups))
 	if err != nil {
 		return err
 	}
@@ -832,7 +917,7 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string
 	_, err = tx.Exec(`
 		INSERT INTO jobs (name, pipeline_id, config, interruptible, active, nonce, tags)
 		VALUES ($1, $2, $3, $4, true, $5, $6)
-	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, "{"+strings.Join(groups, ",")+"}")
+	`, job.Name, pipelineID, encryptedPayload, job.Interruptible, nonce, pq.Array(groups))
 
 	return swallowUniqueViolation(err)
 }

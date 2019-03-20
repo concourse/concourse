@@ -1,10 +1,11 @@
-port module Subscription exposing (Subscription(..), map, runSubscription)
+port module Subscription exposing (Delivery(..), Interval(..), Subscription(..), runSubscription)
 
-import AnimationFrame
-import EventSource
+import Build.StepTree.Models exposing (BuildEventEnvelope)
+import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
+import Json.Decode
+import Json.Encode
 import Keyboard
 import Mouse
-import Msgs exposing (Msg(..))
 import Scroll
 import Time
 import Window
@@ -16,119 +17,85 @@ port newUrl : (String -> msg) -> Sub msg
 port tokenReceived : (Maybe String -> msg) -> Sub msg
 
 
-type Subscription m
-    = OnClockTick Time.Time (Time.Time -> m)
-    | OnAnimationFrame m
-    | OnMouseMove m
-    | OnMouseClick m
-    | OnKeyPress (Keyboard.KeyCode -> m)
+port eventSource : (Json.Encode.Value -> msg) -> Sub msg
+
+
+type Subscription
+    = OnClockTick Interval
+    | OnMouse
     | OnKeyDown
     | OnKeyUp
-    | OnScrollFromWindowBottom (Scroll.FromBottom -> m)
-    | OnWindowResize (Window.Size -> m)
-    | FromEventSource ( String, List String ) (EventSource.Msg -> m)
-    | OnNewUrl (String -> m)
-    | OnTokenReceived (Maybe String -> m)
-    | Conditionally Bool (Subscription m)
-    | WhenPresent (Maybe (Subscription m))
+    | OnScrollFromWindowBottom
+    | OnWindowResize
+    | FromEventSource ( String, List String )
+    | OnNonHrefLinkClicked
+    | OnTokenReceived
 
 
-runSubscription : Subscription Msg -> Sub Msg
+type Delivery
+    = KeyDown Keyboard.KeyCode
+    | KeyUp Keyboard.KeyCode
+    | Moused
+    | ClockTicked Interval Time.Time
+    | ScrolledFromWindowBottom Scroll.FromBottom
+    | WindowResized Window.Size
+    | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
+    | TokenReceived (Maybe String)
+    | EventsReceived (Result String (List BuildEventEnvelope))
+
+
+type Interval
+    = OneSecond
+    | FiveSeconds
+    | OneMinute
+
+
+runSubscription : Subscription -> Sub Delivery
 runSubscription s =
     case s of
-        OnClockTick t m ->
-            Time.every t m
+        OnClockTick t ->
+            Time.every (intervalToTime t) (ClockTicked t)
 
-        OnAnimationFrame m ->
-            AnimationFrame.times (always m)
-
-        OnMouseMove m ->
-            Mouse.moves (always m)
-
-        OnMouseClick m ->
-            Mouse.clicks (always m)
-
-        OnKeyPress m ->
-            Keyboard.presses m
+        OnMouse ->
+            Sub.batch
+                [ Mouse.moves (always Moused)
+                , Mouse.clicks (always Moused)
+                ]
 
         OnKeyDown ->
-            Keyboard.downs Msgs.KeyDown
+            Keyboard.downs KeyDown
 
         OnKeyUp ->
-            Keyboard.ups Msgs.KeyUp
+            Keyboard.ups KeyUp
 
-        OnScrollFromWindowBottom m ->
-            Scroll.fromWindowBottom m
+        OnScrollFromWindowBottom ->
+            Scroll.fromWindowBottom ScrolledFromWindowBottom
 
-        OnWindowResize m ->
-            Window.resizes m
+        OnWindowResize ->
+            Window.resizes WindowResized
 
-        FromEventSource key m ->
-            EventSource.listen key m
+        FromEventSource key ->
+            eventSource
+                (Json.Decode.decodeValue
+                    (Json.Decode.list decodeBuildEventEnvelope)
+                    >> EventsReceived
+                )
 
-        OnNewUrl m ->
-            newUrl m
+        OnNonHrefLinkClicked ->
+            newUrl NonHrefLinkClicked
 
-        OnTokenReceived m ->
-            tokenReceived m
-
-        Conditionally True m ->
-            runSubscription m
-
-        Conditionally False m ->
-            Sub.none
-
-        WhenPresent (Just s) ->
-            runSubscription s
-
-        WhenPresent Nothing ->
-            Sub.none
+        OnTokenReceived ->
+            tokenReceived TokenReceived
 
 
-map : (m -> n) -> Subscription m -> Subscription n
-map f s =
-    case s of
-        OnClockTick t m ->
-            OnClockTick t (m >> f)
+intervalToTime : Interval -> Time.Time
+intervalToTime t =
+    case t of
+        OneSecond ->
+            Time.second
 
-        OnAnimationFrame m ->
-            OnAnimationFrame (f m)
+        FiveSeconds ->
+            5 * Time.second
 
-        OnMouseMove m ->
-            OnMouseMove (f m)
-
-        OnMouseClick m ->
-            OnMouseClick (f m)
-
-        OnKeyPress m ->
-            OnKeyPress (m >> f)
-
-        OnKeyDown ->
-            OnKeyDown
-
-        OnKeyUp ->
-            OnKeyUp
-
-        OnScrollFromWindowBottom m ->
-            OnScrollFromWindowBottom (m >> f)
-
-        OnWindowResize m ->
-            OnWindowResize (m >> f)
-
-        FromEventSource key m ->
-            FromEventSource key (m >> f)
-
-        OnNewUrl m ->
-            OnNewUrl (m >> f)
-
-        OnTokenReceived m ->
-            OnTokenReceived (m >> f)
-
-        Conditionally b m ->
-            Conditionally b (map f m)
-
-        WhenPresent (Just s) ->
-            WhenPresent (Just (map f s))
-
-        WhenPresent Nothing ->
-            WhenPresent Nothing
+        OneMinute ->
+            Time.minute

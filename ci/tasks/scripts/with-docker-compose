@@ -4,25 +4,32 @@ set -e -u
 
 source concourse/ci/tasks/scripts/docker-helpers.sh
 
-compose=$PWD/concourse/docker-compose.yml
-function cleanup() {
-  docker-compose -f $compose logs > /tmp/docker-compose.log || true
-  docker-compose -f $compose down
-  stop_docker
-}
-
-trap cleanup EXIT
-
 start_docker
 
 [ -d dev-image ] && docker load -i dev-image/image.tar
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
 
 pushd concourse
-  docker-compose \
-    -f docker-compose.yml \
-    -f docker-compose.nested-pool.yml \
-    up -d
+  if [ "$BUILD" = "true" ]; then
+    docker-compose \
+      -f docker-compose.yml \
+      -f ci/overrides/docker-compose.ci.yml \
+      up --build -d
+  else
+    ./ci/tasks/scripts/generate-keys
+
+    docker-compose \
+      -f docker-compose.yml \
+      -f ci/overrides/docker-compose.ci.yml \
+      -f ci/overrides/docker-compose.no-build.yml \
+      up --no-build -d
+  fi
 popd
 
 "$@"
+
+pushd concourse
+  docker-compose down
+popd
+
+stop_docker

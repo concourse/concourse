@@ -38,13 +38,14 @@ on.
 
 ## Development dependencies
 
-You'll need a few things installed in order to build and run Concourse during
+You'll need a few things installed in order to build, test and run Concourse during
 development:
 
 * [`go`](https://golang.org/dl/) v1.11.4+
 * [`git`](https://git-scm.com/) v2.11+
 * [`yarn`](https://yarnpkg.com/en/docs/install)
 * [`docker-compose`](https://docs.docker.com/compose/install/)
+* [`postgresql`](https://www.postgresql.org/download/)
 
 > *Concourse uses Go 1.11's module system, so make sure it's **not** cloned
 > under your `$GOPATH`.*
@@ -126,6 +127,14 @@ $ docker-compose up --build -d
 
 This can be run in a separate terminal while the original `docker-compose up`
 command is still running.
+
+In certain cases, when a change is done to the underlying development image (e.g. Go upgrade from 1.11 to 1.12), you
+will need to pull the latest version of `concourse/dev` image, so that `web` and `worker` containers can be built locally
+using the fresh image:
+```sh
+$ docker pull concourse/dev
+$ docker-compose up --build -d
+```   
 
 ### Working on the web UI
 
@@ -273,6 +282,11 @@ unused imports and variables, potential optimizations, etc. Powered by
 [elm-analyse](https://github.com/stil4m/elm-analyse). If you add the `-s` flag
 it will run a server at `localhost:3000` which allows for easier browsing, and
 even some automated fixes!
+
+### Elm formatting
+
+Run `yarn format` to format the elm code according to the official Elm Style
+Guide. Powered by [elm-format](https://github.com/avh4/elm-format).
 
 ### Running the acceptance tests (`testflight`)
 

@@ -7,10 +7,9 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/tedsuo/rata"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tedsuo/rata"
 )
 
 var _ = Describe("APIAuthWrappa", func() {
@@ -159,12 +158,11 @@ var _ = Describe("APIAuthWrappa", func() {
 
 				// authorized or public pipeline and public job
 				atc.BuildEvents:         checksIfPrivateJob(inputHandlers[atc.BuildEvents]),
+				atc.ListBuildArtifacts:  checksIfPrivateJob(inputHandlers[atc.ListBuildArtifacts]),
 				atc.GetBuildPreparation: checksIfPrivateJob(inputHandlers[atc.GetBuildPreparation]),
 
 				// resource belongs to authorized team
-				atc.AbortBuild:              checkWritePermissionForBuild(inputHandlers[atc.AbortBuild]),
-				atc.SendInputToBuildPlan:    checkWritePermissionForBuild(inputHandlers[atc.SendInputToBuildPlan]),
-				atc.ReadOutputFromBuildPlan: checkWritePermissionForBuild(inputHandlers[atc.ReadOutputFromBuildPlan]),
+				atc.AbortBuild: checkWritePermissionForBuild(inputHandlers[atc.AbortBuild]),
 
 				// resource belongs to authorized team
 				atc.PruneWorker:              checkTeamAccessForWorker(inputHandlers[atc.PruneWorker]),
@@ -238,6 +236,8 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.HidePipeline:            authorized(inputHandlers[atc.HidePipeline]),
 				atc.CreatePipelineBuild:     authorized(inputHandlers[atc.CreatePipelineBuild]),
 				atc.ClearTaskCache:          authorized(inputHandlers[atc.ClearTaskCache]),
+				atc.CreateArtifact:          authorized(inputHandlers[atc.CreateArtifact]),
+				atc.GetArtifact:             authorized(inputHandlers[atc.GetArtifact]),
 			}
 		})
 

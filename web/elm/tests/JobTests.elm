@@ -1,5 +1,7 @@
 module JobTests exposing (all)
 
+import Application.Application as Application
+import Application.Msgs as Msgs
 import Callback exposing (Callback(..))
 import Concourse exposing (Build, BuildId, BuildStatus(..), Job)
 import Concourse.Pagination exposing (Direction(..))
@@ -16,13 +18,11 @@ import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
-import Job exposing (update)
+import Job.Job as Job exposing (update)
 import Job.Msgs exposing (Msg(..))
-import Layout
-import Msgs
 import RemoteData
-import Routes
 import SubPage.Msgs
+import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -34,6 +34,7 @@ import Test.Html.Selector as Selector
         , style
         , text
         )
+import Time
 
 
 all : Test
@@ -45,6 +46,12 @@ all =
                     { jobName = "some-job"
                     , pipelineName = "some-pipeline"
                     , teamName = "some-team"
+                    }
+
+                jobInfo =
+                    { jobName = "job"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
                     }
 
                 someBuild : Build
@@ -84,19 +91,22 @@ all =
                     Job.init
                         { jobId = someJobInfo
                         , paging = Nothing
-                        , csrfToken = ""
                         }
                         |> Tuple.first
+
+                csrfToken : String
+                csrfToken =
+                    "csrf_token"
 
                 init :
                     { disabled : Bool, paused : Bool }
                     -> ()
-                    -> Layout.Model
+                    -> Application.Model
                 init { disabled, paused } _ =
-                    Layout.init
+                    Application.init
                         { turbulenceImgSrc = ""
                         , notFoundImgSrc = ""
-                        , csrfToken = ""
+                        , csrfToken = csrfToken
                         , authToken = ""
                         , pipelineRunningKeyframes = ""
                         }
@@ -113,7 +123,7 @@ all =
                         , password = ""
                         }
                         |> Tuple.first
-                        |> Layout.handleCallback
+                        |> Application.handleCallback
                             (Effects.SubPage 1)
                             (JobFetched <|
                                 Ok
@@ -138,23 +148,20 @@ all =
 
                 loadingIndicatorSelector : List Selector.Selector
                 loadingIndicatorSelector =
-                    [ style [ ( "display", "flex" ) ]
-                    , containing
-                        [ style
-                            [ ( "animation"
-                              , "container-rotate 1568ms linear infinite"
-                              )
-                            , ( "height", "14px" )
-                            , ( "width", "14px" )
-                            , ( "margin", "7px" )
-                            ]
+                    [ style
+                        [ ( "animation"
+                          , "container-rotate 1568ms linear infinite"
+                          )
+                        , ( "height", "14px" )
+                        , ( "width", "14px" )
+                        , ( "margin", "7px" )
                         ]
                     ]
             in
             [ describe "while page is loading"
                 [ test "shows two spinners before anything has loaded" <|
                     \_ ->
-                        Layout.init
+                        Application.init
                             { turbulenceImgSrc = ""
                             , notFoundImgSrc = ""
                             , csrfToken = ""
@@ -174,13 +181,13 @@ all =
                             , password = ""
                             }
                             |> Tuple.first
-                            |> Layout.view
+                            |> Application.view
                             |> Query.fromHtml
                             |> Query.findAll loadingIndicatorSelector
                             |> Query.count (Expect.equal 2)
                 , test "loading build has spinners for inputs and outputs" <|
                     init { disabled = False, paused = False }
-                        >> Layout.handleCallback
+                        >> Application.handleCallback
                             (Effects.SubPage 1)
                             (JobBuildsFetched <|
                                 let
@@ -215,7 +222,7 @@ all =
                                     }
                             )
                         >> Tuple.first
-                        >> Layout.view
+                        >> Application.view
                         >> Query.fromHtml
                         >> Expect.all
                             [ Query.find [ class "inputs" ]
@@ -226,7 +233,7 @@ all =
                 ]
             , test "build header lays out contents horizontally" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ class "build-header" ]
                     >> Query.has
@@ -237,20 +244,39 @@ all =
                         ]
             , test "header has play/pause button at the left" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ class "build-header" ]
                     >> Query.has [ id "pause-toggle" ]
-            , test "play/pause has grey background" <|
+            , test "play/pause has background of the header color, faded" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pause-toggle" ]
                     >> Query.has
                         [ style
                             [ ( "padding", "10px" )
                             , ( "border", "none" )
-                            , ( "background-color", middleGrey )
+                            , ( "background-color", darkGreen )
+                            , ( "outline", "none" )
+                            ]
+                        ]
+            , test "hover play/pause has background of the header color" <|
+                init { disabled = False, paused = False }
+                    >> Application.update
+                        (Msgs.SubMsg 1 <|
+                            SubPage.Msgs.JobMsg <|
+                                Job.Msgs.Hover Job.Msgs.Toggle
+                        )
+                    >> Tuple.first
+                    >> Application.view
+                    >> Query.fromHtml
+                    >> Query.find [ id "pause-toggle" ]
+                    >> Query.has
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border", "none" )
+                            , ( "background-color", brightGreen )
                             , ( "outline", "none" )
                             ]
                         ]
@@ -259,10 +285,10 @@ all =
                 , setup =
                     init { disabled = False, paused = False } ()
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pause-toggle" ]
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey pause icon"
                     , selector =
@@ -295,10 +321,10 @@ all =
                 , setup =
                     init { disabled = False, paused = True } ()
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pause-toggle" ]
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey play icon"
                     , selector =
@@ -326,9 +352,9 @@ all =
                         SubPage.Msgs.JobMsg <|
                             Job.Msgs.Hover Job.Msgs.None
                 }
-            , test "trigger build button has grey background" <|
+            , test "trigger build button has background of the header color, faded" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find
                         [ attribute <|
@@ -338,13 +364,35 @@ all =
                         [ style
                             [ ( "padding", "10px" )
                             , ( "border", "none" )
-                            , ( "background-color", middleGrey )
+                            , ( "background-color", darkGreen )
+                            , ( "outline", "none" )
+                            ]
+                        ]
+            , test "hovered trigger build button has background of the header color" <|
+                init { disabled = False, paused = False }
+                    >> Application.update
+                        (Msgs.SubMsg 1 <|
+                            SubPage.Msgs.JobMsg <|
+                                Job.Msgs.Hover Job.Msgs.Trigger
+                        )
+                    >> Tuple.first
+                    >> Application.view
+                    >> Query.fromHtml
+                    >> Query.find
+                        [ attribute <|
+                            Attr.attribute "aria-label" "Trigger Build"
+                        ]
+                    >> Query.has
+                        [ style
+                            [ ( "padding", "10px" )
+                            , ( "border", "none" )
+                            , ( "background-color", brightGreen )
                             , ( "outline", "none" )
                             ]
                         ]
             , test "trigger build button has 'plus' icon" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find
                         [ attribute <|
@@ -363,13 +411,13 @@ all =
                 , setup =
                     init { disabled = False, paused = False } ()
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey plus icon"
                     , selector =
@@ -402,13 +450,13 @@ all =
                 , setup =
                     init { disabled = True, paused = False } ()
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey plus icon"
                     , selector =
@@ -459,7 +507,7 @@ all =
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
@@ -494,7 +542,7 @@ all =
                                 }
                         )
                     >> Tuple.first
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ class "inputs" ]
                     >> Query.children []
@@ -525,7 +573,7 @@ all =
                         ]
             , test "outputs icon on build" <|
                 init { disabled = False, paused = False }
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
@@ -560,7 +608,7 @@ all =
                                 }
                         )
                     >> Tuple.first
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ class "outputs" ]
                     >> Query.children []
@@ -591,7 +639,7 @@ all =
                         ]
             , test "pagination header lays out horizontally" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pagination-header" ]
                     >> Query.has
@@ -605,7 +653,7 @@ all =
                         ]
             , test "the word 'builds' is bold and indented" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pagination-header" ]
                     >> Query.children []
@@ -619,7 +667,7 @@ all =
                         ]
             , test "pagination lays out horizontally" <|
                 init { disabled = False, paused = False }
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pagination" ]
                     >> Query.has
@@ -630,7 +678,7 @@ all =
                         ]
             , test "pagination chevrons with no pages" <|
                 init { disabled = False, paused = False }
-                    >> Layout.handleCallback
+                    >> Application.handleCallback
                         (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
@@ -665,7 +713,7 @@ all =
                                 }
                         )
                     >> Tuple.first
-                    >> Layout.view
+                    >> Application.view
                     >> Query.fromHtml
                     >> Query.find [ id "pagination" ]
                     >> Query.children []
@@ -753,7 +801,7 @@ all =
                             }
                     in
                     init { disabled = False, paused = False } ()
-                        |> Layout.handleCallback
+                        |> Application.handleCallback
                             (Effects.SubPage 1)
                             (JobBuildsFetched <|
                                 Ok
@@ -767,12 +815,12 @@ all =
                             )
                         |> Tuple.first
                 , query =
-                    Layout.view
+                    Application.view
                         >> Query.fromHtml
                         >> Query.find [ id "pagination" ]
                         >> Query.children []
                         >> Query.index 0
-                , updateFunc = \msg -> Layout.update msg >> Tuple.first
+                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "white left chevron"
                     , selector =
@@ -873,7 +921,7 @@ all =
                                             }
                                         }
                                 )
-                                defaultModel
+                                ( defaultModel, [] )
             , test "JobBuildsFetched error" <|
                 \_ ->
                     Expect.equal
@@ -882,7 +930,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (JobBuildsFetched <| Err Http.NetworkError)
-                                defaultModel
+                                ( defaultModel, [] )
             , test "JobFetched" <|
                 \_ ->
                     Expect.equal
@@ -891,7 +939,7 @@ all =
                         }
                     <|
                         Tuple.first <|
-                            Job.handleCallback (JobFetched <| Ok someJob) defaultModel
+                            Job.handleCallback (JobFetched <| Ok someJob) ( defaultModel, [] )
             , test "JobFetched error" <|
                 \_ ->
                     Expect.equal
@@ -900,7 +948,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (JobFetched <| Err Http.NetworkError)
-                                defaultModel
+                                ( defaultModel, [] )
             , test "BuildResourcesFetched" <|
                 \_ ->
                     let
@@ -926,7 +974,7 @@ all =
                     <|
                         Tuple.first <|
                             Job.handleCallback (BuildResourcesFetched (Ok ( 1, buildResources )))
-                                defaultModel
+                                ( defaultModel, [] )
             , test "BuildResourcesFetched error" <|
                 \_ ->
                     Expect.equal
@@ -935,7 +983,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (BuildResourcesFetched (Err Http.NetworkError))
-                                defaultModel
+                                ( defaultModel, [] )
             , test "TogglePaused" <|
                 \_ ->
                     Expect.equal
@@ -947,7 +995,7 @@ all =
                         Tuple.first <|
                             update
                                 TogglePaused
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled" <|
                 \_ ->
                     Expect.equal
@@ -959,7 +1007,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (PausedToggled <| Ok ())
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled error" <|
                 \_ ->
                     Expect.equal
@@ -968,7 +1016,7 @@ all =
                         Tuple.first <|
                             Job.handleCallback
                                 (PausedToggled <| Err Http.NetworkError)
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled unauthorized" <|
                 \_ ->
                     Expect.equal
@@ -988,6 +1036,54 @@ all =
                                             , body = ""
                                             }
                                 )
-                                { defaultModel | job = RemoteData.Success someJob }
+                                ( { defaultModel | job = RemoteData.Success someJob }, [] )
+            , test "page is subscribed to one and five second timers" <|
+                init { disabled = False, paused = False }
+                    >> Application.subscriptions
+                    >> Expect.all
+                        [ List.member (Subscription.OnClockTick OneSecond) >> Expect.true "not on one second?"
+                        , List.member (Subscription.OnClockTick FiveSeconds) >> Expect.true "not on five seconds?"
+                        ]
+            , test "on five-second timer, refreshes job and builds" <|
+                init { disabled = False, paused = False }
+                    >> Application.update (Msgs.DeliveryReceived <| ClockTicked FiveSeconds 0)
+                    >> Tuple.second
+                    >> Expect.equal
+                        [ ( Effects.SubPage 1, csrfToken, Effects.FetchJobBuilds jobInfo Nothing )
+                        , ( Effects.SubPage 1, csrfToken, Effects.FetchJob jobInfo )
+                        ]
+            , test "on one-second timer, updates build timestamps" <|
+                init { disabled = False, paused = False }
+                    >> Application.handleCallback
+                        (Effects.SubPage 1)
+                        (Callback.JobBuildsFetched <|
+                            Ok
+                                { content = [ someBuild ]
+                                , pagination =
+                                    { nextPage = Nothing
+                                    , previousPage = Nothing
+                                    }
+                                }
+                        )
+                    >> Tuple.first
+                    >> Application.update
+                        (Msgs.DeliveryReceived <|
+                            ClockTicked OneSecond (2 * Time.second)
+                        )
+                    >> Tuple.first
+                    >> Application.view
+                    >> Query.fromHtml
+                    >> Query.find [ class "js-build" ]
+                    >> Query.has [ text "2s ago" ]
             ]
         ]
+
+
+darkGreen : String
+darkGreen =
+    "#419867"
+
+
+brightGreen : String
+brightGreen =
+    "#11c560"

@@ -172,3 +172,20 @@ func (team *team) Builds(page Page) ([]atc.Build, Pagination, error) {
 		return nil, Pagination{}, err
 	}
 }
+
+func (client *client) ListBuildArtifacts(buildID string) ([]atc.WorkerArtifact, error) {
+	params := rata.Params{
+		"build_id": buildID,
+	}
+
+	var artifacts []atc.WorkerArtifact
+
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.ListBuildArtifacts,
+		Params:      params,
+	}, &internal.Response{
+		Result: &artifacts,
+	})
+
+	return artifacts, err
+}

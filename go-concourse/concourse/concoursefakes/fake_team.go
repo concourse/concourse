@@ -2,10 +2,11 @@
 package concoursefakes
 
 import (
-	sync "sync"
+	"io"
+	"sync"
 
-	atc "github.com/concourse/concourse/atc"
-	concourse "github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type FakeTeam struct {
@@ -118,6 +119,19 @@ type FakeTeam struct {
 	}
 	clearTaskCacheReturnsOnCall map[int]struct {
 		result1 int64
+		result2 error
+	}
+	CreateArtifactStub        func(io.Reader) (atc.WorkerArtifact, error)
+	createArtifactMutex       sync.RWMutex
+	createArtifactArgsForCall []struct {
+		arg1 io.Reader
+	}
+	createArtifactReturns struct {
+		result1 atc.WorkerArtifact
+		result2 error
+	}
+	createArtifactReturnsOnCall map[int]struct {
+		result1 atc.WorkerArtifact
 		result2 error
 	}
 	CreateBuildStub        func(atc.Plan) (atc.Build, error)
@@ -263,6 +277,32 @@ type FakeTeam struct {
 	}
 	exposePipelineReturnsOnCall map[int]struct {
 		result1 bool
+		result2 error
+	}
+	GetArtifactStub        func(int) (io.ReadCloser, error)
+	getArtifactMutex       sync.RWMutex
+	getArtifactArgsForCall []struct {
+		arg1 int
+	}
+	getArtifactReturns struct {
+		result1 io.ReadCloser
+		result2 error
+	}
+	getArtifactReturnsOnCall map[int]struct {
+		result1 io.ReadCloser
+		result2 error
+	}
+	GetContainerStub        func(string) (atc.Container, error)
+	getContainerMutex       sync.RWMutex
+	getContainerArgsForCall []struct {
+		arg1 string
+	}
+	getContainerReturns struct {
+		result1 atc.Container
+		result2 error
+	}
+	getContainerReturnsOnCall map[int]struct {
+		result1 atc.Container
 		result2 error
 	}
 	HidePipelineStub        func(string) (bool, error)
@@ -1067,6 +1107,69 @@ func (fake *FakeTeam) ClearTaskCacheReturnsOnCall(i int, result1 int64, result2 
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) CreateArtifact(arg1 io.Reader) (atc.WorkerArtifact, error) {
+	fake.createArtifactMutex.Lock()
+	ret, specificReturn := fake.createArtifactReturnsOnCall[len(fake.createArtifactArgsForCall)]
+	fake.createArtifactArgsForCall = append(fake.createArtifactArgsForCall, struct {
+		arg1 io.Reader
+	}{arg1})
+	fake.recordInvocation("CreateArtifact", []interface{}{arg1})
+	fake.createArtifactMutex.Unlock()
+	if fake.CreateArtifactStub != nil {
+		return fake.CreateArtifactStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.createArtifactReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) CreateArtifactCallCount() int {
+	fake.createArtifactMutex.RLock()
+	defer fake.createArtifactMutex.RUnlock()
+	return len(fake.createArtifactArgsForCall)
+}
+
+func (fake *FakeTeam) CreateArtifactCalls(stub func(io.Reader) (atc.WorkerArtifact, error)) {
+	fake.createArtifactMutex.Lock()
+	defer fake.createArtifactMutex.Unlock()
+	fake.CreateArtifactStub = stub
+}
+
+func (fake *FakeTeam) CreateArtifactArgsForCall(i int) io.Reader {
+	fake.createArtifactMutex.RLock()
+	defer fake.createArtifactMutex.RUnlock()
+	argsForCall := fake.createArtifactArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) CreateArtifactReturns(result1 atc.WorkerArtifact, result2 error) {
+	fake.createArtifactMutex.Lock()
+	defer fake.createArtifactMutex.Unlock()
+	fake.CreateArtifactStub = nil
+	fake.createArtifactReturns = struct {
+		result1 atc.WorkerArtifact
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) CreateArtifactReturnsOnCall(i int, result1 atc.WorkerArtifact, result2 error) {
+	fake.createArtifactMutex.Lock()
+	defer fake.createArtifactMutex.Unlock()
+	fake.CreateArtifactStub = nil
+	if fake.createArtifactReturnsOnCall == nil {
+		fake.createArtifactReturnsOnCall = make(map[int]struct {
+			result1 atc.WorkerArtifact
+			result2 error
+		})
+	}
+	fake.createArtifactReturnsOnCall[i] = struct {
+		result1 atc.WorkerArtifact
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) CreateBuild(arg1 atc.Plan) (atc.Build, error) {
 	fake.createBuildMutex.Lock()
 	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
@@ -1716,6 +1819,132 @@ func (fake *FakeTeam) ExposePipelineReturnsOnCall(i int, result1 bool, result2 e
 	}
 	fake.exposePipelineReturnsOnCall[i] = struct {
 		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) GetArtifact(arg1 int) (io.ReadCloser, error) {
+	fake.getArtifactMutex.Lock()
+	ret, specificReturn := fake.getArtifactReturnsOnCall[len(fake.getArtifactArgsForCall)]
+	fake.getArtifactArgsForCall = append(fake.getArtifactArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("GetArtifact", []interface{}{arg1})
+	fake.getArtifactMutex.Unlock()
+	if fake.GetArtifactStub != nil {
+		return fake.GetArtifactStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getArtifactReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) GetArtifactCallCount() int {
+	fake.getArtifactMutex.RLock()
+	defer fake.getArtifactMutex.RUnlock()
+	return len(fake.getArtifactArgsForCall)
+}
+
+func (fake *FakeTeam) GetArtifactCalls(stub func(int) (io.ReadCloser, error)) {
+	fake.getArtifactMutex.Lock()
+	defer fake.getArtifactMutex.Unlock()
+	fake.GetArtifactStub = stub
+}
+
+func (fake *FakeTeam) GetArtifactArgsForCall(i int) int {
+	fake.getArtifactMutex.RLock()
+	defer fake.getArtifactMutex.RUnlock()
+	argsForCall := fake.getArtifactArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) GetArtifactReturns(result1 io.ReadCloser, result2 error) {
+	fake.getArtifactMutex.Lock()
+	defer fake.getArtifactMutex.Unlock()
+	fake.GetArtifactStub = nil
+	fake.getArtifactReturns = struct {
+		result1 io.ReadCloser
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) GetArtifactReturnsOnCall(i int, result1 io.ReadCloser, result2 error) {
+	fake.getArtifactMutex.Lock()
+	defer fake.getArtifactMutex.Unlock()
+	fake.GetArtifactStub = nil
+	if fake.getArtifactReturnsOnCall == nil {
+		fake.getArtifactReturnsOnCall = make(map[int]struct {
+			result1 io.ReadCloser
+			result2 error
+		})
+	}
+	fake.getArtifactReturnsOnCall[i] = struct {
+		result1 io.ReadCloser
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) GetContainer(arg1 string) (atc.Container, error) {
+	fake.getContainerMutex.Lock()
+	ret, specificReturn := fake.getContainerReturnsOnCall[len(fake.getContainerArgsForCall)]
+	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("GetContainer", []interface{}{arg1})
+	fake.getContainerMutex.Unlock()
+	if fake.GetContainerStub != nil {
+		return fake.GetContainerStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getContainerReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) GetContainerCallCount() int {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	return len(fake.getContainerArgsForCall)
+}
+
+func (fake *FakeTeam) GetContainerCalls(stub func(string) (atc.Container, error)) {
+	fake.getContainerMutex.Lock()
+	defer fake.getContainerMutex.Unlock()
+	fake.GetContainerStub = stub
+}
+
+func (fake *FakeTeam) GetContainerArgsForCall(i int) string {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	argsForCall := fake.getContainerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) GetContainerReturns(result1 atc.Container, result2 error) {
+	fake.getContainerMutex.Lock()
+	defer fake.getContainerMutex.Unlock()
+	fake.GetContainerStub = nil
+	fake.getContainerReturns = struct {
+		result1 atc.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) GetContainerReturnsOnCall(i int, result1 atc.Container, result2 error) {
+	fake.getContainerMutex.Lock()
+	defer fake.getContainerMutex.Unlock()
+	fake.GetContainerStub = nil
+	if fake.getContainerReturnsOnCall == nil {
+		fake.getContainerReturnsOnCall = make(map[int]struct {
+			result1 atc.Container
+			result2 error
+		})
+	}
+	fake.getContainerReturnsOnCall[i] = struct {
+		result1 atc.Container
 		result2 error
 	}{result1, result2}
 }
@@ -3216,6 +3445,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.checkResourceTypeMutex.RUnlock()
 	fake.clearTaskCacheMutex.RLock()
 	defer fake.clearTaskCacheMutex.RUnlock()
+	fake.createArtifactMutex.RLock()
+	defer fake.createArtifactMutex.RUnlock()
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	fake.createJobBuildMutex.RLock()
@@ -3236,6 +3467,10 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.enableResourceVersionMutex.RUnlock()
 	fake.exposePipelineMutex.RLock()
 	defer fake.exposePipelineMutex.RUnlock()
+	fake.getArtifactMutex.RLock()
+	defer fake.getArtifactMutex.RUnlock()
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
 	fake.hidePipelineMutex.RLock()
 	defer fake.hidePipelineMutex.RUnlock()
 	fake.jobMutex.RLock()

@@ -1027,7 +1027,8 @@ this is super secure
 							Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
 
 							Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
-							Eventually(sess).Should(gbytes.Say("  - run the unpause-pipeline command"))
+							Eventually(sess).Should(gbytes.Say("  - run the unpause-pipeline command:"))
+							Eventually(sess).Should(gbytes.Say("    fly -t " + targetName + " unpause-pipeline -p awesome-pipeline"))
 							Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
 
 							<-sess.Exited

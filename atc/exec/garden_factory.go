@@ -6,42 +6,48 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
-
 	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
 
 type gardenFactory struct {
-	workerClient          worker.Client
+	pool                  worker.Pool
+	client                worker.Client
 	resourceFetcher       resource.Fetcher
-	resourceFactory       resource.ResourceFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	variablesFactory      creds.VariablesFactory
 	defaultLimits         atc.ContainerLimits
+	strategy              worker.ContainerPlacementStrategy
+	resourceFactory       resource.ResourceFactory
 }
 
 func NewGardenFactory(
-	workerClient worker.Client,
+	pool worker.Pool,
+	client worker.Client,
 	resourceFetcher resource.Fetcher,
-	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	variablesFactory creds.VariablesFactory,
 	defaultLimits atc.ContainerLimits,
+	strategy worker.ContainerPlacementStrategy,
+	resourceFactory resource.ResourceFactory,
 ) Factory {
 	return &gardenFactory{
-		workerClient:          workerClient,
+		pool:                  pool,
+		client:                client,
 		resourceFetcher:       resourceFetcher,
-		resourceFactory:       resourceFactory,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		variablesFactory:      variablesFactory,
 		defaultLimits:         defaultLimits,
+		strategy:              strategy,
+		resourceFactory:       resourceFactory,
 	}
 }
 
@@ -78,6 +84,9 @@ func (factory *gardenFactory) Get(
 		stepMetadata,
 
 		creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
+
+		factory.strategy,
+		factory.pool,
 	)
 
 	return LogError(getStep, delegate)
@@ -120,13 +129,16 @@ func (factory *gardenFactory) Put(
 		putInputs,
 
 		delegate,
-		factory.resourceFactory,
+		factory.pool,
 		factory.resourceConfigFactory,
 		plan.ID,
 		workerMetadata,
 		stepMetadata,
 
 		creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
+
+		factory.strategy,
+		factory.resourceFactory,
 	)
 
 	return LogError(putStep, delegate)
@@ -139,7 +151,7 @@ func (factory *gardenFactory) Task(
 	containerMetadata db.ContainerMetadata,
 	delegate TaskDelegate,
 ) Step {
-	workingDirectory := factory.taskWorkingDirectory(worker.ArtifactName(plan.Task.Name))
+	workingDirectory := factory.taskWorkingDirectory(artifact.Name(plan.Task.Name))
 	containerMetadata.WorkingDirectory = workingDirectory
 
 	credMgrVariables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
@@ -150,13 +162,13 @@ func (factory *gardenFactory) Task(
 		// external task - construct a source which reads it from file
 		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath}
 
-		// use 'vars' from the pipeline + cred mgr variables for interpolation
+		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred mgr variables
 		taskVars = []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
 	} else {
 		// embedded task - first we take it
 		taskConfigSource = StaticConfigSource{Config: plan.Task.Config}
 
-		// use just cred mgr variables for interpolation
+		// for interpolation - use just cred mgr variables
 		taskVars = []boshtemplate.Variables{credMgrVariables}
 	}
 
@@ -181,7 +193,7 @@ func (factory *gardenFactory) Task(
 
 		delegate,
 
-		factory.workerClient,
+		factory.pool,
 		build.TeamID(),
 		build.ID(),
 		build.JobID(),
@@ -191,12 +203,31 @@ func (factory *gardenFactory) Task(
 
 		creds.NewVersionedResourceTypes(credMgrVariables, plan.Task.VersionedResourceTypes),
 		factory.defaultLimits,
+		factory.strategy,
 	)
 
 	return LogError(taskStep, delegate)
 }
 
-func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {
+func (factory *gardenFactory) ArtifactInputStep(
+	logger lager.Logger,
+	plan atc.Plan,
+	build db.Build,
+	delegate BuildStepDelegate,
+) Step {
+	return NewArtifactInputStep(plan, build, factory.client, delegate)
+}
+
+func (factory *gardenFactory) ArtifactOutputStep(
+	logger lager.Logger,
+	plan atc.Plan,
+	build db.Build,
+	delegate BuildStepDelegate,
+) Step {
+	return NewArtifactOutputStep(plan, build, factory.client, delegate)
+}
+
+func (factory *gardenFactory) taskWorkingDirectory(sourceName artifact.Name) string {
 	sum := sha1.Sum([]byte(sourceName))
 	return filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
 }
