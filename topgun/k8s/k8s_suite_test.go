@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -40,6 +41,8 @@ type environment struct {
 var (
 	Environment environment
 	fly         Fly
+	namespace   string
+	releaseName string
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -89,6 +92,11 @@ var _ = BeforeEach(func() {
 	err = os.Mkdir(fly.Home, 0755)
 	Expect(err).ToNot(HaveOccurred())
 })
+
+func setReleaseNameAndNamespace(description string) {
+	releaseName = fmt.Sprintf("topgun-"+description+"-%d-%d", rand.Int(), GinkgoParallelNode())
+	namespace = releaseName
+}
 
 type pod struct {
 	Status struct {

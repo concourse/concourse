@@ -1,8 +1,6 @@
 package k8s_test
 
 import (
-	"fmt"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -15,15 +13,12 @@ import (
 
 var _ = Describe("Worker Rebalancing", func() {
 	var (
-		releaseName  string
-		namespace    string
 		proxySession *gexec.Session
 		atcEndpoint  string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-wr-%d-%d", rand.Int(), GinkgoParallelNode())
-		namespace = releaseName
+		setReleaseNameAndNamespace("wr")
 
 		deployConcourseChart(releaseName,
 			"--set=concourse.worker.ephemeral=true",
