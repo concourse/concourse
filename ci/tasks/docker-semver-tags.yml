@@ -12,7 +12,7 @@ outputs:
 - name: tags
 
 params:
-  MAJOR:
+  LATEST:
 
 run:
   path: bash
@@ -23,8 +23,10 @@ run:
     echo $version | cut -d. -f1,2,3 >> tags/tags
     echo $version | cut -d. -f1,2   >> tags/tags
 
-    if [ "$MAJOR" = "true" ]; then
+    if [ "$LATEST" = "true" ]; then
       # when pushing a patch for an old version, you won't want to bump the
-      # major tag, so this should be opt-in
+      # major or latest tag, so this should be opt-in
       echo $version | cut -d. -f1   >> tags/tags
+
+      echo latest >> tags/tags
     fi

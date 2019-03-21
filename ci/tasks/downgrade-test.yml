@@ -16,6 +16,7 @@ inputs:
 
 params:
   CONCOURSE_DEV_TAG: latest
+  CONCOURSE_LATEST_TAG: latest
 
 run:
   path: concourse/ci/tasks/scripts/downgrade-test
