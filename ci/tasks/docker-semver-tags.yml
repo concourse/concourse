@@ -26,5 +26,5 @@ run:
     if [ "$MAJOR" = "true" ]; then
       # when pushing a patch for an old version, you won't want to bump the
       # major tag, so this should be opt-in
-      echo $version | cut -d. -f1      > tags/tags
+      echo $version | cut -d. -f1   >> tags/tags
     fi

@@ -5,7 +5,7 @@ set -e -u
 
 readonly DIR=$(cd $(dirname $0) && pwd)
 
-export MAX_TICKS="${MAX_TICKS:-60}"
+export MAX_TICKS="${MAX_TICKS:-120}"
 export ATC_URL="${ATC_URL:-"http://$(cat endpoint-info/instance_ip):8080"}"
 
 if [ -e endpoint-info/admin_username ]; then
@@ -41,5 +41,7 @@ else
 fi
 
 fly --version
+
+$DIR/wait-worker
 
 $DIR/watsjs test/smoke.js
