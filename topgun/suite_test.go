@@ -31,6 +31,8 @@ import (
 )
 
 var (
+	deploymentNamePrefix string
+
 	fly                       = Fly{}
 	deploymentName, flyTarget string
 	instances                 map[string][]boshInstance
@@ -85,6 +87,11 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("test")
 
+	deploymentNamePrefix = os.Getenv("DEPLOYMENT_NAME_PREFIX")
+	if deploymentNamePrefix == "" {
+		deploymentNamePrefix = "concourse-topgun"
+	}
+
 	concourseReleaseVersion = os.Getenv("CONCOURSE_RELEASE_VERSION")
 	if concourseReleaseVersion == "" {
 		concourseReleaseVersion = "latest"
@@ -121,7 +128,7 @@ var _ = BeforeEach(func() {
 
 	deploymentNumber := GinkgoParallelNode()
 
-	deploymentName = fmt.Sprintf("concourse-topgun-%d", deploymentNumber)
+	deploymentName = fmt.Sprintf("%s-%d", deploymentNamePrefix, deploymentNumber)
 	fly.Target = deploymentName
 
 	var err error
