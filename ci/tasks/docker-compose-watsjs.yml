@@ -17,6 +17,7 @@ caches:
 - path: concourse/web/wats/node_modules
 
 params:
+  CONCOURSE_DEV_TAG: latest
   BUILD:
 
 run:

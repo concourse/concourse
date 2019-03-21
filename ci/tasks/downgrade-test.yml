@@ -14,5 +14,8 @@ inputs:
 - name: postgres-image
   optional: true
 
+params:
+  CONCOURSE_DEV_TAG: latest
+
 run:
   path: concourse/ci/tasks/scripts/downgrade-test
