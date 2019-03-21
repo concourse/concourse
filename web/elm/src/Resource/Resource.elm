@@ -27,7 +27,6 @@ import Concourse.Pagination
 import Date exposing (Date)
 import Date.Format
 import Dict
-import DictView
 import Duration exposing (Duration)
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
@@ -66,13 +65,14 @@ import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
-import Spinner
 import StrictEvents
 import Time exposing (Time)
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
+import Views.DictView as DictView
+import Views.Spinner as Spinner
 
 
 type alias Flags =

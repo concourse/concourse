@@ -6,7 +6,7 @@
 --  subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 
 
-module Spinner exposing (spinner)
+module Views.Spinner exposing (spinner)
 
 import Html exposing (Html)
 import Html.Attributes exposing (style)

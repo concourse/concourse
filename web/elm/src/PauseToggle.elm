@@ -5,9 +5,9 @@ import Html exposing (Html)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (Hoverable(..), Message(..))
-import Spinner
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
+import Views.Spinner as Spinner
 
 
 view :

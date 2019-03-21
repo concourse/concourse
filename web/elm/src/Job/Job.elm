@@ -11,7 +11,6 @@ module Job.Job exposing
     , view
     )
 
-import BuildDuration
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -24,7 +23,6 @@ import Concourse.Pagination
         , chevronContainer
         )
 import Dict exposing (Dict)
-import DictView
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
@@ -44,7 +42,6 @@ import Html.Events
         )
 import Http
 import Job.Styles as Styles
-import LoadingIndicator
 import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
@@ -59,6 +56,9 @@ import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
+import Views.BuildDuration as BuildDuration
+import Views.DictView as DictView
+import Views.LoadingIndicator as LoadingIndicator
 
 
 type alias Model =

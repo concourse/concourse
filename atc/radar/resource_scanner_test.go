@@ -498,8 +498,8 @@ var _ = Describe("ResourceScanner", func() {
 							fakeResourceConfigScope.SaveVersionsReturns(errors.New("failed"))
 						})
 
-						It("does not return an error", func() {
-							Expect(runErr).NotTo(HaveOccurred())
+						It("returns an error", func() {
+							Expect(runErr).To(HaveOccurred())
 						})
 					})
 				})
@@ -990,6 +990,32 @@ var _ = Describe("ResourceScanner", func() {
 						{"version": "2"},
 						{"version": "3"},
 					}))
+				})
+
+				It("updates last check finished", func() {
+					Expect(fakeResourceConfigScope.UpdateLastCheckFinishedCallCount()).To(Equal(1))
+				})
+
+				Context("when saving fails", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.SaveVersionsReturns(errors.New("some-error"))
+					})
+
+					It("does not update last check finished", func() {
+						Expect(fakeResourceConfigScope.UpdateLastCheckFinishedCallCount()).To(BeZero())
+					})
+				})
+			})
+
+			Context("when the check does not return any new versions", func() {
+				BeforeEach(func() {
+					fakeResource.CheckStub = func(ctx context.Context, source atc.Source, from atc.Version) ([]atc.Version, error) {
+						return []atc.Version{}, nil
+					}
+				})
+
+				It("updates last check finished", func() {
+					Expect(fakeResourceConfigScope.UpdateLastCheckFinishedCallCount()).To(Equal(1))
 				})
 			})
 

@@ -36,11 +36,11 @@ import Html.Attributes
         , title
         )
 import Http
-import LoadingIndicator
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
-import NotAuthorized
 import Routes exposing (StepID)
+import Views.LoadingIndicator as LoadingIndicator
+import Views.NotAuthorized as NotAuthorized
 
 
 type OutMsg

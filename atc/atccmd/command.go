@@ -1383,7 +1383,7 @@ func (cmd *RunCommand) constructPipelineSyncer(
 							"pipeline": pipeline.Name(),
 						}),
 						Pipeline:  pipeline,
-						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline, cmd.ExternalURL.String(), variables),
+						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline),
 						Noop:      cmd.Developer.Noop,
 						Interval:  10 * time.Second,
 					},
