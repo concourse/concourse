@@ -43,7 +43,7 @@ import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
-import TopBar.Model exposing (PipelineState)
+import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
@@ -186,13 +186,20 @@ handleCallbackBody callback ( model, effects ) =
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        ( { model | pipeline = RemoteData.Failure err }, effects )
+                        ( { model | pipeline = RemoteData.Failure err }
+                        , effects
+                        )
 
                     else
-                        ( model, effects ++ redirectToLoginIfUnauthenticated status )
+                        ( model
+                        , effects ++ redirectToLoginIfUnauthenticated status
+                        )
 
                 _ ->
-                    renderIfNeeded ( { model | experiencingTurbulence = True }, effects )
+                    renderIfNeeded
+                        ( { model | experiencingTurbulence = True }
+                        , effects
+                        )
 
         PipelineToggled _ (Ok ()) ->
             ( { model
@@ -220,7 +227,13 @@ handleCallbackBody callback ( model, effects ) =
                     ( newModel, effects )
 
         JobsFetched (Ok fetchedJobs) ->
-            renderIfNeeded ( { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }, effects )
+            renderIfNeeded
+                ( { model
+                    | fetchedJobs = Just fetchedJobs
+                    , experiencingTurbulence = False
+                  }
+                , effects
+                )
 
         JobsFetched (Err err) ->
             case err of
@@ -228,10 +241,22 @@ handleCallbackBody callback ( model, effects ) =
                     ( model, effects ++ redirectToLoginIfUnauthenticated status )
 
                 _ ->
-                    renderIfNeeded ( { model | fetchedJobs = Nothing, experiencingTurbulence = True }, effects )
+                    renderIfNeeded
+                        ( { model
+                            | fetchedJobs = Nothing
+                            , experiencingTurbulence = True
+                          }
+                        , effects
+                        )
 
         ResourcesFetched (Ok fetchedResources) ->
-            renderIfNeeded ( { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }, effects )
+            renderIfNeeded
+                ( { model
+                    | fetchedResources = Just fetchedResources
+                    , experiencingTurbulence = False
+                  }
+                , effects
+                )
 
         ResourcesFetched (Err err) ->
             case err of
@@ -239,10 +264,21 @@ handleCallbackBody callback ( model, effects ) =
                     ( model, effects ++ redirectToLoginIfUnauthenticated status )
 
                 _ ->
-                    renderIfNeeded ( { model | fetchedResources = Nothing, experiencingTurbulence = True }, effects )
+                    renderIfNeeded
+                        ( { model
+                            | fetchedResources = Nothing
+                            , experiencingTurbulence = True
+                          }
+                        , effects
+                        )
 
         VersionFetched (Ok version) ->
-            ( { model | concourseVersion = version, experiencingTurbulence = False }, effects )
+            ( { model
+                | concourseVersion = version
+                , experiencingTurbulence = False
+              }
+            , effects
+            )
 
         VersionFetched (Err err) ->
             flip always (Debug.log "failed to fetch version" err) <|
@@ -295,7 +331,14 @@ updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
         ToggleGroup group ->
-            ( model, effects ++ [ NavigateTo <| getNextUrl (toggleGroup group model.selectedGroups model.pipeline) model ] )
+            ( model
+            , effects
+                ++ [ NavigateTo <|
+                        getNextUrl
+                            (toggleGroup group model.selectedGroups model.pipeline)
+                            model
+                   ]
+            )
 
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
@@ -348,16 +391,6 @@ subscriptions model =
 
 view : UserState -> Model -> Html Message
 view userState model =
-    let
-        pipelineState =
-            Just
-                { pinnedResources = getPinnedResources model
-                , pipeline = model.pipelineLocator
-                , isPaused = isPaused model.pipeline
-                , isToggleHovered = model.isToggleHovered
-                , isToggleLoading = model.isToggleLoading
-                }
-    in
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
             [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar
@@ -371,8 +404,25 @@ view userState model =
                 ]
                 [ TopBar.viewConcourseLogo
                 , TopBar.viewBreadcrumbs model.route
-                , viewPin pipelineState model
-                , viewPauseToggle userState pipelineState
+                , viewPinMenu
+                    { pinnedResources = getPinnedResources model
+                    , pipeline = model.pipelineLocator
+                    , isPinMenuExpanded = model.isPinMenuExpanded
+                    }
+                , Html.div
+                    [ id "top-bar-pause-toggle"
+                    , Html.Attributes.style <|
+                        Styles.pauseToggle <|
+                            isPaused model.pipeline
+                    ]
+                    [ PauseToggle.view "17px"
+                        userState
+                        { pipeline = model.pipelineLocator
+                        , isPaused = isPaused model.pipeline
+                        , isToggleHovered = model.isToggleHovered
+                        , isToggleLoading = model.isToggleLoading
+                        }
+                    ]
                 , Login.view userState model <| isPaused model.pipeline
                 ]
             , Html.div
@@ -384,50 +434,51 @@ view userState model =
         ]
 
 
-viewPin : Maybe PipelineState -> Model -> Html Message
-viewPin pipelineState model =
-    case pipelineState of
-        Just { pinnedResources, pipeline } ->
+viewPinMenu :
+    { pinnedResources : List ( String, Concourse.Version )
+    , pipeline : Concourse.PipelineIdentifier
+    , isPinMenuExpanded : Bool
+    }
+    -> Html Message
+viewPinMenu ({ pinnedResources, pipeline, isPinMenuExpanded } as params) =
+    Html.div
+        [ Html.Attributes.style <|
+            Styles.pinIconContainer isPinMenuExpanded
+        , id "pin-icon"
+        ]
+        [ if List.length pinnedResources > 0 then
             Html.div
-                [ Html.Attributes.style <|
-                    Styles.pinIconContainer model.isPinMenuExpanded
-                , id "pin-icon"
+                [ Html.Attributes.style <| Styles.pinIcon
+                , onMouseEnter <| Hover <| Just PinIcon
+                , onMouseLeave <| Hover Nothing
                 ]
-                [ if List.length pinnedResources > 0 then
-                    Html.div
-                        [ Html.Attributes.style <| Styles.pinIcon
-                        , onMouseEnter <| Hover <| Just PinIcon
-                        , onMouseLeave <| Hover Nothing
+                ([ Html.div
+                    [ Html.Attributes.style Styles.pinBadge
+                    , id "pin-badge"
+                    ]
+                    [ Html.div []
+                        [ Html.text <|
+                            toString <|
+                                List.length pinnedResources
                         ]
-                        ([ Html.div
-                            [ Html.Attributes.style Styles.pinBadge
-                            , id "pin-badge"
-                            ]
-                            [ Html.div []
-                                [ Html.text <|
-                                    toString <|
-                                        List.length pinnedResources
-                                ]
-                            ]
-                         ]
-                            ++ viewPinDropdown pinnedResources pipeline model
-                        )
+                    ]
+                 ]
+                    ++ viewPinMenuDropdown params
+                )
 
-                  else
-                    Html.div [ Html.Attributes.style <| Styles.pinIcon ] []
-                ]
-
-        Nothing ->
-            Html.text ""
+          else
+            Html.div [ Html.Attributes.style <| Styles.pinIcon ] []
+        ]
 
 
-viewPinDropdown :
-    List ( String, Concourse.Version )
-    -> Concourse.PipelineIdentifier
-    -> Model
+viewPinMenuDropdown :
+    { pinnedResources : List ( String, Concourse.Version )
+    , pipeline : Concourse.PipelineIdentifier
+    , isPinMenuExpanded : Bool
+    }
     -> List (Html Message)
-viewPinDropdown pinnedResources pipeline model =
-    if model.isPinMenuExpanded then
+viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
+    if isPinMenuExpanded then
         [ Html.ul
             [ Html.Attributes.style Styles.pinIconDropdown ]
             (pinnedResources
@@ -470,20 +521,6 @@ viewPinDropdown pinnedResources pipeline model =
         []
 
 
-viewPauseToggle : UserState -> Maybe PipelineState -> Html Message
-viewPauseToggle userState pipelineState =
-    case pipelineState of
-        Just ({ isPaused } as ps) ->
-            Html.div
-                [ id "top-bar-pause-toggle"
-                , Html.Attributes.style <| Styles.pauseToggle isPaused
-                ]
-                [ PauseToggle.view "17px" userState ps ]
-
-        Nothing ->
-            Html.text ""
-
-
 isPaused : WebData Concourse.Pipeline -> Bool
 isPaused p =
     RemoteData.withDefault False (RemoteData.map .paused p)
@@ -524,7 +561,11 @@ viewSubPage model =
                     , Html.dd [] [ Html.text "aborted" ]
                     , Html.dt [ class "paused" ] []
                     , Html.dd [] [ Html.text "paused" ]
-                    , Html.dt [ Html.Attributes.style [ ( "background-color", Colors.pinned ) ] ] []
+                    , Html.dt
+                        [ Html.Attributes.style
+                            [ ( "background-color", Colors.pinned ) ]
+                        ]
+                        []
                     , Html.dd [] [ Html.text "pinned" ]
                     , Html.dt [ class "failed" ] []
                     , Html.dd [] [ Html.text "failed" ]
@@ -548,7 +589,8 @@ viewSubPage model =
                                         [ Html.a
                                             [ href <| Cli.downloadUrl cli
                                             , ariaLabel <| Cli.label cli
-                                            , Html.Attributes.style <| cliIcon cli
+                                            , Html.Attributes.style <|
+                                                Styles.cliIcon cli
                                             ]
                                             []
                                         ]
@@ -561,7 +603,9 @@ viewSubPage model =
                     , Html.td []
                         [ Html.div [ id "concourse-version" ]
                             [ Html.text "v"
-                            , Html.span [ class "number" ] [ Html.text model.concourseVersion ]
+                            , Html.span
+                                [ class "number" ]
+                                [ Html.text model.concourseVersion ]
                             ]
                         ]
                     ]
@@ -768,15 +812,3 @@ getNextUrl : List String -> Model -> String
 getNextUrl newGroups model =
     Routes.toString <|
         Routes.Pipeline { id = model.pipelineLocator, groups = newGroups }
-
-
-cliIcon : Cli.Cli -> List ( String, String )
-cliIcon cli =
-    [ ( "width", "12px" )
-    , ( "height", "12px" )
-    , ( "background-image", Cli.iconUrl cli )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-size", "contain" )
-    , ( "display", "inline-block" )
-    ]

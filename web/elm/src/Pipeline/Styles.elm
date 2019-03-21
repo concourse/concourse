@@ -1,5 +1,6 @@
 module Pipeline.Styles exposing
-    ( groupItem
+    ( cliIcon
+    , groupItem
     , groupsBar
     , groupsList
     , pauseToggle
@@ -13,6 +14,7 @@ module Pipeline.Styles exposing
     )
 
 import Colors
+import Concourse.Cli as Cli
 
 
 groupsBar : List ( String, String )
@@ -144,4 +146,16 @@ pauseToggle isPaused =
         else
             "1px solid #3d3c3c"
       )
+    ]
+
+
+cliIcon : Cli.Cli -> List ( String, String )
+cliIcon cli =
+    [ ( "width", "12px" )
+    , ( "height", "12px" )
+    , ( "background-image", Cli.iconUrl cli )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-size", "contain" )
+    , ( "display", "inline-block" )
     ]

@@ -42,8 +42,6 @@ import TopBar.Model
     exposing
         ( Dropdown(..)
         , Model
-        , PipelineState
-        , isPaused
         )
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
