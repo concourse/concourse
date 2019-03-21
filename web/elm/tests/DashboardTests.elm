@@ -22,6 +22,7 @@ import Date exposing (Date)
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
+import Http
 import Keycodes
 import List.Extra
 import Message.Callback as Callback
@@ -2245,6 +2246,126 @@ all =
                                        ]
                             }
                         }
+                    , test "clicking pause button sends TogglePipeline msg" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> queryView
+                                |> Query.find [ class "card-footer" ]
+                                |> Query.find
+                                    (iconSelector
+                                        { size = "20px"
+                                        , image = "ic-pause-white.svg"
+                                        }
+                                    )
+                                |> Event.simulate Event.click
+                                |> Event.expect
+                                    (Msgs.TogglePipelinePaused
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                                        False
+                                    )
+                    , test "pause button turns into spinner on click" <|
+                        \_ ->
+                            let
+                                animation =
+                                    "container-rotate 1568ms linear infinite"
+                            in
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> Dashboard.update
+                                    (Msgs.TogglePipelinePaused
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                                        False
+                                    )
+                                |> queryView
+                                |> Query.find [ class "card-footer" ]
+                                |> Query.has
+                                    [ style [ ( "animation", animation ) ] ]
+                    , test "clicking pause button sends toggle api call" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> Tuple.mapSecond (always [])
+                                |> Dashboard.update
+                                    (Msgs.TogglePipelinePaused
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                                        False
+                                    )
+                                |> Tuple.second
+                                |> Expect.equal
+                                    [ Effects.SendTogglePipelineRequest
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                                        False
+                                    ]
+                    , test "dashboard data is refetched after ok toggle call" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (oneTeamOnePipeline "team")
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> Dashboard.update
+                                    (Msgs.TogglePipelinePaused
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                                        False
+                                    )
+                                |> Tuple.mapSecond (always [])
+                                |> Dashboard.handleCallback
+                                    (Callback.PipelineToggled
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                                        (Ok ())
+                                    )
+                                |> Tuple.second
+                                |> Expect.equal [ Effects.FetchData ]
+                    , test "401 toggle call redirects to login" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    (oneTeamOnePipeline "team")
+                                |> Dashboard.update
+                                    (Msgs.TogglePipelinePaused
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                                        False
+                                    )
+                                |> Tuple.mapSecond (always [])
+                                |> Dashboard.handleCallback
+                                    (Callback.PipelineToggled
+                                        { pipelineName = "pipeline"
+                                        , teamName = "team"
+                                        }
+                                        (Err <|
+                                            Http.BadStatus
+                                                { url = "http://example.com"
+                                                , status =
+                                                    { code = 401
+                                                    , message = ""
+                                                    }
+                                                , headers = Dict.empty
+                                                , body = ""
+                                                }
+                                        )
+                                    )
+                                |> Tuple.second
+                                |> Expect.equal [ Effects.RedirectToLogin ]
                     ]
                 ]
             ]

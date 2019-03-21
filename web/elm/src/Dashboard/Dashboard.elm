@@ -35,6 +35,7 @@ import Html.Attributes
         , style
         )
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Http
 import List.Extra
 import Login
 import Message.Callback exposing (Callback(..))
@@ -195,8 +196,22 @@ handleCallbackBody msg ( model, effects ) =
             in
             ( { model | screenSize = newSize }, effects )
 
-        PipelineToggled _ _ ->
+        PipelineToggled _ (Ok ()) ->
             ( model, effects ++ [ FetchData ] )
+
+        PipelineToggled _ (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    ( model
+                    , if status.code == 401 then
+                        effects ++ [ RedirectToLogin ]
+
+                      else
+                        effects
+                    )
+
+                _ ->
+                    ( model, effects )
 
         _ ->
             ( model, effects )
