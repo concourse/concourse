@@ -87,19 +87,8 @@ type ScrollBehavior
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        route =
-            case flags.pageType of
-                OneOffBuildPage buildId ->
-                    Routes.OneOffBuild
-                        { id = buildId
-                        , highlight = flags.highlight
-                        }
-
-                JobBuildPage buildId ->
-                    Routes.Build { id = buildId, highlight = flags.highlight }
-
         ( topBar, topBarEffects ) =
-            TopBar.init { route = route }
+            TopBar.init
     in
     changeToBuild
         flags
@@ -120,7 +109,6 @@ init flags =
           , fetchingHistory = False
           , scrolledToCurrentBuild = False
           , isUserMenuExpanded = topBar.isUserMenuExpanded
-          , route = topBar.route
           , groups = topBar.groups
           , dropdown = topBar.dropdown
           , screenSize = topBar.screenSize
@@ -788,7 +776,19 @@ view userState model =
             , style <| TopBar.Styles.topBar False
             ]
             [ TopBar.viewConcourseLogo
-            , TopBar.viewBreadcrumbs model.route
+            , TopBar.viewBreadcrumbs <|
+                case model.page of
+                    OneOffBuildPage buildId ->
+                        Routes.OneOffBuild
+                            { id = buildId
+                            , highlight = model.highlight
+                            }
+
+                    JobBuildPage buildId ->
+                        Routes.Build
+                            { id = buildId
+                            , highlight = model.highlight
+                            }
             , Login.view userState model False
             ]
         , Html.div

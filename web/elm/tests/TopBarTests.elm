@@ -3,6 +3,7 @@ module TopBarTests exposing (all)
 import Application.Application as Application
 import Char
 import Concourse
+import Dashboard.Dashboard as Dashboard
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
 import Dict
 import Expect exposing (..)
@@ -119,18 +120,7 @@ all : Test
 all =
     describe "TopBar"
         [ rspecStyleDescribe "on init"
-            (TopBar.init
-                { route =
-                    Routes.Pipeline
-                        { id =
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            }
-                        , groups = []
-                        }
-                }
-                |> Tuple.second
-            )
+            (TopBar.init |> Tuple.second)
             [ it "requests screen size" <|
                 Expect.equal [ Effects.GetScreenSize ]
             ]
@@ -775,7 +765,7 @@ all =
             [ it "renders the search bar with the text in the search query" <|
                 Application.view
                     >> Query.fromHtml
-                    >> Query.find [ id TopBar.searchInputId ]
+                    >> Query.find [ id Dashboard.searchInputId ]
                     >> Query.has [ tag "input", attribute <| Attr.value "test" ]
             , it "sends a FilterMsg when the clear search button is clicked" <|
                 Application.view
@@ -839,19 +829,19 @@ all =
                     >> Query.fromHtml
                 )
                 [ it "renders search bar" <|
-                    Query.has [ id TopBar.searchInputId ]
+                    Query.has [ id Dashboard.searchInputId ]
                 , it "search bar is an input field" <|
-                    Query.find [ id TopBar.searchInputId ]
+                    Query.find [ id Dashboard.searchInputId ]
                         >> Query.has [ tag "input" ]
                 , it "renders search bar with transparent background to remove white of search bar" <|
-                    Query.find [ id TopBar.searchInputId ]
+                    Query.find [ id Dashboard.searchInputId ]
                         >> Query.has [ style [ ( "background-color", "transparent" ) ] ]
                 , it "search bar does not use browser's built-in autocomplete" <|
-                    Query.find [ id TopBar.searchInputId ]
+                    Query.find [ id Dashboard.searchInputId ]
                         >> Query.has
                             [ attribute <| Attr.attribute "autocomplete" "off" ]
                 , it "sets magnifying glass on search bar in correct position" <|
-                    Query.find [ id TopBar.searchInputId ]
+                    Query.find [ id Dashboard.searchInputId ]
                         >> Query.has
                             [ style
                                 [ ( "background-image"
@@ -862,7 +852,7 @@ all =
                                 ]
                             ]
                 , it "styles search border and input text colour" <|
-                    Query.find [ id TopBar.searchInputId ]
+                    Query.find [ id Dashboard.searchInputId ]
                         >> Query.has
                             [ style
                                 [ ( "border", searchBarBorder )
@@ -872,7 +862,7 @@ all =
                                 ]
                             ]
                 , it "renders search with appropriate size and padding" <|
-                    Query.find [ id TopBar.searchInputId ]
+                    Query.find [ id Dashboard.searchInputId ]
                         >> Query.has
                             [ style
                                 [ ( "height", searchBarHeight )
@@ -881,10 +871,10 @@ all =
                                 ]
                             ]
                 , it "does not have an outline when focused" <|
-                    Query.find [ id TopBar.searchInputId ]
+                    Query.find [ id Dashboard.searchInputId ]
                         >> Query.has [ style [ ( "outline", "0" ) ] ]
                 , it "has placeholder text" <|
-                    Query.find [ id TopBar.searchInputId ]
+                    Query.find [ id Dashboard.searchInputId ]
                         >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
                 , it "has a search container" <|
                     Query.has [ id "search-container" ]
@@ -954,7 +944,7 @@ all =
                     Application.view
                         >> Query.fromHtml
                         >> Query.hasNot
-                            [ id TopBar.searchInputId ]
+                            [ id Dashboard.searchInputId ]
                 , it "should have a magnifying glass icon" <|
                     Application.view
                         >> Query.fromHtml
@@ -977,19 +967,19 @@ all =
                     [ it "tells the ui to focus on the search bar" <|
                         Tuple.second
                             >> Expect.equal
-                                [ Effects.Focus TopBar.searchInputId ]
+                                [ Effects.Focus Dashboard.searchInputId ]
                     , context "the ui"
                         (Tuple.first
                             >> Application.view
                             >> Query.fromHtml
                         )
                         [ it "renders search bar" <|
-                            Query.has [ id TopBar.searchInputId ]
+                            Query.has [ id Dashboard.searchInputId ]
                         , it "search bar is an input field" <|
-                            Query.find [ id TopBar.searchInputId ]
+                            Query.find [ id Dashboard.searchInputId ]
                                 >> Query.has [ tag "input" ]
                         , it "has placeholder text" <|
-                            Query.find [ id TopBar.searchInputId ]
+                            Query.find [ id Dashboard.searchInputId ]
                                 >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
                         , it "has a search container" <|
                             Query.has [ id "search-container" ]
@@ -1068,7 +1058,7 @@ all =
                             )
                             [ it "should not have a search bar" <|
                                 Query.hasNot
-                                    [ id TopBar.searchInputId ]
+                                    [ id Dashboard.searchInputId ]
                             , it "should have a magnifying glass icon" <|
                                 Query.find [ id "show-search-button" ]
                                     >> Query.has
@@ -1094,7 +1084,7 @@ all =
                                 >> Query.fromHtml
                             )
                             [ it "should have a search bar" <|
-                                Query.has [ id TopBar.searchInputId ]
+                                Query.has [ id Dashboard.searchInputId ]
                             , it "should not have a magnifying glass icon" <|
                                 Query.hasNot [ id "show-search-button" ]
                             , it "should not show the login component" <|
@@ -1388,7 +1378,7 @@ all =
                     Query.findAll [ id "search-dropdown" ]
                         >> Query.count (Expect.equal 0)
                 , it "sends FocusMsg when focusing on search bar" <|
-                    Query.find [ id TopBar.searchInputId ]
+                    Query.find [ id Dashboard.searchInputId ]
                         >> Event.simulate Event.focus
                         >> Event.expect (ApplicationMsgs.Update Msgs.FocusMsg)
                 ]
@@ -1396,7 +1386,7 @@ all =
                 Application.update
                     (ApplicationMsgs.DeliveryReceived <| KeyDown 191)
                     >> Tuple.second
-                    >> Expect.equal [ Effects.Focus TopBar.searchInputId ]
+                    >> Expect.equal [ Effects.Focus Dashboard.searchInputId ]
             , it "hitting shift + '/' (= '?') does not focus search input" <|
                 Application.update
                     (ApplicationMsgs.DeliveryReceived <|
@@ -1425,7 +1415,7 @@ all =
                             KeyDown 191
                         )
                     >> Tuple.second
-                    >> Expect.equal [ Effects.Focus TopBar.searchInputId ]
+                    >> Expect.equal [ Effects.Focus Dashboard.searchInputId ]
             , it "hitting other keys does not cause dropdown to expand" <|
                 Application.update
                     (ApplicationMsgs.DeliveryReceived <|
@@ -1473,7 +1463,7 @@ all =
                                                         >> viewNormally
                                                     )
                                                     [ it "updates the query" <|
-                                                        Query.find [ id TopBar.searchInputId ]
+                                                        Query.find [ id Dashboard.searchInputId ]
                                                             >> Query.has [ attribute <| Attr.value "team: " ]
                                                     ]
                                                ]
@@ -1490,7 +1480,7 @@ all =
                                                 >> Application.view
                                                 >> Query.fromHtml
                                                 >> Query.find
-                                                    [ id TopBar.searchInputId ]
+                                                    [ id Dashboard.searchInputId ]
                                                 >> Query.has
                                                     [ attribute <|
                                                         Attr.value "status: "
@@ -1499,7 +1489,7 @@ all =
                                             Tuple.second
                                                 >> Expect.equal
                                                     [ Effects.ModifyUrl
-                                                        "?search=status%3A%20"
+                                                        "/?search=status: "
                                                     ]
                                         ]
                                    ]
@@ -1542,7 +1532,7 @@ all =
                             )
                             [ it "search input is blurred" <|
                                 Tuple.second
-                                    >> Expect.equal [ Effects.Blur TopBar.searchInputId ]
+                                    >> Expect.equal [ Effects.Blur Dashboard.searchInputId ]
                             ]
                        ]
                 )
@@ -1989,7 +1979,7 @@ testDropdown selecteds notSelecteds =
             Query.find [ id "search-container" ]
                 >> Query.has [ id "search-dropdown" ]
         , it "should trigger a FilterMsg when typing in the search bar" <|
-            Query.find [ id TopBar.searchInputId ]
+            Query.find [ id Dashboard.searchInputId ]
                 >> Event.simulate (Event.input "test")
                 >> Event.expect
                     (ApplicationMsgs.Update <| Msgs.FilterMsg "test")
@@ -2042,7 +2032,7 @@ testDropdown selecteds notSelecteds =
                 >> Event.expect
                     (ApplicationMsgs.Update <| Msgs.FilterMsg "status: ")
         , it "sends BlurMsg when blurring the search bar" <|
-            Query.find [ id TopBar.searchInputId ]
+            Query.find [ id Dashboard.searchInputId ]
                 >> Event.simulate Event.blur
                 >> Event.expect
                     (ApplicationMsgs.Update Msgs.BlurMsg)

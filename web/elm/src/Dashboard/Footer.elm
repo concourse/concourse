@@ -114,7 +114,7 @@ infoBar :
         | hovered : Maybe Hoverable
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , route : Routes.Route
+        , highDensity : Bool
         , groups : List Group
     }
     -> Html Message
@@ -136,7 +136,7 @@ legend :
     { a
         | groups : List Group
         , screenSize : ScreenSize.ScreenSize
-        , route : Routes.Route
+        , highDensity : Bool
     }
     -> Html Message
 legend model =
@@ -170,7 +170,7 @@ legend model =
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
                 ++ legendSeparator model.screenSize
-                ++ [ toggleView (model.route == Routes.Dashboard Routes.HighDensity) ]
+                ++ [ toggleView model.highDensity ]
 
 
 concourseInfo :

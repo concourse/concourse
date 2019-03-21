@@ -12,7 +12,6 @@ import Concourse
 import Dashboard.Group.Models
 import Message.Message as Message
 import RemoteData
-import Routes
 import ScreenSize
 import Time exposing (Time)
 import TopBar.Model
@@ -31,6 +30,8 @@ type alias Model =
             , pipelineRunningKeyframes : String
             , hovered : Maybe Message.Hoverable
             , userState : UserState.UserState
+            , highDensity : Bool
+            , query : String
             }
         )
 
@@ -70,7 +71,7 @@ type alias FooterModel r =
         , hovered : Maybe Message.Hoverable
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , route : Routes.Route
         , shiftDown : Bool
         , dropdown : TopBar.Model.Dropdown
+        , highDensity : Bool
     }

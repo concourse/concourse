@@ -25,7 +25,6 @@ import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import RemoteData
-import Routes
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
@@ -37,7 +36,7 @@ init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
 init { authToken, flyPort } =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.FlySuccess { flyPort = flyPort } }
+            TopBar.init
     in
     ( { buttonState = Unhovered
       , authToken = authToken
@@ -49,7 +48,6 @@ init { authToken, flyPort } =
                 Nothing ->
                     RemoteData.Failure NoFlyPort
       , isUserMenuExpanded = topBar.isUserMenuExpanded
-      , route = topBar.route
       , groups = topBar.groups
       , dropdown = topBar.dropdown
       , screenSize = topBar.screenSize

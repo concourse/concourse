@@ -83,7 +83,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.Pipeline { id = flags.pipelineLocator, groups = flags.selectedGroups } }
+            TopBar.init
 
         model =
             { concourseVersion = ""
@@ -102,7 +102,6 @@ init flags =
             , selectedGroups = flags.selectedGroups
             , isPinMenuExpanded = False
             , isUserMenuExpanded = topBar.isUserMenuExpanded
-            , route = topBar.route
             , groups = topBar.groups
             , dropdown = topBar.dropdown
             , screenSize = topBar.screenSize
@@ -403,7 +402,11 @@ view userState model =
                         isPaused model.pipeline
                 ]
                 [ TopBar.viewConcourseLogo
-                , TopBar.viewBreadcrumbs model.route
+                , TopBar.viewBreadcrumbs <|
+                    Routes.Pipeline
+                        { id = model.pipelineLocator
+                        , groups = model.selectedGroups
+                        }
                 , viewPinMenu
                     { pinnedResources = getPinnedResources model
                     , pipeline = model.pipelineLocator

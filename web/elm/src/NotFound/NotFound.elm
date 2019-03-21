@@ -24,12 +24,12 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = flags.route }
+            TopBar.init
     in
     ( { notFoundImgSrc = flags.notFoundImgSrc
+      , route = flags.route
       , isUserMenuExpanded = topBar.isUserMenuExpanded
       , groups = topBar.groups
-      , route = topBar.route
       , dropdown = topBar.dropdown
       , screenSize = topBar.screenSize
       , shiftDown = topBar.shiftDown

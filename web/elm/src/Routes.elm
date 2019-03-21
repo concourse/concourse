@@ -450,10 +450,10 @@ extractPid route =
             Nothing
 
 
-extractQuery : Route -> String
+extractQuery : SearchType -> String
 extractQuery route =
     case route of
-        Dashboard (Normal (Just q)) ->
+        Normal (Just q) ->
             q
 
         _ ->

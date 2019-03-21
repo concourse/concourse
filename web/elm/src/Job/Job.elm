@@ -95,7 +95,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.Job { id = flags.jobId, page = flags.paging } }
+            TopBar.init
 
         model =
             { jobIdentifier = flags.jobId
@@ -112,7 +112,6 @@ init flags =
             , currentPage = flags.paging
             , hovered = Nothing
             , isUserMenuExpanded = topBar.isUserMenuExpanded
-            , route = topBar.route
             , groups = topBar.groups
             , dropdown = topBar.dropdown
             , screenSize = topBar.screenSize
@@ -423,7 +422,11 @@ view userState model =
                 , style <| TopBar.Styles.topBar False
                 ]
                 [ TopBar.viewConcourseLogo
-                , TopBar.viewBreadcrumbs model.route
+                , TopBar.viewBreadcrumbs <|
+                    Routes.Job
+                        { id = model.jobIdentifier
+                        , page = model.currentPage
+                        }
                 , Login.view userState model False
                 ]
             , Html.div

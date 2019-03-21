@@ -4,14 +4,12 @@ module TopBar.Model exposing
     )
 
 import Dashboard.Group.Models exposing (Group)
-import Routes
 import ScreenSize exposing (ScreenSize(..))
 
 
 type alias Model r =
     { r
         | isUserMenuExpanded : Bool
-        , route : Routes.Route
         , groups : List Group
         , dropdown : Dropdown
         , screenSize : ScreenSize

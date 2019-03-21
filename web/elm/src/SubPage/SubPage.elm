@@ -19,8 +19,8 @@ import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
 import Html exposing (Html)
 import Job.Job as Job
-import Message.Callback exposing (Callback)
-import Message.Effects exposing (Effect)
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
 import NotFound.Model
@@ -188,6 +188,31 @@ handleCallback callback =
         (Dashboard.handleCallback callback)
         (NotFound.handleCallback callback)
         (FlySuccess.handleCallback callback)
+        >> (case callback of
+                LoggedOut (Ok ()) ->
+                    genericUpdate
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
+
+                _ ->
+                    identity
+           )
+
+
+handleLoggedOut : ET { a | isUserMenuExpanded : Bool }
+handleLoggedOut ( m, effs ) =
+    ( { m | isUserMenuExpanded = False }
+    , effs
+        ++ [ NavigateTo <|
+                Routes.toString <|
+                    Routes.dashboardRoute False
+           ]
+    )
 
 
 handleDelivery : Delivery -> ET Model
