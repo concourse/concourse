@@ -156,6 +156,26 @@ type FakeBuild struct {
 		result1 bool
 		result2 error
 	}
+	IsAbortedStub        func() bool
+	isAbortedMutex       sync.RWMutex
+	isAbortedArgsForCall []struct {
+	}
+	isAbortedReturns struct {
+		result1 bool
+	}
+	isAbortedReturnsOnCall map[int]struct {
+		result1 bool
+	}
+	IsCompletedStub        func() bool
+	isCompletedMutex       sync.RWMutex
+	isCompletedArgsForCall []struct {
+	}
+	isCompletedReturns struct {
+		result1 bool
+	}
+	isCompletedReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	IsDrainedStub        func() bool
 	isDrainedMutex       sync.RWMutex
 	isDrainedArgsForCall []struct {
@@ -1180,6 +1200,110 @@ func (fake *FakeBuild) InterceptibleReturnsOnCall(i int, result1 bool, result2 e
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuild) IsAborted() bool {
+	fake.isAbortedMutex.Lock()
+	ret, specificReturn := fake.isAbortedReturnsOnCall[len(fake.isAbortedArgsForCall)]
+	fake.isAbortedArgsForCall = append(fake.isAbortedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("IsAborted", []interface{}{})
+	fake.isAbortedMutex.Unlock()
+	if fake.IsAbortedStub != nil {
+		return fake.IsAbortedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.isAbortedReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) IsAbortedCallCount() int {
+	fake.isAbortedMutex.RLock()
+	defer fake.isAbortedMutex.RUnlock()
+	return len(fake.isAbortedArgsForCall)
+}
+
+func (fake *FakeBuild) IsAbortedCalls(stub func() bool) {
+	fake.isAbortedMutex.Lock()
+	defer fake.isAbortedMutex.Unlock()
+	fake.IsAbortedStub = stub
+}
+
+func (fake *FakeBuild) IsAbortedReturns(result1 bool) {
+	fake.isAbortedMutex.Lock()
+	defer fake.isAbortedMutex.Unlock()
+	fake.IsAbortedStub = nil
+	fake.isAbortedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) IsAbortedReturnsOnCall(i int, result1 bool) {
+	fake.isAbortedMutex.Lock()
+	defer fake.isAbortedMutex.Unlock()
+	fake.IsAbortedStub = nil
+	if fake.isAbortedReturnsOnCall == nil {
+		fake.isAbortedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isAbortedReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) IsCompleted() bool {
+	fake.isCompletedMutex.Lock()
+	ret, specificReturn := fake.isCompletedReturnsOnCall[len(fake.isCompletedArgsForCall)]
+	fake.isCompletedArgsForCall = append(fake.isCompletedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("IsCompleted", []interface{}{})
+	fake.isCompletedMutex.Unlock()
+	if fake.IsCompletedStub != nil {
+		return fake.IsCompletedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.isCompletedReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) IsCompletedCallCount() int {
+	fake.isCompletedMutex.RLock()
+	defer fake.isCompletedMutex.RUnlock()
+	return len(fake.isCompletedArgsForCall)
+}
+
+func (fake *FakeBuild) IsCompletedCalls(stub func() bool) {
+	fake.isCompletedMutex.Lock()
+	defer fake.isCompletedMutex.Unlock()
+	fake.IsCompletedStub = stub
+}
+
+func (fake *FakeBuild) IsCompletedReturns(result1 bool) {
+	fake.isCompletedMutex.Lock()
+	defer fake.isCompletedMutex.Unlock()
+	fake.IsCompletedStub = nil
+	fake.isCompletedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) IsCompletedReturnsOnCall(i int, result1 bool) {
+	fake.isCompletedMutex.Lock()
+	defer fake.isCompletedMutex.Unlock()
+	fake.IsCompletedStub = nil
+	if fake.isCompletedReturnsOnCall == nil {
+		fake.isCompletedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isCompletedReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
 }
 
 func (fake *FakeBuild) IsDrained() bool {
@@ -2865,6 +2989,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.iDMutex.RUnlock()
 	fake.interceptibleMutex.RLock()
 	defer fake.interceptibleMutex.RUnlock()
+	fake.isAbortedMutex.RLock()
+	defer fake.isAbortedMutex.RUnlock()
+	fake.isCompletedMutex.RLock()
+	defer fake.isCompletedMutex.RUnlock()
 	fake.isDrainedMutex.RLock()
 	defer fake.isDrainedMutex.RUnlock()
 	fake.isManuallyTriggeredMutex.RLock()

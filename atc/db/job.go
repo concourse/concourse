@@ -310,10 +310,7 @@ func (j *job) GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, err
 			"jsg.serial_group": serialGroups,
 			"j.pipeline_id":    j.pipelineID,
 		}).
-		Where(sq.Or{
-			sq.Eq{"b.status": BuildStatusStarted},
-			sq.Eq{"b.status": BuildStatusPending, "b.scheduled": true},
-		}).
+		Where(sq.Eq{"b.completed": false, "b.scheduled": true}).
 		RunWith(j.conn).
 		Query()
 	if err != nil {

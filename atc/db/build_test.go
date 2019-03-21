@@ -178,6 +178,17 @@ var _ = Describe("Build", func() {
 			Expect(found).To(BeTrue())
 			Expect(build.PrivatePlan()).To(BeEmpty())
 		})
+
+		It("sets completed to true", func() {
+			Expect(build.IsCompleted()).To(BeFalse())
+			Expect(build.IsRunning()).To(BeTrue())
+
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.IsCompleted()).To(BeTrue())
+			Expect(build.IsRunning()).To(BeFalse())
+		})
 	})
 
 	Describe("Abort", func() {
@@ -191,11 +202,11 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("updates build status", func() {
+		It("updates aborted to true", func() {
 			found, err := build.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusAborted))
+			Expect(build.IsAborted()).To(BeTrue())
 		})
 	})
 

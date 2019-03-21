@@ -42,7 +42,7 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained, b.aborted, b.completed").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -73,6 +73,7 @@ type Build interface {
 	IsManuallyTriggered() bool
 	IsScheduled() bool
 	IsRunning() bool
+	IsCompleted() bool
 
 	Reload() (bool, error)
 
@@ -103,6 +104,7 @@ type Build interface {
 
 	Delete() (bool, error)
 	MarkAsAborted() error
+	IsAborted() bool
 	AbortNotifier() (Notifier, error)
 	Schedule() (bool, error)
 
@@ -138,6 +140,8 @@ type build struct {
 	conn        Conn
 	lockFactory lock.LockFactory
 	drained     bool
+	aborted     bool
+	completed   bool
 }
 
 var ErrBuildDisappeared = errors.New("build disappeared from db")
@@ -172,15 +176,9 @@ func (b *build) ReapTime() time.Time          { return b.reapTime }
 func (b *build) Status() BuildStatus          { return b.status }
 func (b *build) IsScheduled() bool            { return b.scheduled }
 func (b *build) IsDrained() bool              { return b.drained }
-
-func (b *build) IsRunning() bool {
-	switch b.status {
-	case BuildStatusPending, BuildStatusStarted:
-		return true
-	default:
-		return false
-	}
-}
+func (b *build) IsRunning() bool              { return !b.completed }
+func (b *build) IsAborted() bool              { return b.aborted }
+func (b *build) IsCompleted() bool            { return b.completed }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -452,7 +450,7 @@ func (b *build) Delete() (bool, error) {
 // build was aborted before it was started.
 func (b *build) MarkAsAborted() error {
 	_, err := psql.Update("builds").
-		Set("status", string(BuildStatusAborted)).
+		Set("aborted", true).
 		Where(sq.Eq{"id": b.id}).
 		RunWith(b.conn).
 		Exec()
@@ -469,7 +467,7 @@ func (b *build) MarkAsAborted() error {
 func (b *build) AbortNotifier() (Notifier, error) {
 	return newConditionNotifier(b.conn.Bus(), buildAbortChannel(b.id), func() (bool, error) {
 		var aborted bool
-		err := psql.Select("status = 'aborted'").
+		err := psql.Select("aborted = true").
 			From("builds").
 			Where(sq.Eq{"id": b.id}).
 			RunWith(b.conn).
@@ -1099,11 +1097,11 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		schema, privatePlan, jobName, pipelineName, publicPlan sql.NullString
 		createTime, startTime, endTime, reapTime               pq.NullTime
 		nonce                                                  sql.NullString
-		drained                                                bool
+		drained, aborted, completed                            bool
 		status                                                 string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained, &aborted, &completed)
 	if err != nil {
 		return err
 	}
@@ -1119,6 +1117,8 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.endTime = endTime.Time
 	b.reapTime = reapTime.Time
 	b.drained = drained
+	b.aborted = aborted
+	b.completed = completed
 
 	var (
 		noncense      *string
