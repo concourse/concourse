@@ -1,8 +1,6 @@
 package k8s_test
 
 import (
-	"fmt"
-
 	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
@@ -14,8 +12,6 @@ import (
 var _ = Describe("Baggageclaim Drivers", func() {
 	var (
 		proxySession *gexec.Session
-		releaseName  string
-		namespace    string
 		atcEndpoint  string
 	)
 
@@ -36,9 +32,7 @@ var _ = Describe("Baggageclaim Drivers", func() {
 
 	DescribeTable("across different node images",
 		func(c Case) {
-			releaseName = fmt.Sprintf("topgun-bd-%s-%s-%d",
-				c.Driver, c.NodeImage, randomGenerator.Int())
-			namespace = releaseName
+			setReleaseNameAndNamespace("bd-"+c.Driver+"-"+c.NodeImage)
 
 			helmDeployTestFlags := []string{
 				"--set=concourse.web.kubernetes.enabled=false",

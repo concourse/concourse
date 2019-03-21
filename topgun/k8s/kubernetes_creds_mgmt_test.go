@@ -2,7 +2,6 @@ package k8s_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/onsi/gomega/gexec"
@@ -15,17 +14,14 @@ import (
 var _ = Describe("Kubernetes credential management", func() {
 	var (
 		proxySession *gexec.Session
-		releaseName  string
 		atcEndpoint  string
-		namespace    string
 		username     = "test"
 		password     = "test"
 		extraArgs    []string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-k8s-cm-%d", randomGenerator.Int())
-		namespace = releaseName
+		setReleaseNameAndNamespace("k8s-cm")
 	})
 
 	JustBeforeEach(func() {
