@@ -2,6 +2,7 @@ module Dashboard.Models exposing
     ( DashboardError(..)
     , DragState(..)
     , DropState(..)
+    , Dropdown(..)
     , FooterModel
     , Model
     , SubState
@@ -72,6 +73,11 @@ type alias FooterModel r =
         , screenSize : ScreenSize.ScreenSize
         , version : String
         , shiftDown : Bool
-        , dropdown : TopBar.Model.Dropdown
+        , dropdown : Dropdown
         , highDensity : Bool
     }
+
+
+type Dropdown
+    = Hidden
+    | Shown { selectedIdx : Maybe Int }

@@ -3,7 +3,7 @@ module Dashboard.Footer exposing (handleDelivery, view)
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group.Models exposing (Group)
-import Dashboard.Models exposing (FooterModel)
+import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, href, id, style)
@@ -13,7 +13,6 @@ import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Routes
 import ScreenSize
-import TopBar.Model exposing (Dropdown(..))
 import Views.Icon as Icon
 
 

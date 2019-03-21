@@ -110,7 +110,6 @@ init flags =
           , scrolledToCurrentBuild = False
           , isUserMenuExpanded = topBar.isUserMenuExpanded
           , groups = topBar.groups
-          , dropdown = topBar.dropdown
           , screenSize = topBar.screenSize
           , shiftDown = topBar.shiftDown
           }

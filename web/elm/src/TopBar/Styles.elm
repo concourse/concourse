@@ -13,7 +13,6 @@ module TopBar.Styles exposing
     , pageIncludingTopBar
     , pauseToggleIcon
     , pipelinePageBelowTopBar
-    , searchButton
     , topBar
     )
 
@@ -66,18 +65,6 @@ topBar isPaused =
         else
             Colors.frame
       )
-    ]
-
-
-searchButton : List ( String, String )
-searchButton =
-    [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "12px 8px" )
-    , ( "height", "32px" )
-    , ( "width", "32px" )
-    , ( "display", "inline-block" )
-    , ( "float", "left" )
     ]
 
 

@@ -10,7 +10,6 @@ import Routes
 import ScreenSize
 import SubPage.SubPage exposing (..)
 import Test exposing (..)
-import TopBar.Model
 
 
 notFoundResult : Result Http.Error a
@@ -54,8 +53,7 @@ all =
             in
             [ test "JobNotFound" <|
                 init "/teams/t/pipelines/p/jobs/j"
-                    >> Application.handleCallback
-                        (JobFetched notFoundResult)
+                    >> Application.handleCallback (JobFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
@@ -94,8 +92,7 @@ all =
                         )
             , test "Build not found" <|
                 init "/builds/1"
-                    >> Application.handleCallback
-                        (BuildFetched notFoundResult)
+                    >> Application.handleCallback (BuildFetched notFoundResult)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
@@ -137,7 +134,6 @@ notFound route =
     , isUserMenuExpanded = False
     , groups = []
     , screenSize = ScreenSize.Desktop
-    , dropdown = TopBar.Model.Hidden
     , route = route
     , shiftDown = False
     }

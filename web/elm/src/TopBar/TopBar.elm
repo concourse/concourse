@@ -1,6 +1,5 @@
 module TopBar.TopBar exposing
     ( handleCallback
-    , handleDelivery
     , init
     , queryStringFromSearch
     , update
@@ -28,25 +27,18 @@ import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
-import Message.Subscription exposing (Delivery(..))
 import QueryString
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import TopBar.Model
-    exposing
-        ( Dropdown(..)
-        , Model
-        )
+import TopBar.Model exposing (Model)
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
-import Window
 
 
 init : ( Model {}, List Effect )
 init =
     ( { isUserMenuExpanded = False
       , groups = []
-      , dropdown = Hidden
       , screenSize = Desktop
       , shiftDown = False
       }
@@ -72,19 +64,6 @@ handleCallback callback ( model, effects ) =
             flip always (Debug.log "failed to log out" err) <|
                 ( model, effects )
 
-        ScreenResized size ->
-            ( screenResize size model, effects )
-
-        _ ->
-            ( model, effects )
-
-
-handleDelivery : Delivery -> ET (Model r)
-handleDelivery delivery ( model, effects ) =
-    case delivery of
-        WindowResized size ->
-            ( screenResize size model, effects )
-
         _ ->
             ( model, effects )
 
@@ -107,42 +86,8 @@ update msg ( model, effects ) =
         TogglePipelinePaused _ _ ->
             ( model, effects )
 
-        FocusMsg ->
-            let
-                newModel =
-                    { model | dropdown = Shown { selectedIdx = Nothing } }
-            in
-            ( newModel, effects )
-
-        BlurMsg ->
-            let
-                newModel =
-                    { model | dropdown = Hidden }
-            in
-            ( newModel, effects )
-
         _ ->
             ( model, effects )
-
-
-screenResize : Window.Size -> Model r -> Model r
-screenResize size model =
-    let
-        newSize =
-            ScreenSize.fromWindowSize size
-
-        newModel =
-            { model | screenSize = newSize }
-    in
-    case newSize of
-        ScreenSize.Desktop ->
-            { newModel | dropdown = Hidden }
-
-        ScreenSize.BigDesktop ->
-            { newModel | dropdown = Hidden }
-
-        ScreenSize.Mobile ->
-            newModel
 
 
 viewLoginState : UserState -> Bool -> Bool -> List (Html Message)

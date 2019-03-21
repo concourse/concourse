@@ -16,6 +16,7 @@ import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Models as Models
     exposing
         ( DashboardError(..)
+        , Dropdown(..)
         , Model
         , SubState
         )
@@ -67,7 +68,6 @@ import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize)
 import Simple.Fuzzy exposing (filter, match, root)
-import TopBar.Model exposing (Dropdown(..))
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
@@ -105,7 +105,7 @@ init flags =
       , highDensity = flags.searchType == Routes.HighDensity
       , query = Routes.extractQuery flags.searchType
       , isUserMenuExpanded = topBar.isUserMenuExpanded
-      , dropdown = topBar.dropdown
+      , dropdown = Hidden
       , screenSize = topBar.screenSize
       , shiftDown = topBar.shiftDown
       }
@@ -231,8 +231,7 @@ handleCallbackBody msg ( model, effects ) =
 
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery =
-    TopBar.handleDelivery delivery
-        >> SearchBar.handleDelivery delivery
+    SearchBar.handleDelivery delivery
         >> Footer.handleDelivery delivery
         >> handleDeliveryBody delivery
 
@@ -399,48 +398,27 @@ view userState model =
             ]
           <|
             [ TopBar.viewConcourseLogo ]
-                ++ (case model.highDensity of
-                        False ->
-                            let
-                                isDropDownHidden =
-                                    model.dropdown == TopBar.Model.Hidden
+                ++ (let
+                        isDropDownHidden =
+                            model.dropdown == Hidden
 
-                                isMobile =
-                                    model.screenSize == ScreenSize.Mobile
+                        isMobile =
+                            model.screenSize == ScreenSize.Mobile
+                    in
+                    if
+                        not model.highDensity
+                            && isMobile
+                            && (not isDropDownHidden || model.query /= "")
+                    then
+                        [ SearchBar.view model ]
 
-                                noPipelines =
-                                    model.groups
-                                        |> List.concatMap .pipelines
-                                        |> List.isEmpty
-                            in
-                            if noPipelines then
-                                [ Login.view userState model False ]
+                    else if not model.highDensity then
+                        [ SearchBar.view model
+                        , Login.view userState model False
+                        ]
 
-                            else if isDropDownHidden && isMobile && model.query == "" then
-                                [ Html.div
-                                    [ style <|
-                                        Styles.showSearchContainer model
-                                    ]
-                                    [ Html.a
-                                        [ id "show-search-button"
-                                        , onClick ShowSearchInput
-                                        , style TopBar.Styles.searchButton
-                                        ]
-                                        []
-                                    ]
-                                , Login.view userState model False
-                                ]
-
-                            else if isMobile then
-                                [ SearchBar.view model ]
-
-                            else
-                                [ SearchBar.view model
-                                , Login.view userState model False
-                                ]
-
-                        _ ->
-                            [ Login.view userState model False ]
+                    else
+                        [ Login.view userState model False ]
                    )
         , Html.div
             [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
