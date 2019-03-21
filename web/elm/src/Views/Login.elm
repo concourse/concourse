@@ -5,14 +5,14 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, href, id, style)
 import Html.Events exposing (onClick)
 import Message.Message exposing (Message(..))
-import TopBar.Model exposing (MiddleSection(..), Model)
+import TopBar.Model exposing (Model)
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
 
 
 view :
     UserState
-    -> Model r
+    -> { a | isUserMenuExpanded : Bool }
     -> Bool
     -> Html Message
 view userState model isPaused =

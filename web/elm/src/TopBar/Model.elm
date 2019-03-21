@@ -1,6 +1,5 @@
 module TopBar.Model exposing
     ( Dropdown(..)
-    , MiddleSection(..)
     , Model
     , PipelineState
     , isPaused
@@ -21,17 +20,6 @@ type alias Model r =
         , screenSize : ScreenSize
         , shiftDown : Bool
     }
-
-
-
--- The Route in middle section should always be a pipeline, build, resource, or job, but that's hard to demonstrate statically
-
-
-type MiddleSection
-    = Breadcrumbs Routes.Route
-    | MinifiedSearch
-    | SearchBar
-    | Empty
 
 
 type Dropdown

@@ -41,7 +41,6 @@ import ScreenSize exposing (ScreenSize(..))
 import TopBar.Model
     exposing
         ( Dropdown(..)
-        , MiddleSection(..)
         , Model
         , PipelineState
         , isPaused
