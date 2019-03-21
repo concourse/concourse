@@ -31,7 +31,7 @@ module Resource.Styles exposing
 import Colors
 import Pinned
 import Resource.Models as Models
-import TopBar.Styles
+import Views.Styles
 
 
 headerHeight : Int
@@ -337,7 +337,7 @@ headerBar : List ( String, String )
 headerBar =
     [ ( "height", toString headerHeight ++ "px" )
     , ( "position", "fixed" )
-    , ( "top", toString TopBar.Styles.pageHeaderHeight ++ "px" )
+    , ( "top", toString Views.Styles.pageHeaderHeight ++ "px" )
     , ( "display", "flex" )
     , ( "align-items", "stretch" )
     , ( "width", "100%" )

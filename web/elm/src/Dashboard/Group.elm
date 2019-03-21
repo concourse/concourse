@@ -1,6 +1,5 @@
 module Dashboard.Group exposing
     ( PipelineIndex
-    , StickyHeaderConfig
     , allPipelines
     , allTeamNames
     , dragIndex
@@ -21,7 +20,6 @@ module Dashboard.Group exposing
     , setTeamName
     , shiftPipelineTo
     , shiftPipelines
-    , stickyHeaderConfig
     , teamName
     , teamNameOptional
     , transition
@@ -43,12 +41,12 @@ import Html.Events exposing (on, onMouseEnter)
 import Json.Decode
 import List.Extra
 import Maybe.Extra
+import Message.Effects as Effects
 import Message.Message exposing (Hoverable(..), Message(..))
 import Monocle.Optional
 import Ordering exposing (Ordering)
 import Set
 import Time exposing (Time)
-import TopBar.Styles as NTBS
 import UserState exposing (UserState)
 
 
@@ -56,25 +54,6 @@ ordering : Ordering Group
 ordering =
     Ordering.byFieldWith Tag.ordering .tag
         |> Ordering.breakTiesWith (Ordering.byField .teamName)
-
-
-type alias StickyHeaderConfig =
-    { pageHeaderHeight : Float
-    , pageBodyClass : String
-    , sectionHeaderClass : String
-    , sectionClass : String
-    , sectionBodyClass : String
-    }
-
-
-stickyHeaderConfig : StickyHeaderConfig
-stickyHeaderConfig =
-    { pageHeaderHeight = NTBS.pageHeaderHeight
-    , pageBodyClass = "dashboard"
-    , sectionClass = "dashboard-team-group"
-    , sectionHeaderClass = "dashboard-team-header"
-    , sectionBodyClass = "dashboard-team-pipelines"
-    }
 
 
 findGroupOptional : String -> Monocle.Optional.Optional (List Group) Group
@@ -455,13 +434,19 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
         ]
         [ Html.div
             [ style [ ( "display", "flex" ), ( "align-items", "center" ) ]
-            , class stickyHeaderConfig.sectionHeaderClass
+            , class <| .sectionHeaderClass Effects.stickyHeaderConfig
             ]
-            ([ Html.div [ class "dashboard-team-name" ] [ Html.text group.teamName ]
+            ([ Html.div
+                [ class "dashboard-team-name" ]
+                [ Html.text group.teamName ]
              ]
-                ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view False) group.tag)
+                ++ (Maybe.Extra.maybeToList <|
+                        Maybe.map (Tag.view False) group.tag
+                   )
             )
-        , Html.div [ class stickyHeaderConfig.sectionBodyClass ] pipelines
+        , Html.div
+            [ class <| .sectionBodyClass Effects.stickyHeaderConfig ]
+            pipelines
         ]
 
 

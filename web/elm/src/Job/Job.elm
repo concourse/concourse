@@ -42,6 +42,7 @@ import Html.Events
         )
 import Http
 import Job.Styles as Styles
+import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
@@ -50,20 +51,18 @@ import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
-import TopBar.Model
-import TopBar.Styles
-import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.DictView as DictView
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
-import Views.Login as Login
+import Views.Styles
+import Views.TopBar as TopBar
 
 
 type alias Model =
-    TopBar.Model.Model
+    Login.Model
         { jobIdentifier : Concourse.JobIdentifier
         , job : WebData Concourse.Job
         , pausedChanging : Bool
@@ -94,9 +93,6 @@ type alias Flags =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        ( topBar, topBarEffects ) =
-            TopBar.init
-
         model =
             { jobIdentifier = flags.jobId
             , job = RemoteData.NotAsked
@@ -111,10 +107,7 @@ init flags =
             , now = 0
             , currentPage = flags.paging
             , hovered = Nothing
-            , isUserMenuExpanded = topBar.isUserMenuExpanded
-            , groups = topBar.groups
-            , screenSize = topBar.screenSize
-            , shiftDown = topBar.shiftDown
+            , isUserMenuExpanded = False
             }
     in
     ( model
@@ -122,7 +115,6 @@ init flags =
       , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
       ]
-        ++ topBarEffects
     )
 
 
@@ -160,12 +152,7 @@ getUpdateMessage model =
 
 
 handleCallback : Callback -> ET Model
-handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackBody msg
-
-
-handleCallbackBody : Callback -> ET Model
-handleCallbackBody callback ( model, effects ) =
+handleCallback callback ( model, effects ) =
     case callback of
         BuildTriggered (Ok build) ->
             ( model
@@ -267,12 +254,7 @@ handleDelivery delivery ( model, effects ) =
 
 
 update : Message -> ET Model
-update msg =
-    TopBar.update msg >> updateBody msg
-
-
-updateBody : Message -> ET Model
-updateBody action ( model, effects ) =
+update action ( model, effects ) =
     case action of
         TriggerBuildJob ->
             ( model, effects ++ [ DoTriggerBuild model.jobIdentifier ] )
@@ -293,9 +275,6 @@ updateBody action ( model, effects ) =
                       else
                         effects ++ [ PauseJob model.jobIdentifier ]
                     )
-
-        GoToRoute route ->
-            ( model, effects ++ [ NavigateTo <| Routes.toString route ] )
 
         Hover hoverable ->
             ( { model | hovered = hoverable }, effects )
@@ -413,15 +392,15 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar
+            [ style Views.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
             [ Html.div
                 [ id "top-bar-app"
-                , style <| TopBar.Styles.topBar False
+                , style <| Views.Styles.topBar False
                 ]
-                [ TopBar.viewConcourseLogo
-                , TopBar.viewBreadcrumbs <|
+                [ TopBar.concourseLogo
+                , TopBar.breadcrumbs <|
                     Routes.Job
                         { id = model.jobIdentifier
                         , page = model.currentPage

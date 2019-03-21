@@ -19,6 +19,7 @@ import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
 import Html exposing (Html)
 import Job.Job as Job
+import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
@@ -186,7 +187,7 @@ handleCallback callback =
         (Resource.handleCallback callback)
         (Pipeline.handleCallback callback)
         (Dashboard.handleCallback callback)
-        (NotFound.handleCallback callback)
+        identity
         (FlySuccess.handleCallback callback)
         >> (case callback of
                 LoggedOut (Ok ()) ->
@@ -230,13 +231,25 @@ handleDelivery delivery =
 update : Message -> ET Model
 update msg =
     genericUpdate
-        (Build.update msg)
-        (Job.update msg)
-        (Resource.update msg)
-        (Pipeline.update msg)
-        (Dashboard.update msg)
-        (NotFound.update msg)
-        (FlySuccess.update msg)
+        (Login.update msg >> Build.update msg)
+        (Login.update msg >> Job.update msg)
+        (Login.update msg >> Resource.update msg)
+        (Login.update msg >> Pipeline.update msg)
+        (Login.update msg >> Dashboard.update msg)
+        (Login.update msg)
+        (Login.update msg >> FlySuccess.update msg)
+        >> (case msg of
+                GoToRoute route ->
+                    handleGoToRoute route
+
+                _ ->
+                    identity
+           )
+
+
+handleGoToRoute : Routes.Route -> ET a
+handleGoToRoute route ( a, effs ) =
+    ( a, effs ++ [ NavigateTo <| Routes.toString route ] )
 
 
 urlUpdate : Routes.Route -> ET Model

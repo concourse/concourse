@@ -16,7 +16,6 @@ import Application.Application as Application
 import Concourse
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
-import Dashboard.Group as Group
 import Dashboard.Models as Models
 import Date exposing (Date)
 import Dict
@@ -122,7 +121,31 @@ pipelineRunningKeyframes =
 all : Test
 all =
     describe "Dashboard"
-        [ describe "welcome card" <|
+        [ test "requests screen size on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { href = ""
+                    , host = ""
+                    , hostname = ""
+                    , protocol = ""
+                    , origin = ""
+                    , port_ = ""
+                    , pathname = "/"
+                    , search = ""
+                    , hash = ""
+                    , username = ""
+                    , password = ""
+                    }
+                    |> Tuple.second
+                    |> List.member Effects.GetScreenSize
+                    |> Expect.true "should request screen size"
+        , describe "welcome card" <|
             let
                 hasWelcomeCard : (() -> ( Models.Model, List Effects.Effect )) -> List Test
                 hasWelcomeCard setup =
@@ -3554,7 +3577,7 @@ circularJobs =
 
 teamHeaderSelector : List Selector
 teamHeaderSelector =
-    [ class <| .sectionHeaderClass Group.stickyHeaderConfig ]
+    [ class <| .sectionHeaderClass Effects.stickyHeaderConfig ]
 
 
 teamHeaderHasNoPill : String -> Query.Single Msgs.Message -> Expectation

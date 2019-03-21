@@ -11,11 +11,11 @@ module Dashboard.Models exposing
 
 import Concourse
 import Dashboard.Group.Models
+import Login.Login as Login
 import Message.Message as Message
 import RemoteData
 import ScreenSize
 import Time exposing (Time)
-import TopBar.Model
 import UserState
 
 
@@ -25,7 +25,7 @@ type DashboardError
 
 type alias Model =
     FooterModel
-        (TopBar.Model.Model
+        (Login.Model
             { state : RemoteData.RemoteData DashboardError SubState
             , turbulencePath : String
             , pipelineRunningKeyframes : String

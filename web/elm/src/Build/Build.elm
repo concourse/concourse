@@ -45,6 +45,7 @@ import Http
 import Keyboard
 import Keycodes
 import List.Extra
+import Login.Login as Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
@@ -55,15 +56,14 @@ import Routes
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
 import Time exposing (Time)
-import TopBar.Styles
-import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
-import Views.Login as Login
 import Views.Spinner as Spinner
+import Views.Styles
+import Views.TopBar as TopBar
 
 
 type StepRenderingState
@@ -86,10 +86,6 @@ type ScrollBehavior
 
 init : Flags -> ( Model, List Effect )
 init flags =
-    let
-        ( topBar, topBarEffects ) =
-            TopBar.init
-    in
     changeToBuild
         flags
         ( { page = flags.pageType
@@ -108,12 +104,10 @@ init flags =
           , hoveredCounter = 0
           , fetchingHistory = False
           , scrolledToCurrentBuild = False
-          , isUserMenuExpanded = topBar.isUserMenuExpanded
-          , groups = topBar.groups
-          , screenSize = topBar.screenSize
-          , shiftDown = topBar.shiftDown
+          , shiftDown = False
+          , isUserMenuExpanded = False
           }
-        , topBarEffects ++ [ GetCurrentTime ]
+        , [ GetCurrentTime ]
         )
 
 
@@ -210,16 +204,15 @@ getUpdateMessage model =
 
 
 handleCallback : Callback -> ET Model
-handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackBody msg
-
-
-handleCallbackBody : Callback -> ET Model
-handleCallbackBody action ( model, effects ) =
+handleCallback action ( model, effects ) =
     case action of
         BuildTriggered (Ok build) ->
             ( { model | history = build :: model.history }
-            , effects ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+            , effects
+                ++ [ NavigateTo <|
+                        Routes.toString <|
+                            Routes.buildRoute build
+                   ]
             )
 
         BuildFetched (Ok ( browsingIndex, build )) ->
@@ -385,12 +378,7 @@ handleDelivery delivery ( model, effects ) =
 
 
 update : Message -> ET Model
-update msg =
-    TopBar.update msg >> updateBody msg
-
-
-updateBody : Message -> ET Model
-updateBody msg ( model, effects ) =
+update msg ( model, effects ) =
     case msg of
         SwitchToBuild build ->
             ( model
@@ -767,15 +755,15 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
 view : UserState -> Model -> Html Message
 view userState model =
     Html.div
-        [ style TopBar.Styles.pageIncludingTopBar
+        [ style Views.Styles.pageIncludingTopBar
         , id "page-including-top-bar"
         ]
         [ Html.div
             [ id "top-bar-app"
-            , style <| TopBar.Styles.topBar False
+            , style <| Views.Styles.topBar False
             ]
-            [ TopBar.viewConcourseLogo
-            , TopBar.viewBreadcrumbs <|
+            [ TopBar.concourseLogo
+            , TopBar.breadcrumbs <|
                 case model.page of
                     OneOffBuildPage buildId ->
                         Routes.OneOffBuild
@@ -792,7 +780,7 @@ view userState model =
             ]
         , Html.div
             [ id "page-below-top-bar"
-            , style TopBar.Styles.pipelinePageBelowTopBar
+            , style Views.Styles.pipelinePageBelowTopBar
             ]
             [ viewBuildPage model ]
         ]

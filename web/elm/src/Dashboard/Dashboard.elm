@@ -50,6 +50,7 @@ import Html.Events
         )
 import Http
 import List.Extra
+import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message as Message exposing (Hoverable(..), Message(..))
@@ -66,12 +67,11 @@ import MonocleHelpers exposing (..)
 import Regex exposing (HowMany(All), regex, replace)
 import RemoteData
 import Routes
-import ScreenSize exposing (ScreenSize)
+import ScreenSize exposing (ScreenSize(..))
 import Simple.Fuzzy exposing (filter, match, root)
-import TopBar.Styles
-import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
-import Views.Login as Login
+import Views.Styles
+import Views.TopBar as TopBar
 
 
 type alias Flags =
@@ -88,10 +88,6 @@ substateOptional =
 
 init : Flags -> ( Model, List Effect )
 init flags =
-    let
-        ( topBar, topBarEffects ) =
-            TopBar.init
-    in
     ( { state = RemoteData.NotAsked
       , turbulencePath = flags.turbulencePath
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
@@ -104,30 +100,29 @@ init flags =
       , showHelp = False
       , highDensity = flags.searchType == Routes.HighDensity
       , query = Routes.extractQuery flags.searchType
-      , isUserMenuExpanded = topBar.isUserMenuExpanded
+      , isUserMenuExpanded = False
       , dropdown = Hidden
-      , screenSize = topBar.screenSize
-      , shiftDown = topBar.shiftDown
+      , screenSize = Desktop
+      , shiftDown = False
       }
     , [ FetchData
-      , PinTeamNames Group.stickyHeaderConfig
+      , PinTeamNames Message.Effects.stickyHeaderConfig
       , SetTitle <| "Dashboard" ++ " - "
       , GetScreenSize
       ]
-        ++ topBarEffects
     )
 
 
 handleCallback : Callback -> ET Model
-handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackBody msg
-
-
-handleCallbackBody : Callback -> ET Model
-handleCallbackBody msg ( model, effects ) =
+handleCallback msg ( model, effects ) =
     case msg of
         APIDataFetched (Err _) ->
-            ( { model | state = RemoteData.Failure (Turbulence model.turbulencePath) }, effects )
+            ( { model
+                | state =
+                    RemoteData.Failure (Turbulence model.turbulencePath)
+              }
+            , effects
+            )
 
         APIDataFetched (Ok ( now, apiData )) ->
             let
@@ -253,7 +248,7 @@ handleDeliveryBody delivery ( model, effects ) =
 
 update : Message -> ET Model
 update msg =
-    TopBar.update msg >> SearchBar.update msg >> updateBody msg
+    SearchBar.update msg >> updateBody msg
 
 
 updateBody : Message -> ET Model
@@ -389,15 +384,15 @@ subscriptions model =
 view : UserState -> Model -> Html Message
 view userState model =
     Html.div
-        [ style TopBar.Styles.pageIncludingTopBar
+        [ style Views.Styles.pageIncludingTopBar
         , id "page-including-top-bar"
         ]
         [ Html.div
             [ id "top-bar-app"
-            , style <| TopBar.Styles.topBar False
+            , style <| Views.Styles.topBar False
             ]
           <|
-            [ TopBar.viewConcourseLogo ]
+            [ TopBar.concourseLogo ]
                 ++ (let
                         isDropDownHidden =
                             model.dropdown == Hidden
@@ -421,7 +416,7 @@ view userState model =
                         [ Login.view userState model False ]
                    )
         , Html.div
-            [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+            [ id "page-below-top-bar", style Views.Styles.pageBelowTopBar ]
             (dashboardView model)
         ]
 
@@ -440,7 +435,7 @@ dashboardView model =
 
         RemoteData.Success substate ->
             [ Html.div
-                [ class <| .pageBodyClass Group.stickyHeaderConfig
+                [ class <| .pageBodyClass Message.Effects.stickyHeaderConfig
                 , style <| Styles.content model.highDensity
                 ]
               <|

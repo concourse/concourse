@@ -32,6 +32,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
 import Json.Decode
 import Json.Encode
+import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
@@ -43,17 +44,15 @@ import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Time exposing (Time)
-import TopBar.Model
-import TopBar.Styles
-import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
-import Views.Login as Login
 import Views.PauseToggle as PauseToggle
+import Views.Styles
+import Views.TopBar as TopBar
 
 
 type alias Model =
-    TopBar.Model.Model
+    Login.Model
         { pipelineLocator : Concourse.PipelineIdentifier
         , pipeline : WebData Concourse.Pipeline
         , fetchedJobs : Maybe Json.Encode.Value
@@ -82,9 +81,6 @@ type alias Flags =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        ( topBar, topBarEffects ) =
-            TopBar.init
-
         model =
             { concourseVersion = ""
             , turbulenceImgSrc = flags.turbulenceImgSrc
@@ -101,13 +97,12 @@ init flags =
             , isToggleLoading = False
             , selectedGroups = flags.selectedGroups
             , isPinMenuExpanded = False
-            , isUserMenuExpanded = topBar.isUserMenuExpanded
-            , groups = topBar.groups
-            , screenSize = topBar.screenSize
-            , shiftDown = topBar.shiftDown
+            , isUserMenuExpanded = False
             }
     in
-    ( model, [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ] ++ topBarEffects )
+    ( model
+    , [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ]
+    )
 
 
 changeToPipelineAndGroups :
@@ -156,12 +151,7 @@ getUpdateMessage model =
 
 
 handleCallback : Callback -> ET Model
-handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackBody msg
-
-
-handleCallbackBody : Callback -> ET Model
-handleCallbackBody callback ( model, effects ) =
+handleCallback callback ( model, effects ) =
     let
         redirectToLoginIfUnauthenticated status =
             if status.code == 401 then
@@ -321,12 +311,7 @@ handleDelivery delivery ( model, effects ) =
 
 
 update : Message -> ET Model
-update msg =
-    TopBar.update msg >> updateBody msg
-
-
-updateBody : Message -> ET Model
-updateBody msg ( model, effects ) =
+update msg ( model, effects ) =
     case msg of
         ToggleGroup group ->
             ( model
@@ -391,17 +376,17 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
-            [ Html.Attributes.style TopBar.Styles.pageIncludingTopBar
+            [ Html.Attributes.style Views.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
             [ Html.div
                 [ id "top-bar-app"
                 , Html.Attributes.style <|
-                    TopBar.Styles.topBar <|
+                    Views.Styles.topBar <|
                         isPaused model.pipeline
                 ]
-                [ TopBar.viewConcourseLogo
-                , TopBar.viewBreadcrumbs <|
+                [ TopBar.concourseLogo
+                , TopBar.breadcrumbs <|
                     Routes.Pipeline
                         { id = model.pipelineLocator
                         , groups = model.selectedGroups
@@ -428,7 +413,7 @@ view userState model =
                 , Login.view userState model <| isPaused model.pipeline
                 ]
             , Html.div
-                [ Html.Attributes.style TopBar.Styles.pipelinePageBelowTopBar
+                [ Html.Attributes.style Views.Styles.pipelinePageBelowTopBar
                 , id "page-below-top-bar"
                 ]
                 [ viewSubPage model ]

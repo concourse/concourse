@@ -4,11 +4,11 @@ port module Message.Effects exposing
     , renderPipeline
     , runEffect
     , setTitle
+    , stickyHeaderConfig
     )
 
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
-import Dashboard.Group
 import Dashboard.Group.Models
 import Dom
 import Favicon
@@ -28,9 +28,9 @@ import Network.Pipeline
 import Network.Resource
 import Network.User
 import Process
-import Resource.Models exposing (VersionId)
 import Task
 import Time exposing (Time)
+import Views.Styles
 import Window
 
 
@@ -40,7 +40,7 @@ port setTitle : String -> Cmd msg
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 
 
-port pinTeamNames : Dashboard.Group.StickyHeaderConfig -> Cmd msg
+port pinTeamNames : StickyHeaderConfig -> Cmd msg
 
 
 port tooltip : ( String, String ) -> Cmd msg
@@ -88,6 +88,25 @@ port scrollDown : () -> Cmd msg
 port checkIsVisible : String -> Cmd msg
 
 
+type alias StickyHeaderConfig =
+    { pageHeaderHeight : Float
+    , pageBodyClass : String
+    , sectionHeaderClass : String
+    , sectionClass : String
+    , sectionBodyClass : String
+    }
+
+
+stickyHeaderConfig : StickyHeaderConfig
+stickyHeaderConfig =
+    { pageHeaderHeight = Views.Styles.pageHeaderHeight
+    , pageBodyClass = "dashboard"
+    , sectionClass = "dashboard-team-group"
+    , sectionHeaderClass = "dashboard-team-header"
+    , sectionBodyClass = "dashboard-team-pipelines"
+    }
+
+
 type Effect
     = FetchJob Concourse.JobIdentifier
     | FetchJobs Concourse.PipelineIdentifier
@@ -132,7 +151,7 @@ type Effect
     | SendOrderPipelinesRequest String (List Dashboard.Group.Models.Pipeline)
     | SendLogOutRequest
     | GetScreenSize
-    | PinTeamNames Dashboard.Group.StickyHeaderConfig
+    | PinTeamNames StickyHeaderConfig
     | Scroll ScrollDirection
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
@@ -142,6 +161,10 @@ type Effect
     | CheckIsVisible String
     | Focus String
     | Blur String
+
+
+type alias VersionId =
+    Concourse.VersionedResourceIdentifier
 
 
 type ScrollDirection

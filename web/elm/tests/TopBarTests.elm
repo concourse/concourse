@@ -10,6 +10,7 @@ import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
 import Keycodes
+import Login.Login as Login
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message as Msgs
@@ -29,8 +30,6 @@ import Test.Html.Selector as Selector
         , tag
         , text
         )
-import TopBar.Model as Model
-import TopBar.TopBar as TopBar
 
 
 rspecStyleDescribe : String -> subject -> List (subject -> Test) -> Test
@@ -51,9 +50,9 @@ it desc expectationFunc subject =
         \_ -> expectationFunc subject
 
 
-update : Msgs.Message -> Model.Model {} -> ( Model.Model {}, List Effects.Effect )
+update : Msgs.Message -> Login.Model {} -> ( Login.Model {}, List Effects.Effect )
 update msg =
-    flip (,) [] >> TopBar.update msg
+    flip (,) [] >> Login.update msg
 
 
 lineHeight : String
@@ -119,12 +118,7 @@ searchBarPadding =
 all : Test
 all =
     describe "TopBar"
-        [ rspecStyleDescribe "on init"
-            (TopBar.init |> Tuple.second)
-            [ it "requests screen size" <|
-                Expect.equal [ Effects.GetScreenSize ]
-            ]
-        , rspecStyleDescribe "when on pipeline page"
+        [ rspecStyleDescribe "when on pipeline page"
             (Application.init
                 { turbulenceImgSrc = ""
                 , notFoundImgSrc = ""

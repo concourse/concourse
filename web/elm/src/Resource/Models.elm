@@ -11,10 +11,10 @@ module Resource.Models exposing
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Date exposing (Date)
+import Login.Login as Login
 import Message.Message exposing (Hoverable)
 import Pinned exposing (CommentState, ResourcePinState)
 import Time
-import TopBar.Model
 
 
 type PageError
@@ -29,7 +29,7 @@ type CheckStatus
 
 
 type alias Model =
-    TopBar.Model.Model
+    Login.Model
         { pageStatus : Result PageError ()
         , checkStatus : CheckStatus
         , checkError : String

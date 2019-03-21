@@ -7,7 +7,6 @@ import Http
 import Message.Callback exposing (Callback(..))
 import NotFound.Model
 import Routes
-import ScreenSize
 import SubPage.SubPage exposing (..)
 import Test exposing (..)
 
@@ -132,8 +131,5 @@ notFound : Routes.Route -> NotFound.Model.Model
 notFound route =
     { notFoundImgSrc = "notfound.svg"
     , isUserMenuExpanded = False
-    , groups = []
-    , screenSize = ScreenSize.Desktop
     , route = route
-    , shiftDown = False
     }

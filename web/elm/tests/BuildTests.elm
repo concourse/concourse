@@ -562,8 +562,7 @@ all =
                 pageLoad
                     |> Tuple.second
                     |> Expect.equal
-                        [ Effects.GetScreenSize
-                        , Effects.GetCurrentTime
+                        [ Effects.GetCurrentTime
                         , Effects.CloseBuildEventStream
                         , Effects.FetchJobBuild 1
                             { teamName = "team"

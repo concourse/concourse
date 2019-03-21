@@ -1,17 +1,15 @@
-module NotFound.NotFound exposing (handleCallback, init, update, view)
+module NotFound.NotFound exposing (init, view)
 
-import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
-import Message.Callback exposing (Callback)
+import Login.Login as Login
 import Message.Effects as Effects exposing (Effect)
 import Message.Message exposing (Message(..))
 import NotFound.Model exposing (Model)
 import Routes
-import TopBar.Styles
-import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
-import Views.Login as Login
+import Views.Styles
+import Views.TopBar as TopBar
 
 
 type alias Flags =
@@ -22,49 +20,32 @@ type alias Flags =
 
 init : Flags -> ( Model, List Effect )
 init flags =
-    let
-        ( topBar, topBarEffects ) =
-            TopBar.init
-    in
     ( { notFoundImgSrc = flags.notFoundImgSrc
       , route = flags.route
-      , isUserMenuExpanded = topBar.isUserMenuExpanded
-      , groups = topBar.groups
-      , screenSize = topBar.screenSize
-      , shiftDown = topBar.shiftDown
+      , isUserMenuExpanded = False
       }
-    , topBarEffects ++ [ Effects.SetTitle "Not Found " ]
+    , [ Effects.SetTitle "Not Found " ]
     )
-
-
-update : Message -> ET Model
-update msg ( model, effects ) =
-    TopBar.update msg ( model, effects )
-
-
-handleCallback : Callback -> ET Model
-handleCallback msg ( model, effects ) =
-    TopBar.handleCallback msg ( model, effects )
 
 
 view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar
+            [ style Views.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
             [ Html.div
                 [ id "top-bar-app"
-                , style <| TopBar.Styles.topBar False
+                , style <| Views.Styles.topBar False
                 ]
-                [ TopBar.viewConcourseLogo
-                , TopBar.viewBreadcrumbs model.route
+                [ TopBar.concourseLogo
+                , TopBar.breadcrumbs model.route
                 , Login.view userState model False
                 ]
             , Html.div
                 [ id "page-below-top-bar"
-                , style TopBar.Styles.pageBelowTopBar
+                , style Views.Styles.pageBelowTopBar
                 ]
                 [ Html.div [ class "notfound" ]
                     [ Html.div [ class "title" ] [ Html.text "404" ]

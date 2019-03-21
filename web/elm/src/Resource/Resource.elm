@@ -55,6 +55,7 @@ import Html.Events
 import Http
 import Keycodes
 import List.Extra
+import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..), setTitle)
@@ -66,14 +67,13 @@ import Resource.Styles
 import Routes
 import StrictEvents
 import Time exposing (Time)
-import TopBar.Styles
-import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
 import Views.DictView as DictView
 import Views.Icon as Icon
-import Views.Login as Login
 import Views.Spinner as Spinner
+import Views.Styles
+import Views.TopBar as TopBar
 
 
 type alias Flags =
@@ -85,9 +85,6 @@ type alias Flags =
 init : Flags -> ( Model, List Effect )
 init flags =
     let
-        ( topBar, topBarEffects ) =
-            TopBar.init
-
         model =
             { resourceIdentifier = flags.resourceId
             , pageStatus = Err Models.Empty
@@ -106,14 +103,13 @@ init flags =
             , pinCommentLoading = False
             , ctrlDown = False
             , textAreaFocused = False
-            , isUserMenuExpanded = topBar.isUserMenuExpanded
-            , groups = topBar.groups
-            , screenSize = topBar.screenSize
-            , shiftDown = topBar.shiftDown
+            , isUserMenuExpanded = False
             }
     in
     ( model
-    , topBarEffects ++ [ FetchResource flags.resourceId, FetchVersionedResources flags.resourceId flags.paging ]
+    , [ FetchResource flags.resourceId
+      , FetchVersionedResources flags.resourceId flags.paging
+      ]
     )
 
 
@@ -209,12 +205,7 @@ subscriptions model =
 
 
 handleCallback : Callback -> ET Model
-handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackBody msg
-
-
-handleCallbackBody : Callback -> ET Model
-handleCallbackBody action ( model, effects ) =
+handleCallback action ( model, effects ) =
     case action of
         ResourceFetched (Ok resource) ->
             ( { model
@@ -492,12 +483,7 @@ handleDelivery delivery ( model, effects ) =
 
 
 update : Message -> ET Model
-update msg =
-    TopBar.update msg >> updateBody msg
-
-
-updateBody : Message -> ET Model
-updateBody action ( model, effects ) =
+update action ( model, effects ) =
     case action of
         LoadPage page ->
             ( { model
@@ -542,9 +528,6 @@ updateBody action ( model, effects ) =
               else
                 effects
             )
-
-        GoToRoute route ->
-            ( model, effects ++ [ NavigateTo <| Routes.toString route ] )
 
         PinVersion versionID ->
             let
@@ -661,15 +644,15 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar
+            [ style Views.Styles.pageIncludingTopBar
             , id "page-including-top-bar"
             ]
             [ Html.div
                 [ id "top-bar-app"
-                , style <| TopBar.Styles.topBar False
+                , style <| Views.Styles.topBar False
                 ]
-                [ TopBar.viewConcourseLogo
-                , TopBar.viewBreadcrumbs <|
+                [ TopBar.concourseLogo
+                , TopBar.breadcrumbs <|
                     Routes.Resource
                         { id = model.resourceIdentifier
                         , page = Nothing

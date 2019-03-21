@@ -1,18 +1,41 @@
-module Views.Login exposing (view)
+module Login.Login exposing (Model, update, view)
 
 import Concourse
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, href, id, style)
 import Html.Events exposing (onClick)
+import Login.Styles as Styles
+import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
-import TopBar.Model exposing (Model)
-import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
+
+
+type alias Model r =
+    { r | isUserMenuExpanded : Bool }
+
+
+update : Message -> ET (Model r)
+update msg ( model, effects ) =
+    case msg of
+        LogIn ->
+            ( model, effects ++ [ RedirectToLogin ] )
+
+        LogOut ->
+            ( model, effects ++ [ SendLogOutRequest ] )
+
+        ToggleUserMenu ->
+            ( { model | isUserMenuExpanded = not model.isUserMenuExpanded }
+            , effects
+            )
+
+        _ ->
+            ( model, effects )
 
 
 view :
     UserState
-    -> { a | isUserMenuExpanded : Bool }
+    -> Model r
     -> Bool
     -> Html Message
 view userState model isPaused =
