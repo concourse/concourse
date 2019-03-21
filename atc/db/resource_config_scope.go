@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -119,7 +118,7 @@ func (r *resourceConfigScope) FindVersion(v atc.Version) (ResourceConfigVersion,
 		Where(sq.Eq{
 			"v.resource_config_scope_id": r.id,
 		}).
-		Where(sq.Expr(fmt.Sprintf("v.version_md5 = md5('%s')", versionByte))).
+		Where(sq.Expr("v.version_md5 = md5(?)", versionByte)).
 		RunWith(r.conn).
 		QueryRow()
 

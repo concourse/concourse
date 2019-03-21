@@ -862,7 +862,7 @@ func (b *build) SaveOutput(
 
 	_, err = psql.Insert("build_resource_config_version_outputs").
 		Columns("resource_id", "build_id", "version_md5", "name").
-		Values(resource.ID(), strconv.Itoa(b.id), sq.Expr(fmt.Sprintf("md5('%s')", versionJSON)), sq.Expr(fmt.Sprintf("'%s'", outputName))).
+		Values(resource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
@@ -1040,7 +1040,7 @@ func (p *build) saveInputTx(tx Tx, buildID int, input BuildInput) error {
 
 	_, err = psql.Insert("build_resource_config_version_inputs").
 		Columns("build_id", "resource_id", "version_md5", "name").
-		Values(buildID, input.ResourceID, sq.Expr(fmt.Sprintf("md5('%s')", versionJSON)), input.Name).
+		Values(buildID, input.ResourceID, sq.Expr("md5(?)", versionJSON), input.Name).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
