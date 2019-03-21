@@ -1,4 +1,4 @@
-module Login exposing (view)
+module Views.Login exposing (view)
 
 import Concourse
 import Html exposing (Html)

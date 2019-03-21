@@ -45,7 +45,6 @@ import Http
 import Keyboard
 import Keycodes
 import List.Extra
-import Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
@@ -63,6 +62,7 @@ import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
+import Views.Login as Login
 import Views.Spinner as Spinner
 
 

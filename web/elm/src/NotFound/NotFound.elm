@@ -3,7 +3,6 @@ module NotFound.NotFound exposing (handleCallback, init, update, view)
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style)
-import Login
 import Message.Callback exposing (Callback)
 import Message.Effects as Effects exposing (Effect)
 import Message.Message exposing (Message(..))
@@ -12,6 +11,7 @@ import Routes
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
+import Views.Login as Login
 
 
 type alias Flags =

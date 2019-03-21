@@ -13,10 +13,10 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter, onMouseLeave)
 import Message.Message exposing (Hoverable(..), Message(..))
-import PauseToggle
 import Routes
 import Time exposing (Time)
 import UserState exposing (UserState)
+import Views.PauseToggle as PauseToggle
 
 
 pipelineNotSetView : Html Message

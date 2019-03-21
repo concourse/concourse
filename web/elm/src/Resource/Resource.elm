@@ -55,7 +55,6 @@ import Html.Events
 import Http
 import Keycodes
 import List.Extra
-import Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..), setTitle)
@@ -72,6 +71,7 @@ import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
 import Views.DictView as DictView
+import Views.Login as Login
 import Views.Spinner as Spinner
 
 

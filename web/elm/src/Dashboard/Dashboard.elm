@@ -37,7 +37,6 @@ import Html.Attributes
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
 import List.Extra
-import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message as Message exposing (Hoverable(..), Message(..))
@@ -60,6 +59,7 @@ import TopBar.Model
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
+import Views.Login as Login
 
 
 type alias Flags =

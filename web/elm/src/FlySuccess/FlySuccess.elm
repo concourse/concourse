@@ -21,7 +21,6 @@ import FlySuccess.Text as Text
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
@@ -30,6 +29,7 @@ import Routes
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
+import Views.Login as Login
 
 
 init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )

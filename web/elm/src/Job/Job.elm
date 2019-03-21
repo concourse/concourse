@@ -42,7 +42,6 @@ import Html.Events
         )
 import Http
 import Job.Styles as Styles
-import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
@@ -59,6 +58,7 @@ import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.DictView as DictView
 import Views.LoadingIndicator as LoadingIndicator
+import Views.Login as Login
 
 
 type alias Model =

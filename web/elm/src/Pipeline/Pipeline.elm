@@ -32,12 +32,10 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
 import Json.Decode
 import Json.Encode
-import Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
-import PauseToggle
 import Pipeline.Styles as Styles
 import RemoteData exposing (..)
 import Routes
@@ -50,6 +48,8 @@ import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
+import Views.Login as Login
+import Views.PauseToggle as PauseToggle
 
 
 type alias Model =

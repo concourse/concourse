@@ -1,4 +1,4 @@
-module PauseToggle exposing (view)
+module Views.PauseToggle exposing (view)
 
 import Concourse
 import Html exposing (Html)
