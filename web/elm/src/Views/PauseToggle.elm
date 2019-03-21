@@ -7,6 +7,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (Hoverable(..), Message(..))
 import TopBar.Styles as Styles
 import UserState exposing (UserState(..))
+import Views.Icon as Icon
 import Views.Spinner as Spinner
 
 
@@ -23,43 +24,39 @@ view :
     -> Html Message
 view margin userState { isPaused, pipeline, isToggleHovered, isToggleLoading } =
     let
-        isAnonymous =
-            UserState.user userState == Nothing
-
-        isMember =
-            UserState.isMember
-                { teamName = pipeline.teamName
-                , userState = userState
-                }
-
         isClickable =
-            isAnonymous || isMember
+            UserState.isAnonymous userState
+                || UserState.isMember
+                    { teamName = pipeline.teamName
+                    , userState = userState
+                    }
     in
     if isToggleLoading then
         Spinner.spinner { size = "20px", margin = margin }
 
     else
-        Html.div
+        Icon.icon
+            { sizePx = 20
+            , image =
+                if isPaused then
+                    "ic-play-white.svg"
+
+                else
+                    "ic-pause-white.svg"
+            }
             ([ style <|
                 Styles.pauseToggleIcon
-                    { isPaused = isPaused
-                    , isHovered = isClickable && isToggleHovered
+                    { isHovered = isClickable && isToggleHovered
                     , isClickable = isClickable
                     , margin = margin
                     }
-             , onMouseEnter <|
-                Hover <|
-                    Just <|
-                        PipelineButton pipeline
+             , onMouseEnter <| Hover <| Just <| PipelineButton pipeline
              , onMouseLeave <| Hover Nothing
              ]
                 ++ (if isClickable then
-                        [ onClick <|
-                            TogglePipelinePaused pipeline isPaused
-                        ]
+                        [ onClick <| TogglePipelinePaused pipeline isPaused ]
 
                     else
                         []
                    )
             )
-            []

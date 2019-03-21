@@ -14,6 +14,7 @@ import Message.Subscription exposing (Delivery(..), Interval(..))
 import Routes
 import ScreenSize
 import TopBar.Model exposing (Dropdown(..))
+import Views.Icon as Icon
 
 
 handleDelivery :
@@ -153,7 +154,11 @@ legend model =
                 , PipelineStatusPaused
                 ]
                 ++ [ Html.div [ style Styles.legendItem ]
-                        [ Html.div [ style Styles.runningLegendItem ] []
+                        [ Icon.icon
+                            { sizePx = 20
+                            , image = "ic-running-legend.svg"
+                            }
+                            []
                         , Html.div [ style [ ( "width", "10px" ) ] ] []
                         , Html.text "running"
                         ]
@@ -192,9 +197,7 @@ hideLegend { groups } =
 legendItem : PipelineStatus -> Html Message
 legendItem status =
     Html.div [ style Styles.legendItem ]
-        [ Html.div
-            [ style <| Styles.pipelineStatusIcon status ]
-            []
+        [ PipelineStatus.icon status
         , Html.div [ style [ ( "width", "10px" ) ] ] []
         , Html.text <| PipelineStatus.show status
         ]

@@ -16,6 +16,7 @@ import Message.Message exposing (Hoverable(..), Message(..))
 import Routes
 import Time exposing (Time)
 import UserState exposing (UserState)
+import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
 
 
@@ -152,10 +153,7 @@ footerView userState pipeline now hovered =
         [ Html.div
             [ style [ ( "display", "flex" ) ]
             ]
-            [ Html.div
-                [ style <| Styles.pipelineStatusIcon pipeline.status
-                ]
-                []
+            [ PipelineStatus.icon pipeline.status
             , transitionView now pipeline
             ]
         , Html.div
@@ -181,23 +179,16 @@ footerView userState pipeline now hovered =
 
 visibilityView : Bool -> Html Message
 visibilityView public =
-    Html.div
-        [ style
-            [ ( "background-image"
-              , if public then
-                    "url(/public/images/baseline-visibility-24px.svg)"
+    Icon.icon
+        { sizePx = 20
+        , image =
+            if public then
+                "baseline-visibility-24px.svg"
 
-                else
-                    "url(/public/images/baseline-visibility-off-24px.svg)"
-              )
-            , ( "background-position", "50% 50%" )
-            , ( "background-repeat", "no-repeat" )
-            , ( "background-size", "contain" )
-            , ( "width", "20px" )
-            , ( "height", "20px" )
-            ]
-        ]
-        []
+            else
+                "baseline-visibility-off-24px.svg"
+        }
+        [ style [ ( "background-size", "contain" ) ] ]
 
 
 sinceTransitionText : PipelineStatus.StatusDetails -> Time -> String

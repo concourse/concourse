@@ -29,6 +29,7 @@ import Routes
 import TopBar.Styles
 import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
+import Views.Icon as Icon
 import Views.Login as Login
 
 
@@ -208,10 +209,12 @@ button { tokenTransfer, authToken, buttonState } =
         , onClick CopyToken
         , attribute "data-clipboard-text" authToken
         ]
-        [ Html.div
+        [ Icon.icon
+            { sizePx = 20
+            , image = "clippy.svg"
+            }
             [ id "copy-icon"
-            , style Styles.buttonIcon
+            , style [ ( "margin-right", "5px" ) ]
             ]
-            []
         , Html.text <| Text.button buttonState
         ]

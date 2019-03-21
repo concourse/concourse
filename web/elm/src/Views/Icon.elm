@@ -16,7 +16,6 @@ icon { sizePx, image } attrs =
             , ( "width", toString sizePx ++ "px" )
             , ( "background-position", "50% 50%" )
             , ( "background-repeat", "no-repeat" )
-            , ( "background-size", "contain" )
             ]
         ]
             ++ attrs

@@ -78,20 +78,12 @@ pinBar { isPinned } =
 
 
 pinIcon :
-    { isPinned : Bool
-    , isPinnedDynamically : Bool
+    { isPinnedDynamically : Bool
     , hover : Bool
     }
     -> List ( String, String )
-pinIcon { isPinned, isPinnedDynamically, hover } =
+pinIcon { isPinnedDynamically, hover } =
     let
-        backgroundImage =
-            if isPinned then
-                "url(/public/images/pin-ic-white.svg)"
-
-            else
-                "url(/public/images/pin-ic-grey.svg)"
-
         cursorType =
             if isPinnedDynamically then
                 "pointer"
@@ -106,12 +98,7 @@ pinIcon { isPinned, isPinnedDynamically, hover } =
             else
                 "transparent"
     in
-    [ ( "background-repeat", "no-repeat" )
-    , ( "background-position", "50% 50%" )
-    , ( "height", "25px" )
-    , ( "width", "25px" )
-    , ( "margin-right", "10px" )
-    , ( "background-image", backgroundImage )
+    [ ( "margin-right", "10px" )
     , ( "cursor", cursorType )
     , ( "background-color", backgroundColor )
     ]
@@ -128,23 +115,9 @@ pinBarTooltip =
     ]
 
 
-checkStatusIcon : Bool -> List ( String, String )
-checkStatusIcon failingToCheck =
-    let
-        icon =
-            if failingToCheck then
-                "url(/public/images/ic-exclamation-triangle.svg)"
-
-            else
-                "url(/public/images/ic-success-check.svg)"
-    in
-    [ ( "background-image", icon )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "width", "28px" )
-    , ( "height", "28px" )
-    , ( "background-size", "14px 14px" )
-    ]
+checkStatusIcon : List ( String, String )
+checkStatusIcon =
+    [ ( "background-size", "14px 14px" ) ]
 
 
 enabledCheckbox :
@@ -281,31 +254,14 @@ commentBarHeader =
 
 commentBarMessageIcon : List ( String, String )
 commentBarMessageIcon =
-    let
-        messageIconUrl =
-            "url(/public/images/baseline-message.svg)"
-    in
-    [ ( "background-image", messageIconUrl )
-    , ( "background-size", "contain" )
-    , ( "width", "24px" )
-    , ( "height", "24px" )
+    [ ( "background-size", "contain" )
     , ( "margin-right", "10px" )
     ]
 
 
 commentBarPinIcon : List ( String, String )
 commentBarPinIcon =
-    let
-        pinIconUrl =
-            "url(/public/images/pin-ic-white.svg)"
-    in
-    [ ( "background-image", pinIconUrl )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "width", "20px" )
-    , ( "height", "20px" )
-    , ( "margin-right", "10px" )
-    ]
+    [ ( "margin-right", "10px" ) ]
 
 
 commentTextArea : List ( String, String )
@@ -461,12 +417,7 @@ checkButton isClickable =
 
 checkButtonIcon : Bool -> List ( String, String )
 checkButtonIcon isHighlighted =
-    [ ( "height", "20px" )
-    , ( "width", "20px" )
-    , ( "margin", "4px" )
-    , ( "background-image", "url(/public/images/baseline-refresh-24px.svg)" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
+    [ ( "margin", "4px" )
     , ( "background-size", "contain" )
     , ( "opacity"
       , if isHighlighted then

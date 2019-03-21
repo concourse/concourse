@@ -985,6 +985,7 @@ viewBuildPrep prep =
                         [ style
                             [ ( "margin", "6.5px" )
                             , ( "margin-right", "0.5px" )
+                            , ( "background-size", "contain" )
                             ]
                         ]
                     , Html.h3 [] [ Html.text "preparing build" ]
@@ -1064,21 +1065,16 @@ viewBuildPrepStatus status =
                 [ Spinner.spinner { size = "12px", margin = "0 5px 0 0" } ]
 
         Concourse.BuildPrepStatusNotBlocking ->
-            Html.div
+            Icon.icon
+                { sizePx = 12
+                , image = "ic-not-blocking-check.svg"
+                }
                 [ style
-                    [ ( "background-image"
-                      , "url(/public/images/ic-not-blocking-check.svg)"
-                      )
-                    , ( "background-position", "50% 50%" )
-                    , ( "background-repeat", "no-repeat" )
+                    [ ( "margin-right", "5px" )
                     , ( "background-size", "contain" )
-                    , ( "width", "12px" )
-                    , ( "height", "12px" )
-                    , ( "margin-right", "5px" )
                     ]
                 , title "not blocking"
                 ]
-                []
 
 
 viewBuildHeader : Concourse.Build -> Model -> Html Message
@@ -1119,8 +1115,10 @@ viewBuildHeader build model =
                         , style <| Styles.triggerButton buttonDisabled buttonHovered build.status
                         ]
                     <|
-                        [ Html.div
-                            [ style <| Styles.triggerIcon buttonHighlight ]
+                        [ Icon.icon
+                            { sizePx = 40
+                            , image = "ic-add-circle-outline-white.svg"
+                            }
                             []
                         ]
                             ++ (if buttonDisabled && buttonHovered then
@@ -1156,8 +1154,10 @@ viewBuildHeader build model =
                     , onBlur <| Hover Nothing
                     , style <| Styles.abortButton <| abortHovered
                     ]
-                    [ Html.div
-                        [ style <| Styles.abortIcon <| abortHovered ]
+                    [ Icon.icon
+                        { sizePx = 40
+                        , image = "ic-abort-circle-outline-white.svg"
+                        }
                         []
                     ]
 

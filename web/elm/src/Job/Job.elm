@@ -57,6 +57,7 @@ import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.DictView as DictView
+import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
 import Views.Login as Login
 
@@ -469,16 +470,22 @@ viewMainJobsSection model =
                                 , onMouseLeave <| Hover Nothing
                                 , onClick TogglePaused
                                 ]
-                                [ Html.div
-                                    [ style <|
-                                        Styles.pauseToggleIcon
-                                            { paused = job.paused
-                                            , hovered = toggleHovered
-                                            }
-                                    ]
-                                    []
+                                [ Icon.icon
+                                    { sizePx = 40
+                                    , image =
+                                        if job.paused then
+                                            "ic-play-circle-outline.svg"
+
+                                        else
+                                            "ic-pause-circle-outline-white.svg"
+                                    }
+                                    [ style <| Styles.icon toggleHovered ]
                                 ]
-                            , Html.h1 [] [ Html.span [ class "build-name" ] [ Html.text job.name ] ]
+                            , Html.h1 []
+                                [ Html.span
+                                    [ class "build-name" ]
+                                    [ Html.text job.name ]
+                                ]
                             ]
                         , Html.button
                             [ class "trigger-build"
@@ -492,13 +499,15 @@ viewMainJobsSection model =
                                     headerBuildStatus job.finishedBuild
                             ]
                           <|
-                            [ Html.div
+                            [ Icon.icon
+                                { sizePx = 40
+                                , image = "ic-add-circle-outline-white.svg"
+                                }
                                 [ style <|
-                                    Styles.triggerIcon <|
+                                    Styles.icon <|
                                         triggerHovered
                                             && not job.disableManualTrigger
                                 ]
-                                []
                             ]
                                 ++ (if job.disableManualTrigger && triggerHovered then
                                         [ Html.div
@@ -691,42 +700,28 @@ viewBuildResources model buildWithResources =
     in
     [ Html.div [ class "inputs mrl" ]
         [ Html.div
-            [ style buildResourceHeader ]
-            [ Html.span [ style <| buildResourceIcon "downward" ] []
+            [ style Styles.buildResourceHeader ]
+            [ Icon.icon
+                { sizePx = 12
+                , image = "ic-arrow-downward.svg"
+                }
+                [ style Styles.buildResourceIcon ]
             , Html.text "inputs"
             ]
         , inputsTable
         ]
     , Html.div [ class "outputs mrl" ]
         [ Html.div
-            [ style buildResourceHeader ]
-            [ Html.span [ style <| buildResourceIcon "upward" ] []
+            [ style Styles.buildResourceHeader ]
+            [ Icon.icon
+                { sizePx = 12
+                , image = "ic-arrow-upward.svg"
+                }
+                [ style Styles.buildResourceIcon ]
             , Html.text "outputs"
             ]
         , outputsTable
         ]
-    ]
-
-
-buildResourceHeader : List ( String, String )
-buildResourceHeader =
-    [ ( "display", "flex" )
-    , ( "align-items", "center" )
-    , ( "padding-bottom", "5px" )
-    ]
-
-
-buildResourceIcon : String -> List ( String, String )
-buildResourceIcon direction =
-    [ ( "background-image"
-      , "url(/public/images/ic-arrow-" ++ direction ++ ".svg)"
-      )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-size", "contain" )
-    , ( "margin-right", "5px" )
-    , ( "width", "12px" )
-    , ( "height", "12px" )
     ]
 
 

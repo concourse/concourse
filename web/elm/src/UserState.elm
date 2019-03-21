@@ -1,4 +1,4 @@
-module UserState exposing (UserState(..), isMember, map, user)
+module UserState exposing (UserState(..), isAnonymous, isMember)
 
 import Concourse
 import Dict
@@ -10,19 +10,14 @@ type UserState
     | UserStateUnknown
 
 
-map : (Concourse.User -> a -> b) -> UserState -> a -> Maybe b
-map f userState =
-    Maybe.map2 f (user userState) << Just
-
-
-user : UserState -> Maybe Concourse.User
-user userState =
+isAnonymous : UserState -> Bool
+isAnonymous userState =
     case userState of
-        UserStateLoggedIn u ->
-            Just u
+        UserStateLoggedIn _ ->
+            False
 
         _ ->
-            Nothing
+            True
 
 
 isMember : { a | teamName : String, userState : UserState } -> Bool

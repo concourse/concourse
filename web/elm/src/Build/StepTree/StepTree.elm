@@ -46,6 +46,7 @@ import Message.Message exposing (Hoverable(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
 import Views.DictView as DictView
+import Views.Icon as Icon
 import Views.Spinner as Spinner
 
 
@@ -602,46 +603,58 @@ viewStepState state =
             Spinner.spinner { size = "14px", margin = "7px" }
 
         StepStatePending ->
-            Html.div
+            Icon.icon
+                { sizePx = 28
+                , image = "ic-pending.svg"
+                }
                 [ attribute "data-step-state" "pending"
-                , style <| Styles.stepStatusIcon "ic-pending"
+                , style Styles.stepStatusIcon
                 ]
-                []
 
         StepStateInterrupted ->
-            Html.div
+            Icon.icon
+                { sizePx = 28
+                , image = "ic-interrupted.svg"
+                }
                 [ attribute "data-step-state" "interrupted"
-                , style <| Styles.stepStatusIcon "ic-interrupted"
+                , style Styles.stepStatusIcon
                 ]
-                []
 
         StepStateCancelled ->
-            Html.div
+            Icon.icon
+                { sizePx = 28
+                , image = "ic-cancelled.svg"
+                }
                 [ attribute "data-step-state" "cancelled"
-                , style <| Styles.stepStatusIcon "ic-cancelled"
+                , style Styles.stepStatusIcon
                 ]
-                []
 
         StepStateSucceeded ->
-            Html.div
+            Icon.icon
+                { sizePx = 28
+                , image = "ic-success-check.svg"
+                }
                 [ attribute "data-step-state" "succeeded"
-                , style <| Styles.stepStatusIcon "ic-success-check"
+                , style Styles.stepStatusIcon
                 ]
-                []
 
         StepStateFailed ->
-            Html.div
+            Icon.icon
+                { sizePx = 28
+                , image = "ic-failure-times.svg"
+                }
                 [ attribute "data-step-state" "failed"
-                , style <| Styles.stepStatusIcon "ic-failure-times"
+                , style Styles.stepStatusIcon
                 ]
-                []
 
         StepStateErrored ->
-            Html.div
+            Icon.icon
+                { sizePx = 28
+                , image = "ic-exclamation-triangle.svg"
+                }
                 [ attribute "data-step-state" "errored"
-                , style <| Styles.stepStatusIcon "ic-exclamation-triangle"
+                , style Styles.stepStatusIcon
                 ]
-                []
 
 
 viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Message

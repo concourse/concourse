@@ -26,10 +26,8 @@ module Dashboard.Styles exposing
     , pipelineCardHeader
     , pipelineCardTransitionAge
     , pipelineName
-    , pipelineStatusIcon
     , previewPlaceholder
     , resourceErrorTriangle
-    , runningLegendItem
     , striped
     , teamNameHd
     , topCliIcon
@@ -290,38 +288,6 @@ pipelineCardFooter =
     ]
 
 
-pipelineStatusIcon : PipelineStatus -> List ( String, String )
-pipelineStatusIcon pipelineStatus =
-    let
-        image =
-            case pipelineStatus of
-                PipelineStatusPaused ->
-                    "ic-pause-blue.svg"
-
-                PipelineStatusPending _ ->
-                    "ic-pending-grey.svg"
-
-                PipelineStatusSucceeded _ ->
-                    "ic-running-green.svg"
-
-                PipelineStatusFailed _ ->
-                    "ic-failing-red.svg"
-
-                PipelineStatusAborted _ ->
-                    "ic-aborted-brown.svg"
-
-                PipelineStatusErrored _ ->
-                    "ic-error-orange.svg"
-    in
-    [ ( "background-image", "url(/public/images/" ++ image ++ ")" )
-    , ( "height", "20px" )
-    , ( "width", "20px" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-size", "contain" )
-    ]
-
-
 pipelineCardTransitionAge : PipelineStatus -> List ( String, String )
 pipelineCardTransitionAge status =
     [ ( "color", Colors.statusColor status )
@@ -506,16 +472,6 @@ resourceErrorTriangle =
     , ( "height", "0" )
     , ( "border-top", "30px solid " ++ Colors.resourceError )
     , ( "border-left", "30px solid transparent" )
-    ]
-
-
-runningLegendItem : List ( String, String )
-runningLegendItem =
-    [ ( "background-image", "url(/public/images/ic-running-legend.svg)" )
-    , ( "height", "20px" )
-    , ( "width", "20px" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "50% 50%" )
     ]
 
 

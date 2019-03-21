@@ -39,6 +39,7 @@ import Http
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
 import Routes exposing (StepID)
+import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
 import Views.NotAuthorized as NotAuthorized
 
@@ -373,11 +374,11 @@ viewErrors errors =
         Just log ->
             Html.div [ class "build-step" ]
                 [ Html.div [ class "header" ]
-                    [ Html.div
-                        [ style <|
-                            Styles.stepStatusIcon "ic-exclamation-triangle"
-                        ]
-                        []
+                    [ Icon.icon
+                        { sizePx = 28
+                        , image = "ic-exclamation-triangle.svg"
+                        }
+                        [ style Styles.stepStatusIcon ]
                     , Html.h3 [] [ Html.text "error" ]
                     ]
                 , Html.div [ class "step-body build-errors-body" ]

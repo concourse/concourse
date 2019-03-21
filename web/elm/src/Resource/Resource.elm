@@ -71,6 +71,7 @@ import TopBar.TopBar as TopBar
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
 import Views.DictView as DictView
+import Views.Icon as Icon
 import Views.Login as Login
 import Views.Spinner as Spinner
 
@@ -908,11 +909,16 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
                     Spinner.spinner { size = "14px", margin = "7px" }
 
                 _ ->
-                    Html.div
-                        [ style <|
-                            Resource.Styles.checkStatusIcon failingToCheck
-                        ]
-                        []
+                    Icon.icon
+                        { sizePx = 28
+                        , image =
+                            if failingToCheck then
+                                "ic-exclamation-triangle.svg"
+
+                            else
+                                "ic-success-check.svg"
+                        }
+                        [ style Resource.Styles.checkStatusIcon ]
 
         statusBar =
             Html.div
@@ -948,7 +954,7 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
             checkStatus == Models.CurrentlyChecking
 
         isAnonymous =
-            UserState.user userState == Nothing
+            UserState.isAnonymous userState
 
         isMember =
             UserState.isMember params
@@ -972,7 +978,12 @@ checkButton ({ hovered, userState, teamName, checkStatus } as params) =
                     []
                )
         )
-        [ Html.div [ style <| Resource.Styles.checkButtonIcon isHighlighted ] [] ]
+        [ Icon.icon
+            { sizePx = 20
+            , image = "baseline-refresh-24px.svg"
+            }
+            [ style <| Resource.Styles.checkButtonIcon isHighlighted ]
+        ]
 
 
 commentBar :
@@ -1007,16 +1018,20 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                                     [ style
                                         Resource.Styles.commentBarIconContainer
                                     ]
-                                    [ Html.div
+                                    [ Icon.icon
+                                        { sizePx = 24
+                                        , image = "baseline-message.svg"
+                                        }
                                         [ style
                                             Resource.Styles.commentBarMessageIcon
                                         ]
-                                        []
-                                    , Html.div
+                                    , Icon.icon
+                                        { sizePx = 20
+                                        , image = "pin-ic-white.svg"
+                                        }
                                         [ style
                                             Resource.Styles.commentBarPinIcon
                                         ]
-                                        []
                                     ]
                                 , version
                                 ]
@@ -1111,18 +1126,30 @@ pinBar { pinnedVersion, hovered } =
     Html.div
         (attrList
             [ ( id "pin-bar", True )
-            , ( style <| Resource.Styles.pinBar { isPinned = ME.isJust pinBarVersion }, True )
+            , ( style <|
+                    Resource.Styles.pinBar
+                        { isPinned = ME.isJust pinBarVersion }
+              , True
+              )
             , ( onMouseEnter <| Hover <| Just PinBar, isPinnedStatically )
             , ( onMouseLeave <| Hover Nothing, isPinnedStatically )
             ]
         )
-        ([ Html.div
-            (attrList
+        ([ Icon.icon
+            { sizePx = 25
+            , image =
+                if ME.isJust pinBarVersion then
+                    "pin-ic-white.svg"
+
+                else
+                    "pin-ic-grey.svg"
+            }
+           <|
+            attrList
                 [ ( id "pin-icon", True )
                 , ( style <|
                         Resource.Styles.pinIcon
-                            { isPinned = ME.isJust pinBarVersion
-                            , isPinnedDynamically = isPinnedDynamically
+                            { isPinnedDynamically = isPinnedDynamically
                             , hover = hovered == Just PinIcon
                             }
                   , True
@@ -1131,8 +1158,6 @@ pinBar { pinnedVersion, hovered } =
                 , ( onMouseEnter <| Hover <| Just PinIcon, isPinnedDynamically )
                 , ( onMouseLeave <| Hover Nothing, True )
                 ]
-            )
-            []
          ]
             ++ (case pinBarVersion of
                     Just v ->

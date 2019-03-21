@@ -246,25 +246,13 @@ breadcrumbItem clickable =
 
 
 pauseToggleIcon :
-    { isPaused : Bool
-    , isHovered : Bool
+    { isHovered : Bool
     , isClickable : Bool
     , margin : String
     }
     -> List ( String, String )
-pauseToggleIcon { isPaused, isHovered, isClickable, margin } =
-    [ ( "background-image"
-      , if isPaused then
-            "url(/public/images/ic-play-white.svg)"
-
-        else
-            "url(/public/images/ic-pause-white.svg)"
-      )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "width", "20px" )
-    , ( "height", "20px" )
-    , ( "margin", margin )
+pauseToggleIcon { isHovered, isClickable, margin } =
+    [ ( "margin", margin )
     , ( "opacity"
       , if isHovered then
             "1"
