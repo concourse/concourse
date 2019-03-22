@@ -40,7 +40,7 @@ require (
 	github.com/concourse/dex v0.0.0-20181120155244-024cbea7e753
 	github.com/concourse/flag v1.0.0
 	github.com/concourse/go-archive v1.0.0
-	github.com/concourse/retryhttp v0.0.0-20181126170240-7ab5e29e634f
+	github.com/concourse/retryhttp v0.0.0-20190322195545-09bdda36cd7e
 	github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2 // indirect
 	github.com/coreos/go-oidc v0.0.0-20170307191026-be73733bb8cc
 	github.com/cppforlife/go-patch v0.0.0-20171006213518-250da0e0e68c // indirect
