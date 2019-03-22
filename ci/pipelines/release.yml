@@ -574,6 +574,8 @@ jobs:
       - bpm-release/*.tgz
       stemcells:
       - gcp-xenial-stemcell/*.tgz
+      vars:
+        deployment_name: concourse-smoke-((release_minor))
   - task: discover-bosh-endpoint-info
     file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
     image: unit-image
@@ -581,7 +583,7 @@ jobs:
       BOSH_ENVIRONMENT: ((bosh_target))
       BOSH_CLIENT: ((bosh_client.id))
       BOSH_CLIENT_SECRET: ((bosh_client.secret))
-      BOSH_DEPLOYMENT: concourse-smoke
+      BOSH_DEPLOYMENT: concourse-smoke-((release_minor))
       BOSH_INSTANCE_GROUP: concourse
   - task: smoke
     image: unit-image
