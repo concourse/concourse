@@ -823,9 +823,9 @@ jobs:
     - get: concourse-rc-image
       passed: [shipit]
       params: {format: oci}
+    - get: latest-version
   - task: docker-semver-tags
     file: concourse/ci/tasks/docker-semver-tags.yml
-    params: {LATEST: ((release_is_latest))}
   - put: concourse-image
     params:
       image: concourse-rc-image/image.tar
@@ -899,6 +899,13 @@ resources:
     bucket: concourse-artifacts
     key: version-((release_minor))
     initial_version: ((release_minor)).1
+
+- name: latest-version
+  type: github-release
+  source:
+    owner: concourse
+    repository: concourse
+    access_token: ((concourse_github_release.access_token))
 
 - name: linux-rc
   type: gcs
