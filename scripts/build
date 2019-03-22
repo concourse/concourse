@@ -10,4 +10,5 @@ booklit -i lit/index.lit -o . \
   --save-search-index \
   --html-templates html/ \
   --plugin github.com/concourse/docs/go/docs \
+  --plugin github.com/concourse/docs/go/resource-type-list \
   "$@"
