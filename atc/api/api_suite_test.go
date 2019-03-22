@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
 	"github.com/concourse/concourse/atc/api/resourceserver/resourceserverfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
@@ -189,7 +190,7 @@ var _ = BeforeEach(func() {
 	)
 
 	Expect(err).NotTo(HaveOccurred())
-	accessorHandler := accessor.NewHandler(handler, fakeAccessor, "some-action")
+	accessorHandler := accessor.NewHandler(handler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
 	handler = wrappa.LoggerHandler{
 		Logger:  logger,
 		Handler: accessorHandler,

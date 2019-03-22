@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -43,7 +44,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		build.JobNameReturns("some-job")
 
 		checkBuildWriteAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = accessor.NewHandler(checkBuildWriteAccessHandler, fakeAccessor, "some-action")
+		handler = accessor.NewHandler(checkBuildWriteAccessHandler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
 	})
 
 	JustBeforeEach(func() {
