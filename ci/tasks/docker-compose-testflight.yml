@@ -16,7 +16,6 @@ caches:
 - path: gopath
 
 params:
-  CONCOURSE_DEV_TAG: latest
   BUILD:
 
 run:

@@ -12,6 +12,10 @@ resource_types:
   type: registry-image
   source: {repository: frodenas/gcs-resource}
 
+- name: registry-image
+  type: registry-image
+  source: {repository: concourse/registry-image-resource, tag: dev}
+
 - name: bosh-release
   type: registry-image
   source: {repository: dpb587/bosh-release-resource}
@@ -185,7 +189,6 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-testflight.yml
-    params: {CONCOURSE_DEV_TAG: release-((release_minor))}
 
 - name: watsjs
   public: true
@@ -207,7 +210,6 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-watsjs.yml
-    params: {CONCOURSE_DEV_TAG: release-((release_minor))}
 
 - name: upgrade
   public: true
@@ -230,9 +232,6 @@ jobs:
     privileged: true
     image: unit-image
     file: concourse/ci/tasks/upgrade-test.yml
-    params:
-      CONCOURSE_DEV_TAG: release-((release_minor))
-      CONCOURSE_LATEST_TAG: ((release_minor))
 
 - name: downgrade
   public: true
@@ -255,9 +254,6 @@ jobs:
     privileged: true
     image: unit-image
     file: concourse/ci/tasks/downgrade-test.yml
-    params:
-      CONCOURSE_DEV_TAG: release-((release_minor))
-      CONCOURSE_LATEST_TAG: ((release_minor))
 
 - name: k8s-check-helm-params
   public: true
@@ -314,7 +310,7 @@ jobs:
       params:
        KUBE_CONFIG: ((kube_config))
        RELEASE_NAME: concourse-smoke-patch # TODO can't use release_minor
-       CONCOURSE_IMAGE: concourse/concourse-rc:release-((release_minor))
+       CONCOURSE_IMAGE: concourse/concourse-rc
   - task: deploy
     image: unit-image
     input_mapping: {image-info: concourse-rc-image}
@@ -322,7 +318,7 @@ jobs:
     params:
       KUBE_CONFIG: ((kube_config))
       RELEASE_NAME: concourse-smoke-patch # TODO can't use release_minor
-      CONCOURSE_IMAGE: concourse/concourse-rc:release-((release_minor))
+      CONCOURSE_IMAGE: concourse/concourse-rc
   - task: k8s-smoke
     image: unit-image
     file: concourse/ci/tasks/k8s-smoke.yml
@@ -336,7 +332,7 @@ jobs:
     params:
      KUBE_CONFIG: ((kube_config))
      RELEASE_NAME: concourse-smoke-patch # TODO can't use release_minor
-     CONCOURSE_IMAGE: concourse/concourse-rc:release-((release_minor))
+     CONCOURSE_IMAGE: concourse/concourse-rc
 
 - name: k8s-topgun
   public: true
@@ -363,9 +359,8 @@ jobs:
     file: concourse/ci/tasks/k8s-topgun.yml
     image: unit-image
     params:
-     KUBE_CONFIG: ((kube_config))
-     CONCOURSE_IMAGE_NAME: concourse/concourse-rc
-     CONCOURSE_IMAGE_TAG: release-((release_minor))
+      KUBE_CONFIG: ((kube_config))
+      CONCOURSE_IMAGE_NAME: concourse/concourse-rc
 
 - name: rc
   public: true

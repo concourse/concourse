@@ -9,6 +9,8 @@ start_docker
 [ -d dev-image ] && docker load -i dev-image/image.tar
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
 
+export CONCOURSE_DEV_TAG=$(cat dev-image/tag)
+
 pushd concourse
   if [ "$BUILD" = "true" ]; then
     docker-compose \
