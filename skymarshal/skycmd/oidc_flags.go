@@ -23,8 +23,8 @@ type OIDCFlags struct {
 	ClientID           string      `long:"client-id" description:"(Required) Client id"`
 	ClientSecret       string      `long:"client-secret" description:"(Required) Client secret"`
 	Scopes             []string    `long:"scope" description:"Any additional scopes that need to be requested during authorization"`
-	GroupsKey          string      `long:"groups-key" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
-	UserNameKey        string      `long:"user-name-key" description:"The user name key indicates which claim to use to map an external user name to a Concourse user name."`
+	GroupsKey          string      `long:"groups-key" default:"groups" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
+	UserNameKey        string      `long:"user-name-key" default:"username" description:"The user name key indicates which claim to use to map an external user name to a Concourse user name."`
 	HostedDomains      []string    `long:"hosted-domains" description:"List of whitelisted domains when using Google, only users from a listed domain will be allowed to log in"`
 	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
