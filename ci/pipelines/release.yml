@@ -1074,8 +1074,8 @@ resources:
 
 - name: credhub-release
   type: bosh-io-release
-  source:
-    repository: pivotal-cf/credhub-release
+  source: {repository: pivotal-cf/credhub-release}
+  version: {version: 1.9.5}
 
 - name: backup-and-restore-sdk-release
   type: bosh-io-release
