@@ -575,7 +575,7 @@ jobs:
       stemcells:
       - gcp-xenial-stemcell/*.tgz
       vars:
-        deployment_name: concourse-smoke-((release_minor))
+        deployment_name: concourse-smoke-patch # TODO can't use release_minor
   - task: discover-bosh-endpoint-info
     file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
     image: unit-image
@@ -583,7 +583,7 @@ jobs:
       BOSH_ENVIRONMENT: ((bosh_target))
       BOSH_CLIENT: ((bosh_client.id))
       BOSH_CLIENT_SECRET: ((bosh_client.secret))
-      BOSH_DEPLOYMENT: concourse-smoke-((release_minor))
+      BOSH_DEPLOYMENT: concourse-smoke-patch # TODO can't use release_minor
       BOSH_INSTANCE_GROUP: concourse
   - task: smoke
     image: unit-image
@@ -968,7 +968,7 @@ resources:
     target: ((bosh_target))
     client: ((bosh_client.id))
     client_secret: ((bosh_client.secret))
-    deployment: concourse-smoke-((release_minor))
+    deployment: concourse-smoke-patch # TODO can't use release_minor
 
 - name: wings-deployment
   type: bosh-deployment
