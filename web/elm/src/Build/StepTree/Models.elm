@@ -70,6 +70,8 @@ type alias Step =
     , metadata : List MetadataField
     , firstOccurrence : Bool
     , timestamps : Dict Int Time.Posix
+    , initialize : Maybe Time.Posix
+    , finish : Maybe Time.Posix
     }
 
 
@@ -116,13 +118,13 @@ type alias BuildEventEnvelope =
 
 type BuildEvent
     = BuildStatus Concourse.BuildStatus Time.Posix
-    | Initialize Origin
+    | Initialize Origin Time.Posix
     | StartTask Origin
-    | FinishTask Origin Int
+    | FinishTask Origin Int Time.Posix
     | FinishGet Origin Int Concourse.Version Concourse.Metadata
     | FinishPut Origin Int Concourse.Version Concourse.Metadata
     | Log Origin String (Maybe Time.Posix)
-    | Error Origin String
+    | Error Origin String Time.Posix
     | BuildError String
     | End
     | Opened

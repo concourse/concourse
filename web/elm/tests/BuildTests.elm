@@ -2580,6 +2580,32 @@ all =
                         >> Query.children []
                         >> Query.index -1
                         >> Query.has [ text "v3.1.4" ]
+                , test "finist task lists duration on the right" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.Initialize
+                                                { source = "stdout", id = "plan" }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.FinishTask
+                                                { source = "stdout", id = "plan" }
+                                                0
+                                                (Time.millisToPosix 10000)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has [ text "10s" ]
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -2627,6 +2653,7 @@ all =
                                                 { source = "stdout"
                                                 , id = "plan"
                                                 }
+                                                (Time.millisToPosix 0)
                                       }
                                     , { url = "http://localhost:8080/api/v1/builds/307/events"
                                       , data =
@@ -2710,6 +2737,7 @@ all =
                                             STModels.Error
                                                 { source = "stderr", id = "plan" }
                                                 "error message"
+                                                (Time.millisToPosix 0)
                                       }
                                     ]
                             )

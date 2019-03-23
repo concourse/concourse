@@ -86,12 +86,18 @@ decodeBuildEvent =
                     "initialize" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map Initialize (Json.Decode.field "origin" decodeOrigin))
+                            (Json.Decode.map2 Initialize
+                                (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
 
                     "initialize-task" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map Initialize (Json.Decode.field "origin" decodeOrigin))
+                            (Json.Decode.map2 Initialize
+                                (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
 
                     "start-task" ->
                         Json.Decode.field
@@ -101,9 +107,10 @@ decodeBuildEvent =
                     "finish-task" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map2 FinishTask
+                            (Json.Decode.map3 FinishTask
                                 (Json.Decode.field "origin" decodeOrigin)
                                 (Json.Decode.field "exit_status" Json.Decode.int)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
                     "finish-get" ->
@@ -151,10 +158,11 @@ decodeFinishResource cons =
 decodeErrorEvent : Json.Decode.Decoder BuildEvent
 decodeErrorEvent =
     Json.Decode.oneOf
-        [ Json.Decode.map2
+        [ Json.Decode.map3
             Error
             (Json.Decode.field "origin" decodeOrigin)
             (Json.Decode.field "message" Json.Decode.string)
+            (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
         , Json.Decode.map
             BuildError
             (Json.Decode.field "message" Json.Decode.string)

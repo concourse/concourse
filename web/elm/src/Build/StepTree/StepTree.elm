@@ -35,6 +35,7 @@ import Build.Styles as Styles
 import Concourse
 import DateFormat
 import Dict exposing (Dict)
+import Duration
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -173,6 +174,8 @@ initBottom hl create id name =
             , metadata = []
             , firstOccurrence = False
             , timestamps = Dict.empty
+            , initialize = Nothing
+            , finish = Nothing
             }
     in
     { tree = create step
@@ -494,7 +497,7 @@ autoExpanded state =
 
 
 viewStep : StepTreeModel -> Time.Zone -> Step -> StepHeaderType -> Html Message
-viewStep model timeZone { id, name, log, state, error, expanded, version, metadata, timestamps } headerType =
+viewStep model timeZone { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, finish } headerType =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -516,6 +519,7 @@ viewStep model timeZone { id, name, log, state, error, expanded, version, metada
             , Html.div
                 [ style "display" "flex" ]
                 [ viewVersion version
+                , viewDuration initialize finish
                 , viewStepState state
                 ]
             ]
@@ -768,3 +772,17 @@ viewStepHeaderIcon headerType tooltip id =
          else
             []
         )
+
+
+viewDuration : Maybe Time.Posix -> Maybe Time.Posix -> Html Message
+viewDuration minit mfinish =
+    case ( minit, mfinish ) of
+        ( Just startedAt, Just finishedAt ) ->
+            let
+                duration =
+                    Duration.between startedAt finishedAt
+            in
+            Html.div [ class "dict-value" ] [ Html.text ("[" ++ Duration.format duration ++ "]") ]
+
+        _ ->
+            DictView.view [] Dict.empty
