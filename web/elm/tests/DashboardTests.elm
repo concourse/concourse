@@ -1571,6 +1571,7 @@ all =
                                               , pinnedVersion = Nothing
                                               , pinnedInConfig = False
                                               , pinComment = Nothing
+                                              , icon = Nothing
                                               }
                                             ]
                                         , version = ""

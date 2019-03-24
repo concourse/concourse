@@ -102,6 +102,7 @@ init flags =
             , pinCommentLoading = False
             , textAreaFocused = False
             , isUserMenuExpanded = False
+            , icon = Nothing
             }
     in
     ( model
@@ -222,6 +223,7 @@ handleCallback callback ( model, effects ) =
                 , checkError = resource.checkError
                 , checkSetupError = resource.checkSetupError
                 , lastChecked = resource.lastChecked
+                , icon = resource.icon
               }
                 |> updatePinnedVersion resource
             , effects ++ [ SetTitle <| resource.name ++ " - " ]
@@ -681,12 +683,34 @@ header model =
 
                 ( _, _ ) ->
                     Html.text ""
+
+        iconView =
+            case model.icon of
+                Just icon ->
+                    Html.div
+                        [ style
+                            [ ( "background-image", "url(" ++ icon ++ ")" )
+                            , ( "background-repeat", "no-repeat" )
+                            , ( "background-size", "contain" )
+                            , ( "display", "inline-block" )
+                            , ( "vertical-align", "middle" )
+                            , ( "height", toString Resource.Styles.headerHeight ++ "px" )
+                            , ( "width", toString Resource.Styles.headerHeight ++ "px" )
+                            , ( "margin-right", "10px" )
+                            ]
+                        ]
+                        []
+
+                Nothing ->
+                    Html.div [] []
     in
     Html.div
         ([ id "page-header" ] ++ Resource.Styles.headerBar)
         [ Html.h1
             Resource.Styles.headerResourceName
-            [ Html.text model.resourceIdentifier.resourceName ]
+            [ iconView
+            , Html.text model.resourceIdentifier.resourceName
+            ]
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]

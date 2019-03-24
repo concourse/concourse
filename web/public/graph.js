@@ -547,6 +547,7 @@ function GraphNode(opts) {
   // Graph node ID
   this.id = opts.id;
   this.name = opts.name;
+  this.icon = opts.icon;
   this.class = opts.class;
   this.status = opts.status;
   this.repeatable = opts.repeatable;
@@ -625,6 +626,10 @@ GraphNode.prototype.padding = function() {
 
 GraphNode.prototype.pinned = function() {
   return this.class.includes("pinned");
+}
+
+GraphNode.prototype.has_icon = function() {
+  return typeof this.icon !== 'undefined';
 }
 
 GraphNode.prototype.height = function() {

@@ -617,6 +617,7 @@ type alias Resource =
     { teamName : String
     , pipelineName : String
     , name : String
+    , icon : Maybe String
     , failingToCheck : Bool
     , checkError : String
     , checkSetupError : String
@@ -656,6 +657,7 @@ decodeResource =
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "icon" Json.Decode.string))
         |> andMap (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
         |> andMap (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
         |> andMap (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
