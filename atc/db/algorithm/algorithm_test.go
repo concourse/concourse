@@ -195,7 +195,7 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	FEntry("resolves passed constraints with common jobs, skipping versions that are not common to builds of all jobs", Example{
+	Entry("resolves passed constraints with common jobs, skipping versions that are not common to builds of all jobs", Example{
 		DB: DB{
 			BuildOutputs: []DBRow{
 				{Job: "shared-job", BuildID: 1, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
@@ -465,7 +465,7 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	FEntry("returns the earliest version that satisfies constraints when several versions do not satisfy when using every version", Example{
+	Entry("returns the earliest version that satisfies constraints when several versions do not satisfy when using every version", Example{
 		DB: DB{
 			BuildInputs: []DBRow{
 				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},

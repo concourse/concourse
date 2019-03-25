@@ -54,6 +54,7 @@ func (db VersionsDB) LatestVersionOfResource(resourceID int) (int, error) {
 	err = psql.Select("v.id").
 		From("resource_config_versions v").
 		Where(sq.Eq{"v.resource_config_scope_id": scopeID}).
+		OrderBy("check_order DESC").
 		RunWith(db.Runner).
 		QueryRow().
 		Scan(&versionID)
