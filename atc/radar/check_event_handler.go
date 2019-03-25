@@ -24,7 +24,7 @@ type CheckEventHandler struct {
 	spaces              map[atc.Space]atc.Version
 }
 
-func (c *CheckEventHandler) DefaultSpace(space atc.Space) error {
+func (c *CheckEventHandler) SaveDefault(space atc.Space) error {
 	if space != "" {
 		err := c.resourceConfigScope.SaveDefaultSpace(space)
 		if err != nil {
@@ -42,7 +42,7 @@ func (c *CheckEventHandler) DefaultSpace(space atc.Space) error {
 	return nil
 }
 
-func (c *CheckEventHandler) Discovered(space atc.Space, version atc.Version, metadata atc.Metadata) error {
+func (c *CheckEventHandler) Save(space atc.Space, version atc.Version, metadata atc.Metadata) error {
 	if _, ok := c.spaces[space]; !ok {
 		err := c.resourceConfigScope.SaveSpace(space)
 		if err != nil {
@@ -74,7 +74,7 @@ func (c *CheckEventHandler) Discovered(space atc.Space, version atc.Version, met
 	return nil
 }
 
-func (c *CheckEventHandler) LatestVersions() error {
+func (c *CheckEventHandler) Finish() error {
 	if len(c.spaces) == 0 {
 		c.logger.Debug("no-new-versions")
 		return nil
@@ -83,6 +83,15 @@ func (c *CheckEventHandler) LatestVersions() error {
 	err := c.resourceConfigScope.FinishSavingVersions()
 	if err != nil {
 		return err
+	}
+
+	updated, err := c.resourceConfigScope.UpdateLastCheckFinished()
+	if err != nil {
+		return err
+	}
+
+	if !updated {
+		c.logger.Debug("did-not-update-last-check-finished")
 	}
 
 	for space, version := range c.spaces {

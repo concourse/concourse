@@ -70,19 +70,11 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		Jobs:          jobs.Configs(),
 	}
 
-	rawConfig, err := json.Marshal(config)
-	if err != nil {
-		logger.Error("failed-to-marshal-config", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", pipeline.ConfigVersion()))
 	w.Header().Set("Content-Type", "application/json")
 
 	err = json.NewEncoder(w).Encode(atc.ConfigResponse{
-		Config:    &config,
-		RawConfig: atc.RawConfig(rawConfig),
+		Config: config,
 	})
 	if err != nil {
 		logger.Error("failed-to-encode-config", err)

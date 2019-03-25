@@ -216,6 +216,57 @@
         setInterval(flush, 200);
       });
 
+      window.onscroll = function(event) {
+        var yOffset = event.currentTarget.pageYOffset;
+        var clientHeight = event.target.documentElement.clientHeight;
+        var scrollHeight = event.target.documentElement.scrollHeight;
+        var atBottom = scrollHeight === yOffset + clientHeight;
+        app.ports.scrolledToBottom.send(atBottom);
+      }
+
+      app.ports.checkIsVisible.subscribe(function(id) {
+        var interval = setInterval(function() {
+          var element = document.getElementById(id);
+          if (element) {
+            clearInterval(interval);
+            var isVisible =
+              element.getBoundingClientRect().left < window.innerWidth;
+            app.ports.reportIsVisible.send([id, isVisible]);
+          }
+        }, 20);
+      });
+
+      app.ports.scrollIntoView.subscribe(function(id) {
+        var interval = setInterval(function() {
+          buildTab = document.getElementById(id);
+          if (buildTab) {
+            clearInterval(interval);
+            buildTab.scrollIntoView();
+          }
+        }, 20);
+      });
+
+      app.ports.scrollElement.subscribe(function(arg) {
+        var id = arg[0];
+        var delta = arg[1];
+        document.getElementById(id).scrollLeft -= delta;
+      });
+
+      app.ports.scrollToBottom.subscribe(function() {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      app.ports.scrollToTop.subscribe(function() {
+        window.scrollTo(0, 0);
+      });
+
+      app.ports.scrollUp.subscribe(function() {
+        window.scrollBy(0, -60);
+      });
+
+      app.ports.scrollDown.subscribe(function() {
+        window.scrollBy(0, 60);
+      });
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

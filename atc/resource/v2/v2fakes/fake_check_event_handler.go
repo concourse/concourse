@@ -9,214 +9,214 @@ import (
 )
 
 type FakeCheckEventHandler struct {
-	DefaultSpaceStub        func(atc.Space) error
-	defaultSpaceMutex       sync.RWMutex
-	defaultSpaceArgsForCall []struct {
-		arg1 atc.Space
+	FinishStub        func() error
+	finishMutex       sync.RWMutex
+	finishArgsForCall []struct {
 	}
-	defaultSpaceReturns struct {
+	finishReturns struct {
 		result1 error
 	}
-	defaultSpaceReturnsOnCall map[int]struct {
+	finishReturnsOnCall map[int]struct {
 		result1 error
 	}
-	DiscoveredStub        func(atc.Space, atc.Version, atc.Metadata) error
-	discoveredMutex       sync.RWMutex
-	discoveredArgsForCall []struct {
+	SaveStub        func(atc.Space, atc.Version, atc.Metadata) error
+	saveMutex       sync.RWMutex
+	saveArgsForCall []struct {
 		arg1 atc.Space
 		arg2 atc.Version
 		arg3 atc.Metadata
 	}
-	discoveredReturns struct {
+	saveReturns struct {
 		result1 error
 	}
-	discoveredReturnsOnCall map[int]struct {
+	saveReturnsOnCall map[int]struct {
 		result1 error
 	}
-	LatestVersionsStub        func() error
-	latestVersionsMutex       sync.RWMutex
-	latestVersionsArgsForCall []struct {
+	SaveDefaultStub        func(atc.Space) error
+	saveDefaultMutex       sync.RWMutex
+	saveDefaultArgsForCall []struct {
+		arg1 atc.Space
 	}
-	latestVersionsReturns struct {
+	saveDefaultReturns struct {
 		result1 error
 	}
-	latestVersionsReturnsOnCall map[int]struct {
+	saveDefaultReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCheckEventHandler) DefaultSpace(arg1 atc.Space) error {
-	fake.defaultSpaceMutex.Lock()
-	ret, specificReturn := fake.defaultSpaceReturnsOnCall[len(fake.defaultSpaceArgsForCall)]
-	fake.defaultSpaceArgsForCall = append(fake.defaultSpaceArgsForCall, struct {
-		arg1 atc.Space
-	}{arg1})
-	fake.recordInvocation("DefaultSpace", []interface{}{arg1})
-	fake.defaultSpaceMutex.Unlock()
-	if fake.DefaultSpaceStub != nil {
-		return fake.DefaultSpaceStub(arg1)
+func (fake *FakeCheckEventHandler) Finish() error {
+	fake.finishMutex.Lock()
+	ret, specificReturn := fake.finishReturnsOnCall[len(fake.finishArgsForCall)]
+	fake.finishArgsForCall = append(fake.finishArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Finish", []interface{}{})
+	fake.finishMutex.Unlock()
+	if fake.FinishStub != nil {
+		return fake.FinishStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.defaultSpaceReturns
+	fakeReturns := fake.finishReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeCheckEventHandler) DefaultSpaceCallCount() int {
-	fake.defaultSpaceMutex.RLock()
-	defer fake.defaultSpaceMutex.RUnlock()
-	return len(fake.defaultSpaceArgsForCall)
+func (fake *FakeCheckEventHandler) FinishCallCount() int {
+	fake.finishMutex.RLock()
+	defer fake.finishMutex.RUnlock()
+	return len(fake.finishArgsForCall)
 }
 
-func (fake *FakeCheckEventHandler) DefaultSpaceCalls(stub func(atc.Space) error) {
-	fake.defaultSpaceMutex.Lock()
-	defer fake.defaultSpaceMutex.Unlock()
-	fake.DefaultSpaceStub = stub
+func (fake *FakeCheckEventHandler) FinishCalls(stub func() error) {
+	fake.finishMutex.Lock()
+	defer fake.finishMutex.Unlock()
+	fake.FinishStub = stub
 }
 
-func (fake *FakeCheckEventHandler) DefaultSpaceArgsForCall(i int) atc.Space {
-	fake.defaultSpaceMutex.RLock()
-	defer fake.defaultSpaceMutex.RUnlock()
-	argsForCall := fake.defaultSpaceArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeCheckEventHandler) DefaultSpaceReturns(result1 error) {
-	fake.defaultSpaceMutex.Lock()
-	defer fake.defaultSpaceMutex.Unlock()
-	fake.DefaultSpaceStub = nil
-	fake.defaultSpaceReturns = struct {
+func (fake *FakeCheckEventHandler) FinishReturns(result1 error) {
+	fake.finishMutex.Lock()
+	defer fake.finishMutex.Unlock()
+	fake.FinishStub = nil
+	fake.finishReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeCheckEventHandler) DefaultSpaceReturnsOnCall(i int, result1 error) {
-	fake.defaultSpaceMutex.Lock()
-	defer fake.defaultSpaceMutex.Unlock()
-	fake.DefaultSpaceStub = nil
-	if fake.defaultSpaceReturnsOnCall == nil {
-		fake.defaultSpaceReturnsOnCall = make(map[int]struct {
+func (fake *FakeCheckEventHandler) FinishReturnsOnCall(i int, result1 error) {
+	fake.finishMutex.Lock()
+	defer fake.finishMutex.Unlock()
+	fake.FinishStub = nil
+	if fake.finishReturnsOnCall == nil {
+		fake.finishReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.defaultSpaceReturnsOnCall[i] = struct {
+	fake.finishReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeCheckEventHandler) Discovered(arg1 atc.Space, arg2 atc.Version, arg3 atc.Metadata) error {
-	fake.discoveredMutex.Lock()
-	ret, specificReturn := fake.discoveredReturnsOnCall[len(fake.discoveredArgsForCall)]
-	fake.discoveredArgsForCall = append(fake.discoveredArgsForCall, struct {
+func (fake *FakeCheckEventHandler) Save(arg1 atc.Space, arg2 atc.Version, arg3 atc.Metadata) error {
+	fake.saveMutex.Lock()
+	ret, specificReturn := fake.saveReturnsOnCall[len(fake.saveArgsForCall)]
+	fake.saveArgsForCall = append(fake.saveArgsForCall, struct {
 		arg1 atc.Space
 		arg2 atc.Version
 		arg3 atc.Metadata
 	}{arg1, arg2, arg3})
-	fake.recordInvocation("Discovered", []interface{}{arg1, arg2, arg3})
-	fake.discoveredMutex.Unlock()
-	if fake.DiscoveredStub != nil {
-		return fake.DiscoveredStub(arg1, arg2, arg3)
+	fake.recordInvocation("Save", []interface{}{arg1, arg2, arg3})
+	fake.saveMutex.Unlock()
+	if fake.SaveStub != nil {
+		return fake.SaveStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.discoveredReturns
+	fakeReturns := fake.saveReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeCheckEventHandler) DiscoveredCallCount() int {
-	fake.discoveredMutex.RLock()
-	defer fake.discoveredMutex.RUnlock()
-	return len(fake.discoveredArgsForCall)
+func (fake *FakeCheckEventHandler) SaveCallCount() int {
+	fake.saveMutex.RLock()
+	defer fake.saveMutex.RUnlock()
+	return len(fake.saveArgsForCall)
 }
 
-func (fake *FakeCheckEventHandler) DiscoveredCalls(stub func(atc.Space, atc.Version, atc.Metadata) error) {
-	fake.discoveredMutex.Lock()
-	defer fake.discoveredMutex.Unlock()
-	fake.DiscoveredStub = stub
+func (fake *FakeCheckEventHandler) SaveCalls(stub func(atc.Space, atc.Version, atc.Metadata) error) {
+	fake.saveMutex.Lock()
+	defer fake.saveMutex.Unlock()
+	fake.SaveStub = stub
 }
 
-func (fake *FakeCheckEventHandler) DiscoveredArgsForCall(i int) (atc.Space, atc.Version, atc.Metadata) {
-	fake.discoveredMutex.RLock()
-	defer fake.discoveredMutex.RUnlock()
-	argsForCall := fake.discoveredArgsForCall[i]
+func (fake *FakeCheckEventHandler) SaveArgsForCall(i int) (atc.Space, atc.Version, atc.Metadata) {
+	fake.saveMutex.RLock()
+	defer fake.saveMutex.RUnlock()
+	argsForCall := fake.saveArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeCheckEventHandler) DiscoveredReturns(result1 error) {
-	fake.discoveredMutex.Lock()
-	defer fake.discoveredMutex.Unlock()
-	fake.DiscoveredStub = nil
-	fake.discoveredReturns = struct {
+func (fake *FakeCheckEventHandler) SaveReturns(result1 error) {
+	fake.saveMutex.Lock()
+	defer fake.saveMutex.Unlock()
+	fake.SaveStub = nil
+	fake.saveReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeCheckEventHandler) DiscoveredReturnsOnCall(i int, result1 error) {
-	fake.discoveredMutex.Lock()
-	defer fake.discoveredMutex.Unlock()
-	fake.DiscoveredStub = nil
-	if fake.discoveredReturnsOnCall == nil {
-		fake.discoveredReturnsOnCall = make(map[int]struct {
+func (fake *FakeCheckEventHandler) SaveReturnsOnCall(i int, result1 error) {
+	fake.saveMutex.Lock()
+	defer fake.saveMutex.Unlock()
+	fake.SaveStub = nil
+	if fake.saveReturnsOnCall == nil {
+		fake.saveReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.discoveredReturnsOnCall[i] = struct {
+	fake.saveReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeCheckEventHandler) LatestVersions() error {
-	fake.latestVersionsMutex.Lock()
-	ret, specificReturn := fake.latestVersionsReturnsOnCall[len(fake.latestVersionsArgsForCall)]
-	fake.latestVersionsArgsForCall = append(fake.latestVersionsArgsForCall, struct {
-	}{})
-	fake.recordInvocation("LatestVersions", []interface{}{})
-	fake.latestVersionsMutex.Unlock()
-	if fake.LatestVersionsStub != nil {
-		return fake.LatestVersionsStub()
+func (fake *FakeCheckEventHandler) SaveDefault(arg1 atc.Space) error {
+	fake.saveDefaultMutex.Lock()
+	ret, specificReturn := fake.saveDefaultReturnsOnCall[len(fake.saveDefaultArgsForCall)]
+	fake.saveDefaultArgsForCall = append(fake.saveDefaultArgsForCall, struct {
+		arg1 atc.Space
+	}{arg1})
+	fake.recordInvocation("SaveDefault", []interface{}{arg1})
+	fake.saveDefaultMutex.Unlock()
+	if fake.SaveDefaultStub != nil {
+		return fake.SaveDefaultStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.latestVersionsReturns
+	fakeReturns := fake.saveDefaultReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeCheckEventHandler) LatestVersionsCallCount() int {
-	fake.latestVersionsMutex.RLock()
-	defer fake.latestVersionsMutex.RUnlock()
-	return len(fake.latestVersionsArgsForCall)
+func (fake *FakeCheckEventHandler) SaveDefaultCallCount() int {
+	fake.saveDefaultMutex.RLock()
+	defer fake.saveDefaultMutex.RUnlock()
+	return len(fake.saveDefaultArgsForCall)
 }
 
-func (fake *FakeCheckEventHandler) LatestVersionsCalls(stub func() error) {
-	fake.latestVersionsMutex.Lock()
-	defer fake.latestVersionsMutex.Unlock()
-	fake.LatestVersionsStub = stub
+func (fake *FakeCheckEventHandler) SaveDefaultCalls(stub func(atc.Space) error) {
+	fake.saveDefaultMutex.Lock()
+	defer fake.saveDefaultMutex.Unlock()
+	fake.SaveDefaultStub = stub
 }
 
-func (fake *FakeCheckEventHandler) LatestVersionsReturns(result1 error) {
-	fake.latestVersionsMutex.Lock()
-	defer fake.latestVersionsMutex.Unlock()
-	fake.LatestVersionsStub = nil
-	fake.latestVersionsReturns = struct {
+func (fake *FakeCheckEventHandler) SaveDefaultArgsForCall(i int) atc.Space {
+	fake.saveDefaultMutex.RLock()
+	defer fake.saveDefaultMutex.RUnlock()
+	argsForCall := fake.saveDefaultArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCheckEventHandler) SaveDefaultReturns(result1 error) {
+	fake.saveDefaultMutex.Lock()
+	defer fake.saveDefaultMutex.Unlock()
+	fake.SaveDefaultStub = nil
+	fake.saveDefaultReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeCheckEventHandler) LatestVersionsReturnsOnCall(i int, result1 error) {
-	fake.latestVersionsMutex.Lock()
-	defer fake.latestVersionsMutex.Unlock()
-	fake.LatestVersionsStub = nil
-	if fake.latestVersionsReturnsOnCall == nil {
-		fake.latestVersionsReturnsOnCall = make(map[int]struct {
+func (fake *FakeCheckEventHandler) SaveDefaultReturnsOnCall(i int, result1 error) {
+	fake.saveDefaultMutex.Lock()
+	defer fake.saveDefaultMutex.Unlock()
+	fake.SaveDefaultStub = nil
+	if fake.saveDefaultReturnsOnCall == nil {
+		fake.saveDefaultReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.latestVersionsReturnsOnCall[i] = struct {
+	fake.saveDefaultReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -224,12 +224,12 @@ func (fake *FakeCheckEventHandler) LatestVersionsReturnsOnCall(i int, result1 er
 func (fake *FakeCheckEventHandler) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.defaultSpaceMutex.RLock()
-	defer fake.defaultSpaceMutex.RUnlock()
-	fake.discoveredMutex.RLock()
-	defer fake.discoveredMutex.RUnlock()
-	fake.latestVersionsMutex.RLock()
-	defer fake.latestVersionsMutex.RUnlock()
+	fake.finishMutex.RLock()
+	defer fake.finishMutex.RUnlock()
+	fake.saveMutex.RLock()
+	defer fake.saveMutex.RUnlock()
+	fake.saveDefaultMutex.RLock()
+	defer fake.saveDefaultMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

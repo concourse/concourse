@@ -2,13 +2,13 @@
 package dbfakes
 
 import (
-	sync "sync"
-	time "time"
+	"sync"
+	"time"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	db "github.com/concourse/concourse/atc/db"
-	lock "github.com/concourse/concourse/atc/db/lock"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeResourceConfigScope struct {
@@ -204,6 +204,18 @@ type FakeResourceConfigScope struct {
 	}
 	setCheckErrorReturnsOnCall map[int]struct {
 		result1 error
+	}
+	UpdateLastCheckFinishedStub        func() (bool, error)
+	updateLastCheckFinishedMutex       sync.RWMutex
+	updateLastCheckFinishedArgsForCall []struct {
+	}
+	updateLastCheckFinishedReturns struct {
+		result1 bool
+		result2 error
+	}
+	updateLastCheckFinishedReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
 	}
 	UpdateLastCheckedStub        func(time.Duration, bool) (bool, error)
 	updateLastCheckedMutex       sync.RWMutex
@@ -1159,6 +1171,61 @@ func (fake *FakeResourceConfigScope) SetCheckErrorReturnsOnCall(i int, result1 e
 	}{result1}
 }
 
+func (fake *FakeResourceConfigScope) UpdateLastCheckFinished() (bool, error) {
+	fake.updateLastCheckFinishedMutex.Lock()
+	ret, specificReturn := fake.updateLastCheckFinishedReturnsOnCall[len(fake.updateLastCheckFinishedArgsForCall)]
+	fake.updateLastCheckFinishedArgsForCall = append(fake.updateLastCheckFinishedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("UpdateLastCheckFinished", []interface{}{})
+	fake.updateLastCheckFinishedMutex.Unlock()
+	if fake.UpdateLastCheckFinishedStub != nil {
+		return fake.UpdateLastCheckFinishedStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.updateLastCheckFinishedReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckFinishedCallCount() int {
+	fake.updateLastCheckFinishedMutex.RLock()
+	defer fake.updateLastCheckFinishedMutex.RUnlock()
+	return len(fake.updateLastCheckFinishedArgsForCall)
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckFinishedCalls(stub func() (bool, error)) {
+	fake.updateLastCheckFinishedMutex.Lock()
+	defer fake.updateLastCheckFinishedMutex.Unlock()
+	fake.UpdateLastCheckFinishedStub = stub
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckFinishedReturns(result1 bool, result2 error) {
+	fake.updateLastCheckFinishedMutex.Lock()
+	defer fake.updateLastCheckFinishedMutex.Unlock()
+	fake.UpdateLastCheckFinishedStub = nil
+	fake.updateLastCheckFinishedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckFinishedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.updateLastCheckFinishedMutex.Lock()
+	defer fake.updateLastCheckFinishedMutex.Unlock()
+	fake.UpdateLastCheckFinishedStub = nil
+	if fake.updateLastCheckFinishedReturnsOnCall == nil {
+		fake.updateLastCheckFinishedReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.updateLastCheckFinishedReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResourceConfigScope) UpdateLastChecked(arg1 time.Duration, arg2 bool) (bool, error) {
 	fake.updateLastCheckedMutex.Lock()
 	ret, specificReturn := fake.updateLastCheckedReturnsOnCall[len(fake.updateLastCheckedArgsForCall)]
@@ -1258,6 +1325,8 @@ func (fake *FakeResourceConfigScope) Invocations() map[string][][]interface{} {
 	defer fake.saveUncheckedVersionMutex.RUnlock()
 	fake.setCheckErrorMutex.RLock()
 	defer fake.setCheckErrorMutex.RUnlock()
+	fake.updateLastCheckFinishedMutex.RLock()
+	defer fake.updateLastCheckFinishedMutex.RUnlock()
 	fake.updateLastCheckedMutex.RLock()
 	defer fake.updateLastCheckedMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -31,11 +31,11 @@ var _ = Describe("Check Event Handler", func() {
 		handler = radar.NewCheckEventHandler(logger, fakeTx, fakeResourceConfigScope, spaces)
 	})
 
-	Describe("DefaultSpace", func() {
+	Describe("SaveDefault", func() {
 		var space atc.Space
 
 		JustBeforeEach(func() {
-			err := handler.DefaultSpace(space)
+			err := handler.SaveDefault(space)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -62,7 +62,7 @@ var _ = Describe("Check Event Handler", func() {
 		})
 	})
 
-	Describe("Discovered", func() {
+	Describe("Save", func() {
 		var (
 			space    atc.Space
 			version  atc.Version
@@ -76,7 +76,7 @@ var _ = Describe("Check Event Handler", func() {
 		})
 
 		JustBeforeEach(func() {
-			err := handler.Discovered(space, version, metadata)
+			err := handler.Save(space, version, metadata)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -119,15 +119,15 @@ var _ = Describe("Check Event Handler", func() {
 		})
 	})
 
-	Describe("LatestVersions", func() {
+	Describe("Finish", func() {
 		JustBeforeEach(func() {
-			err := handler.LatestVersions()
+			err := handler.Finish()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("when the handler spaces is empty", func() {
-			It("does not save the latest versions", func() {
-				Expect(fakeResourceConfigScope.SaveSpaceLatestVersionCallCount()).To(Equal(0))
+			It("does not finish saving versions", func() {
+				Expect(fakeResourceConfigScope.FinishSavingVersionsCallCount()).To(Equal(0))
 			})
 		})
 
@@ -137,6 +137,14 @@ var _ = Describe("Check Event Handler", func() {
 					atc.Space("space"):       atc.Version{"ref": "v1"},
 					atc.Space("other-space"): atc.Version{"ref": "v2"},
 				}
+			})
+
+			It("finish saving versions", func() {
+				Expect(fakeResourceConfigScope.FinishSavingVersionsCallCount()).To(Equal(1))
+			})
+
+			It("update last check finished timestamp", func() {
+				Expect(fakeResourceConfigScope.UpdateLastCheckFinishedCallCount()).To(Equal(1))
 			})
 
 			It("saves the latest versions", func() {

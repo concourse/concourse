@@ -1,20 +1,20 @@
-port module Effects exposing
+port module Message.Effects exposing
     ( Effect(..)
-    , LayoutDispatch(..)
     , ScrollDirection(..)
     , renderPipeline
     , runEffect
     , setTitle
+    , stickyHeaderConfig
     )
 
-import Callback exposing (Callback(..))
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
-import Dashboard.Group
-import Dashboard.Models
+import Dashboard.Group.Models
 import Dom
 import Favicon
 import Json.Encode
+import Message.Callback exposing (Callback(..))
+import Message.Message exposing (VersionToggleAction(..))
 import Navigation
 import Network.Build
 import Network.BuildPlan
@@ -28,10 +28,9 @@ import Network.Pipeline
 import Network.Resource
 import Network.User
 import Process
-import Resource.Models exposing (VersionId, VersionToggleAction(..))
-import Scroll
 import Task
 import Time exposing (Time)
+import Views.Styles
 import Window
 
 
@@ -41,7 +40,7 @@ port setTitle : String -> Cmd msg
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 
 
-port pinTeamNames : Dashboard.Group.StickyHeaderConfig -> Cmd msg
+port pinTeamNames : StickyHeaderConfig -> Cmd msg
 
 
 port tooltip : ( String, String ) -> Cmd msg
@@ -68,9 +67,44 @@ port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
 port closeEventStream : () -> Cmd msg
 
 
-type LayoutDispatch
-    = SubPage Int
-    | Layout
+port scrollIntoView : String -> Cmd msg
+
+
+port scrollElement : ( String, Float ) -> Cmd msg
+
+
+port scrollToBottom : () -> Cmd msg
+
+
+port scrollToTop : () -> Cmd msg
+
+
+port scrollUp : () -> Cmd msg
+
+
+port scrollDown : () -> Cmd msg
+
+
+port checkIsVisible : String -> Cmd msg
+
+
+type alias StickyHeaderConfig =
+    { pageHeaderHeight : Float
+    , pageBodyClass : String
+    , sectionHeaderClass : String
+    , sectionClass : String
+    , sectionBodyClass : String
+    }
+
+
+stickyHeaderConfig : StickyHeaderConfig
+stickyHeaderConfig =
+    { pageHeaderHeight = Views.Styles.pageHeaderHeight
+    , pageBodyClass = "dashboard"
+    , sectionClass = "dashboard-team-group"
+    , sectionHeaderClass = "dashboard-team-header"
+    , sectionBodyClass = "dashboard-team-pipelines"
+    }
 
 
 type Effect
@@ -114,27 +148,32 @@ type Effect
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List Dashboard.Models.Pipeline)
+    | SendOrderPipelinesRequest String (List Dashboard.Group.Models.Pipeline)
     | SendLogOutRequest
     | GetScreenSize
-    | PinTeamNames Dashboard.Group.StickyHeaderConfig
+    | PinTeamNames StickyHeaderConfig
     | Scroll ScrollDirection
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
     | OpenBuildEventStream { url : String, eventTypes : List String }
     | CloseBuildEventStream
+    | CheckIsVisible String
     | Focus String
     | Blur String
 
 
+type alias VersionId =
+    Concourse.VersionedResourceIdentifier
+
+
 type ScrollDirection
-    = ToWindowTop
+    = ToTop
     | Down
     | Up
-    | ToWindowBottom
-    | Builds Float
-    | ToCurrentBuild
+    | ToBottom
+    | Element String Float
+    | ToId String
 
 
 runEffect : Effect -> Concourse.CSRFToken -> Cmd Callback
@@ -252,8 +291,12 @@ runEffect effect csrfToken =
                 |> Task.attempt TokenSentToFly
 
         SendTogglePipelineRequest pipelineIdentifier isPaused ->
-            Network.Pipeline.togglePause isPaused pipelineIdentifier.teamName pipelineIdentifier.pipelineName csrfToken
-                |> Task.attempt (always EmptyCallback)
+            Network.Pipeline.togglePause
+                isPaused
+                pipelineIdentifier.teamName
+                pipelineIdentifier.pipelineName
+                csrfToken
+                |> Task.attempt (PipelineToggled pipelineIdentifier)
 
         ShowTooltip ( teamName, pipelineName ) ->
             tooltip ( teamName, pipelineName )
@@ -321,7 +364,7 @@ runEffect effect csrfToken =
                 |> Task.attempt BuildAborted
 
         Scroll dir ->
-            Task.perform (always EmptyCallback) (scrollInDirection dir)
+            scrollInDirection dir
 
         SaveToken tokenValue ->
             saveToken tokenValue
@@ -343,24 +386,27 @@ runEffect effect csrfToken =
         CloseBuildEventStream ->
             closeEventStream ()
 
+        CheckIsVisible id ->
+            checkIsVisible id
 
-scrollInDirection : ScrollDirection -> Task.Task x ()
+
+scrollInDirection : ScrollDirection -> Cmd Callback
 scrollInDirection dir =
     case dir of
-        ToWindowTop ->
-            Scroll.toWindowTop
+        ToTop ->
+            scrollToTop ()
 
         Down ->
-            Scroll.scrollDown
+            scrollDown ()
 
         Up ->
-            Scroll.scrollUp
+            scrollUp ()
 
-        ToWindowBottom ->
-            Scroll.toWindowBottom
+        ToBottom ->
+            scrollToBottom ()
 
-        Builds delta ->
-            Scroll.scroll "builds" delta
+        Element id delta ->
+            scrollElement ( id, delta )
 
-        ToCurrentBuild ->
-            Scroll.scrollIntoView "#builds .current"
+        ToId id ->
+            scrollIntoView id

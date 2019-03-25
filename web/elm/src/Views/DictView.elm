@@ -1,4 +1,4 @@
-module DictView exposing (view)
+module Views.DictView exposing (view)
 
 import Dict exposing (Dict)
 import Html exposing (Html)

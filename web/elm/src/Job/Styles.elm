@@ -1,8 +1,9 @@
 module Job.Styles exposing
-    ( pageBelowTopBar
-    , pauseToggleIcon
+    ( buildResourceHeader
+    , buildResourceIcon
+    , icon
+    , pageBelowTopBar
     , triggerButton
-    , triggerIcon
     , triggerTooltip
     )
 
@@ -43,41 +44,9 @@ button =
     ]
 
 
-triggerIcon : Bool -> List ( String, String )
-triggerIcon hovered =
-    [ ( "width", "40px" )
-    , ( "height", "40px" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-image"
-      , "url(/public/images/ic-add-circle-outline-white.svg)"
-      )
-    , ( "background-repeat", "no-repeat" )
-    , ( "opacity"
-      , if hovered then
-            "1"
-
-        else
-            "0.5"
-      )
-    ]
-
-
-pauseToggleIcon : { paused : Bool, hovered : Bool } -> List ( String, String )
-pauseToggleIcon { paused, hovered } =
-    [ ( "background-image"
-      , "url(/public/images/"
-            ++ (if paused then
-                    "ic-play-circle-outline.svg)"
-
-                else
-                    "ic-pause-circle-outline-white.svg)"
-               )
-      )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "width", "40px" )
-    , ( "height", "40px" )
-    , ( "opacity"
+icon : Bool -> List ( String, String )
+icon hovered =
+    [ ( "opacity"
       , if hovered then
             "1"
 
@@ -99,4 +68,19 @@ triggerTooltip =
     , ( "padding", "10px" )
     , ( "text-align", "right" )
     , ( "pointer-events", "none" )
+    ]
+
+
+buildResourceHeader : List ( String, String )
+buildResourceHeader =
+    [ ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "padding-bottom", "5px" )
+    ]
+
+
+buildResourceIcon : List ( String, String )
+buildResourceIcon =
+    [ ( "background-size", "contain" )
+    , ( "margin-right", "5px" )
     ]

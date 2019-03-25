@@ -1,15 +1,13 @@
 module BuildTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
 import Array
 import Build.Build as Build
 import Build.Models as Models
-import Build.Msgs
 import Build.StepTree.Models as STModels
-import Callback
 import Char
 import Concourse exposing (BuildPrepStatus(..))
+import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
     exposing
         ( defineHoverBehaviour
@@ -19,12 +17,15 @@ import DashboardTests
         )
 import Date
 import Dict
-import Effects
 import Expect
 import Html.Attributes as Attr
 import Keycodes
+import Message.Callback as Callback
+import Message.Effects as Effects
+import Message.Message
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.TopLevelMessage as Msgs
 import Routes
-import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -269,7 +270,6 @@ all =
                     }
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <|
                             Ok
                                 ( 1
@@ -292,7 +292,6 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.PlanAndResourcesFetched 307 <|
                             Ok <|
                                 ( { id = "stepid"
@@ -357,7 +356,6 @@ all =
                     }
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <|
                             Ok
                                 ( 1
@@ -375,7 +373,6 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.PlanAndResourcesFetched 307 <|
                             Ok <|
                                 ( { id = "stepid"
@@ -409,7 +406,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> receiveEvent
@@ -417,12 +413,11 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" }
                         }
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
         , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, theBuild ))
                     |> Tuple.first
                     |> receiveEvent
@@ -435,10 +430,10 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
+                    |> Application.update
+                        (Msgs.DeliveryReceived (ScrolledToBottom False))
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
@@ -446,32 +441,31 @@ all =
                         }
                     |> Tuple.second
                     |> Expect.equal []
-        , test "when build is running but the user is scrolls back to the bottom it scrolls on build event" <|
+        , test "when build is running but the user scrolls back to the bottom it scrolls on build event" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 187))
+                    |> Application.update
+                        (Msgs.DeliveryReceived (ScrolledToBottom False))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived (ScrolledFromWindowBottom 0))
+                    |> Application.update
+                        (Msgs.DeliveryReceived (ScrolledToBottom True))
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
                         , data = STModels.StartTask { id = "stepid", source = "" }
                         }
                     |> Tuple.second
-                    |> Expect.equal [ ( Effects.SubPage 1, csrfToken, Effects.Scroll Effects.ToWindowBottom ) ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { pipeline =
@@ -501,54 +495,38 @@ all =
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
                     |> Tuple.second
                     |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , csrfToken
-                          , Effects.DoTriggerBuild
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                , jobName = "job"
-                                }
-                          )
+                        [ Effects.DoTriggerBuild
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , jobName = "job"
+                            }
                         ]
         , test "pressing 'gg' scrolls to the top" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
                     |> Tuple.second
-                    |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , csrfToken
-                          , Effects.Scroll Effects.ToWindowTop
-                          )
-                        ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToTop ]
         , test "pressing 'G' scrolls to the bottom" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
                     |> Tuple.second
-                    |> Expect.equal
-                        [ ( Effects.SubPage 1
-                          , csrfToken
-                          , Effects.Scroll Effects.ToWindowBottom
-                          )
-                        ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
         , test "pressing and releasing shift, then 'g', does nothing" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
@@ -562,7 +540,6 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
@@ -573,7 +550,7 @@ all =
                     |> Query.fromHtml
                     |> Query.find [ class "keyboard-help" ]
                     |> Query.hasNot [ class "hidden" ]
-        , test "says loading on page load" <|
+        , test "says 'loading' on page load" <|
             \_ ->
                 pageLoad
                     |> Tuple.first
@@ -585,8 +562,7 @@ all =
                 pageLoad
                     |> Tuple.second
                     |> Expect.equal
-                        [ Effects.GetScreenSize
-                        , Effects.GetCurrentTime
+                        [ Effects.GetCurrentTime
                         , Effects.CloseBuildEventStream
                         , Effects.FetchJobBuild 1
                             { teamName = "team"
@@ -679,7 +655,7 @@ all =
             , test "when less than 24h old, shows relative time since build" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
                         |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (2 * Time.second))
                         |> Tuple.first
@@ -690,7 +666,7 @@ all =
             , test "when at least 24h old, shows absolute time of build" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Effects.SubPage 1) (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
                         |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (24 * Time.hour))
                         |> Tuple.first
@@ -833,11 +809,7 @@ all =
                             >> Tuple.first
                             >> fetchJobDetails
                 in
-                [ test
-                    ("trigger build button on right side of header "
-                        ++ "after history and job details fetched"
-                    )
-                  <|
+                [ test "trigger build button on right side of header " <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -848,6 +820,274 @@ all =
                         >> Query.has
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
+                            ]
+                , test "scrolling builds checks if last build is visible" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.update
+                            (Message.Message.ScrollBuilds
+                                { deltaX = 0, deltaY = 0 }
+                            )
+                        >> Tuple.second
+                        >> List.member (Effects.CheckIsVisible "1")
+                        >> Expect.true "should check if last build is visible"
+                , test "subscribes to element visibility" <|
+                    givenBuildFetched
+                        >> Tuple.first
+                        >> Build.subscriptions
+                        >> List.member Subscription.OnElementVisible
+                        >> Expect.true "should be subscribed to visibility"
+                , test "scrolling to last build fetches more if possible" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", True ))
+                        >> Tuple.second
+                        >> Expect.equal
+                            [ Effects.FetchBuildHistory
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
+                                }
+                                (Just { direction = Until 1, limit = 100 })
+                            ]
+                , test "scrolling to last build while fetching fetches no more" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", True ))
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", True ))
+                        >> Tuple.second
+                        >> Expect.equal []
+                , test "scrolling to absolute last build fetches no more" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", True ))
+                        >> Tuple.second
+                        >> Expect.equal []
+                , test "if build is present in history, fetches no more" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 2
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Nothing
+                                                , finishedAt = Nothing
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.second
+                        >> List.member
+                            (Effects.FetchBuildHistory
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
+                                }
+                                (Just { direction = Until 2, limit = 100 })
+                            )
+                        >> Expect.false "should not fetch more builds"
+                , test "if build is present in history, checks its visibility" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.second
+                        >> List.member (Effects.CheckIsVisible "1")
+                        >> Expect.true "should check visibility of current build"
+                , test "if build is present and invisible, scrolls to it" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", False ))
+                        >> Tuple.second
+                        >> Expect.equal [ Effects.Scroll <| Effects.ToId "1" ]
+                , test "does not scroll to current build more than once" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content = [ theBuild ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", False ))
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (Subscription.ElementVisible ( "1", False ))
+                        >> Tuple.second
+                        >> Expect.equal []
+                , test "if build is not present in history, fetches more" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 2
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Nothing
+                                                , finishedAt = Nothing
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.second
+                        >> Expect.equal
+                            [ Effects.FetchBuildHistory
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
+                                }
+                                (Just { direction = Until 2, limit = 100 })
                             ]
                 , test "trigger build button is styled as a box of the color of the build status" <|
                     givenHistoryAndDetailsFetched
@@ -873,7 +1113,7 @@ all =
                     givenHistoryAndDetailsFetched
                         >> Tuple.mapSecond (always [])
                         >> Build.update
-                            (Build.Msgs.Hover <| Just Models.Trigger)
+                            (Message.Message.Hover <| Just Message.Message.TriggerBuildButton)
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -920,7 +1160,7 @@ all =
                                 }
                             )
                 ]
-            , describe "when history and details fetched with maual triggering disabled" <|
+            , describe "when history and details fetched with manual triggering disabled" <|
                 let
                     givenHistoryAndDetailsFetched =
                         givenBuildFetched
@@ -985,8 +1225,8 @@ all =
                                     }
                             ]
                         }
-                    , mouseEnterMsg = Build.Msgs.Hover <| Just Models.Trigger
-                    , mouseLeaveMsg = Build.Msgs.Hover Nothing
+                    , mouseEnterMsg = Message.Message.Hover <| Just Message.Message.TriggerBuildButton
+                    , mouseLeaveMsg = Message.Message.Hover Nothing
                     }
                 ]
             ]
@@ -1046,7 +1286,7 @@ all =
             , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
                     >> Tuple.mapSecond (always [])
-                    >> Build.update (Build.Msgs.Hover (Just Models.Abort))
+                    >> Build.update (Message.Message.Hover (Just Message.Message.AbortBuildButton))
                     >> Tuple.first
                     >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
@@ -1503,12 +1743,12 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseEnter
                             >> Event.expect
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1528,7 +1768,7 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
@@ -1584,7 +1824,7 @@ all =
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1597,7 +1837,7 @@ all =
                             >> Query.first
                             >> Event.simulate Event.mouseLeave
                             >> Event.expect
-                                (Build.Msgs.Hover Nothing)
+                                (Message.Message.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> flip (,) []
@@ -1605,13 +1845,13 @@ all =
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.update
-                                (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
                             >> flip (,) []
                             >> Build.handleDelivery (ClockTicked OneSecond 1)
                             >> Tuple.first
                             >> flip (,) []
-                            >> Build.update (Build.Msgs.Hover Nothing)
+                            >> Build.update (Message.Message.Hover Nothing)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1631,7 +1871,7 @@ all =
                         >> Build.handleDelivery (ClockTicked OneSecond 0)
                         >> Tuple.first
                         >> flip (,) []
-                        >> Build.update (Build.Msgs.Hover <| Just <| Models.FirstOccurrence "foo")
+                        >> Build.update (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                         >> Tuple.first
                         >> flip (,) []
                         >> Build.handleDelivery (ClockTicked OneSecond 1)
@@ -1893,18 +2133,28 @@ all =
                                 )
                     , test "has passport officer icon" <|
                         let
-                            url =
+                            imgUrl =
                                 "/public/images/passport-officer-ic.svg"
+
+                            eventsUrl =
+                                "http://localhost:8080/api/v1/builds/307/events"
                         in
                         fetchPlanWithGetStep
                             >> flip (,) []
-                            >> Build.handleDelivery (EventsReceived <| Err "server burned down")
+                            >> Build.handleDelivery
+                                (EventsReceived <|
+                                    Ok
+                                        [ { data = STModels.NetworkError
+                                          , url = eventsUrl
+                                          }
+                                        ]
+                                )
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
                             >> Query.find [ class "not-authorized" ]
                             >> Query.find [ tag "img" ]
-                            >> Query.has [ attribute <| Attr.src url ]
+                            >> Query.has [ attribute <| Attr.src imgUrl ]
                     ]
                 ]
             , describe "get step with metadata" <|
@@ -1940,7 +2190,6 @@ all =
                             }
                             |> Tuple.first
                             |> Application.handleCallback
-                                (Effects.SubPage 1)
                                 (Callback.BuildFetched <|
                                     Ok
                                         ( 1
@@ -1963,7 +2212,6 @@ all =
                                 )
                             |> Tuple.first
                             |> Application.handleCallback
-                                (Effects.SubPage 1)
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
                                         ( { id = "stepid"
@@ -2079,6 +2327,6 @@ darkGrey =
 receiveEvent :
     STModels.BuildEventEnvelope
     -> Application.Model
-    -> ( Application.Model, List ( Effects.LayoutDispatch, Concourse.CSRFToken, Effects.Effect ) )
+    -> ( Application.Model, List Effects.Effect )
 receiveEvent envelope =
     Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])

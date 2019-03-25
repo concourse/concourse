@@ -93,16 +93,16 @@ func (a *V1Adapter) Check(
 		return err
 	}
 
-	err = checkHandler.DefaultSpace(atc.Space("v1space"))
+	err = checkHandler.SaveDefault(atc.Space("v1space"))
 
 	for _, v := range versions {
-		err = checkHandler.Discovered(atc.Space("v1space"), v, nil)
+		err = checkHandler.Save(atc.Space("v1space"), v, nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = checkHandler.LatestVersions()
+	err = checkHandler.Finish()
 
 	return err
 }

@@ -2,6 +2,7 @@ package scheduler_test
 
 import (
 	"errors"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -27,7 +28,6 @@ var _ = Describe("BuildStarter", func() {
 		fakeFactory     *schedulerfakes.FakeBuildFactory
 		fakeEngine      *enginefakes.FakeEngine
 		pendingBuilds   []db.Build
-		fakeScanner     *schedulerfakes.FakeScanner
 		fakeInputMapper *inputmapperfakes.FakeInputMapper
 
 		buildStarter scheduler.BuildStarter
@@ -40,10 +40,9 @@ var _ = Describe("BuildStarter", func() {
 		fakeUpdater = new(maxinflightfakes.FakeUpdater)
 		fakeFactory = new(schedulerfakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
-		fakeScanner = new(schedulerfakes.FakeScanner)
 		fakeInputMapper = new(inputmapperfakes.FakeInputMapper)
 
-		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeUpdater, fakeFactory, fakeScanner, fakeInputMapper, fakeEngine)
+		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeUpdater, fakeFactory, fakeInputMapper, fakeEngine)
 
 		disaster = errors.New("bad thing")
 	})
@@ -53,6 +52,7 @@ var _ = Describe("BuildStarter", func() {
 		var createdBuild *dbfakes.FakeBuild
 		var job *dbfakes.FakeJob
 		var resource *dbfakes.FakeResource
+		var resources db.Resources
 		var versionedResourceTypes atc.VersionedResourceTypes
 
 		BeforeEach(func() {
@@ -77,14 +77,16 @@ var _ = Describe("BuildStarter", func() {
 			BeforeEach(func() {
 				job = new(dbfakes.FakeJob)
 				job.NameReturns("some-job")
-				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1"}, {Get: "input-2"}}})
+				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}})
+
+				resources = db.Resources{resource}
 			})
 
 			JustBeforeEach(func() {
 				tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 					lagertest.NewTestLogger("test"),
 					job,
-					db.Resources{resource},
+					resources,
 					versionedResourceTypes,
 					pendingBuilds,
 				)
@@ -101,10 +103,6 @@ var _ = Describe("BuildStarter", func() {
 				BeforeEach(func() {
 					fakeUpdater.UpdateMaxInFlightReachedReturns(true, nil)
 				})
-
-				It("does not run resource check", func() {
-					Expect(fakeScanner.ScanCallCount()).To(Equal(0))
-				})
 			})
 
 			Context("when max in flight is not reached", func() {
@@ -112,31 +110,28 @@ var _ = Describe("BuildStarter", func() {
 					fakeUpdater.UpdateMaxInFlightReachedReturns(false, nil)
 				})
 
-				It("runs resource check for every job resource", func() {
-					Expect(fakeScanner.ScanCallCount()).To(Equal(2))
+				Context("when some of the resources are checked before build create time", func() {
+					BeforeEach(func() {
+						createdBuild.CreateTimeReturns(time.Now())
+						resource.LastCheckFinishedReturns(time.Now().Add(-time.Minute))
+					})
+
+					It("does not save the next input mapping", func() {
+						Expect(fakePipeline.LoadVersionsDBCallCount()).To(BeZero())
+						Expect(fakeInputMapper.SaveNextInputMappingCallCount()).To(BeZero())
+					})
+
+					It("does not start the build", func() {
+						Expect(fakeEngine.CreateBuildCallCount()).To(BeZero())
+					})
+
+					It("returns without error", func() {
+						Expect(tryStartErr).NotTo(HaveOccurred())
+					})
 				})
 
-				Context("when resource checking fails", func() {
+				Context("when all resources are checked after build create time or pinned", func() {
 					BeforeEach(func() {
-						fakeScanner.ScanReturns(disaster)
-					})
-
-					It("doesn't reload the resource types list", func() {
-						Expect(fakePipeline.ResourceTypesCallCount()).To(Equal(0))
-					})
-
-					It("returns an error", func() {
-						Expect(tryStartErr).To(Equal(disaster))
-					})
-				})
-
-				Context("when resource checking succeeds", func() {
-					BeforeEach(func() {
-						fakeScanner.ScanStub = func(lager.Logger, string) error {
-							defer GinkgoRecover()
-							Expect(fakePipeline.LoadVersionsDBCallCount()).To(BeZero())
-							return nil
-						}
 						fakeDBResourceType := new(dbfakes.FakeResourceType)
 						fakeDBResourceType.NameReturns("fake-resource-type")
 						fakeDBResourceType.TypeReturns("fake")
@@ -146,12 +141,25 @@ var _ = Describe("BuildStarter", func() {
 
 						fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeDBResourceType}, nil)
 
+						job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "other-resource"}}})
+
+						createdBuild.CreateTimeReturns(time.Now())
+
+						resource.LastCheckFinishedReturns(time.Now().Add(time.Minute))
+
+						otherResource := new(dbfakes.FakeResource)
+						otherResource.NameReturns("other-resource")
+						otherResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
+						otherResource.LastCheckFinishedReturns(time.Now().Add(-time.Minute))
+
+						resources = db.Resources{resource, otherResource}
 					})
 
 					Context("when reloading the resource types list fails", func() {
 						BeforeEach(func() {
 							fakePipeline.ResourceTypesReturns(db.ResourceTypes{}, errors.New("failed to reload types"))
 						})
+
 						It("returns the error", func() {
 							Expect(tryStartErr).To(MatchError("failed to reload types"))
 						})
@@ -168,13 +176,6 @@ var _ = Describe("BuildStarter", func() {
 
 						It("returns an error", func() {
 							Expect(tryStartErr).To(Equal(disaster))
-						})
-
-						It("checked for the right resources", func() {
-							Expect(fakeScanner.ScanCallCount()).To(Equal(2))
-							_, resource1 := fakeScanner.ScanArgsForCall(0)
-							_, resource2 := fakeScanner.ScanArgsForCall(1)
-							Expect([]string{resource1, resource2}).To(ConsistOf("input-1", "input-2"))
 						})
 
 						It("loaded the versions DB after checking all the resources", func() {

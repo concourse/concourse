@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/exec"
 	"io"
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
 	"strings"
+
+	"github.com/concourse/concourse/atc/exec"
 
 	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 
@@ -47,11 +48,6 @@ func (eke ExtraKeysError) Error() string {
 	}
 
 	return msg.String()
-}
-
-type SaveConfigResponse struct {
-	Errors   []string      `json:"errors,omitempty"`
-	Warnings []atc.Warning `json:"warnings,omitempty"`
 }
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +160,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	s.writeSaveConfigResponse(w, SaveConfigResponse{Warnings: warnings}, session)
+	s.writeSaveConfigResponse(w, atc.SaveConfigResponse{Warnings: warnings}, session)
 }
 
 // Simply validate that the credentials exist; don't do anything with the actual secrets
@@ -237,12 +233,12 @@ func validateCredParams(credMgrVars creds.Variables, config atc.Config, session 
 func (s *Server) handleBadRequest(w http.ResponseWriter, errorMessages []string, session lager.Logger) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
-	s.writeSaveConfigResponse(w, SaveConfigResponse{
+	s.writeSaveConfigResponse(w, atc.SaveConfigResponse{
 		Errors: errorMessages,
 	}, session)
 }
 
-func (s *Server) writeSaveConfigResponse(w http.ResponseWriter, saveConfigResponse SaveConfigResponse, session lager.Logger) {
+func (s *Server) writeSaveConfigResponse(w http.ResponseWriter, saveConfigResponse atc.SaveConfigResponse, session lager.Logger) {
 	responseJSON, err := json.Marshal(saveConfigResponse)
 	if err != nil {
 		session.Error("failed-to-marshal-validation-response", err)

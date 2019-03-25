@@ -43,7 +43,7 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -68,6 +68,7 @@ type Build interface {
 	PublicPlan() *json.RawMessage
 	Status() BuildStatus
 	StartTime() time.Time
+	CreateTime() time.Time
 	EndTime() time.Time
 	ReapTime() time.Time
 	IsManuallyTriggered() bool
@@ -130,9 +131,10 @@ type build struct {
 	privatePlan string
 	publicPlan  *json.RawMessage
 
-	startTime time.Time
-	endTime   time.Time
-	reapTime  time.Time
+	createTime time.Time
+	startTime  time.Time
+	endTime    time.Time
+	reapTime   time.Time
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -164,6 +166,7 @@ func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
 func (b *build) Schema() string               { return b.schema }
 func (b *build) PrivatePlan() string          { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
+func (b *build) CreateTime() time.Time        { return b.createTime }
 func (b *build) StartTime() time.Time         { return b.startTime }
 func (b *build) EndTime() time.Time           { return b.endTime }
 func (b *build) ReapTime() time.Time          { return b.reapTime }
@@ -837,14 +840,14 @@ func (b *build) SaveOutput(
 	versionJSON := string(versionBytes)
 
 	// Use the Resource Name and the Build's Pipeline ID to find the Resource ID
-	selectResourceID := sq.Select("r.id", strconv.Itoa(b.id), fmt.Sprintf("'%s'", version.Space), fmt.Sprintf("md5('%s')", versionJSON), fmt.Sprintf("'%s'", outputName)).
+	selectResourceID := sq.Select("r.id", strconv.Itoa(b.id)).Column("?", version.Space).Column("?", outputName).Column("md5(?)", versionJSON).
 		From("resources r").Where(sq.Eq{
 		"r.pipeline_id": b.pipelineID,
 		"r.name":        resourceName,
 	})
 
 	_, err = psql.Insert("build_resource_config_version_outputs").
-		Columns("resource_id", "build_id", "space", "version_md5", "name").
+		Columns("resource_id", "build_id", "space", "name", "version_md5").
 		Select(selectResourceID).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(b.conn).
@@ -1016,7 +1019,7 @@ func (p *build) saveInputTx(tx Tx, buildID int, input BuildInput) error {
 
 	_, err = psql.Insert("build_resource_config_version_inputs").
 		Columns("build_id", "resource_id", "version_md5", "name", "space").
-		Values(buildID, input.ResourceID, sq.Expr(fmt.Sprintf("md5('%s')", versionJSON)), input.Name, input.Space).
+		Values(buildID, input.ResourceID, sq.Expr("md5(?)", versionJSON), input.Name, input.Space).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
@@ -1039,14 +1042,13 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	var (
 		jobID, pipelineID                                      sql.NullInt64
 		schema, privatePlan, jobName, pipelineName, publicPlan sql.NullString
-		startTime, endTime, reapTime                           pq.NullTime
+		createTime, startTime, endTime, reapTime               pq.NullTime
 		nonce                                                  sql.NullString
 		drained                                                bool
-
-		status string
+		status                                                 string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained)
 	if err != nil {
 		return err
 	}
@@ -1057,6 +1059,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.pipelineName = pipelineName.String
 	b.pipelineID = int(pipelineID.Int64)
 	b.schema = schema.String
+	b.createTime = createTime.Time
 	b.startTime = startTime.Time
 	b.endTime = endTime.Time
 	b.reapTime = reapTime.Time

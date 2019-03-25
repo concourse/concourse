@@ -6,19 +6,21 @@ module Dashboard.Pipeline exposing
 
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
-import Dashboard.Models exposing (Pipeline)
-import Dashboard.Msgs exposing (Msg(..))
+import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
 import Duration
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onMouseEnter, onMouseLeave)
+import Message.Message exposing (Hoverable(..), Message(..))
 import Routes
-import StrictEvents exposing (onLeftClick)
 import Time exposing (Time)
+import UserState exposing (UserState)
+import Views.Icon as Icon
+import Views.PauseToggle as PauseToggle
 
 
-pipelineNotSetView : Html msg
+pipelineNotSetView : Html Message
 pipelineNotSetView =
     Html.div [ class "card" ]
         [ Html.div
@@ -45,7 +47,7 @@ hdPipelineView :
     { pipeline : Pipeline
     , pipelineRunningKeyframes : String
     }
-    -> Html Msg
+    -> Html Message
 hdPipelineView { pipeline, pipelineRunningKeyframes } =
     Html.a
         [ class "card"
@@ -83,9 +85,10 @@ pipelineView :
     , pipeline : Pipeline
     , hovered : Bool
     , pipelineRunningKeyframes : String
+    , userState : UserState
     }
-    -> Html Msg
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
+    -> Html Message
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState } =
     Html.div
         [ style Styles.pipelineCard
         ]
@@ -100,11 +103,11 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes } =
             []
         , headerView pipeline
         , bodyView pipeline
-        , footerView pipeline now hovered
+        , footerView userState pipeline now hovered
         ]
 
 
-headerView : Pipeline -> Html Msg
+headerView : Pipeline -> Html Message
 headerView pipeline =
     Html.a
         [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
@@ -128,7 +131,7 @@ headerView pipeline =
         ]
 
 
-bodyView : Pipeline -> Html Msg
+bodyView : Pipeline -> Html Message
 bodyView pipeline =
     Html.div
         [ class "card-body"
@@ -137,8 +140,8 @@ bodyView pipeline =
         [ DashboardPreview.view pipeline.jobs ]
 
 
-footerView : Pipeline -> Time -> Bool -> Html Msg
-footerView pipeline now hovered =
+footerView : UserState -> Pipeline -> Time -> Bool -> Html Message
+footerView userState pipeline now hovered =
     let
         spacer =
             Html.div [ style [ ( "width", "13.5px" ) ] ] []
@@ -150,10 +153,7 @@ footerView pipeline now hovered =
         [ Html.div
             [ style [ ( "display", "flex" ) ]
             ]
-            [ Html.div
-                [ style <| Styles.pipelineStatusIcon pipeline.status
-                ]
-                []
+            [ PipelineStatus.icon pipeline.status
             , transitionView now pipeline
             ]
         , Html.div
@@ -161,31 +161,34 @@ footerView pipeline now hovered =
             ]
           <|
             List.intersperse spacer
-                [ pauseToggleView pipeline hovered
+                [ PauseToggle.view "0"
+                    userState
+                    { isPaused =
+                        pipeline.status == PipelineStatus.PipelineStatusPaused
+                    , pipeline =
+                        { pipelineName = pipeline.name
+                        , teamName = pipeline.teamName
+                        }
+                    , isToggleHovered = hovered
+                    , isToggleLoading = pipeline.isToggleLoading
+                    }
                 , visibilityView pipeline.public
                 ]
         ]
 
 
-visibilityView : Bool -> Html Msg
+visibilityView : Bool -> Html Message
 visibilityView public =
-    Html.div
-        [ style
-            [ ( "background-image"
-              , if public then
-                    "url(/public/images/baseline-visibility-24px.svg)"
+    Icon.icon
+        { sizePx = 20
+        , image =
+            if public then
+                "baseline-visibility-24px.svg"
 
-                else
-                    "url(/public/images/baseline-visibility-off-24px.svg)"
-              )
-            , ( "background-position", "50% 50%" )
-            , ( "background-repeat", "no-repeat" )
-            , ( "background-size", "contain" )
-            , ( "width", "20px" )
-            , ( "height", "20px" )
-            ]
-        ]
-        []
+            else
+                "baseline-visibility-off-24px.svg"
+        }
+        [ style [ ( "background-size", "contain" ) ] ]
 
 
 sinceTransitionText : PipelineStatus.StatusDetails -> Time -> String
@@ -223,42 +226,10 @@ statusAgeText pipeline now =
             sinceTransitionText details now
 
 
-transitionView : Time -> Pipeline -> Html a
+transitionView : Time -> Pipeline -> Html Message
 transitionView time pipeline =
     Html.div
         [ class "build-duration"
         , style <| Styles.pipelineCardTransitionAge pipeline.status
         ]
         [ Html.text <| statusAgeText pipeline time ]
-
-
-pauseToggleView : Pipeline -> Bool -> Html Msg
-pauseToggleView pipeline hovered =
-    Html.a
-        [ style
-            [ ( "background-image"
-              , case pipeline.status of
-                    PipelineStatus.PipelineStatusPaused ->
-                        "url(/public/images/ic-play-white.svg)"
-
-                    _ ->
-                        "url(/public/images/ic-pause-white.svg)"
-              )
-            , ( "background-position", "50% 50%" )
-            , ( "background-repeat", "no-repeat" )
-            , ( "width", "20px" )
-            , ( "height", "20px" )
-            , ( "cursor", "pointer" )
-            , ( "opacity"
-              , if hovered then
-                    "1"
-
-                else
-                    "0.5"
-              )
-            ]
-        , onLeftClick <| TogglePipelinePaused { teamName = pipeline.teamName, pipelineName = pipeline.name } pipeline.status
-        , onMouseEnter <| PipelineButtonHover <| Just pipeline
-        , onMouseLeave <| PipelineButtonHover Nothing
-        ]
-        []

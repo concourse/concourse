@@ -123,6 +123,7 @@ type BuildEvent
     | BuildError String
     | End
     | Opened
+    | NetworkError
 
 
 type alias Origin =

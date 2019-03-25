@@ -2,13 +2,13 @@
 package dbfakes
 
 import (
-	sync "sync"
-	time "time"
+	"sync"
+	"time"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	creds "github.com/concourse/concourse/atc/creds"
-	db "github.com/concourse/concourse/atc/db"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeResource struct {
@@ -129,6 +129,16 @@ type FakeResource struct {
 	}
 	iDReturnsOnCall map[int]struct {
 		result1 int
+	}
+	LastCheckFinishedStub        func() time.Time
+	lastCheckFinishedMutex       sync.RWMutex
+	lastCheckFinishedArgsForCall []struct {
+	}
+	lastCheckFinishedReturns struct {
+		result1 time.Time
+	}
+	lastCheckFinishedReturnsOnCall map[int]struct {
+		result1 time.Time
 	}
 	LastCheckedStub        func() time.Time
 	lastCheckedMutex       sync.RWMutex
@@ -979,6 +989,58 @@ func (fake *FakeResource) IDReturnsOnCall(i int, result1 int) {
 	}
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakeResource) LastCheckFinished() time.Time {
+	fake.lastCheckFinishedMutex.Lock()
+	ret, specificReturn := fake.lastCheckFinishedReturnsOnCall[len(fake.lastCheckFinishedArgsForCall)]
+	fake.lastCheckFinishedArgsForCall = append(fake.lastCheckFinishedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("LastCheckFinished", []interface{}{})
+	fake.lastCheckFinishedMutex.Unlock()
+	if fake.LastCheckFinishedStub != nil {
+		return fake.LastCheckFinishedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.lastCheckFinishedReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) LastCheckFinishedCallCount() int {
+	fake.lastCheckFinishedMutex.RLock()
+	defer fake.lastCheckFinishedMutex.RUnlock()
+	return len(fake.lastCheckFinishedArgsForCall)
+}
+
+func (fake *FakeResource) LastCheckFinishedCalls(stub func() time.Time) {
+	fake.lastCheckFinishedMutex.Lock()
+	defer fake.lastCheckFinishedMutex.Unlock()
+	fake.LastCheckFinishedStub = stub
+}
+
+func (fake *FakeResource) LastCheckFinishedReturns(result1 time.Time) {
+	fake.lastCheckFinishedMutex.Lock()
+	defer fake.lastCheckFinishedMutex.Unlock()
+	fake.LastCheckFinishedStub = nil
+	fake.lastCheckFinishedReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeResource) LastCheckFinishedReturnsOnCall(i int, result1 time.Time) {
+	fake.lastCheckFinishedMutex.Lock()
+	defer fake.lastCheckFinishedMutex.Unlock()
+	fake.LastCheckFinishedStub = nil
+	if fake.lastCheckFinishedReturnsOnCall == nil {
+		fake.lastCheckFinishedReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.lastCheckFinishedReturnsOnCall[i] = struct {
+		result1 time.Time
 	}{result1}
 }
 
@@ -2232,6 +2294,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.getMetadataMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.lastCheckFinishedMutex.RLock()
+	defer fake.lastCheckFinishedMutex.RUnlock()
 	fake.lastCheckedMutex.RLock()
 	defer fake.lastCheckedMutex.RUnlock()
 	fake.nameMutex.RLock()

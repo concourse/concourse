@@ -151,11 +151,11 @@ var _ = Describe("Resource Check", func() {
 				})
 
 				It("saves the default space, versions, all spaces and latest versions for each space", func() {
-					Expect(fakeCheckEventHandler.DefaultSpaceCallCount()).To(Equal(1))
-					Expect(fakeCheckEventHandler.DefaultSpaceArgsForCall(0)).To(Equal(atc.Space("space")))
+					Expect(fakeCheckEventHandler.SaveDefaultCallCount()).To(Equal(1))
+					Expect(fakeCheckEventHandler.SaveDefaultArgsForCall(0)).To(Equal(atc.Space("space")))
 
-					Expect(fakeCheckEventHandler.DiscoveredCallCount()).To(Equal(3))
-					space, version, metadata := fakeCheckEventHandler.DiscoveredArgsForCall(0)
+					Expect(fakeCheckEventHandler.SaveCallCount()).To(Equal(3))
+					space, version, metadata := fakeCheckEventHandler.SaveArgsForCall(0)
 					Expect(space).To(Equal(atc.Space("space")))
 					Expect(version).To(Equal(atc.Version{"ref": "v1"}))
 					Expect(metadata).To(Equal(atc.Metadata{
@@ -165,7 +165,7 @@ var _ = Describe("Resource Check", func() {
 						},
 					}))
 
-					space, version, metadata = fakeCheckEventHandler.DiscoveredArgsForCall(1)
+					space, version, metadata = fakeCheckEventHandler.SaveArgsForCall(1)
 					Expect(space).To(Equal(atc.Space("space")))
 					Expect(version).To(Equal(atc.Version{"ref": "v2"}))
 					Expect(metadata).To(Equal(atc.Metadata{
@@ -175,7 +175,7 @@ var _ = Describe("Resource Check", func() {
 						},
 					}))
 
-					space, version, metadata = fakeCheckEventHandler.DiscoveredArgsForCall(2)
+					space, version, metadata = fakeCheckEventHandler.SaveArgsForCall(2)
 					Expect(space).To(Equal(atc.Space("space2")))
 					Expect(version).To(Equal(atc.Version{"ref": "v1"}))
 					Expect(metadata).To(Equal(atc.Metadata{
@@ -185,7 +185,7 @@ var _ = Describe("Resource Check", func() {
 						},
 					}))
 
-					Expect(fakeCheckEventHandler.LatestVersionsCallCount()).To(Equal(1))
+					Expect(fakeCheckEventHandler.FinishCallCount()).To(Equal(1))
 
 					Expect(checkErr).ToNot(HaveOccurred())
 				})
@@ -262,11 +262,11 @@ var _ = Describe("Resource Check", func() {
 				})
 
 				It("saves the default space, versions, all spaces and latest versions for each space", func() {
-					Expect(fakeCheckEventHandler.DefaultSpaceCallCount()).To(Equal(1))
-					Expect(fakeCheckEventHandler.DefaultSpaceArgsForCall(0)).To(Equal(atc.Space("space")))
+					Expect(fakeCheckEventHandler.SaveDefaultCallCount()).To(Equal(1))
+					Expect(fakeCheckEventHandler.SaveDefaultArgsForCall(0)).To(Equal(atc.Space("space")))
 
-					Expect(fakeCheckEventHandler.DiscoveredCallCount()).To(Equal(3))
-					space, version, metadata := fakeCheckEventHandler.DiscoveredArgsForCall(0)
+					Expect(fakeCheckEventHandler.SaveCallCount()).To(Equal(3))
+					space, version, metadata := fakeCheckEventHandler.SaveArgsForCall(0)
 					Expect(space).To(Equal(atc.Space("space")))
 					Expect(version).To(Equal(atc.Version{"ref": "v1"}))
 					Expect(metadata).To(Equal(atc.Metadata{
@@ -276,7 +276,7 @@ var _ = Describe("Resource Check", func() {
 						},
 					}))
 
-					space, version, metadata = fakeCheckEventHandler.DiscoveredArgsForCall(1)
+					space, version, metadata = fakeCheckEventHandler.SaveArgsForCall(1)
 					Expect(space).To(Equal(atc.Space("space")))
 					Expect(version).To(Equal(atc.Version{"ref": "v2"}))
 					Expect(metadata).To(Equal(atc.Metadata{
@@ -286,7 +286,7 @@ var _ = Describe("Resource Check", func() {
 						},
 					}))
 
-					space, version, metadata = fakeCheckEventHandler.DiscoveredArgsForCall(2)
+					space, version, metadata = fakeCheckEventHandler.SaveArgsForCall(2)
 					Expect(space).To(Equal(atc.Space("space2")))
 					Expect(version).To(Equal(atc.Version{"ref": "v1"}))
 					Expect(metadata).To(Equal(atc.Metadata{
@@ -296,7 +296,7 @@ var _ = Describe("Resource Check", func() {
 						},
 					}))
 
-					Expect(fakeCheckEventHandler.LatestVersionsCallCount()).To(Equal(1))
+					Expect(fakeCheckEventHandler.FinishCallCount()).To(Equal(1))
 					Expect(checkErr).ToNot(HaveOccurred())
 				})
 			})

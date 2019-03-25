@@ -22,7 +22,7 @@ import (
 
 type RadarSchedulerFactory interface {
 	BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables creds.Variables) radar.ScanRunnerFactory
-	BuildScheduler(pipeline db.Pipeline, externalURL string, variables creds.Variables) scheduler.BuildScheduler
+	BuildScheduler(pipeline db.Pipeline) scheduler.BuildScheduler
 }
 
 type radarSchedulerFactory struct {
@@ -60,20 +60,7 @@ func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline,
 	return radar.NewScanRunnerFactory(rsf.conn, rsf.pool, rsf.resourceFactory, rsf.resourceTypeCheckingInterval, rsf.resourceCheckingInterval, dbPipeline, clock.NewClock(), externalURL, variables, rsf.strategy)
 }
 
-func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalURL string, variables creds.Variables) scheduler.BuildScheduler {
-
-	scanner := radar.NewResourceScanner(
-		rsf.conn,
-		clock.NewClock(),
-		rsf.pool,
-		rsf.resourceFactory,
-		rsf.resourceCheckingInterval,
-		pipeline,
-		externalURL,
-		variables,
-		rsf.strategy,
-	)
-
+func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline) scheduler.BuildScheduler {
 	inputMapper := inputmapper.NewInputMapper(
 		pipeline,
 		inputconfig.NewTransformer(pipeline),
@@ -88,10 +75,8 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline, externalU
 				pipeline.ID(),
 				atc.NewPlanFactory(time.Now().Unix()),
 			),
-			scanner,
 			inputMapper,
 			rsf.engine,
 		),
-		Scanner: scanner,
 	}
 }

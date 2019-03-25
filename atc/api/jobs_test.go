@@ -8,10 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
@@ -23,7 +21,6 @@ var _ = Describe("Jobs API", func() {
 	var fakeaccess *accessorfakes.FakeAccess
 	var versionedResourceTypes atc.VersionedResourceTypes
 	var fakePipeline *dbfakes.FakePipeline
-	var variables creds.Variables
 
 	BeforeEach(func() {
 		fakeJob = new(dbfakes.FakeJob)
@@ -31,11 +28,6 @@ var _ = Describe("Jobs API", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
-
-		variables = template.StaticVariables{
-			"some-param": "lol",
-		}
-		fakeVariablesFactory.NewVariablesReturns(variables)
 
 		versionedResourceTypes = atc.VersionedResourceTypes{
 			atc.VersionedResourceType{

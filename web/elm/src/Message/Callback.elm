@@ -1,10 +1,10 @@
-module Callback exposing (Callback(..))
+module Message.Callback exposing (Callback(..))
 
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Json.Encode
-import Resource.Models exposing (VersionId, VersionToggleAction)
+import Message.Message exposing (VersionId, VersionToggleAction)
 import Time exposing (Time)
 import Window
 
@@ -21,6 +21,7 @@ type Callback
     | JobFetched (Fetched Concourse.Job)
     | JobsFetched (Fetched Json.Encode.Value)
     | PipelineFetched (Fetched Concourse.Pipeline)
+    | PipelineToggled Concourse.PipelineIdentifier (Fetched ())
     | UserFetched (Fetched Concourse.User)
     | ResourcesFetched (Fetched Json.Encode.Value)
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))

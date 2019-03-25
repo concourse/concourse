@@ -16,46 +16,32 @@ var _ = Describe("ATC Handler Jobs", func() {
 	Describe("team.ListJobs", func() {
 		var expectedJobs []atc.Job
 
-		Context("when pipeline name is empty", func() {
-			BeforeEach(func() {
-				expectedJobs = []atc.Job{}
-			})
+		BeforeEach(func() {
+			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/jobs"
 
-			It("returns empty job and name required error", func() {
-				pipelines, err := team.ListJobs("")
-				Expect(err).To(HaveOccurred())
-				Expect(pipelines).To(Equal(expectedJobs))
-			})
+			expectedJobs = []atc.Job{
+				{
+					Name:      "myjob-1",
+					NextBuild: nil,
+				},
+				{
+					Name:      "myjob-2",
+					NextBuild: nil,
+				},
+			}
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedJobs),
+				),
+			)
 		})
 
-		Context("when pipeline name is not empty", func() {
-			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/jobs"
-
-				expectedJobs = []atc.Job{
-					{
-						Name:      "myjob-1",
-						NextBuild: nil,
-					},
-					{
-						Name:      "myjob-2",
-						NextBuild: nil,
-					},
-				}
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedJobs),
-					),
-				)
-			})
-
-			It("returns jobs that belong to the pipeline", func() {
-				pipelines, err := team.ListJobs("mypipeline")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pipelines).To(Equal(expectedJobs))
-			})
+		It("returns jobs that belong to the pipeline", func() {
+			pipelines, err := team.ListJobs("mypipeline")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pipelines).To(Equal(expectedJobs))
 		})
 	})
 

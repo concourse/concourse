@@ -1,4 +1,4 @@
-module Views exposing (icon)
+module Views.Icon exposing (icon)
 
 import Html exposing (Html)
 import Html.Attributes exposing (style)
@@ -16,7 +16,6 @@ icon { sizePx, image } attrs =
             , ( "width", toString sizePx ++ "px" )
             , ( "background-position", "50% 50%" )
             , ( "background-repeat", "no-repeat" )
-            , ( "background-size", "contain" )
             ]
         ]
             ++ attrs

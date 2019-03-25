@@ -14,9 +14,9 @@ import (
 //go:generate counterfeiter . CheckEventHandler
 
 type CheckEventHandler interface {
-	DefaultSpace(atc.Space) error
-	Discovered(atc.Space, atc.Version, atc.Metadata) error
-	LatestVersions() error
+	SaveDefault(atc.Space) error
+	Save(atc.Space, atc.Version, atc.Metadata) error
+	Finish() error
 }
 
 type ResourceVersion struct {
@@ -125,7 +125,7 @@ func (r *resource) Check(
 			}
 		}
 
-		err = checkHandler.LatestVersions()
+		err = checkHandler.Finish()
 		if err != nil {
 			return err
 		}
@@ -142,11 +142,11 @@ func (r *resource) Check(
 func (r *resource) handleCheckEvent(event Event, checkHandler CheckEventHandler) error {
 	switch action := event.Action; action {
 	case "default_space":
-		err := checkHandler.DefaultSpace(event.Space)
+		err := checkHandler.SaveDefault(event.Space)
 		return err
 
 	case "discovered":
-		err := checkHandler.Discovered(event.Space, event.Version, event.Metadata)
+		err := checkHandler.Save(event.Space, event.Version, event.Metadata)
 		return err
 	}
 

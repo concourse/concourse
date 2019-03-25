@@ -3,6 +3,8 @@ module Dashboard.Styles exposing
     , cardBody
     , cardFooter
     , content
+    , dropdownContainer
+    , dropdownItem
     , highDensityIcon
     , highDensityToggle
     , info
@@ -26,10 +28,13 @@ module Dashboard.Styles exposing
     , pipelineCardHeader
     , pipelineCardTransitionAge
     , pipelineName
-    , pipelineStatusIcon
     , previewPlaceholder
     , resourceErrorTriangle
-    , runningLegendItem
+    , searchButton
+    , searchClearButton
+    , searchContainer
+    , searchInput
+    , showSearchContainer
     , striped
     , teamNameHd
     , topCliIcon
@@ -42,7 +47,7 @@ import Application.Styles
 import Colors
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
-import ScreenSize
+import ScreenSize exposing (ScreenSize(..))
 
 
 content : Bool -> List ( String, String )
@@ -290,38 +295,6 @@ pipelineCardFooter =
     ]
 
 
-pipelineStatusIcon : PipelineStatus -> List ( String, String )
-pipelineStatusIcon pipelineStatus =
-    let
-        image =
-            case pipelineStatus of
-                PipelineStatusPaused ->
-                    "ic-pause-blue.svg"
-
-                PipelineStatusPending _ ->
-                    "ic-pending-grey.svg"
-
-                PipelineStatusSucceeded _ ->
-                    "ic-running-green.svg"
-
-                PipelineStatusFailed _ ->
-                    "ic-failing-red.svg"
-
-                PipelineStatusAborted _ ->
-                    "ic-aborted-brown.svg"
-
-                PipelineStatusErrored _ ->
-                    "ic-error-orange.svg"
-    in
-    [ ( "background-image", "url(/public/images/" ++ image ++ ")" )
-    , ( "height", "20px" )
-    , ( "width", "20px" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-size", "contain" )
-    ]
-
-
 pipelineCardTransitionAge : PipelineStatus -> List ( String, String )
 pipelineCardTransitionAge status =
     [ ( "color", Colors.statusColor status )
@@ -509,16 +482,6 @@ resourceErrorTriangle =
     ]
 
 
-runningLegendItem : List ( String, String )
-runningLegendItem =
-    [ ( "background-image", "url(/public/images/ic-running-legend.svg)" )
-    , ( "height", "20px" )
-    , ( "width", "20px" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "50% 50%" )
-    ]
-
-
 asciiArt : List ( String, String )
 asciiArt =
     [ ( "font-size", "16px" )
@@ -539,4 +502,149 @@ noResults =
     [ ( "text-align", "center" )
     , ( "font-size", "13px" )
     , ( "margin-top", "20px" )
+    ]
+
+
+searchContainer : ScreenSize -> List ( String, String )
+searchContainer screenSize =
+    [ ( "display", "flex" )
+    , ( "flex-direction", "column" )
+    , ( "margin", "12px" )
+    , ( "position", "relative" )
+    , ( "align-items", "stretch" )
+    ]
+        ++ (case screenSize of
+                Mobile ->
+                    [ ( "flex-grow", "1" ) ]
+
+                _ ->
+                    []
+           )
+
+
+searchInput : ScreenSize -> List ( String, String )
+searchInput screenSize =
+    let
+        widthStyles =
+            case screenSize of
+                Mobile ->
+                    []
+
+                Desktop ->
+                    [ ( "width", "220px" ) ]
+
+                BigDesktop ->
+                    [ ( "width", "220px" ) ]
+    in
+    [ ( "background-color", "transparent" )
+    , ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "12px 8px" )
+    , ( "height", "30px" )
+    , ( "padding", "0 42px" )
+    , ( "border", "1px solid " ++ Colors.inputOutline )
+    , ( "color", Colors.dashboardText )
+    , ( "font-size", "1.15em" )
+    , ( "font-family", "Inconsolata, monospace" )
+    , ( "outline", "0" )
+    ]
+        ++ widthStyles
+
+
+searchClearButton : Bool -> List ( String, String )
+searchClearButton active =
+    let
+        opacityValue =
+            if active then
+                "1"
+
+            else
+                "0.2"
+    in
+    [ ( "background-image", "url('public/images/ic-close-white-24px.svg')" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "10px 10px" )
+    , ( "border", "0" )
+    , ( "color", Colors.inputOutline )
+    , ( "position", "absolute" )
+    , ( "right", "0" )
+    , ( "padding", "17px" )
+    , ( "opacity", opacityValue )
+    ]
+
+
+dropdownItem : Bool -> List ( String, String )
+dropdownItem isSelected =
+    let
+        coloration =
+            if isSelected then
+                [ ( "background-color", Colors.frame )
+                , ( "color", Colors.dashboardText )
+                ]
+
+            else
+                [ ( "background-color", Colors.dropdownFaded )
+                , ( "color", Colors.dropdownUnselectedText )
+                ]
+    in
+    [ ( "padding", "0 42px" )
+    , ( "line-height", "30px" )
+    , ( "list-style-type", "none" )
+    , ( "border", "1px solid " ++ Colors.inputOutline )
+    , ( "margin-top", "-1px" )
+    , ( "font-size", "1.15em" )
+    , ( "cursor", "pointer" )
+    ]
+        ++ coloration
+
+
+dropdownContainer : ScreenSize -> List ( String, String )
+dropdownContainer screenSize =
+    [ ( "top", "100%" )
+    , ( "margin", "0" )
+    , ( "width", "100%" )
+    ]
+        ++ (case screenSize of
+                Mobile ->
+                    []
+
+                _ ->
+                    [ ( "position", "absolute" ) ]
+           )
+
+
+showSearchContainer :
+    { a
+        | screenSize : ScreenSize
+        , highDensity : Bool
+    }
+    -> List ( String, String )
+showSearchContainer { screenSize, highDensity } =
+    let
+        flexLayout =
+            if highDensity then
+                []
+
+            else
+                [ ( "align-items", "flex-start" ) ]
+    in
+    [ ( "display", "flex" )
+    , ( "flex-direction", "column" )
+    , ( "flex-grow", "1" )
+    , ( "justify-content", "center" )
+    , ( "padding", "12px" )
+    , ( "position", "relative" )
+    ]
+        ++ flexLayout
+
+
+searchButton : List ( String, String )
+searchButton =
+    [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-position", "12px 8px" )
+    , ( "height", "32px" )
+    , ( "width", "32px" )
+    , ( "display", "inline-block" )
+    , ( "float", "left" )
     ]
