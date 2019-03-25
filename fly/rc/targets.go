@@ -15,7 +15,7 @@ import (
 
 var (
 	ErrNoTargetSpecifiedNoneAvailable = errors.New("no target specified and none available")
-	ErrNoTargetSpecifiedNeedToChoose  = errors.New("more than one targe saved; target must be specified")
+	ErrNoTargetSpecifiedNeedToChoose  = errors.New("more than one target saved; target must be specified")
 	ErrNoTargetFromURL                = errors.New("no target matching url")
 )
 
