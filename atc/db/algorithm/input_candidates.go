@@ -1,76 +1,25 @@
 package algorithm
 
-import (
-	"fmt"
-	"strings"
-)
-
 type InputCandidates []InputVersionCandidates
 
 type ResolvedInputs map[string]int
 
 type InputVersionCandidates struct {
-	Input                 string
-	Passed                JobSet
-	UseEveryVersion       bool
-	PinnedVersionID       int
-	ExistingBuildResolver *ExistingBuildResolver
+	Input           string
+	Passed          JobSet
+	UseEveryVersion bool
+	PinnedVersionID int
 
 	VersionCandidates
 
 	hasUsedResource *bool
 }
 
-func (inputVersionCandidates InputVersionCandidates) IsNext(version int, versionIDs *VersionsIter) bool {
-	if !inputVersionCandidates.HasUsedResource() {
-		// the build has never used the resource, so don't start from the beginning
-		return true
-	}
-
-	if inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(version) {
-		// there's already a build for this version; just keep using it
-		return true
-	}
-
-	older, hasOlder := versionIDs.Peek()
-	if !hasOlder {
-		// this is the earliest version; use it
-		return true
-	}
-
-	if inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(older) {
-		// there's already a build for the prior version; use this one
-		return true
-	}
-
-	return false
-}
-
-func (inputVersionCandidates InputVersionCandidates) HasUsedResource() bool {
-	if inputVersionCandidates.hasUsedResource == nil {
-		hasUsedResource := inputVersionCandidates.UseEveryVersion &&
-			inputVersionCandidates.ExistingBuildResolver.ExistsForResource()
-
-		inputVersionCandidates.hasUsedResource = &hasUsedResource
-	}
-
-	return *inputVersionCandidates.hasUsedResource
-}
-
-func (candidates InputCandidates) String() string {
-	lens := []string{}
-	for _, vcs := range candidates {
-		lens = append(lens, fmt.Sprintf("%s (%d versions)", vcs.Input, vcs.VersionCandidates.Len()))
-	}
-
-	return fmt.Sprintf("[%s]", strings.Join(lens, "; "))
-}
-
-func (candidates InputCandidates) Reduce(depth int, jobs JobSet) (ResolvedInputs, bool) {
+func (candidates InputCandidates) Reduce(depth int, jobs JobSet) (ResolvedInputs, bool, error) {
 	newInputCandidates := candidates.pruneToCommonBuilds(jobs)
 
 	for i, inputVersionCandidates := range newInputCandidates {
-		if inputVersionCandidates.Len() == 1 {
+		if inputVersionCandidates.Pinned() {
 			// already reduced
 			continue
 		}
@@ -85,19 +34,27 @@ func (candidates InputCandidates) Reduce(depth int, jobs JobSet) (ResolvedInputs
 		iteration := 0
 
 		for {
-			id, ok := versionIDs.Next()
+			id, ok, err := versionIDs.Next()
+			if err != nil {
+				return nil, false, err
+			}
+
 			if !ok {
 				// exhaused available versions
-				return nil, false
+				return nil, false, nil
 			}
 
 			iteration++
 
 			newInputCandidates.Pin(i, id)
 
-			mapping, ok := newInputCandidates.Reduce(depth+1, jobs)
-			if ok && inputVersionCandidates.IsNext(id, versionIDs) {
-				return mapping, true
+			mapping, ok, err := newInputCandidates.Reduce(depth+1, jobs)
+			if err != nil {
+				return nil, false, err
+			}
+
+			if ok {
+				return mapping, true, nil
 			}
 
 			newInputCandidates.Unpin(i, inputVersionCandidates)
@@ -109,15 +66,19 @@ func (candidates InputCandidates) Reduce(depth int, jobs JobSet) (ResolvedInputs
 	for _, inputVersionCandidates := range newInputCandidates {
 		vids := inputVersionCandidates.VersionIDs()
 
-		vid, ok := vids.Next()
+		vid, ok, err := vids.Next()
+		if err != nil {
+			return nil, false, err
+		}
+
 		if !ok {
-			return nil, false
+			return nil, false, nil
 		}
 
 		resolved[inputVersionCandidates.Input] = vid
 	}
 
-	return resolved, true
+	return resolved, true, nil
 }
 
 func (candidates InputCandidates) Pin(input int, version int) {

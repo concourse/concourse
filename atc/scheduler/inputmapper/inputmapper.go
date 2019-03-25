@@ -59,7 +59,12 @@ func (i *inputMapper) SaveNextInputMapping(
 
 	independentMapping := algorithm.InputMapping{}
 	for _, inputConfig := range algorithmInputConfigs {
-		singletonMapping, ok := algorithm.InputConfigs{inputConfig}.Resolve(versions)
+		singletonMapping, ok, err := algorithm.InputConfigs{inputConfig}.Resolve(versions)
+		if err != nil {
+			logger.Error("failed-to-resolve-independent-inputs", err)
+			return nil, err
+		}
+
 		if ok {
 			independentMapping[inputConfig.Name] = singletonMapping[inputConfig.Name]
 		}
@@ -81,7 +86,12 @@ func (i *inputMapper) SaveNextInputMapping(
 		return nil, err
 	}
 
-	resolvedMapping, ok := algorithmInputConfigs.Resolve(versions)
+	resolvedMapping, ok, err := algorithmInputConfigs.Resolve(versions)
+	if err != nil {
+		logger.Error("failed-to-resolve-inputs", err)
+		return nil, err
+	}
+
 	if !ok {
 		err := job.DeleteNextInputMapping()
 		if err != nil {

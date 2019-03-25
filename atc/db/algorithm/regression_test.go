@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 )
 
-var _ = DescribeTable("Input resolving",
+var _ = XDescribeTable("Input resolving",
 	(Example).Run,
 
 	Entry("bosh memory leak regression test", Example{

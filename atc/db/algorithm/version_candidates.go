@@ -1,6 +1,12 @@
 package algorithm
 
-import "fmt"
+import (
+	"database/sql"
+	"fmt"
+	"log"
+
+	sq "github.com/Masterminds/squirrel"
+)
 
 type VersionCandidate struct {
 	VersionID  int
@@ -14,76 +20,19 @@ func (candidate VersionCandidate) String() string {
 }
 
 type VersionCandidates struct {
-	versions    Versions
-	constraints Constraints
-	buildIDs    map[int]BuildSet
+	runner sq.Runner
+
+	versionsQuery sq.SelectBuilder
+	buildIDs      map[int]BuildSet
+
+	pinned bool
+
+	everyLatest  int64
+	everyForward bool
 }
 
-func (candidates *VersionCandidates) Add(candidate VersionCandidate) {
-	candidates.versions = candidates.versions.With(candidate)
-
-	if candidate.JobID != 0 {
-		if candidates.buildIDs == nil {
-			candidates.buildIDs = map[int]BuildSet{}
-		}
-
-		builds, found := candidates.buildIDs[candidate.JobID]
-		if !found {
-			builds = BuildSet{}
-			candidates.buildIDs[candidate.JobID] = builds
-		}
-
-		builds[candidate.BuildID] = struct{}{}
-	}
-}
-
-func (candidates *VersionCandidates) Merge(version Version) {
-	for jobID, otherBuilds := range version.passed {
-		if candidates.buildIDs == nil {
-			candidates.buildIDs = map[int]BuildSet{}
-		}
-
-		builds, found := candidates.buildIDs[jobID]
-		if !found {
-			builds = BuildSet{}
-			candidates.buildIDs[jobID] = builds
-		}
-
-		for build := range otherBuilds {
-			builds[build] = struct{}{}
-		}
-	}
-
-	candidates.versions = candidates.versions.Merge(version)
-}
-
-func (candidates VersionCandidates) IsEmpty() bool {
-	return len(candidates.versions) == 0
-}
-
-func (candidates VersionCandidates) Len() int {
-	return len(candidates.versions)
-}
-
-func (candidates VersionCandidates) IntersectByVersion(other VersionCandidates) VersionCandidates {
-	intersected := VersionCandidates{}
-
-	for _, version := range candidates.versions {
-		found := false
-		for _, otherVersion := range other.versions {
-			if otherVersion.id == version.id {
-				found = true
-				intersected.Merge(otherVersion)
-				break
-			}
-		}
-
-		if found {
-			intersected.Merge(version)
-		}
-	}
-
-	return intersected
+func (candidates VersionCandidates) Pinned() bool {
+	return candidates.pinned
 }
 
 func (candidates VersionCandidates) BuildIDs(jobID int) BuildSet {
@@ -96,65 +45,179 @@ func (candidates VersionCandidates) BuildIDs(jobID int) BuildSet {
 }
 
 func (candidates VersionCandidates) PruneVersionsOfOtherBuildIDs(jobID int, buildIDs BuildSet) VersionCandidates {
+	var ids []int
+	for id := range buildIDs {
+		ids = append(ids, id)
+	}
+
 	newCandidates := candidates
-	newCandidates.constraints = newCandidates.constraints.And(func(v Version) bool {
-		return v.PassedAny(jobID, buildIDs)
-	})
+	if candidates.buildIDs != nil {
+		_, hasJob := candidates.buildIDs[jobID]
+		if hasJob {
+			newCandidates.versionsQuery = newCandidates.versionsQuery.Where(sq.Eq{fmt.Sprintf("o%d.build_id", jobID): ids})
+		}
+	} //else {
+	// 	newCandidates.versionsQuery = newCandidates.versionsQuery.Where(sq.Or{
+	// 		sq.NotEq{"b.job_id": jobID},
+	// 		sq.Eq{"o.build_id": ids},
+	// 	})
+	// }
 	return newCandidates
 }
 
-type VersionsIter struct {
-	offset      int
-	versions    Versions
-	constraints Constraints
-}
-
-func (iter *VersionsIter) Next() (int, bool) {
-	for i := iter.offset; i < len(iter.versions); i++ {
-		v := iter.versions[i]
-
-		iter.offset++
-
-		if !iter.constraints.Check(v) {
-			continue
-		}
-
-		return v.id, true
+func (candidates VersionCandidates) ConsecutiveVersions(jobID int, resourceID int) (VersionCandidates, error) {
+	var latestCheckOrder sql.NullInt64
+	err := candidates.runner.QueryRow(`
+	  SELECT COALESCE(MAX(v.check_order))
+		FROM build_resource_config_version_inputs i
+		JOIN builds b ON b.id = i.build_id AND b.job_id = $1
+		JOIN resources r ON r.id = $2 AND i.resource_id = r.id
+		JOIN resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = i.version_md5
+	`, jobID, resourceID).Scan(&latestCheckOrder)
+	if err != nil {
+		return VersionCandidates{}, err
 	}
 
-	return 0, false
-}
-
-func (iter *VersionsIter) Peek() (int, bool) {
-	for i := iter.offset; i < len(iter.versions); i++ {
-		v := iter.versions[i]
-
-		if !iter.constraints.Check(v) {
-			iter.offset++
-			continue
-		}
-
-		return v.id, true
+	if !latestCheckOrder.Valid {
+		return candidates, nil
 	}
 
-	return 0, false
-}
-
-func (candidates VersionCandidates) VersionIDs() *VersionsIter {
-	return &VersionsIter{
-		versions:    candidates.versions,
-		constraints: candidates.constraints,
-	}
+	newCandidates := candidates
+	newCandidates.everyLatest = latestCheckOrder.Int64
+	newCandidates.everyForward = true
+	return newCandidates, nil
 }
 
 func (candidates VersionCandidates) ForVersion(versionID int) VersionCandidates {
-	newCandidates := VersionCandidates{}
-	for _, version := range candidates.versions {
-		if version.id == versionID {
-			newCandidates.Merge(version)
-			break
+	newCandidates := candidates
+	newCandidates.versionsQuery = newCandidates.versionsQuery.Where(sq.Eq{
+		"v.id": versionID,
+	})
+	newCandidates.pinned = true
+	return newCandidates
+}
+
+const batchSize = 100
+
+func (candidates VersionCandidates) VersionIDs() *VersionsIter {
+	return &VersionsIter{
+		query: candidates.versionsQuery,
+
+		everyLatest:  candidates.everyLatest,
+		everyForward: candidates.everyForward,
+	}
+}
+
+type VersionsIter struct {
+	query sq.SelectBuilder
+
+	ids    []int
+	offset int
+
+	lastCheckOrder int
+	exhausted      bool
+
+	everyLatest  int64
+	everyForward bool
+}
+
+func (iter *VersionsIter) Next() (int, bool, error) {
+	if iter.offset >= len(iter.ids) {
+		ok, err := iter.hydrate()
+		if err != nil {
+			return 0, false, err
+		}
+
+		if !ok {
+			return 0, false, nil
 		}
 	}
 
-	return newCandidates
+	v := iter.ids[iter.offset]
+
+	iter.offset++
+
+	return v, true, nil
+}
+
+func (iter *VersionsIter) Peek() (int, bool, error) {
+	if iter.offset >= len(iter.ids) {
+		ok, err := iter.hydrate()
+		if err != nil {
+			return 0, false, err
+		}
+
+		if !ok {
+			return 0, false, nil
+		}
+	}
+
+	return iter.ids[iter.offset], true, nil
+}
+
+func (iter *VersionsIter) hydrate() (bool, error) {
+	if iter.exhausted {
+		return false, nil
+	}
+
+	query := iter.query.Limit(batchSize)
+
+	if iter.lastCheckOrder != 0 {
+		if iter.everyForward {
+			query = query.Where(sq.Gt{"v.check_order": iter.lastCheckOrder})
+		} else {
+			query = query.Where(sq.Lt{"v.check_order": iter.lastCheckOrder})
+		}
+	}
+
+	if iter.everyLatest == 0 {
+		query = query.OrderBy("check_order DESC")
+	} else {
+		if iter.everyForward {
+			query = query.Where(sq.Gt{"v.check_order": iter.everyLatest}).
+				OrderBy("check_order ASC")
+		} else {
+			query = query.Where(sq.LtOrEq{"v.check_order": iter.everyLatest}).
+				OrderBy("check_order DESC")
+		}
+	}
+
+	log.Println(query.ToSql())
+
+	rows, err := query.Query()
+	if err != nil {
+		return false, err
+	}
+
+	var newIDs []int
+	for rows.Next() {
+		var id, checkOrder int
+		err := rows.Scan(&id, &checkOrder)
+		if err != nil {
+			return false, err
+		}
+
+		iter.lastCheckOrder = checkOrder
+
+		newIDs = append(newIDs, id)
+	}
+
+	if len(newIDs) < batchSize {
+		if iter.everyLatest != 0 && iter.everyForward {
+			iter.lastCheckOrder = 0
+			iter.everyForward = false
+
+			if len(newIDs) == 0 {
+				// nothing on first call; try going backwards immediately
+				return iter.hydrate()
+			}
+		}
+
+		iter.exhausted = true
+	}
+
+	iter.ids = newIDs
+	iter.offset = 0
+
+	return len(iter.ids) != 0, nil
 }

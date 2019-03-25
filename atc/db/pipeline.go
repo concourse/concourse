@@ -671,138 +671,14 @@ func (p *pipeline) Destroy() error {
 }
 
 func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
-	var cacheIndex int
-	err := psql.Select("cache_index").
-		From("pipelines").
-		Where(sq.Eq{"id": p.id}).
-		RunWith(p.conn).
-		QueryRow().
-		Scan(&cacheIndex)
-	if err != nil {
-		return nil, err
-	}
-
-	if p.versionsDB != nil && p.cacheIndex == cacheIndex {
-		return p.versionsDB, nil
-	}
-
 	db := &algorithm.VersionsDB{
-		BuildOutputs:     []algorithm.BuildOutput{},
-		BuildInputs:      []algorithm.BuildInput{},
-		ResourceVersions: []algorithm.ResourceVersion{},
-		JobIDs:           map[string]int{},
-		ResourceIDs:      map[string]int{},
+		Runner: p.conn,
+
+		JobIDs:      map[string]int{},
+		ResourceIDs: map[string]int{},
 	}
 
-	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, b.job_id").
-		From("build_resource_config_version_outputs o").
-		Join("builds b ON b.id = o.build_id").
-		Join("resource_config_versions v ON v.version_md5 = o.version_md5").
-		Join("resources r ON r.id = o.resource_id").
-		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
-		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
-		Where(sq.Eq{
-			"b.status":      BuildStatusSucceeded,
-			"r.pipeline_id": p.id,
-		}).
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		var output algorithm.BuildOutput
-		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID, &output.BuildID, &output.JobID)
-		if err != nil {
-			return nil, err
-		}
-
-		output.ResourceVersion.CheckOrder = output.CheckOrder
-
-		db.BuildOutputs = append(db.BuildOutputs, output)
-	}
-
-	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
-		From("build_resource_config_version_inputs i").
-		Join("builds b ON b.id = i.build_id").
-		Join("resource_config_versions v ON v.version_md5 = i.version_md5").
-		Join("resources r ON r.id = i.resource_id").
-		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
-		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
-		Where(sq.Eq{
-			"r.pipeline_id": p.id,
-		}).
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		var succeeded bool
-
-		var input algorithm.BuildInput
-		err = rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.BuildID, &input.InputName, &input.JobID, &succeeded)
-		if err != nil {
-			return nil, err
-		}
-
-		input.ResourceVersion.CheckOrder = input.CheckOrder
-
-		db.BuildInputs = append(db.BuildInputs, input)
-
-		if succeeded {
-			// implicit output
-			db.BuildOutputs = append(db.BuildOutputs, algorithm.BuildOutput{
-				ResourceVersion: input.ResourceVersion,
-				JobID:           input.JobID,
-				BuildID:         input.BuildID,
-			})
-		}
-	}
-
-	rows, err = psql.Select("v.id, v.check_order, r.id").
-		From("resource_config_versions v").
-		Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
-		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
-		Where(sq.Eq{
-			"r.pipeline_id": p.id,
-			"d.resource_id": nil,
-			"d.version_md5": nil,
-		}).
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		var output algorithm.ResourceVersion
-		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID)
-		if err != nil {
-			return nil, err
-		}
-
-		db.ResourceVersions = append(db.ResourceVersions, output)
-	}
-
-	rows, err = psql.Select("j.name, j.id").
+	rows, err := psql.Select("j.name, j.id").
 		From("jobs j").
 		Where(sq.Eq{"j.pipeline_id": p.id}).
 		RunWith(p.conn).
@@ -847,7 +723,6 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	}
 
 	p.versionsDB = db
-	p.cacheIndex = cacheIndex
 
 	return db, nil
 }

@@ -115,14 +115,14 @@ var _ = DescribeTable("Input resolving",
 				{Job: "simple-b", BuildID: 4, Resource: "resource-x", Version: "rxv3", CheckOrder: 2},
 				{Job: "simple-b", BuildID: 4, Resource: "resource-y", Version: "ryv3", CheckOrder: 2},
 
-				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv2", CheckOrder: 1},
-				{Job: "simple-a", BuildID: 3, Resource: "resource-y", Version: "ryv4", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 5, Resource: "resource-x", Version: "rxv2", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 5, Resource: "resource-y", Version: "ryv4", CheckOrder: 1},
 
-				{Job: "simple-b", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 1},
-				{Job: "simple-b", BuildID: 4, Resource: "resource-y", Version: "rxv4", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 6, Resource: "resource-x", Version: "rxv4", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 6, Resource: "resource-y", Version: "rxv4", CheckOrder: 1},
 
-				{Job: "simple-b", BuildID: 5, Resource: "resource-x", Version: "rxv4", CheckOrder: 1},
-				{Job: "simple-b", BuildID: 5, Resource: "resource-y", Version: "rxv2", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 7, Resource: "resource-x", Version: "rxv4", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 7, Resource: "resource-y", Version: "rxv2", CheckOrder: 1},
 			},
 		},
 
@@ -388,8 +388,8 @@ var _ = DescribeTable("Input resolving",
 			},
 
 			BuildOutputs: []DBRow{
-				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
 			},
 
 			Resources: []DBRow{
@@ -484,10 +484,10 @@ var _ = DescribeTable("Input resolving",
 				{Job: "shared-job", BuildID: 5, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
 
 				// ran for resource-x and resource-y
-				{Job: "simple-b", BuildID: 6, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
-				{Job: "simple-b", BuildID: 7, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
-				{Job: "simple-b", BuildID: 8, Resource: "resource-y", Version: "ryv3", CheckOrder: 3},
-				{Job: "simple-b", BuildID: 9, Resource: "resource-y", Version: "ryv4", CheckOrder: 4},
+				{Job: "simple-b", BuildID: 16, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 17, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
+				{Job: "simple-b", BuildID: 18, Resource: "resource-y", Version: "ryv3", CheckOrder: 3},
+				{Job: "simple-b", BuildID: 19, Resource: "resource-y", Version: "ryv4", CheckOrder: 4},
 
 				{Job: "shared-job", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1}, // no common builds
 				{Job: "shared-job", BuildID: 5, Resource: "resource-y", Version: "ryv2", CheckOrder: 2}, // has common with rxv4
@@ -550,10 +550,10 @@ var _ = DescribeTable("Input resolving",
 				{Job: "shared-job", BuildID: 5, Resource: "resource-x", Version: "rxv4", CheckOrder: 4}, // has common with ryv4
 
 				// ran for resource-x and resource-y
-				{Job: "simple-b", BuildID: 6, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
-				{Job: "simple-b", BuildID: 7, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
-				{Job: "simple-b", BuildID: 8, Resource: "resource-y", Version: "ryv3", CheckOrder: 3},
-				{Job: "simple-b", BuildID: 9, Resource: "resource-y", Version: "ryv4", CheckOrder: 4},
+				{Job: "simple-b", BuildID: 16, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 17, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
+				{Job: "simple-b", BuildID: 18, Resource: "resource-y", Version: "ryv3", CheckOrder: 3},
+				{Job: "simple-b", BuildID: 19, Resource: "resource-y", Version: "ryv4", CheckOrder: 4},
 
 				{Job: "shared-job", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1}, // no common builds
 				{Job: "shared-job", BuildID: 5, Resource: "resource-y", Version: "ryv2", CheckOrder: 2}, // has common with rxv4
