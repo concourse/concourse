@@ -116,18 +116,12 @@ jobs:
       resource: golang-builder-dockerfile
       trigger: true
     - get: builder
+    - get: golang-linux
+      trigger: true
   - task: build
     image: builder
     privileged: true
-    config:
-      platform: linux
-      params:
-        REPOSITORY: concourse/golang-builder
-        CONTEXT: concourse/ci/dockerfiles/golang-builder
-      inputs: [{name: concourse}]
-      outputs: [{name: image}]
-      caches: [{path: cache}]
-      run: {path: build}
+    file: concourse/ci/tasks/build-golang-builder-image.yml
   - put: golang-builder-image
     params: {image: image/image.tar}
 
@@ -1399,6 +1393,13 @@ resources:
     endpoint: storage.googleapis.com
     bucket: golang
     regexp: 'go(\d+\.\d+(\.\d+)?)\.windows-amd64\.msi'
+
+- name: golang-linux
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(\d+\.\d+(\.\d+)?)\.linux-amd64\.tar\.gz'
 
 - name: concourse-github-release
   type: github-release
