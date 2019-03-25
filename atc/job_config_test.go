@@ -295,6 +295,34 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
+			Context("when a job has an error hook", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = atc.PlanSequence{
+						{
+							Get: "a",
+						},
+					}
+
+					jobConfig.Error = &atc.PlanConfig{
+						Get: "b",
+					}
+				})
+
+				It("returns an input config for all get plans", func() {
+					Expect(inputs).To(ConsistOf(
+						atc.JobInput{
+							Name:     "a",
+							Resource: "a",
+						},
+						atc.JobInput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
+
+				})
+			})
+
 			Context("when a plan has an ensure hook on a get", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = atc.PlanSequence{
@@ -382,6 +410,33 @@ var _ = Describe("JobConfig", func() {
 						{
 							Get: "a",
 							Abort: &atc.PlanConfig{
+								Get: "b",
+							},
+						},
+					}
+				})
+
+				It("returns an input config for all get plans", func() {
+					Expect(inputs).To(ConsistOf(
+						atc.JobInput{
+							Name:     "a",
+							Resource: "a",
+						},
+						atc.JobInput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
+
+				})
+			})
+
+			Context("when a plan has an error hook on a get", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = atc.PlanSequence{
+						{
+							Get: "a",
+							Error: &atc.PlanConfig{
 								Get: "b",
 							},
 						},
@@ -695,6 +750,34 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
+			Context("when a job has an error hook", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = atc.PlanSequence{
+						{
+							Put: "a",
+						},
+					}
+
+					jobConfig.Error = &atc.PlanConfig{
+						Put: "b",
+					}
+				})
+
+				It("returns an input config for all get plans", func() {
+					Expect(outputs).To(ConsistOf(
+						atc.JobOutput{
+							Name:     "a",
+							Resource: "a",
+						},
+						atc.JobOutput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
+
+				})
+			})
+
 			Context("when a plan has an ensure on a put", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = atc.PlanSequence{
@@ -782,6 +865,33 @@ var _ = Describe("JobConfig", func() {
 						{
 							Put: "a",
 							Abort: &atc.PlanConfig{
+								Put: "b",
+							},
+						},
+					}
+				})
+
+				It("returns an output config for all put plans", func() {
+					Expect(outputs).To(ConsistOf(
+						atc.JobOutput{
+							Name:     "a",
+							Resource: "a",
+						},
+						atc.JobOutput{
+							Name:     "b",
+							Resource: "b",
+						},
+					))
+
+				})
+			})
+
+			Context("when a plan has an error hook on a put", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = atc.PlanSequence{
+						{
+							Put: "a",
+							Error: &atc.PlanConfig{
 								Put: "b",
 							},
 						},

@@ -46,6 +46,7 @@ type StepTree
     | OnSuccess HookedStep
     | OnFailure HookedStep
     | OnAbort HookedStep
+    | OnError HookedStep
     | Ensure HookedStep
     | Try StepTree
     | Retry StepID Int TabFocus (Array StepTree)
@@ -199,6 +200,9 @@ updateStep update tree =
         OnAbort hookedStep ->
             OnAbort { hookedStep | step = update hookedStep.step }
 
+        OnError hookedStep ->
+            OnError { hookedStep | step = update hookedStep.step }
+
         Ensure hookedStep ->
             Ensure { hookedStep | step = update hookedStep.step }
 
@@ -223,6 +227,9 @@ updateHook update tree =
 
         OnAbort hookedStep ->
             OnAbort { hookedStep | hook = update hookedStep.hook }
+        
+        OnError hookedStep ->
+            OnError { hookedStep | hook = update hookedStep.hook }
 
         Ensure hookedStep ->
             Ensure { hookedStep | hook = update hookedStep.hook }
@@ -307,6 +314,9 @@ finishTree root =
 
         OnAbort hookedStep ->
             OnAbort { hookedStep | step = finishTree hookedStep.step }
+        
+        OnError hookedStep ->
+            OnError { hookedStep | step = finishTree hookedStep.step }
 
         Ensure hookedStep ->
             Ensure { hookedStep | step = finishTree hookedStep.step }

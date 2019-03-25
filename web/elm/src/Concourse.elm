@@ -335,6 +335,7 @@ type BuildStep
     | BuildStepOnSuccess HookedPlan
     | BuildStepOnFailure HookedPlan
     | BuildStepOnAbort HookedPlan
+    | BuildStepOnError HookedPlan
     | BuildStepEnsure HookedPlan
     | BuildStepTry BuildPlan
     | BuildStepRetry (Array BuildPlan)
@@ -368,6 +369,7 @@ decodeBuildPlan_ =
             , Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildStepOnSuccess)
             , Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildStepOnFailure)
             , Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildStepOnAbort)
+            , Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildStepOnError)
             , Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildStepEnsure)
             , Json.Decode.field "try" <| lazy (\_ -> decodeBuildStepTry)
             , Json.Decode.field "retry" <| lazy (\_ -> decodeBuildStepRetry)
@@ -429,6 +431,12 @@ decodeBuildStepOnAbort =
             |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
             |: (Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildPlan_))
 
+decodeBuildStepOnError : Json.Decode.Decoder BuildStep
+decodeBuildStepOnError =
+    Json.Decode.map BuildStepOnError <|
+        Json.Decode.succeed HookedPlan
+            |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+            |: (Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildPlan_))
 
 decodeBuildStepEnsure : Json.Decode.Decoder BuildStep
 decodeBuildStepEnsure =

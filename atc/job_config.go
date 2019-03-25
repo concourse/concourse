@@ -14,13 +14,14 @@ type JobConfig struct {
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
 
 	Abort   *PlanConfig `yaml:"on_abort,omitempty" json:"on_abort,omitempty" mapstructure:"on_abort"`
+	Error   *PlanConfig `yaml:"on_error,omitempty" json:"on_error,omitempty" mapstructure:"on_error"`
 	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
 	Ensure  *PlanConfig `yaml:"ensure,omitempty" json:"ensure,omitempty" mapstructure:"ensure"`
 	Success *PlanConfig `yaml:"on_success,omitempty" json:"on_success,omitempty" mapstructure:"on_success"`
 }
 
 func (config JobConfig) Hooks() Hooks {
-	return Hooks{Abort: config.Abort, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
+	return Hooks{Abort: config.Abort, Error: config.Error, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
 }
 
 func (config JobConfig) MaxInFlight() int {
@@ -51,6 +52,7 @@ func (config JobConfig) Plans() []PlanConfig {
 	plan := collectPlans(PlanConfig{
 		Do:      &config.Plan,
 		Abort:   config.Abort,
+		Error:   config.Error,
 		Ensure:  config.Ensure,
 		Failure: config.Failure,
 		Success: config.Success,
@@ -64,6 +66,10 @@ func collectPlans(plan PlanConfig) []PlanConfig {
 
 	if plan.Abort != nil {
 		plans = append(plans, collectPlans(*plan.Abort)...)
+	}
+
+	if plan.Error != nil {
+		plans = append(plans, collectPlans(*plan.Error)...)
 	}
 
 	if plan.Success != nil {
