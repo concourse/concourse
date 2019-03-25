@@ -64,6 +64,7 @@ groups:
 - name: images
   jobs:
   - unit-image
+  - golang-builder-image
 
 - name: publish
   jobs:
@@ -104,6 +105,24 @@ jobs:
       caches: [{path: cache}]
       run: {path: build}
   - put: unit-image
+    params: {image: image/image.tar}
+
+- name: golang-builder-image
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      resource: golang-builder-dockerfile
+      trigger: true
+    - get: builder
+    - get: golang-linux
+      trigger: true
+  - task: build
+    image: builder
+    privileged: true
+    file: concourse/ci/tasks/build-golang-builder-image.yml
+  - put: golang-builder-image
     params: {image: image/image.tar}
 
 - name: unit
@@ -1033,6 +1052,13 @@ resources:
     branch: master
     paths: [ci/dockerfiles/unit]
 
+- name: golang-builder-dockerfile
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: master
+    paths: [ci/dockerfiles/golang-builder]
+
 - name: dev-image
   type: registry-image
   source:
@@ -1058,6 +1084,13 @@ resources:
   type: registry-image
   source:
     repository: concourse/unit
+    username: ((docker.username))
+    password: ((docker.password))
+
+- name: golang-builder-image
+  type: registry-image
+  source:
+    repository: concourse/golang-builder
     username: ((docker.username))
     password: ((docker.password))
 
@@ -1360,6 +1393,13 @@ resources:
     endpoint: storage.googleapis.com
     bucket: golang
     regexp: 'go(\d+\.\d+(\.\d+)?)\.windows-amd64\.msi'
+
+- name: golang-linux
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(\d+\.\d+(\.\d+)?)\.linux-amd64\.tar\.gz'
 
 - name: concourse-github-release
   type: github-release
