@@ -8,10 +8,11 @@
   let you put wacky arbitrary data in the
   version\link{.}{https://www.youtube.com/watch?v=u-dt-wimdgE}
 
-  The bug enables limited SQL injection, so we recommend that anyone running
-  5.0 upgrade to this version as soon as possible. It's a bit concerning that
-  we've ended up with a SQL injection vulnerability in 2019, but this at least
-  appears to be an isolated and easily verifiable case. More on that later.
+  \bold{The bug enables limited SQL injection, so we recommend that anyone
+  running 5.0 upgrade to this version as soon as possible.} It's a bit
+  concerning that we've ended up with a SQL injection vulnerability in 2019,
+  but this at least appears to be an isolated and easily verifiable case. More
+  on that later.
 
   Thankfully, this is very difficult and impractical to exploit, and the impact
   is fairly low despite it being a SQL injection:
