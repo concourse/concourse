@@ -11,15 +11,12 @@ import (
 )
 
 var (
-	workerClient  *workerfakes.FakeClient
 	fakeContainer *workerfakes.FakeContainer
 
 	unversionedResource resource.UnversionedResource
 )
 
 var _ = BeforeEach(func() {
-	workerClient = new(workerfakes.FakeClient)
-
 	fakeContainer = new(workerfakes.FakeContainer)
 
 	unversionedResource = resource.NewUnversionedResource(fakeContainer)

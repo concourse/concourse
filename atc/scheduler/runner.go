@@ -22,15 +22,6 @@ type BuildScheduler interface {
 		resources db.Resources,
 		resourceTypes atc.VersionedResourceTypes,
 	) (map[string]time.Duration, error)
-
-	TriggerImmediately(
-		logger lager.Logger,
-		job db.Job,
-		resources db.Resources,
-		resourceTypes atc.VersionedResourceTypes,
-	) (db.Build, Waiter, error)
-
-	SaveNextInputMapping(logger lager.Logger, job db.Job, resource db.Resources) error
 }
 
 var errPipelineRemoved = errors.New("pipeline removed")

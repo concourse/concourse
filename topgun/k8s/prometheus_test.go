@@ -3,10 +3,11 @@ package k8s_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/gomega/gexec"
 	"net/http"
 	"path"
 	"time"
+
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -55,12 +56,11 @@ var _ = Describe("Prometheus integration", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-pi-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-pi-%d", randomGenerator.Int())
 		namespace = releaseName
 		prometheusReleaseName = releaseName + "-prom"
 
 		deployConcourseChart(releaseName,
-			"--set=prometheus.enabled=true",
 			"--set=worker.replicas=1",
 			"--set=concourse.worker.ephemeral=true",
 			"--set=concourse.web.prometheus.enabled=true",
@@ -78,7 +78,7 @@ var _ = Describe("Prometheus integration", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the prometheus proxy")
-		proxySession, prometheusEndpoint = startPortForwarding(namespace, prometheusReleaseName+"-prometheus-server", "80")
+		proxySession, prometheusEndpoint = startPortForwarding(namespace, "service/"+prometheusReleaseName+"-prometheus-server", "80")
 	})
 
 	AfterEach(func() {

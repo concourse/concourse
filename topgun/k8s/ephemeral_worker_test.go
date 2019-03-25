@@ -20,7 +20,7 @@ var _ = Describe("Ephemeral workers", func() {
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-ew-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
+		releaseName = fmt.Sprintf("topgun-ew-%d", randomGenerator.Int())
 		namespace = releaseName
 
 		deployConcourseChart(releaseName,
@@ -33,7 +33,7 @@ var _ = Describe("Ephemeral workers", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)

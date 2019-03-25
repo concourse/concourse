@@ -68,6 +68,15 @@ ENV CONCOURSE_WORK_DIR /worker-state
 # enable DNS proxy to support Docker's 127.x.x.x DNS server
 ENV CONCOURSE_GARDEN_DNS_PROXY_ENABLE true
 
+# 'web' keys
+ENV CONCOURSE_SESSION_SIGNING_KEY     /concourse-keys/session_signing_key
+ENV CONCOURSE_TSA_AUTHORIZED_KEYS     /concourse-keys/authorized_worker_keys
+ENV CONCOURSE_TSA_HOST_KEY            /concourse-keys/tsa_host_key
+
+# 'worker' keys
+ENV CONCOURSE_TSA_PUBLIC_KEY          /concourse-keys/tsa_host_key.pub
+ENV CONCOURSE_TSA_WORKER_PRIVATE_KEY  /concourse-keys/worker_key
+
 # set $PATH for convenience
 ENV PATH /usr/local/concourse/bin:${PATH}
 

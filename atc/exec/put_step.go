@@ -41,9 +41,10 @@ type PutStep struct {
 	params       creds.Params
 	tags         atc.Tags
 	inputs       PutInputs
+	delegate     PutDelegate
 
-	delegate          PutDelegate
 	resourceFactory   resource.ResourceFactory
+	pool              worker.Pool
 	planID            atc.PlanID
 	containerMetadata db.ContainerMetadata
 	stepMetadata      StepMetadata
@@ -52,6 +53,8 @@ type PutStep struct {
 
 	versionInfo VersionInfo
 	succeeded   bool
+
+	strategy worker.ContainerPlacementStrategy
 }
 
 func NewPutStep(
@@ -65,10 +68,12 @@ func NewPutStep(
 	inputs PutInputs,
 	delegate PutDelegate,
 	resourceFactory resource.ResourceFactory,
+	pool worker.Pool,
 	planID atc.PlanID,
 	containerMetadata db.ContainerMetadata,
 	stepMetadata StepMetadata,
 	resourceTypes creds.VersionedResourceTypes,
+	strategy worker.ContainerPlacementStrategy,
 ) *PutStep {
 	return &PutStep{
 		build: build,
@@ -81,11 +86,13 @@ func NewPutStep(
 		tags:              tags,
 		inputs:            inputs,
 		delegate:          delegate,
+		pool:              pool,
 		resourceFactory:   resourceFactory,
 		planID:            planID,
 		containerMetadata: containerMetadata,
 		stepMetadata:      stepMetadata,
 		resourceTypes:     resourceTypes,
+		strategy:          strategy,
 	}
 }
 
@@ -126,6 +133,30 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		ResourceTypes: step.resourceTypes,
 	}
 
+	containerSpec.BindMounts = []worker.BindMountSource{
+		&worker.CertsVolumeMount{Logger: logger},
+	}
+
+	owner := db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID())
+
+	chosenWorker, err := step.pool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, step.strategy)
+	if err != nil {
+		return err
+	}
+
+	container, err := chosenWorker.FindOrCreateContainer(
+		ctx,
+		logger,
+		step.delegate,
+		owner,
+		step.containerMetadata,
+		containerSpec,
+		step.resourceTypes,
+	)
+	if err != nil {
+		return err
+	}
+
 	source, err := step.source.Evaluate()
 	if err != nil {
 		return err
@@ -136,16 +167,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	putResource, err := step.resourceFactory.NewResource(
-		ctx,
-		logger,
-		db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID()),
-		step.containerMetadata,
-		containerSpec,
-		workerSpec,
-		step.resourceTypes,
-		step.delegate,
-	)
+	putResource, err := step.resourceFactory.NewResourceForContainer(ctx, container)
 	if err != nil {
 		return err
 	}

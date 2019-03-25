@@ -77,7 +77,7 @@ var _ = Describe("Resource Get", func() {
 		getErr = nil
 
 		inScriptProcess = new(gardenfakes.FakeProcess)
-		inScriptProcess.IDReturns(v2.TaskProcessID)
+		inScriptProcess.IDReturns(v2.ResourceProcessID)
 		inScriptProcess.WaitStub = func() (int, error) {
 			return inScriptExitStatus, nil
 		}
@@ -155,7 +155,7 @@ var _ = Describe("Resource Get", func() {
 				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 				pid, _ := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal(v2.TaskProcessID))
+				Expect(pid).To(Equal(v2.ResourceProcessID))
 			})
 
 			It("does not run an additional process", func() {
@@ -242,7 +242,7 @@ var _ = Describe("Resource Get", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 				spec, _ := fakeContainer.RunArgsForCall(0)
-				Expect(spec.ID).To(Equal(v2.TaskProcessID))
+				Expect(spec.ID).To(Equal(v2.ResourceProcessID))
 			})
 
 			Context("when artifact get succeeds", func() {

@@ -1,11 +1,24 @@
 module FlySuccess.Models exposing
     ( ButtonState(..)
+    , Model
     , TokenTransfer
-    , TransferResult
+    , TransferFailure(..)
     , hover
     , isClicked
     , isPending
     )
+
+import Http
+import RemoteData
+import TopBar.Model
+
+
+type alias Model =
+    TopBar.Model.Model
+        { buttonState : ButtonState
+        , authToken : String
+        , tokenTransfer : TokenTransfer
+        }
 
 
 type ButtonState
@@ -15,11 +28,12 @@ type ButtonState
 
 
 type alias TokenTransfer =
-    Maybe TransferResult
+    RemoteData.RemoteData TransferFailure ()
 
 
-type alias TransferResult =
-    Result () Bool
+type TransferFailure
+    = NetworkTrouble Http.Error
+    | NoFlyPort
 
 
 hover : Bool -> ButtonState -> ButtonState
@@ -43,4 +57,4 @@ isClicked =
 
 isPending : TokenTransfer -> Bool
 isPending =
-    (==) Nothing
+    (==) RemoteData.Loading

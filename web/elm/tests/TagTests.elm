@@ -19,7 +19,7 @@ tag =
 
 white : String
 white =
-    "#fff"
+    "#ffffff"
 
 
 all : Test

@@ -37,9 +37,9 @@ var _ = Describe("Fly CLI", func() {
 		Context("when resources are returned from the API", func() {
 			createResource := func(num int, pinnedVersion atc.Version, resourceType string) atc.Resource {
 				return atc.Resource{
-					Name:   fmt.Sprintf("resource-%d", num),
+					Name:          fmt.Sprintf("resource-%d", num),
 					PinnedVersion: pinnedVersion,
-					Type:   resourceType,
+					Type:          resourceType,
 				}
 			}
 
@@ -51,7 +51,7 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Resource{
 							createResource(1, nil, "time"),
-							createResource(2, atc.Version{"some":"version"}, "custom"),
+							createResource(2, atc.Version{"some": "version"}, "custom"),
 						}),
 					),
 				)

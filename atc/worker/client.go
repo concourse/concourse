@@ -1,80 +1,69 @@
 package worker
 
 import (
-	"context"
-	"time"
-
-	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 )
 
 //go:generate counterfeiter . Client
 
 type Client interface {
-	FindOrCreateContainer(
-		context.Context,
-		lager.Logger,
-		ImageFetchingDelegate,
-		db.ContainerOwner,
-		db.ContainerMetadata,
-		ContainerSpec,
-		WorkerSpec,
-		creds.VersionedResourceTypes,
-	) (Container, error)
-
-	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)
-
-	LookupVolume(lager.Logger, string) (Volume, bool, error)
-
-	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
-
-	Satisfying(lager.Logger, WorkerSpec) (Worker, error)
+	FindContainer(logger lager.Logger, teamID int, handle string) (Container, bool, error)
+	FindVolume(logger lager.Logger, teamID int, handle string) (Volume, bool, error)
+	CreateVolume(logger lager.Logger, spec VolumeSpec, teamID int, volumeType db.VolumeType) (Volume, error)
 }
 
-//go:generate counterfeiter . InputSource
-
-type InputSource interface {
-	Source() ArtifactSource
-	DestinationPath() string
-}
-
-//go:generate counterfeiter . BindMountSource
-
-type BindMountSource interface {
-	VolumeOn(Worker) (garden.BindMount, bool, error)
-}
-
-type VolumeSpec struct {
-	Strategy   baggageclaim.Strategy
-	Properties VolumeProperties
-	Privileged bool
-	TTL        time.Duration
-}
-
-func (spec VolumeSpec) baggageclaimVolumeSpec() baggageclaim.VolumeSpec {
-	return baggageclaim.VolumeSpec{
-		Strategy:   spec.Strategy,
-		Privileged: spec.Privileged,
-		Properties: baggageclaim.VolumeProperties(spec.Properties),
+func NewClient(pool Pool, provider WorkerProvider) *client {
+	return &client{
+		pool:     pool,
+		provider: provider,
 	}
 }
 
-//go:generate counterfeiter . Container
-
-type Container interface {
-	garden.Container
-
-	Destroy() error
-
-	VolumeMounts() []VolumeMount
-
-	WorkerName() string
-
-	MarkAsHijacked() error
+type client struct {
+	pool     Pool
+	provider WorkerProvider
 }
 
-type VolumeProperties map[string]string
+func (client *client) FindContainer(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
+	worker, found, err := client.provider.FindWorkerForContainer(
+		logger.Session("find-worker"),
+		teamID,
+		handle,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return worker.FindContainerByHandle(logger, teamID, handle)
+}
+
+func (client *client) FindVolume(logger lager.Logger, teamID int, handle string) (Volume, bool, error) {
+	worker, found, err := client.provider.FindWorkerForVolume(
+		logger.Session("find-worker"),
+		teamID,
+		handle,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return worker.LookupVolume(logger, handle)
+}
+
+func (client *client) CreateVolume(logger lager.Logger, spec VolumeSpec, teamID int, volumeType db.VolumeType) (Volume, error) {
+	worker, err := client.pool.FindOrChooseWorker(logger, WorkerSpec{TeamID: teamID})
+	if err != nil {
+		return nil, err
+	}
+
+	return worker.CreateVolume(logger, spec, teamID, volumeType)
+}

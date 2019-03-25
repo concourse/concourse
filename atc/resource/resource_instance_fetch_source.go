@@ -11,46 +11,79 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type resourceInstanceFetchSource struct {
-	logger                 lager.Logger
-	getEventHandler        v2.GetEventHandler
-	resourceInstance       ResourceInstance
-	worker                 worker.Worker
-	resourceTypes          creds.VersionedResourceTypes
-	tags                   atc.Tags
-	teamID                 int
-	session                Session
-	metadata               Metadata
-	imageFetchingDelegate  worker.ImageFetchingDelegate
-	dbResourceCacheFactory db.ResourceCacheFactory
+//go:generate counterfeiter . FetchSource
+
+type FetchSource interface {
+	LockName() (string, error)
+	Find() (worker.Volume, bool, error)
+	Create(context.Context) (worker.Volume, error)
 }
 
-func NewResourceInstanceFetchSource(
+//go:generate counterfeiter . FetchSourceFactory
+
+type FetchSourceFactory interface {
+	NewFetchSource(
+		logger lager.Logger,
+		getEventHandler v2.GetEventHandler,
+		worker worker.Worker,
+		resourceInstance ResourceInstance,
+		resourceTypes creds.VersionedResourceTypes,
+		containerSpec worker.ContainerSpec,
+		session Session,
+		imageFetchingDelegate worker.ImageFetchingDelegate,
+	) FetchSource
+}
+
+type fetchSourceFactory struct {
+	resourceCacheFactory db.ResourceCacheFactory
+	resourceFactory      ResourceFactory
+}
+
+func NewFetchSourceFactory(
+	resourceCacheFactory db.ResourceCacheFactory,
+	resourceFactory ResourceFactory,
+) FetchSourceFactory {
+	return &fetchSourceFactory{
+		resourceCacheFactory: resourceCacheFactory,
+		resourceFactory:      resourceFactory,
+	}
+}
+
+func (r *fetchSourceFactory) NewFetchSource(
 	logger lager.Logger,
 	getEventHandler v2.GetEventHandler,
-	resourceInstance ResourceInstance,
 	worker worker.Worker,
+	resourceInstance ResourceInstance,
 	resourceTypes creds.VersionedResourceTypes,
-	tags atc.Tags,
-	teamID int,
+	containerSpec worker.ContainerSpec,
 	session Session,
-	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
-	dbResourceCacheFactory db.ResourceCacheFactory,
 ) FetchSource {
 	return &resourceInstanceFetchSource{
 		logger:                 logger,
 		getEventHandler:        getEventHandler,
-		resourceInstance:       resourceInstance,
 		worker:                 worker,
+		resourceInstance:       resourceInstance,
 		resourceTypes:          resourceTypes,
-		tags:                   tags,
-		teamID:                 teamID,
+		containerSpec:          containerSpec,
 		session:                session,
-		metadata:               metadata,
 		imageFetchingDelegate:  imageFetchingDelegate,
-		dbResourceCacheFactory: dbResourceCacheFactory,
+		dbResourceCacheFactory: r.resourceCacheFactory,
+		resourceFactory:        r.resourceFactory,
 	}
+}
+
+type resourceInstanceFetchSource struct {
+	logger                 lager.Logger
+	getEventHandler        v2.GetEventHandler
+	worker                 worker.Worker
+	resourceInstance       ResourceInstance
+	resourceTypes          creds.VersionedResourceTypes
+	containerSpec          worker.ContainerSpec
+	session                Session
+	imageFetchingDelegate  worker.ImageFetchingDelegate
+	dbResourceCacheFactory db.ResourceCacheFactory
+	resourceFactory        ResourceFactory
 }
 
 func (s *resourceInstanceFetchSource) LockName() (string, error) {
@@ -89,50 +122,40 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (worker.Volume
 		return foundVolume, nil
 	}
 
-	mountPath := atc.ResourcesDir("get")
-
-	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: string(s.resourceInstance.ResourceType()),
-		},
-		Tags:   s.tags,
-		TeamID: s.teamID,
-		Env:    s.metadata.Env(),
-
-		Outputs: map[string]string{
-			"resource": mountPath,
-		},
+	s.containerSpec.BindMounts = []worker.BindMountSource{
+		&worker.CertsVolumeMount{Logger: s.logger},
 	}
 
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  string(s.resourceInstance.ResourceType()),
-		Tags:          s.tags,
-		TeamID:        s.teamID,
-		ResourceTypes: s.resourceTypes,
-	}
-
-	resourceFactory := NewResourceFactory(s.worker)
-	resource, err := resourceFactory.NewResource(
+	container, err := s.worker.FindOrCreateContainer(
 		ctx,
 		s.logger,
+		s.imageFetchingDelegate,
 		s.resourceInstance.ContainerOwner(),
 		s.session.Metadata,
-		containerSpec,
-		workerSpec,
+		s.containerSpec,
 		s.resourceTypes,
-		s.imageFetchingDelegate,
 	)
+	if err != nil {
+		return nil, err
+	}
+
 	if err != nil {
 		sLog.Error("failed-to-construct-resource", err)
 		return nil, err
 	}
 
+	mountPath := atc.ResourcesDir("get")
 	var volume worker.Volume
-	for _, mount := range resource.Container().VolumeMounts() {
+	for _, mount := range container.VolumeMounts() {
 		if mount.MountPath == mountPath {
 			volume = mount.Volume
 			break
 		}
+	}
+
+	resource, err := s.resourceFactory.NewResourceForContainer(ctx, container)
+	if err != nil {
+		return nil, err
 	}
 
 	err = resource.Get(

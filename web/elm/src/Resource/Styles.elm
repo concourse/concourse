@@ -1,5 +1,9 @@
 module Resource.Styles exposing
-    ( checkStatusIcon
+    ( body
+    , checkBarStatus
+    , checkButton
+    , checkButtonIcon
+    , checkStatusIcon
     , commentBar
     , commentBarContent
     , commentBarHeader
@@ -10,9 +14,16 @@ module Resource.Styles exposing
     , commentText
     , commentTextArea
     , enabledCheckbox
+    , headerBar
+    , headerHeight
+    , headerLastCheckedSection
+    , headerResourceName
+    , pageBelowTopBar
+    , pagination
     , pinBar
     , pinBarTooltip
     , pinButton
+    , pinButtonTooltip
     , pinIcon
     , versionHeader
     )
@@ -20,6 +31,30 @@ module Resource.Styles exposing
 import Colors
 import Pinned
 import Resource.Models as Models
+import TopBar.Styles
+
+
+headerHeight : Int
+headerHeight =
+    60
+
+
+commentBarHeight : Int
+commentBarHeight =
+    300
+
+
+bodyPadding : Int
+bodyPadding =
+    10
+
+
+pageBelowTopBar : List ( String, String )
+pageBelowTopBar =
+    [ ( "padding-top", "54px" )
+    , ( "height", "100%" )
+    , ( "display", "block" )
+    ]
 
 
 pinBar : { isPinned : Bool } -> List ( String, String )
@@ -30,7 +65,7 @@ pinBar { isPinned } =
                 Colors.pinned
 
             else
-                "#3d3c3c"
+                Colors.background
     in
     [ ( "flex-grow", "1" )
     , ( "margin", "10px" )
@@ -176,6 +211,17 @@ pinButton pinState =
             _ ->
                 "url(/public/images/pin-ic-white.svg)"
       )
+    ]
+
+
+pinButtonTooltip : List ( String, String )
+pinButtonTooltip =
+    [ ( "position", "absolute" )
+    , ( "bottom", "25px" )
+    , ( "background-color", Colors.tooltipBackground )
+    , ( "z-index", "2" )
+    , ( "padding", "5px" )
+    , ( "width", "170px" )
     ]
 
 
@@ -328,4 +374,105 @@ commentBarIconContainer : List ( String, String )
 commentBarIconContainer =
     [ ( "display", "flex" )
     , ( "align-items", "center" )
+    ]
+
+
+headerBar : List ( String, String )
+headerBar =
+    [ ( "height", toString headerHeight ++ "px" )
+    , ( "position", "fixed" )
+    , ( "top", toString TopBar.Styles.pageHeaderHeight ++ "px" )
+    , ( "display", "flex" )
+    , ( "align-items", "stretch" )
+    , ( "width", "100%" )
+    , ( "z-index", "1" )
+    , ( "background-color", Colors.secondaryTopBar )
+    ]
+
+
+headerResourceName : List ( String, String )
+headerResourceName =
+    [ ( "font-weight", "700" )
+    , ( "margin-left", "18px" )
+    , ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "justify-content", "center" )
+    ]
+
+
+headerLastCheckedSection : List ( String, String )
+headerLastCheckedSection =
+    [ ( "display", "flex" )
+    , ( "align-items", "center" )
+    , ( "justify-content", "center" )
+    , ( "margin-left", "24px" )
+    ]
+
+
+body : Bool -> List ( String, String )
+body hasCommentBar =
+    [ ( "padding-top", toString (headerHeight + bodyPadding) ++ "px" )
+    , ( "padding-left", toString bodyPadding ++ "px" )
+    , ( "padding-right", toString bodyPadding ++ "px" )
+    , ( "padding-bottom"
+      , if hasCommentBar then
+            toString commentBarHeight ++ "px"
+
+        else
+            toString bodyPadding ++ "px"
+      )
+    ]
+
+
+pagination : List ( String, String )
+pagination =
+    [ ( "display", "flex" )
+    , ( "align-items", "stretch" )
+    ]
+
+
+checkBarStatus : List ( String, String )
+checkBarStatus =
+    [ ( "display", "flex" )
+    , ( "justify-content", "space-between" )
+    , ( "align-items", "center" )
+    , ( "flex-grow", "1" )
+    , ( "height", "28px" )
+    , ( "background", Colors.sectionHeader )
+    , ( "padding-left", "5px" )
+    ]
+
+
+checkButton : Bool -> List ( String, String )
+checkButton isClickable =
+    [ ( "height", "28px" )
+    , ( "width", "28px" )
+    , ( "background-color", Colors.sectionHeader )
+    , ( "margin-right", "5px" )
+    , ( "cursor"
+      , if isClickable then
+            "pointer"
+
+        else
+            "default"
+      )
+    ]
+
+
+checkButtonIcon : Bool -> List ( String, String )
+checkButtonIcon isHighlighted =
+    [ ( "height", "20px" )
+    , ( "width", "20px" )
+    , ( "margin", "4px" )
+    , ( "background-image", "url(/public/images/baseline-refresh-24px.svg)" )
+    , ( "background-position", "50% 50%" )
+    , ( "background-repeat", "no-repeat" )
+    , ( "background-size", "contain" )
+    , ( "opacity"
+      , if isHighlighted then
+            "1"
+
+        else
+            "0.5"
+      )
     ]

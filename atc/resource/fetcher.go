@@ -28,11 +28,10 @@ type Fetcher interface {
 		logger lager.Logger,
 		session Session,
 		getEventHandler v2.GetEventHandler,
-		tags atc.Tags,
-		teamID int,
+		gardenWorker worker.Worker,
+		containerSpec worker.ContainerSpec,
 		resourceTypes creds.VersionedResourceTypes,
 		resourceInstance ResourceInstance,
-		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (worker.Volume, error)
 }
@@ -40,19 +39,19 @@ type Fetcher interface {
 func NewFetcher(
 	clock clock.Clock,
 	lockFactory lock.LockFactory,
-	fetchSourceProviderFactory FetchSourceProviderFactory,
+	fetchSourceFactory FetchSourceFactory,
 ) Fetcher {
 	return &fetcher{
-		clock:                      clock,
-		lockFactory:                lockFactory,
-		fetchSourceProviderFactory: fetchSourceProviderFactory,
+		clock:              clock,
+		lockFactory:        lockFactory,
+		fetchSourceFactory: fetchSourceFactory,
 	}
 }
 
 type fetcher struct {
-	clock                      clock.Clock
-	lockFactory                lock.LockFactory
-	fetchSourceProviderFactory FetchSourceProviderFactory
+	clock              clock.Clock
+	lockFactory        lock.LockFactory
+	fetchSourceFactory FetchSourceFactory
 }
 
 func (f *fetcher) Fetch(
@@ -60,29 +59,17 @@ func (f *fetcher) Fetch(
 	logger lager.Logger,
 	session Session,
 	getEventHandler v2.GetEventHandler,
-	tags atc.Tags,
-	teamID int,
+	gardenWorker worker.Worker,
+	containerSpec worker.ContainerSpec,
 	resourceTypes creds.VersionedResourceTypes,
 	resourceInstance ResourceInstance,
-	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (worker.Volume, error) {
-	sourceProvider := f.fetchSourceProviderFactory.NewFetchSourceProvider(
-		logger,
-		session,
-		getEventHandler,
-		metadata,
-		tags,
-		teamID,
-		resourceTypes,
-		resourceInstance,
-		imageFetchingDelegate,
-	)
-
-	source, err := sourceProvider.Get()
-	if err != nil {
-		return nil, err
+	containerSpec.Outputs = map[string]string{
+		"resource": atc.ResourcesDir("get"),
 	}
+
+	source := f.fetchSourceFactory.NewFetchSource(logger, getEventHandler, gardenWorker, resourceInstance, resourceTypes, containerSpec, session, imageFetchingDelegate)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()

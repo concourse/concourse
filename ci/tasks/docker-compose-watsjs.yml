@@ -17,7 +17,7 @@ caches:
 - path: concourse/web/wats/node_modules
 
 params:
-  DOCKERFILE: Dockerfile
+  BUILD:
 
 run:
   path: concourse/ci/tasks/scripts/with-docker-compose

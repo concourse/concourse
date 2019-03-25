@@ -8,7 +8,7 @@ import (
 )
 
 const responseFilename = "response.json"
-const TaskProcessID = "resource"
+const ResourceProcessID = "resource"
 
 type resource struct {
 	container worker.Container

@@ -1388,7 +1388,9 @@ var _ = Describe("Resources API", func() {
 							})
 
 							It("tries to scan with the latest versions", func() {
-								Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+								Eventually(func() int {
+									return fakeScanner.ScanFromVersionCallCount()
+								}).Should(Equal(1))
 								_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 								Expect(actualResourceName).To(Equal("resource-name"))
 								Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{
@@ -1407,7 +1409,9 @@ var _ = Describe("Resources API", func() {
 							})
 
 							It("tries to scan with no version specified", func() {
-								Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+								Eventually(func() int {
+									return fakeScanner.ScanFromVersionCallCount()
+								}).Should(Equal(1))
 								_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
 								Expect(actualResourceName).To(Equal("resource-name"))
 								Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{}))

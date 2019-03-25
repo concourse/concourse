@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -49,6 +50,9 @@ type GetStep struct {
 	resourceTypes creds.VersionedResourceTypes
 
 	succeeded bool
+
+	strategy   worker.ContainerPlacementStrategy
+	workerPool worker.Pool
 }
 
 func NewGetStep(
@@ -73,6 +77,9 @@ func NewGetStep(
 	stepMetadata StepMetadata,
 
 	resourceTypes creds.VersionedResourceTypes,
+
+	strategy worker.ContainerPlacementStrategy,
+	workerPool worker.Pool,
 ) Step {
 	return &GetStep{
 		build: build,
@@ -96,6 +103,9 @@ func NewGetStep(
 		stepMetadata:           stepMetadata,
 
 		resourceTypes: resourceTypes,
+
+		strategy:   strategy,
+		workerPool: workerPool,
 	}
 }
 
@@ -187,6 +197,26 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		}
 	}
 
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: step.resourceType,
+		},
+		TeamID: step.teamID,
+		Env:    step.stepMetadata.Env(),
+	}
+
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  step.resourceType,
+		Tags:          step.tags,
+		TeamID:        step.teamID,
+		ResourceTypes: step.resourceTypes,
+	}
+
+	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(logger, resourceInstance.ContainerOwner(), containerSpec, workerSpec, step.strategy)
+	if err != nil {
+		return err
+	}
+
 	volume, err := step.resourceFetcher.Fetch(
 		ctx,
 		logger,
@@ -194,11 +224,10 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 			Metadata: step.containerMetadata,
 		},
 		NewGetEventHandler(dbResource, space, version),
-		step.tags,
-		step.teamID,
+		chosenWorker,
+		containerSpec,
 		step.resourceTypes,
 		resourceInstance,
-		step.stepMetadata,
 		step.delegate,
 	)
 	if err != nil {
@@ -226,7 +255,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		}
 	}
 
-	state.Artifacts().RegisterSource(worker.ArtifactName(step.name), &getArtifactSource{
+	state.Artifacts().RegisterSource(artifact.Name(step.name), &getArtifactSource{
 		resourceInstance: resourceInstance,
 		volume:           volume,
 	})
@@ -259,19 +288,41 @@ func (s *getArtifactSource) VolumeOn(logger lager.Logger, worker worker.Worker) 
 
 // StreamTo streams the resource's data to the destination.
 func (s *getArtifactSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
-	out, err := s.volume.StreamOut(".")
+	return streamToHelper(s.volume, logger, destination)
+}
+
+// StreamFile streams a single file out of the resource.
+func (s *getArtifactSource) StreamFile(logger lager.Logger, path string) (io.ReadCloser, error) {
+	return streamFileHelper(s.volume, logger, path)
+}
+
+func streamToHelper(s interface {
+	StreamOut(string) (io.ReadCloser, error)
+}, logger lager.Logger, destination worker.ArtifactDestination) error {
+	logger.Debug("start")
+
+	defer logger.Debug("end")
+
+	out, err := s.StreamOut(".")
 	if err != nil {
+		logger.Error("failed", err)
 		return err
 	}
 
 	defer out.Close()
 
-	return destination.StreamIn(".", out)
+	err = destination.StreamIn(".", out)
+	if err != nil {
+		logger.Error("failed", err)
+		return err
+	}
+	return nil
 }
 
-// StreamFile streams a single file out of the resource.
-func (s *getArtifactSource) StreamFile(logger lager.Logger, path string) (io.ReadCloser, error) {
-	out, err := s.volume.StreamOut(path)
+func streamFileHelper(s interface {
+	StreamOut(string) (io.ReadCloser, error)
+}, logger lager.Logger, path string) (io.ReadCloser, error) {
+	out, err := s.StreamOut(path)
 	if err != nil {
 		return nil, err
 	}

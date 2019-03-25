@@ -26,16 +26,6 @@ type FakeResource struct {
 	checkReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ContainerStub        func() worker.Container
-	containerMutex       sync.RWMutex
-	containerArgsForCall []struct {
-	}
-	containerReturns struct {
-		result1 worker.Container
-	}
-	containerReturnsOnCall map[int]struct {
-		result1 worker.Container
-	}
 	GetStub        func(context.Context, v2.GetEventHandler, worker.Volume, atc.IOConfig, atc.Source, atc.Params, atc.Space, atc.Version) error
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
@@ -135,58 +125,6 @@ func (fake *FakeResource) CheckReturnsOnCall(i int, result1 error) {
 	}
 	fake.checkReturnsOnCall[i] = struct {
 		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) Container() worker.Container {
-	fake.containerMutex.Lock()
-	ret, specificReturn := fake.containerReturnsOnCall[len(fake.containerArgsForCall)]
-	fake.containerArgsForCall = append(fake.containerArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Container", []interface{}{})
-	fake.containerMutex.Unlock()
-	if fake.ContainerStub != nil {
-		return fake.ContainerStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.containerReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) ContainerCallCount() int {
-	fake.containerMutex.RLock()
-	defer fake.containerMutex.RUnlock()
-	return len(fake.containerArgsForCall)
-}
-
-func (fake *FakeResource) ContainerCalls(stub func() worker.Container) {
-	fake.containerMutex.Lock()
-	defer fake.containerMutex.Unlock()
-	fake.ContainerStub = stub
-}
-
-func (fake *FakeResource) ContainerReturns(result1 worker.Container) {
-	fake.containerMutex.Lock()
-	defer fake.containerMutex.Unlock()
-	fake.ContainerStub = nil
-	fake.containerReturns = struct {
-		result1 worker.Container
-	}{result1}
-}
-
-func (fake *FakeResource) ContainerReturnsOnCall(i int, result1 worker.Container) {
-	fake.containerMutex.Lock()
-	defer fake.containerMutex.Unlock()
-	fake.ContainerStub = nil
-	if fake.containerReturnsOnCall == nil {
-		fake.containerReturnsOnCall = make(map[int]struct {
-			result1 worker.Container
-		})
-	}
-	fake.containerReturnsOnCall[i] = struct {
-		result1 worker.Container
 	}{result1}
 }
 
@@ -329,8 +267,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
-	fake.containerMutex.RLock()
-	defer fake.containerMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.putMutex.RLock()

@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
@@ -24,32 +23,34 @@ import (
 
 var _ = Describe("Fetcher", func() {
 	var (
-		fakeFetchSourceProvider *resourcefakes.FakeFetchSourceProvider
-		fakeClock               *fakeclock.FakeClock
-		fakeLockFactory         *lockfakes.FakeLockFactory
-		fetcher                 resource.Fetcher
-		ctx                     context.Context
-		cancel                  func()
-		fakeVolume              *workerfakes.FakeVolume
-		fakeBuildStepDelegate   *workerfakes.FakeImageFetchingDelegate
-		volume                  worker.Volume
+		fakeClock             *fakeclock.FakeClock
+		fakeLockFactory       *lockfakes.FakeLockFactory
+		fetcher               resource.Fetcher
+		ctx                   context.Context
+		cancel                func()
+		fakeVolume            *workerfakes.FakeVolume
+		fakeBuildStepDelegate *workerfakes.FakeImageFetchingDelegate
+
+		fakeWorker             *workerfakes.FakeWorker
+		fakeFetchSourceFactory *resourcefakes.FakeFetchSourceFactory
+		volume                 worker.Volume
 
 		fetchErr error
 		teamID   = 123
 	)
 
 	BeforeEach(func() {
-		fakeFetchSourceProviderFactory := new(resourcefakes.FakeFetchSourceProviderFactory)
-		fakeFetchSourceProvider = new(resourcefakes.FakeFetchSourceProvider)
-		fakeFetchSourceProviderFactory.NewFetchSourceProviderReturns(fakeFetchSourceProvider)
-
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
+		fakeFetchSourceFactory = new(resourcefakes.FakeFetchSourceFactory)
+
+		fakeWorker = new(workerfakes.FakeWorker)
+		fakeWorker.NameReturns("some-worker")
 
 		fetcher = resource.NewFetcher(
 			fakeClock,
 			fakeLockFactory,
-			fakeFetchSourceProviderFactory,
+			fakeFetchSourceFactory,
 		)
 
 		ctx, cancel = context.WithCancel(context.Background())
@@ -64,21 +65,22 @@ var _ = Describe("Fetcher", func() {
 			lagertest.NewTestLogger("test"),
 			resource.Session{},
 			image.NewGetEventHandler(),
-			atc.Tags{},
-			teamID,
+			fakeWorker,
+			worker.ContainerSpec{
+				TeamID: teamID,
+			},
 			creds.VersionedResourceTypes{},
 			new(resourcefakes.FakeResourceInstance),
-			resource.EmptyMetadata{},
 			fakeBuildStepDelegate,
 		)
 	})
 
-	Context("when getting source succeeds", func() {
+	Context("when getting source", func() {
 		var fakeFetchSource *resourcefakes.FakeFetchSource
 
 		BeforeEach(func() {
 			fakeFetchSource = new(resourcefakes.FakeFetchSource)
-			fakeFetchSourceProvider.GetReturns(fakeFetchSource, nil)
+			fakeFetchSourceFactory.NewFetchSourceReturns(fakeFetchSource)
 		})
 
 		Context("when found", func() {
@@ -93,8 +95,8 @@ var _ = Describe("Fetcher", func() {
 
 		Context("when not found", func() {
 			BeforeEach(func() {
-				fakeFetchSource.FindReturns(nil, false, nil)
 				fakeFetchSource.LockNameReturns("fake-lock-name", nil)
+				fakeFetchSource.FindReturns(nil, false, nil)
 			})
 
 			Describe("failing to get a lock", func() {

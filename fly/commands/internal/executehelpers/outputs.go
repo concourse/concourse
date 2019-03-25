@@ -2,7 +2,6 @@ package executehelpers
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
@@ -35,14 +34,9 @@ func DetermineOutputs(
 			return nil, fmt.Errorf("unknown output '%s'", outputName)
 		}
 
-		absPath, err := filepath.Abs(i.Path)
-		if err != nil {
-			return nil, err
-		}
-
 		outputs = append(outputs, Output{
 			Name: outputName,
-			Path: absPath,
+			Path: i.Path,
 			Plan: fact.NewPlan(atc.ArtifactOutputPlan{
 				Name: outputName,
 			}),

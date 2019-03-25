@@ -6,8 +6,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
+	w "github.com/concourse/concourse/atc/worker"
 )
 
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
@@ -26,7 +26,7 @@ func NewImageFactory(
 
 func (f *imageFactory) GetImage(
 	logger lager.Logger,
-	workerClient worker.Worker,
+	worker worker.Worker,
 	volumeClient worker.VolumeClient,
 	imageSpec worker.ImageSpec,
 	teamID int,
@@ -34,7 +34,7 @@ func (f *imageFactory) GetImage(
 	resourceTypes creds.VersionedResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
-		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(logger, workerClient)
+		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(logger, worker)
 		if err != nil {
 			logger.Error("failed-to-check-if-volume-exists-on-worker", err)
 			return nil, err
@@ -60,9 +60,8 @@ func (f *imageFactory) GetImage(
 	resourceType, found := resourceTypes.Lookup(imageSpec.ResourceType)
 	if found {
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
-			workerClient,
-			resource.NewResourceFactory(workerClient),
-			worker.ImageResource{
+			worker,
+			w.ImageResource{
 				Type:   resourceType.Type,
 				Source: resourceType.Source,
 				Params: &resourceType.Params,
@@ -96,8 +95,7 @@ func (f *imageFactory) GetImage(
 		}
 
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
-			workerClient,
-			resource.NewResourceFactory(workerClient),
+			worker,
 			*imageSpec.ImageResource,
 			version,
 			defaultSpace,
@@ -117,7 +115,7 @@ func (f *imageFactory) GetImage(
 
 	if imageSpec.ResourceType != "" {
 		return &imageFromBaseResourceType{
-			worker:           workerClient,
+			worker:           worker,
 			resourceTypeName: imageSpec.ResourceType,
 			teamID:           teamID,
 			volumeClient:     volumeClient,

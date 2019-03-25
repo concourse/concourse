@@ -6,6 +6,7 @@ import Concourse.Pagination exposing (Direction(..), Pagination)
 import Dict exposing (Dict)
 import Expect exposing (..)
 import Http
+import Network.Pagination
 import Regex
 import String
 import Test exposing (..)
@@ -28,7 +29,7 @@ all =
                 \_ ->
                     Expect.equal
                         (Pagination Nothing Nothing)
-                        (Concourse.Pagination.parseLinks (responseWithHeaders Dict.empty))
+                        (Network.Pagination.parseLinks (responseWithHeaders Dict.empty))
             , let
                 headers =
                     Dict.fromList
@@ -39,7 +40,7 @@ all =
                 \_ ->
                     Expect.equal
                         (Pagination (Just { direction = Until 1, limit = 2 }) Nothing)
-                        (Concourse.Pagination.parseLinks (responseWithHeaders headers))
+                        (Network.Pagination.parseLinks (responseWithHeaders headers))
             , let
                 headers =
                     Dict.fromList
@@ -50,7 +51,7 @@ all =
                 \_ ->
                     Expect.equal
                         (Pagination Nothing (Just { direction = Since 1, limit = 2 }))
-                        (Concourse.Pagination.parseLinks (responseWithHeaders headers))
+                        (Network.Pagination.parseLinks (responseWithHeaders headers))
             , let
                 headers =
                     Dict.fromList
@@ -61,6 +62,6 @@ all =
                 \_ ->
                     Expect.equal
                         (Pagination (Just { direction = Until 1, limit = 2 }) (Just { direction = Since 3, limit = 4 }))
-                        (Concourse.Pagination.parseLinks (responseWithHeaders headers))
+                        (Network.Pagination.parseLinks (responseWithHeaders headers))
             ]
         ]

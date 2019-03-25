@@ -53,7 +53,7 @@ var _ = Describe("Resource Check", func() {
 		checkErr = nil
 
 		checkScriptProcess = new(gardenfakes.FakeProcess)
-		checkScriptProcess.IDReturns(v2.TaskProcessID)
+		checkScriptProcess.IDReturns(v2.ResourceProcessID)
 		checkScriptProcess.WaitStub = func() (int, error) {
 			return checkScriptExitStatus, nil
 		}
@@ -122,7 +122,7 @@ var _ = Describe("Resource Check", func() {
 				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 				pid, _ := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal(v2.TaskProcessID))
+				Expect(pid).To(Equal(v2.ResourceProcessID))
 			})
 
 			It("does not run an additional process", func() {
@@ -229,7 +229,7 @@ var _ = Describe("Resource Check", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 				spec, _ := fakeContainer.RunArgsForCall(0)
-				Expect(spec.ID).To(Equal(v2.TaskProcessID))
+				Expect(spec.ID).To(Equal(v2.ResourceProcessID))
 			})
 
 			It("runs check artifact with the request on stdin", func() {

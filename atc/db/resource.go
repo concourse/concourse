@@ -21,6 +21,7 @@ import (
 type Resource interface {
 	ID() int
 	Name() string
+	Public() bool
 	PipelineID() int
 	PipelineName() string
 	TeamName() string
@@ -71,6 +72,7 @@ var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, rs.last
 type resource struct {
 	id                    int
 	name                  string
+	public                bool
 	pipelineID            int
 	pipelineName          string
 	teamName              string
@@ -119,6 +121,7 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 	for _, r := range resources {
 		configs = append(configs, atc.ResourceConfig{
 			Name:         r.Name(),
+			Public:       r.Public(),
 			WebhookToken: r.WebhookToken(),
 			Type:         r.Type(),
 			Source:       r.Source(),
@@ -133,6 +136,7 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 
 func (r *resource) ID() int                          { return r.id }
 func (r *resource) Name() string                     { return r.name }
+func (r *resource) Public() bool                     { return r.public }
 func (r *resource) PipelineID() int                  { return r.pipelineID }
 func (r *resource) PipelineName() string             { return r.pipelineName }
 func (r *resource) TeamName() string                 { return r.teamName }
@@ -651,6 +655,7 @@ func scanResource(r *resource, row scannable) error {
 		return err
 	}
 
+	r.public = config.Public
 	r.type_ = config.Type
 	r.source = config.Source
 	r.checkEvery = config.CheckEvery

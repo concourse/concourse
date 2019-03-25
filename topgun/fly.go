@@ -25,6 +25,7 @@ type Worker struct {
 	State           string `json:"state"`
 	GardenAddress   string `json:"addr"`
 	BaggageclaimUrl string `json:"baggageclaim_url"`
+	Team            string `json:"team"`
 }
 
 type Pipeline struct {
@@ -109,6 +110,24 @@ func (f *Fly) GetVersions(pipeline string, resource string) []Version {
 	Expect(err).ToNot(HaveOccurred())
 
 	return versions
+}
+
+func (f *Fly) GetUserRole(teamName string) []string {
+
+	type RoleInfo struct {
+		Teams map[string][]string `json:"teams"`
+	}
+	var teamsInfo RoleInfo = RoleInfo{}
+
+	sess := f.Start("userinfo", "--json")
+	<-sess.Exited
+	Expect(sess.ExitCode()).To(BeZero())
+
+	err := json.Unmarshal(sess.Out.Contents(), &teamsInfo)
+	Expect(err).ToNot(HaveOccurred())
+
+	return teamsInfo.Teams[teamName]
+
 }
 
 func BuildBinary() string {

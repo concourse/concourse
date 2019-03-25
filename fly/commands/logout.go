@@ -14,7 +14,7 @@ type LogoutCommand struct {
 func (command *LogoutCommand) Execute(args []string) error {
 
 	if Fly.Target != "" && !command.All {
-		if err := rc.DeleteTarget(Fly.Target); err != nil {
+		if err := rc.LogoutTarget(Fly.Target); err != nil {
 			return err
 		}
 
@@ -27,7 +27,7 @@ func (command *LogoutCommand) Execute(args []string) error {
 		}
 
 		for targetName := range flyYAML.Targets {
-			if err := rc.DeleteTarget(targetName); err != nil {
+			if err := rc.LogoutTarget(targetName); err != nil {
 				return err
 			}
 		}

@@ -1,15 +1,18 @@
-module Dashboard.Footer exposing (Model, showFooter, tick, toggleHelp, view)
+module Dashboard.Footer exposing (Model, handleDelivery, view)
 
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group exposing (Group)
 import Dashboard.Msgs exposing (Msg(..))
 import Dashboard.Styles as Styles
+import Effects
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Routes
 import ScreenSize
+import Subscription exposing (Delivery(..), Interval(..))
+import TopBar.Model exposing (Dropdown(..))
 
 
 type alias Model r =
@@ -21,50 +24,78 @@ type alias Model r =
         , hoveredCliIcon : Maybe Cli.Cli
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , highDensity : Bool
+        , route : Routes.Route
+        , shiftDown : Bool
+        , dropdown : Dropdown
     }
 
 
-showFooter : Model r -> Model r
-showFooter model =
-    { model | hideFooter = False, hideFooterCounter = 0 }
+handleDelivery :
+    Delivery
+    -> ( Model r, List Effects.Effect )
+    -> ( Model r, List Effects.Effect )
+handleDelivery delivery ( model, effects ) =
+    case delivery of
+        KeyDown keyCode ->
+            case keyCode of
+                -- '/' key
+                191 ->
+                    if model.shiftDown && model.dropdown == Hidden then
+                        ( { model
+                            | showHelp =
+                                if
+                                    model.groups
+                                        |> List.concatMap .pipelines
+                                        |> List.isEmpty
+                                then
+                                    False
+
+                                else
+                                    not model.showHelp
+                          }
+                        , effects
+                        )
+
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( { model | hideFooter = False, hideFooterCounter = 0 }
+                    , effects
+                    )
+
+        Moused ->
+            ( { model | hideFooter = False, hideFooterCounter = 0 }, effects )
+
+        ClockTicked OneSecond time ->
+            ( if model.hideFooterCounter > 4 then
+                { model | hideFooter = True }
+
+              else
+                { model | hideFooterCounter = model.hideFooterCounter + 1 }
+            , effects
+            )
+
+        _ ->
+            ( model, effects )
 
 
-tick : Model r -> Model r
-tick model =
-    if model.hideFooterCounter > 4 then
-        { model | hideFooter = True }
-
-    else
-        { model | hideFooterCounter = model.hideFooterCounter + 1 }
-
-
-toggleHelp : Model r -> Model r
-toggleHelp model =
-    { model | showHelp = not (hideHelp model || model.showHelp) }
-
-
-hideHelp : { a | groups : List Group } -> Bool
-hideHelp { groups } =
-    List.isEmpty (groups |> List.concatMap .pipelines)
-
-
-view : Model r -> List (Html Msg)
+view : Model r -> Html Msg
 view model =
     if model.showHelp then
-        [ keyboardHelp ]
+        keyboardHelp
 
     else if not model.hideFooter then
-        [ infoBar model ]
+        infoBar model
 
     else
-        []
+        Html.text ""
 
 
 keyboardHelp : Html Msg
 keyboardHelp =
     Html.div
-        [ class "keyboard-help" ]
+        [ class "keyboard-help", id "keyboard-help" ]
         [ Html.div
             [ class "help-title" ]
             [ Html.text "keyboard shortcuts" ]
@@ -96,7 +127,7 @@ infoBar :
         | hoveredCliIcon : Maybe Cli.Cli
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , highDensity : Bool
+        , route : Routes.Route
         , groups : List Group
     }
     -> Html Msg
@@ -109,28 +140,28 @@ infoBar model =
                 , screenSize = model.screenSize
                 }
         ]
-    <|
-        legend model
-            ++ concourseInfo model
+        [ legend model
+        , concourseInfo model
+        ]
 
 
 legend :
     { a
         | groups : List Group
         , screenSize : ScreenSize.ScreenSize
-        , highDensity : Bool
+        , route : Routes.Route
     }
-    -> List (Html Msg)
+    -> Html Msg
 legend model =
     if hideLegend model then
-        []
+        Html.text ""
 
     else
-        [ Html.div
+        Html.div
             [ id "legend"
             , style Styles.legend
             ]
-          <|
+        <|
             List.map legendItem
                 [ PipelineStatusPending False
                 , PipelineStatusPaused
@@ -148,15 +179,14 @@ legend model =
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
                 ++ legendSeparator model.screenSize
-                ++ [ toggleView model.highDensity ]
-        ]
+                ++ [ toggleView (model.route == Routes.Dashboard Routes.HighDensity) ]
 
 
 concourseInfo :
     { a | version : String, hoveredCliIcon : Maybe Cli.Cli }
-    -> List (Html Msg)
+    -> Html Msg
 concourseInfo { version, hoveredCliIcon } =
-    [ Html.div [ id "concourse-info", style Styles.info ]
+    Html.div [ id "concourse-info", style Styles.info ]
         [ Html.div [ style Styles.infoItem ]
             [ Html.text <| "version: v" ++ version ]
         , Html.div [ style Styles.infoItem ] <|
@@ -166,7 +196,6 @@ concourseInfo { version, hoveredCliIcon } =
             ]
                 ++ List.map (cliIcon hoveredCliIcon) Cli.clis
         ]
-    ]
 
 
 hideLegend : { a | groups : List Group } -> Bool

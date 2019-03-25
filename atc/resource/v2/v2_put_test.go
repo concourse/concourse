@@ -70,7 +70,7 @@ var _ = Describe("Resource Put", func() {
 		attachOutError = nil
 
 		outScriptProcess = new(gfakes.FakeProcess)
-		outScriptProcess.IDReturns(v2.TaskProcessID)
+		outScriptProcess.IDReturns(v2.ResourceProcessID)
 		outScriptProcess.WaitStub = func() (int, error) {
 			return outScriptExitStatus, nil
 		}
@@ -172,7 +172,7 @@ var _ = Describe("Resource Put", func() {
 				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
 				pid, _ := fakeContainer.AttachArgsForCall(0)
-				Expect(pid).To(Equal(v2.TaskProcessID))
+				Expect(pid).To(Equal(v2.ResourceProcessID))
 			})
 
 			It("does not run an additional process", func() {
@@ -286,7 +286,7 @@ var _ = Describe("Resource Put", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 				spec, _ := fakeContainer.RunArgsForCall(0)
-				Expect(spec.ID).To(Equal(v2.TaskProcessID))
+				Expect(spec.ID).To(Equal(v2.ResourceProcessID))
 			})
 
 			It("runs /opt/resource/out <source path> with the request on stdin", func() {

@@ -45,6 +45,19 @@ type ContainerSpec struct {
 	User string
 }
 
+//go:generate counterfeiter . InputSource
+
+type InputSource interface {
+	Source() ArtifactSource
+	DestinationPath() string
+}
+
+//go:generate counterfeiter . BindMountSource
+
+type BindMountSource interface {
+	VolumeOn(Worker) (garden.BindMount, bool, error)
+}
+
 // OutputPaths is a mapping from output name to its path in the container.
 type OutputPaths map[string]string
 
@@ -53,7 +66,6 @@ type ImageSpec struct {
 	ImageURL            string
 	ImageResource       *ImageResource
 	ImageArtifactSource ArtifactSource
-	ImageArtifactName   ArtifactName
 	Privileged          bool
 }
 

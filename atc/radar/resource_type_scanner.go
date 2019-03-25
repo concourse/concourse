@@ -16,11 +16,13 @@ import (
 
 type resourceTypeScanner struct {
 	clock           clock.Clock
+	pool            worker.Pool
 	resourceFactory resource.ResourceFactory
 	defaultInterval time.Duration
 	dbPipeline      db.Pipeline
 	externalURL     string
 	variables       creds.Variables
+	strategy        worker.ContainerPlacementStrategy
 
 	conn db.Conn
 }
@@ -28,20 +30,24 @@ type resourceTypeScanner struct {
 func NewResourceTypeScanner(
 	conn db.Conn,
 	clock clock.Clock,
+	pool worker.Pool,
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
 	variables creds.Variables,
+	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
 	return &resourceTypeScanner{
 		conn:            conn,
 		clock:           clock,
+		pool:            pool,
 		resourceFactory: resourceFactory,
 		defaultInterval: defaultInterval,
 		dbPipeline:      dbPipeline,
 		externalURL:     externalURL,
 		variables:       variables,
+		strategy:        strategy,
 	}
 }
 
@@ -249,6 +255,9 @@ func (scanner *resourceTypeScanner) check(
 		},
 		Tags:   savedResourceType.Tags(),
 		TeamID: scanner.dbPipeline.TeamID(),
+		BindMounts: []worker.BindMountSource{
+			&worker.CertsVolumeMount{Logger: logger},
+		},
 	}
 
 	workerSpec := worker.WorkerSpec{
@@ -258,24 +267,35 @@ func (scanner *resourceTypeScanner) check(
 		TeamID:        scanner.dbPipeline.TeamID(),
 	}
 
-	res, err := scanner.resourceFactory.NewResource(
+	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
+
+	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, scanner.strategy)
+	if err != nil {
+		chkErr := resourceConfigScope.SetCheckError(err)
+		if chkErr != nil {
+			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
+		}
+		logger.Error("failed-to-find-or-choose-worker", err)
+		return err
+	}
+
+	container, err := chosenWorker.FindOrCreateContainer(
 		context.Background(),
 		logger,
+		worker.NoopImageFetchingDelegate{},
 		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
 		containerSpec,
-		workerSpec,
 		versionedResourceTypes.Without(savedResourceType.Name()),
-		worker.NoopImageFetchingDelegate{},
 	)
 	if err != nil {
 		chkErr := resourceConfigScope.SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
-		logger.Error("failed-to-initialize-new-container", err)
+		logger.Error("failed-to-create-or-find-container", err)
 		return err
 	}
 
@@ -288,6 +308,12 @@ func (scanner *resourceTypeScanner) check(
 
 	spaces := make(map[atc.Space]atc.Version)
 	checkHandler := NewCheckEventHandler(logger, tx, resourceConfigScope, spaces)
+	res, err := scanner.resourceFactory.NewResourceForContainer(context.TODO(), container)
+	if err != nil {
+		logger.Error("failed-to-create-resource-for-container", err)
+		return err
+	}
+
 	err = res.Check(lagerctx.NewContext(context.TODO(), logger), checkHandler, source, fromVersion)
 	resourceConfigScope.SetCheckError(err)
 	if err != nil {

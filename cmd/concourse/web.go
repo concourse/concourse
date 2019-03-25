@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"net"
 	"os"
 
 	"github.com/concourse/concourse/atc/atccmd"
@@ -23,9 +22,6 @@ type WebCommand struct {
 }
 
 func (WebCommand) lessenRequirements(command *flags.Command) {
-	// defaults to address from external URL
-	command.FindOptionByLongName("tsa-peer-ip").Required = false
-
 	// defaults to atc external URL
 	command.FindOptionByLongName("tsa-atc-url").Required = false
 
@@ -87,15 +83,8 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	}
 
 	if len(cmd.TSACommand.ATCURLs) == 0 {
-		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.PeerURLOrDefault()}
+		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.DefaultURL()}
 	}
-
-	host, _, err := net.SplitHostPort(cmd.RunCommand.PeerURLOrDefault().URL.Host)
-	if err != nil {
-		return err
-	}
-
-	cmd.TSACommand.PeerIP = host
 
 	return nil
 }

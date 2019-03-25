@@ -3,14 +3,6 @@
 
 FROM concourse/dev
 
-# configure key location (they're actually generated at the end)
-RUN mkdir /concourse-keys
-ENV CONCOURSE_TSA_HOST_KEY        /concourse-keys/tsa_host_key
-ENV CONCOURSE_TSA_AUTHORIZED_KEYS /concourse-keys/authorized_worker_keys
-ENV CONCOURSE_SESSION_SIGNING_KEY /concourse-keys/session_signing_key
-ENV CONCOURSE_TSA_PUBLIC_KEY         /concourse-keys/tsa_host_key.pub
-ENV CONCOURSE_TSA_WORKER_PRIVATE_KEY /concourse-keys/worker_key
-
 # download go modules separately so this doesn't re-run on every change
 WORKDIR /src
 COPY go.mod .
@@ -25,6 +17,7 @@ RUN go build -gcflags=all="-N -l" -o /usr/local/concourse/bin/concourse \
 VOLUME /src
 
 # generate keys (with 1024 bits just so they generate faster)
+RUN mkdir -p /concourse-keys
 RUN concourse generate-key -t rsa -b 1024 -f /concourse-keys/session_signing_key
 RUN concourse generate-key -t ssh -b 1024 -f /concourse-keys/tsa_host_key
 RUN concourse generate-key -t ssh -b 1024 -f /concourse-keys/worker_key

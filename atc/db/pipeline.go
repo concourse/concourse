@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/event"
 )
 
 type ErrResourceNotFound struct {
@@ -50,7 +50,10 @@ type Pipeline interface {
 	GetBuildsWithVersionAsInput(int, int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(int, int) ([]Build, error)
 	Builds(page Page) ([]Build, Pagination, error)
+
 	CreateOneOffBuild() (Build, error)
+	CreateStartedBuild(plan atc.Plan) (Build, error)
+
 	GetAllPendingBuilds() (map[string][]Build, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
@@ -702,16 +705,14 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("resource_versions v ON v.version_md5 = o.version_md5").
 		Join("spaces s ON s.id = v.space_id").
 		Join("resources r ON r.id = o.resource_id").
-		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.Expr("r.resource_config_scope_id = s.resource_config_scope_id")).
+		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
 		Where(sq.NotEq{
 			"v.partial": true,
 		}).
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
-			"d.resource_id": nil,
-			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -739,15 +740,13 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("resource_versions v ON v.version_md5 = i.version_md5").
 		Join("spaces s ON s.id = v.space_id").
 		Join("resources r ON r.id = i.resource_id").
-		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.Expr("r.resource_config_scope_id = s.resource_config_scope_id")).
+		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
 		Where(sq.NotEq{
 			"v.partial": true,
 		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
-			"d.resource_id": nil,
-			"d.version_md5": nil,
 		}).
 		RunWith(p.conn).
 		Query()
@@ -978,6 +977,56 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 	}
 
 	return build, nil
+}
+
+func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	metadata, err := json.Marshal(plan)
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedPlan, nonce, err := p.conn.EncryptionStrategy().Encrypt(metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	build := &build{conn: p.conn, lockFactory: p.lockFactory}
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":         sq.Expr("nextval('one_off_name')"),
+		"pipeline_id":  p.id,
+		"team_id":      p.teamID,
+		"status":       BuildStatusStarted,
+		"start_time":   sq.Expr("now()"),
+		"schema":       "exec.v2",
+		"private_plan": encryptedPlan,
+		"public_plan":  plan.Public(),
+		"nonce":        nonce,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = build.saveEvent(tx, event.Status{
+		Status: atc.StatusStarted,
+		Time:   build.StartTime().Unix(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return build, p.conn.Bus().Notify(buildEventsChannel(build.id))
 }
 
 func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {

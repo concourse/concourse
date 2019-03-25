@@ -13,7 +13,7 @@ import (
 
 const resourceResultPropertyName = "concourse:resource-result"
 
-const TaskProcessID = "resource"
+const ResourceProcessID = "resource"
 
 func RunScript(
 	ctx context.Context,
@@ -54,10 +54,10 @@ func RunScript(
 	var process garden.Process
 
 	if recoverable {
-		process, err = container.Attach(TaskProcessID, processIO)
+		process, err = container.Attach(ResourceProcessID, processIO)
 		if err != nil {
 			process, err = container.Run(garden.ProcessSpec{
-				ID:   TaskProcessID,
+				ID:   ResourceProcessID,
 				Path: path,
 				Args: args,
 			}, processIO)

@@ -257,7 +257,7 @@ pauseToggleView pipeline hovered =
                     "0.5"
               )
             ]
-        , onLeftClick <| TogglePipelinePaused pipeline
+        , onLeftClick <| TogglePipelinePaused { teamName = pipeline.teamName, pipelineName = pipeline.name } pipeline.status
         , onMouseEnter <| PipelineButtonHover <| Just pipeline
         , onMouseLeave <| PipelineButtonHover Nothing
         ]

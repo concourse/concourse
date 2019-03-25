@@ -111,6 +111,7 @@ jobs:
     privileged: true
     file: concourse-pr/ci/tasks/docker-compose-testflight.yml
     input_mapping: {concourse: built-concourse}
+    params: {BUILD: true}
     tags: [pr]
 
 - name: watsjs
@@ -151,18 +152,17 @@ jobs:
     privileged: true
     file: concourse-pr/ci/tasks/docker-compose-watsjs.yml
     input_mapping: {concourse: built-concourse}
+    params: {BUILD: true}
     tags: [pr]
 
 - name: baggageclaim
   public: true
   on_failure:
     put: baggageclaim-pr
-    inputs: [concourse-pr]
     params: {path: baggageclaim-pr, status: failure, context: baggageclaim}
     tags: [pr]
   on_success:
     put: baggageclaim-pr
-    inputs: [concourse-pr]
     params: {path: baggageclaim-pr, status: success, context: baggageclaim}
     tags: [pr]
   plan:
@@ -171,7 +171,6 @@ jobs:
     version: every
     tags: [pr]
   - put: baggageclaim-pr
-    inputs: [concourse-pr]
     params: {path: baggageclaim-pr, status: pending, context: baggageclaim}
     tags: [pr]
   - task: unit-linux

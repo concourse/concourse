@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/worker"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -35,6 +36,7 @@ type scanRunnerFactory struct {
 
 func NewScanRunnerFactory(
 	conn db.Conn,
+	pool worker.Pool,
 	resourceFactory resource.ResourceFactory,
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
@@ -42,25 +44,30 @@ func NewScanRunnerFactory(
 	clock clock.Clock,
 	externalURL string,
 	variables creds.Variables,
+	strategy worker.ContainerPlacementStrategy,
 ) ScanRunnerFactory {
 	resourceTypeScanner := NewResourceTypeScanner(
 		conn,
 		clock,
+		pool,
 		resourceFactory,
 		resourceTypeCheckingInterval,
 		dbPipeline,
 		externalURL,
 		variables,
+		strategy,
 	)
 
 	resourceScanner := NewResourceScanner(
 		conn,
 		clock,
+		pool,
 		resourceFactory,
 		resourceCheckingInterval,
 		dbPipeline,
 		externalURL,
 		variables,
+		strategy,
 	)
 	return &scanRunnerFactory{
 		clock:               clock,

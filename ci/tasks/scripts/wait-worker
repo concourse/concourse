@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# vim: set ft=sh
+
+set -u
+
+readonly ATC_URL="${ATC_URL:-}"
+readonly MAX_TICKS="${MAX_TICKS:-}"
+readonly TARGET_NAME="wait-worker-"$RANDOM
+
+main() {
+  check_environment_variables
+  create_target
+  try_until_responding
+  echo 'ok!'
+}
+
+check_environment_variables() {
+  if [[ -z $ATC_URL ]]; then
+    echo "ATC_URL environment variable must be specified"
+    exit 1
+  fi
+
+  if [[ -z $ATC_ADMIN_USERNAME ]]; then
+    echo "ATC_ADMIN_USERNAME environment variable must be specified"
+    exit 1
+  fi
+
+  if [[ -z $ATC_ADMIN_PASSWORD ]]; then
+    echo "ATC_ADMIN_PASSWORD environment variable must be specified"
+    exit 1
+  fi
+
+  if [[ -z $MAX_TICKS ]]; then
+    echo "MAX_TICKS environment variable must be specified"
+    exit 1
+  fi
+}
+
+create_target() {
+  fly -t $TARGET_NAME login -c $ATC_URL -u $ATC_ADMIN_USERNAME -p $ATC_ADMIN_PASSWORD
+}
+
+try_until_responding() {
+  local ticks=0
+
+  echo "waiting for a worker to be running"
+
+  until $(fly -t $TARGET_NAME workers | grep 'running' &> /dev/null); do
+    echo -n
+
+    ((ticks++))
+
+    if [[ $ticks -ge $MAX_TICKS ]]; then
+      echo "giving up. :("
+      exit 1
+    fi
+
+    sleep 1
+done
+}
+
+main

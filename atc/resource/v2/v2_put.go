@@ -59,10 +59,10 @@ func (r *resource) Put(
 
 	var process garden.Process
 
-	process, err = r.container.Attach(TaskProcessID, processIO)
+	process, err = r.container.Attach(ResourceProcessID, processIO)
 	if err != nil {
 		process, err = r.container.Run(garden.ProcessSpec{
-			ID:   TaskProcessID,
+			ID:   ResourceProcessID,
 			Path: r.info.Artifacts.Put,
 			Dir:  "put",
 		}, processIO)

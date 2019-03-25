@@ -2,61 +2,71 @@ package exec
 
 import (
 	"context"
-	"io"
+	"fmt"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type ArtifactOutputStep struct {
-	id       atc.PlanID
-	name     worker.ArtifactName
-	delegate BuildStepDelegate
+type ArtifactNotFoundErr string
+
+func (e ArtifactNotFoundErr) Error() string {
+	return fmt.Sprintf("artifact '%s' not found", e)
 }
 
-func ArtifactOutput(id atc.PlanID, name worker.ArtifactName, delegate BuildStepDelegate) Step {
+type ArtifactOutputStep struct {
+	plan         atc.Plan
+	build        db.Build
+	workerClient worker.Client
+	delegate     BuildStepDelegate
+	succeeded    bool
+}
+
+func NewArtifactOutputStep(plan atc.Plan, build db.Build, workerClient worker.Client, delegate BuildStepDelegate) Step {
 	return &ArtifactOutputStep{
-		id:       id,
-		name:     name,
-		delegate: delegate,
+		plan:         plan,
+		build:        build,
+		workerClient: workerClient,
+		delegate:     delegate,
 	}
 }
 
 func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
-		"plan-id": step.id,
-		"source":  step.name,
+		"plan-id": step.plan.ID,
 	})
 
-	source, found := state.Artifacts().SourceFor(step.name)
+	outputName := step.plan.ArtifactOutput.Name
+
+	source, found := state.Artifacts().SourceFor(artifact.Name(outputName))
 	if !found {
-		return UnknownArtifactSourceError{
-			SourceName: step.name,
-		}
+		return ArtifactNotFoundErr(outputName)
 	}
 
-	pb := progress(string(step.name)+":", step.delegate.Stdout())
+	volume, ok := source.(worker.Volume)
+	if !ok {
+		return ArtifactNotFoundErr(outputName)
+	}
 
-	return state.SendPlanOutput(step.id, func(w io.Writer) error {
-		pb.Start()
-		defer pb.Finish()
+	artifact, err := volume.InitializeArtifact(outputName, step.build.ID())
+	if err != nil {
+		return err
+	}
 
-		logger.Debug("sending-plan-output")
-		return source.StreamTo(logger, streamDestination{io.MultiWriter(w, pb)})
+	logger.Info("initialize-artifact-from-source", lager.Data{
+		"handle":      volume.Handle(),
+		"artifact_id": artifact.ID(),
 	})
+
+	step.succeeded = true
+
+	return nil
 }
 
 func (step *ArtifactOutputStep) Succeeded() bool {
-	return true
-}
-
-type streamDestination struct {
-	w io.Writer
-}
-
-func (dest streamDestination) StreamIn(path string, src io.Reader) error {
-	_, err := io.Copy(dest.w, src)
-	return err
+	return step.succeeded
 }
