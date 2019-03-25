@@ -2,6 +2,7 @@ package algorithm_test
 
 import (
 	"compress/gzip"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -157,12 +158,23 @@ func (example Example) Run() {
 			Exec()
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = psql.Insert("builds").
-			Columns("team_id", "id", "job_id", "name", "status").
-			Values(teamID, row.BuildID, jobID, "some-name", "succeeded").
-			Suffix("ON CONFLICT DO NOTHING").
-			Exec()
-		Expect(err).ToNot(HaveOccurred())
+		var existingJobName string
+		err = psql.Select("j.name").
+			From("builds b").
+			Join("jobs j ON j.id = b.job_id").
+			Where(sq.Eq{"b.id": row.BuildID}).
+			QueryRow().
+			Scan(&existingJobName)
+		if err == sql.ErrNoRows {
+			_, err := psql.Insert("builds").
+				Columns("team_id", "id", "job_id", "name", "status").
+				Values(teamID, row.BuildID, jobID, "some-name", "succeeded").
+				Exec()
+			Expect(err).ToNot(HaveOccurred())
+		} else {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(existingJobName).To(Equal(row.Job), fmt.Sprintf("build ID %d already used", row.BuildID))
+		}
 	}
 
 	if example.LoadDB != "" {

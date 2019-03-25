@@ -96,7 +96,7 @@ func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (
 
 				// loop over the resource versions that came out of this build set
 			outputs:
-				for versionID, resourceID := range outputs {
+				for resourceID, versionID := range outputs {
 					// try to pin each candidate to the versions from this build
 					for c, candidate := range candidates {
 						if inputConfigs[c].ResourceID != resourceID {
@@ -111,7 +111,7 @@ func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (
 
 						if candidate != nil && candidate.ID != versionID {
 							// don't return here! just try the next output set. it's possible
-							// we just need to use a different (possibly older) version.
+							// we just need to use an older output set.
 							mismatch = true
 							break outputs
 						}

@@ -94,11 +94,12 @@ func (db VersionsDB) SuccessfulBuilds(jobID int) ([]int, error) {
 func (db VersionsDB) BuildOutputs(buildID int) (map[int]int, error) {
 	outputs := map[int]int{}
 
-	rows, err := psql.Select("v.id", "r.id").
+	rows, err := psql.Select("r.id", "v.id").
 		From("build_resource_config_version_outputs o").
 		Join("resources r ON r.id = o.resource_id").
 		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = o.version_md5").
 		Where(sq.Eq{"o.build_id": buildID}).
+		OrderBy("v.check_order ASC"). // last write wins
 		RunWith(db.Runner).
 		Query()
 	if err != nil {
@@ -106,20 +107,21 @@ func (db VersionsDB) BuildOutputs(buildID int) (map[int]int, error) {
 	}
 
 	for rows.Next() {
-		var versionID, resourceID int
-		err := rows.Scan(&versionID, &resourceID)
+		var resourceID, versionID int
+		err := rows.Scan(&resourceID, &versionID)
 		if err != nil {
 			return nil, err
 		}
 
-		outputs[versionID] = resourceID
+		outputs[resourceID] = versionID
 	}
 
-	rows, err = psql.Select("v.id", "r.id").
+	rows, err = psql.Select("r.id", "v.id").
 		From("build_resource_config_version_inputs i").
 		Join("resources r ON r.id = i.resource_id").
 		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = i.version_md5").
 		Where(sq.Eq{"i.build_id": buildID}).
+		OrderBy("v.check_order ASC"). // last write wins
 		RunWith(db.Runner).
 		Query()
 	if err != nil {
@@ -127,13 +129,13 @@ func (db VersionsDB) BuildOutputs(buildID int) (map[int]int, error) {
 	}
 
 	for rows.Next() {
-		var versionID, resourceID int
-		err := rows.Scan(&versionID, &resourceID)
+		var resourceID, versionID int
+		err := rows.Scan(&resourceID, &versionID)
 		if err != nil {
 			return nil, err
 		}
 
-		outputs[versionID] = resourceID
+		outputs[resourceID] = versionID
 	}
 
 	return outputs, nil
