@@ -12,21 +12,24 @@ module SubPage.SubPage exposing
 
 import Build.Build as Build
 import Build.Models
-import Callback exposing (Callback)
 import Dashboard.Dashboard as Dashboard
-import Effects exposing (Effect)
+import Dashboard.Models
+import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
 import Html exposing (Html)
 import Job.Job as Job
+import Login.Login as Login
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
+import Message.Message exposing (Message(..))
+import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
 import NotFound.Model
 import NotFound.NotFound as NotFound
 import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
-import SubPage.Msgs exposing (Msg(..))
-import Subscription exposing (Delivery(..), Interval(..), Subscription)
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 
@@ -37,7 +40,7 @@ type Model
     | ResourceModel Resource.Models.Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model.Model
-    | DashboardModel Dashboard.Model
+    | DashboardModel Dashboard.Models.Model
     | FlySuccessModel FlySuccess.Models.Model
 
 
@@ -103,12 +106,15 @@ init flags route =
                 |> Tuple.mapFirst FlySuccessModel
 
 
-handleNotFound : String -> Routes.Route -> ( Model, List Effect ) -> ( Model, List Effect )
+handleNotFound : String -> Routes.Route -> ET Model
 handleNotFound notFound route ( model, effects ) =
     case getUpdateMessage model of
         UpdateMsg.NotFound ->
-            NotFound.init { notFoundImgSrc = notFound, route = route }
-                |> Tuple.mapFirst NotFoundModel
+            let
+                ( newModel, newEffects ) =
+                    NotFound.init { notFoundImgSrc = notFound, route = route }
+            in
+            ( NotFoundModel newModel, effects ++ newEffects )
 
         UpdateMsg.AOK ->
             ( model, effects )
@@ -133,186 +139,184 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback : Callback -> Model -> ( Model, List Effect )
-handleCallback callback model =
+genericUpdate :
+    ET Build.Models.Model
+    -> ET Job.Model
+    -> ET Resource.Models.Model
+    -> ET Pipeline.Model
+    -> ET Dashboard.Models.Model
+    -> ET NotFound.Model.Model
+    -> ET FlySuccess.Models.Model
+    -> ET Model
+genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
     case model of
         BuildModel model ->
-            Build.handleCallback callback ( model, [] )
+            fBuild ( model, effects )
                 |> Tuple.mapFirst BuildModel
 
         JobModel model ->
-            Job.handleCallback callback ( model, [] )
+            fJob ( model, effects )
                 |> Tuple.mapFirst JobModel
 
         PipelineModel model ->
-            Pipeline.handleCallback callback ( model, [] )
+            fPipe ( model, effects )
                 |> Tuple.mapFirst PipelineModel
 
         ResourceModel model ->
-            Resource.handleCallback callback ( model, [] )
+            fRes ( model, effects )
                 |> Tuple.mapFirst ResourceModel
 
         DashboardModel model ->
-            Dashboard.handleCallback callback ( model, [] )
+            fDash ( model, effects )
                 |> Tuple.mapFirst DashboardModel
 
         FlySuccessModel model ->
-            FlySuccess.handleCallback callback ( model, [] )
+            fFS ( model, effects )
                 |> Tuple.mapFirst FlySuccessModel
 
         NotFoundModel model ->
-            NotFound.handleCallback callback ( model, [] )
+            fNF ( model, effects )
                 |> Tuple.mapFirst NotFoundModel
 
 
-handleDelivery :
-    String
-    -> Routes.Route
-    -> Delivery
-    -> Model
-    -> ( Model, List Effect )
-handleDelivery notFound route delivery model =
-    case model of
-        JobModel model ->
-            Job.handleDelivery delivery ( model, [] )
-                |> Tuple.mapFirst JobModel
-                |> handleNotFound notFound route
+handleCallback : Callback -> ET Model
+handleCallback callback =
+    genericUpdate
+        (Build.handleCallback callback)
+        (Job.handleCallback callback)
+        (Resource.handleCallback callback)
+        (Pipeline.handleCallback callback)
+        (Dashboard.handleCallback callback)
+        identity
+        (FlySuccess.handleCallback callback)
+        >> (case callback of
+                LoggedOut (Ok ()) ->
+                    genericUpdate
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
+                        handleLoggedOut
 
-        DashboardModel model ->
-            Dashboard.handleDelivery delivery ( model, [] )
-                |> Tuple.mapFirst DashboardModel
-
-        PipelineModel model ->
-            Pipeline.handleDelivery delivery ( model, [] )
-                |> Tuple.mapFirst PipelineModel
-                |> handleNotFound notFound route
-
-        ResourceModel model ->
-            Resource.handleDelivery delivery ( model, [] )
-                |> Tuple.mapFirst ResourceModel
-                |> handleNotFound notFound route
-
-        BuildModel model ->
-            Build.handleDelivery delivery ( model, [] )
-                |> Tuple.mapFirst BuildModel
-                |> handleNotFound notFound route
-
-        FlySuccessModel _ ->
-            ( model, [] )
-
-        NotFoundModel _ ->
-            ( model, [] )
+                _ ->
+                    identity
+           )
 
 
-update :
-    String
-    -> Routes.Route
-    -> Msg
-    -> Model
-    -> ( Model, List Effect )
-update notFound route msg mdl =
-    case ( msg, mdl ) of
-        ( BuildMsg msg, BuildModel model ) ->
-            Build.update msg ( model, [] )
-                |> Tuple.mapFirst BuildModel
-                |> handleNotFound notFound route
-
-        ( JobMsg message, JobModel model ) ->
-            Job.update message ( model, [] )
-                |> Tuple.mapFirst JobModel
-                |> handleNotFound notFound route
-
-        ( PipelineMsg message, PipelineModel model ) ->
-            Pipeline.update message ( model, [] )
-                |> Tuple.mapFirst PipelineModel
-                |> handleNotFound notFound route
-
-        ( ResourceMsg message, ResourceModel model ) ->
-            Resource.update message ( model, [] )
-                |> Tuple.mapFirst ResourceModel
-                |> handleNotFound notFound route
-
-        ( DashboardMsg message, DashboardModel model ) ->
-            Dashboard.update message ( model, [] )
-                |> Tuple.mapFirst DashboardModel
-
-        ( FlySuccessMsg message, FlySuccessModel model ) ->
-            FlySuccess.update message ( model, [] )
-                |> Tuple.mapFirst FlySuccessModel
-
-        ( NotFoundMsg message, NotFoundModel model ) ->
-            NotFound.update message ( model, [] )
-                |> Tuple.mapFirst NotFoundModel
-
-        unknown ->
-            flip always (Debug.log "impossible combination" unknown) <|
-                ( mdl, [] )
+handleLoggedOut : ET { a | isUserMenuExpanded : Bool }
+handleLoggedOut ( m, effs ) =
+    ( { m | isUserMenuExpanded = False }
+    , effs
+        ++ [ NavigateTo <|
+                Routes.toString <|
+                    Routes.dashboardRoute False
+           ]
+    )
 
 
-urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
-urlUpdate route model =
-    case ( route, model ) of
-        ( Routes.Pipeline { id, groups }, PipelineModel mdl ) ->
-            mdl
-                |> Pipeline.changeToPipelineAndGroups
+handleDelivery : Delivery -> ET Model
+handleDelivery delivery =
+    genericUpdate
+        (Build.handleDelivery delivery)
+        (Job.handleDelivery delivery)
+        (Resource.handleDelivery delivery)
+        (Pipeline.handleDelivery delivery)
+        (Dashboard.handleDelivery delivery)
+        identity
+        identity
+
+
+update : Message -> ET Model
+update msg =
+    genericUpdate
+        (Login.update msg >> Build.update msg)
+        (Login.update msg >> Job.update msg)
+        (Login.update msg >> Resource.update msg)
+        (Login.update msg >> Pipeline.update msg)
+        (Login.update msg >> Dashboard.update msg)
+        (Login.update msg)
+        (Login.update msg >> FlySuccess.update msg)
+        >> (case msg of
+                GoToRoute route ->
+                    handleGoToRoute route
+
+                _ ->
+                    identity
+           )
+
+
+handleGoToRoute : Routes.Route -> ET a
+handleGoToRoute route ( a, effs ) =
+    ( a, effs ++ [ NavigateTo <| Routes.toString route ] )
+
+
+urlUpdate : Routes.Route -> ET Model
+urlUpdate route =
+    genericUpdate
+        (case route of
+            Routes.Build { id, highlight } ->
+                Build.changeToBuild
+                    { pageType = Build.Models.JobBuildPage id
+                    , highlight = highlight
+                    }
+
+            _ ->
+                identity
+        )
+        (case route of
+            Routes.Job { id, page } ->
+                Job.changeToJob { jobId = id, paging = page }
+
+            _ ->
+                identity
+        )
+        (case route of
+            Routes.Resource { id, page } ->
+                Resource.changeToResource { resourceId = id, paging = page }
+
+            _ ->
+                identity
+        )
+        (case route of
+            Routes.Pipeline { id, groups } ->
+                Pipeline.changeToPipelineAndGroups
                     { pipelineLocator = id
-                    , turbulenceImgSrc = mdl.turbulenceImgSrc
                     , selectedGroups = groups
                     }
-                |> Tuple.mapFirst PipelineModel
 
-        ( Routes.Resource { id, page }, ResourceModel mdl ) ->
-            mdl
-                |> Resource.changeToResource
-                    { resourceId = id
-                    , paging = page
-                    }
-                |> Tuple.mapFirst ResourceModel
-
-        ( Routes.Job { id, page }, JobModel mdl ) ->
-            mdl
-                |> Job.changeToJob { jobId = id, paging = page }
-                |> Tuple.mapFirst JobModel
-
-        ( Routes.Build { id, highlight }, BuildModel buildModel ) ->
-            ( { buildModel | highlight = highlight }, [] )
-                |> Build.changeToBuild (Build.Models.JobBuildPage id)
-                |> Tuple.mapFirst BuildModel
-
-        _ ->
-            ( model, [] )
+            _ ->
+                identity
+        )
+        identity
+        identity
+        identity
 
 
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState mdl =
     case mdl of
         BuildModel model ->
             Build.view userState model
-                |> Html.map BuildMsg
 
         JobModel model ->
             Job.view userState model
-                |> Html.map JobMsg
 
         PipelineModel model ->
             Pipeline.view userState model
-                |> Html.map PipelineMsg
 
         ResourceModel model ->
             Resource.view userState model
-                |> Html.map ResourceMsg
 
         DashboardModel model ->
             Dashboard.view userState model
-                |> Html.map DashboardMsg
 
         NotFoundModel model ->
             NotFound.view userState model
-                |> Html.map NotFoundMsg
 
         FlySuccessModel model ->
             FlySuccess.view userState model
-                |> Html.map FlySuccessMsg
 
 
 subscriptions : Model -> List Subscription

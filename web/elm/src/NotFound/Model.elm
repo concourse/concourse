@@ -1,7 +1,11 @@
 module NotFound.Model exposing (Model)
 
-import TopBar.Model
+import Login.Login as Login
+import Routes
 
 
 type alias Model =
-    TopBar.Model.Model { notFoundImgSrc : String }
+    Login.Model
+        { route : Routes.Route
+        , notFoundImgSrc : String
+        }

@@ -1,33 +1,33 @@
 module Main exposing (main)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
 import Concourse
-import Effects
+import Message.Effects as Effects
+import Message.Subscription as Subscription
+import Message.TopLevelMessage as Msgs
 import Navigation
-import Subscription
 
 
-main : Program Application.Flags Application.Model Msgs.Msg
+main : Program Application.Flags Application.Model Msgs.TopLevelMessage
 main =
     Navigation.programWithFlags Application.locationMsg
-        { init = \flags -> Application.init flags >> Tuple.mapSecond effectsToCmd
-        , update = \msg -> Application.update msg >> Tuple.mapSecond effectsToCmd
+        { init = \flags -> Application.init flags >> effectsToCmd
+        , update = \msg -> Application.update msg >> effectsToCmd
         , view = Application.view
         , subscriptions = Application.subscriptions >> subscriptionsToSub
         }
 
 
-effectsToCmd : List ( Effects.LayoutDispatch, Concourse.CSRFToken, Effects.Effect ) -> Cmd Msgs.Msg
-effectsToCmd =
-    List.map effectToCmd >> Cmd.batch
+effectsToCmd : ( Application.Model, List Effects.Effect ) -> ( Application.Model, Cmd Msgs.TopLevelMessage )
+effectsToCmd ( model, effs ) =
+    ( model, List.map (effectToCmd model.csrfToken) effs |> Cmd.batch )
 
 
-effectToCmd : ( Effects.LayoutDispatch, Concourse.CSRFToken, Effects.Effect ) -> Cmd Msgs.Msg
-effectToCmd ( disp, csrfToken, eff ) =
-    Effects.runEffect eff csrfToken |> Cmd.map (Msgs.Callback disp)
+effectToCmd : Concourse.CSRFToken -> Effects.Effect -> Cmd Msgs.TopLevelMessage
+effectToCmd csrfToken eff =
+    Effects.runEffect eff csrfToken |> Cmd.map Msgs.Callback
 
 
-subscriptionsToSub : List Subscription.Subscription -> Sub Msgs.Msg
+subscriptionsToSub : List Subscription.Subscription -> Sub Msgs.TopLevelMessage
 subscriptionsToSub =
     List.map Subscription.runSubscription >> Sub.batch >> Sub.map Msgs.DeliveryReceived

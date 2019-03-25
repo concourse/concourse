@@ -1,15 +1,13 @@
 module FlySuccessTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
-import Callback exposing (Callback(..))
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
-import Effects
 import Expect exposing (Expectation)
-import FlySuccess.Msgs
 import Html.Attributes as Attr
 import Http
-import SubPage.Msgs
+import Message.Callback exposing (Callback(..))
+import Message.Message
+import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -140,7 +138,6 @@ tokenSendSuccess =
     setup "when token successfully sent to fly"
         (steps whenOnFlySuccessPage
             >> Application.handleCallback
-                (Effects.SubPage 1)
                 (TokenSentToFly (Ok ()))
             >> Tuple.first
         )
@@ -151,7 +148,6 @@ tokenSendFailed =
     setup "when token failed to send to fly"
         (steps whenOnFlySuccessPage
             >> Application.handleCallback
-                (Effects.SubPage 1)
                 (TokenSentToFly (Err Http.NetworkError))
             >> Tuple.first
         )
@@ -162,10 +158,7 @@ tokenCopied =
     setup "when token copied to clipboard"
         (steps tokenSendFailed
             >> Application.update
-                (Msgs.SubMsg 1 <|
-                    SubPage.Msgs.FlySuccessMsg <|
-                        FlySuccess.Msgs.CopyToken
-                )
+                (Msgs.Update <| Message.Message.CopyToken)
             >> Tuple.first
         )
 
@@ -184,7 +177,7 @@ allCases =
 
 
 type alias Query =
-    Application.Model -> Query.Single Msgs.Msg
+    Application.Model -> Query.Single Msgs.TopLevelMessage
 
 
 topBar : Query
@@ -242,7 +235,7 @@ buttonIcon =
 
 
 type alias Assertion =
-    Query.Single Msgs.Msg -> Expectation
+    Query.Single Msgs.TopLevelMessage -> Expectation
 
 
 type alias Property =
@@ -570,10 +563,7 @@ buttonClickHandler =
     property button "sends CopyToken on click" <|
         Event.simulate Event.click
             >> Event.expect
-                (Msgs.SubMsg 1 <|
-                    SubPage.Msgs.FlySuccessMsg <|
-                        FlySuccess.Msgs.CopyToken
-                )
+                (Msgs.Update <| Message.Message.CopyToken)
 
 
 
@@ -673,15 +663,12 @@ all =
                     , selector = [ style [ ( "background-color", darkGrey ) ] ]
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.FlySuccessMsg <|
-                            FlySuccess.Msgs.CopyTokenButtonHover
-                                True
+                    Msgs.Update <|
+                        Message.Message.Hover <|
+                            Just Message.Message.CopyTokenButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.FlySuccessMsg <|
-                            FlySuccess.Msgs.CopyTokenButtonHover
-                                False
+                    Msgs.Update <|
+                        Message.Message.Hover Nothing
                 , hoveredSelector =
                     { description = "darker background"
                     , selector =

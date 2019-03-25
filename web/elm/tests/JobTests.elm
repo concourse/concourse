@@ -1,8 +1,6 @@
 module JobTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
-import Callback exposing (Callback(..))
 import Concourse exposing (Build, BuildId, BuildStatus(..), Job)
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -14,15 +12,16 @@ import DashboardTests
         )
 import Date
 import Dict
-import Effects
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
 import Job.Job as Job exposing (update)
-import Job.Msgs exposing (Msg(..))
+import Message.Callback as Callback exposing (Callback(..))
+import Message.Effects as Effects
+import Message.Message exposing (Message(..))
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.TopLevelMessage as Msgs
 import RemoteData
-import SubPage.Msgs
-import Subscription exposing (Delivery(..), Interval(..))
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -124,7 +123,6 @@ all =
                         }
                         |> Tuple.first
                         |> Application.handleCallback
-                            (Effects.SubPage 1)
                             (JobFetched <|
                                 Ok
                                     { name = "job"
@@ -188,7 +186,6 @@ all =
                 , test "loading build has spinners for inputs and outputs" <|
                     init { disabled = False, paused = False }
                         >> Application.handleCallback
-                            (Effects.SubPage 1)
                             (JobBuildsFetched <|
                                 let
                                     jobId =
@@ -264,9 +261,9 @@ all =
             , test "hover play/pause has background of the header color" <|
                 init { disabled = False, paused = False }
                     >> Application.update
-                        (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.JobMsg <|
-                                Job.Msgs.Hover Job.Msgs.Toggle
+                        (Msgs.Update <|
+                            Message.Message.Hover <|
+                                Just Message.Message.ToggleJobButton
                         )
                     >> Tuple.first
                     >> Application.view
@@ -308,13 +305,12 @@ all =
                                 }
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.Toggle
+                    Msgs.Update <|
+                        Message.Message.Hover <|
+                            Just Message.Message.ToggleJobButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                    Msgs.Update <|
+                        Message.Message.Hover Nothing
                 }
             , defineHoverBehaviour
                 { name = "play/pause button when job is paused"
@@ -344,13 +340,12 @@ all =
                                 }
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.Toggle
+                    Msgs.Update <|
+                        Message.Message.Hover <|
+                            Just Message.Message.ToggleJobButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                    Msgs.Update <|
+                        Message.Message.Hover Nothing
                 }
             , test "trigger build button has background of the header color, faded" <|
                 init { disabled = False, paused = False }
@@ -371,9 +366,9 @@ all =
             , test "hovered trigger build button has background of the header color" <|
                 init { disabled = False, paused = False }
                     >> Application.update
-                        (Msgs.SubMsg 1 <|
-                            SubPage.Msgs.JobMsg <|
-                                Job.Msgs.Hover Job.Msgs.Trigger
+                        (Msgs.Update <|
+                            Message.Message.Hover <|
+                                Just Message.Message.TriggerBuildButton
                         )
                     >> Tuple.first
                     >> Application.view
@@ -437,13 +432,12 @@ all =
                                 }
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.Trigger
+                    Msgs.Update <|
+                        Message.Message.Hover <|
+                            Just Message.Message.TriggerBuildButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                    Msgs.Update <|
+                        Message.Message.Hover Nothing
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
@@ -497,18 +491,16 @@ all =
                         ]
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.Trigger
+                    Msgs.Update <|
+                        Message.Message.Hover <|
+                            Just Message.Message.TriggerBuildButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                    Msgs.Update <|
+                        Message.Message.Hover Nothing
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
                                 jobId =
@@ -574,7 +566,6 @@ all =
             , test "outputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
                                 jobId =
@@ -679,7 +670,6 @@ all =
             , test "pagination chevrons with no pages" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (JobBuildsFetched <|
                             let
                                 jobId =
@@ -802,7 +792,6 @@ all =
                     in
                     init { disabled = False, paused = False } ()
                         |> Application.handleCallback
-                            (Effects.SubPage 1)
                             (JobBuildsFetched <|
                                 Ok
                                     { pagination =
@@ -879,13 +868,12 @@ all =
                         ]
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.PreviousPage
+                    Msgs.Update <|
+                        Message.Message.Hover <|
+                            Just Message.Message.PreviousPageButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.JobMsg <|
-                            Job.Msgs.Hover Job.Msgs.None
+                    Msgs.Update <|
+                        Message.Message.Hover Nothing
                 }
             , test "JobBuildsFetched" <|
                 \_ ->
@@ -1049,13 +1037,12 @@ all =
                     >> Application.update (Msgs.DeliveryReceived <| ClockTicked FiveSeconds 0)
                     >> Tuple.second
                     >> Expect.equal
-                        [ ( Effects.SubPage 1, csrfToken, Effects.FetchJobBuilds jobInfo Nothing )
-                        , ( Effects.SubPage 1, csrfToken, Effects.FetchJob jobInfo )
+                        [ Effects.FetchJobBuilds jobInfo Nothing
+                        , Effects.FetchJob jobInfo
                         ]
             , test "on one-second timer, updates build timestamps" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
-                        (Effects.SubPage 1)
                         (Callback.JobBuildsFetched <|
                             Ok
                                 { content = [ someBuild ]

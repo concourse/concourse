@@ -1,4 +1,4 @@
-port module Subscription exposing
+port module Message.Subscription exposing
     ( Delivery(..)
     , Interval(..)
     , Subscription(..)
@@ -11,6 +11,7 @@ import Json.Decode
 import Json.Encode
 import Keyboard
 import Mouse
+import Routes
 import Time
 import Window
 
@@ -53,6 +54,7 @@ type Delivery
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
     | EventsReceived (Result String (List BuildEventEnvelope))
+    | RouteChanged Routes.Route
     | ElementVisible ( String, Bool )
 
 

@@ -1,6 +1,5 @@
 module Build.Styles exposing
     ( abortButton
-    , abortIcon
     , firstOccurrenceTooltip
     , firstOccurrenceTooltipArrow
     , header
@@ -9,7 +8,6 @@ module Build.Styles exposing
     , stepHeaderIcon
     , stepStatusIcon
     , triggerButton
-    , triggerIcon
     , triggerTooltip
     )
 
@@ -115,18 +113,6 @@ button =
     ]
 
 
-triggerIcon : Bool -> List ( String, String )
-triggerIcon hovered =
-    [ ( "width", "40px" )
-    , ( "height", "40px" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-image"
-      , "url(/public/images/ic-add-circle-outline-white.svg)"
-      )
-    , ( "background-repeat", "no-repeat" )
-    ]
-
-
 triggerTooltip : List ( String, String )
 triggerTooltip =
     [ ( "position", "absolute" )
@@ -139,18 +125,6 @@ triggerTooltip =
     , ( "padding", "10px" )
     , ( "text-align", "right" )
     , ( "pointer-events", "none" )
-    ]
-
-
-abortIcon : Bool -> List ( String, String )
-abortIcon hovered =
-    [ ( "width", "40px" )
-    , ( "height", "40px" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-image"
-      , "url(/public/images/ic-abort-circle-outline-white.svg)"
-      )
-    , ( "background-repeat", "no-repeat" )
     ]
 
 
@@ -190,17 +164,9 @@ stepHeaderIcon icon =
     ]
 
 
-stepStatusIcon : String -> List ( String, String )
-stepStatusIcon image =
-    [ ( "height", "28px" )
-    , ( "width", "28px" )
-    , ( "background-image"
-      , "url(/public/images/" ++ image ++ ".svg)"
-      )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-size", "14px 14px" )
-    ]
+stepStatusIcon : List ( String, String )
+stepStatusIcon =
+    [ ( "background-size", "14px 14px" ) ]
 
 
 firstOccurrenceTooltip : List ( String, String )
