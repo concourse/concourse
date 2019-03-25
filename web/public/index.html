@@ -267,6 +267,20 @@
       app.ports.scrollDown.subscribe(function() {
         window.scrollBy(0, 60);
       });
+
+      app.ports.setFavicon.subscribe(function(url) {
+        var oldIcon = document.getElementById("favicon");
+        var newIcon = document.createElement("link");
+        newIcon.id = "favicon";
+        newIcon.rel = "shortcut icon";
+        newIcon.href = url;
+        if (oldIcon) {
+          document.head.removeChild(oldIcon);
+        }
+
+        document.head.appendChild(newIcon);
+      });
+
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

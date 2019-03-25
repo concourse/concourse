@@ -8,10 +8,10 @@ port module Message.Effects exposing
     )
 
 import Concourse
+import Concourse.BuildStatus
 import Concourse.Pagination exposing (Page, Paginated)
 import Dashboard.Group.Models
 import Dom
-import Favicon
 import Json.Encode
 import Message.Callback exposing (Callback(..))
 import Message.Message exposing (VersionToggleAction(..))
@@ -86,6 +86,9 @@ port scrollDown : () -> Cmd msg
 
 
 port checkIsVisible : String -> Cmd msg
+
+
+port setFavicon : String -> Cmd msg
 
 
 type alias StickyHeaderConfig =
@@ -356,8 +359,7 @@ runEffect effect csrfToken =
                 |> Task.attempt UserFetched
 
         SetFavIcon status ->
-            Favicon.set status
-                |> Task.perform (always EmptyCallback)
+            setFavicon (faviconName status)
 
         DoAbortBuild buildId ->
             Network.Build.abort buildId csrfToken
@@ -410,3 +412,13 @@ scrollInDirection dir =
 
         ToId id ->
             scrollIntoView id
+
+
+faviconName : Maybe Concourse.BuildStatus -> String
+faviconName status =
+    case status of
+        Just status ->
+            "/public/images/favicon-" ++ Concourse.BuildStatus.show status ++ ".png"
+
+        Nothing ->
+            "/public/images/favicon.png"
