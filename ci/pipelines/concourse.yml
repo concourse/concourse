@@ -623,6 +623,8 @@ jobs:
       - bpm-release/*.tgz
       stemcells:
       - gcp-xenial-stemcell/*.tgz
+      vars:
+        deployment_name: concourse-smoke
   - task: discover-bosh-endpoint-info
     file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
     image: unit-image
