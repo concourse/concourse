@@ -416,7 +416,9 @@ view userState model =
                         [ Login.view userState model False ]
                    )
         , Html.div
-            [ id "page-below-top-bar", style Views.Styles.pageBelowTopBar ]
+            [ id "page-below-top-bar"
+            , style <| Views.Styles.pageBelowTopBar <| Routes.Dashboard (Routes.Normal Nothing)
+            ]
             (dashboardView model)
         ]
 

@@ -1149,14 +1149,7 @@ testTopBarPositioning pageName url =
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has
                         [ style
-                            -- this padding ugliness is necessary because pipeline's page is weird and not offset
-                            [ ( "padding-top"
-                              , if pageName == "Pipeline" || pageName == "Build" then
-                                    "0"
-
-                                else
-                                    "54px"
-                              )
+                            [ ( "padding-top", "54px" )
                             , ( "height", "100%" )
                             ]
                         ]

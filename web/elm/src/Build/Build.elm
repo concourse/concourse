@@ -754,6 +754,21 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
 
 view : UserState -> Model -> Html Message
 view userState model =
+    let
+        route =
+            case model.page of
+                OneOffBuildPage buildId ->
+                    Routes.OneOffBuild
+                        { id = buildId
+                        , highlight = model.highlight
+                        }
+
+                JobBuildPage buildId ->
+                    Routes.Build
+                        { id = buildId
+                        , highlight = model.highlight
+                        }
+    in
     Html.div
         [ style Views.Styles.pageIncludingTopBar
         , id "page-including-top-bar"
@@ -763,24 +778,12 @@ view userState model =
             , style <| Views.Styles.topBar False
             ]
             [ TopBar.concourseLogo
-            , TopBar.breadcrumbs <|
-                case model.page of
-                    OneOffBuildPage buildId ->
-                        Routes.OneOffBuild
-                            { id = buildId
-                            , highlight = model.highlight
-                            }
-
-                    JobBuildPage buildId ->
-                        Routes.Build
-                            { id = buildId
-                            , highlight = model.highlight
-                            }
+            , TopBar.breadcrumbs route
             , Login.view userState model False
             ]
         , Html.div
             [ id "page-below-top-bar"
-            , style Views.Styles.pipelinePageBelowTopBar
+            , style <| Views.Styles.pageBelowTopBar route
             ]
             [ viewBuildPage model ]
         ]
@@ -795,7 +798,12 @@ viewBuildPage model =
                 , attribute "data-build-name" currentBuild.build.name
                 ]
                 [ viewBuildHeader currentBuild.build model
-                , Html.div [ class "scrollable-body build-body" ] <|
+                , Html.div
+                    [ class "scrollable-body build-body"
+                    , id "build-body"
+                    , style Styles.body
+                    ]
+                  <|
                     [ viewBuildPrep currentBuild.prep
                     , Html.Lazy.lazy2 viewBuildOutput currentBuild.build <|
                         currentBuild.output

@@ -7,11 +7,11 @@ module Views.Styles exposing
     , pageHeaderHeight
     , pageIncludingTopBar
     , pauseToggleIcon
-    , pipelinePageBelowTopBar
     , topBar
     )
 
 import Colors
+import Routes
 
 
 pageHeaderHeight : Float
@@ -27,21 +27,24 @@ pageIncludingTopBar =
     ]
 
 
-pageBelowTopBar : List ( String, String )
-pageBelowTopBar =
+pageBelowTopBar : Routes.Route -> List ( String, String )
+pageBelowTopBar route =
     [ ( "padding-top", "54px" )
     , ( "height", "100%" )
-    , ( "padding-bottom", "50px" )
-    , ( "box-sizing", "border-box" )
-    , ( "display", "flex" )
     ]
+        ++ (case route of
+                Routes.Pipeline _ ->
+                    [ ( "box-sizing", "border-box" ) ]
 
+                Routes.Dashboard _ ->
+                    [ ( "box-sizing", "border-box" )
+                    , ( "display", "flex" )
+                    , ( "padding-bottom", "50px" )
+                    ]
 
-pipelinePageBelowTopBar : List ( String, String )
-pipelinePageBelowTopBar =
-    [ ( "padding-top", "0" )
-    , ( "height", "100%" )
-    ]
+                _ ->
+                    []
+           )
 
 
 topBar : Bool -> List ( String, String )

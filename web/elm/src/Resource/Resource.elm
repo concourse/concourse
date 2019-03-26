@@ -642,6 +642,13 @@ permalink versionedResources =
 
 view : UserState -> Model -> Html Message
 view userState model =
+    let
+        route =
+            Routes.Resource
+                { id = model.resourceIdentifier
+                , page = Nothing
+                }
+    in
     Html.div []
         [ Html.div
             [ style Views.Styles.pageIncludingTopBar
@@ -652,16 +659,12 @@ view userState model =
                 , style <| Views.Styles.topBar False
                 ]
                 [ TopBar.concourseLogo
-                , TopBar.breadcrumbs <|
-                    Routes.Resource
-                        { id = model.resourceIdentifier
-                        , page = Nothing
-                        }
+                , TopBar.breadcrumbs route
                 , Login.view userState model False
                 ]
             , Html.div
                 [ id "page-below-top-bar"
-                , style Resource.Styles.pageBelowTopBar
+                , style <| Views.Styles.pageBelowTopBar route
                 ]
                 [ subpageView userState model
                 , commentBar userState model

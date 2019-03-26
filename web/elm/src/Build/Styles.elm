@@ -1,5 +1,6 @@
 module Build.Styles exposing
     ( abortButton
+    , body
     , firstOccurrenceTooltip
     , firstOccurrenceTooltipArrow
     , header
@@ -22,6 +23,7 @@ header : Concourse.BuildStatus -> List ( String, String )
 header status =
     [ ( "display", "flex" )
     , ( "justify-content", "space-between" )
+    , ( "height", "60px" )
     , ( "background"
       , case status of
             Concourse.BuildStatusStarted ->
@@ -42,6 +44,12 @@ header status =
             Concourse.BuildStatusAborted ->
                 Colors.aborted
       )
+    ]
+
+
+body : List ( String, String )
+body =
+    [ ( "padding-top", "104px" ) -- 64px build header + 30px builds list + 10px
     ]
 
 

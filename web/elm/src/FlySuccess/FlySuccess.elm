@@ -26,6 +26,7 @@ import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import RemoteData
+import Routes
 import UserState exposing (UserState)
 import Views.Icon as Icon
 import Views.Styles
@@ -101,7 +102,10 @@ view userState model =
                 [ TopBar.concourseLogo
                 , Login.view userState model False
                 ]
-            , Html.div [ id "page-below-top-bar", style Views.Styles.pageBelowTopBar ]
+            , Html.div
+                [ id "page-below-top-bar"
+                , style <| Views.Styles.pageBelowTopBar <| Routes.FlySuccess { flyPort = Nothing }
+                ]
                 [ Html.div
                     [ id "success-card"
                     , style Styles.card

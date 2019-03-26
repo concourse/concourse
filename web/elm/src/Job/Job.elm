@@ -390,6 +390,13 @@ isRunning build =
 
 view : UserState -> Model -> Html Message
 view userState model =
+    let
+        route =
+            Routes.Job
+                { id = model.jobIdentifier
+                , page = model.currentPage
+                }
+    in
     Html.div []
         [ Html.div
             [ style Views.Styles.pageIncludingTopBar
@@ -400,15 +407,13 @@ view userState model =
                 , style <| Views.Styles.topBar False
                 ]
                 [ TopBar.concourseLogo
-                , TopBar.breadcrumbs <|
-                    Routes.Job
-                        { id = model.jobIdentifier
-                        , page = model.currentPage
-                        }
+                , TopBar.breadcrumbs route
                 , Login.view userState model False
                 ]
             , Html.div
-                [ id "page-below-top-bar", style Styles.pageBelowTopBar ]
+                [ id "page-below-top-bar"
+                , style <| Views.Styles.pageBelowTopBar route
+                ]
                 [ viewMainJobsSection model ]
             ]
         ]

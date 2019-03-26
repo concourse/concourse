@@ -609,6 +609,14 @@ all =
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has [ id "login-component" ]
             ]
+        , test "page below top bar has padding to accomodate top bar" <|
+            \_ ->
+                pageLoad
+                    |> Tuple.first
+                    |> Build.view UserState.UserStateLoggedOut
+                    |> Query.fromHtml
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has [ style [ ( "padding-top", "54px" ) ] ]
         , describe "after build is fetched" <|
             let
                 givenBuildFetched _ =
@@ -620,6 +628,13 @@ all =
                     >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.has [ id "build-header" ]
+            , test "page body has padding to accomodate header" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> Build.view UserState.UserStateLoggedOut
+                    >> Query.fromHtml
+                    >> Query.find [ id "build-body" ]
+                    >> Query.has [ style [ ( "padding-top", "104px" ) ] ]
             , test "fetches build history and job details after build is fetched" <|
                 givenBuildFetched
                     >> Tuple.second
@@ -644,6 +659,14 @@ all =
                             >> Expect.true
                                 "expected effect was not in the list"
                         ]
+            , test "header is 60px tall" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> Build.view UserState.UserStateLoggedOut
+                    >> Query.fromHtml
+                    >> Query.find [ id "build-header" ]
+                    >> Query.has
+                        [ style [ ( "height", "60px" ) ] ]
             , test "header lays out horizontally" <|
                 givenBuildFetched
                     >> Tuple.first

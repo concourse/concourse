@@ -374,6 +374,13 @@ subscriptions model =
 
 view : UserState -> Model -> Html Message
 view userState model =
+    let
+        route =
+            Routes.Pipeline
+                { id = model.pipelineLocator
+                , groups = model.selectedGroups
+                }
+    in
     Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
         [ Html.div
             [ Html.Attributes.style Views.Styles.pageIncludingTopBar
@@ -386,11 +393,7 @@ view userState model =
                         isPaused model.pipeline
                 ]
                 [ TopBar.concourseLogo
-                , TopBar.breadcrumbs <|
-                    Routes.Pipeline
-                        { id = model.pipelineLocator
-                        , groups = model.selectedGroups
-                        }
+                , TopBar.breadcrumbs route
                 , viewPinMenu
                     { pinnedResources = getPinnedResources model
                     , pipeline = model.pipelineLocator
@@ -413,7 +416,7 @@ view userState model =
                 , Login.view userState model <| isPaused model.pipeline
                 ]
             , Html.div
-                [ Html.Attributes.style Views.Styles.pipelinePageBelowTopBar
+                [ Html.Attributes.style <| Views.Styles.pageBelowTopBar route
                 , id "page-below-top-bar"
                 ]
                 [ viewSubPage model ]
