@@ -65,6 +65,8 @@ import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
 import StrictEvents
+import Svg exposing (Svg)
+import Svg.Attributes as SvgAttributes
 import Time
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
@@ -689,17 +691,25 @@ header model =
                 Just icon ->
                     Html.div
                         [ style
-                            [ ( "background-image", "url(" ++ icon ++ ")" )
-                            , ( "background-repeat", "no-repeat" )
-                            , ( "background-size", "contain" )
-                            , ( "display", "inline-block" )
-                            , ( "vertical-align", "middle" )
+                            [ ( "margin-right", toString 10 ++ "px" )
                             , ( "height", toString Resource.Styles.headerHeight ++ "px" )
-                            , ( "width", toString Resource.Styles.headerHeight ++ "px" )
-                            , ( "margin-right", "10px" )
+                            , ( "width", toString (Resource.Styles.headerHeight - 2 * 10) ++ "px" )
                             ]
                         ]
-                        []
+                        [ Html.i
+                            [ class icon
+                            , attribute "data-fa-symbol" "resource-icon"
+                            ]
+                            []
+                        , Svg.svg
+                            [ style
+                                [ ( "margin-top", toString 10 ++ "px" )
+                                , ( "height", toString (Resource.Styles.headerHeight - 2 * 10) ++ "px" )
+                                , ( "width", toString (Resource.Styles.headerHeight - 2 * 10) ++ "px" )
+                                ]
+                            ]
+                            [ Svg.use [ SvgAttributes.xlinkHref "#resource-icon" ] [] ]
+                        ]
 
                 Nothing ->
                     Html.div [] []

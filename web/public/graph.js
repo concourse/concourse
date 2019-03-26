@@ -605,16 +605,34 @@ GraphNode.prototype.width = function() {
 
     var textNode = svgNode.select("text").node();
     var imageNode = svgNode.select("image").node();
+    var iconNode = svgNode.select("use").node();
 
-    if (textNode && imageNode) {
-      this._cachedWidth = textNode.getBBox().width + NODE_PADDING + imageNode.getBBox().width;
-    } else if (textNode) {
-      this._cachedWidth = textNode.getBBox().width;
-    } else if (imageNode) {
-      this._cachedWidth = imageNode.getBBox().width;
-    } else {
+    var width = 0;
+
+    if (textNode) {
+      width += textNode.getBBox().width;
+    }
+    if (imageNode) {
+      width += imageNode.getBBox().width;
+    }
+    if (iconNode) {
+      width += Math.max(iconNode.getBBox().width, iconNode.width.baseVal.value);
+    }
+
+    if (textNode && imageNode && iconNode) {
+      width += NODE_PADDING * 2;
+    }
+    if ((textNode && imageNode && !iconNode)
+        || (textNode && !imageNode && iconNode)
+        || (!textNode && imageNode && iconNode)) {
+      width += NODE_PADDING;
+    }
+
+    if (width == 0) {
       return 0;
     }
+
+    this._cachedWidth = width;
   }
 
   return this._cachedWidth + (NODE_PADDING * 2);

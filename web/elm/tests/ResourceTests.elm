@@ -338,7 +338,9 @@ all =
                             |> Query.children []
                             |> Query.index 0
                             |> Query.find [ tag "div" ]
-                            |> Query.has [ style [ ( "background-image", "url(" ++ resourceIcon ++ ")" ) ] ]
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ class resourceIcon ]
                 ]
             ]
         , describe "page header" <|
