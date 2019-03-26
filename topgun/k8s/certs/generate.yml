@@ -1,0 +1,13 @@
+variables:
+  - name: default_ca
+    type: certificate
+    options:
+      common_name: concourse-test-ca
+      is_ca: true
+  - name: service_ssl
+    type: certificate
+    options:
+      ca: default_ca
+      common_name: 127.0.0.1
+#      alternative_names: [my-concourse-test.com]
+      alternative_names: [127.0.0.1]
