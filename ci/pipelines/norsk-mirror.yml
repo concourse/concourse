@@ -1,0 +1,106 @@
+---
+resources:
+- name: latest-scan-status
+  type: git
+  source:
+    private_key: ((norsk_deploy_key))
+    uri: git@github.com:pivotal/oslo-scan-status.git
+    paths: [ p-concourse/* ]
+- name: 4.2.X-scan-status
+  type: git
+  source:
+    private_key: ((norsk_deploy_key))
+    uri: git@github.com:pivotal/oslo-scan-status.git
+    paths: [ p-concourse-4.2.x/* ]
+- name: 3.13.X-scan-status
+  type: git
+  source:
+    private_key: ((norsk_deploy_key))
+    uri: git@github.com:pivotal/oslo-scan-status.git
+    paths: [ p-concourse-3.13.x/* ]
+
+jobs:
+- name: check-p-concourse-latest
+  plan:
+  - get: latest-scan-status
+    trigger: true
+  - task: check-status-file
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: { repository: ubuntu }
+      inputs:
+      - name: latest-scan-status
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          status_file=latest-scan-status/p-concourse/status.json
+          cat "$status_file"
+          num_failures="$(grep -c '"status": "failed"' $status_file)"
+          echo ""
+          if [ "$num_failures" -eq 0 ]; then
+            echo "No failures found"
+            exit 0
+          else
+            echo "$num_failures failures found! Please check your norsk-viewers pipelines specified in the status.json and resolve the errors. Contact the OSL team if you need help."
+            exit 1
+          fi
+- name: check-p-concourse-4.2.X
+  plan:
+  - get: 4.2.X-scan-status
+    trigger: true
+  - task: check-status-file
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: { repository: ubuntu }
+      inputs:
+      - name: 4.2.X-scan-status
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          status_file=4.2.X-scan-status/p-concourse-4.2.x/status.json
+          cat "$status_file"
+          num_failures="$(grep -c '"status": "failed"' $status_file)"
+          echo ""
+          if [ "$num_failures" -eq 0 ]; then
+            echo "No failures found"
+            exit 0
+          else
+            echo "$num_failures failures found! Please check your norsk-viewers pipelines specified in the status.json and resolve the errors. Contact the OSL team if you need help."
+            exit 1
+          fi
+- name: check-p-concourse-3.13.X
+  plan:
+  - get: 3.13.X-scan-status
+    trigger: true
+  - task: check-status-file
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: { repository: ubuntu }
+      inputs:
+      - name: 3.13.X-scan-status
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          status_file=3.13.X-scan-status/p-concourse-3.13.x/status.json
+          cat "$status_file"
+          num_failures="$(grep -c '"status": "failed"' $status_file)"
+          echo ""
+          if [ "$num_failures" -eq 0 ]; then
+            echo "No failures found"
+            exit 0
+          else
+            echo "$num_failures failures found! Please check your norsk-viewers pipelines specified in the status.json and resolve the errors. Contact the OSL team if you need help."
+            exit 1
+          fi
