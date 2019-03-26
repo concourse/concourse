@@ -92,37 +92,15 @@ func (db VersionsDB) SuccessfulBuilds(jobID int) ([]int, error) {
 	return buildIDs, nil
 }
 
-func (db VersionsDB) BuildOutputs(buildID int) (map[int]int, error) {
-	outputs := map[int]int{}
+func (db VersionsDB) BuildOutputs(buildID int) ([]LegacyResourceVersion, error) {
+	uniqOutputs := map[int]LegacyResourceVersion{}
 
-	rows, err := psql.Select("r.id", "v.id").
-		From("build_resource_config_version_outputs o").
-		Join("resources r ON r.id = o.resource_id").
-		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = o.version_md5").
-		Where(sq.Eq{"o.build_id": buildID}).
-		OrderBy("v.check_order ASC"). // last write wins
-		RunWith(db.Runner).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		var resourceID, versionID int
-		err := rows.Scan(&resourceID, &versionID)
-		if err != nil {
-			return nil, err
-		}
-
-		outputs[resourceID] = versionID
-	}
-
-	rows, err = psql.Select("r.id", "v.id").
+	rows, err := psql.Select("r.id", "v.id", "v.check_order").
 		From("build_resource_config_version_inputs i").
 		Join("resources r ON r.id = i.resource_id").
 		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = i.version_md5").
 		Where(sq.Eq{"i.build_id": buildID}).
-		OrderBy("v.check_order ASC"). // last write wins
+		OrderBy("v.check_order ASC").
 		RunWith(db.Runner).
 		Query()
 	if err != nil {
@@ -130,13 +108,41 @@ func (db VersionsDB) BuildOutputs(buildID int) (map[int]int, error) {
 	}
 
 	for rows.Next() {
-		var resourceID, versionID int
-		err := rows.Scan(&resourceID, &versionID)
+		var output LegacyResourceVersion
+		err := rows.Scan(&output.ResourceID, &output.VersionID, &output.CheckOrder)
 		if err != nil {
 			return nil, err
 		}
 
-		outputs[resourceID] = versionID
+		uniqOutputs[output.ResourceID] = output
+	}
+
+	rows, err = psql.Select("r.id", "v.id", "v.check_order").
+		From("build_resource_config_version_outputs o").
+		Join("resources r ON r.id = o.resource_id").
+		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = o.version_md5").
+		Where(sq.Eq{"o.build_id": buildID}).
+		OrderBy("v.check_order ASC").
+		RunWith(db.Runner).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var output LegacyResourceVersion
+		err := rows.Scan(&output.ResourceID, &output.VersionID, &output.CheckOrder)
+		if err != nil {
+			return nil, err
+		}
+
+		uniqOutputs[output.ResourceID] = output
+	}
+
+	outputs := []LegacyResourceVersion{}
+
+	for _, o := range uniqOutputs {
+		outputs = append(outputs, o)
 	}
 
 	return outputs, nil

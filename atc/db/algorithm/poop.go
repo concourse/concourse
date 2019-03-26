@@ -1,7 +1,5 @@
 package algorithm
 
-import "log"
-
 // NOTE: we're effectively ignoring check_order here and relying on
 // build history - be careful when doing #413 that we don't go
 // 'back in time'
@@ -27,7 +25,7 @@ func newVersion(id int) *version {
 func Resolve(db *VersionsDB, inputConfigs InputConfigs) ([]*version, bool, error) {
 	versions := make([]*version, len(inputConfigs))
 
-	resolved, err := resolve(db, inputConfigs, versions)
+	resolved, err := resolve(0, db, inputConfigs, versions)
 	if err != nil {
 		return nil, false, err
 	}
@@ -39,7 +37,7 @@ func Resolve(db *VersionsDB, inputConfigs InputConfigs) ([]*version, bool, error
 	return nil, false, nil
 }
 
-func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (bool, error) {
+func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (bool, error) {
 	// NOTE: this is probably made most efficient by doing it in order of inputs
 	// with jobs that have the broadest output sets, so that we can pin the most
 	// at once
@@ -51,18 +49,38 @@ func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (
 	// the same thing (i.e. constantly re-triggered build)
 
 	for i, inputConfig := range inputConfigs {
+		debug := func(messages ...interface{}) {
+			// log.Println(
+			// 	append(
+			// 		[]interface{}{
+			// 			strings.Repeat("-", depth) + fmt.Sprintf("[%s]", inputConfig.Name),
+			// 		},
+			// 		messages...,
+			// 	)...,
+			// )
+		}
+
 		if len(inputConfig.Passed) == 0 {
 			// coming from recursive call; already set to the latest version
 			if candidates[i] != nil {
 				continue
 			}
 
-			// there are no passed constraints, so just take the latest version
-			versionID, err := db.LatestVersionOfResource(inputConfig.ResourceID)
-			if err != nil {
-				return false, nil
+			var versionID int
+			if inputConfig.PinnedVersionID != 0 {
+				// pinned
+				// TODO: do we need to verify that the id exists?
+				versionID = inputConfig.PinnedVersionID
+			} else {
+				// there are no passed constraints, so just take the latest version
+				var err error
+				versionID, err = db.LatestVersionOfResource(inputConfig.ResourceID)
+				if err != nil {
+					return false, nil
+				}
 			}
 
+			debug("setting candidate", i, "to unconstrained version", versionID)
 			candidates[i] = newVersion(versionID)
 			continue
 		}
@@ -71,9 +89,14 @@ func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (
 			if candidates[i] != nil {
 				// coming from recursive call; we've already got a candidate
 				if candidates[i].VouchedForBy[jobID] {
+					debug("job", jobID, i, "already vouched for", candidates[i].ID)
 					// we've already been here; continue to the next job
 					continue
+				} else {
+					debug("job", jobID, i, "has not vouched for", candidates[i].ID)
 				}
+			} else {
+				debug(i, "has no candidate yet")
 			}
 
 			// loop over previous output sets, latest first
@@ -88,7 +111,7 @@ func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (
 					return false, err
 				}
 
-				log.Println("OUTPUTS", jobID, buildID, outputs)
+				debug("job", jobID, "trying build", jobID, buildID)
 
 				restore := map[int]*version{}
 
@@ -96,22 +119,26 @@ func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (
 
 				// loop over the resource versions that came out of this build set
 			outputs:
-				for resourceID, versionID := range outputs {
+				for _, output := range outputs {
+					debug("build", buildID, "output", output.ResourceID, output.VersionID)
+
 					// try to pin each candidate to the versions from this build
 					for c, candidate := range candidates {
-						if inputConfigs[c].ResourceID != resourceID {
+						if inputConfigs[c].ResourceID != output.ResourceID {
 							// unrelated to this output
 							continue
 						}
 
 						if !inputConfigs[c].Passed.Contains(jobID) {
 							// this candidate is unaffected by the current job
+							debug("independent", inputConfigs[c].Passed.String(), jobID)
 							continue
 						}
 
-						if candidate != nil && candidate.ID != versionID {
+						if candidate != nil && candidate.ID != output.VersionID {
 							// don't return here! just try the next output set. it's possible
 							// we just need to use an older output set.
+							debug("mismatch")
 							mismatch = true
 							break outputs
 						}
@@ -126,7 +153,8 @@ func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (
 						// leave the job vouched regardless, because it *has* to at the end
 						// anyway - the mark is to just prevent it from trying the job
 						// again, which is what we want
-						candidates[c] = newVersion(versionID)
+						debug("setting candidate", c, "to", output.VersionID)
+						candidates[c] = newVersion(output.VersionID)
 
 						// carry over the vouchers
 						if candidate != nil {
@@ -136,12 +164,16 @@ func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (
 						}
 
 						// vouch for it ourselves
+						debug("job", jobID, "vouching for", output.ResourceID, "version", output.VersionID)
 						candidates[c].VouchedForBy[jobID] = true
 					}
 				}
 
-				if !mismatch {
-					resolved, err := resolve(db, inputConfigs, candidates)
+				// we found a candidate for ourselves and the rest are OK too - recurse
+				if candidates[i] != nil && !mismatch {
+					debug("recursing")
+
+					resolved, err := resolve(depth+1, db, inputConfigs, candidates)
 					if err != nil {
 						return false, err
 					}
@@ -152,10 +184,13 @@ func resolve(db *VersionsDB, inputConfigs InputConfigs, candidates []*version) (
 					}
 				}
 
-				for i, version := range restore {
+				debug("restoring")
+
+				for c, version := range restore {
 					// either there was a mismatch or resolving didn't work; go on to the
 					// next output set
-					candidates[i] = version
+					debug("restoring candidate", c, "to", version)
+					candidates[c] = version
 				}
 			}
 

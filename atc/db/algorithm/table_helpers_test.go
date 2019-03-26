@@ -2,14 +2,15 @@ package algorithm_test
 
 import (
 	"compress/gzip"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db/algorithm"
+	"github.com/lib/pq"
 	. "github.com/onsi/gomega"
 )
 
@@ -90,23 +91,34 @@ func (example Example) Run() {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).RunWith(dbConn)
 
-	var teamID int
-	err := psql.Insert("teams").
-		Columns("name").
-		Values("algorithm").
-		Suffix("RETURNING id").
-		QueryRow().
-		Scan(&teamID)
+	teamID := 1
+	_, err := psql.Insert("teams").
+		Columns("id", "name").
+		Values(teamID, "algorithm").
+		Suffix("ON CONFLICT DO NOTHING").
+		Exec()
 	Expect(err).ToNot(HaveOccurred())
 
-	var pipelineID int
-	err = psql.Insert("pipelines").
-		Columns("team_id", "name").
-		Values(teamID, "algorithm").
-		Suffix("RETURNING id").
-		QueryRow().
-		Scan(&pipelineID)
+	pipelineID := 1
+	_, err = psql.Insert("pipelines").
+		Columns("id", "team_id", "name").
+		Values(pipelineID, teamID, "algorithm").
+		Suffix("ON CONFLICT DO NOTHING").
+		Exec()
 	Expect(err).ToNot(HaveOccurred())
+
+	insertJob := func(name string) int {
+		jobID := jobIDs.ID(name)
+
+		_, err := psql.Insert("jobs").
+			Columns("id", "pipeline_id", "name", "config").
+			Values(jobID, pipelineID, name, "{}").
+			Suffix("ON CONFLICT DO NOTHING").
+			Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		return jobID
+	}
 
 	insertResource := func(name string) int {
 		resourceID := resourceIDs.ID(name)
@@ -149,32 +161,19 @@ func (example Example) Run() {
 	}
 
 	insertRowBuild := func(row DBRow) {
-		jobID := jobIDs.ID(row.Job)
+		jobID := insertJob(row.Job)
 
-		_, err := psql.Insert("jobs").
-			Columns("id", "pipeline_id", "name", "config").
-			Values(jobID, pipelineID, row.Job, "{}").
-			Suffix("ON CONFLICT DO NOTHING").
-			Exec()
+		var existingJobID int
+		err := psql.Insert("builds").
+			Columns("team_id", "id", "job_id", "name", "status").
+			Values(teamID, row.BuildID, jobID, "some-name", "succeeded").
+			Suffix("ON CONFLICT (id) DO UPDATE SET name = excluded.name").
+			Suffix("RETURNING job_id").
+			QueryRow().
+			Scan(&existingJobID)
 		Expect(err).ToNot(HaveOccurred())
 
-		var existingJobName string
-		err = psql.Select("j.name").
-			From("builds b").
-			Join("jobs j ON j.id = b.job_id").
-			Where(sq.Eq{"b.id": row.BuildID}).
-			QueryRow().
-			Scan(&existingJobName)
-		if err == sql.ErrNoRows {
-			_, err := psql.Insert("builds").
-				Columns("team_id", "id", "job_id", "name", "status").
-				Values(teamID, row.BuildID, jobID, "some-name", "succeeded").
-				Exec()
-			Expect(err).ToNot(HaveOccurred())
-		} else {
-			Expect(err).ToNot(HaveOccurred())
-			Expect(existingJobName).To(Equal(row.Job), fmt.Sprintf("build ID %d already used", row.BuildID))
-		}
+		Expect(existingJobID).To(Equal(jobID), fmt.Sprintf("build ID %d already used by job other than %s", row.BuildID, row.Job))
 	}
 
 	if example.LoadDB != "" {
@@ -184,84 +183,136 @@ func (example Example) Run() {
 		gr, err := gzip.NewReader(dbFile)
 		Expect(err).ToNot(HaveOccurred())
 
-		log.Println("IMPORTING")
+		log.Println("LOADING DB", example.LoadDB)
 		var legacyDB algorithm.LegacyVersionsDB
 		err = json.NewDecoder(gr).Decode(&legacyDB)
 		Expect(err).ToNot(HaveOccurred())
+		log.Println("LOADED")
 
-		jobNames := map[int]string{}
+		log.Println("IMPORTING", len(legacyDB.JobIDs), len(legacyDB.ResourceIDs), len(legacyDB.ResourceVersions), len(legacyDB.BuildInputs), len(legacyDB.BuildOutputs))
+
 		for name, id := range legacyDB.JobIDs {
 			jobIDs[name] = id
-			jobNames[id] = name
+
+			insertJob(name)
 		}
 
-		resourceNames := map[int]string{}
 		for name, id := range legacyDB.ResourceIDs {
 			resourceIDs[name] = id
-			resourceNames[id] = name
+
+			insertResource(name)
 		}
 
-		versionNames := map[int]string{}
-		for _, v := range legacyDB.ResourceVersions {
-			versionNames[v.VersionID] = fmt.Sprintf("imported-r%dv%d", v.ResourceID, v.VersionID)
-		}
+		log.Println("IMPORTING VERSIONS")
+
+		tx, err := dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err := tx.Prepare(pq.CopyIn("resource_config_versions", "id", "resource_config_scope_id", "version", "version_md5", "check_order"))
+		Expect(err).ToNot(HaveOccurred())
 
 		for _, row := range legacyDB.ResourceVersions {
-			resource := resourceNames[row.ResourceID]
-			version := versionNames[row.VersionID]
+			name := fmt.Sprintf("imported-r%dv%d", row.ResourceID, row.VersionID)
+			versionIDs[name] = row.VersionID
 
-			insertRowVersion(DBRow{
-				Version:    version,
-				Resource:   resource,
-				CheckOrder: row.CheckOrder,
-			})
+			_, err := stmt.Exec(row.VersionID, row.ResourceID, "{}", strconv.Itoa(row.VersionID), row.CheckOrder)
+			Expect(err).ToNot(HaveOccurred())
 		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
+		log.Println("IMPORTING BUILDS")
+
+		tx, err = dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err = tx.Prepare(pq.CopyIn("builds", "team_id", "id", "job_id", "name", "status"))
+		Expect(err).ToNot(HaveOccurred())
+
+		imported := map[int]bool{}
 
 		for _, row := range legacyDB.BuildInputs {
-			resource := resourceNames[row.ResourceID]
-			version := versionNames[row.VersionID]
-			job := jobNames[row.JobID]
+			if imported[row.BuildID] {
+				continue
+			}
 
-			insertRowVersion(DBRow{
-				Version:    version,
-				Resource:   resource,
-				CheckOrder: row.CheckOrder,
-			})
+			_, err := stmt.Exec(teamID, row.BuildID, row.JobID, "some-name", "succeeded")
+			Expect(err).ToNot(HaveOccurred())
 
-			insertRowBuild(DBRow{
-				Job:     job,
-				BuildID: row.BuildID,
-			})
+			imported[row.BuildID] = true
+		}
 
-			_, err := psql.Insert("build_resource_config_version_inputs").
-				Columns("build_id", "resource_id", "version_md5", "name").
-				Values(row.BuildID, row.ResourceID, sq.Expr("md5(?)", version), row.InputName).
-				Exec()
+		for _, row := range legacyDB.BuildOutputs {
+			if imported[row.BuildID] {
+				continue
+			}
+
+			_, err := stmt.Exec(teamID, row.BuildID, row.JobID, "some-name", "succeeded")
+			Expect(err).ToNot(HaveOccurred())
+
+			imported[row.BuildID] = true
+		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
+		log.Println("IMPORTING INPUTS")
+
+		tx, err = dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err = tx.Prepare(pq.CopyIn("build_resource_config_version_inputs", "build_id", "resource_id", "version_md5", "name"))
+		Expect(err).ToNot(HaveOccurred())
+
+		for i, row := range legacyDB.BuildInputs {
+			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i))
 			Expect(err).ToNot(HaveOccurred())
 		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
+		log.Println("IMPORTING OUTPUTS")
+
+		tx, err = dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err = tx.Prepare(pq.CopyIn("build_resource_config_version_outputs", "build_id", "resource_id", "version_md5", "name"))
+		Expect(err).ToNot(HaveOccurred())
 
 		for i, row := range legacyDB.BuildOutputs {
-			resource := resourceNames[row.ResourceID]
-			version := versionNames[row.VersionID]
-			job := jobNames[row.JobID]
-
-			insertRowVersion(DBRow{
-				Version:    version,
-				Resource:   resource,
-				CheckOrder: row.CheckOrder,
-			})
-
-			insertRowBuild(DBRow{
-				Job:     job,
-				BuildID: row.BuildID,
-			})
-
-			_, err := psql.Insert("build_resource_config_version_outputs").
-				Columns("build_id", "resource_id", "version_md5", "name").
-				Values(row.BuildID, row.ResourceID, sq.Expr("md5(?)", version), fmt.Sprintf("%s-output-%d", resource, i)).
-				Exec()
+			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i))
 			Expect(err).ToNot(HaveOccurred())
 		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
 		log.Println("DONE IMPORTING")
 	} else {
 		for _, row := range example.DB.Resources {
@@ -331,6 +382,5 @@ func (example Example) Run() {
 
 	actualResult := Result{OK: ok, Values: prettyValues}
 
-	// time.Sleep(time.Hour)
 	Expect(actualResult).To(Equal(example.Result))
 }

@@ -289,7 +289,7 @@ var _ = DescribeTable("Input resolving",
 			},
 
 			BuildOutputs: []DBRow{
-				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
 				{Job: "simple-a", BuildID: 2, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
 			},
 
@@ -603,7 +603,7 @@ var _ = DescribeTable("Input resolving",
 		DB: DB{
 			BuildOutputs: []DBRow{
 				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
 			},
 
 			Resources: []DBRow{
