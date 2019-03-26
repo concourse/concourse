@@ -963,9 +963,9 @@ jobs:
     - get: concourse-rc-image
       passed: [shipit]
       params: {format: oci}
+    - get: latest-version
   - task: docker-semver-tags
     file: concourse/ci/tasks/docker-semver-tags.yml
-    params: {MAJOR: "true"}
   - put: concourse-image
     params:
       image: concourse-rc-image/image.tar
@@ -1412,3 +1412,10 @@ resources:
   type: bosh-io-release
   source:
     repository: concourse/concourse-bosh-release
+
+- name: latest-version
+  type: github-release
+  source:
+    owner: concourse
+    repository: concourse
+    access_token: ((concourse_github_release.access_token))
