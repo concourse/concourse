@@ -3,6 +3,11 @@ resource_types:
   type: registry-image
   source: {repository: frodenas/gcs-resource}
 
+- name: registry-image
+  type: registry-image
+  # 'dev' tag is needed for 'tag' file creation
+  source: {repository: concourse/registry-image-resource, tag: dev}
+
 - name: bosh-release
   type: registry-image
   source: {repository: dpb587/bosh-release-resource}
@@ -352,9 +357,9 @@ jobs:
       image: unit-image
       file: concourse/ci/tasks/k8s-delete.yml
       params:
-       KUBE_CONFIG: ((kube_config))
-       RELEASE_NAME: concourse-smoke
-       CONCOURSE_IMAGE: concourse/concourse-rc
+        KUBE_CONFIG: ((kube_config))
+        RELEASE_NAME: concourse-smoke
+        CONCOURSE_IMAGE: concourse/concourse-rc
   - task: deploy
     image: unit-image
     input_mapping: {image-info: concourse-rc-image}
@@ -374,9 +379,9 @@ jobs:
     image: unit-image
     file: concourse/ci/tasks/k8s-delete.yml
     params:
-     KUBE_CONFIG: ((kube_config))
-     RELEASE_NAME: concourse-smoke
-     CONCOURSE_IMAGE: concourse/concourse-rc
+      KUBE_CONFIG: ((kube_config))
+      RELEASE_NAME: concourse-smoke
+      CONCOURSE_IMAGE: concourse/concourse-rc
 
 - name: k8s-topgun
   public: true
@@ -403,8 +408,8 @@ jobs:
     file: concourse/ci/tasks/k8s-topgun.yml
     image: unit-image
     params:
-     KUBE_CONFIG: ((kube_config))
-     CONCOURSE_IMAGE_NAME: concourse/concourse-rc
+      KUBE_CONFIG: ((kube_config))
+      CONCOURSE_IMAGE_NAME: concourse/concourse-rc
 
 - name: rc
   public: true
