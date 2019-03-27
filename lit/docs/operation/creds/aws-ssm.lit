@@ -89,34 +89,41 @@
 
   \codeblock{json}{{{
     {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Sid": "AllowAccessToSsmParameters",
-                "Effect": "Allow",
-                "Action": [
-                  "ssm:GetParameter",
-                  "ssm:GetParametersByPath",
-                ],
-                "Resource": [
-                    "arn:aws:ssm:::parameter/concourse/*",
-                    "arn:aws:ssm:::parameter/concourse/TEAM_NAME/*",
-                    "arn:aws:ssm:::parameter/concourse/TEAM_NAME/PIPELINE_NAME/*"
-                ]
-            },
-            {
-                "Sid": "AllowAccessToDecryptSsmParameters",
-                "Effect": "Allow",
-                "Action": [
-                    "kms:ListKeys",
-                    "kms:ListAliases",
-                    "kms:Describe*",
-                    "kms:Decrypt"
-                ],
-                "Resource": "arn:aws:::key/KMS_KEY_ID"
-            }
-        ]
-    }
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowAccessToSsmParameters",
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameter",
+                "ssm:GetParametersByPath"
+            ],
+            "Resource": [
+                "arn:aws:ssm:::parameter/concourse/*",
+                "arn:aws:ssm:::parameter/concourse/TEAM_NAME/*",
+                "arn:aws:ssm:::parameter/concourse/TEAM_NAME/PIPELINE_NAME/*"
+            ]
+        },
+        {
+            "Sid": "AllowAccessToDecryptSsmParameters",
+            "Effect": "Allow",
+            "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey"
+            ],
+            "Resource": "arn:aws:kms:::key/KMS_KEY_ID"
+        },
+        {
+            "Sid": "AllowListKeys",
+            "Effect": "Allow",
+            "Action": [
+                "kms:ListAliases",
+                "kms:ListKeys"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
   }}}
 
   Note that the \code{TEAM_NAME}, \code{PIPELINE_NAME}, and \code{KMS_KEY_ID} text above should
