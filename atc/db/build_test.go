@@ -325,7 +325,7 @@ var _ = Describe("Build", func() {
 	Describe("SaveOutput", func() {
 		var pipeline db.Pipeline
 		var job db.Job
-		var resourceConfigScope db.ResourceConfigScope
+		var resourceConfig db.ResourceConfig
 
 		BeforeEach(func() {
 			pipelineConfig := atc.Config{
@@ -371,7 +371,7 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{"some": "explicit-source"}, creds.VersionedResourceTypes{})
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{"some": "explicit-source"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -379,7 +379,7 @@ var _ = Describe("Build", func() {
 			build, err := job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			saveVersions(resourceConfigScope, []atc.SpaceVersion{
+			saveVersions(resourceConfig, []atc.SpaceVersion{
 				{
 					Space:   atc.Space("space"),
 					Version: atc.Version{"some": "version"},
@@ -404,7 +404,7 @@ var _ = Describe("Build", func() {
 			}, "output-name", "some-explicit-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			rcv, found, err := resourceConfigScope.FindVersion(atc.Space("space"), atc.Version{"some": "version"})
+			rcv, found, err := resourceConfig.FindVersion(atc.Space("space"), atc.Version{"some": "version"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -418,11 +418,11 @@ var _ = Describe("Build", func() {
 
 	Describe("Resources", func() {
 		var (
-			pipeline             db.Pipeline
-			job                  db.Job
-			resourceConfigScope1 db.ResourceConfigScope
-			resourceConfigScope2 db.ResourceConfigScope
-			resource1            db.Resource
+			pipeline        db.Pipeline
+			job             db.Job
+			resourceConfig1 db.ResourceConfig
+			resourceConfig2 db.ResourceConfig
+			resource1       db.Resource
 		)
 
 		BeforeEach(func() {
@@ -478,13 +478,13 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope1, err = resource1.SetResourceConfig(logger, atc.Source{"some": "source-1"}, creds.VersionedResourceTypes{})
+			resourceConfig1, err = resource1.SetResourceConfig(logger, atc.Source{"some": "source-1"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceConfigScope2, err = resource2.SetResourceConfig(logger, atc.Source{"some": "source-2"}, creds.VersionedResourceTypes{})
+			resourceConfig2, err = resource2.SetResourceConfig(logger, atc.Source{"some": "source-2"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			saveVersions(resourceConfigScope1, []atc.SpaceVersion{
+			saveVersions(resourceConfig1, []atc.SpaceVersion{
 				atc.SpaceVersion{
 					Version: atc.Version{"ver": "1"},
 					Space:   atc.Space("space"),
@@ -496,10 +496,10 @@ var _ = Describe("Build", func() {
 			})
 
 			// This version should not be returned by the Resources method because it has a check order of 0
-			err = resourceConfigScope1.SavePartialVersion(atc.Space("space"), atc.Version{"ver": "not-returned"}, nil)
+			err = resourceConfig1.SavePartialVersion(atc.Space("space"), atc.Version{"ver": "not-returned"}, nil)
 			Expect(err).ToNot(HaveOccurred())
 
-			saveVersions(resourceConfigScope2, []atc.SpaceVersion{{
+			saveVersions(resourceConfig2, []atc.SpaceVersion{{
 				Space:   atc.Space("space"),
 				Version: atc.Version{"ver": "2"},
 			}})
@@ -720,17 +720,17 @@ var _ = Describe("Build", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					resourceConfigScope, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+					resourceConfig, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					saveVersions(resourceConfigScope, []atc.SpaceVersion{
+					saveVersions(resourceConfig, []atc.SpaceVersion{
 						atc.SpaceVersion{
 							Version: atc.Version{"version": "v5"},
 							Space:   atc.Space("space"),
 						},
 					})
 
-					rcv, found, err := resourceConfigScope.FindVersion(atc.Space("space"), atc.Version{"version": "v5"})
+					rcv, found, err := resourceConfig.FindVersion(atc.Space("space"), atc.Version{"version": "v5"})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 

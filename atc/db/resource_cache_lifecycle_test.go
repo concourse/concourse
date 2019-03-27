@@ -305,7 +305,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err := defaultPipeline.Unpause()
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfigScope, err := defaultResource.SetResourceConfig(
+				resourceConfig, err := defaultResource.SetResourceConfig(
 					logger,
 					atc.Source{"some": "source"},
 					creds.NewVersionedResourceTypes(
@@ -315,21 +315,21 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), db.ContainerOwnerExpiries{})
+				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, db.ContainerOwnerExpiries{})
 
 				container, err := defaultWorker.CreateContainer(containerOwner, db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
 				_ = createResourceCacheWithUser(db.ForContainer(container.ID()))
 
-				saveVersions(resourceConfigScope, []atc.SpaceVersion{
+				saveVersions(resourceConfig, []atc.SpaceVersion{
 					{
 						Space:   atc.Space("space"),
 						Version: atc.Version{"some": "version"},
 					},
 				})
 
-				resourceConfigVersion, found, err := resourceConfigScope.FindVersion(atc.Space("space"), atc.Version{"some": "version"})
+				resourceConfigVersion, found, err := resourceConfig.FindVersion(atc.Space("space"), atc.Version{"some": "version"})
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 

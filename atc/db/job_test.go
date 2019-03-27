@@ -685,13 +685,13 @@ var _ = Describe("Job", func() {
 
 	Describe("GetIndependentBuildInputs", func() {
 		var (
-			pipeline2           db.Pipeline
-			versions            []atc.ResourceVersion
-			job                 db.Job
-			job2                db.Job
-			resourceConfigScope db.ResourceConfigScope
-			resource            db.Resource
-			resource2           db.Resource
+			pipeline2      db.Pipeline
+			versions       []atc.ResourceVersion
+			job            db.Job
+			job2           db.Job
+			resourceConfig db.ResourceConfig
+			resource       db.Resource
+			resource2      db.Resource
 		)
 
 		BeforeEach(func() {
@@ -714,10 +714,10 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			saveVersions(resourceConfigScope, []atc.SpaceVersion{
+			saveVersions(resourceConfig, []atc.SpaceVersion{
 				atc.SpaceVersion{
 					Space:   atc.Space("space"),
 					Version: atc.Version{"version": "v1"},
@@ -873,13 +873,13 @@ var _ = Describe("Job", func() {
 
 	Describe("GetNextBuildInputs", func() {
 		var (
-			pipeline2           db.Pipeline
-			versions            []atc.ResourceVersion
-			job                 db.Job
-			job2                db.Job
-			resourceConfigScope db.ResourceConfigScope
-			resource            db.Resource
-			resource2           db.Resource
+			pipeline2      db.Pipeline
+			versions       []atc.ResourceVersion
+			job            db.Job
+			job2           db.Job
+			resourceConfig db.ResourceConfig
+			resource       db.Resource
+			resource2      db.Resource
 		)
 
 		BeforeEach(func() {
@@ -902,10 +902,10 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			resourceConfig, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			saveVersions(resourceConfigScope, []atc.SpaceVersion{
+			saveVersions(resourceConfig, []atc.SpaceVersion{
 				atc.SpaceVersion{
 					Space:   atc.Space("space"),
 					Version: atc.Version{"version": "v1"},

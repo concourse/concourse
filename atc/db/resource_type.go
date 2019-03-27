@@ -39,7 +39,7 @@ type ResourceType interface {
 	Version() (atc.Version, error)
 	UniqueVersionHistory() bool
 
-	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
+	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfig, error)
 	SetCheckSetupError(error) error
 
 	Reload() (bool, error)
@@ -95,9 +95,9 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 	return configs
 }
 
-var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, r.space, r.nonce, r.check_error, s.check_error").
+var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, r.space, r.nonce, r.check_error, rc.check_error").
 	From("resource_types r").
-	LeftJoin("resource_config_scopes s ON r.resource_config_id = s.resource_config_id").
+	LeftJoin("resource_configs rc ON r.resource_config_id = rc.id").
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
@@ -137,10 +137,9 @@ func (t *resourceType) Version() (atc.Version, error) {
 
 	if t.space != "" {
 		err := psql.Select("rv.version").
-			From("resource_versions rv, spaces s, resource_config_scopes rs, resource_types rt").
+			From("resource_versions rv, spaces s, resource_types rt").
 			Where(sq.Expr("rv.space_id = s.id")).
-			Where(sq.Expr("s.resource_config_scope_id = rs.id")).
-			Where(sq.Expr("rs.resource_config_id = rt.resource_config_id")).
+			Where(sq.Expr("s.resource_config_id = rt.resource_config_id")).
 			Where(sq.Eq{
 				"s.name": t.space,
 				"rt.id":  t.id,
@@ -160,8 +159,7 @@ func (t *resourceType) Version() (atc.Version, error) {
 		err := psql.Select("rv.version").
 			From("resource_types rt").
 			Join("resource_configs rc ON rt.resource_config_id = rc.id").
-			Join("resource_config_scopes rs ON rc.id = rs.resource_config_id").
-			Join("spaces s ON rs.default_space = s.name AND rs.id = s.resource_config_scope_id").
+			Join("spaces s ON rc.default_space = s.name AND rc.id = s.resource_config_id").
 			Join("resource_versions rv ON s.latest_resource_version_id = rv.id").
 			Where(sq.Eq{
 				"rt.id": t.id,
@@ -198,7 +196,7 @@ func (t *resourceType) Reload() (bool, error) {
 	return true, nil
 }
 
-func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfigScope, error) {
+func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfig, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(t.type_, source, resourceTypes)
 	if err != nil {
 		return nil, err
@@ -227,18 +225,12 @@ func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source,
 		return nil, err
 	}
 
-	// A nil value is passed into the Resource object parameter because we always want resource type versions to be shared
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, t.conn, t.lockFactory, resourceConfig, nil, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	return resourceConfigScope, nil
+	return resourceConfig, nil
 }
 
 func (t *resourceType) SetCheckSetupError(cause error) error {
@@ -263,11 +255,11 @@ func (t *resourceType) SetCheckSetupError(cause error) error {
 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON                          []byte
-		checkErr, rcsCheckErr, nonce, space sql.NullString
+		configJSON                         []byte
+		checkErr, rcCheckErr, nonce, space sql.NullString
 	)
 
-	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &space, &nonce, &checkErr, &rcsCheckErr)
+	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &space, &nonce, &checkErr, &rcCheckErr)
 	if err != nil {
 		return err
 	}
@@ -305,8 +297,8 @@ func scanResourceType(t *resourceType, row scannable) error {
 		t.checkSetupError = errors.New(checkErr.String)
 	}
 
-	if rcsCheckErr.Valid {
-		t.checkError = errors.New(rcsCheckErr.String)
+	if rcCheckErr.Valid {
+		t.checkError = errors.New(rcCheckErr.String)
 	}
 
 	return nil

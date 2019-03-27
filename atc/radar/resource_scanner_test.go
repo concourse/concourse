@@ -47,9 +47,8 @@ var _ = Describe("ResourceScanner", func() {
 
 		scanner Scanner
 
-		fakeDBResource          *dbfakes.FakeResource
-		fakeResourceConfig      *dbfakes.FakeResourceConfig
-		fakeResourceConfigScope *dbfakes.FakeResourceConfigScope
+		fakeDBResource     *dbfakes.FakeResource
+		fakeResourceConfig *dbfakes.FakeResourceConfig
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
@@ -89,9 +88,6 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBPipeline = new(dbfakes.FakePipeline)
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfig.IDReturns(123)
-		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
-		fakeResourceConfigScope.IDReturns(456)
-		fakeResourceConfigScope.ResourceConfigReturns(fakeResourceConfig)
 
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.NameReturns("some-pipeline")
@@ -113,7 +109,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.TypeReturns("git")
 		fakeDBResource.SourceReturns(atc.Source{"uri": "((source-params))"})
 		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
-		fakeDBResource.SetResourceConfigReturns(fakeResourceConfigScope, nil)
+		fakeDBResource.SetResourceConfigReturns(fakeResourceConfig, nil)
 
 		fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 
@@ -161,7 +157,7 @@ var _ = Describe("ResourceScanner", func() {
 				results <- true
 				close(results)
 
-				fakeResourceConfigScope.AcquireResourceCheckingLockStub = func(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
+				fakeResourceConfig.AcquireResourceCheckingLockStub = func(logger lager.Logger) (lock.Lock, bool, error) {
 					if <-results {
 						return fakeLock, true, nil
 					} else {
@@ -173,29 +169,19 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("retries every second until it is", func() {
-				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(3))
-
-				_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-				Expect(leaseInterval).To(Equal(interval))
-
-				_, leaseInterval = fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(1)
-				Expect(leaseInterval).To(Equal(interval))
-
-				_, leaseInterval = fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(2)
-				Expect(leaseInterval).To(Equal(interval))
-
+				Expect(fakeResourceConfig.AcquireResourceCheckingLockCallCount()).To(Equal(3))
 				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 			})
 		})
 
 		Context("when the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeResourceConfig.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
 			})
 
 			Context("when the last checked is not able to be updated", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.UpdateLastCheckedReturns(false, nil)
+					fakeResourceConfig.UpdateLastCheckedReturns(false, nil)
 				})
 
 				It("does not check", func() {
@@ -210,7 +196,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the last checked fails to update", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.UpdateLastCheckedReturns(false, errors.New("woops"))
+					fakeResourceConfig.UpdateLastCheckedReturns(false, errors.New("woops"))
 				})
 
 				It("does not check", func() {
@@ -225,7 +211,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the last checked is updated", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
+					fakeResourceConfig.UpdateLastCheckedReturns(true, nil)
 				})
 
 				It("checks immediately", func() {
@@ -291,13 +277,10 @@ var _ = Describe("ResourceScanner", func() {
 					})
 
 					It("leases for the configured interval", func() {
-						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
-						Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
+						Expect(fakeResourceConfig.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+						Expect(fakeResourceConfig.UpdateLastCheckedCallCount()).To(Equal(1))
 
-						_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
-
-						leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+						leaseInterval, immediate := fakeResourceConfig.UpdateLastCheckedArgsForCall(0)
 						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 						Expect(immediate).To(BeFalse())
 
@@ -328,13 +311,10 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
-					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
-					Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.UpdateLastCheckedCallCount()).To(Equal(1))
 
-					_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-					Expect(leaseInterval).To(Equal(interval))
-
-					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+					leaseInterval, immediate := fakeResourceConfig.UpdateLastCheckedArgsForCall(0)
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeFalse())
 
@@ -413,7 +393,7 @@ var _ = Describe("ResourceScanner", func() {
 						fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
 						fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
 
-						fakeResourceConfigScope.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
+						fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 					})
 
 					It("checks from it", func() {
@@ -439,8 +419,8 @@ var _ = Describe("ResourceScanner", func() {
 						Expect(runErr).To(HaveOccurred())
 						Expect(runErr).To(Equal(disaster))
 
-						Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
-						err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
+						Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
+						err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 						Expect(err).To(Equal(disaster))
 					})
 				})
@@ -539,8 +519,8 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("if the lock can be acquired and last checked updated", func() {
 			BeforeEach(func() {
-				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
-				fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
+				fakeResourceConfig.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeResourceConfig.UpdateLastCheckedReturns(true, nil)
 			})
 
 			Context("Parent resource has no version and check fails", func() {
@@ -648,13 +628,10 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
-				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
-				Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
+				Expect(fakeResourceConfig.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+				Expect(fakeResourceConfig.UpdateLastCheckedCallCount()).To(Equal(1))
 
-				_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-				Expect(leaseInterval).To(Equal(interval))
-
-				leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+				leaseInterval, immediate := fakeResourceConfig.UpdateLastCheckedArgsForCall(0)
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeTrue())
 
@@ -682,9 +659,9 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-					resourceErr := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
+					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})
@@ -696,9 +673,9 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-					resourceErr := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
+					resourceErr := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})
@@ -710,13 +687,10 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("leases for the configured interval", func() {
-					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
-					Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.UpdateLastCheckedCallCount()).To(Equal(1))
 
-					_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
-
-					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+					leaseInterval, immediate := fakeResourceConfig.UpdateLastCheckedArgsForCall(0)
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeTrue())
 
@@ -775,8 +749,8 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("tries to find the version in the database", func() {
-					Expect(fakeResourceConfigScope.FindVersionCallCount()).To(Equal(1))
-					Expect(fakeResourceConfigScope.FindVersionArgsForCall(0)).To(Equal(atc.Version{"version": "1"}))
+					Expect(fakeResourceConfig.FindVersionCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.FindVersionArgsForCall(0)).To(Equal(atc.Version{"version": "1"}))
 				})
 
 				Context("when finding the version succeeds", func() {
@@ -784,7 +758,7 @@ var _ = Describe("ResourceScanner", func() {
 						fakeResourceVersion := new(dbfakes.FakeResourceVersion)
 						fakeResourceVersion.IDReturns(1)
 						fakeResourceVersion.VersionReturns(db.Version{"version": "1"})
-						fakeResourceConfigScope.FindVersionReturns(fakeResourceVersion, true, nil)
+						fakeResourceConfig.FindVersionReturns(fakeResourceVersion, true, nil)
 					})
 
 					It("does not check", func() {
@@ -794,7 +768,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when the version is not found", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.FindVersionReturns(nil, false, nil)
+						fakeResourceConfig.FindVersionReturns(nil, false, nil)
 					})
 
 					It("checks from the pinned version", func() {
@@ -805,28 +779,28 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when finding the version fails", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.FindVersionReturns(nil, false, errors.New("ah"))
+						fakeResourceConfig.FindVersionReturns(nil, false, errors.New("ah"))
 					})
 
 					It("sets the check error on the resource config", func() {
-						Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-						err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
+						err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 						Expect(err).To(Equal(errors.New("ah")))
 					})
 				})
 			})
 
 			It("clears the resource's check error", func() {
-				Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
+				Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-				err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
+				err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 			})
 
 			Context("when there is no current version", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.LatestVersionsReturns(nil, nil)
+					fakeResourceConfig.LatestVersionsReturns(nil, nil)
 				})
 
 				It("checks from nil", func() {
@@ -839,7 +813,7 @@ var _ = Describe("ResourceScanner", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeResourceConfigScope.LatestVersionsReturns(nil, disaster)
+					fakeResourceConfig.LatestVersionsReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {
@@ -863,7 +837,7 @@ var _ = Describe("ResourceScanner", func() {
 					fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
 					fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
 
-					fakeResourceConfigScope.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
+					fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 				})
 
 				It("checks from it", func() {
@@ -889,9 +863,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-					err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
+					err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(err).To(Equal(disaster))
 				})
 			})
@@ -908,9 +882,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeResourceConfig.SetCheckErrorCallCount()).To(Equal(1))
 
-					err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
+					err := fakeResourceConfig.SetCheckErrorArgsForCall(0)
 					Expect(err).To(Equal(scriptFail))
 				})
 			})
@@ -944,8 +918,8 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("if the lock can be acquired and last checked updated", func() {
 			BeforeEach(func() {
-				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
-				fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
+				fakeResourceConfig.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeResourceConfig.UpdateLastCheckedReturns(true, nil)
 			})
 
 			Context("when fromVersion is nil", func() {
@@ -983,7 +957,7 @@ var _ = Describe("ResourceScanner", func() {
 						fakeResourceVersion2.VersionReturns(db.Version{"version": "2"})
 						fakeResourceVersion2.SpaceReturns(atc.Space("space2"))
 
-						fakeResourceConfigScope.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
+						fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 					})
 
 					Context("when fromVersion has the same space", func() {

@@ -13,22 +13,22 @@ import (
 
 var _ = Describe("Check Event Handler", func() {
 	var (
-		logger                  lager.Logger
-		handler                 v2.CheckEventHandler
-		spaces                  map[atc.Space]atc.Version
-		fakeTx                  *dbfakes.FakeTx
-		fakeResourceConfigScope *dbfakes.FakeResourceConfigScope
+		logger             lager.Logger
+		handler            v2.CheckEventHandler
+		spaces             map[atc.Space]atc.Version
+		fakeTx             *dbfakes.FakeTx
+		fakeResourceConfig *dbfakes.FakeResourceConfig
 	)
 
 	BeforeEach(func() {
 		fakeTx = new(dbfakes.FakeTx)
-		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
+		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		logger = lagertest.NewTestLogger("test")
 		spaces = make(map[atc.Space]atc.Version)
 	})
 
 	JustBeforeEach(func() {
-		handler = radar.NewCheckEventHandler(logger, fakeTx, fakeResourceConfigScope, spaces)
+		handler = radar.NewCheckEventHandler(logger, fakeTx, fakeResourceConfig, spaces)
 	})
 
 	Describe("SaveDefault", func() {
@@ -45,8 +45,8 @@ var _ = Describe("Check Event Handler", func() {
 			})
 
 			It("saves the default space", func() {
-				Expect(fakeResourceConfigScope.SaveDefaultSpaceCallCount()).To(Equal(1))
-				space := fakeResourceConfigScope.SaveDefaultSpaceArgsForCall(0)
+				Expect(fakeResourceConfig.SaveDefaultSpaceCallCount()).To(Equal(1))
+				space := fakeResourceConfig.SaveDefaultSpaceArgsForCall(0)
 				Expect(space).To(Equal(atc.Space("space")))
 			})
 		})
@@ -57,7 +57,7 @@ var _ = Describe("Check Event Handler", func() {
 			})
 
 			It("does not save the space", func() {
-				Expect(fakeResourceConfigScope.SaveDefaultSpaceCallCount()).To(Equal(0))
+				Expect(fakeResourceConfig.SaveDefaultSpaceCallCount()).To(Equal(0))
 			})
 		})
 	})
@@ -82,8 +82,8 @@ var _ = Describe("Check Event Handler", func() {
 
 		Context("when the space does not exist", func() {
 			It("saves the space", func() {
-				Expect(fakeResourceConfigScope.SaveSpaceCallCount()).To(Equal(1))
-				savedSpace := fakeResourceConfigScope.SaveSpaceArgsForCall(0)
+				Expect(fakeResourceConfig.SaveSpaceCallCount()).To(Equal(1))
+				savedSpace := fakeResourceConfig.SaveSpaceArgsForCall(0)
 				Expect(savedSpace).To(Equal(space))
 			})
 
@@ -101,7 +101,7 @@ var _ = Describe("Check Event Handler", func() {
 			})
 
 			It("does not save the space", func() {
-				Expect(fakeResourceConfigScope.SaveSpaceCallCount()).To(Equal(0))
+				Expect(fakeResourceConfig.SaveSpaceCallCount()).To(Equal(0))
 			})
 
 			It("updates the handler spaces", func() {
@@ -111,8 +111,8 @@ var _ = Describe("Check Event Handler", func() {
 		})
 
 		It("saves the version", func() {
-			Expect(fakeResourceConfigScope.SavePartialVersionCallCount()).To(Equal(1))
-			actualSpace, actualVersion, actualMetadata := fakeResourceConfigScope.SavePartialVersionArgsForCall(0)
+			Expect(fakeResourceConfig.SavePartialVersionCallCount()).To(Equal(1))
+			actualSpace, actualVersion, actualMetadata := fakeResourceConfig.SavePartialVersionArgsForCall(0)
 			Expect(actualSpace).To(Equal(space))
 			Expect(actualVersion).To(Equal(version))
 			Expect(actualMetadata).To(Equal(metadata))
@@ -127,7 +127,7 @@ var _ = Describe("Check Event Handler", func() {
 
 		Context("when the handler spaces is empty", func() {
 			It("does not finish saving versions", func() {
-				Expect(fakeResourceConfigScope.FinishSavingVersionsCallCount()).To(Equal(0))
+				Expect(fakeResourceConfig.FinishSavingVersionsCallCount()).To(Equal(0))
 			})
 		})
 
@@ -140,21 +140,21 @@ var _ = Describe("Check Event Handler", func() {
 			})
 
 			It("finish saving versions", func() {
-				Expect(fakeResourceConfigScope.FinishSavingVersionsCallCount()).To(Equal(1))
+				Expect(fakeResourceConfig.FinishSavingVersionsCallCount()).To(Equal(1))
 			})
 
 			It("update last check finished timestamp", func() {
-				Expect(fakeResourceConfigScope.UpdateLastCheckFinishedCallCount()).To(Equal(1))
+				Expect(fakeResourceConfig.UpdateLastCheckFinishedCallCount()).To(Equal(1))
 			})
 
 			It("saves the latest versions", func() {
-				Expect(fakeResourceConfigScope.SaveSpaceLatestVersionCallCount()).To(Equal(2))
+				Expect(fakeResourceConfig.SaveSpaceLatestVersionCallCount()).To(Equal(2))
 
 				actualSpaces := map[atc.Space]atc.Version{}
-				space, version := fakeResourceConfigScope.SaveSpaceLatestVersionArgsForCall(0)
+				space, version := fakeResourceConfig.SaveSpaceLatestVersionArgsForCall(0)
 				actualSpaces[space] = version
 
-				space, version = fakeResourceConfigScope.SaveSpaceLatestVersionArgsForCall(1)
+				space, version = fakeResourceConfig.SaveSpaceLatestVersionArgsForCall(1)
 				actualSpaces[space] = version
 
 				Expect(actualSpaces).To(Equal(map[atc.Space]atc.Version{

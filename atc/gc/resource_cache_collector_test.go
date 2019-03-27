@@ -35,7 +35,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 			var jobCache db.UsedResourceCache
 
 			var resource db.Resource
-			var scope db.ResourceConfigScope
+			var resourceConfig db.ResourceConfig
 
 			BeforeEach(func() {
 				resourceCacheUseCollector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
@@ -77,7 +77,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				scope, err = resource.SetResourceConfig(
+				resourceConfig, err = resource.SetResourceConfig(
 					logger,
 					atc.Source{
 						"some": "source",
@@ -122,8 +122,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 					BeforeEach(func() {
 						var spaceID int
 						err = psql.Insert("spaces").
-							Columns("name", "resource_config_scope_id").
-							Values("space", scope.ID()).
+							Columns("name", "resource_config_id").
+							Values("space", resourceConfig.ID()).
 							Suffix("RETURNING id").
 							RunWith(dbConn).QueryRow().Scan(&spaceID)
 						Expect(err).NotTo(HaveOccurred())

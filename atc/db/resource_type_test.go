@@ -181,9 +181,9 @@ var _ = Describe("ResourceType", func() {
 
 	Describe("Version", func() {
 		var (
-			resourceType      db.ResourceType
-			version           atc.Version
-			resourceTypeScope db.ResourceConfigScope
+			resourceType   db.ResourceType
+			version        atc.Version
+			resourceConfig db.ResourceConfig
 		)
 
 		BeforeEach(func() {
@@ -203,7 +203,7 @@ var _ = Describe("ResourceType", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceTypeScope, err = resourceType.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+			resourceConfig, err = resourceType.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -218,10 +218,10 @@ var _ = Describe("ResourceType", func() {
 
 		Context("when the resource type has a default space", func() {
 			BeforeEach(func() {
-				err := resourceTypeScope.SaveDefaultSpace(atc.Space("space"))
+				err := resourceConfig.SaveDefaultSpace(atc.Space("space"))
 				Expect(err).ToNot(HaveOccurred())
 
-				saveVersions(resourceTypeScope, []atc.SpaceVersion{
+				saveVersions(resourceConfig, []atc.SpaceVersion{
 					atc.SpaceVersion{
 						Space:   atc.Space("space"),
 						Version: atc.Version{"version": "1"},
@@ -236,17 +236,12 @@ var _ = Describe("ResourceType", func() {
 					},
 				})
 
-				err = resourceTypeScope.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"version": "2"})
+				err = resourceConfig.SaveSpaceLatestVersion(atc.Space("space"), atc.Version{"version": "2"})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns the version", func() {
 				Expect(version).To(Equal(atc.Version{"version": "2"}))
-			})
-
-			It("creates a shared scope for the resource type", func() {
-				Expect(resourceTypeScope.Resource()).To(BeNil())
-				Expect(resourceTypeScope.ResourceConfig()).ToNot(BeNil())
 			})
 
 			Context("when the resource type specifies a space", func() {

@@ -332,7 +332,7 @@ func (p *pipeline) ResourceVersion(resourceVersionID int) (atc.ResourceVersion, 
 			SELECT 1
 			FROM resource_disabled_versions d, resources r, spaces s
 			WHERE v.version_md5 = d.version_md5
-			AND r.resource_config_scope_id = s.resource_config_scope_id
+			AND r.resource_config_id = s.resource_config_id
 			AND s.id = v.space_id
 			AND r.id = d.resource_id
 		)`
@@ -606,7 +606,6 @@ func (p *pipeline) Pause() error {
 
 	_, err = psql.Update("resources").
 		Set("resource_config_id", nil).
-		Set("resource_config_scope_id", nil).
 		Where(sq.Eq{
 			"pipeline_id": p.id,
 		}).
@@ -705,7 +704,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("resource_versions v ON v.version_md5 = o.version_md5").
 		Join("spaces s ON s.id = v.space_id").
 		Join("resources r ON r.id = o.resource_id").
-		Where(sq.Expr("r.resource_config_scope_id = s.resource_config_scope_id")).
+		Where(sq.Expr("r.resource_config_id = s.resource_config_id")).
 		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
 		Where(sq.NotEq{
 			"v.partial": true,
@@ -740,7 +739,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Join("resource_versions v ON v.version_md5 = i.version_md5").
 		Join("spaces s ON s.id = v.space_id").
 		Join("resources r ON r.id = i.resource_id").
-		Where(sq.Expr("r.resource_config_scope_id = s.resource_config_scope_id")).
+		Where(sq.Expr("r.resource_config_id = s.resource_config_id")).
 		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
 		Where(sq.NotEq{
 			"v.partial": true,
@@ -782,7 +781,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err = psql.Select("v.id, v.check_order, r.id").
 		From("resource_versions v").
 		Join("spaces s ON s.id = v.space_id").
-		Join("resources r ON r.resource_config_scope_id = s.resource_config_scope_id").
+		Join("resources r ON r.resource_config_id = s.resource_config_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
 		Where(sq.NotEq{
 			"v.partial": true,

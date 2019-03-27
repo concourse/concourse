@@ -902,7 +902,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			SELECT 1
 			FROM build_resource_config_version_inputs i, builds b
 			WHERE versions.version_md5 = i.version_md5
-			AND resources.resource_config_scope_id = spaces.resource_config_scope_id
+			AND resources.resource_config_id = spaces.resource_config_id
 			AND spaces.id = versions.space_id
 			AND resources.id = i.resource_id
 			AND b.job_id = builds.job_id
@@ -916,14 +916,14 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		Where(sq.NotEq{"versions.partial": true}).
 		Where(sq.Expr("inputs.build_id = builds.id")).
 		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
-		Where(sq.Expr("resources.resource_config_scope_id = spaces.resource_config_scope_id")).
+		Where(sq.Expr("resources.resource_config_id = spaces.resource_config_id")).
 		Where(sq.Expr("spaces.id = versions.space_id")).
 		Where(sq.Expr("resources.id = inputs.resource_id")).
 		Where(sq.Expr(`NOT EXISTS (
 			SELECT 1
 			FROM build_resource_config_version_outputs outputs
 			WHERE outputs.version_md5 = versions.version_md5
-			AND spaces.resource_config_scope_id = resources.resource_config_scope_id
+			AND spaces.resource_config_id = resources.resource_config_id
 			AND spaces.id = versions.space_id
 			AND outputs.resource_id = resources.id
 			AND outputs.build_id = inputs.build_id
@@ -972,7 +972,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		Where(sq.Expr("outputs.build_id = builds.id")).
 		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).
-		Where(sq.Expr("resources.resource_config_scope_id = spaces.resource_config_scope_id")).
+		Where(sq.Expr("resources.resource_config_id = spaces.resource_config_id")).
 		Where(sq.Expr("spaces.id = versions.space_id")).
 		RunWith(b.conn).
 		Query()

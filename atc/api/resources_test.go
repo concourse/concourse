@@ -1275,14 +1275,13 @@ var _ = Describe("Resources API", func() {
 
 	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check/webhook", func() {
 		var (
-			fakeScanner             *radarfakes.FakeScanner
-			checkRequestBody        atc.CheckRequestBody
-			response                *http.Response
-			fakeResource            *dbfakes.FakeResource
-			fakeResourceConfig      *dbfakes.FakeResourceConfig
-			fakeResourceVersion1    *dbfakes.FakeResourceVersion
-			fakeResourceVersion2    *dbfakes.FakeResourceVersion
-			fakeResourceConfigScope *dbfakes.FakeResourceConfigScope
+			fakeScanner          *radarfakes.FakeScanner
+			checkRequestBody     atc.CheckRequestBody
+			response             *http.Response
+			fakeResource         *dbfakes.FakeResource
+			fakeResourceConfig   *dbfakes.FakeResourceConfig
+			fakeResourceVersion1 *dbfakes.FakeResourceVersion
+			fakeResourceVersion2 *dbfakes.FakeResourceVersion
 		)
 
 		BeforeEach(func() {
@@ -1295,7 +1294,6 @@ var _ = Describe("Resources API", func() {
 			fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 			fakeResourceVersion1 = new(dbfakes.FakeResourceVersion)
 			fakeResourceVersion2 = new(dbfakes.FakeResourceVersion)
-			fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
 		})
 
 		JustBeforeEach(func() {
@@ -1320,7 +1318,6 @@ var _ = Describe("Resources API", func() {
 				fakeResource.WebhookTokenReturns(token)
 				fakePipeline.ResourceReturns(fakeResource, true, nil)
 				fakeResource.ResourceConfigIDReturns(1)
-				fakeResource.ResourceConfigScopeIDReturns(2)
 			})
 
 			It("injects the proper pipelineDB", func() {
@@ -1349,96 +1346,76 @@ var _ = Describe("Resources API", func() {
 						dbResourceConfigFactory.FindResourceConfigByIDReturns(fakeResourceConfig, true, nil)
 					})
 
-					It("tries to find the resource config scope using the resource config scope id", func() {
-						Eventually(fakeResourceConfig.FindResourceConfigScopeByIDCallCount).Should(Equal(1))
-						resourceConfigScopeID, resource := fakeResourceConfig.FindResourceConfigScopeByIDArgsForCall(0)
-						Expect(resourceConfigScopeID).To(Equal(2))
-						Expect(resource).To(Equal(fakeResource))
+					It("tries to find the latest versions using the resource config id", func() {
+						Eventually(fakeResourceConfig.LatestVersionsCallCount).Should(Equal(1))
 					})
 
-					Context("when finding the resource config scope succeeds", func() {
-
+					Context("when latest versions is found", func() {
 						BeforeEach(func() {
-							fakeResourceConfig.FindResourceConfigScopeByIDReturns(fakeResourceConfigScope, true, nil)
+							fakeResourceVersion1.IDReturns(4)
+							fakeResourceVersion1.SpaceReturns("space-1")
+							fakeResourceVersion1.VersionReturns(db.Version{"some": "version"})
+							fakeResourceVersion1.MetadataReturns([]db.ResourceConfigMetadataField{
+								{
+									Name:  "some",
+									Value: "metadata",
+								},
+							})
+
+							fakeResourceVersion2.IDReturns(5)
+							fakeResourceVersion2.SpaceReturns("space-2")
+							fakeResourceVersion2.VersionReturns(db.Version{"some": "version-2"})
+							fakeResourceVersion2.MetadataReturns([]db.ResourceConfigMetadataField{
+								{
+									Name:  "some",
+									Value: "metadata-2",
+								},
+							})
+
+							fakeResourceConfig.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
 						})
 
-						Context("when latest versions is found", func() {
-							BeforeEach(func() {
-								fakeResourceVersion1.IDReturns(4)
-								fakeResourceVersion1.SpaceReturns("space-1")
-								fakeResourceVersion1.VersionReturns(db.Version{"some": "version"})
-								fakeResourceVersion1.MetadataReturns([]db.ResourceConfigMetadataField{
-									{
-										Name:  "some",
-										Value: "metadata",
-									},
-								})
-
-								fakeResourceVersion2.IDReturns(5)
-								fakeResourceVersion2.SpaceReturns("space-2")
-								fakeResourceVersion2.VersionReturns(db.Version{"some": "version-2"})
-								fakeResourceVersion2.MetadataReturns([]db.ResourceConfigMetadataField{
-									{
-										Name:  "some",
-										Value: "metadata-2",
-									},
-								})
-
-								fakeResourceConfigScope.LatestVersionsReturns([]db.ResourceVersion{fakeResourceVersion1, fakeResourceVersion2}, nil)
-							})
-
-							It("tries to scan with the latest versions", func() {
-								Eventually(func() int {
-									return fakeScanner.ScanFromVersionCallCount()
-								}).Should(Equal(1))
-								_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-								Expect(actualResourceName).To(Equal("resource-name"))
-								Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{
-									atc.Space("space-1"): atc.Version{"some": "version"},
-									atc.Space("space-2"): atc.Version{"some": "version-2"},
-								}))
-							})
-							It("returns 200", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-							})
+						It("tries to scan with the latest versions", func() {
+							Eventually(func() int {
+								return fakeScanner.ScanFromVersionCallCount()
+							}).Should(Equal(1))
+							_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+							Expect(actualResourceName).To(Equal("resource-name"))
+							Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{
+								atc.Space("space-1"): atc.Version{"some": "version"},
+								atc.Space("space-2"): atc.Version{"some": "version-2"},
+							}))
 						})
-
-						Context("when the latest versions are not found", func() {
-							BeforeEach(func() {
-								fakeResourceConfigScope.LatestVersionsReturns(nil, nil)
-							})
-
-							It("tries to scan with no version specified", func() {
-								Eventually(func() int {
-									return fakeScanner.ScanFromVersionCallCount()
-								}).Should(Equal(1))
-								_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-								Expect(actualResourceName).To(Equal("resource-name"))
-								Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{}))
-							})
-							It("returns 200", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-							})
-						})
-
-						Context("when failing to get latest versions for resource", func() {
-							BeforeEach(func() {
-								fakeResourceConfigScope.LatestVersionsReturns(nil, errors.New("disaster"))
-							})
-
-							It("does not scan from version", func() {
-								Consistently(fakeScanner.ScanFromVersionCallCount).Should(Equal(0))
-							})
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 					})
 
-					Context("when the resource config scope is not found", func() {
+					Context("when the latest versions are not found", func() {
 						BeforeEach(func() {
-							fakeResourceConfig.FindResourceConfigScopeByIDReturns(nil, false, nil)
+							fakeResourceConfig.LatestVersionsReturns(nil, nil)
 						})
 
-						It("tries to scan", func() {
-							Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
+						It("tries to scan with no version specified", func() {
+							Eventually(func() int {
+								return fakeScanner.ScanFromVersionCallCount()
+							}).Should(Equal(1))
+							_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+							Expect(actualResourceName).To(Equal("resource-name"))
+							Expect(actualFromVersion).To(Equal(map[atc.Space]atc.Version{}))
+						})
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+					})
+
+					Context("when failing to get latest versions for resource", func() {
+						BeforeEach(func() {
+							fakeResourceConfig.LatestVersionsReturns(nil, errors.New("disaster"))
+						})
+
+						It("does not scan from version", func() {
+							Consistently(fakeScanner.ScanFromVersionCallCount).Should(Equal(0))
 						})
 					})
 				})

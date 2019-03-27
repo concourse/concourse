@@ -8,25 +8,25 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func NewCheckEventHandler(logger lager.Logger, tx db.Tx, resourceConfigScope db.ResourceConfigScope, spaces map[atc.Space]atc.Version) *CheckEventHandler {
+func NewCheckEventHandler(logger lager.Logger, tx db.Tx, resourceConfig db.ResourceConfig, spaces map[atc.Space]atc.Version) *CheckEventHandler {
 	return &CheckEventHandler{
-		logger:              logger,
-		tx:                  tx,
-		resourceConfigScope: resourceConfigScope,
-		spaces:              spaces,
+		logger:         logger,
+		tx:             tx,
+		resourceConfig: resourceConfig,
+		spaces:         spaces,
 	}
 }
 
 type CheckEventHandler struct {
-	logger              lager.Logger
-	tx                  db.Tx
-	resourceConfigScope db.ResourceConfigScope
-	spaces              map[atc.Space]atc.Version
+	logger         lager.Logger
+	tx             db.Tx
+	resourceConfig db.ResourceConfig
+	spaces         map[atc.Space]atc.Version
 }
 
 func (c *CheckEventHandler) SaveDefault(space atc.Space) error {
 	if space != "" {
-		err := c.resourceConfigScope.SaveDefaultSpace(space)
+		err := c.resourceConfig.SaveDefaultSpace(space)
 		if err != nil {
 			c.logger.Error("failed-to-save-default-space", err, lager.Data{
 				"space": space,
@@ -44,7 +44,7 @@ func (c *CheckEventHandler) SaveDefault(space atc.Space) error {
 
 func (c *CheckEventHandler) Save(space atc.Space, version atc.Version, metadata atc.Metadata) error {
 	if _, ok := c.spaces[space]; !ok {
-		err := c.resourceConfigScope.SaveSpace(space)
+		err := c.resourceConfig.SaveSpace(space)
 		if err != nil {
 			c.logger.Error("failed-to-save-space", err, lager.Data{
 				"space": space,
@@ -57,7 +57,7 @@ func (c *CheckEventHandler) Save(space atc.Space, version atc.Version, metadata 
 		})
 	}
 
-	err := c.resourceConfigScope.SavePartialVersion(space, version, metadata)
+	err := c.resourceConfig.SavePartialVersion(space, version, metadata)
 	if err != nil {
 		c.logger.Error("failed-to-save-resource-config-version", err, lager.Data{
 			"version": fmt.Sprintf("%v", version),
@@ -80,12 +80,12 @@ func (c *CheckEventHandler) Finish() error {
 		return nil
 	}
 
-	err := c.resourceConfigScope.FinishSavingVersions()
+	err := c.resourceConfig.FinishSavingVersions()
 	if err != nil {
 		return err
 	}
 
-	updated, err := c.resourceConfigScope.UpdateLastCheckFinished()
+	updated, err := c.resourceConfig.UpdateLastCheckFinished()
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (c *CheckEventHandler) Finish() error {
 	}
 
 	for space, version := range c.spaces {
-		err := c.resourceConfigScope.SaveSpaceLatestVersion(space, version)
+		err := c.resourceConfig.SaveSpaceLatestVersion(space, version)
 		if err != nil {
 			return err
 		}

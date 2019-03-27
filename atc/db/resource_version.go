@@ -17,7 +17,7 @@ type ResourceVersion interface {
 	Metadata() ResourceConfigMetadataFields
 	Partial() bool
 	CheckOrder() int
-	ResourceConfigScope() ResourceConfigScope
+	ResourceConfig() ResourceConfig
 
 	Reload() (bool, error)
 }
@@ -65,7 +65,7 @@ type resourceVersion struct {
 	partial    bool
 	checkOrder int
 
-	resourceConfigScope ResourceConfigScope
+	resourceConfig ResourceConfig
 
 	conn Conn
 }
@@ -104,8 +104,8 @@ func (r *resourceVersion) Version() Version                       { return r.ver
 func (r *resourceVersion) Metadata() ResourceConfigMetadataFields { return r.metadata }
 func (r *resourceVersion) Partial() bool                          { return r.partial }
 func (r *resourceVersion) CheckOrder() int                        { return r.checkOrder }
-func (r *resourceVersion) ResourceConfigScope() ResourceConfigScope {
-	return r.resourceConfigScope
+func (r *resourceVersion) ResourceConfig() ResourceConfig {
+	return r.resourceConfig
 }
 
 func (r *resourceVersion) Reload() (bool, error) {

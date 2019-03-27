@@ -56,22 +56,14 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			}
 
 			if found {
-				resourceConfigScope, found, err := resourceConfig.FindResourceConfigScopeByID(pipelineResource.ResourceConfigScopeID(), pipelineResource)
+				latestVersions, err := resourceConfig.LatestVersions()
 				if err != nil {
-					logger.Error("failed-to-get-resource-config-scope", err, lager.Data{"resource-config-scope-id": pipelineResource.ResourceConfigScopeID()})
+					logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigID})
 					return
 				}
 
-				if found {
-					latestVersions, err := resourceConfigScope.LatestVersions()
-					if err != nil {
-						logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigID})
-						return
-					}
-
-					for _, v := range latestVersions {
-						fromVersion[v.Space()] = atc.Version(v.Version())
-					}
+				for _, v := range latestVersions {
+					fromVersion[v.Space()] = atc.Version(v.Version())
 				}
 			}
 

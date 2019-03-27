@@ -167,7 +167,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		return 0, err
 	}
 
-	resourceConfigScope, err := savedResource.SetResourceConfig(
+	resourceConfig, err := savedResource.SetResourceConfig(
 		logger,
 		source,
 		versionedResourceTypes,
@@ -189,7 +189,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 
 	// 	if err != nil {
 	// 		logger.Error("failed-to-find-pinned-version-on-resource", err, lager.Data{"pinned-version": currentVersion})
-	// chkErr := resourceConfigScope.SetCheckError(err)
+	// chkErr := resourceConfig.SetCheckError(err)
 	// 		if chkErr != nil {
 	// 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 	// 		}
@@ -204,14 +204,13 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 	// }
 
 	for {
-		lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(
+		lock, acquired, err := resourceConfig.AcquireResourceCheckingLock(
 			logger,
-			interval,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
 				"resource_name":   resourceName,
-				"resource_config": resourceConfigScope.ResourceConfig().ID(),
+				"resource_config": resourceConfig.ID(),
 			})
 			return interval, ErrFailedToAcquireLock
 		}
@@ -224,7 +223,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 
 		defer lock.Release()
 
-		updated, err := resourceConfigScope.UpdateLastChecked(interval, mustComplete)
+		updated, err := resourceConfig.UpdateLastChecked(interval, mustComplete)
 		if err != nil {
 			return interval, err
 		}
@@ -239,7 +238,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		break
 	}
 
-	latestVersions, err := resourceConfigScope.LatestVersions()
+	latestVersions, err := resourceConfig.LatestVersions()
 	if err != nil {
 		logger.Error("failed-to-get-current-version", err)
 		return interval, err
@@ -257,7 +256,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 	return interval, scanner.check(
 		logger,
 		savedResource,
-		resourceConfigScope,
+		resourceConfig,
 		latestFromVersions,
 		versionedResourceTypes,
 		source,
@@ -269,7 +268,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 func (scanner *resourceScanner) check(
 	logger lager.Logger,
 	savedResource db.Resource,
-	resourceConfigScope db.ResourceConfigScope,
+	resourceConfig db.ResourceConfig,
 	fromVersion map[atc.Space]atc.Version,
 	resourceTypes creds.VersionedResourceTypes,
 	source atc.Source,
@@ -322,7 +321,7 @@ func (scanner *resourceScanner) check(
 		TeamID:        scanner.dbPipeline.TeamID(),
 	}
 
-	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
+	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ContainerExpiries)
 	containerMetadata := db.ContainerMetadata{
 		Type: db.ContainerTypeCheck,
 	}
@@ -330,7 +329,7 @@ func (scanner *resourceScanner) check(
 	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, scanner.strategy)
 	if err != nil {
 		logger.Error("failed-to-choose-a-worker", err)
-		chkErr := resourceConfigScope.SetCheckError(err)
+		chkErr := resourceConfig.SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
@@ -348,7 +347,7 @@ func (scanner *resourceScanner) check(
 	)
 	if err != nil {
 		logger.Error("failed-to-create-or-find-container", err)
-		chkErr := resourceConfigScope.SetCheckError(err)
+		chkErr := resourceConfig.SetCheckError(err)
 		if chkErr != nil {
 			logger.Error("failed-to-set-check-error-on-resource-config", chkErr)
 		}
@@ -370,7 +369,7 @@ func (scanner *resourceScanner) check(
 	defer tx.Rollback()
 
 	spaces := make(map[atc.Space]atc.Version)
-	checkHandler := NewCheckEventHandler(logger, tx, resourceConfigScope, spaces)
+	checkHandler := NewCheckEventHandler(logger, tx, resourceConfig, spaces)
 	res, err := scanner.resourceFactory.NewResourceForContainer(ctx, container)
 	if err != nil {
 		logger.Error("failed-to-create-resource-for-container", err)
@@ -382,7 +381,7 @@ func (scanner *resourceScanner) check(
 		err = fmt.Errorf("Timed out after %v while checking for new versions - perhaps increase your resource check timeout?", timeout)
 	}
 
-	resourceConfigScope.SetCheckError(err)
+	resourceConfig.SetCheckError(err)
 	metric.ResourceCheck{
 		PipelineName: scanner.dbPipeline.Name(),
 		ResourceName: savedResource.Name(),
