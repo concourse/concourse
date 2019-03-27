@@ -118,11 +118,15 @@ type alias BuildEventEnvelope =
 
 type BuildEvent
     = BuildStatus Concourse.BuildStatus Time.Posix
-    | Initialize Origin Time.Posix
+    | InitializeTask Origin Time.Posix
     | StartTask Origin
     | FinishTask Origin Int Time.Posix
-    | FinishGet Origin Int Concourse.Version Concourse.Metadata
-    | FinishPut Origin Int Concourse.Version Concourse.Metadata
+    | InitializeGet Origin Time.Posix
+    | StartGet Origin Time.Posix
+    | FinishGet Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
+    | InitializePut Origin Time.Posix
+    | StartPut Origin Time.Posix
+    | FinishPut Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
     | Log Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix
     | BuildError String

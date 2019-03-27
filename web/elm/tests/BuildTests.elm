@@ -2544,6 +2544,7 @@ all =
                                                 0
                                                 Dict.empty
                                                 []
+                                                Nothing
                                       }
                                     ]
                             )
@@ -2571,6 +2572,7 @@ all =
                                                 0
                                                 (Dict.fromList [ ( "version", "v3.1.4" ) ])
                                                 []
+                                                Nothing
                                       }
                                     ]
                             )
@@ -2587,7 +2589,7 @@ all =
                                 Ok <|
                                     [ { url = "http://localhost:8080/api/v1/builds/307/events"
                                       , data =
-                                            STModels.Initialize
+                                            STModels.InitializeTask
                                                 { source = "stdout", id = "plan" }
                                                 (Time.millisToPosix 0)
                                       }
@@ -2649,7 +2651,7 @@ all =
                                 Ok <|
                                     [ { url = "http://localhost:8080/api/v1/builds/307/events"
                                       , data =
-                                            STModels.Initialize
+                                            STModels.InitializeTask
                                                 { source = "stdout"
                                                 , id = "plan"
                                                 }
@@ -2712,6 +2714,7 @@ all =
                                                 1
                                                 Dict.empty
                                                 []
+                                                Nothing
                                       }
                                     ]
                             )
@@ -2899,6 +2902,7 @@ all =
                                                           , value = plainText
                                                           }
                                                         ]
+                                                        Nothing
                                               }
                                             ]
                                 )

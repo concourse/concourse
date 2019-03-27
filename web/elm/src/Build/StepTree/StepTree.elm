@@ -785,4 +785,4 @@ viewDuration minit mfinish =
             Html.div [ class "dict-value" ] [ Html.text ("[" ++ Duration.format duration ++ "]") ]
 
         _ ->
-            DictView.view [] Dict.empty
+            Html.div [] []

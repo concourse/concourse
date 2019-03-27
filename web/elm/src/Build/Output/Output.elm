@@ -159,7 +159,7 @@ handleEvent event ( model, effects, outmsg ) =
             , outmsg
             )
 
-        Initialize origin time ->
+        InitializeTask origin time ->
             ( updateStep origin.id (setStart time) model
             , effects
             , outmsg
@@ -177,14 +177,38 @@ handleEvent event ( model, effects, outmsg ) =
             , outmsg
             )
 
-        FinishGet origin exitStatus version metadata ->
-            ( updateStep origin.id (finishStep exitStatus Nothing << setResourceInfo version metadata) model
+        InitializeGet origin time ->
+            ( updateStep origin.id (setStart time) model
             , effects
             , outmsg
             )
 
-        FinishPut origin exitStatus version metadata ->
-            ( updateStep origin.id (finishStep exitStatus Nothing << setResourceInfo version metadata) model
+        StartGet origin time ->
+            ( updateStep origin.id setRunning model
+            , effects
+            , outmsg
+            )
+
+        FinishGet origin exitStatus version metadata time ->
+            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
+            , effects
+            , outmsg
+            )
+
+        InitializePut origin time ->
+            ( updateStep origin.id (setStart time) model
+            , effects
+            , outmsg
+            )
+
+        StartPut origin time ->
+            ( updateStep origin.id setRunning model
+            , effects
+            , outmsg
+            )
+
+        FinishPut origin exitStatus version metadata time ->
+            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
             , effects
             , outmsg
             )
