@@ -1,3 +1,8 @@
+# the following vars must be specified:
+#
+#   ((release_major)) the MAJOR version, e.g. 5
+#   ((release_minor)) the MAJOR.MINOR version, e.g. 5.1
+#
 # the following git branches need to be created:
 #
 #   concourse/concourse                 release/((release_minor)).x
@@ -11,10 +16,10 @@ resource_types:
   type: registry-image
   source: {repository: frodenas/gcs-resource}
 
+# needed for 'tag' file creation; can be removed once shipped
 - name: registry-image
   type: registry-image
-  # 'dev' tag is needed for 'tag' file creation
-  source: {repository: concourse/registry-image-resource, tag: dev}
+  source: {repository: concourse/registry-image-resource}
 
 - name: bosh-release
   type: registry-image
@@ -798,6 +803,7 @@ jobs:
       passed: [shipit]
       params: {format: oci}
     - get: latest-version
+    - get: latest-of-same-major-version
   - task: docker-semver-tags
     file: concourse/ci/tasks/docker-semver-tags.yml
   - put: concourse-image
@@ -880,6 +886,14 @@ resources:
     owner: concourse
     repository: concourse
     access_token: ((concourse_github_release.access_token))
+
+- name: latest-of-same-major-version
+  type: github-release
+  source:
+    owner: concourse
+    repository: concourse
+    access_token: ((concourse_github_release.access_token))
+    tag_filter: '^v(((release_major))\.\d+\.\d+)$'
 
 - name: linux-rc
   type: gcs

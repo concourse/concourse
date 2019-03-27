@@ -3,10 +3,10 @@ resource_types:
   type: registry-image
   source: {repository: frodenas/gcs-resource}
 
+# needed for 'tag' file creation; can be removed once shipped
 - name: registry-image
   type: registry-image
-  # 'dev' tag is needed for 'tag' file creation
-  source: {repository: concourse/registry-image-resource, tag: dev}
+  source: {repository: concourse/registry-image-resource}
 
 - name: bosh-release
   type: registry-image
@@ -989,6 +989,8 @@ jobs:
     - get: latest-version
   - task: docker-semver-tags
     file: concourse/ci/tasks/docker-semver-tags.yml
+    input_mapping:
+      latest-of-same-major-version: latest-version
   - put: concourse-image
     params:
       image: concourse-rc-image/image.tar

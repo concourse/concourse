@@ -9,6 +9,7 @@ inputs:
 - name: concourse
 - name: version
 - name: latest-version
+- name: latest-of-same-major-version
 
 outputs:
 - name: tags
