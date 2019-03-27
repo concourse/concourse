@@ -785,7 +785,6 @@ var _ = Describe("Resources API", func() {
 					"privileged": false,
 					"params": {"param-key-1": "param-value-1"},
 					"source": {"source-key-1": "source-value-1"},
-					"unique_version_history": false,
 					"version": {
 						"version-key-1": "version-value-1",
 						"version-key-2": "version-value-2"
@@ -800,7 +799,6 @@ var _ = Describe("Resources API", func() {
 					"check_every": "10ms",
 					"params": {"param-key-2": "param-value-2"},
 					"source": {"source-key-2": "source-value-2"},
-					"unique_version_history": false,
 					"version": {
 						"version-key-2": "version-value-2"
 					}
@@ -837,7 +835,6 @@ var _ = Describe("Resources API", func() {
 				"privileged": false,
 				"params": {"param-key-1": "param-value-1"},
 				"source": {"source-key-1": "source-value-1"},
-				"unique_version_history": false,
 				"version": {
 					"version-key-1": "version-value-1",
 					"version-key-2": "version-value-2"
@@ -852,7 +849,6 @@ var _ = Describe("Resources API", func() {
 				"check_every": "10ms",
 				"params": {"param-key-2": "param-value-2"},
 				"source": {"source-key-2": "source-value-2"},
-				"unique_version_history": false,
 				"version": {
 					"version-key-2": "version-value-2"
 				},

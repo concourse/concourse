@@ -22,16 +22,13 @@ var _ = Describe("WorkerResourceType", func() {
 	})
 
 	Context("when there is a base resource type", func() {
-		var unique bool
 		var usedWorkerResourceType *db.UsedWorkerResourceType
 
 		BeforeEach(func() {
-			unique = false
-
 			tx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
 
-			usedWorkerResourceType, err = wrt.FindOrCreate(tx, unique)
+			usedWorkerResourceType, err = wrt.FindOrCreate(tx)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = tx.Commit()
@@ -45,57 +42,13 @@ var _ = Describe("WorkerResourceType", func() {
 			tx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
 
-			usedWorkerResourceType2, err := wrt.FindOrCreate(tx, unique)
+			usedWorkerResourceType2, err := wrt.FindOrCreate(tx)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = tx.Commit()
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(usedWorkerResourceType2).To(Equal(usedWorkerResourceType))
-			Expect(usedWorkerResourceType2.UsedBaseResourceType.UniqueVersionHistory).To(BeFalse())
-		})
-
-		Context("when the base resource type becomes unique", func() {
-			var uniqueUsedWorkerResourceType *db.UsedWorkerResourceType
-
-			BeforeEach(func() {
-				unique = true
-
-				tx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				uniqueUsedWorkerResourceType, err = wrt.FindOrCreate(tx, unique)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = tx.Commit()
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("creates the base resource type with unique history", func() {
-				Expect(uniqueUsedWorkerResourceType).ToNot(Equal(usedWorkerResourceType))
-				Expect(uniqueUsedWorkerResourceType.UsedBaseResourceType.UniqueVersionHistory).To(BeTrue())
-			})
-
-			Context("when the base resource type is saved again as not unique", func() {
-				var anotherUniqueUWRT *db.UsedWorkerResourceType
-
-				BeforeEach(func() {
-					unique = false
-
-					tx, err := dbConn.Begin()
-					Expect(err).ToNot(HaveOccurred())
-
-					anotherUniqueUWRT, err = wrt.FindOrCreate(tx, unique)
-					Expect(err).ToNot(HaveOccurred())
-
-					err = tx.Commit()
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("stays as unique history", func() {
-					Expect(anotherUniqueUWRT.UsedBaseResourceType.UniqueVersionHistory).To(BeTrue())
-				})
-			})
 		})
 	})
 })

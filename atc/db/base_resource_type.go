@@ -23,36 +23,34 @@ type BaseResourceType struct {
 // that is in use, this guarantees that the BaseResourceType will not be
 // removed. That is to say that its "Use" is vicarious.
 type UsedBaseResourceType struct {
-	ID                   int    // The ID of the BaseResourceType.
-	Name                 string // The name of the type, e.g. 'git'.
-	UniqueVersionHistory bool   // If set to true, will create unique version histories for each of the resources using this base resource type
+	ID   int    // The ID of the BaseResourceType.
+	Name string // The name of the type, e.g. 'git'.
 }
 
 // FindOrCreate looks for an existing BaseResourceType and creates it if it
 // doesn't exist. It returns a UsedBaseResourceType.
-func (brt BaseResourceType) FindOrCreate(tx Tx, unique bool) (*UsedBaseResourceType, error) {
+func (brt BaseResourceType) FindOrCreate(tx Tx) (*UsedBaseResourceType, error) {
 	ubrt, found, err := brt.Find(tx)
 	if err != nil {
 		return nil, err
 	}
 
-	if found && ubrt.UniqueVersionHistory == unique {
+	if found {
 		return ubrt, nil
 	}
 
-	return brt.create(tx, unique)
+	return brt.create(tx)
 }
 
 func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool, error) {
 	var id int
-	var unique bool
-	err := psql.Select("id, unique_version_history").
+	err := psql.Select("id").
 		From("base_resource_types").
 		Where(sq.Eq{"name": brt.Name}).
 		Suffix("FOR SHARE").
 		RunWith(runner).
 		QueryRow().
-		Scan(&id, &unique)
+		Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -61,27 +59,25 @@ func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool,
 		return nil, false, err
 	}
 
-	return &UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: unique}, true, nil
+	return &UsedBaseResourceType{ID: id, Name: brt.Name}, true, nil
 }
 
-func (brt BaseResourceType) create(tx Tx, unique bool) (*UsedBaseResourceType, error) {
+func (brt BaseResourceType) create(tx Tx) (*UsedBaseResourceType, error) {
 	var id int
-	var savedUnique bool
 	err := psql.Insert("base_resource_types").
-		Columns("name", "unique_version_history").
-		Values(brt.Name, unique).
+		Columns("name").
+		Values(brt.Name).
 		Suffix(`
 			ON CONFLICT (name) DO UPDATE SET
-				name = EXCLUDED.name,
-				unique_version_history = EXCLUDED.unique_version_history OR base_resource_types.unique_version_history
-			RETURNING id, unique_version_history
+				name = EXCLUDED.name
+			RETURNING id
 		`).
 		RunWith(tx).
 		QueryRow().
-		Scan(&id, &savedUnique)
+		Scan(&id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: savedUnique}, nil
+	return &UsedBaseResourceType{ID: id, Name: brt.Name}, nil
 }

@@ -96,7 +96,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 						Name: "base-resource-type-name",
 					}
 
-					_, err = brt.FindOrCreate(setupTx, false)
+					_, err = brt.FindOrCreate(setupTx)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 

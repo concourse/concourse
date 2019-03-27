@@ -134,7 +134,7 @@ var _ = Describe("Pipeline", func() {
 			Name: "some-type",
 		}
 
-		_, err = brt.FindOrCreate(setupTx, false)
+		_, err = brt.FindOrCreate(setupTx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(setupTx.Commit()).To(Succeed())
 	})
@@ -2286,7 +2286,7 @@ var _ = Describe("Pipeline", func() {
 				Name: "base-type",
 			}
 
-			_, err = brt.FindOrCreate(setupTx, false)
+			_, err = brt.FindOrCreate(setupTx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 

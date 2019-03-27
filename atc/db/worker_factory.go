@@ -525,7 +525,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			},
 		}
 
-		uwrt, err := workerResourceType.FindOrCreate(tx, resourceType.UniqueVersionHistory)
+		uwrt, err := workerResourceType.FindOrCreate(tx)
 		if err != nil {
 			return nil, err
 		}

@@ -37,7 +37,6 @@ type ResourceType interface {
 	Space() atc.Space
 
 	Version() (atc.Version, error)
-	UniqueVersionHistory() bool
 
 	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfig, error)
 	SetCheckSetupError(error) error
@@ -58,15 +57,14 @@ func (resourceTypes ResourceTypes) Deserialize() (atc.VersionedResourceTypes, er
 
 		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
-				Name:                 t.Name(),
-				Type:                 t.Type(),
-				Space:                t.Space(),
-				Source:               t.Source(),
-				Privileged:           t.Privileged(),
-				CheckEvery:           t.CheckEvery(),
-				Tags:                 t.Tags(),
-				Params:               t.Params(),
-				UniqueVersionHistory: t.UniqueVersionHistory(),
+				Name:       t.Name(),
+				Type:       t.Type(),
+				Space:      t.Space(),
+				Source:     t.Source(),
+				Privileged: t.Privileged(),
+				CheckEvery: t.CheckEvery(),
+				Tags:       t.Tags(),
+				Params:     t.Params(),
 			},
 			Version: version,
 		})
@@ -80,15 +78,14 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 
 	for _, r := range resourceTypes {
 		configs = append(configs, atc.ResourceType{
-			Name:                 r.Name(),
-			Type:                 r.Type(),
-			Space:                r.Space(),
-			Source:               r.Source(),
-			Privileged:           r.Privileged(),
-			CheckEvery:           r.CheckEvery(),
-			Tags:                 r.Tags(),
-			Params:               r.Params(),
-			UniqueVersionHistory: r.UniqueVersionHistory(),
+			Name:       r.Name(),
+			Type:       r.Type(),
+			Space:      r.Space(),
+			Source:     r.Source(),
+			Privileged: r.Privileged(),
+			CheckEvery: r.CheckEvery(),
+			Tags:       r.Tags(),
+			Params:     r.Params(),
 		})
 	}
 
@@ -101,35 +98,33 @@ var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, r.space, r
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
-	id                   int
-	name                 string
-	type_                string
-	privileged           bool
-	source               atc.Source
-	params               atc.Params
-	tags                 atc.Tags
-	space                atc.Space
-	checkEvery           string
-	checkSetupError      error
-	checkError           error
-	uniqueVersionHistory bool
+	id              int
+	name            string
+	type_           string
+	privileged      bool
+	source          atc.Source
+	params          atc.Params
+	tags            atc.Tags
+	space           atc.Space
+	checkEvery      string
+	checkSetupError error
+	checkError      error
 
 	conn        Conn
 	lockFactory lock.LockFactory
 }
 
-func (t *resourceType) ID() int                    { return t.id }
-func (t *resourceType) Name() string               { return t.name }
-func (t *resourceType) Type() string               { return t.type_ }
-func (t *resourceType) Space() atc.Space           { return t.space }
-func (t *resourceType) Privileged() bool           { return t.privileged }
-func (t *resourceType) CheckEvery() string         { return t.checkEvery }
-func (t *resourceType) Source() atc.Source         { return t.source }
-func (t *resourceType) Params() atc.Params         { return t.params }
-func (t *resourceType) Tags() atc.Tags             { return t.tags }
-func (t *resourceType) CheckSetupError() error     { return t.checkSetupError }
-func (t *resourceType) CheckError() error          { return t.checkError }
-func (t *resourceType) UniqueVersionHistory() bool { return t.uniqueVersionHistory }
+func (t *resourceType) ID() int                { return t.id }
+func (t *resourceType) Name() string           { return t.name }
+func (t *resourceType) Type() string           { return t.type_ }
+func (t *resourceType) Space() atc.Space       { return t.space }
+func (t *resourceType) Privileged() bool       { return t.privileged }
+func (t *resourceType) CheckEvery() string     { return t.checkEvery }
+func (t *resourceType) Source() atc.Source     { return t.source }
+func (t *resourceType) Params() atc.Params     { return t.params }
+func (t *resourceType) Tags() atc.Tags         { return t.tags }
+func (t *resourceType) CheckSetupError() error { return t.checkSetupError }
+func (t *resourceType) CheckError() error      { return t.checkError }
 
 func (t *resourceType) Version() (atc.Version, error) {
 	var version atc.Version
@@ -291,7 +286,6 @@ func scanResourceType(t *resourceType, row scannable) error {
 	t.privileged = config.Privileged
 	t.tags = config.Tags
 	t.checkEvery = config.CheckEvery
-	t.uniqueVersionHistory = config.UniqueVersionHistory
 
 	if checkErr.Valid {
 		t.checkSetupError = errors.New(checkErr.String)

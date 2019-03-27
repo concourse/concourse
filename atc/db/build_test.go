@@ -363,7 +363,7 @@ var _ = Describe("Build", func() {
 				Name: "some-type",
 			}
 
-			_, err = brt.FindOrCreate(setupTx, false)
+			_, err = brt.FindOrCreate(setupTx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -433,7 +433,7 @@ var _ = Describe("Build", func() {
 				Name: "some-type",
 			}
 
-			_, err = brt.FindOrCreate(setupTx, false)
+			_, err = brt.FindOrCreate(setupTx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -712,7 +712,7 @@ var _ = Describe("Build", func() {
 						Name: "some-type",
 					}
 
-					_, err = brt.FindOrCreate(setupTx, false)
+					_, err = brt.FindOrCreate(setupTx)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -894,7 +894,7 @@ var _ = Describe("Build", func() {
 						Name: "some-type",
 					}
 
-					_, err = brt.FindOrCreate(setupTx, false)
+					_, err = brt.FindOrCreate(setupTx)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
@@ -1070,7 +1070,7 @@ var _ = Describe("Build", func() {
 				Name: "some-type",
 			}
 
-			_, err = brt.FindOrCreate(setupTx, false)
+			_, err = brt.FindOrCreate(setupTx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -1105,7 +1105,7 @@ var _ = Describe("Build", func() {
 				Name: "some-other-type",
 			}
 
-			_, err = brt.FindOrCreate(setupTx, false)
+			_, err = brt.FindOrCreate(setupTx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
@@ -1128,7 +1128,7 @@ var _ = Describe("Build", func() {
 				Name: "type",
 			}
 
-			_, err = brt2.FindOrCreate(setupTx2, false)
+			_, err = brt2.FindOrCreate(setupTx2)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx2.Commit()).To(Succeed())
 

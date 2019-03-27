@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 )
 
-var EnableGlobalResources bool
-
 type Resource struct {
 	Name         string `json:"name"`
 	PipelineName string `json:"pipeline_name"`

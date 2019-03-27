@@ -199,7 +199,7 @@ var _ = Describe("ResourceType", func() {
 				Name: "registry-image",
 			}
 
-			_, err = brt.FindOrCreate(setupTx, false)
+			_, err = brt.FindOrCreate(setupTx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 

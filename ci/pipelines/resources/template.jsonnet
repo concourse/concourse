@@ -115,8 +115,7 @@ local create_release = {
         {
           "type": "%(resource)s",
           "version": "$(cat version/number)",
-          "privileged": %(privileged)s,
-          "unique_version_history": %(unique_version_history)s
+          "privileged": %(privileged)s
         }
         EOF
 
@@ -132,8 +131,7 @@ local create_release = {
         tar -czf ../release/%(resource)s-resource-${version}.tgz rootfs.tgz resource_metadata.json
       ||| % {
         resource: resource,
-        privileged: resource == "docker-image",
-        unique_version_history: resource == "time"
+        privileged: resource == "docker-image"
       }
     ]
   }

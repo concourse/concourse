@@ -24,7 +24,7 @@ var _ = Describe("ResourceCache", func() {
 			Name: "some-worker-resource-type",
 		}
 
-		_, err = brt.FindOrCreate(setupTx, false)
+		_, err = brt.FindOrCreate(setupTx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(setupTx.Commit()).To(Succeed())
 

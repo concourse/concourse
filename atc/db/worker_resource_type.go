@@ -22,8 +22,8 @@ type UsedWorkerResourceType struct {
 	UsedBaseResourceType *UsedBaseResourceType
 }
 
-func (wrt WorkerResourceType) FindOrCreate(tx Tx, unique bool) (*UsedWorkerResourceType, error) {
-	usedBaseResourceType, err := wrt.BaseResourceType.FindOrCreate(tx, unique)
+func (wrt WorkerResourceType) FindOrCreate(tx Tx) (*UsedWorkerResourceType, error) {
+	usedBaseResourceType, err := wrt.BaseResourceType.FindOrCreate(tx)
 	if err != nil {
 		return nil, err
 	}
