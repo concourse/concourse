@@ -130,11 +130,6 @@ A task's configuration specifies the following:
     taken from. If not specified, the output's \code{name} is used.
 
     Paths are relative to the working directory of the task. Absolute paths are not respected.
-
-    Note that this value \italic{must not overlap} with any other inputs or
-    outputs. Each output results in a new empty directory that your task
-    should place artifacts in; if the path overlaps it'll clobber whatever
-    files used to be there.
   }{output-path}
 
   \italic{Optional.} The artifacts produced by the task.
@@ -153,11 +148,6 @@ A task's configuration specifies the following:
 
     Paths are relative to the working directory of the task. Absolute paths
     are not respected.
-
-    Note that this value \italic{must not overlap} with any other caches in
-    the same task. Each cache results in a new empty directory that your
-    task can place artifacts in; if the path overlaps it'll clobber
-    whatever files used to be there.
   }{cache-path}
 
   \italic{Optional.} The cached directories shared between task runs.
