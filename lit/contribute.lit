@@ -43,7 +43,7 @@ in contributing to Concourse's development:
   and making PRs against the project.
 }{
   \bold{Contributing Code}. If you're interested in contributing some work to
-  the core project, you can get started by reviewing the \link{\code{CONTRIBUTING.md}}{https://github.com/concourse/concourse/blob/master/.github/CONTRIBUTING.md}
+  the core project, you can get started by reviewing the \link{\code{CONTRIBUTING.md}}{https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md}
   getting started guide. You can also get an overview of the Concourse architecture
   by reviewing some of the documentation under \link{Concourse Architecture}{architecture.html}.
   If you're curious about what we're working on you can follow along with the team's
