@@ -175,6 +175,7 @@ initBottom hl create id name =
             , firstOccurrence = False
             , timestamps = Dict.empty
             , initialize = Nothing
+            , start = Nothing
             , finish = Nothing
             }
     in
@@ -383,7 +384,14 @@ updateTooltip { hoveredElement, hoveredCounter } model =
             case hoveredElement of
                 Just (FirstOccurrenceIcon id) ->
                     if hoveredCounter > 0 then
-                        Just id
+                        hoveredElement
+
+                    else
+                        Nothing
+
+                Just (StepState id) ->
+                    if hoveredCounter > 0 then
+                        hoveredElement
 
                     else
                         Nothing
@@ -497,7 +505,7 @@ autoExpanded state =
 
 
 viewStep : StepTreeModel -> Time.Zone -> Step -> StepHeaderType -> Html Message
-viewStep model timeZone { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, finish } headerType =
+viewStep model timeZone { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -513,14 +521,13 @@ viewStep model timeZone { id, name, log, state, error, expanded, version, metada
             )
             [ Html.div
                 [ style "display" "flex" ]
-                [ viewStepHeaderIcon headerType (model.tooltip == Just id) id
+                [ viewStepHeaderIcon headerType (model.tooltip == Just (FirstOccurrenceIcon id)) id
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
                 [ style "display" "flex" ]
                 [ viewVersion version
-                , viewDuration initialize finish
-                , viewStepState state
+                , viewStepState state id (viewDurationTooltip initialize start finish (model.tooltip == Just (StepState id)))
                 ]
             ]
         , Html.div
@@ -685,65 +692,84 @@ viewMetadata =
         >> DictView.view []
 
 
-viewStepState : StepState -> Html Message
-viewStepState state =
+viewStepState : StepState -> StepID -> List (Html Message) -> Html Message
+viewStepState state id tooltip =
+    let
+        eventHandlers =
+            [ onMouseLeave <| Hover Nothing
+            , onMouseEnter <| Hover (Just (StepState id))
+            , style "position" "relative"
+            ]
+    in
     case state of
         StepStateRunning ->
             Spinner.spinner { size = "14px", margin = "7px" }
 
         StepStatePending ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-pending.svg"
                 }
                 (attribute "data-step-state" "pending"
                     :: Styles.stepStatusIcon
+                    ++ eventHandlers
                 )
+                tooltip
 
         StepStateInterrupted ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-interrupted.svg"
                 }
                 (attribute "data-step-state" "interrupted"
                     :: Styles.stepStatusIcon
+                    ++ eventHandlers
                 )
+                tooltip
 
         StepStateCancelled ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-cancelled.svg"
                 }
                 (attribute "data-step-state" "cancelled"
                     :: Styles.stepStatusIcon
+                    ++ eventHandlers
                 )
+                tooltip
 
         StepStateSucceeded ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-success-check.svg"
                 }
                 (attribute "data-step-state" "succeeded"
                     :: Styles.stepStatusIcon
+                    ++ eventHandlers
                 )
+                tooltip
 
         StepStateFailed ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-failure-times.svg"
                 }
                 (attribute "data-step-state" "failed"
                     :: Styles.stepStatusIcon
+                    ++ eventHandlers
                 )
+                tooltip
 
         StepStateErrored ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-exclamation-triangle.svg"
                 }
                 (attribute "data-step-state" "errored"
                     :: Styles.stepStatusIcon
+                    ++ eventHandlers
                 )
+                tooltip
 
 
 viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Message
@@ -774,15 +800,36 @@ viewStepHeaderIcon headerType tooltip id =
         )
 
 
-viewDuration : Maybe Time.Posix -> Maybe Time.Posix -> Html Message
-viewDuration minit mfinish =
-    case ( minit, mfinish ) of
-        ( Just startedAt, Just finishedAt ) ->
-            let
-                duration =
-                    Duration.between startedAt finishedAt
-            in
-            Html.div [ class "dict-value" ] [ Html.text ("[" ++ Duration.format duration ++ "]") ]
+viewDurationTooltip : Maybe Time.Posix -> Maybe Time.Posix -> Maybe Time.Posix -> Bool -> List (Html Message)
+viewDurationTooltip minit mstart mfinish tooltip =
+    if tooltip then
+        case ( minit, mstart, mfinish ) of
+            ( Just initializedAt, Just startedAt, Just finishedAt ) ->
+                let
+                    initDuration =
+                        Duration.between initializedAt startedAt
 
-        _ ->
-            Html.div [] []
+                    stepDuration =
+                        Duration.between startedAt finishedAt
+                in
+                [ Html.div [ style "position" "inherit", style "margin-left" "-500px" ]
+                    [ Html.div
+                        Styles.durationTooltip
+                        [ DictView.view []
+                            (Dict.fromList
+                                [ ( "initialization", Html.text (Duration.format initDuration) )
+                                , ( "step", Html.text (Duration.format stepDuration) )
+                                ]
+                            )
+                        ]
+                    ]
+                , Html.div
+                    Styles.durationTooltipArrow
+                    []
+                ]
+
+            _ ->
+                []
+
+    else
+        []

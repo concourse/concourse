@@ -25,6 +25,7 @@ import Ansi.Log
 import Array exposing (Array)
 import Concourse
 import Dict exposing (Dict)
+import Message.Message exposing (Hoverable)
 import Routes exposing (Highlight, StepID)
 import Time
 
@@ -33,7 +34,7 @@ type alias StepTreeModel =
     { tree : StepTree
     , foci : Dict StepID StepFocus
     , highlight : Highlight
-    , tooltip : Maybe StepID
+    , tooltip : Maybe Hoverable
     }
 
 
@@ -71,6 +72,7 @@ type alias Step =
     , firstOccurrence : Bool
     , timestamps : Dict Int Time.Posix
     , initialize : Maybe Time.Posix
+    , start : Maybe Time.Posix
     , finish : Maybe Time.Posix
     }
 
@@ -119,7 +121,7 @@ type alias BuildEventEnvelope =
 type BuildEvent
     = BuildStatus Concourse.BuildStatus Time.Posix
     | InitializeTask Origin Time.Posix
-    | StartTask Origin
+    | StartTask Origin Time.Posix
     | FinishTask Origin Int Time.Posix
     | InitializeGet Origin Time.Posix
     | StartGet Origin Time.Posix

@@ -160,13 +160,13 @@ handleEvent event ( model, effects, outmsg ) =
             )
 
         InitializeTask origin time ->
-            ( updateStep origin.id (setStart time) model
+            ( updateStep origin.id (setInitialize time) model
             , effects
             , outmsg
             )
 
-        StartTask origin ->
-            ( updateStep origin.id setRunning model
+        StartTask origin time ->
+            ( updateStep origin.id (setStart time) model
             , effects
             , outmsg
             )
@@ -178,13 +178,13 @@ handleEvent event ( model, effects, outmsg ) =
             )
 
         InitializeGet origin time ->
-            ( updateStep origin.id (setStart time) model
+            ( updateStep origin.id (setInitialize time) model
             , effects
             , outmsg
             )
 
         StartGet origin time ->
-            ( updateStep origin.id setRunning model
+            ( updateStep origin.id (setStart time) model
             , effects
             , outmsg
             )
@@ -196,13 +196,13 @@ handleEvent event ( model, effects, outmsg ) =
             )
 
         InitializePut origin time ->
-            ( updateStep origin.id (setStart time) model
+            ( updateStep origin.id (setInitialize time) model
             , effects
             , outmsg
             )
 
         StartPut origin time ->
-            ( updateStep origin.id setRunning model
+            ( updateStep origin.id (setStart time) model
             , effects
             , outmsg
             )
@@ -300,6 +300,11 @@ setStepError message time tree =
 
 setStart : Time.Posix -> StepTree -> StepTree
 setStart time tree =
+    setStepStart time (setStepState StepStateRunning tree)
+
+
+setInitialize : Time.Posix -> StepTree -> StepTree
+setInitialize time tree =
     setStepInitialize time (setStepState StepStateRunning tree)
 
 
@@ -329,6 +334,11 @@ setStepState state tree =
 setStepInitialize : Time.Posix -> StepTree -> StepTree
 setStepInitialize time tree =
     StepTree.map (\step -> { step | initialize = Just time }) tree
+
+
+setStepStart : Time.Posix -> StepTree -> StepTree
+setStepStart time tree =
+    StepTree.map (\step -> { step | start = Just time }) tree
 
 
 setStepFinish : Maybe Time.Posix -> StepTree -> StepTree

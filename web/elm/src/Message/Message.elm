@@ -71,6 +71,7 @@ type Hoverable
     | SaveCommentButton
     | AbortBuildButton
     | FirstOccurrenceIcon StepID
+    | StepState StepID
     | PinIcon
     | PinButton
     | PinBar

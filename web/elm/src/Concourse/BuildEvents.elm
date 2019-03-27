@@ -94,7 +94,10 @@ decodeBuildEvent =
                     "start-task" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map StartTask (Json.Decode.field "origin" decodeOrigin))
+                            (Json.Decode.map2 StartTask
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
 
                     "finish-task" ->
                         Json.Decode.field

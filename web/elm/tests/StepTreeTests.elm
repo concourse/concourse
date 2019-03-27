@@ -57,6 +57,7 @@ someVersionedStep version id name state =
     , firstOccurrence = False
     , timestamps = Dict.empty
     , initialize = Nothing
+    , start = Nothing
     , finish = Nothing
     }
 

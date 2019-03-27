@@ -332,6 +332,7 @@ all =
                                                 { source = "stdout"
                                                 , id = "stepid"
                                                 }
+                                                (Time.millisToPosix 0)
                                       }
                                     , { url = "http://localhost:8080/api/v1/builds/307/events"
                                       , data =
@@ -567,7 +568,7 @@ all =
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
-                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.first
                     |> receiveEvent
@@ -648,6 +649,7 @@ all =
                                 { id = "stepid"
                                 , source = ""
                                 }
+                                (Time.millisToPosix 0)
                         }
                     |> Tuple.first
                     |> receiveEvent
@@ -678,7 +680,7 @@ all =
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
-                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
                     |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
@@ -690,7 +692,7 @@ all =
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
-                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
                     |> Expect.equal []
@@ -705,7 +707,7 @@ all =
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
-                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
                     |> Expect.equal []
@@ -723,7 +725,7 @@ all =
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
-                        , data = STModels.StartTask { id = "stepid", source = "" }
+                        , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
                     |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
@@ -2582,7 +2584,7 @@ all =
                         >> Query.children []
                         >> Query.index -1
                         >> Query.has [ text "v3.1.4" ]
-                , test "finist task lists duration on the right" <|
+                , test "finist task lists initialization duration in tooltip" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
                             (EventsReceived <|
@@ -2595,19 +2597,87 @@ all =
                                       }
                                     , { url = "http://localhost:8080/api/v1/builds/307/events"
                                       , data =
+                                            STModels.StartTask
+                                                { source = "stdout", id = "plan" }
+                                                (Time.millisToPosix 10000)
+                                      }
+                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
                                             STModels.FinishTask
                                                 { source = "stdout", id = "plan" }
                                                 0
-                                                (Time.millisToPosix 10000)
+                                                (Time.millisToPosix 30000)
                                       }
                                     ]
+                            )
+                        >> Tuple.first
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just <|
+                                        Message.Message.StepState
+                                            "plan"
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 1
                             )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "header" ]
                         >> Query.children []
                         >> Query.index -1
-                        >> Query.has [ text "10s" ]
+                        >> Query.findAll [ tag "tr" ]
+                        >> Query.index 0
+                        >> Query.has [ text "initialization", text "10s" ]
+                , test "finist task lists step duration in tooltip" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.InitializeTask
+                                                { source = "stdout", id = "plan" }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout", id = "plan" }
+                                                (Time.millisToPosix 10000)
+                                      }
+                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.FinishTask
+                                                { source = "stdout", id = "plan" }
+                                                0
+                                                (Time.millisToPosix 30000)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just <|
+                                        Message.Message.StepState
+                                            "plan"
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 1
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.findAll [ tag "tr" ]
+                        >> Query.index 1
+                        >> Query.has [ text "step", text "20s" ]
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -2619,6 +2689,7 @@ all =
                                                 { source = "stdout"
                                                 , id = "plan"
                                                 }
+                                                (Time.millisToPosix 0)
                                       }
                                     ]
                             )
