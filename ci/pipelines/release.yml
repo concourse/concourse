@@ -2,6 +2,7 @@
 #
 #   ((release_major)) the MAJOR version, e.g. 5
 #   ((release_minor)) the MAJOR.MINOR version, e.g. 5.1
+#   ((concourse_smoke_deployment_name)) a unique name for the smoke bosh deployment
 #
 # the following git branches need to be created:
 #
