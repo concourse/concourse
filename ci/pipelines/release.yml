@@ -312,7 +312,7 @@ jobs:
       file: concourse/ci/tasks/k8s-delete.yml
       params:
         KUBE_CONFIG: ((kube_config))
-        RELEASE_NAME: concourse-smoke-patch # TODO can't use release_minor
+        RELEASE_NAME: ((concourse_smoke_deployment_name))
         CONCOURSE_IMAGE: concourse/concourse-rc
   - task: deploy
     image: unit-image
@@ -320,21 +320,21 @@ jobs:
     file: concourse/ci/tasks/k8s-deploy.yml
     params:
       KUBE_CONFIG: ((kube_config))
-      RELEASE_NAME: concourse-smoke-patch # TODO can't use release_minor
+      RELEASE_NAME: ((concourse_smoke_deployment_name))
       CONCOURSE_IMAGE: concourse/concourse-rc
   - task: k8s-smoke
     image: unit-image
     file: concourse/ci/tasks/k8s-smoke.yml
     params:
       KUBE_CONFIG: ((kube_config))
-      RELEASE_NAME: concourse-smoke-patch # TODO can't use release_minor
+      RELEASE_NAME: ((concourse_smoke_deployment_name))
       MAX_TICKS: 180
   - task: delete
     image: unit-image
     file: concourse/ci/tasks/k8s-delete.yml
     params:
       KUBE_CONFIG: ((kube_config))
-      RELEASE_NAME: concourse-smoke-patch # TODO can't use release_minor
+      RELEASE_NAME: ((concourse_smoke_deployment_name))
       CONCOURSE_IMAGE: concourse/concourse-rc
 
 - name: k8s-topgun
@@ -578,7 +578,7 @@ jobs:
       stemcells:
       - gcp-xenial-stemcell/*.tgz
       vars:
-        deployment_name: concourse-smoke-patch # TODO can't use release_minor
+        deployment_name: ((concourse_smoke_deployment_name))
   - task: discover-bosh-endpoint-info
     file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
     image: unit-image
@@ -586,7 +586,7 @@ jobs:
       BOSH_ENVIRONMENT: ((bosh_target))
       BOSH_CLIENT: ((bosh_client.id))
       BOSH_CLIENT_SECRET: ((bosh_client.secret))
-      BOSH_DEPLOYMENT: concourse-smoke-patch # TODO can't use release_minor
+      BOSH_DEPLOYMENT: ((concourse_smoke_deployment_name))
       BOSH_INSTANCE_GROUP: concourse
   - task: smoke
     image: unit-image
@@ -949,7 +949,7 @@ resources:
     target: ((bosh_target))
     client: ((bosh_client.id))
     client_secret: ((bosh_client.secret))
-    deployment: concourse-smoke-patch # TODO can't use release_minor
+    deployment: ((concourse_smoke_deployment_name))
 
 - name: wings-deployment
   type: bosh-deployment
