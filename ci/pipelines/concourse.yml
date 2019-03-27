@@ -81,7 +81,6 @@ groups:
   - publish-bosh-release
   - publish-bosh-deployment
   - publish-docs
-  - patch
 
 - name: workers
   jobs:
@@ -992,16 +991,6 @@ jobs:
     params: {ANALYTICS_ID: ((analytics_id))}
   - put: docs-gh-pages
     params: {repository: built-docs}
-
-- name: patch
-  public: true
-  serial_groups: [version]
-  plan:
-  - get: version
-    passed: [shipit]
-    trigger: true
-  - put: version
-    params: {bump: patch, pre: rc}
 
 - name: merge-cbd
   public: true
