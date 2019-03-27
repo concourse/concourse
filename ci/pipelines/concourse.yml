@@ -79,7 +79,8 @@ groups:
   - publish-binaries
   - publish-image
   - publish-bosh-release
-  - publish-bosh-deployment
+  - promote-cbd
+  - bump-cbd-versions
   - publish-docs
 
 - name: workers
@@ -930,7 +931,7 @@ jobs:
       tarball: concourse-release/*.tgz
       version: version/version
 
-- name: publish-bosh-deployment
+- name: bump-cbd-versions
   serial: true
   plan:
   - aggregate:
@@ -938,25 +939,39 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [shipit]
-    - get: cbd
+    - get: cbd-master
     - get: version
       passed: [shipit]
     - get: bpm-release
       passed: [shipit]
     - get: postgres-release
       passed: [shipit]
-  # TODO: check that boshio version matches given version
   - task: bump-versions
     file: cbd/ci/bump-versions.yml
-    input_mapping: {concourse-bosh-deployment: cbd}
+    input_mapping: {concourse-bosh-deployment: cbd-master}
     image: unit-image
-  - put: cbd
-    params:
-      repository: bumped-repo
-      merge: true
   - put: cbd-master
     params:
       repository: bumped-repo
+      merge: true
+
+- name: promote-cbd
+  serial: true
+  plan:
+  - aggregate:
+    - get: version
+      passed: [shipit]
+      trigger: true
+    - get: cbd
+    - get: unit-image
+      passed: [shipit]
+    - get: bpm-release
+      passed: [shipit]
+    - get: postgres-release
+      passed: [shipit]
+  - put: cbd-master
+    params:
+      repository: cbd
       merge: true
 
 - name: publish-image

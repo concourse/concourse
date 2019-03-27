@@ -78,7 +78,6 @@ groups:
   - publish-binaries
   - publish-image
   - publish-bosh-release
-  - publish-bosh-deployment
   - publish-docs
   - patch
 
@@ -786,35 +785,6 @@ jobs:
       tarball: concourse-release/*.tgz
       version: version/version
 
-- name: publish-bosh-deployment
-  serial: true
-  plan:
-  - aggregate:
-    - get: concourse-boshio
-      trigger: true
-    - get: unit-image
-      passed: [shipit]
-    - get: cbd
-    - get: version
-      passed: [shipit]
-    - get: bpm-release
-      passed: [shipit]
-    - get: postgres-release
-      passed: [shipit]
-  # TODO: check that boshio version matches given version
-  - task: bump-versions
-    file: cbd/ci/bump-versions.yml
-    input_mapping: {concourse-bosh-deployment: cbd}
-    image: unit-image
-  - put: cbd
-    params:
-      repository: bumped-repo
-      merge: true
-  - put: cbd-master
-    params:
-      repository: bumped-repo
-      merge: true
-
 - name: publish-image
   serial: true
   plan:
@@ -996,13 +966,6 @@ resources:
     branch: release/((release_minor)).x
     private_key: ((concourse_deployment_repo_private_key))
 
-- name: cbd-master
-  type: git
-  source:
-    uri: git@github.com:concourse/concourse-bosh-deployment.git
-    branch: master
-    private_key: ((concourse_deployment_repo_private_key))
-
 - name: charts
   type: git
   source:
@@ -1021,10 +984,6 @@ resources:
     owner: concourse
     repository: concourse
     access_token: ((concourse_github_release.access_token))
-
-- name: concourse-boshio
-  type: bosh-io-release
-  source: {repository: concourse/concourse-bosh-release}
 
 - name: unit-image
   type: registry-image
