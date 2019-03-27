@@ -110,8 +110,8 @@ flattenToLayers graph =
 
 
 flattenToLayers_ : Digraph a -> List (List a) -> (a -> Maybe Int) -> (a -> Maybe Int)
-flattenToLayers_ graph sccs depths =
-    case sccs of
+flattenToLayers_ graph stronglyConnectedComponents depths =
+    case stronglyConnectedComponents of
         [] ->
             depths
 
@@ -135,11 +135,11 @@ flattenToLayers_ graph sccs depths =
                         -- (even if they weren't in order, we should always have at least one scc that depends only on previously covered sccs)
                         flattenToLayers_ graph (sccs ++ [ scc ]) depths
 
-                Just childDepths ->
+                Just cds ->
                     let
                         depth : Maybe Int
                         depth =
-                            childDepths
+                            cds
                                 |> List.maximum
                                 |> Maybe.map ((+) 1)
                                 |> Maybe.withDefault 0
@@ -188,16 +188,16 @@ takeUpTo t ts =
         [] ->
             ( [], [] )
 
-        s :: ts ->
-            if t == s then
-                ( [ s ], ts )
+        x :: xs ->
+            if t == x then
+                ( [ x ], xs )
 
             else
                 let
                     ( init, end ) =
-                        takeUpTo t ts
+                        takeUpTo t xs
                 in
-                ( s :: init, end )
+                ( x :: init, end )
 
 
 allDefined : List (Maybe a) -> Maybe (List a)

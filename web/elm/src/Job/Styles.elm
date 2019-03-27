@@ -9,78 +9,77 @@ module Job.Styles exposing
 
 import Colors
 import Concourse
+import Html
+import Html.Attributes exposing (style)
 
 
-pageBelowTopBar : List ( String, String )
+pageBelowTopBar : List (Html.Attribute msg)
 pageBelowTopBar =
-    [ ( "padding-top", "54px" )
-    , ( "height", "100%" )
+    [ style "padding-top" "54px"
+    , style "height" "100%"
     ]
 
 
-triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List ( String, String )
+triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List (Html.Attribute msg)
 triggerButton buttonDisabled hovered status =
-    [ ( "cursor"
-      , if buttonDisabled then
+    [ style "cursor" <|
+        if buttonDisabled then
             "default"
 
         else
             "pointer"
-      )
-    , ( "position", "relative" )
-    , ( "background-color"
-      , Colors.buildStatusColor (hovered && not buttonDisabled) status
-      )
+    , style "position" "relative"
+    , style "background-color" <|
+        Colors.buildStatusColor (hovered && not buttonDisabled) status
     ]
         ++ button
 
 
-button : List ( String, String )
+button : List (Html.Attribute msg)
 button =
-    [ ( "padding", "10px" )
-    , ( "border", "none" )
-    , ( "outline", "none" )
-    , ( "margin", "0" )
+    [ style "padding" "10px"
+    , style "border" "none"
+    , style "outline" "none"
+    , style "margin" "0"
     ]
 
 
-icon : Bool -> List ( String, String )
+icon : Bool -> List (Html.Attribute msg)
 icon hovered =
-    [ ( "opacity"
-      , if hovered then
+    [ style "opacity" <|
+        if hovered then
             "1"
 
         else
             "0.5"
-      )
     ]
 
 
-triggerTooltip : List ( String, String )
+triggerTooltip : List (Html.Attribute msg)
 triggerTooltip =
-    [ ( "position", "absolute" )
-    , ( "right", "100%" )
-    , ( "top", "15px" )
-    , ( "width", "300px" )
-    , ( "color", Colors.buildTooltipBackground )
-    , ( "font-size", "12px" )
-    , ( "font-family", "Inconsolata,monospace" )
-    , ( "padding", "10px" )
-    , ( "text-align", "right" )
-    , ( "pointer-events", "none" )
+    [ style "position" "absolute"
+    , style "right" "100%"
+    , style "top" "15px"
+    , style "width" "300px"
+    , style "color" Colors.buildTooltipBackground
+    , style "font-size" "12px"
+    , style "font-family" "Inconsolata,monospace"
+    , style "padding" "10px"
+    , style "text-align" "right"
+    , style "pointer-events" "none"
     ]
 
 
-buildResourceHeader : List ( String, String )
+buildResourceHeader : List (Html.Attribute msg)
 buildResourceHeader =
-    [ ( "display", "flex" )
-    , ( "align-items", "center" )
-    , ( "padding-bottom", "5px" )
+    [ style "display" "flex"
+    , style "align-items" "center"
+    , style "padding-bottom" "5px"
     ]
 
 
-buildResourceIcon : List ( String, String )
+buildResourceIcon : List (Html.Attribute msg)
 buildResourceIcon =
-    [ ( "background-size", "contain" )
-    , ( "margin-right", "5px" )
+    [ style "background-size" "contain"
+    , style "margin-right" "5px"
     ]

@@ -2,18 +2,18 @@ module Dashboard.Details exposing (Details, dragStateLens, dropStateLens, nowLen
 
 import Dashboard.Models as Models
 import Monocle.Lens
-import Time exposing (Time)
+import Time
 
 
 type alias Details r =
     { r
-        | now : Time
+        | now : Time.Posix
         , dragState : Models.DragState
         , dropState : Models.DropState
     }
 
 
-nowLens : Monocle.Lens.Lens (Details r) Time.Time
+nowLens : Monocle.Lens.Lens (Details r) Time.Posix
 nowLens =
     Monocle.Lens.Lens .now (\t ss -> { ss | now = t })
 

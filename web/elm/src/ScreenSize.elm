@@ -1,7 +1,5 @@
 module ScreenSize exposing (ScreenSize(..), fromWindowSize)
 
-import Window
-
 
 type ScreenSize
     = Mobile
@@ -9,12 +7,12 @@ type ScreenSize
     | BigDesktop
 
 
-fromWindowSize : Window.Size -> ScreenSize
-fromWindowSize size =
-    if size.width < 812 then
+fromWindowSize : Float -> Float -> ScreenSize
+fromWindowSize width height =
+    if width < 812 then
         Mobile
 
-    else if size.width < 1230 then
+    else if width < 1230 then
         Desktop
 
     else

@@ -92,7 +92,7 @@ findJob : List Concourse.Job -> Concourse.JobName -> Concourse.Job
 findJob jobs name =
     case find (\j -> j.name == name) jobs of
         Nothing ->
-            Debug.crash ("a job depends on nonexistant job " ++ name)
+            Debug.todo ("a job depends on nonexistant job " ++ name)
 
         Just j ->
             j

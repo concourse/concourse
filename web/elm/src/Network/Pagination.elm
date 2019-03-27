@@ -73,7 +73,7 @@ parsePagination decode response =
     in
     case decoded of
         Err err ->
-            Err err
+            Err <| Debug.toString err
 
         Ok content ->
             Ok { content = content, pagination = pagination }
@@ -103,23 +103,23 @@ fromQuery query =
     let
         limit =
             Maybe.withDefault 0 <|
-                (Dict.get "limit" query |> Maybe.andThen parseNum)
+                (Dict.get "limit" query |> Maybe.andThen String.toInt)
 
         until =
             Maybe.map Until <|
-                (Dict.get "until" query |> Maybe.andThen parseNum)
+                (Dict.get "until" query |> Maybe.andThen String.toInt)
 
         since =
             Maybe.map Since <|
-                (Dict.get "since" query |> Maybe.andThen parseNum)
+                (Dict.get "since" query |> Maybe.andThen String.toInt)
 
         from =
             Maybe.map Since <|
-                (Dict.get "from" query |> Maybe.andThen parseNum)
+                (Dict.get "from" query |> Maybe.andThen String.toInt)
 
         to =
             Maybe.map Since <|
-                (Dict.get "to" query |> Maybe.andThen parseNum)
+                (Dict.get "to" query |> Maybe.andThen String.toInt)
     in
     Maybe.map (\direction -> { direction = direction, limit = limit }) <|
         Maybe.Extra.or until <|
@@ -138,26 +138,29 @@ toQuery page =
                 directionParam =
                     case somePage.direction of
                         Since id ->
-                            ( "since", toString id )
+                            ( "since", String.fromInt id )
 
                         Until id ->
-                            ( "until", toString id )
+                            ( "until", String.fromInt id )
 
                         From id ->
-                            ( "from", toString id )
+                            ( "from", String.fromInt id )
 
                         To id ->
-                            ( "to", toString id )
+                            ( "to", String.fromInt id )
 
                 limitParam =
-                    ( "limit", toString somePage.limit )
+                    ( "limit", String.fromInt somePage.limit )
             in
             Dict.fromList [ directionParam, limitParam ]
 
 
 parseLinkTuple : String -> Maybe ( String, String )
 parseLinkTuple header =
-    case Regex.find (Regex.AtMost 1) linkHeaderRegex header of
+    case
+        Maybe.map (\r -> Regex.findAtMost 1 r header) linkHeaderRegex
+            |> Maybe.withDefault []
+    of
         [] ->
             Nothing
 
@@ -186,11 +189,6 @@ parseQuery query =
             String.split "&" query
 
 
-parseNum : String -> Maybe Int
-parseNum =
-    Result.toMaybe << String.toInt
-
-
 keysToLower : Dict String a -> Dict String a
 keysToLower =
     Dict.toList
@@ -208,6 +206,6 @@ nextRel =
     "next"
 
 
-linkHeaderRegex : Regex
+linkHeaderRegex : Maybe Regex
 linkHeaderRegex =
-    Regex.regex ("<([^>]+)>; rel=\"(" ++ previousRel ++ "|" ++ nextRel ++ ")\"")
+    Regex.fromString ("<([^>]+)>; rel=\"(" ++ previousRel ++ "|" ++ nextRel ++ ")\"")

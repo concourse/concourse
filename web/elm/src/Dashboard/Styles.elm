@@ -47,35 +47,35 @@ import Application.Styles
 import Colors
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
+import Html
+import Html.Attributes exposing (style)
 import ScreenSize exposing (ScreenSize(..))
 
 
-content : Bool -> List ( String, String )
+content : Bool -> List (Html.Attribute msg)
 content highDensity =
-    [ ( "align-content", "flex-start" )
-    , ( "display"
-      , if highDensity then
+    [ style "align-content" "flex-start"
+    , style "display" <|
+        if highDensity then
             "flex"
 
         else
             "initial"
-      )
-    , ( "flex-flow", "column wrap" )
-    , ( "padding"
-      , if highDensity then
+    , style "flex-flow" "column wrap"
+    , style "padding" <|
+        if highDensity then
             "60px"
 
         else
             "0"
-      )
-    , ( "flex-grow", "1" )
+    , style "flex-grow" "1"
     ]
 
 
-pipelineCard : List ( String, String )
+pipelineCard : List (Html.Attribute msg)
 pipelineCard =
-    [ ( "cursor", "move" )
-    , ( "margin", "25px" )
+    [ style "cursor" "move"
+    , style "margin" "25px"
     ]
 
 
@@ -83,7 +83,7 @@ pipelineCardBanner :
     { status : PipelineStatus
     , pipelineRunningKeyframes : String
     }
-    -> List ( String, String )
+    -> List (Html.Attribute msg)
 pipelineCardBanner { status, pipelineRunningKeyframes } =
     let
         color =
@@ -92,107 +92,107 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-    [ ( "height", "7px" ) ] ++ texture pipelineRunningKeyframes isRunning color
+    [ style "height" "7px" ] ++ texture pipelineRunningKeyframes isRunning color
 
 
-noPipelineCardHd : List ( String, String )
+noPipelineCardHd : List (Html.Attribute msg)
 noPipelineCardHd =
-    [ ( "background-color", Colors.card )
-    , ( "font-size", "14px" )
-    , ( "width", "200px" )
-    , ( "height", "60px" )
-    , ( "display", "flex" )
-    , ( "align-items", "center" )
-    , ( "letter-spacing", "1px" )
-    , ( "margin-right", "60px" )
+    [ style "background-color" Colors.card
+    , style "font-size" "14px"
+    , style "width" "200px"
+    , style "height" "60px"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "letter-spacing" "1px"
+    , style "margin-right" "60px"
     ]
 
 
-noPipelineCardTextHd : List ( String, String )
+noPipelineCardTextHd : List (Html.Attribute msg)
 noPipelineCardTextHd =
-    [ ( "padding", "10px" )
+    [ style "padding" "10px"
     ]
 
 
-noPipelineCardHeader : List ( String, String )
+noPipelineCardHeader : List (Html.Attribute msg)
 noPipelineCardHeader =
-    [ ( "color", Colors.dashboardText )
-    , ( "background-color", Colors.card )
-    , ( "font-size", "1.5em" )
-    , ( "letter-spacing", "0.1em" )
-    , ( "padding", "12.5px" )
-    , ( "text-align", "center" )
-    , ( "-webkit-font-smoothing", "antialiased" )
+    [ style "color" Colors.dashboardText
+    , style "background-color" Colors.card
+    , style "font-size" "1.5em"
+    , style "letter-spacing" "0.1em"
+    , style "padding" "12.5px"
+    , style "text-align" "center"
+    , style "-webkit-font-smoothing" "antialiased"
     ]
 
 
-pipelineCardHeader : List ( String, String )
+pipelineCardHeader : List (Html.Attribute msg)
 pipelineCardHeader =
-    [ ( "background-color", Colors.card )
-    , ( "color", Colors.dashboardText )
-    , ( "font-size", "1.5em" )
-    , ( "letter-spacing", "0.1em" )
-    , ( "-webkit-font-smoothing", "antialiased" )
-    , ( "padding", "12.5px" )
+    [ style "background-color" Colors.card
+    , style "color" Colors.dashboardText
+    , style "font-size" "1.5em"
+    , style "letter-spacing" "0.1em"
+    , style "-webkit-font-smoothing" "antialiased"
+    , style "padding" "12.5px"
     ]
 
 
-pipelineName : List ( String, String )
+pipelineName : List (Html.Attribute msg)
 pipelineName =
-    [ ( "width", "245px" )
-    , ( "white-space", "nowrap" )
-    , ( "overflow", "hidden" )
-    , ( "text-overflow", "ellipsis" )
+    [ style "width" "245px"
+    , style "white-space" "nowrap"
+    , style "overflow" "hidden"
+    , style "text-overflow" "ellipsis"
     ]
 
 
-cardBody : List ( String, String )
+cardBody : List (Html.Attribute msg)
 cardBody =
-    [ ( "width", "200px" )
-    , ( "height", "120px" )
-    , ( "padding", "20px 36px" )
-    , ( "background-color", Colors.card )
-    , ( "margin", "2px 0" )
-    , ( "display", "flex" )
+    [ style "width" "200px"
+    , style "height" "120px"
+    , style "padding" "20px 36px"
+    , style "background-color" Colors.card
+    , style "margin" "2px 0"
+    , style "display" "flex"
     ]
 
 
-pipelineCardBody : List ( String, String )
+pipelineCardBody : List (Html.Attribute msg)
 pipelineCardBody =
-    [ ( "background-color", Colors.card )
-    , ( "margin", "2px 0" )
+    [ style "background-color" Colors.card
+    , style "margin" "2px 0"
     ]
 
 
-cardFooter : List ( String, String )
+cardFooter : List (Html.Attribute msg)
 cardFooter =
-    [ ( "height", "47px" )
-    , ( "background-color", Colors.card )
+    [ style "height" "47px"
+    , style "background-color" Colors.card
     ]
 
 
-previewPlaceholder : List ( String, String )
+previewPlaceholder : List (Html.Attribute msg)
 previewPlaceholder =
-    [ ( "background-color", Colors.background )
-    , ( "flex-grow", "1" )
+    [ style "background-color" Colors.background
+    , style "flex-grow" "1"
     ]
 
 
-teamNameHd : List ( String, String )
+teamNameHd : List (Html.Attribute msg)
 teamNameHd =
-    [ ( "letter-spacing", ".2em" )
+    [ style "letter-spacing" ".2em"
     ]
 
 
-pipelineCardHd : PipelineStatus -> List ( String, String )
+pipelineCardHd : PipelineStatus -> List (Html.Attribute msg)
 pipelineCardHd status =
-    [ ( "display", "flex" )
-    , ( "height", "60px" )
-    , ( "width", "200px" )
-    , ( "margin", "0 60px 4px 0" )
-    , ( "position", "relative" )
-    , ( "background-color"
-      , case status of
+    [ style "display" "flex"
+    , style "height" "60px"
+    , style "width" "200px"
+    , style "margin" "0 60px 4px 0"
+    , style "position" "relative"
+    , style "background-color" <|
+        case status of
             PipelineStatusSucceeded _ ->
                 Colors.successFaded
 
@@ -204,20 +204,19 @@ pipelineCardHd status =
 
             _ ->
                 Colors.card
-      )
-    , ( "font-size", "19px" )
-    , ( "letter-spacing", "1px" )
+    , style "font-size" "19px"
+    , style "letter-spacing" "1px"
     ]
 
 
-pipelineCardBodyHd : List ( String, String )
+pipelineCardBodyHd : List (Html.Attribute msg)
 pipelineCardBodyHd =
-    [ ( "width", "180px" )
-    , ( "white-space", "nowrap" )
-    , ( "overflow", "hidden" )
-    , ( "text-overflow", "ellipsis" )
-    , ( "align-self", "center" )
-    , ( "padding", "10px" )
+    [ style "width" "180px"
+    , style "white-space" "nowrap"
+    , style "overflow" "hidden"
+    , style "text-overflow" "ellipsis"
+    , style "align-self" "center"
+    , style "padding" "10px"
     ]
 
 
@@ -225,7 +224,7 @@ pipelineCardBannerHd :
     { status : PipelineStatus
     , pipelineRunningKeyframes : String
     }
-    -> List ( String, String )
+    -> List (Html.Attribute msg)
 pipelineCardBannerHd { status, pipelineRunningKeyframes } =
     let
         color =
@@ -234,13 +233,13 @@ pipelineCardBannerHd { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-    [ ( "width", "8px" ) ]
+    [ style "width" "8px" ]
         ++ texture pipelineRunningKeyframes isRunning color
 
 
-solid : String -> List ( String, String )
+solid : String -> List (Html.Attribute msg)
 solid color =
-    [ ( "background-color", color ) ]
+    [ style "background-color" color ]
 
 
 striped :
@@ -248,15 +247,11 @@ striped :
     , thickColor : String
     , thinColor : String
     }
-    -> List ( String, String )
+    -> List (Html.Attribute msg)
 striped { pipelineRunningKeyframes, thickColor, thinColor } =
-    [ ( "background-image"
-      , withStripes thickColor thinColor
-      )
-    , ( "background-size", "106px 114px" )
-    , ( "animation"
-      , pipelineRunningKeyframes ++ " 3s linear infinite"
-      )
+    [ style "background-image" <| withStripes thickColor thinColor
+    , style "background-size" "106px 114px"
+    , style "animation" <| pipelineRunningKeyframes ++ " 3s linear infinite"
     ]
 
 
@@ -273,7 +268,7 @@ withStripes thickColor thinColor =
         ++ " 16px)"
 
 
-texture : String -> Bool -> String -> List ( String, String )
+texture : String -> Bool -> String -> List (Html.Attribute msg)
 texture pipelineRunningKeyframes isRunning color =
     if isRunning then
         striped
@@ -286,243 +281,239 @@ texture pipelineRunningKeyframes isRunning color =
         solid color
 
 
-pipelineCardFooter : List ( String, String )
+pipelineCardFooter : List (Html.Attribute msg)
 pipelineCardFooter =
-    [ ( "padding", "13.5px" )
-    , ( "display", "flex" )
-    , ( "justify-content", "space-between" )
-    , ( "background-color", Colors.card )
+    [ style "padding" "13.5px"
+    , style "display" "flex"
+    , style "justify-content" "space-between"
+    , style "background-color" Colors.card
     ]
 
 
-pipelineCardTransitionAge : PipelineStatus -> List ( String, String )
+pipelineCardTransitionAge : PipelineStatus -> List (Html.Attribute msg)
 pipelineCardTransitionAge status =
-    [ ( "color", Colors.statusColor status )
-    , ( "font-size", "18px" )
-    , ( "line-height", "20px" )
-    , ( "letter-spacing", "0.05em" )
-    , ( "margin-left", "8px" )
+    [ style "color" <| Colors.statusColor status
+    , style "font-size" "18px"
+    , style "line-height" "20px"
+    , style "letter-spacing" "0.05em"
+    , style "margin-left" "8px"
     ]
 
 
 infoBar :
     { hideLegend : Bool, screenSize : ScreenSize.ScreenSize }
-    -> List ( String, String )
+    -> List (Html.Attribute msg)
 infoBar { hideLegend, screenSize } =
-    [ ( "position", "fixed" )
-    , ( "bottom", "0" )
-    , ( "line-height", "35px" )
-    , ( "padding", "7.5px 30px" )
-    , ( "background-color", Colors.frame )
-    , ( "width", "100%" )
-    , ( "box-sizing", "border-box" )
-    , ( "display", "flex" )
-    , ( "justify-content"
-      , if hideLegend then
+    [ style "position" "fixed"
+    , style "bottom" "0"
+    , style "line-height" "35px"
+    , style "padding" "7.5px 30px"
+    , style "background-color" Colors.frame
+    , style "width" "100%"
+    , style "box-sizing" "border-box"
+    , style "display" "flex"
+    , style "justify-content" <|
+        if hideLegend then
             "flex-end"
 
         else
             "space-between"
-      )
     ]
         ++ (case screenSize of
                 ScreenSize.Mobile ->
-                    [ ( "flex-direction", "column" ) ]
+                    [ style "flex-direction" "column" ]
 
                 ScreenSize.Desktop ->
-                    [ ( "flex-direction", "column" ) ]
+                    [ style "flex-direction" "column" ]
 
                 ScreenSize.BigDesktop ->
                     []
            )
 
 
-legend : List ( String, String )
+legend : List (Html.Attribute msg)
 legend =
-    [ ( "display", "flex" )
-    , ( "flex-wrap", "wrap" )
+    [ style "display" "flex"
+    , style "flex-wrap" "wrap"
     ]
 
 
-legendItem : List ( String, String )
+legendItem : List (Html.Attribute msg)
 legendItem =
-    [ ( "display", "flex" )
-    , ( "text-transform", "uppercase" )
-    , ( "align-items", "center" )
-    , ( "color", Colors.bottomBarText )
-    , ( "margin-right", "20px" )
+    [ style "display" "flex"
+    , style "text-transform" "uppercase"
+    , style "align-items" "center"
+    , style "color" Colors.bottomBarText
+    , style "margin-right" "20px"
     ]
 
 
-legendSeparator : List ( String, String )
+legendSeparator : List (Html.Attribute msg)
 legendSeparator =
-    [ ( "color", Colors.bottomBarText )
-    , ( "margin-right", "20px" )
-    , ( "display", "flex" )
-    , ( "align-items", "center" )
+    [ style "color" Colors.bottomBarText
+    , style "margin-right" "20px"
+    , style "display" "flex"
+    , style "align-items" "center"
     ]
 
 
-highDensityToggle : List ( String, String )
+highDensityToggle : List (Html.Attribute msg)
 highDensityToggle =
-    [ ( "color", Colors.bottomBarText )
-    , ( "margin-right", "20px" )
-    , ( "display", "flex" )
-    , ( "text-transform", "uppercase" )
-    , ( "align-items", "center" )
+    [ style "color" Colors.bottomBarText
+    , style "margin-right" "20px"
+    , style "display" "flex"
+    , style "text-transform" "uppercase"
+    , style "align-items" "center"
     ]
 
 
-highDensityIcon : Bool -> List ( String, String )
+highDensityIcon : Bool -> List (Html.Attribute msg)
 highDensityIcon highDensity =
-    [ ( "background-image"
-      , if highDensity then
+    [ style "background-image" <|
+        if highDensity then
             "url(/public/images/ic-hd-on.svg)"
 
         else
             "url(/public/images/ic-hd-off.svg)"
-      )
-    , ( "background-size", "contain" )
-    , ( "height", "20px" )
-    , ( "width", "35px" )
-    , ( "flex-shrink", "0" )
-    , ( "margin-right", "10px" )
+    , style "background-size" "contain"
+    , style "height" "20px"
+    , style "width" "35px"
+    , style "flex-shrink" "0"
+    , style "margin-right" "10px"
     ]
 
 
-info : List ( String, String )
+info : List (Html.Attribute msg)
 info =
-    [ ( "display", "flex" )
-    , ( "color", Colors.bottomBarText )
-    , ( "font-size", "1.25em" )
+    [ style "display" "flex"
+    , style "color" Colors.bottomBarText
+    , style "font-size" "1.25em"
     ]
 
 
-infoItem : List ( String, String )
+infoItem : List (Html.Attribute msg)
 infoItem =
-    [ ( "margin-right", "30px" )
-    , ( "display", "flex" )
-    , ( "align-items", "center" )
+    [ style "margin-right" "30px"
+    , style "display" "flex"
+    , style "align-items" "center"
     ]
 
 
-infoCliIcon : { hovered : Bool, cli : Cli.Cli } -> List ( String, String )
+infoCliIcon : { hovered : Bool, cli : Cli.Cli } -> List (Html.Attribute msg)
 infoCliIcon { hovered, cli } =
-    [ ( "margin-right", "10px" )
-    , ( "width", "20px" )
-    , ( "height", "20px" )
-    , ( "background-image", Cli.iconUrl cli )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-size", "contain" )
-    , ( "opacity"
-      , if hovered then
+    [ style "margin-right" "10px"
+    , style "width" "20px"
+    , style "height" "20px"
+    , style "background-image" <| Cli.iconUrl cli
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
+    , style "background-size" "contain"
+    , style "opacity" <|
+        if hovered then
             "1"
 
         else
             "0.5"
-      )
     ]
 
 
-topCliIcon : { hovered : Bool, cli : Cli.Cli } -> List ( String, String )
+topCliIcon : { hovered : Bool, cli : Cli.Cli } -> List (Html.Attribute msg)
 topCliIcon { hovered, cli } =
-    [ ( "opacity"
-      , if hovered then
+    [ style "opacity" <|
+        if hovered then
             "1"
 
         else
             "0.5"
-      )
-    , ( "background-image", Cli.iconUrl cli )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "width", "32px" )
-    , ( "height", "32px" )
-    , ( "margin", "5px" )
-    , ( "z-index", "1" )
+    , style "background-image" <| Cli.iconUrl cli
+    , style "background-position" "50% 50%"
+    , style "background-repeat" "no-repeat"
+    , style "width" "32px"
+    , style "height" "32px"
+    , style "margin" "5px"
+    , style "z-index" "1"
     ]
 
 
-welcomeCard : List ( String, String )
+welcomeCard : List (Html.Attribute msg)
 welcomeCard =
-    [ ( "background-color", Colors.card )
-    , ( "margin", "25px" )
-    , ( "padding", "40px" )
-    , ( "-webkit-font-smoothing", "antialiased" )
-    , ( "position", "relative" )
-    , ( "overflow", "hidden" )
-    , ( "font-weight", "400" )
-    , ( "display", "flex" )
-    , ( "flex-direction", "column" )
+    [ style "background-color" Colors.card
+    , style "margin" "25px"
+    , style "padding" "40px"
+    , style "-webkit-font-smoothing" "antialiased"
+    , style "position" "relative"
+    , style "overflow" "hidden"
+    , style "font-weight" "400"
+    , style "display" "flex"
+    , style "flex-direction" "column"
     ]
 
 
-welcomeCardBody : List ( String, String )
+welcomeCardBody : List (Html.Attribute msg)
 welcomeCardBody =
-    [ ( "font-size", "16px" )
-    , ( "z-index", "2" )
+    [ style "font-size" "16px"
+    , style "z-index" "2"
     ]
 
 
-welcomeCardTitle : List ( String, String )
+welcomeCardTitle : List (Html.Attribute msg)
 welcomeCardTitle =
-    [ ( "font-size", "32px" ) ]
+    [ style "font-size" "32px" ]
 
 
-resourceErrorTriangle : List ( String, String )
+resourceErrorTriangle : List (Html.Attribute msg)
 resourceErrorTriangle =
-    [ ( "position", "absolute" )
-    , ( "top", "0" )
-    , ( "right", "0" )
-    , ( "width", "0" )
-    , ( "height", "0" )
-    , ( "border-top", "30px solid " ++ Colors.resourceError )
-    , ( "border-left", "30px solid transparent" )
+    [ style "position" "absolute"
+    , style "top" "0"
+    , style "right" "0"
+    , style "width" "0"
+    , style "height" "0"
+    , style "border-top" <| "30px solid " ++ Colors.resourceError
+    , style "border-left" "30px solid transparent"
     ]
 
 
-asciiArt : List ( String, String )
+asciiArt : List (Html.Attribute msg)
 asciiArt =
-    [ ( "font-size", "16px" )
-    , ( "line-height", "8px" )
-    , ( "position", "absolute" )
-    , ( "top", "0" )
-    , ( "left", "23em" )
-    , ( "margin", "0" )
-    , ( "white-space", "pre" )
-    , ( "color", Colors.asciiArt )
-    , ( "z-index", "1" )
+    [ style "font-size" "16px"
+    , style "line-height" "8px"
+    , style "position" "absolute"
+    , style "top" "0"
+    , style "left" "23em"
+    , style "margin" "0"
+    , style "white-space" "pre"
+    , style "color" Colors.asciiArt
+    , style "z-index" "1"
     ]
         ++ Application.Styles.disableInteraction
 
 
-noResults : List ( String, String )
+noResults : List (Html.Attribute msg)
 noResults =
-    [ ( "text-align", "center" )
-    , ( "font-size", "13px" )
-    , ( "margin-top", "20px" )
+    [ style "text-align" "center"
+    , style "font-size" "13px"
+    , style "margin-top" "20px"
     ]
 
 
-searchContainer : ScreenSize -> List ( String, String )
+searchContainer : ScreenSize -> List (Html.Attribute msg)
 searchContainer screenSize =
-    [ ( "display", "flex" )
-    , ( "flex-direction", "column" )
-    , ( "margin", "12px" )
-    , ( "position", "relative" )
-    , ( "align-items", "stretch" )
+    [ style "display" "flex"
+    , style "flex-direction" "column"
+    , style "margin" "12px"
+    , style "position" "relative"
+    , style "align-items" "stretch"
     ]
         ++ (case screenSize of
                 Mobile ->
-                    [ ( "flex-grow", "1" ) ]
+                    [ style "flex-grow" "1" ]
 
                 _ ->
                     []
            )
 
 
-searchInput : ScreenSize -> List ( String, String )
+searchInput : ScreenSize -> List (Html.Attribute msg)
 searchInput screenSize =
     let
         widthStyles =
@@ -531,27 +522,27 @@ searchInput screenSize =
                     []
 
                 Desktop ->
-                    [ ( "width", "220px" ) ]
+                    [ style "width" "220px" ]
 
                 BigDesktop ->
-                    [ ( "width", "220px" ) ]
+                    [ style "width" "220px" ]
     in
-    [ ( "background-color", "transparent" )
-    , ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "12px 8px" )
-    , ( "height", "30px" )
-    , ( "padding", "0 42px" )
-    , ( "border", "1px solid " ++ Colors.inputOutline )
-    , ( "color", Colors.dashboardText )
-    , ( "font-size", "1.15em" )
-    , ( "font-family", "Inconsolata, monospace" )
-    , ( "outline", "0" )
+    [ style "background-color" "transparent"
+    , style "background-image" "url('public/images/ic-search-white-24px.svg')"
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "12px 8px"
+    , style "height" "30px"
+    , style "padding" "0 42px"
+    , style "border" <| "1px solid " ++ Colors.inputOutline
+    , style "color" Colors.dashboardText
+    , style "font-size" "1.15em"
+    , style "font-family" "Inconsolata, monospace"
+    , style "outline" "0"
     ]
         ++ widthStyles
 
 
-searchClearButton : Bool -> List ( String, String )
+searchClearButton : Bool -> List (Html.Attribute msg)
 searchClearButton active =
     let
         opacityValue =
@@ -561,55 +552,55 @@ searchClearButton active =
             else
                 "0.2"
     in
-    [ ( "background-image", "url('public/images/ic-close-white-24px.svg')" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "10px 10px" )
-    , ( "border", "0" )
-    , ( "color", Colors.inputOutline )
-    , ( "position", "absolute" )
-    , ( "right", "0" )
-    , ( "padding", "17px" )
-    , ( "opacity", opacityValue )
+    [ style "background-image" "url('public/images/ic-close-white-24px.svg')"
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "10px 10px"
+    , style "border" "0"
+    , style "color" Colors.inputOutline
+    , style "position" "absolute"
+    , style "right" "0"
+    , style "padding" "17px"
+    , style "opacity" opacityValue
     ]
 
 
-dropdownItem : Bool -> List ( String, String )
+dropdownItem : Bool -> List (Html.Attribute msg)
 dropdownItem isSelected =
     let
         coloration =
             if isSelected then
-                [ ( "background-color", Colors.frame )
-                , ( "color", Colors.dashboardText )
+                [ style "background-color" Colors.frame
+                , style "color" Colors.dashboardText
                 ]
 
             else
-                [ ( "background-color", Colors.dropdownFaded )
-                , ( "color", Colors.dropdownUnselectedText )
+                [ style "background-color" Colors.dropdownFaded
+                , style "color" Colors.dropdownUnselectedText
                 ]
     in
-    [ ( "padding", "0 42px" )
-    , ( "line-height", "30px" )
-    , ( "list-style-type", "none" )
-    , ( "border", "1px solid " ++ Colors.inputOutline )
-    , ( "margin-top", "-1px" )
-    , ( "font-size", "1.15em" )
-    , ( "cursor", "pointer" )
+    [ style "padding" "0 42px"
+    , style "line-height" "30px"
+    , style "list-style-type" "none"
+    , style "border" <| "1px solid " ++ Colors.inputOutline
+    , style "margin-top" "-1px"
+    , style "font-size" "1.15em"
+    , style "cursor" "pointer"
     ]
         ++ coloration
 
 
-dropdownContainer : ScreenSize -> List ( String, String )
+dropdownContainer : ScreenSize -> List (Html.Attribute msg)
 dropdownContainer screenSize =
-    [ ( "top", "100%" )
-    , ( "margin", "0" )
-    , ( "width", "100%" )
+    [ style "top" "100%"
+    , style "margin" "0"
+    , style "width" "100%"
     ]
         ++ (case screenSize of
                 Mobile ->
                     []
 
                 _ ->
-                    [ ( "position", "absolute" ) ]
+                    [ style "position" "absolute" ]
            )
 
 
@@ -618,7 +609,7 @@ showSearchContainer :
         | screenSize : ScreenSize
         , highDensity : Bool
     }
-    -> List ( String, String )
+    -> List (Html.Attribute msg)
 showSearchContainer { screenSize, highDensity } =
     let
         flexLayout =
@@ -626,25 +617,25 @@ showSearchContainer { screenSize, highDensity } =
                 []
 
             else
-                [ ( "align-items", "flex-start" ) ]
+                [ style "align-items" "flex-start" ]
     in
-    [ ( "display", "flex" )
-    , ( "flex-direction", "column" )
-    , ( "flex-grow", "1" )
-    , ( "justify-content", "center" )
-    , ( "padding", "12px" )
-    , ( "position", "relative" )
+    [ style "display" "flex"
+    , style "flex-direction" "column"
+    , style "flex-grow" "1"
+    , style "justify-content" "center"
+    , style "padding" "12px"
+    , style "position" "relative"
     ]
         ++ flexLayout
 
 
-searchButton : List ( String, String )
+searchButton : List (Html.Attribute msg)
 searchButton =
-    [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "12px 8px" )
-    , ( "height", "32px" )
-    , ( "width", "32px" )
-    , ( "display", "inline-block" )
-    , ( "float", "left" )
+    [ style "background-image" "url('public/images/ic-search-white-24px.svg')"
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "12px 8px"
+    , style "height" "32px"
+    , style "width" "32px"
+    , style "display" "inline-block"
+    , style "float" "left"
     ]

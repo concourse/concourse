@@ -59,10 +59,11 @@ module Concourse exposing
     )
 
 import Array exposing (Array)
-import Date exposing (Date)
 import Dict exposing (Dict)
 import Json.Decode
-import Json.Decode.Extra exposing ((|:))
+import Json.Decode.Extra exposing (andMap)
+import Json.Encode
+import Time
 
 
 
@@ -76,21 +77,21 @@ type alias AuthToken =
 decodeAuthToken : Json.Decode.Decoder AuthToken
 decodeAuthToken =
     customDecoder
-        (Json.Decode.succeed (,)
-            |: Json.Decode.field "type" Json.Decode.string
-            |: Json.Decode.field "value" Json.Decode.string
+        (Json.Decode.succeed (\a b -> ( a, b ))
+            |> andMap (Json.Decode.field "type" Json.Decode.string)
+            |> andMap (Json.Decode.field "value" Json.Decode.string)
         )
         authTokenFromTuple
 
 
-authTokenFromTuple : ( String, String ) -> Result String AuthToken
+authTokenFromTuple : ( String, String ) -> Result Json.Decode.Error AuthToken
 authTokenFromTuple ( t, token ) =
     case t of
         "Bearer" ->
             Ok token
 
         _ ->
-            Err "unknown token type"
+            Err <| Json.Decode.Failure "unknown token type" <| Json.Encode.string token
 
 
 
@@ -153,7 +154,7 @@ type alias Build =
     , job : Maybe JobIdentifier
     , status : BuildStatus
     , duration : BuildDuration
-    , reapTime : Maybe Date
+    , reapTime : Maybe Time.Posix
     }
 
 
@@ -167,28 +168,31 @@ type BuildStatus
 
 
 type alias BuildDuration =
-    { startedAt : Maybe Date
-    , finishedAt : Maybe Date
+    { startedAt : Maybe Time.Posix
+    , finishedAt : Maybe Time.Posix
     }
 
 
 decodeBuild : Json.Decode.Decoder Build
 decodeBuild =
     Json.Decode.succeed Build
-        |: Json.Decode.field "id" Json.Decode.int
-        |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.maybe
-            (Json.Decode.succeed JobIdentifier
-                |: Json.Decode.field "team_name" Json.Decode.string
-                |: Json.Decode.field "pipeline_name" Json.Decode.string
-                |: Json.Decode.field "job_name" Json.Decode.string
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap
+            (Json.Decode.maybe
+                (Json.Decode.succeed JobIdentifier
+                    |> andMap (Json.Decode.field "team_name" Json.Decode.string)
+                    |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
+                    |> andMap (Json.Decode.field "job_name" Json.Decode.string)
+                )
             )
-        |: Json.Decode.field "status" decodeBuildStatus
-        |: (Json.Decode.succeed BuildDuration
-                |: Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.float))
-                |: Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.float))
-           )
-        |: Json.Decode.maybe (Json.Decode.field "reap_time" (Json.Decode.map dateFromSeconds Json.Decode.float))
+        |> andMap (Json.Decode.field "status" decodeBuildStatus)
+        |> andMap
+            (Json.Decode.succeed BuildDuration
+                |> andMap (Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
+                |> andMap (Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
+            )
+        |> andMap (Json.Decode.maybe (Json.Decode.field "reap_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
 
 
 decodeBuildStatus : Json.Decode.Decoder BuildStatus
@@ -215,7 +219,7 @@ decodeBuildStatus =
                     Ok BuildStatusAborted
 
                 unknown ->
-                    Err ("unknown build status: " ++ unknown)
+                    Err <| Json.Decode.Failure "unknown build status" <| Json.Encode.string unknown
 
 
 
@@ -241,12 +245,12 @@ type BuildPrepStatus
 decodeBuildPrep : Json.Decode.Decoder BuildPrep
 decodeBuildPrep =
     Json.Decode.succeed BuildPrep
-        |: Json.Decode.field "paused_pipeline" decodeBuildPrepStatus
-        |: Json.Decode.field "paused_job" decodeBuildPrepStatus
-        |: Json.Decode.field "max_running_builds" decodeBuildPrepStatus
-        |: (Json.Decode.field "inputs" <| Json.Decode.dict decodeBuildPrepStatus)
-        |: Json.Decode.field "inputs_satisfied" decodeBuildPrepStatus
-        |: (defaultTo Dict.empty <| Json.Decode.field "missing_input_reasons" <| Json.Decode.dict Json.Decode.string)
+        |> andMap (Json.Decode.field "paused_pipeline" decodeBuildPrepStatus)
+        |> andMap (Json.Decode.field "paused_job" decodeBuildPrepStatus)
+        |> andMap (Json.Decode.field "max_running_builds" decodeBuildPrepStatus)
+        |> andMap (Json.Decode.field "inputs" <| Json.Decode.dict decodeBuildPrepStatus)
+        |> andMap (Json.Decode.field "inputs_satisfied" decodeBuildPrepStatus)
+        |> andMap (defaultTo Dict.empty <| Json.Decode.field "missing_input_reasons" <| Json.Decode.dict Json.Decode.string)
 
 
 decodeBuildPrepStatus : Json.Decode.Decoder BuildPrepStatus
@@ -264,7 +268,7 @@ decodeBuildPrepStatus =
                     Ok BuildPrepStatusNotBlocking
 
                 unknown ->
-                    Err ("unknown build preparation status: " ++ unknown)
+                    Err <| Json.Decode.Failure "unknown build preparation status" <| Json.Encode.string unknown
 
 
 
@@ -293,23 +297,23 @@ type alias BuildResourcesOutput =
 decodeBuildResources : Json.Decode.Decoder BuildResources
 decodeBuildResources =
     Json.Decode.succeed BuildResources
-        |: (Json.Decode.field "inputs" <| Json.Decode.list decodeResourcesInput)
-        |: (Json.Decode.field "outputs" <| Json.Decode.list decodeResourcesOutput)
+        |> andMap (Json.Decode.field "inputs" <| Json.Decode.list decodeResourcesInput)
+        |> andMap (Json.Decode.field "outputs" <| Json.Decode.list decodeResourcesOutput)
 
 
 decodeResourcesInput : Json.Decode.Decoder BuildResourcesInput
 decodeResourcesInput =
     Json.Decode.succeed BuildResourcesInput
-        |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.field "version" decodeVersion
-        |: Json.Decode.field "first_occurrence" Json.Decode.bool
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "version" decodeVersion)
+        |> andMap (Json.Decode.field "first_occurrence" Json.Decode.bool)
 
 
 decodeResourcesOutput : Json.Decode.Decoder BuildResourcesOutput
 decodeResourcesOutput =
     Json.Decode.succeed BuildResourcesOutput
-        |: Json.Decode.field "name" Json.Decode.string
-        |: (Json.Decode.field "version" <| Json.Decode.dict Json.Decode.string)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "version" <| Json.Decode.dict Json.Decode.string)
 
 
 
@@ -356,104 +360,110 @@ decodeBuildPlan =
 decodeBuildPlan_ : Json.Decode.Decoder BuildPlan
 decodeBuildPlan_ =
     Json.Decode.succeed BuildPlan
-        |: Json.Decode.field "id" Json.Decode.string
-        |: Json.Decode.oneOf
-            -- buckle up
-            [ Json.Decode.field "task" <| lazy (\_ -> decodeBuildStepTask)
-            , Json.Decode.field "get" <| lazy (\_ -> decodeBuildStepGet)
-            , Json.Decode.field "put" <| lazy (\_ -> decodeBuildStepPut)
-            , Json.Decode.field "dependent_get" <| lazy (\_ -> decodeBuildStepGet)
-            , Json.Decode.field "aggregate" <| lazy (\_ -> decodeBuildStepAggregate)
-            , Json.Decode.field "do" <| lazy (\_ -> decodeBuildStepDo)
-            , Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildStepOnSuccess)
-            , Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildStepOnFailure)
-            , Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildStepOnAbort)
-            , Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildStepEnsure)
-            , Json.Decode.field "try" <| lazy (\_ -> decodeBuildStepTry)
-            , Json.Decode.field "retry" <| lazy (\_ -> decodeBuildStepRetry)
-            , Json.Decode.field "timeout" <| lazy (\_ -> decodeBuildStepTimeout)
-            ]
+        |> andMap (Json.Decode.field "id" Json.Decode.string)
+        |> andMap
+            (Json.Decode.oneOf
+                -- buckle up
+                [ Json.Decode.field "task" <| lazy (\_ -> decodeBuildStepTask)
+                , Json.Decode.field "get" <| lazy (\_ -> decodeBuildStepGet)
+                , Json.Decode.field "put" <| lazy (\_ -> decodeBuildStepPut)
+                , Json.Decode.field "dependent_get" <| lazy (\_ -> decodeBuildStepGet)
+                , Json.Decode.field "aggregate" <| lazy (\_ -> decodeBuildStepAggregate)
+                , Json.Decode.field "do" <| lazy (\_ -> decodeBuildStepDo)
+                , Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildStepOnSuccess)
+                , Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildStepOnFailure)
+                , Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildStepOnAbort)
+                , Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildStepEnsure)
+                , Json.Decode.field "try" <| lazy (\_ -> decodeBuildStepTry)
+                , Json.Decode.field "retry" <| lazy (\_ -> decodeBuildStepRetry)
+                , Json.Decode.field "timeout" <| lazy (\_ -> decodeBuildStepTimeout)
+                ]
+            )
 
 
 decodeBuildStepTask : Json.Decode.Decoder BuildStep
 decodeBuildStepTask =
     Json.Decode.succeed BuildStepTask
-        |: Json.Decode.field "name" Json.Decode.string
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 decodeBuildStepGet : Json.Decode.Decoder BuildStep
 decodeBuildStepGet =
     Json.Decode.succeed BuildStepGet
-        |: Json.Decode.field "name" Json.Decode.string
-        |: (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
 
 
 decodeBuildStepPut : Json.Decode.Decoder BuildStep
 decodeBuildStepPut =
     Json.Decode.succeed BuildStepPut
-        |: Json.Decode.field "name" Json.Decode.string
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 decodeBuildStepAggregate : Json.Decode.Decoder BuildStep
 decodeBuildStepAggregate =
     Json.Decode.succeed BuildStepAggregate
-        |: Json.Decode.array (lazy (\_ -> decodeBuildPlan_))
+        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
 
 
 decodeBuildStepDo : Json.Decode.Decoder BuildStep
 decodeBuildStepDo =
     Json.Decode.succeed BuildStepDo
-        |: Json.Decode.array (lazy (\_ -> decodeBuildPlan_))
+        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
 
 
 decodeBuildStepOnSuccess : Json.Decode.Decoder BuildStep
 decodeBuildStepOnSuccess =
-    Json.Decode.map BuildStepOnSuccess <|
-        Json.Decode.succeed HookedPlan
-            |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |: (Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildPlan_))
+    Json.Decode.map BuildStepOnSuccess
+        (Json.Decode.succeed HookedPlan
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildPlan_))
+        )
 
 
 decodeBuildStepOnFailure : Json.Decode.Decoder BuildStep
 decodeBuildStepOnFailure =
-    Json.Decode.map BuildStepOnFailure <|
-        Json.Decode.succeed HookedPlan
-            |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |: (Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildPlan_))
+    Json.Decode.map BuildStepOnFailure
+        (Json.Decode.succeed HookedPlan
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildPlan_))
+        )
 
 
 decodeBuildStepOnAbort : Json.Decode.Decoder BuildStep
 decodeBuildStepOnAbort =
-    Json.Decode.map BuildStepOnAbort <|
-        Json.Decode.succeed HookedPlan
-            |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |: (Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildPlan_))
+    Json.Decode.map BuildStepOnAbort
+        (Json.Decode.succeed HookedPlan
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildPlan_))
+        )
 
 
 decodeBuildStepEnsure : Json.Decode.Decoder BuildStep
 decodeBuildStepEnsure =
-    Json.Decode.map BuildStepEnsure <|
-        Json.Decode.succeed HookedPlan
-            |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |: (Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildPlan_))
+    Json.Decode.map BuildStepEnsure
+        (Json.Decode.succeed HookedPlan
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildPlan_))
+        )
 
 
 decodeBuildStepTry : Json.Decode.Decoder BuildStep
 decodeBuildStepTry =
     Json.Decode.succeed BuildStepTry
-        |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+        |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
 
 
 decodeBuildStepRetry : Json.Decode.Decoder BuildStep
 decodeBuildStepRetry =
     Json.Decode.succeed BuildStepRetry
-        |: Json.Decode.array (lazy (\_ -> decodeBuildPlan_))
+        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
 
 
 decodeBuildStepTimeout : Json.Decode.Decoder BuildStep
 decodeBuildStepTimeout =
     Json.Decode.succeed BuildStepTimeout
-        |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+        |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
 
 
 
@@ -468,7 +478,7 @@ type alias Info =
 decodeInfo : Json.Decode.Decoder Info
 decodeInfo =
     Json.Decode.succeed Info
-        |: Json.Decode.field "version" Json.Decode.string
+        |> andMap (Json.Decode.field "version" Json.Decode.string)
 
 
 
@@ -519,33 +529,33 @@ type alias JobOutput =
 decodeJob : PipelineIdentifier -> Json.Decode.Decoder Job
 decodeJob pi =
     Json.Decode.succeed (Job pi)
-        |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.field "pipeline_name" Json.Decode.string
-        |: Json.Decode.field "team_name" Json.Decode.string
-        |: Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild)
-        |: Json.Decode.maybe (Json.Decode.field "finished_build" decodeBuild)
-        |: Json.Decode.maybe (Json.Decode.field "transition_build" decodeBuild)
-        |: (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
-        |: (defaultTo False <| Json.Decode.field "disable_manual_trigger" Json.Decode.bool)
-        |: (defaultTo [] <| Json.Decode.field "inputs" <| Json.Decode.list decodeJobInput)
-        |: (defaultTo [] <| Json.Decode.field "outputs" <| Json.Decode.list decodeJobOutput)
-        |: (defaultTo [] <| Json.Decode.field "groups" <| Json.Decode.list Json.Decode.string)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "team_name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "finished_build" decodeBuild))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "transition_build" decodeBuild))
+        |> andMap (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
+        |> andMap (defaultTo False <| Json.Decode.field "disable_manual_trigger" Json.Decode.bool)
+        |> andMap (defaultTo [] <| Json.Decode.field "inputs" <| Json.Decode.list decodeJobInput)
+        |> andMap (defaultTo [] <| Json.Decode.field "outputs" <| Json.Decode.list decodeJobOutput)
+        |> andMap (defaultTo [] <| Json.Decode.field "groups" <| Json.Decode.list Json.Decode.string)
 
 
 decodeJobInput : Json.Decode.Decoder JobInput
 decodeJobInput =
     Json.Decode.succeed JobInput
-        |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.field "resource" Json.Decode.string
-        |: (defaultTo [] <| Json.Decode.field "passed" <| Json.Decode.list Json.Decode.string)
-        |: (defaultTo False <| Json.Decode.field "trigger" Json.Decode.bool)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "resource" Json.Decode.string)
+        |> andMap (defaultTo [] <| Json.Decode.field "passed" <| Json.Decode.list Json.Decode.string)
+        |> andMap (defaultTo False <| Json.Decode.field "trigger" Json.Decode.bool)
 
 
 decodeJobOutput : Json.Decode.Decoder JobOutput
 decodeJobOutput =
     Json.Decode.succeed JobOutput
-        |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.field "resource" Json.Decode.string
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "resource" Json.Decode.string)
 
 
 
@@ -582,20 +592,20 @@ type alias PipelineGroup =
 decodePipeline : Json.Decode.Decoder Pipeline
 decodePipeline =
     Json.Decode.succeed Pipeline
-        |: Json.Decode.field "id" Json.Decode.int
-        |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.field "paused" Json.Decode.bool
-        |: Json.Decode.field "public" Json.Decode.bool
-        |: Json.Decode.field "team_name" Json.Decode.string
-        |: (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "paused" Json.Decode.bool)
+        |> andMap (Json.Decode.field "public" Json.Decode.bool)
+        |> andMap (Json.Decode.field "team_name" Json.Decode.string)
+        |> andMap (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))
 
 
 decodePipelineGroup : Json.Decode.Decoder PipelineGroup
 decodePipelineGroup =
     Json.Decode.succeed PipelineGroup
-        |: Json.Decode.field "name" Json.Decode.string
-        |: (defaultTo [] <| Json.Decode.field "jobs" <| Json.Decode.list Json.Decode.string)
-        |: (defaultTo [] <| Json.Decode.field "resources" <| Json.Decode.list Json.Decode.string)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (defaultTo [] <| Json.Decode.field "jobs" <| Json.Decode.list Json.Decode.string)
+        |> andMap (defaultTo [] <| Json.Decode.field "resources" <| Json.Decode.list Json.Decode.string)
 
 
 
@@ -609,7 +619,7 @@ type alias Resource =
     , failingToCheck : Bool
     , checkError : String
     , checkSetupError : String
-    , lastChecked : Maybe Date
+    , lastChecked : Maybe Time.Posix
     , pinnedVersion : Maybe Version
     , pinnedInConfig : Bool
     , pinComment : Maybe String
@@ -642,25 +652,25 @@ type alias VersionedResourceIdentifier =
 decodeResource : Json.Decode.Decoder Resource
 decodeResource =
     Json.Decode.succeed Resource
-        |: Json.Decode.field "team_name" Json.Decode.string
-        |: Json.Decode.field "pipeline_name" Json.Decode.string
-        |: Json.Decode.field "name" Json.Decode.string
-        |: (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
-        |: (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
-        |: (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
-        |: Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.float))
-        |: Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion)
-        |: (defaultTo False <| Json.Decode.field "pinned_in_config" Json.Decode.bool)
-        |: Json.Decode.maybe (Json.Decode.field "pin_comment" Json.Decode.string)
+        |> andMap (Json.Decode.field "team_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
+        |> andMap (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
+        |> andMap (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.int)))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion))
+        |> andMap (defaultTo False <| Json.Decode.field "pinned_in_config" Json.Decode.bool)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "pin_comment" Json.Decode.string))
 
 
 decodeVersionedResource : Json.Decode.Decoder VersionedResource
 decodeVersionedResource =
     Json.Decode.succeed VersionedResource
-        |: Json.Decode.field "id" Json.Decode.int
-        |: Json.Decode.field "version" decodeVersion
-        |: defaultTo [] (Json.Decode.field "metadata" decodeMetadata)
-        |: Json.Decode.field "enabled" Json.Decode.bool
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "version" decodeVersion)
+        |> andMap (defaultTo [] (Json.Decode.field "metadata" decodeMetadata))
+        |> andMap (Json.Decode.field "enabled" Json.Decode.bool)
 
 
 
@@ -698,8 +708,8 @@ decodeMetadata =
 decodeMetadataField : Json.Decode.Decoder MetadataField
 decodeMetadataField =
     Json.Decode.succeed MetadataField
-        |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.field "value" Json.Decode.string
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "value" Json.Decode.string)
 
 
 
@@ -719,8 +729,8 @@ type alias Team =
 decodeTeam : Json.Decode.Decoder Team
 decodeTeam =
     Json.Decode.succeed Team
-        |: Json.Decode.field "id" Json.Decode.int
-        |: Json.Decode.field "name" Json.Decode.string
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 
@@ -739,11 +749,11 @@ type alias User =
 decodeUser : Json.Decode.Decoder User
 decodeUser =
     Json.Decode.succeed User
-        |: Json.Decode.field "user_id" Json.Decode.string
-        |: Json.Decode.field "user_name" Json.Decode.string
-        |: Json.Decode.field "name" Json.Decode.string
-        |: Json.Decode.field "email" Json.Decode.string
-        |: Json.Decode.field "teams" (Json.Decode.dict (Json.Decode.list Json.Decode.string))
+        |> andMap (Json.Decode.field "user_id" Json.Decode.string)
+        |> andMap (Json.Decode.field "user_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "email" Json.Decode.string)
+        |> andMap (Json.Decode.field "teams" (Json.Decode.dict (Json.Decode.list Json.Decode.string)))
 
 
 
@@ -759,8 +769,8 @@ type alias Cause =
 decodeCause : Json.Decode.Decoder Cause
 decodeCause =
     Json.Decode.succeed Cause
-        |: Json.Decode.field "versioned_resource_id" Json.Decode.int
-        |: Json.Decode.field "build_id" Json.Decode.int
+        |> andMap (Json.Decode.field "versioned_resource_id" Json.Decode.int)
+        |> andMap (Json.Decode.field "build_id" Json.Decode.int)
 
 
 
@@ -781,9 +791,9 @@ type alias APIData =
 -- Helpers
 
 
-dateFromSeconds : Float -> Date
+dateFromSeconds : Int -> Time.Posix
 dateFromSeconds =
-    Date.fromTime << (*) 1000
+    Time.millisToPosix << (*) 1000
 
 
 lazy : (() -> Json.Decode.Decoder a) -> Json.Decode.Decoder a
@@ -797,7 +807,7 @@ defaultTo default =
     Json.Decode.map (Maybe.withDefault default) << Json.Decode.maybe
 
 
-customDecoder : Json.Decode.Decoder b -> (b -> Result String a) -> Json.Decode.Decoder a
+customDecoder : Json.Decode.Decoder b -> (b -> Result Json.Decode.Error a) -> Json.Decode.Decoder a
 customDecoder decoder toResult =
     Json.Decode.andThen
         (\a ->
@@ -806,6 +816,6 @@ customDecoder decoder toResult =
                     Json.Decode.succeed b
 
                 Err err ->
-                    Json.Decode.fail err
+                    Json.Decode.fail <| Debug.toString err
         )
         decoder

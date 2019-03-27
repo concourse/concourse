@@ -9,6 +9,8 @@ import Message.TopLevelMessage as Msgs
 import Test exposing (Test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, id, style, text)
+import Time
+import Url
 
 
 describe : String -> model -> List (model -> Test) -> Test
@@ -39,23 +41,18 @@ all =
             , authToken = ""
             , pipelineRunningKeyframes = ""
             }
-            { href = ""
+            { protocol = Url.Http
             , host = ""
-            , hostname = ""
-            , protocol = ""
-            , origin = ""
-            , port_ = ""
-            , pathname = "/"
-            , search = ""
-            , hash = ""
-            , username = ""
-            , password = ""
+            , port_ = Nothing
+            , path = "/"
+            , query = Nothing
+            , fragment = Nothing
             }
             |> Tuple.first
             |> Application.handleCallback
                 (Callback.APIDataFetched
                     (Ok
-                        ( 0
+                        ( Time.millisToPosix 0
                         , { teams =
                                 [ Concourse.Team 1 "team1"
                                 , Concourse.Team 2 "team2"
@@ -123,7 +120,7 @@ all =
             Application.handleCallback
                 (Callback.APIDataFetched
                     (Ok
-                        ( 0
+                        ( Time.millisToPosix 0
                         , { teams = [ { name = "team", id = 0 } ]
                           , pipelines =
                                 [ { id = 0
@@ -152,10 +149,8 @@ all =
                 >> Query.fromHtml
                 >> Query.find [ class "no-results" ]
                 >> Query.has
-                    [ style
-                        [ ( "text-align", "center" )
-                        , ( "font-size", "13px" )
-                        , ( "margin-top", "20px" )
-                        ]
+                    [ style "text-align" "center"
+                    , style "font-size" "13px"
+                    , style "margin-top" "20px"
                     ]
         ]

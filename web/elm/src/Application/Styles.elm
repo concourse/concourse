@@ -1,13 +1,16 @@
 module Application.Styles exposing (disableInteraction)
 
+import Html
+import Html.Attributes exposing (style)
 
-disableInteraction : List ( String, String )
+
+disableInteraction : List (Html.Attribute msg)
 disableInteraction =
-    [ ( "cursor", "default" )
-    , ( "user-select", "none" )
-    , ( "-ms-user-select", "none" )
-    , ( "-moz-user-select", "none" )
-    , ( "-khtml-user-select", "none" )
-    , ( "-webkit-user-select", "none" )
-    , ( "-webkit-touch-callout", "none" )
+    [ style "cursor" "default"
+    , style "user-select" "none"
+    , style "-ms-user-select" "none"
+    , style "-moz-user-select" "none"
+    , style "-khtml-user-select" "none"
+    , style "-webkit-user-select" "none"
+    , style "-webkit-touch-callout" "none"
     ]

@@ -1,50 +1,50 @@
 module Duration exposing (Duration, between, format)
 
-import Time exposing (Time)
+import Time
 
 
 type alias Duration =
-    Float
+    Int
 
 
-between : Time -> Time -> Duration
+between : Time.Posix -> Time.Posix -> Duration
 between a b =
-    b - a
+    Time.posixToMillis b - Time.posixToMillis a
 
 
 format : Duration -> String
 format duration =
     let
         seconds =
-            truncate (duration / 1000)
+            duration // 1000
 
         remainingSeconds =
-            rem seconds 60
+            remainderBy 60 seconds
 
         minutes =
             seconds // 60
 
         remainingMinutes =
-            rem minutes 60
+            remainderBy 60 minutes
 
         hours =
             minutes // 60
 
         remainingHours =
-            rem hours 24
+            remainderBy 24 hours
 
         days =
             hours // 24
     in
-    case ( days, remainingHours, remainingMinutes, remainingSeconds ) of
-        ( 0, 0, 0, s ) ->
-            toString s ++ "s"
+    case ( ( days, remainingHours ), remainingMinutes, remainingSeconds ) of
+        ( ( 0, 0 ), 0, s ) ->
+            String.fromInt s ++ "s"
 
-        ( 0, 0, m, s ) ->
-            toString m ++ "m " ++ toString s ++ "s"
+        ( ( 0, 0 ), m, s ) ->
+            String.fromInt m ++ "m " ++ String.fromInt s ++ "s"
 
-        ( 0, h, m, _ ) ->
-            toString h ++ "h " ++ toString m ++ "m"
+        ( ( 0, h ), m, _ ) ->
+            String.fromInt h ++ "h " ++ String.fromInt m ++ "m"
 
-        ( d, h, _, _ ) ->
-            toString d ++ "d " ++ toString h ++ "h"
+        ( ( d, h ), _, _ ) ->
+            String.fromInt d ++ "d " ++ String.fromInt h ++ "h"

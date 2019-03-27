@@ -15,4 +15,4 @@ empty =
 fetch : Concourse.BuildId -> Task Http.Error Concourse.BuildResources
 fetch buildId =
     Http.toTask <|
-        Http.get ("/api/v1/builds/" ++ toString buildId ++ "/resources") Concourse.decodeBuildResources
+        Http.get ("/api/v1/builds/" ++ String.fromInt buildId ++ "/resources") Concourse.decodeBuildResources

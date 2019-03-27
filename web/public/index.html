@@ -76,12 +76,15 @@
     <script type="text/javascript">
       var node = document.getElementById("elm-app-embed");
 
-      var app = Elm.Main.embed(node, {
-        turbulenceImgSrc: {{asset "images/buckleup.svg"}},
-        notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
-        csrfToken: {{ .CSRFToken }},
-        authToken: {{ .AuthToken }},
-        pipelineRunningKeyframes: "pipeline-running"
+      var app = Elm.Main.init({
+        node : node,
+        flags : {
+          turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+          notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
+          csrfToken: {{ .CSRFToken }},
+          authToken: {{ .AuthToken }},
+          pipelineRunningKeyframes: "pipeline-running"
+        }
       });
       var resizeTimer;
 
