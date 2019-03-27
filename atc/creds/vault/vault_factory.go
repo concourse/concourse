@@ -1,8 +1,6 @@
 package vault
 
 import (
-	"time"
-
 	"github.com/concourse/concourse/atc/creds"
 )
 
@@ -23,15 +21,9 @@ func NewVaultFactory(sr SecretReader, loggedIn <-chan struct{}, prefix string) *
 	return factory
 }
 
-// NewVariables will block until the loggedIn channel passed to the
-// constructor signals a successful login.
 func (factory *vaultFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
-	select {
-	case <-factory.loggedIn:
-	case <-time.After(5 * time.Second):
-	}
-
 	return &Vault{
+		LoggedIn:     factory.loggedIn,
 		SecretReader: factory.sr,
 		PathPrefix:   factory.prefix,
 		TeamName:     teamName,

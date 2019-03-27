@@ -1,10 +1,12 @@
 package vault
 
 import (
-	"path"
-
+	"errors"
+	"fmt"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	vaultapi "github.com/hashicorp/vault/api"
+	"path"
+	"time"
 )
 
 // A SecretReader reads a vault secret from the given path. It should
@@ -16,6 +18,7 @@ type SecretReader interface {
 // Vault converts a vault secret to our completely untyped secret
 // data.
 type Vault struct {
+	LoggedIn     <-chan struct{}
 	SecretReader SecretReader
 
 	PathPrefix   string
@@ -59,10 +62,27 @@ func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error
 	return evenLessTyped, true, nil
 }
 
+func (v Vault) getSecretReader() (SecretReader, error) {
+	// this will wait for up to 5 seconds, until login into Vault gets established
+	select {
+	case <-v.LoggedIn:
+		// if login into Vault is successful, v.LoggedIn channel will get closed
+		// therefore this select won't block anymore since successful login
+	case <-time.After(5 * time.Second):
+		return nil, errors.New("timeout connecting to vault")
+	}
+	return v.SecretReader, nil
+}
+
 func (v Vault) findSecret(path string) (*vaultapi.Secret, bool, error) {
-	secret, err := v.SecretReader.Read(path)
+	sr, err := v.getSecretReader()
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("unable to retrieve '%s': %s", path, err)
+	}
+
+	secret, err := sr.Read(path)
+	if err != nil {
+		return nil, false, fmt.Errorf("unable to retrieve '%s': %s", path, err)
 	}
 
 	if secret != nil {
