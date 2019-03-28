@@ -13,7 +13,7 @@
     <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
     <script src="{{asset "clipboard.min.js"}}"></script>
-    <script defer src="{{asset "fontawesome.v5.8.1.all.js"}}"></script>
+    <script defer src="{{asset "mdi-svg-v3.5.95.js"}}"></script>
     <style>
         @keyframes pipeline-running {
           0% { background-position-x: -53.5px; }
@@ -73,6 +73,7 @@
   </head>
   <body>
     <div id="elm-app-embed"></div>
+    <div id="icon-store" style="display: none;"></div>
 
     <script type="text/javascript">
       var node = document.getElementById("elm-app-embed");
@@ -285,6 +286,9 @@
         document.head.appendChild(newIcon);
       });
 
+      app.ports.renderSvgIcon.subscribe(function(icon, id) {
+        addIcon(icon, (typeof id !== 'undefined') ? id : icon);
+      });
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');

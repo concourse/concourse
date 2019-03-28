@@ -64,7 +64,7 @@ resourceName =
 
 resourceIcon : String
 resourceIcon =
-    "some-icon-url"
+    "some-icon"
 
 
 versionID : Models.VersionId
@@ -340,7 +340,7 @@ all =
                             |> Query.find [ tag "div" ]
                             |> Query.children []
                             |> Query.index 0
-                            |> Query.has [ class resourceIcon ]
+                            |> Query.has [ tag "svg" ]
                 ]
             ]
         , describe "page header" <|

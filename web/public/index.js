@@ -129,9 +129,10 @@ function redrawFunction(svg, jobs, resources, newUrl) {
 
     var iconSize = 12;
     nodeLink.filter(function(node) { return node.has_icon() }).append("use")
-      .attr("xlink:href", function(node) { return "#" + node.id + "-icon" })
+      .attr("xlink:href", function(node) { return "#" + node.id + "-svg-icon" })
       .attr("width", iconSize)
       .attr("height", iconSize)
+      .attr("fill", "white")
       .attr("y", function(node) { return node.height() / 2 - iconSize / 2 })
       .attr("x", function(node) { return node.padding() })
 
@@ -391,7 +392,7 @@ function createGraph(svg, jobs, resources) {
 
       var jobOutputNode = graph.node(outputId);
       if (!jobOutputNode) {
-        addIcon(outputId, resourceIcons[output.resource]);
+        addIcon(resourceIcons[output.resource], outputId);
         jobOutputNode = new GraphNode({
           id: outputId,
           name: output.resource,
@@ -432,7 +433,7 @@ function createGraph(svg, jobs, resources) {
             sourceNode = sourceOutputNode;
           } else {
             if (!graph.node(sourceInputNode)) {
-              addIcon(sourceInputNode, resourceIcons[input.resource]);
+              addIcon(resourceIcons[input.resource], sourceInputNode);
               graph.setNode(sourceInputNode, new GraphNode({
                 id: sourceInputNode,
                 name: input.resource,
@@ -475,7 +476,7 @@ function createGraph(svg, jobs, resources) {
         var inputId = inputNode(job.name, input.resource+"-unconstrained");
 
         if (!graph.node(inputId)) {
-          addIcon(inputId, resourceIcons[input.resource]);
+          addIcon(resourceIcons[input.resource], inputId);
           graph.setNode(inputId, new GraphNode({
             id: inputId,
             name: input.resource,
@@ -502,11 +503,15 @@ function createGraph(svg, jobs, resources) {
   return graph;
 }
 
-function addIcon(nodeId, iconName) {
-  var icon = document.createElement("i");
-  icon.setAttribute("data-fa-symbol", nodeId + "-icon");
-  icon.className = iconName;
-  document.getElementsByTagName("body")[0].appendChild(icon)
+function addIcon(iconName, nodeId) {
+  var id = nodeId + "-svg-icon";
+  if (document.getElementById(id) === null) {
+    var svg = icons.svg(iconName, id);
+    var template = document.createElement('template');
+    template.innerHTML = svg;
+    var icon = template.content.firstChild;
+    document.getElementById("icon-store").appendChild(icon)
+  }
 }
 
 function objectIsEmpty(o) {

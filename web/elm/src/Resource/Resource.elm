@@ -36,6 +36,7 @@ import Html.Attributes
         , href
         , id
         , placeholder
+        , src
         , style
         , title
         , value
@@ -57,7 +58,7 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..), setTitle)
+import Message.Effects exposing (Effect(..), renderSvgIcon, setTitle)
 import Message.Message as Message exposing (Hoverable(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
@@ -228,7 +229,15 @@ handleCallback callback ( model, effects ) =
                 , icon = resource.icon
               }
                 |> updatePinnedVersion resource
-            , effects ++ [ SetTitle <| resource.name ++ " - " ]
+            , effects
+                ++ [ SetTitle <| resource.name ++ " - " ]
+                ++ (case resource.icon of
+                        Just icon ->
+                            [ RenderSvgIcon <| icon ]
+
+                        Nothing ->
+                            []
+                   )
             )
 
         ResourceFetched (Err err) ->
@@ -696,19 +705,20 @@ header model =
                             , ( "width", toString (Resource.Styles.headerHeight - 2 * 10) ++ "px" )
                             ]
                         ]
-                        [ Html.i
-                            [ class icon
-                            , attribute "data-fa-symbol" "resource-icon"
-                            ]
-                            []
-                        , Svg.svg
+                        [ Svg.svg
                             [ style
                                 [ ( "margin-top", toString 10 ++ "px" )
                                 , ( "height", toString (Resource.Styles.headerHeight - 2 * 10) ++ "px" )
                                 , ( "width", toString (Resource.Styles.headerHeight - 2 * 10) ++ "px" )
                                 ]
+                            , SvgAttributes.fill "white"
                             ]
-                            [ Svg.use [ SvgAttributes.xlinkHref "#resource-icon" ] [] ]
+                            [ Svg.use
+                                [ SvgAttributes.xlinkHref ("#" ++ icon ++ "-svg-icon")
+                                , SvgAttributes.transform ("scale(" ++ toString (toFloat (Resource.Styles.headerHeight - 2 * 10) / 24) ++ ")")
+                                ]
+                                []
+                            ]
                         ]
 
                 Nothing ->

@@ -2,6 +2,7 @@ port module Message.Effects exposing
     ( Effect(..)
     , ScrollDirection(..)
     , renderPipeline
+    , renderSvgIcon
     , runEffect
     , setTitle
     , stickyHeaderConfig
@@ -91,6 +92,9 @@ port checkIsVisible : String -> Cmd msg
 port setFavicon : String -> Cmd msg
 
 
+port renderSvgIcon : String -> Cmd msg
+
+
 type alias StickyHeaderConfig =
     { pageHeaderHeight : Float
     , pageBodyClass : String
@@ -165,6 +169,7 @@ type Effect
     | CheckIsVisible String
     | Focus String
     | Blur String
+    | RenderSvgIcon String
 
 
 type alias VersionId =
@@ -394,6 +399,9 @@ runEffect effect key csrfToken =
 
         CheckIsVisible id ->
             checkIsVisible id
+
+        RenderSvgIcon icon ->
+            renderSvgIcon icon
 
 
 scrollInDirection : ScrollDirection -> Cmd Callback
