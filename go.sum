@@ -122,6 +122,12 @@ github.com/concourse/go-archive v1.0.0/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv
 github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545/go.mod h1:4+V9YCkKuoV7rg+/No+ZM9FsO3BK4tIJNUiYMI7nki0=
 github.com/concourse/retryhttp v0.0.0-20181126170240-7ab5e29e634f h1:YlKSrd1N2/WnG3ce28g6DOj6oXpZbBjH/3G97qdTZns=
 github.com/concourse/retryhttp v0.0.0-20181126170240-7ab5e29e634f/go.mod h1:4+V9YCkKuoV7rg+/No+ZM9FsO3BK4tIJNUiYMI7nki0=
+github.com/concourse/retryhttp v0.0.0-20190322195545-09bdda36cd7e h1:g0FtQK3CiRVlYR6kR0Svpdn5JeAUnyo0DG99PdIuGMg=
+github.com/concourse/retryhttp v0.0.0-20190322195545-09bdda36cd7e/go.mod h1:4+V9YCkKuoV7rg+/No+ZM9FsO3BK4tIJNUiYMI7nki0=
+github.com/concourse/retryhttp v1.0.0 h1:sJoFrWPcPQbMFfuqzH0MSquAALiaTCesCOQcChON5ww=
+github.com/concourse/retryhttp v1.0.0/go.mod h1:4+V9YCkKuoV7rg+/No+ZM9FsO3BK4tIJNUiYMI7nki0=
+github.com/concourse/retryhttp v1.0.1 h1:Vdz+FDDOR0oRPOneBWJuudsenaUAQTnKSODZsWlFTrU=
+github.com/concourse/retryhttp v1.0.1/go.mod h1:t/8nUqzPriXrWczdqI7tHoEvFe+tJplQHS/fO3BzdlA=
 github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2 h1:oiQ0OCfHdE7YXG94mc3HpKhbaZ8Nk17lw4E+ycI8Zgs=
 github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/coreos/etcd v3.2.9+incompatible h1:3TbjfK5+aSRLTU/KgBC1xlgA2dn2ddYQngRqX6HFwlQ=
