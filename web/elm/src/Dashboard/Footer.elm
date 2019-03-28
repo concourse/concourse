@@ -8,6 +8,7 @@ import Dashboard.Styles as Styles
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, download, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Keyboard
 import Message.Effects as Effects
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
@@ -22,11 +23,11 @@ handleDelivery :
     -> ( FooterModel r, List Effects.Effect )
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keyCode ->
-            case keyCode of
+        KeyDown keyEvent ->
+            case keyEvent.code of
                 -- '/' key
-                191 ->
-                    if model.shiftDown && model.dropdown == Hidden then
+                Keyboard.Slash ->
+                    if keyEvent.shiftKey && model.dropdown == Hidden then
                         ( { model
                             | showHelp =
                                 if

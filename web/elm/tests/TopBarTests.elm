@@ -9,7 +9,7 @@ import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
-import Keycodes
+import Keyboard
 import Login.Login as Login
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
@@ -1291,43 +1291,37 @@ all =
                 ]
             , it "hitting '/' focuses search input" <|
                 Application.update
-                    (ApplicationMsgs.DeliveryReceived <| KeyDown 191)
+                    (ApplicationMsgs.DeliveryReceived <|
+                        KeyDown
+                            { ctrlKey = False
+                            , shiftKey = False
+                            , metaKey = False
+                            , code = Keyboard.Slash
+                            }
+                    )
                     >> Tuple.second
                     >> Expect.equal [ Effects.Focus SearchBar.searchInputId ]
             , it "hitting shift + '/' (= '?') does not focus search input" <|
                 Application.update
                     (ApplicationMsgs.DeliveryReceived <|
-                        KeyDown Keycodes.shift
+                        KeyDown
+                            { ctrlKey = False
+                            , shiftKey = True
+                            , metaKey = False
+                            , code = Keyboard.Slash
+                            }
                     )
-                    >> Tuple.first
-                    >> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            KeyDown 191
-                        )
                     >> Tuple.second
                     >> Expect.equal []
-            , it "pressing + releasing shift, then '/', focuses search input" <|
-                Application.update
-                    (ApplicationMsgs.DeliveryReceived <|
-                        KeyDown Keycodes.shift
-                    )
-                    >> Tuple.first
-                    >> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            KeyUp Keycodes.shift
-                        )
-                    >> Tuple.first
-                    >> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            KeyDown 191
-                        )
-                    >> Tuple.second
-                    >> Expect.equal [ Effects.Focus SearchBar.searchInputId ]
             , it "hitting other keys does not cause dropdown to expand" <|
                 Application.update
                     (ApplicationMsgs.DeliveryReceived <|
-                        KeyDown <|
-                            Char.toCode 'A'
+                        KeyDown
+                            { ctrlKey = False
+                            , shiftKey = False
+                            , metaKey = False
+                            , code = Keyboard.A
+                            }
                     )
                     >> Tuple.first
                     >> Application.view
@@ -1341,7 +1335,12 @@ all =
                             (Tuple.first
                                 >> Application.update
                                     (ApplicationMsgs.DeliveryReceived <|
-                                        KeyDown 40
+                                        KeyDown
+                                            { ctrlKey = False
+                                            , shiftKey = False
+                                            , metaKey = False
+                                            , code = Keyboard.ArrowDown
+                                            }
                                     )
                             )
                             ([ testDropdown [ 0 ] [ 1 ] ]
@@ -1349,7 +1348,12 @@ all =
                                         (Tuple.first
                                             >> Application.update
                                                 (ApplicationMsgs.DeliveryReceived <|
-                                                    KeyDown 40
+                                                    KeyDown
+                                                        { ctrlKey = False
+                                                        , shiftKey = False
+                                                        , metaKey = False
+                                                        , code = Keyboard.ArrowDown
+                                                        }
                                                 )
                                         )
                                         ([ testDropdown [ 1 ] [ 0 ] ]
@@ -1357,7 +1361,12 @@ all =
                                                     (Tuple.first
                                                         >> Application.update
                                                             (ApplicationMsgs.DeliveryReceived <|
-                                                                KeyDown 40
+                                                                KeyDown
+                                                                    { ctrlKey = False
+                                                                    , shiftKey = False
+                                                                    , metaKey = False
+                                                                    , code = Keyboard.ArrowDown
+                                                                    }
                                                             )
                                                     )
                                                     [ testDropdown [ 0 ] [ 1 ] ]
@@ -1365,7 +1374,12 @@ all =
                                                     (Tuple.first
                                                         >> Application.update
                                                             (ApplicationMsgs.DeliveryReceived <|
-                                                                KeyDown 13
+                                                                KeyDown
+                                                                    { ctrlKey = False
+                                                                    , shiftKey = False
+                                                                    , metaKey = False
+                                                                    , code = Keyboard.Enter
+                                                                    }
                                                             )
                                                         >> viewNormally
                                                     )
@@ -1379,7 +1393,12 @@ all =
                                         (Tuple.first
                                             >> Application.update
                                                 (ApplicationMsgs.DeliveryReceived <|
-                                                    KeyDown 13
+                                                    KeyDown
+                                                        { ctrlKey = False
+                                                        , shiftKey = False
+                                                        , metaKey = False
+                                                        , code = Keyboard.Enter
+                                                        }
                                                 )
                                         )
                                         [ it "updates the query" <|
@@ -1405,7 +1424,12 @@ all =
                             (Tuple.first
                                 >> Application.update
                                     (ApplicationMsgs.DeliveryReceived <|
-                                        KeyDown 38
+                                        KeyDown
+                                            { ctrlKey = False
+                                            , shiftKey = False
+                                            , metaKey = False
+                                            , code = Keyboard.ArrowUp
+                                            }
                                     )
                             )
                             ([ testDropdown [ 1 ] [ 0 ] ]
@@ -1413,7 +1437,12 @@ all =
                                         (Tuple.first
                                             >> Application.update
                                                 (ApplicationMsgs.DeliveryReceived <|
-                                                    KeyDown 38
+                                                    KeyDown
+                                                        { ctrlKey = False
+                                                        , shiftKey = False
+                                                        , metaKey = False
+                                                        , code = Keyboard.ArrowUp
+                                                        }
                                                 )
                                         )
                                         ([ testDropdown [ 0 ] [ 1 ] ]
@@ -1421,7 +1450,12 @@ all =
                                                     (Tuple.first
                                                         >> Application.update
                                                             (ApplicationMsgs.DeliveryReceived <|
-                                                                KeyDown 38
+                                                                KeyDown
+                                                                    { ctrlKey = False
+                                                                    , shiftKey = False
+                                                                    , metaKey = False
+                                                                    , code = Keyboard.ArrowUp
+                                                                    }
                                                             )
                                                     )
                                                     [ testDropdown [ 1 ] [ 0 ] ]
@@ -1434,7 +1468,12 @@ all =
                             (Tuple.first
                                 >> Application.update
                                     (ApplicationMsgs.DeliveryReceived <|
-                                        KeyDown 27
+                                        KeyDown
+                                            { ctrlKey = False
+                                            , shiftKey = False
+                                            , metaKey = False
+                                            , code = Keyboard.Escape
+                                            }
                                     )
                             )
                             [ it "search input is blurred" <|

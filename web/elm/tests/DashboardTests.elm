@@ -21,7 +21,7 @@ import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Http
-import Keycodes
+import Keyboard
 import List.Extra
 import Message.Callback as Callback
 import Message.Effects as Effects
@@ -684,8 +684,14 @@ all =
                                 )
                         )
                     |> Dashboard.update Msgs.FocusMsg
-                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
-                    |> Dashboard.handleDelivery (KeyDown 191)
+                    |> Dashboard.handleDelivery
+                        (KeyDown
+                            { ctrlKey = False
+                            , shiftKey = True
+                            , metaKey = False
+                            , code = Keyboard.Slash
+                            }
+                        )
                     |> queryView
                     |> Query.hasNot [ id "keyboard-help" ]
         , test "bottom bar appears when there are no pipelines" <|
@@ -735,8 +741,14 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
-                    |> Dashboard.handleDelivery (KeyDown 191)
+                    |> Dashboard.handleDelivery
+                        (KeyDown
+                            { ctrlKey = False
+                            , shiftKey = True
+                            , metaKey = False
+                            , code = Keyboard.Slash
+                            }
+                        )
                     |> queryView
                     |> Query.has [ id "dashboard-info" ]
         , test "on HD view, team names have increased letter spacing" <|
@@ -2817,12 +2829,12 @@ all =
                             (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived <|
-                                KeyDown Keycodes.shift
-                            )
-                        |> Tuple.first
-                        |> Application.update
-                            (ApplicationMsgs.DeliveryReceived <|
-                                KeyDown 191
+                                KeyDown
+                                    { ctrlKey = False
+                                    , shiftKey = True
+                                    , metaKey = False
+                                    , code = Keyboard.Slash
+                                    }
                             )
                         |> Tuple.first
                         |> Application.view

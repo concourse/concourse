@@ -8,9 +8,11 @@ port module Message.Subscription exposing
 import Browser
 import Browser.Events exposing (onClick, onKeyDown, onKeyUp, onMouseMove, onResize)
 import Build.StepTree.Models exposing (BuildEventEnvelope)
+import Concourse
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
+import Keyboard
 import Routes
 import Time
 
@@ -44,8 +46,8 @@ type Subscription
 
 
 type Delivery
-    = KeyDown Int
-    | KeyUp Int
+    = KeyDown Keyboard.KeyEvent
+    | KeyUp Keyboard.KeyEvent
     | Moused
     | ClockTicked Interval Time.Posix
     | ScrolledToBottom Bool
@@ -77,10 +79,10 @@ runSubscription s =
                 ]
 
         OnKeyDown ->
-            onKeyDown (Json.Decode.field "keyCode" Json.Decode.int |> Json.Decode.map KeyDown)
+            onKeyDown (Keyboard.decodeKeyEvent |> Json.Decode.map KeyDown)
 
         OnKeyUp ->
-            onKeyUp (Json.Decode.field "keyCode" Json.Decode.int |> Json.Decode.map KeyUp)
+            onKeyUp (Keyboard.decodeKeyEvent |> Json.Decode.map KeyUp)
 
         OnScrollToBottom ->
             scrolledToBottom ScrolledToBottom
