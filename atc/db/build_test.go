@@ -67,6 +67,8 @@ var _ = Describe("Build", func() {
 	})
 
 	Describe("Start", func() {
+		var err error
+		var started bool
 		var build db.Build
 		var plan atc.Plan
 
@@ -96,44 +98,68 @@ var _ = Describe("Build", func() {
 				},
 			}
 
-			var err error
 			build, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-
-			started, err := build.Start("schema", plan)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(started).To(BeTrue())
 		})
 
-		It("creates Start event", func() {
-			found, err := build.Reload()
+		JustBeforeEach(func() {
+			started, err = build.Start("schema", plan)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusStarted))
-
-			events, err := build.Events(0)
-			Expect(err).NotTo(HaveOccurred())
-
-			defer db.Close(events)
-
-			Expect(events.Next()).To(Equal(envelope(event.Status{
-				Status: atc.StatusStarted,
-				Time:   build.StartTime().Unix(),
-			})))
 		})
 
-		It("updates build status", func() {
-			found, err := build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+		Context("build has been aborted", func() {
+			BeforeEach(func() {
+				err = build.MarkAsAborted()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("does not start the build", func() {
+				Expect(started).To(BeFalse())
+			})
+
+			It("leaves the build in pending state", func() {
+				found, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.Status()).To(Equal(db.BuildStatusPending))
+			})
 		})
 
-		It("saves the public plan", func() {
-			found, err := build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.PublicPlan()).To(Equal(plan.Public()))
+		Context("build has not been aborted", func() {
+			It("starts the build", func() {
+				Expect(started).To(BeTrue())
+			})
+
+			It("creates Start event", func() {
+				found, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+
+				events, err := build.Events(0)
+				Expect(err).NotTo(HaveOccurred())
+
+				defer db.Close(events)
+
+				Expect(events.Next()).To(Equal(envelope(event.Status{
+					Status: atc.StatusStarted,
+					Time:   build.StartTime().Unix(),
+				})))
+			})
+
+			It("updates build status", func() {
+				found, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+			})
+
+			It("saves the public plan", func() {
+				found, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.PublicPlan()).To(Equal(plan.Public()))
+			})
 		})
 	})
 

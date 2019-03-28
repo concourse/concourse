@@ -266,8 +266,9 @@ func (b *build) Start(schema string, plan atc.Plan) (bool, error) {
 		Set("public_plan", plan.Public()).
 		Set("nonce", nonce).
 		Where(sq.Eq{
-			"id":     b.id,
-			"status": "pending",
+			"id":      b.id,
+			"status":  "pending",
+			"aborted": false,
 		}).
 		Suffix("RETURNING start_time").
 		RunWith(tx).
