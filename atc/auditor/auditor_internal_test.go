@@ -1,11 +1,7 @@
-package auditor_test
+package auditor
 
 import (
-	"net/http"
-
 	"code.cloudfoundry.org/lager/lagertest"
-
-	"github.com/concourse/concourse/atc/auditor"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,11 +9,8 @@ import (
 
 var _ = Describe("Audit", func() {
 	var (
-		aud                     auditor.Auditor
+		aud                     *auditor
 		dummyAction             string
-		userName                string
-		logger                  *lagertest.TestLogger
-		req                     *http.Request
 		EnableBuildAuditLog     bool
 		EnableContainerAuditLog bool
 		EnableJobAuditLog       bool
@@ -29,18 +22,8 @@ var _ = Describe("Audit", func() {
 		EnableVolumeAuditLog    bool
 	)
 
-	BeforeEach(func() {
-		userName = "test"
-
-		var err error
-		req, err = http.NewRequest("GET", "localhost:8080", nil)
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	JustBeforeEach(func() {
-		logger = lagertest.NewTestLogger("access_handler")
-
-		aud = auditor.NewAuditor(
+		aud = &auditor{
 			EnableBuildAuditLog,
 			EnableContainerAuditLog,
 			EnableJobAuditLog,
@@ -50,8 +33,11 @@ var _ = Describe("Audit", func() {
 			EnableTeamAuditLog,
 			EnableWorkerAuditLog,
 			EnableVolumeAuditLog,
-			logger,
-		)
+			lagertest.NewTestLogger("access_handler"),
+		}
+
+		aud.ValidateAction("GetBuildPlan")
+
 	})
 
 	AfterEach(func() {
@@ -74,12 +60,9 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetBuildPlan"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
-
 		})
 
 		Context("When EnableBuildAudit is true with Build action", func() {
@@ -88,10 +71,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetBuildPlan"
 			})
 
-			It("Create a log including the action", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+			It("returns true on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeTrue())
 			})
 		})
 
@@ -101,10 +82,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 
@@ -114,10 +93,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 	})
@@ -131,12 +108,9 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetContainer"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
-
 		})
 
 		Context("When EnableContainerAuditLog is true with a Container action", func() {
@@ -145,10 +119,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetContainer"
 			})
 
-			It("Create a log including the action", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+			It("returns true on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeTrue())
 			})
 		})
 
@@ -158,10 +130,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 
@@ -171,10 +141,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 	})
@@ -187,12 +155,9 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetJob"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
-
 		})
 
 		Context("When EnableJobAuditLog is true with a Job action", func() {
@@ -201,10 +166,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetJob"
 			})
 
-			It("Create a log including the action", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+			It("returns true on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeTrue())
 			})
 		})
 
@@ -214,10 +177,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 
@@ -227,10 +188,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 	})
@@ -244,12 +203,9 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetPipeline"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
-
 		})
 
 		Context("When EnablePipelineAuditLog is true with a Pipeline action", func() {
@@ -258,10 +214,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetPipeline"
 			})
 
-			It("Create a log including the action", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+			It("returns true on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeTrue())
 			})
 		})
 
@@ -271,10 +225,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 
@@ -284,10 +236,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 	})
@@ -302,12 +252,9 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetResource"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
-
 		})
 
 		Context("When EnableResourceAuditLog is true with a Resource action", func() {
@@ -316,10 +263,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetResource"
 			})
 
-			It("Create a log including the action", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+			It("returns true on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeTrue())
 			})
 		})
 
@@ -329,10 +274,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 
@@ -342,10 +285,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 	})
@@ -360,12 +301,9 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
-
 		})
 
 		Context("When EnableSystemAuditLog is true with a System action", func() {
@@ -374,10 +312,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Create a log including the action", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+			It("returns true on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeTrue())
 			})
 		})
 
@@ -387,10 +323,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetBuild"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 
@@ -400,10 +334,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "GetBuild"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 	})
@@ -417,12 +349,9 @@ var _ = Describe("Audit", func() {
 				dummyAction = "ListTeams"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
-
 		})
 
 		Context("When EnableTeamAuditLog is true with a Resource action", func() {
@@ -431,10 +360,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "ListTeams"
 			})
 
-			It("Create a log including the action", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+			It("returns true on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeTrue())
 			})
 		})
 
@@ -444,10 +371,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 
@@ -457,10 +382,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 	})
@@ -473,12 +396,9 @@ var _ = Describe("Audit", func() {
 				dummyAction = "ListWorkers"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
-
 		})
 
 		Context("When EnableWorkerAuditLog is true with a Resource action", func() {
@@ -487,10 +407,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "ListWorkers"
 			})
 
-			It("Create a log including the action", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+			It("returns true on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeTrue())
 			})
 		})
 
@@ -500,10 +418,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 
@@ -513,10 +429,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 	})
@@ -529,12 +443,9 @@ var _ = Describe("Audit", func() {
 				dummyAction = "ListVolumes"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
-
 		})
 
 		Context("When EnableVolumeAuditLog is true with a Resource action", func() {
@@ -543,10 +454,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "ListVolumes"
 			})
 
-			It("Create a log including the action", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+			It("returns true on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeTrue())
 			})
 		})
 
@@ -556,10 +465,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 
@@ -569,10 +476,8 @@ var _ = Describe("Audit", func() {
 				dummyAction = "SaveConfig"
 			})
 
-			It("Doesn't create a log", func() {
-				aud.Audit(dummyAction, userName, req)
-				logs := logger.Logs()
-				Expect(len(logs)).To(Equal(0))
+			It("returns false on Validation", func() {
+				Expect(aud.ValidateAction(dummyAction)).To(BeFalse())
 			})
 		})
 	})

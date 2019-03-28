@@ -34,7 +34,7 @@ func (h accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := context.WithValue(r.Context(), "accessor", acc)
 
 	if acc != nil {
-		h.auditor.LogAction(h.action, acc.UserName(), r)
+		h.auditor.Audit(h.action, acc.UserName(), r)
 	}
 	h.handler.ServeHTTP(w, r.WithContext(ctx))
 }

@@ -9,128 +9,55 @@ import (
 )
 
 type FakeAuditor struct {
-	LogActionStub        func(string, string, *http.Request)
-	logActionMutex       sync.RWMutex
-	logActionArgsForCall []struct {
+	AuditStub        func(string, string, *http.Request)
+	auditMutex       sync.RWMutex
+	auditArgsForCall []struct {
 		arg1 string
 		arg2 string
 		arg3 *http.Request
-	}
-	ValidateActionStub        func(string) bool
-	validateActionMutex       sync.RWMutex
-	validateActionArgsForCall []struct {
-		arg1 string
-	}
-	validateActionReturns struct {
-		result1 bool
-	}
-	validateActionReturnsOnCall map[int]struct {
-		result1 bool
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAuditor) LogAction(arg1 string, arg2 string, arg3 *http.Request) {
-	fake.logActionMutex.Lock()
-	fake.logActionArgsForCall = append(fake.logActionArgsForCall, struct {
+func (fake *FakeAuditor) Audit(arg1 string, arg2 string, arg3 *http.Request) {
+	fake.auditMutex.Lock()
+	fake.auditArgsForCall = append(fake.auditArgsForCall, struct {
 		arg1 string
 		arg2 string
 		arg3 *http.Request
 	}{arg1, arg2, arg3})
-	fake.recordInvocation("LogAction", []interface{}{arg1, arg2, arg3})
-	fake.logActionMutex.Unlock()
-	if fake.LogActionStub != nil {
-		fake.LogActionStub(arg1, arg2, arg3)
+	fake.recordInvocation("Audit", []interface{}{arg1, arg2, arg3})
+	fake.auditMutex.Unlock()
+	if fake.AuditStub != nil {
+		fake.AuditStub(arg1, arg2, arg3)
 	}
 }
 
-func (fake *FakeAuditor) LogActionCallCount() int {
-	fake.logActionMutex.RLock()
-	defer fake.logActionMutex.RUnlock()
-	return len(fake.logActionArgsForCall)
+func (fake *FakeAuditor) AuditCallCount() int {
+	fake.auditMutex.RLock()
+	defer fake.auditMutex.RUnlock()
+	return len(fake.auditArgsForCall)
 }
 
-func (fake *FakeAuditor) LogActionCalls(stub func(string, string, *http.Request)) {
-	fake.logActionMutex.Lock()
-	defer fake.logActionMutex.Unlock()
-	fake.LogActionStub = stub
+func (fake *FakeAuditor) AuditCalls(stub func(string, string, *http.Request)) {
+	fake.auditMutex.Lock()
+	defer fake.auditMutex.Unlock()
+	fake.AuditStub = stub
 }
 
-func (fake *FakeAuditor) LogActionArgsForCall(i int) (string, string, *http.Request) {
-	fake.logActionMutex.RLock()
-	defer fake.logActionMutex.RUnlock()
-	argsForCall := fake.logActionArgsForCall[i]
+func (fake *FakeAuditor) AuditArgsForCall(i int) (string, string, *http.Request) {
+	fake.auditMutex.RLock()
+	defer fake.auditMutex.RUnlock()
+	argsForCall := fake.auditArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeAuditor) ValidateAction(arg1 string) bool {
-	fake.validateActionMutex.Lock()
-	ret, specificReturn := fake.validateActionReturnsOnCall[len(fake.validateActionArgsForCall)]
-	fake.validateActionArgsForCall = append(fake.validateActionArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("ValidateAction", []interface{}{arg1})
-	fake.validateActionMutex.Unlock()
-	if fake.ValidateActionStub != nil {
-		return fake.ValidateActionStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.validateActionReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeAuditor) ValidateActionCallCount() int {
-	fake.validateActionMutex.RLock()
-	defer fake.validateActionMutex.RUnlock()
-	return len(fake.validateActionArgsForCall)
-}
-
-func (fake *FakeAuditor) ValidateActionCalls(stub func(string) bool) {
-	fake.validateActionMutex.Lock()
-	defer fake.validateActionMutex.Unlock()
-	fake.ValidateActionStub = stub
-}
-
-func (fake *FakeAuditor) ValidateActionArgsForCall(i int) string {
-	fake.validateActionMutex.RLock()
-	defer fake.validateActionMutex.RUnlock()
-	argsForCall := fake.validateActionArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeAuditor) ValidateActionReturns(result1 bool) {
-	fake.validateActionMutex.Lock()
-	defer fake.validateActionMutex.Unlock()
-	fake.ValidateActionStub = nil
-	fake.validateActionReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeAuditor) ValidateActionReturnsOnCall(i int, result1 bool) {
-	fake.validateActionMutex.Lock()
-	defer fake.validateActionMutex.Unlock()
-	fake.ValidateActionStub = nil
-	if fake.validateActionReturnsOnCall == nil {
-		fake.validateActionReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.validateActionReturnsOnCall[i] = struct {
-		result1 bool
-	}{result1}
 }
 
 func (fake *FakeAuditor) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.logActionMutex.RLock()
-	defer fake.logActionMutex.RUnlock()
-	fake.validateActionMutex.RLock()
-	defer fake.validateActionMutex.RUnlock()
+	fake.auditMutex.RLock()
+	defer fake.auditMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
