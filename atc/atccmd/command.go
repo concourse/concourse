@@ -79,8 +79,9 @@ type ATCCommand struct {
 type RunCommand struct {
 	Logger flag.Lager
 
-	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
-	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
+	BindIP      flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
+	BindPort    uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
+	PeerAddress string  `long:"peer-address" default:"127.0.0.1" description:"Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses."`
 
 	TLSBindPort uint16    `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
 	TLSCert     flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`

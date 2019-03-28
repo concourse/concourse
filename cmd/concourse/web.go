@@ -70,6 +70,7 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 
 func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	cmd.TSACommand.SessionSigningKey = cmd.RunCommand.Auth.AuthFlags.SigningKey
+	cmd.TSACommand.PeerAddress = cmd.RunCommand.PeerAddress
 
 	if cmd.RunCommand.Auth.AuthFlags.SigningKey.PrivateKey == nil &&
 		cmd.TSACommand.SessionSigningKey.PrivateKey == nil {

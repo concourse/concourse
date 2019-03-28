@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
@@ -19,9 +20,8 @@ import (
 )
 
 type TSACommand struct {
-	Logger flag.Lager
-
-	PeerAddress string `long:"peer-address" default:"127.0.0.1" description:"Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses."`
+	Logger      flag.Lager
+	PeerAddress string
 
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
 	BindPort uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
@@ -100,6 +100,14 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 	if cmd.SessionSigningKey == nil {
 		return nil, fmt.Errorf("missing session signing key")
+	}
+
+	if cmd.PeerAddress == "" {
+		peerAddress, err := localip.LocalIP()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get host network address: %s", err)
+		}
+		cmd.PeerAddress = peerAddress
 	}
 
 	tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
