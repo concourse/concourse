@@ -1,4 +1,4 @@
-FROM golang:1
+FROM concourse/golang-builder
 
 # basic setup for adding new apt sources
 RUN apt-get update && apt-get -y install \
