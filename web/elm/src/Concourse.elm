@@ -362,8 +362,8 @@ decodeBuildPlan =
 decodeBuildPlan_ : Json.Decode.Decoder BuildPlan
 decodeBuildPlan_ =
     Json.Decode.succeed BuildPlan
-        |: Json.Decode.field "id" Json.Decode.string
-        |: Json.Decode.oneOf
+        |> Json.Decode.field "id" Json.Decode.string
+        |> Json.Decode.oneOf
             -- buckle up
             [ Json.Decode.field "task" <| lazy (\_ -> decodeBuildStepTask)
             , Json.Decode.field "get" <| lazy (\_ -> decodeBuildStepGet)
@@ -440,10 +440,11 @@ decodeBuildStepOnAbort =
 
 decodeBuildStepOnError : Json.Decode.Decoder BuildStep
 decodeBuildStepOnError =
-    Json.Decode.map BuildStepOnError <|
-        Json.Decode.succeed HookedPlan
-            |: (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |: (Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildPlan_))
+    Json.Decode.map BuildStepOnError 
+        (Json.Decode.succeed HookedPlan
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildPlan_))
+        )
 
 decodeBuildStepEnsure : Json.Decode.Decoder BuildStep
 decodeBuildStepEnsure =
