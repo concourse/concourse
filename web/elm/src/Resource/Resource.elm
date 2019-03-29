@@ -699,17 +699,15 @@ header model =
             case model.icon of
                 Just icon ->
                     Html.div
-                        [ style
-                            [ ( "margin-right", toString 10 ++ "px" )
-                            , ( "height", toString Resource.Styles.headerHeight ++ "px" )
-                            , ( "width", toString 24 ++ "px" )
-                            , ( "margin-left", toString -6 ++ "px" )
-                            ]
+                        [ style "margin-right" (String.fromInt 10 ++ "px")
+                        , style "height" (String.fromInt Resource.Styles.headerHeight ++ "px")
+                        , style "width" (String.fromInt 24 ++ "px")
+                        , style "margin-left" (String.fromInt -6 ++ "px")
                         ]
                         [ Svg.svg
                             [ style
-                                [ ( "margin-top", toString (toFloat (Resource.Styles.headerHeight - 24) / 2) ++ "px" )
-                                ]
+                                "margin-top"
+                                (String.fromFloat (toFloat (Resource.Styles.headerHeight - 24) / 2) ++ "px")
                             , SvgAttributes.fill "white"
                             ]
                             [ Svg.use
