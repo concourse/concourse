@@ -2,6 +2,7 @@ module Application.Application exposing
     ( Flags
     , Model
     , handleCallback
+    , handleDelivery
     , init
     , locationMsg
     , subscriptions
@@ -9,6 +10,8 @@ module Application.Application exposing
     , view
     )
 
+import Browser
+import Browser.Navigation as Navigation
 import Concourse
 import Html exposing (Html)
 import Http
@@ -16,9 +19,9 @@ import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
-import Navigation
 import Routes
 import SubPage.SubPage as SubPage
+import Url
 import UserState exposing (UserState(..))
 
 
@@ -43,11 +46,12 @@ type alias Model =
     }
 
 
-init : Flags -> Navigation.Location -> ( Model, List Effect )
-init flags location =
+init : Flags -> Url.Url -> ( Model, List Effect )
+init flags url =
     let
         route =
-            Routes.parsePath location
+            Routes.parsePath url
+                |> Maybe.withDefault (Routes.Dashboard (Routes.Normal Nothing))
 
         ( subModel, subEffects ) =
             SubPage.init
@@ -82,9 +86,14 @@ init flags location =
     ( model, [ FetchUser ] ++ handleTokenEffect ++ subEffects )
 
 
-locationMsg : Navigation.Location -> TopLevelMessage
-locationMsg =
-    Routes.parsePath >> RouteChanged >> DeliveryReceived
+locationMsg : Url.Url -> TopLevelMessage
+locationMsg url =
+    case Routes.parsePath url of
+        Just route ->
+            DeliveryReceived <| RouteChanged route
+
+        Nothing ->
+            Msgs.Callback EmptyCallback
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
@@ -180,13 +189,27 @@ handleDeliveryForApplication : Delivery -> Model -> ( Model, List Effect )
 handleDeliveryForApplication delivery model =
     case delivery of
         NonHrefLinkClicked route ->
-            ( model, [ NavigateTo route ] )
+            ( model, [ LoadExternal route ] )
 
         TokenReceived (Just tokenValue) ->
             ( { model | csrfToken = tokenValue }, [] )
 
         RouteChanged route ->
             urlUpdate route model
+
+        UrlRequest request ->
+            case request of
+                Browser.Internal url ->
+                    case Routes.parsePath url of
+                        Just route ->
+                            ( model, [ NavigateTo <| Routes.toString route ] )
+
+                        Nothing ->
+                            Debug.log "couldn't parse"
+                                ( model, [ LoadExternal <| Url.toString url ] )
+
+                Browser.External url ->
+                    ( model, [ LoadExternal url ] )
 
         _ ->
             ( model, [] )
@@ -257,8 +280,8 @@ routeMatchesModel route model =
         ( Routes.Job _, SubPage.JobModel _ ) ->
             True
 
-        ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->
-            True
+        ( Routes.Dashboard searchType, SubPage.DashboardModel dashboardModel ) ->
+            dashboardModel.highDensity == (searchType == Routes.HighDensity)
 
         _ ->
             False

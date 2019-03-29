@@ -15,7 +15,7 @@ import Login.Login as Login
 import Message.Message as Message
 import RemoteData
 import ScreenSize
-import Time exposing (Time)
+import Time
 import UserState
 
 
@@ -38,7 +38,7 @@ type alias Model =
 
 
 type alias SubState =
-    { now : Time
+    { now : Time.Posix
     , dragState : DragState
     , dropState : DropState
     }
@@ -58,7 +58,7 @@ type alias PipelineIndex =
     Int
 
 
-tick : Time.Time -> SubState -> SubState
+tick : Time.Posix -> SubState -> SubState
 tick now substate =
     { substate | now = now }
 
@@ -72,7 +72,6 @@ type alias FooterModel r =
         , hovered : Maybe Message.Hoverable
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , shiftDown : Bool
         , dropdown : Dropdown
         , highDensity : Bool
     }

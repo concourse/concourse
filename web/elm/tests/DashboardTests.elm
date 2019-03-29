@@ -17,12 +17,11 @@ import Concourse
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models as Models
-import Date exposing (Date)
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Http
-import Keycodes
+import Keyboard
 import List.Extra
 import Message.Callback as Callback
 import Message.Effects as Effects
@@ -44,7 +43,8 @@ import Test.Html.Selector
         , tag
         , text
         )
-import Time exposing (Time)
+import Time
+import Url
 import UserState
 
 
@@ -130,17 +130,12 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
                     }
                     |> Tuple.second
                     |> List.member Effects.GetScreenSize
@@ -163,15 +158,10 @@ all =
                     , test "with correct antialiasing in WebKit" <|
                         subject
                             >> Query.has
-                                [ style
-                                    [ ( "-webkit-font-smoothing"
-                                      , "antialiased"
-                                      )
-                                    ]
-                                ]
+                                [ style "-webkit-font-smoothing" "antialiased" ]
                     , test "with non-bold text" <|
                         subject
-                            >> Query.has [ style [ ( "font-weight", "400" ) ] ]
+                            >> Query.has [ style "font-weight" "400" ]
                     , test "title says 'welcome to concourse!'" <|
                         subject
                             >> Query.children []
@@ -181,22 +171,17 @@ all =
                         subject
                             >> Query.children []
                             >> Query.first
-                            >> Query.has [ style [ ( "font-size", "32px" ) ] ]
+                            >> Query.has [ style "font-size" "32px" ]
                     , test "has dark grey background" <|
                         subject
                             >> Query.has
-                                [ style
-                                    [ ( "background-color"
-                                      , darkGrey
-                                      )
-                                    ]
-                                ]
+                                [ style "background-color" darkGrey ]
                     , test "is inset from the page" <|
                         subject
-                            >> Query.has [ style [ ( "margin", "25px" ) ] ]
+                            >> Query.has [ style "margin" "25px" ]
                     , test "has padding around its contents" <|
                         subject
-                            >> Query.has [ style [ ( "padding", "40px" ) ] ]
+                            >> Query.has [ style "padding" "40px" ]
                     , describe "body" <|
                         let
                             body : () -> Query.Single Msgs.Message
@@ -214,7 +199,7 @@ all =
                         , test "has 16px font" <|
                             body
                                 >> Query.has
-                                    [ style [ ( "font-size", "16px" ) ] ]
+                                    [ style "font-size" "16px" ]
                         , describe "CLI download section" <|
                             let
                                 downloadSection =
@@ -227,10 +212,8 @@ all =
                               <|
                                 downloadSection
                                     >> Query.has
-                                        [ style
-                                            [ ( "display", "flex" )
-                                            , ( "align-items", "center" )
-                                            ]
+                                        [ style "display" "flex"
+                                        , style "align-items" "center"
                                         ]
                             , test "says 'first, download the CLI tools:'" <|
                                 let
@@ -250,19 +233,20 @@ all =
                                     >> Query.children []
                                     >> Query.index 0
                                     >> Query.has
-                                        [ style
-                                            [ ( "margin-right"
-                                              , "10px"
-                                              )
-                                            ]
-                                        ]
+                                        [ style "margin-right" "10px" ]
                             , describe "cli download icons" <|
                                 let
                                     cliIcons =
                                         downloadSection
                                             >> Query.children [ tag "a" ]
                                 in
-                                [ test "icons have descriptive ARIA labels" <|
+                                [ test "have 'download' attribute" <|
+                                    cliIcons
+                                        >> Query.each
+                                            (Query.has
+                                                [ attribute <| Attr.download "" ]
+                                            )
+                                , test "icons have descriptive ARIA labels" <|
                                     cliIcons
                                         >> Expect.all
                                             [ Query.count (Expect.equal 3)
@@ -296,12 +280,13 @@ all =
                                     , unhoveredSelector =
                                         { description = "grey apple icon"
                                         , selector =
-                                            [ style
-                                                [ ( "opacity", "0.5" )
-                                                , ( "margin", "5px" )
-                                                ]
+                                            [ style "opacity" "0.5"
+                                            , style "margin" "5px"
                                             ]
-                                                ++ iconSelector { size = "32px", image = "apple-logo.svg" }
+                                                ++ iconSelector
+                                                    { size = "32px"
+                                                    , image = "apple-logo.svg"
+                                                    }
                                         }
                                     , mouseEnterMsg =
                                         Msgs.Hover <|
@@ -311,28 +296,33 @@ all =
                                     , hoveredSelector =
                                         { description = "white apple icon"
                                         , selector =
-                                            [ style
-                                                [ ( "opacity", "1" )
-                                                , ( "margin", "5px" )
-                                                ]
+                                            [ style "opacity" "1"
+                                            , style "margin" "5px"
                                             ]
-                                                ++ iconSelector { size = "32px", image = "apple-logo.svg" }
+                                                ++ iconSelector
+                                                    { size = "32px"
+                                                    , image = "apple-logo.svg"
+                                                    }
                                         }
                                     }
                                 , defineHoverBehaviour
                                     { name = "windows cli icon"
                                     , setup = setup ()
-                                    , query = queryView >> Query.find [ id "top-cli-windows" ]
+                                    , query =
+                                        queryView
+                                            >> Query.find
+                                                [ id "top-cli-windows" ]
                                     , updateFunc = Dashboard.update
                                     , unhoveredSelector =
                                         { description = "grey windows icon"
                                         , selector =
-                                            [ style
-                                                [ ( "opacity", "0.5" )
-                                                , ( "margin", "5px" )
-                                                ]
+                                            [ style "opacity" "0.5"
+                                            , style "margin" "5px"
                                             ]
-                                                ++ iconSelector { size = "32px", image = "windows-logo.svg" }
+                                                ++ iconSelector
+                                                    { size = "32px"
+                                                    , image = "windows-logo.svg"
+                                                    }
                                         }
                                     , mouseEnterMsg =
                                         Msgs.Hover <|
@@ -342,28 +332,33 @@ all =
                                     , hoveredSelector =
                                         { description = "white windows icon"
                                         , selector =
-                                            [ style
-                                                [ ( "opacity", "1" )
-                                                , ( "margin", "5px" )
-                                                ]
+                                            [ style "opacity" "1"
+                                            , style "margin" "5px"
                                             ]
-                                                ++ iconSelector { size = "32px", image = "windows-logo.svg" }
+                                                ++ iconSelector
+                                                    { size = "32px"
+                                                    , image = "windows-logo.svg"
+                                                    }
                                         }
                                     }
                                 , defineHoverBehaviour
                                     { name = "linux cli icon"
                                     , setup = setup ()
-                                    , query = queryView >> Query.find [ id "top-cli-linux" ]
+                                    , query =
+                                        queryView
+                                            >> Query.find
+                                                [ id "top-cli-linux" ]
                                     , updateFunc = Dashboard.update
                                     , unhoveredSelector =
                                         { description = "grey linux icon"
                                         , selector =
-                                            [ style
-                                                [ ( "opacity", "0.5" )
-                                                , ( "margin", "5px" )
-                                                ]
+                                            [ style "opacity" "0.5"
+                                            , style "margin" "5px"
                                             ]
-                                                ++ iconSelector { size = "32px", image = "linux-logo.svg" }
+                                                ++ iconSelector
+                                                    { size = "32px"
+                                                    , image = "linux-logo.svg"
+                                                    }
                                         }
                                     , mouseEnterMsg =
                                         Msgs.Hover <|
@@ -373,12 +368,13 @@ all =
                                     , hoveredSelector =
                                         { description = "white linux icon"
                                         , selector =
-                                            [ style
-                                                [ ( "opacity", "1" )
-                                                , ( "margin", "5px" )
-                                                ]
+                                            [ style "opacity" "1"
+                                            , style "margin" "5px"
                                             ]
-                                                ++ iconSelector { size = "32px", image = "linux-logo.svg" }
+                                                ++ iconSelector
+                                                    { size = "32px"
+                                                    , image = "linux-logo.svg"
+                                                    }
                                         }
                                     }
                                 ]
@@ -393,21 +389,16 @@ all =
                         [ test "not selectable for all browsers" <|
                             art
                                 >> Query.has
-                                    [ style
-                                        [ ( "user-select", "none" )
-                                        , ( "-ms-user-select", "none" )
-                                        , ( "-moz-user-select", "none" )
-                                        , ( "-khtml-user-select", "none" )
-                                        , ( "-webkit-user-select", "none" )
-                                        , ( "-webkit-touch-callout", "none" )
-                                        ]
+                                    [ style "user-select" "none"
+                                    , style "-ms-user-select" "none"
+                                    , style "-moz-user-select" "none"
+                                    , style "-khtml-user-select" "none"
+                                    , style "-webkit-user-select" "none"
+                                    , style "-webkit-touch-callout" "none"
                                     ]
                         , test "cursor is set to default" <|
                             art
-                                >> Query.has
-                                    [ style
-                                        [ ( "cursor", "default" ) ]
-                                    ]
+                                >> Query.has [ style "cursor" "default" ]
                         ]
                     ]
             in
@@ -468,15 +459,9 @@ all =
                                     [ Query.has
                                         [ attribute <| Attr.href "/login" ]
                                     , Query.has
-                                        [ style
-                                            [ ( "text-decoration"
-                                              , "underline"
-                                              )
-                                            ]
-                                        ]
+                                        [ style "text-decoration" "underline" ]
                                     ]
-                            , Query.has
-                                [ style [ ( "line-height", "42px" ) ] ]
+                            , Query.has [ style "line-height" "42px" ]
                             ]
             ]
         , test "high density view has no vertical scroll" <|
@@ -488,10 +473,8 @@ all =
                     |> queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has
-                        [ style
-                            [ ( "height", "100%" )
-                            , ( "box-sizing", "border-box" )
-                            ]
+                        [ style "height" "100%"
+                        , style "box-sizing" "border-box"
                         ]
         , test "high density body aligns contents vertically" <|
             \_ ->
@@ -502,10 +485,8 @@ all =
                     |> queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has
-                        [ style
-                            [ ( "display", "flex" )
-                            , ( "flex-direction", "column" )
-                            ]
+                        [ style "display" "flex"
+                        , style "flex-direction" "column"
                         ]
         , test "high density pipelines view fills vertical space" <|
             \_ ->
@@ -517,7 +498,7 @@ all =
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.children []
                     |> Query.first
-                    |> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+                    |> Query.has [ style "flex-grow" "1" ]
         , test "high density pipelines view has padding" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
@@ -528,7 +509,7 @@ all =
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.children []
                     |> Query.first
-                    |> Query.has [ style [ ( "padding", "60px" ) ] ]
+                    |> Query.has [ style "padding" "60px" ]
         , test "high density pipelines view wraps columns" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
@@ -540,10 +521,8 @@ all =
                     |> Query.children []
                     |> Query.first
                     |> Query.has
-                        [ style
-                            [ ( "display", "flex" )
-                            , ( "flex-flow", "column wrap" )
-                            ]
+                        [ style "display" "flex"
+                        , style "flex-flow" "column wrap"
                         ]
         , test "normal density pipelines view has default layout" <|
             \_ ->
@@ -556,10 +535,8 @@ all =
                     |> Query.children []
                     |> Query.first
                     |> Query.has
-                        [ style
-                            [ ( "display", "initial" )
-                            , ( "padding", "0" )
-                            ]
+                        [ style "display" "initial"
+                        , style "padding" "0"
                         ]
         , test "high density view left-aligns contents" <|
             \_ ->
@@ -571,13 +548,13 @@ all =
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.children []
                     |> Query.first
-                    |> Query.has [ style [ ( "align-content", "flex-start" ) ] ]
+                    |> Query.has [ style "align-content" "flex-start" ]
         , test "high density view has no overlapping top bar" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> queryView
                     |> Query.find [ id "page-below-top-bar" ]
-                    |> Query.has [ style [ ( "padding-top", "54px" ) ] ]
+                    |> Query.has [ style "padding-top" "54px" ]
         , test "high density view has no overlapping bottom bar" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
@@ -586,13 +563,13 @@ all =
                         (userWithRoles [])
                     |> queryView
                     |> Query.find [ id "page-below-top-bar" ]
-                    |> Query.has [ style [ ( "padding-bottom", "50px" ) ] ]
+                    |> Query.has [ style "padding-bottom" "50px" ]
         , test "top bar has bold font" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> queryView
                     |> Query.find [ id "top-bar-app" ]
-                    |> Query.has [ style [ ( "font-weight", "700" ) ] ]
+                    |> Query.has [ style "font-weight" "700" ]
         , test "logging out causes pipeline list to reload" <|
             let
                 showsLoadingState : ( Models.Model, List Effects.Effect ) -> Expectation
@@ -634,7 +611,7 @@ all =
                     |> handleCallback
                         (Callback.APIDataFetched <|
                             Ok
-                                ( 0
+                                ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
@@ -644,7 +621,7 @@ all =
                         , Dashboard.handleCallback
                             (Callback.APIDataFetched <|
                                 Ok
-                                    ( 0
+                                    ( Time.millisToPosix 0
                                     , apiData
                                         [ ( "team", [ "pipeline" ] ) ]
                                         Nothing
@@ -664,7 +641,7 @@ all =
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
-                                ( 0
+                                ( Time.millisToPosix 0
                                 , apiData [ ( "team", [ "pipeline" ] ) ] Nothing
                                 )
                         )
@@ -672,7 +649,7 @@ all =
                     |> handleCallback
                         (Callback.APIDataFetched <|
                             Ok
-                                ( 0
+                                ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
@@ -688,7 +665,7 @@ all =
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
-                                ( 0
+                                ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
@@ -700,15 +677,21 @@ all =
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
-                                ( 0
+                                ( Time.millisToPosix 0
                                 , apiData
                                     [ ( "team", [ "pipeline" ] ) ]
                                     Nothing
                                 )
                         )
                     |> Dashboard.update Msgs.FocusMsg
-                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
-                    |> Dashboard.handleDelivery (KeyDown 191)
+                    |> Dashboard.handleDelivery
+                        (KeyDown
+                            { ctrlKey = False
+                            , shiftKey = True
+                            , metaKey = False
+                            , code = Keyboard.Slash
+                            }
+                        )
                     |> queryView
                     |> Query.hasNot [ id "keyboard-help" ]
         , test "bottom bar appears when there are no pipelines" <|
@@ -717,7 +700,7 @@ all =
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
-                                ( 0
+                                ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
@@ -729,7 +712,7 @@ all =
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
-                                ( 0
+                                ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
@@ -741,25 +724,31 @@ all =
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
-                                ( 0
+                                ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
                     |> queryView
                     |> Query.find [ id "dashboard-info" ]
-                    |> Query.has [ style [ ( "justify-content", "flex-end" ) ] ]
+                    |> Query.has [ style "justify-content" "flex-end" ]
         , test "pressing '?' does nothing when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Dashboard.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
-                                ( 0
+                                ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Dashboard.handleDelivery (KeyDown Keycodes.shift)
-                    |> Dashboard.handleDelivery (KeyDown 191)
+                    |> Dashboard.handleDelivery
+                        (KeyDown
+                            { ctrlKey = False
+                            , shiftKey = True
+                            , metaKey = False
+                            , code = Keyboard.Slash
+                            }
+                        )
                     |> queryView
                     |> Query.has [ id "dashboard-info" ]
         , test "on HD view, team names have increased letter spacing" <|
@@ -770,7 +759,7 @@ all =
                         (userWithRoles [])
                     |> queryView
                     |> Query.find [ class "dashboard-team-name-wrapper" ]
-                    |> Query.has [ style [ ( "letter-spacing", ".2em" ) ] ]
+                    |> Query.has [ style "letter-spacing" ".2em" ]
         , describe "team pills"
             [ test
                 ("shows team name with no pill when unauthenticated "
@@ -857,10 +846,8 @@ all =
                         |> Query.findAll teamHeaderSelector
                         |> Query.each
                             (Query.has
-                                [ style
-                                    [ ( "display", "flex" )
-                                    , ( "align-items", "center" )
-                                    ]
+                                [ style "display" "flex"
+                                , style "align-items" "center"
                                 ]
                             )
             , test "on HD view, there is space between the list of pipelines and the role pill" <|
@@ -872,7 +859,7 @@ all =
                         |> queryView
                         |> Query.find [ class "dashboard-team-name-wrapper" ]
                         |> Query.find [ containing [ text "OWNER" ] ]
-                        |> Query.has [ style [ ( "margin-bottom", "1em" ) ] ]
+                        |> Query.has [ style "margin-bottom" "1em" ]
             , test "on non-HD view, the role pill on a group has no margin below" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
@@ -882,7 +869,7 @@ all =
                         |> queryView
                         |> Query.find teamHeaderSelector
                         |> Query.find [ containing [ text "OWNER" ] ]
-                        |> Query.has [ style [ ( "margin-bottom", "" ) ] ]
+                        |> Query.has [ style "margin-bottom" "" ]
             ]
         , describe "pipeline cards" <|
             let
@@ -956,37 +943,25 @@ all =
                             >> Expect.all
                                 [ Query.has [ text "no pipeline set" ]
                                 , Query.has
-                                    [ style
-                                        [ ( "color", white )
-                                        , ( "-webkit-font-smoothing"
-                                          , "antialiased"
-                                          )
-                                        ]
+                                    [ style "color" white
+                                    , style "-webkit-font-smoothing" "antialiased"
                                     ]
                                 ]
                     , test "has dark grey background and 12.5px padding" <|
                         header
                             >> Query.has
-                                [ style
-                                    [ ( "background-color", darkGrey )
-                                    , ( "padding", "12.5px" )
-                                    ]
+                                [ style "background-color" darkGrey
+                                , style "padding" "12.5px"
                                 ]
                     , test "text is larger and wider spaced" <|
                         header
                             >> Query.has
-                                [ style
-                                    [ ( "font-size", "1.5em" )
-                                    , ( "letter-spacing", "0.1em" )
-                                    ]
+                                [ style "font-size" "1.5em"
+                                , style "letter-spacing" "0.1em"
                                 ]
                     , test "text is centered" <|
                         header
-                            >> Query.has
-                                [ style
-                                    [ ( "text-align", "center" )
-                                    ]
-                                ]
+                            >> Query.has [ style "text-align" "center" ]
                     ]
                 , describe "body" <|
                     let
@@ -998,40 +973,25 @@ all =
                     [ test "has 200px width, 120px height, 20px 36px padding" <|
                         body
                             >> Query.has
-                                [ style
-                                    [ ( "width", "200px" )
-                                    , ( "height", "120px" )
-                                    , ( "padding", "20px 36px" )
-                                    ]
+                                [ style "width" "200px"
+                                , style "height" "120px"
+                                , style "padding" "20px 36px"
                                 ]
                     , test "has dark grey background" <|
                         body
-                            >> Query.has
-                                [ style
-                                    [ ( "background-color", darkGrey )
-                                    ]
-                                ]
+                            >> Query.has [ style "background-color" darkGrey ]
                     , test "has 2px margins above and below" <|
                         body
-                            >> Query.has
-                                [ style
-                                    [ ( "margin", "2px 0" )
-                                    ]
-                                ]
+                            >> Query.has [ style "margin" "2px 0" ]
                     , test "has lighter grey placeholder box that fills" <|
                         body
                             >> Expect.all
-                                [ Query.has
-                                    [ style [ ( "display", "flex" ) ] ]
+                                [ Query.has [ style "display" "flex" ]
                                 , Query.children []
                                     >> Query.first
                                     >> Query.has
-                                        [ style
-                                            [ ( "background-color"
-                                              , middleGrey
-                                              )
-                                            , ( "flex-grow", "1" )
-                                            ]
+                                        [ style "background-color" middleGrey
+                                        , style "flex-grow" "1"
                                         ]
                                 ]
                     ]
@@ -1039,10 +999,8 @@ all =
                     noPipelinesCard
                         >> Query.find [ class "card-footer" ]
                         >> Query.has
-                            [ style
-                                [ ( "background-color", darkGrey )
-                                , ( "height", "47px" )
-                                ]
+                            [ style "background-color" darkGrey
+                            , style "height" "47px"
                             ]
                 ]
             , test "has 'move' cursor" <|
@@ -1055,7 +1013,7 @@ all =
                             [ class "card"
                             , containing [ text "pipeline" ]
                             ]
-                        |> Query.has [ style [ ( "cursor", "move" ) ] ]
+                        |> Query.has [ style "cursor" "move" ]
             , test "has 25px margins" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
@@ -1066,7 +1024,7 @@ all =
                             [ class "card"
                             , containing [ text "pipeline" ]
                             ]
-                        |> Query.has [ style [ ( "margin", "25px" ) ] ]
+                        |> Query.has [ style "margin" "25px" ]
             , describe "header" <|
                 let
                     header : () -> Query.Single Msgs.Message
@@ -1083,37 +1041,27 @@ all =
                 in
                 [ test "has dark grey background" <|
                     header
-                        >> Query.has
-                            [ style
-                                [ ( "background-color", darkGrey ) ]
-                            ]
+                        >> Query.has [ style "background-color" darkGrey ]
                 , test "has larger, spaced-out smooth white text" <|
                     header
                         >> Query.has
-                            [ style
-                                [ ( "font-size", "1.5em" )
-                                , ( "letter-spacing", "0.1em" )
-                                , ( "color", white )
-                                , ( "-webkit-font-smoothing", "antialiased" )
-                                ]
+                            [ style "font-size" "1.5em"
+                            , style "letter-spacing" "0.1em"
+                            , style "color" white
+                            , style "-webkit-font-smoothing" "antialiased"
                             ]
                 , test "has 12.5px padding" <|
                     header
-                        >> Query.has
-                            [ style
-                                [ ( "padding", "12.5px" ) ]
-                            ]
+                        >> Query.has [ style "padding" "12.5px" ]
                 , test "text does not overflow or wrap" <|
                     header
                         >> Query.children []
                         >> Query.first
                         >> Query.has
-                            [ style
-                                [ ( "width", "245px" )
-                                , ( "white-space", "nowrap" )
-                                , ( "overflow", "hidden" )
-                                , ( "text-overflow", "ellipsis" )
-                                ]
+                            [ style "width" "245px"
+                            , style "white-space" "nowrap"
+                            , style "overflow" "hidden"
+                            , style "text-overflow" "ellipsis"
                             ]
                 ]
             , describe "colored banner" <|
@@ -1128,10 +1076,7 @@ all =
 
                     isSolid : String -> Query.Single Msgs.Message -> Expectation
                     isSolid color =
-                        Query.has
-                            [ style
-                                [ ( "background-color", color ) ]
-                            ]
+                        Query.has [ style "background-color" color ]
                 in
                 [ describe "non-HD view"
                     [ test "is 7px tall" <|
@@ -1141,7 +1086,7 @@ all =
                                     (oneTeamOnePipeline "team")
                                 |> queryView
                                 |> findBanner
-                                |> Query.has [ style [ ( "height", "7px" ) ] ]
+                                |> Query.has [ style "height" "7px" ]
                     , test "is blue when pipeline is paused" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -1318,7 +1263,7 @@ all =
                                         (oneTeamOnePipeline "team")
                                     |> queryView
                                     |> findBanner
-                                    |> Query.has [ style [ ( "width", "8px" ) ] ]
+                                    |> Query.has [ style "width" "8px" ]
                         , test "is blue when pipeline is paused" <|
                             \_ ->
                                 whenOnDashboard { highDensity = True }
@@ -1517,88 +1462,77 @@ all =
                     noPipelines
                         >> noPipelinesCard
                         >> Query.has
-                            [ style
-                                [ ( "font-size", "14px" )
-                                , ( "letter-spacing", "1px" )
-                                ]
+                            [ style "font-size" "14px"
+                            , style "letter-spacing" "1px"
                             ]
                 , test "no pipelines card text is vertically centered" <|
                     noPipelines
                         >> noPipelinesCard
                         >> Query.has
-                            [ style
-                                [ ( "display", "flex" )
-                                , ( "align-items", "center" )
-                                ]
+                            [ style "display" "flex"
+                            , style "align-items" "center"
                             ]
                 , test "no pipelines card is 60px tall" <|
                     noPipelines
                         >> noPipelinesCard
-                        >> Query.has [ style [ ( "height", "60px" ) ] ]
+                        >> Query.has [ style "height" "60px" ]
                 , test "no pipelines card has 60px right margin" <|
                     noPipelines
                         >> noPipelinesCard
-                        >> Query.has [ style [ ( "margin-right", "60px" ) ] ]
+                        >> Query.has [ style "margin-right" "60px" ]
                 , test "no pipelines card text has 10px padding" <|
                     noPipelines
                         >> noPipelinesCard
                         >> Query.children []
-                        >> Query.index 1
-                        >> Query.has [ style [ ( "padding", "10px" ) ] ]
+                        >> Query.first
+                        >> Query.has [ style "padding" "10px" ]
                 , test "no pipelines card is 200px wide" <|
                     noPipelines
                         >> noPipelinesCard
-                        >> Query.has [ style [ ( "width", "200px" ) ] ]
+                        >> Query.has [ style "width" "200px" ]
                 , test "no pipelines card has dark grey background" <|
                     noPipelines
                         >> noPipelinesCard
-                        >> Query.has
-                            [ style
-                                [ ( "background-color", darkGrey ) ]
-                            ]
+                        >> Query.has [ style "background-color" darkGrey ]
                 , test "card has larger tighter font" <|
                     setup
                         >> card
                         >> Query.has
-                            [ style
-                                [ ( "font-size", "19px" )
-                                , ( "letter-spacing", "1px" )
-                                ]
+                            [ style "font-size" "19px"
+                            , style "letter-spacing" "1px"
                             ]
                 , test "card text does not overflow or wrap" <|
                     setup
                         >> cardText
                         >> Query.has
-                            [ style
-                                [ ( "width", "180px" )
-                                , ( "white-space", "nowrap" )
-                                , ( "overflow", "hidden" )
-                                , ( "text-overflow", "ellipsis" )
-                                ]
+                            [ style "width" "180px"
+                            , style "white-space" "nowrap"
+                            , style "overflow" "hidden"
+                            , style "text-overflow" "ellipsis"
                             ]
                 , test "card text is vertically centered" <|
                     setup
                         >> cardText
                         >> Query.has
-                            [ style [ ( "align-self", "center" ) ] ]
+                            [ style "align-self" "center" ]
                 , test "card text has 10px padding" <|
                     setup
                         >> cardText
                         >> Query.has
-                            [ style [ ( "padding", "10px" ) ] ]
+                            [ style "padding" "10px" ]
                 , test "card lays out contents horizontally" <|
                     setup
                         >> card
                         >> Query.has
-                            [ style [ ( "display", "flex" ) ] ]
+                            [ style "display" "flex" ]
                 , test "card is 60px tall" <|
                     setup
                         >> card
-                        >> Query.has [ style [ ( "height", "60px" ) ] ]
+                        >> Query.has [ style "height" "60px" ]
                 , test "card is 200px wide" <|
                     setup
                         >> card
-                        >> Query.has [ style [ ( "width", "200px" ) ] ]
+                        >> Query.has [ style "width" "200px" ]
                 , test "no triangle when there is no resource error" <|
                     setup
                         >> card
@@ -1658,22 +1592,12 @@ all =
                         givenResourceError
                             >> card
                             >> Expect.all
-                                [ Query.has
-                                    [ style
-                                        [ ( "position"
-                                          , "relative"
-                                          )
-                                        ]
-                                    ]
+                                [ Query.has [ style "position" "relative" ]
                                 , resourceErrorTriangle
                                     >> Query.has
-                                        [ style
-                                            [ ( "position"
-                                              , "absolute"
-                                              )
-                                            , ( "top", "0" )
-                                            , ( "right", "0" )
-                                            ]
+                                        [ style "position" "absolute"
+                                        , style "top" "0"
+                                        , style "right" "0"
                                         ]
                                 ]
                     , test "is an orange 'top right' triangle" <|
@@ -1681,16 +1605,10 @@ all =
                             >> card
                             >> resourceErrorTriangle
                             >> Query.has
-                                [ style
-                                    [ ( "width", "0" )
-                                    , ( "height", "0" )
-                                    , ( "border-top"
-                                      , "30px solid " ++ orange
-                                      )
-                                    , ( "border-left"
-                                      , "30px solid transparent"
-                                      )
-                                    ]
+                                [ style "width" "0"
+                                , style "height" "0"
+                                , style "border-top" <| "30px solid " ++ orange
+                                , style "border-left" "30px solid transparent"
                                 ]
                     ]
                 , test
@@ -1701,7 +1619,7 @@ all =
                     setup
                         >> card
                         >> Query.has
-                            [ style [ ( "margin", "0 60px 4px 0" ) ] ]
+                            [ style "margin" "0 60px 4px 0" ]
                 , test "card is faded green when pipeline is suceeding" <|
                     \_ ->
                         whenOnDashboard { highDensity = True }
@@ -1709,11 +1627,7 @@ all =
                                 Concourse.BuildStatusSucceeded
                                 False
                             |> card
-                            |> Query.has
-                                [ style
-                                    [ ( "background-color", fadedGreen )
-                                    ]
-                                ]
+                            |> Query.has [ style "background-color" fadedGreen ]
                 , test "card is red when pipeline is failing" <|
                     \_ ->
                         whenOnDashboard { highDensity = True }
@@ -1721,11 +1635,7 @@ all =
                                 Concourse.BuildStatusFailed
                                 False
                             |> card
-                            |> Query.has
-                                [ style
-                                    [ ( "background-color", red )
-                                    ]
-                                ]
+                            |> Query.has [ style "background-color" red ]
                 , test "card is amber when pipeline is erroring" <|
                     \_ ->
                         whenOnDashboard { highDensity = True }
@@ -1733,11 +1643,7 @@ all =
                                 Concourse.BuildStatusErrored
                                 False
                             |> card
-                            |> Query.has
-                                [ style
-                                    [ ( "background-color", amber )
-                                    ]
-                                ]
+                            |> Query.has [ style "background-color" amber ]
                 ]
             , describe "body"
                 [ test "has dark grey background" <|
@@ -1751,11 +1657,7 @@ all =
                                 , containing [ text "pipeline" ]
                                 ]
                             |> findBody
-                            |> Query.has
-                                [ style
-                                    [ ( "background-color", darkGrey )
-                                    ]
-                                ]
+                            |> Query.has [ style "background-color" darkGrey ]
                 , test "has 2x margin above and below" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -1767,33 +1669,29 @@ all =
                                 , containing [ text "pipeline" ]
                                 ]
                             |> findBody
-                            |> Query.has
-                                [ style
-                                    [ ( "margin", "2px 0" )
-                                    ]
-                                ]
+                            |> Query.has [ style "margin" "2px 0" ]
                 ]
             , describe "footer" <|
                 let
-                    hasStyle : List ( String, String ) -> Expectation
-                    hasStyle styles =
+                    hasStyle : String -> String -> Expectation
+                    hasStyle property value =
                         whenOnDashboard { highDensity = False }
                             |> givenDataAndUser
                                 (oneTeamOnePipeline "team")
                                 (userWithRoles [ ( "team", [ "owner" ] ) ])
                             |> queryView
                             |> Query.find [ class "card-footer" ]
-                            |> Query.has [ style styles ]
+                            |> Query.has [ style property value ]
                 in
                 [ test "has dark grey background" <|
                     \_ ->
-                        hasStyle [ ( "background-color", darkGrey ) ]
+                        hasStyle "background-color" darkGrey
                 , test "has medium padding" <|
                     \_ ->
-                        hasStyle [ ( "padding", "13.5px" ) ]
+                        hasStyle "padding" "13.5px"
                 , test "lays out contents horizontally" <|
                     \_ ->
-                        hasStyle [ ( "display", "flex" ) ]
+                        hasStyle "display" "flex"
                 , test "is divided into a left and right section, spread apart" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -1806,7 +1704,7 @@ all =
                                 [ Query.children []
                                     >> Query.count (Expect.equal 2)
                                 , Query.has
-                                    [ style [ ( "justify-content", "space-between" ) ] ]
+                                    [ style "justify-content" "space-between" ]
                                 ]
                 , test "both sections lay out contents horizontally" <|
                     \_ ->
@@ -1817,7 +1715,7 @@ all =
                             |> queryView
                             |> Query.find [ class "card-footer" ]
                             |> Query.children []
-                            |> Query.each (Query.has [ style [ ( "display", "flex" ) ] ])
+                            |> Query.each (Query.has [ style "display" "flex" ])
                 , describe "left-hand section" <|
                     let
                         findStatusIcon =
@@ -1861,42 +1759,32 @@ all =
                                             { size = "20px"
                                             , image = "ic-pause-blue.svg"
                                             }
-                                            ++ [ style
-                                                    [ ( "background-size", "contain" ) ]
-                                               ]
+                                            ++ [ style "background-size" "contain" ]
                                         )
                         , test "status text is blue" <|
                             \_ ->
                                 setup
                                     |> findStatusText
-                                    |> Query.has
-                                        [ style [ ( "color", blue ) ] ]
+                                    |> Query.has [ style "color" blue ]
                         , test "status text is larger and spaced more widely" <|
                             \_ ->
                                 setup
                                     |> findStatusText
                                     |> Query.has
-                                        [ style
-                                            [ ( "font-size", "18px" )
-                                            , ( "line-height", "20px" )
-                                            , ( "letter-spacing", "0.05em" )
-                                            ]
+                                        [ style "font-size" "18px"
+                                        , style "line-height" "20px"
+                                        , style "letter-spacing" "0.05em"
                                         ]
                         , test "status text is offset to the right of the icon" <|
                             \_ ->
                                 setup
                                     |> findStatusText
-                                    |> Query.has
-                                        [ style
-                                            [ ( "margin-left", "8px" )
-                                            ]
-                                        ]
+                                    |> Query.has [ style "margin-left" "8px" ]
                         , test "status text says 'paused'" <|
                             \_ ->
                                 setup
                                     |> findStatusText
-                                    |> Query.has
-                                        [ text "paused" ]
+                                    |> Query.has [ text "paused" ]
                         ]
                     , describe "when pipeline is pending" <|
                         [ test "status icon is grey" <|
@@ -1911,7 +1799,7 @@ all =
                                             { size = "20px"
                                             , image = "ic-pending-grey.svg"
                                             }
-                                            ++ [ style [ ( "background-size", "contain" ) ] ]
+                                            ++ [ style "background-size" "contain" ]
                                         )
                         , test "status text is grey" <|
                             \_ ->
@@ -1920,8 +1808,7 @@ all =
                                         Concourse.BuildStatusPending
                                         False
                                     |> findStatusText
-                                    |> Query.has
-                                        [ style [ ( "color", lightGrey ) ] ]
+                                    |> Query.has [ style "color" lightGrey ]
                         , test "status text says 'pending'" <|
                             \_ ->
                                 whenOnDashboard { highDensity = False }
@@ -1954,7 +1841,7 @@ all =
                                             { size = "20px"
                                             , image = "ic-running-green.svg"
                                             }
-                                            ++ [ style [ ( "background-size", "contain" ) ] ]
+                                            ++ [ style "background-size" "contain" ]
                                         )
                         , test "status text is green" <|
                             \_ ->
@@ -1963,8 +1850,7 @@ all =
                                         Concourse.BuildStatusSucceeded
                                         False
                                     |> findStatusText
-                                    |> Query.has
-                                        [ style [ ( "color", green ) ] ]
+                                    |> Query.has [ style "color" green ]
                         , test "when running, status text says 'running'" <|
                             \_ ->
                                 whenOnDashboard { highDensity = False }
@@ -1986,7 +1872,7 @@ all =
                                             , jobs =
                                                 [ jobWithNameTransitionedAt
                                                     "job"
-                                                    (Just 0)
+                                                    (Just <| Time.millisToPosix 0)
                                                     Concourse.BuildStatusSucceeded
                                                 ]
                                             , resources = []
@@ -2014,7 +1900,7 @@ all =
                                             { size = "20px"
                                             , image = "ic-failing-red.svg"
                                             }
-                                            ++ [ style [ ( "background-size", "contain" ) ] ]
+                                            ++ [ style "background-size" "contain" ]
                                         )
                         , test "status text is red" <|
                             \_ ->
@@ -2023,8 +1909,7 @@ all =
                                         Concourse.BuildStatusFailed
                                         False
                                     |> findStatusText
-                                    |> Query.has
-                                        [ style [ ( "color", red ) ] ]
+                                    |> Query.has [ style "color" red ]
                         ]
                     , test "when pipeline is aborted, status icon is a brown x" <|
                         \_ ->
@@ -2038,7 +1923,7 @@ all =
                                         { size = "20px"
                                         , image = "ic-aborted-brown.svg"
                                         }
-                                        ++ [ style [ ( "background-size", "contain" ) ] ]
+                                        ++ [ style "background-size" "contain" ]
                                     )
                     , test "when pipeline is errored, status icon is an amber triangle" <|
                         \_ ->
@@ -2052,7 +1937,7 @@ all =
                                         { size = "20px"
                                         , image = "ic-error-orange.svg"
                                         }
-                                        ++ [ style [ ( "background-size", "contain" ) ] ]
+                                        ++ [ style "background-size" "contain" ]
                                     )
                     ]
                 , describe "right-hand section"
@@ -2077,7 +1962,7 @@ all =
                                         { size = "20px"
                                         , image = "baseline-visibility-24px.svg"
                                         }
-                                        ++ [ style [ ( "background-size", "contain" ) ] ]
+                                        ++ [ style "background-size" "contain" ]
                                     )
                     , test
                         ("there is a 20px square slashed-out eye icon with on the far right for a"
@@ -2100,7 +1985,7 @@ all =
                                         { size = "20px"
                                         , image = "baseline-visibility-off-24px.svg"
                                         }
-                                        ++ [ style [ ( "background-size", "contain" ) ] ]
+                                        ++ [ style "background-size" "contain" ]
                                     )
                     , test "there is medium spacing between the eye and the play/pause button" <|
                         \_ ->
@@ -2115,7 +2000,7 @@ all =
                                 |> Query.children []
                                 |> Expect.all
                                     [ Query.count (Expect.equal 3)
-                                    , Query.index 1 >> Query.has [ style [ ( "width", "13.5px" ) ] ]
+                                    , Query.index 1 >> Query.has [ style "width" "13.5px" ]
                                     ]
                     , test "the right section has a 20px square pause button on the left" <|
                         \_ ->
@@ -2149,7 +2034,7 @@ all =
                                         , image = "ic-pause-white.svg"
                                         }
                                     )
-                                |> Query.has [ style [ ( "cursor", "pointer" ) ] ]
+                                |> Query.has [ style "cursor" "pointer" ]
                     , test "pause button is transparent" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -2164,7 +2049,7 @@ all =
                                         , image = "ic-pause-white.svg"
                                         }
                                     )
-                                |> Query.has [ style [ ( "opacity", "0.5" ) ] ]
+                                |> Query.has [ style "opacity" "0.5" ]
                     , defineHoverBehaviour
                         { name = "pause button"
                         , setup =
@@ -2189,10 +2074,8 @@ all =
                                     { size = "20px"
                                     , image = "ic-pause-white.svg"
                                     }
-                                    ++ [ style
-                                            [ ( "cursor", "pointer" )
-                                            , ( "opacity", "0.5" )
-                                            ]
+                                    ++ [ style "cursor" "pointer"
+                                       , style "opacity" "0.5"
                                        ]
                             }
                         , mouseEnterMsg =
@@ -2210,10 +2093,8 @@ all =
                                     { size = "20px"
                                     , image = "ic-pause-white.svg"
                                     }
-                                    ++ [ style
-                                            [ ( "cursor", "pointer" )
-                                            , ( "opacity", "1" )
-                                            ]
+                                    ++ [ style "cursor" "pointer"
+                                       , style "opacity" "1"
                                        ]
                             }
                         }
@@ -2241,10 +2122,8 @@ all =
                                     { size = "20px"
                                     , image = "ic-play-white.svg"
                                     }
-                                    ++ [ style
-                                            [ ( "cursor", "pointer" )
-                                            , ( "opacity", "0.5" )
-                                            ]
+                                    ++ [ style "cursor" "pointer"
+                                       , style "opacity" "0.5"
                                        ]
                             }
                         , mouseEnterMsg =
@@ -2262,10 +2141,8 @@ all =
                                     { size = "20px"
                                     , image = "ic-play-white.svg"
                                     }
-                                    ++ [ style
-                                            [ ( "cursor", "pointer" )
-                                            , ( "opacity", "1" )
-                                            ]
+                                    ++ [ style "cursor" "pointer"
+                                       , style "opacity" "1"
                                        ]
                             }
                         }
@@ -2310,8 +2187,7 @@ all =
                                     )
                                 |> queryView
                                 |> Query.find [ class "card-footer" ]
-                                |> Query.has
-                                    [ style [ ( "animation", animation ) ] ]
+                                |> Query.has [ style "animation" animation ]
                     , test "clicking pause button sends toggle api call" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -2406,15 +2282,13 @@ all =
                         |> queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has
-                            [ style
-                                [ ( "line-height", "35px" )
-                                , ( "padding", "7.5px 30px" )
-                                , ( "position", "fixed" )
-                                , ( "bottom", "0" )
-                                , ( "background-color", almostBlack )
-                                , ( "width", "100%" )
-                                , ( "box-sizing", "border-box" )
-                                ]
+                            [ style "line-height" "35px"
+                            , style "padding" "7.5px 30px"
+                            , style "position" "fixed"
+                            , style "bottom" "0"
+                            , style "background-color" almostBlack
+                            , style "width" "100%"
+                            , style "box-sizing" "border-box"
                             ]
             , test "lays out contents horizontally, maximizing space between children" <|
                 \_ ->
@@ -2423,10 +2297,8 @@ all =
                         |> queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has
-                            [ style
-                                [ ( "display", "flex" )
-                                , ( "justify-content", "space-between" )
-                                ]
+                            [ style "display" "flex"
+                            , style "justify-content" "space-between"
                             ]
             , test "two children are legend and concourse-info" <|
                 \_ ->
@@ -2446,17 +2318,13 @@ all =
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived <|
-                                WindowResized { width = 1229, height = 300 }
+                                WindowResized 1229 300
                             )
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
                         |> Query.find [ id "dashboard-info" ]
-                        |> Query.has
-                            [ style
-                                [ ( "flex-direction", "column" )
-                                ]
-                            ]
+                        |> Query.has [ style "flex-direction" "column" ]
             , describe "legend"
                 [ test "lays out contents horizontally" <|
                     \_ ->
@@ -2464,11 +2332,7 @@ all =
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> queryView
                             |> Query.find [ id "legend" ]
-                            |> Query.has
-                                [ style
-                                    [ ( "display", "flex" )
-                                    ]
-                                ]
+                            |> Query.has [ style "display" "flex" ]
                 , test "shows pipeline statuses" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -2490,11 +2354,7 @@ all =
                                                     }
                                                 )
                                         , Query.index 1
-                                            >> Query.has
-                                                [ style
-                                                    [ ( "width", "10px" )
-                                                    ]
-                                                ]
+                                            >> Query.has [ style "width" "10px" ]
                                         , Query.index 2 >> Query.has [ text "pending" ]
                                         ]
                                 , Query.index 1
@@ -2509,11 +2369,7 @@ all =
                                                     }
                                                 )
                                         , Query.index 1
-                                            >> Query.has
-                                                [ style
-                                                    [ ( "width", "10px" )
-                                                    ]
-                                                ]
+                                            >> Query.has [ style "width" "10px" ]
                                         , Query.index 2 >> Query.has [ text "paused" ]
                                         ]
                                 ]
@@ -2525,7 +2381,7 @@ all =
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.index -2
-                            |> Query.has [ style [ ( "color", menuGrey ) ] ]
+                            |> Query.has [ style "color" menuGrey ]
                 , test "the legend separator centers contents vertically" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -2534,14 +2390,14 @@ all =
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.index -2
-                            |> Query.has [ style [ ( "display", "flex" ), ( "align-items", "center" ) ] ]
+                            |> Query.has [ style "display" "flex", style "align-items" "center" ]
                 , test "the legend separator is gone when the window width is below 812px" <|
                     \_ ->
                         initFromApplication
                             |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
                                 (ApplicationMsgs.DeliveryReceived <|
-                                    WindowResized { width = 800, height = 300 }
+                                    WindowResized 800 300
                                 )
                             |> Tuple.first
                             |> Application.view
@@ -2557,15 +2413,13 @@ all =
                             |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
                                 (ApplicationMsgs.DeliveryReceived <|
-                                    WindowResized { width = 800, height = 300 }
+                                    WindowResized 800 300
                                 )
                             |> Tuple.first
                             |> Application.view
                             |> Query.fromHtml
                             |> Query.find [ id "legend" ]
-                            |> Query.has
-                                [ style [ ( "flex-wrap", "wrap" ) ]
-                                ]
+                            |> Query.has [ style "flex-wrap" "wrap" ]
                 , test "legend items lay out contents horizontally, centered vertically in grey caps" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -2575,12 +2429,10 @@ all =
                             |> Query.children []
                             |> Query.index 0
                             |> Query.has
-                                [ style
-                                    [ ( "text-transform", "uppercase" )
-                                    , ( "display", "flex" )
-                                    , ( "align-items", "center" )
-                                    , ( "color", menuGrey )
-                                    ]
+                                [ style "text-transform" "uppercase"
+                                , style "display" "flex"
+                                , style "align-items" "center"
+                                , style "color" menuGrey
                                 ]
                 , test "legend items have 20px space between them" <|
                     \_ ->
@@ -2590,12 +2442,7 @@ all =
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.each
-                                (Query.has
-                                    [ style
-                                        [ ( "margin-right", "20px" )
-                                        ]
-                                    ]
-                                )
+                                (Query.has [ style "margin-right" "20px" ])
                 , test "third legend item shows running indicator" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -2606,10 +2453,8 @@ all =
                             |> Query.index 2
                             |> Expect.all
                                 [ Query.has
-                                    [ style
-                                        [ ( "text-transform", "uppercase" )
-                                        , ( "display", "flex" )
-                                        ]
+                                    [ style "text-transform" "uppercase"
+                                    , style "display" "flex"
                                     ]
                                 , Query.children []
                                     >> Expect.all
@@ -2623,10 +2468,7 @@ all =
                                                 )
                                         , Query.index 1
                                             >> Query.has
-                                                [ style
-                                                    [ ( "width", "10px" )
-                                                    ]
-                                                ]
+                                                [ style "width" "10px" ]
                                         , Query.index 2 >> Query.has [ text "running" ]
                                         ]
                                 ]
@@ -2648,38 +2490,27 @@ all =
                     [ test "lays out contents horizontally" <|
                         \_ ->
                             hdToggle
-                                |> Query.has
-                                    [ style
-                                        [ ( "display", "flex" ) ]
-                                    ]
+                                |> Query.has [ style "display" "flex" ]
                     , test "centers contents vertically" <|
                         \_ ->
                             hdToggle
-                                |> Query.has
-                                    [ style
-                                        [ ( "align-items", "center" ) ]
-                                    ]
+                                |> Query.has [ style "align-items" "center" ]
                     , test "has a margin of 10px between the button and the label" <|
                         \_ ->
                             hdToggle
                                 |> Query.children []
                                 |> Query.index 0
                                 |> Query.has
-                                    [ style [ ( "margin-right", "10px" ) ] ]
+                                    [ style "margin-right" "10px" ]
                     , test "displays the label using a grey color" <|
                         \_ ->
                             hdToggle
-                                |> Query.has
-                                    [ style
-                                        [ ( "color", menuGrey ) ]
-                                    ]
+                                |> Query.has [ style "color" menuGrey ]
                     , test "label text is all caps" <|
                         \_ ->
                             hdToggle
                                 |> Query.has
-                                    [ style
-                                        [ ( "text-transform", "uppercase" ) ]
-                                    ]
+                                    [ style "text-transform" "uppercase" ]
                     , test "links to HD view" <|
                         \_ ->
                             hdToggle
@@ -2690,22 +2521,18 @@ all =
                                 |> Query.children []
                                 |> Query.index 0
                                 |> Query.has
-                                    [ style
-                                        [ ( "background-image"
-                                          , "url(/public/images/ic-hd-off.svg)"
-                                          )
-                                        , ( "background-size", "contain" )
-                                        , ( "height", "20px" )
-                                        , ( "width", "35px" )
-                                        ]
+                                    [ style "background-image"
+                                        "url(/public/images/ic-hd-off.svg)"
+                                    , style "background-size" "contain"
+                                    , style "height" "20px"
+                                    , style "width" "35px"
                                     ]
                     , test "will not shrink on resizing" <|
                         \_ ->
                             hdToggle
                                 |> Query.children []
                                 |> Query.index 0
-                                |> Query.has
-                                    [ style [ ( "flex-shrink", "0" ) ] ]
+                                |> Query.has [ style "flex-shrink" "0" ]
                     ]
                 , describe "on HD view"
                     [ test "displays the on state" <|
@@ -2720,14 +2547,11 @@ all =
                                 |> Query.children []
                                 |> Query.index 0
                                 |> Query.has
-                                    [ style
-                                        [ ( "background-image"
-                                          , "url(/public/images/ic-hd-on.svg)"
-                                          )
-                                        , ( "background-size", "contain" )
-                                        , ( "height", "20px" )
-                                        , ( "width", "35px" )
-                                        ]
+                                    [ style "background-image"
+                                        "url(/public/images/ic-hd-on.svg)"
+                                    , style "background-size" "contain"
+                                    , style "height" "20px"
+                                    , style "width" "35px"
                                     ]
                     , test "links to normal dashboard view" <|
                         \_ ->
@@ -2751,7 +2575,7 @@ all =
                                 |> Query.children []
                                 |> Query.index 0
                                 |> Query.has
-                                    [ style [ ( "flex-shrink", "0" ) ] ]
+                                    [ style "flex-shrink" "0" ]
                     ]
                 ]
             , describe "info section" <|
@@ -2765,35 +2589,29 @@ all =
                 [ test "lays out contents horizontally" <|
                     \_ ->
                         info
-                            |> Query.has
-                                [ style
-                                    [ ( "display", "flex" )
-                                    ]
-                                ]
+                            |> Query.has [ style "display" "flex" ]
                 , test "displays info in a grey color" <|
                     \_ ->
                         info
-                            |> Query.has [ style [ ( "color", menuGrey ) ] ]
+                            |> Query.has [ style "color" menuGrey ]
                 , test "displays text slightly larger" <|
                     \_ ->
                         info
-                            |> Query.has [ style [ ( "font-size", "1.25em" ) ] ]
+                            |> Query.has [ style "font-size" "1.25em" ]
                 , test "each info item is spaced out by 30px" <|
                     \_ ->
                         info
                             |> Query.children []
                             |> Query.each
-                                (Query.has [ style [ ( "margin-right", "30px" ) ] ])
+                                (Query.has [ style "margin-right" "30px" ])
                 , test "each info item centers contents vertically" <|
                     \_ ->
                         info
                             |> Query.children []
                             |> Query.each
                                 (Query.has
-                                    [ style
-                                        [ ( "align-items", "center" )
-                                        , ( "display", "flex" )
-                                        ]
+                                    [ style "align-items" "center"
+                                    , style "display" "flex"
                                     ]
                                 )
                 , test "items in CLI section are 10 px apart" <|
@@ -2803,7 +2621,7 @@ all =
                             |> Query.index -1
                             |> Query.children []
                             |> Query.each
-                                (Query.has [ style [ ( "margin-right", "10px" ) ] ])
+                                (Query.has [ style "margin-right" "10px" ])
                 , describe "cli download icons" <|
                     let
                         cliIcons =
@@ -2816,7 +2634,14 @@ all =
                         \_ ->
                             cliIcons
                                 |> Query.each
-                                    (Query.has [ style [ ( "opacity", "0.5" ) ] ])
+                                    (Query.has [ style "opacity" "0.5" ])
+                    , test "have 'download' attribute" <|
+                        \_ ->
+                            cliIcons
+                                |> Query.each
+                                    (Query.has
+                                        [ attribute <| Attr.download "" ]
+                                    )
                     , test "icons have descriptive ARIA labels" <|
                         \_ ->
                             cliIcons
@@ -2856,10 +2681,8 @@ all =
                         , unhoveredSelector =
                             { description = "grey apple icon"
                             , selector =
-                                [ style
-                                    [ ( "opacity", "0.5" )
-                                    , ( "background-size", "contain" )
-                                    ]
+                                [ style "opacity" "0.5"
+                                , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
                                         { image = "apple-logo.svg"
@@ -2875,10 +2698,8 @@ all =
                         , hoveredSelector =
                             { description = "white apple icon"
                             , selector =
-                                [ style
-                                    [ ( "opacity", "1" )
-                                    , ( "background-size", "contain" )
-                                    ]
+                                [ style "opacity" "1"
+                                , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
                                         { image = "apple-logo.svg"
@@ -2898,10 +2719,8 @@ all =
                         , unhoveredSelector =
                             { description = "grey windows icon"
                             , selector =
-                                [ style
-                                    [ ( "opacity", "0.5" )
-                                    , ( "background-size", "contain" )
-                                    ]
+                                [ style "opacity" "0.5"
+                                , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
                                         { image = "windows-logo.svg"
@@ -2917,10 +2736,8 @@ all =
                         , hoveredSelector =
                             { description = "white windows icon"
                             , selector =
-                                [ style
-                                    [ ( "opacity", "1" )
-                                    , ( "background-size", "contain" )
-                                    ]
+                                [ style "opacity" "1"
+                                , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
                                         { image = "windows-logo.svg"
@@ -2940,10 +2757,8 @@ all =
                         , unhoveredSelector =
                             { description = "grey linux icon"
                             , selector =
-                                [ style
-                                    [ ( "opacity", "0.5" )
-                                    , ( "background-size", "contain" )
-                                    ]
+                                [ style "opacity" "0.5"
+                                , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
                                         { image = "linux-logo.svg"
@@ -2959,10 +2774,8 @@ all =
                         , hoveredSelector =
                             { description = "white linux icon"
                             , selector =
-                                [ style
-                                    [ ( "opacity", "1" )
-                                    , ( "background-size", "contain" )
-                                    ]
+                                [ style "opacity" "1"
+                                , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
                                         { image = "linux-logo.svg"
@@ -3016,12 +2829,12 @@ all =
                             (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived <|
-                                KeyDown Keycodes.shift
-                            )
-                        |> Tuple.first
-                        |> Application.update
-                            (ApplicationMsgs.DeliveryReceived <|
-                                KeyDown 191
+                                KeyDown
+                                    { ctrlKey = False
+                                    , shiftKey = True
+                                    , metaKey = False
+                                    , code = Keyboard.Slash
+                                    }
                             )
                         |> Tuple.first
                         |> Application.view
@@ -3054,7 +2867,8 @@ all =
                 initFromApplication
                     |> Application.update
                         (ApplicationMsgs.DeliveryReceived <|
-                            ClockTicked FiveSeconds 0
+                            ClockTicked FiveSeconds <|
+                                Time.millisToPosix 0
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.FetchData ]
@@ -3063,14 +2877,17 @@ all =
 
 handleCallback : Callback.Callback -> Models.Model -> ( Models.Model, List Effects.Effect )
 handleCallback callback =
-    flip (,) [] >> Dashboard.handleCallback callback
+    (\m -> ( m, [] )) >> Dashboard.handleCallback callback
 
 
 afterSeconds : Int -> Application.Model -> Application.Model
 afterSeconds n =
     List.repeat n
         (Application.update
-            (ApplicationMsgs.DeliveryReceived <| ClockTicked OneSecond 1000)
+            (ApplicationMsgs.DeliveryReceived <|
+                ClockTicked OneSecond <|
+                    Time.millisToPosix 1000
+            )
             >> Tuple.first
         )
         |> List.foldr (>>) identity
@@ -3090,17 +2907,12 @@ initFromApplication =
         , authToken = ""
         , pipelineRunningKeyframes = ""
         }
-        { href = ""
+        { protocol = Url.Http
         , host = ""
-        , hostname = ""
-        , protocol = ""
-        , origin = ""
-        , port_ = ""
-        , pathname = "/"
-        , search = ""
-        , hash = ""
-        , username = ""
-        , password = ""
+        , port_ = Nothing
+        , path = "/"
+        , query = Nothing
+        , fragment = Nothing
         }
         |> Tuple.first
 
@@ -3123,14 +2935,14 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
                 setup
                     |> query
                     |> Query.has unhoveredSelector.selector
-        , test ("mousing over " ++ name ++ " triggers " ++ toString mouseEnterMsg ++ " msg") <|
+        , test ("mousing over " ++ name ++ " triggers " ++ Debug.toString mouseEnterMsg ++ " msg") <|
             \_ ->
                 setup
                     |> query
                     |> Event.simulate Event.mouseEnter
                     |> Event.expect mouseEnterMsg
         , test
-            (toString mouseEnterMsg
+            (Debug.toString mouseEnterMsg
                 ++ " msg causes "
                 ++ name
                 ++ " to become "
@@ -3142,7 +2954,7 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
                     |> updateFunc mouseEnterMsg
                     |> query
                     |> Query.has hoveredSelector.selector
-        , test ("mousing off " ++ name ++ " triggers " ++ toString mouseLeaveMsg ++ " msg") <|
+        , test ("mousing off " ++ name ++ " triggers " ++ Debug.toString mouseLeaveMsg ++ " msg") <|
             \_ ->
                 setup
                     |> updateFunc mouseEnterMsg
@@ -3150,7 +2962,7 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
                     |> Event.simulate Event.mouseLeave
                     |> Event.expect mouseLeaveMsg
         , test
-            (toString mouseLeaveMsg
+            (Debug.toString mouseLeaveMsg
                 ++ " msg causes "
                 ++ name
                 ++ " to become "
@@ -3168,13 +2980,11 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
 
 iconSelector : { size : String, image : String } -> List Selector
 iconSelector { size, image } =
-    [ style
-        [ ( "background-image", "url(/public/images/" ++ image ++ ")" )
-        , ( "background-position", "50% 50%" )
-        , ( "background-repeat", "no-repeat" )
-        , ( "width", size )
-        , ( "height", size )
-        ]
+    [ style "background-image" <| "url(/public/images/" ++ image ++ ")"
+    , style "background-position" "50% 50%"
+    , style "background-repeat" "no-repeat"
+    , style "width" size
+    , style "height" size
     ]
 
 
@@ -3206,7 +3016,7 @@ givenDataAndUser :
     -> ( Models.Model, List Effects.Effect )
 givenDataAndUser data user =
     Dashboard.handleCallback
-        (Callback.APIDataFetched <| Ok ( 0, data <| Just user ))
+        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data <| Just user ))
 
 
 userWithRoles : List ( String, List String ) -> Concourse.User
@@ -3226,7 +3036,7 @@ givenDataUnauthenticatedFromApplication :
     -> Application.Model
 givenDataUnauthenticatedFromApplication data =
     Application.handleCallback
-        (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
+        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data Nothing ))
         >> Tuple.first
 
 
@@ -3236,7 +3046,7 @@ givenDataUnauthenticated :
     -> ( Models.Model, List Effects.Effect )
 givenDataUnauthenticated data =
     Dashboard.handleCallback
-        (Callback.APIDataFetched <| Ok ( 0, data Nothing ))
+        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data Nothing ))
 
 
 givenPipelineWithJob : Maybe Concourse.User -> Concourse.APIData
@@ -3375,8 +3185,8 @@ apiData pipelines user =
 
 
 running : Concourse.Job -> Concourse.Job
-running job =
-    { job
+running j =
+    { j
         | nextBuild =
             Just
                 { id = 1
@@ -3399,15 +3209,15 @@ running job =
 
 otherJob : Concourse.BuildStatus -> Concourse.Job
 otherJob =
-    jobWithNameTransitionedAt "other-job" <| Just 0
+    jobWithNameTransitionedAt "other-job" <| Just <| Time.millisToPosix 0
 
 
 job : Concourse.BuildStatus -> Concourse.Job
 job =
-    jobWithNameTransitionedAt "job" <| Just 0
+    jobWithNameTransitionedAt "job" <| Just <| Time.millisToPosix 0
 
 
-jobWithNameTransitionedAt : String -> Maybe Time -> Concourse.BuildStatus -> Concourse.Job
+jobWithNameTransitionedAt : String -> Maybe Time.Posix -> Concourse.BuildStatus -> Concourse.Job
 jobWithNameTransitionedAt jobName transitionedAt status =
     { pipeline =
         { teamName = "team"
@@ -3449,7 +3259,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                     , status = status
                     , duration =
                         { startedAt = Nothing
-                        , finishedAt = Just <| Date.fromTime t
+                        , finishedAt = Just <| t
                         }
                     , reapTime = Nothing
                     }
@@ -3502,7 +3312,7 @@ circularJobs =
                 , status = Concourse.BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
-                    , finishedAt = Just <| Date.fromTime 0
+                    , finishedAt = Just <| Time.millisToPosix 0
                     }
                 , reapTime = Nothing
                 }
@@ -3556,7 +3366,7 @@ circularJobs =
                 , status = Concourse.BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
-                    , finishedAt = Just <| Date.fromTime 0
+                    , finishedAt = Just <| Time.millisToPosix 0
                     }
                 , reapTime = Nothing
                 }
@@ -3600,21 +3410,18 @@ teamHeaderHasPill teamName pillText =
 isColorWithStripes : { thick : String, thin : String } -> Query.Single msg -> Expectation
 isColorWithStripes { thick, thin } =
     Query.has
-        [ style
-            [ ( "background-image"
-              , "repeating-linear-gradient(-115deg,"
-                    ++ thick
-                    ++ " 0,"
-                    ++ thick
-                    ++ " 10px,"
-                    ++ thin
-                    ++ " 0,"
-                    ++ thin
-                    ++ " 16px)"
-              )
-            , ( "background-size", "106px 114px" )
-            , ( "animation"
-              , pipelineRunningKeyframes ++ " 3s linear infinite"
-              )
-            ]
+        [ style "background-image" <|
+            "repeating-linear-gradient(-115deg,"
+                ++ thick
+                ++ " 0,"
+                ++ thick
+                ++ " 10px,"
+                ++ thin
+                ++ " 0,"
+                ++ thin
+                ++ " 16px)"
+        , style "background-size" "106px 114px"
+        , style "animation" <|
+            pipelineRunningKeyframes
+                ++ " 3s linear infinite"
         ]

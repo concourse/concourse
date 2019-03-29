@@ -8,4 +8,4 @@ import Task exposing (Task)
 fetch : Concourse.BuildId -> Task Http.Error Concourse.BuildPrep
 fetch buildId =
     Http.toTask <|
-        Http.get ("/api/v1/builds/" ++ toString buildId ++ "/preparation") Concourse.decodeBuildPrep
+        Http.get ("/api/v1/builds/" ++ String.fromInt buildId ++ "/preparation") Concourse.decodeBuildPrep

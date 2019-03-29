@@ -34,8 +34,7 @@ import Build.StepTree.Models
         )
 import Build.Styles as Styles
 import Concourse
-import Date exposing (Date)
-import Date.Format
+import DateFormat
 import Debug
 import Dict exposing (Dict)
 import Html exposing (Html)
@@ -45,6 +44,7 @@ import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
+import Time
 import Views.DictView as DictView
 import Views.Icon as Icon
 import Views.Spinner as Spinner
@@ -55,28 +55,28 @@ init :
     -> Concourse.BuildResources
     -> Concourse.BuildPlan
     -> StepTreeModel
-init hl resources plan =
-    case plan.step of
+init hl resources buildPlan =
+    case buildPlan.step of
         Concourse.BuildStepTask name ->
-            initBottom hl Task plan.id name
+            initBottom hl Task buildPlan.id name
 
         Concourse.BuildStepGet name version ->
             initBottom hl
                 (Get << setupGetStep resources name version)
-                plan.id
+                buildPlan.id
                 name
 
         Concourse.BuildStepPut name ->
-            initBottom hl Put plan.id name
+            initBottom hl Put buildPlan.id name
 
         Concourse.BuildStepAggregate plans ->
-            initMultiStep hl resources plan.id Aggregate plans
+            initMultiStep hl resources buildPlan.id Aggregate plans
 
         Concourse.BuildStepDo plans ->
-            initMultiStep hl resources plan.id Do plans
+            initMultiStep hl resources buildPlan.id Do plans
 
         Concourse.BuildStepRetry plans ->
-            initMultiStep hl resources plan.id (Retry plan.id 1 Auto) plans
+            initMultiStep hl resources buildPlan.id (Retry buildPlan.id 1 Auto) plans
 
         Concourse.BuildStepOnSuccess hookedPlan ->
             initHookedStep hl resources OnSuccess hookedPlan
@@ -215,8 +215,8 @@ initHookedStep hl resources create hookedPlan =
 
 
 treeIsActive : StepTree -> Bool
-treeIsActive tree =
-    case tree of
+treeIsActive stepTree =
+    case stepTree of
         Aggregate trees ->
             List.any treeIsActive (Array.toList trees)
 
@@ -404,7 +404,7 @@ viewTree model tree =
                         viewTree model step
 
                     Nothing ->
-                        Debug.crash "impossible (bogus tab selected)"
+                        Debug.todo "impossible (bogus tab selected)"
                 ]
 
         Timeout step ->
@@ -442,7 +442,7 @@ viewTab id currentTab idx step =
     in
     Html.li
         [ classList [ ( "current", currentTab == tab ), ( "inactive", not <| treeIsActive step ) ] ]
-        [ Html.a [ onClick (SwitchTab id tab) ] [ Html.text (toString tab) ] ]
+        [ Html.a [ onClick (SwitchTab id tab) ] [ Html.text (String.fromInt tab) ] ]
 
 
 viewSeq : StepTreeModel -> StepTree -> Html Message
@@ -480,17 +480,18 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
         , attribute "data-step-name" name
         ]
         [ Html.div
-            [ class "header"
-            , style Styles.stepHeader
-            , onClick (ToggleStep id)
-            ]
+            ([ class "header"
+             , onClick (ToggleStep id)
+             ]
+                ++ Styles.stepHeader
+            )
             [ Html.div
-                [ style [ ( "display", "flex" ) ] ]
+                [ style "display" "flex" ]
                 [ viewStepHeaderIcon headerType (model.tooltip == Just id) id
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
-                [ style [ ( "display", "flex" ) ] ]
+                [ style "display" "flex" ]
                 [ viewVersion version
                 , viewStepState state
                 ]
@@ -520,12 +521,12 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
         ]
 
 
-viewLogs : Ansi.Log.Model -> Dict Int Date -> Highlight -> String -> List (Html Message)
+viewLogs : Ansi.Log.Model -> Dict Int Time.Posix -> Highlight -> String -> List (Html Message)
 viewLogs { lines } timestamps hl id =
     Array.toList <| Array.indexedMap (\idx -> viewTimestampedLine timestamps hl id (idx + 1)) lines
 
 
-viewTimestampedLine : Dict Int Date -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Message
+viewTimestampedLine : Dict Int Time.Posix -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Message
 viewTimestampedLine timestamps hl id lineNo line =
     let
         highlighted =
@@ -560,15 +561,31 @@ viewLine line =
         ]
 
 
-viewTimestamp : Highlight -> String -> ( Int, Maybe Date ) -> Html Message
+viewTimestamp : Highlight -> String -> ( Int, Maybe Time.Posix ) -> Html Message
 viewTimestamp hl id ( line, date ) =
     Html.a
         [ href (showHighlight (HighlightLine id line))
-        , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
+        , StrictEvents.onLeftClickOrShiftLeftClick
+            (SetHighlight id line)
+            (ExtendHighlight id line)
         ]
         [ case date of
-            Just date ->
-                Html.td [ class "timestamp", attribute "data-timestamp" (Date.Format.format "%H:%M:%S" date) ] []
+            Just d ->
+                Html.td
+                    [ class "timestamp"
+                    , attribute "data-timestamp" <|
+                        DateFormat.format
+                            [ DateFormat.hourMilitaryFixed
+                            , DateFormat.text ":"
+                            , DateFormat.minuteFixed
+                            , DateFormat.text ":"
+                            , DateFormat.secondFixed
+                            ]
+                            Time.utc
+                            -- TODO handle timezones
+                            d
+                    ]
+                    []
 
             _ ->
                 Html.td [ class "timestamp placeholder" ] []
@@ -592,7 +609,7 @@ viewMetadata =
                     Html.a
                         [ href value
                         , target "_blank"
-                        , style [ ( "text-decoration-line", "underline" ) ]
+                        , style "text-decoration-line" "underline"
                         ]
                         [ Html.text value ]
 
@@ -616,54 +633,54 @@ viewStepState state =
                 { sizePx = 28
                 , image = "ic-pending.svg"
                 }
-                [ attribute "data-step-state" "pending"
-                , style Styles.stepStatusIcon
-                ]
+                ([ attribute "data-step-state" "pending" ]
+                    ++ Styles.stepStatusIcon
+                )
 
         StepStateInterrupted ->
             Icon.icon
                 { sizePx = 28
                 , image = "ic-interrupted.svg"
                 }
-                [ attribute "data-step-state" "interrupted"
-                , style Styles.stepStatusIcon
-                ]
+                ([ attribute "data-step-state" "interrupted" ]
+                    ++ Styles.stepStatusIcon
+                )
 
         StepStateCancelled ->
             Icon.icon
                 { sizePx = 28
                 , image = "ic-cancelled.svg"
                 }
-                [ attribute "data-step-state" "cancelled"
-                , style Styles.stepStatusIcon
-                ]
+                ([ attribute "data-step-state" "cancelled" ]
+                    ++ Styles.stepStatusIcon
+                )
 
         StepStateSucceeded ->
             Icon.icon
                 { sizePx = 28
                 , image = "ic-success-check.svg"
                 }
-                [ attribute "data-step-state" "succeeded"
-                , style Styles.stepStatusIcon
-                ]
+                ([ attribute "data-step-state" "succeeded" ]
+                    ++ Styles.stepStatusIcon
+                )
 
         StepStateFailed ->
             Icon.icon
                 { sizePx = 28
                 , image = "ic-failure-times.svg"
                 }
-                [ attribute "data-step-state" "failed"
-                , style Styles.stepStatusIcon
-                ]
+                ([ attribute "data-step-state" "failed" ]
+                    ++ Styles.stepStatusIcon
+                )
 
         StepStateErrored ->
             Icon.icon
                 { sizePx = 28
                 , image = "ic-exclamation-triangle.svg"
                 }
-                [ attribute "data-step-state" "errored"
-                , style Styles.stepStatusIcon
-                ]
+                ([ attribute "data-step-state" "errored" ]
+                    ++ Styles.stepStatusIcon
+                )
 
 
 viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Message
@@ -679,13 +696,13 @@ viewStepHeaderIcon headerType tooltip id =
                 []
     in
     Html.div
-        ([ style <| Styles.stepHeaderIcon headerType ] ++ eventHandlers)
+        (Styles.stepHeaderIcon headerType ++ eventHandlers)
         (if tooltip then
             [ Html.div
-                [ style Styles.firstOccurrenceTooltip ]
+                Styles.firstOccurrenceTooltip
                 [ Html.text "new version" ]
             , Html.div
-                [ style Styles.firstOccurrenceTooltipArrow ]
+                Styles.firstOccurrenceTooltipArrow
                 []
             ]
 

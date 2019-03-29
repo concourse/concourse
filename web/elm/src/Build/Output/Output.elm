@@ -22,7 +22,6 @@ import Build.StepTree.StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
-import Date exposing (Date)
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes
@@ -36,9 +35,11 @@ import Html.Attributes
         , title
         )
 import Http
+import Json.Decode
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
 import Routes exposing (StepID)
+import Time
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
 import Views.NotAuthorized as NotAuthorized
@@ -46,7 +47,7 @@ import Views.NotAuthorized as NotAuthorized
 
 type OutMsg
     = OutNoop
-    | OutBuildStatus Concourse.BuildStatus Date
+    | OutBuildStatus Concourse.BuildStatus Time.Posix
 
 
 type alias Flags =
@@ -107,7 +108,7 @@ planAndResourcesFetched :
 planAndResourcesFetched buildId result model =
     let
         url =
-            "/api/v1/builds/" ++ toString buildId ++ "/events"
+            "/api/v1/builds/" ++ String.fromInt buildId ++ "/events"
     in
     ( case result of
         Err err ->
@@ -120,7 +121,7 @@ planAndResourcesFetched buildId result model =
                         model
 
                 _ ->
-                    flip always (Debug.log "failed to fetch plan" err) <|
+                    (\a -> always a (Debug.log "failed to fetch plan" err)) <|
                         model
 
         Ok ( plan, resources ) ->
@@ -134,7 +135,7 @@ planAndResourcesFetched buildId result model =
 
 
 handleEnvelopes :
-    Result String (List BuildEventEnvelope)
+    Result Json.Decode.Error (List BuildEventEnvelope)
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
 handleEnvelopes action model =
@@ -145,7 +146,7 @@ handleEnvelopes action model =
                 |> List.foldr handleEnvelope ( model, [], OutNoop )
 
         Err err ->
-            flip always (Debug.log "failed to get event" err) <|
+            (\a -> always a (Debug.log "failed to get event" err)) <|
                 ( model, [], OutNoop )
 
 
@@ -273,9 +274,9 @@ setRunning =
     setStepState StepStateRunning
 
 
-appendStepLog : String -> Maybe Date -> StepTree -> StepTree
+appendStepLog : String -> Maybe Time.Posix -> StepTree -> StepTree
 appendStepLog output mtime tree =
-    flip StepTree.map tree <|
+    (\a -> StepTree.map a tree) <|
         \step ->
             let
                 outputLineCount =
@@ -378,7 +379,7 @@ viewErrors errors =
                         { sizePx = 28
                         , image = "ic-exclamation-triangle.svg"
                         }
-                        [ style Styles.stepStatusIcon ]
+                        Styles.stepStatusIcon
                     , Html.h3 [] [ Html.text "error" ]
                     ]
                 , Html.div [ class "step-body build-errors-body" ]

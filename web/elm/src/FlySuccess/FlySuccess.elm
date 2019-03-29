@@ -91,30 +91,20 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            [ style Views.Styles.pageIncludingTopBar
-            , id "page-including-top-bar"
-            ]
+            ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
             [ Html.div
-                [ id "top-bar-app"
-                , style <| Views.Styles.topBar False
-                ]
+                ([ id "top-bar-app" ] ++ Views.Styles.topBar False)
                 [ TopBar.concourseLogo
                 , Login.view userState model False
                 ]
-            , Html.div [ id "page-below-top-bar", style Views.Styles.pageBelowTopBar ]
+            , Html.div ([ id "page-below-top-bar" ] ++ Views.Styles.pageBelowTopBar)
                 [ Html.div
-                    [ id "success-card"
-                    , style Styles.card
-                    ]
+                    ([ id "success-card" ] ++ Styles.card)
                     [ Html.p
-                        [ id "success-card-title"
-                        , style Styles.title
-                        ]
+                        ([ id "success-card-title" ] ++ Styles.title)
                         [ Html.text Text.title ]
                     , Html.div
-                        [ id "success-card-body"
-                        , style Styles.body
-                        ]
+                        ([ id "success-card-body" ] ++ Styles.body)
                       <|
                         body model
                     ]
@@ -177,27 +167,26 @@ paragraph { identifier, lines } =
         |> List.map Html.text
         |> List.intersperse (Html.br [] [])
         |> Html.p
-            [ id identifier
-            , style Styles.paragraph
-            ]
+            ([ id identifier ] ++ Styles.paragraph)
 
 
 button : Model -> Html Message
 button { tokenTransfer, authToken, buttonState } =
     Html.span
-        [ id "copy-token"
-        , style <| Styles.button buttonState
-        , onMouseEnter <| Hover <| Just CopyTokenButton
-        , onMouseLeave <| Hover Nothing
-        , onClick CopyToken
-        , attribute "data-clipboard-text" authToken
-        ]
+        ([ id "copy-token"
+         , onMouseEnter <| Hover <| Just CopyTokenButton
+         , onMouseLeave <| Hover Nothing
+         , onClick CopyToken
+         , attribute "data-clipboard-text" authToken
+         ]
+            ++ Styles.button buttonState
+        )
         [ Icon.icon
             { sizePx = 20
             , image = "clippy.svg"
             }
             [ id "copy-icon"
-            , style [ ( "margin-right", "5px" ) ]
+            , style "margin-right" "5px"
             ]
         , Html.text <| Text.button buttonState
         ]

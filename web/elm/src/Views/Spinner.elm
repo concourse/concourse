@@ -16,89 +16,71 @@ spinner : { size : String, margin : String } -> Html msg
 spinner { size, margin } =
     Html.div
         -- preloader-wrapper active
-        [ style
-            [ ( "width", size )
-            , ( "height", size )
-            , ( "box-sizing", "border-box" )
-            , ( "animation", "container-rotate 1568ms linear infinite" )
-            , ( "margin", margin )
-            ]
+        [ style "width" size
+        , style "height" size
+        , style "box-sizing" "border-box"
+        , style "animation" "container-rotate 1568ms linear infinite"
+        , style "margin" margin
         ]
         [ Html.div
             -- spinner-layer spinner-blue-only
-            [ style
-                [ ( "height", "100%" )
-                , ( "border-color", "white" )
-                , ( "animation"
-                  , "fill-unfill-rotate 5332ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite both"
-                  )
-                ]
+            [ style "height" "100%"
+            , style "border-color" "white"
+            , style "animation" "fill-unfill-rotate 5332ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite both"
             ]
             [ Html.div
                 -- circle-clipper left
-                [ style
-                    [ ( "position", "relative" )
-                    , ( "width", "50%" )
-                    , ( "height", "100%" )
-                    , ( "overflow", "hidden" )
-                    , ( "border-color", "inherit" )
-                    , ( "float", "left" )
-                    ]
+                [ style "position" "relative"
+                , style "width" "50%"
+                , style "height" "100%"
+                , style "overflow" "hidden"
+                , style "border-color" "inherit"
+                , style "float" "left"
                 ]
                 [ Html.div
                     -- circle
-                    [ style
-                        [ ( "width", "200%" )
-                        , ( "border-width", "2px" )
-                        , ( "box-sizing", "border-box" )
-                        , ( "border-style", "solid" )
-                        , ( "border-color", "inherit" )
-                        , ( "border-bottom-color", "transparent" )
-                        , ( "border-radius", "50%" )
-                        , ( "position", "absolute" )
-                        , ( "top", "0" )
-                        , ( "bottom", "0" )
-                        , ( "left", "0" )
-                        , ( "border-right-color", "transparent" )
-                        , ( "transform", "rotate(129deg)" )
-                        , ( "animation"
-                          , "left-spin 1333ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite both"
-                          )
-                        ]
+                    [ style "width" "200%"
+                    , style "border-width" "2px"
+                    , style "box-sizing" "border-box"
+                    , style "border-style" "solid"
+                    , style "border-color" "inherit"
+                    , style "border-bottom-color" "transparent"
+                    , style "border-radius" "50%"
+                    , style "position" "absolute"
+                    , style "top" "0"
+                    , style "bottom" "0"
+                    , style "left" "0"
+                    , style "border-right-color" "transparent"
+                    , style "transform" "rotate(129deg)"
+                    , style "animation" "left-spin 1333ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite both"
                     ]
                     []
                 ]
             , Html.div
                 -- circle-clipper right
-                [ style
-                    [ ( "position", "relative" )
-                    , ( "width", "50%" )
-                    , ( "height", "100%" )
-                    , ( "overflow", "hidden" )
-                    , ( "border-color", "inherit" )
-                    , ( "float", "right" )
-                    ]
+                [ style "position" "relative"
+                , style "width" "50%"
+                , style "height" "100%"
+                , style "overflow" "hidden"
+                , style "border-color" "inherit"
+                , style "float" "right"
                 ]
                 [ Html.div
                     -- circle
-                    [ style
-                        [ ( "width", "200%" )
-                        , ( "border-width", "2px" )
-                        , ( "box-sizing", "border-box" )
-                        , ( "border-style", "solid" )
-                        , ( "border-color", "inherit" )
-                        , ( "border-bottom-color", "transparent" )
-                        , ( "border-radius", "50%" )
-                        , ( "position", "absolute" )
-                        , ( "top", "0" )
-                        , ( "bottom", "0" )
-                        , ( "left", "-100%" )
-                        , ( "border-left-color", "transparent" )
-                        , ( "transform", "rotate(-129deg)" )
-                        , ( "animation"
-                          , "right-spin 1333ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite both"
-                          )
-                        ]
+                    [ style "width" "200%"
+                    , style "border-width" "2px"
+                    , style "box-sizing" "border-box"
+                    , style "border-style" "solid"
+                    , style "border-color" "inherit"
+                    , style "border-bottom-color" "transparent"
+                    , style "border-radius" "50%"
+                    , style "position" "absolute"
+                    , style "top" "0"
+                    , style "bottom" "0"
+                    , style "left" "-100%"
+                    , style "border-left-color" "transparent"
+                    , style "transform" "rotate(-129deg)"
+                    , style "animation" "right-spin 1333ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite both"
                     ]
                     []
                 ]

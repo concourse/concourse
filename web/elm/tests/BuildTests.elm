@@ -15,11 +15,10 @@ import DashboardTests
         , isColorWithStripes
         , middleGrey
         )
-import Date
 import Dict
 import Expect
 import Html.Attributes as Attr
-import Keycodes
+import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message
@@ -40,6 +39,7 @@ import Test.Html.Selector
         , text
         )
 import Time
+import Url
 import UserState
 
 
@@ -72,8 +72,8 @@ all =
                         }
                 , status = Concourse.BuildStatusSucceeded
                 , duration =
-                    { startedAt = Just (Date.fromTime 0)
-                    , finishedAt = Just (Date.fromTime 0)
+                    { startedAt = Just <| Time.millisToPosix 0
+                    , finishedAt = Just <| Time.millisToPosix 0
                     }
                 , reapTime = Nothing
                 }
@@ -90,20 +90,20 @@ all =
                         }
                 , status = Concourse.BuildStatusStarted
                 , duration =
-                    { startedAt = Just (Date.fromTime 0)
-                    , finishedAt = Just (Date.fromTime 0)
+                    { startedAt = Just <| Time.millisToPosix 0
+                    , finishedAt = Just <| Time.millisToPosix 0
                     }
                 , reapTime = Nothing
                 }
 
             fetchBuild : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchBuild =
-                flip (,) []
+                (\m -> ( m, [] ))
                     >> (Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, theBuild ))
 
             fetchBuildWithStatus : Concourse.BuildStatus -> Models.Model -> Models.Model
             fetchBuildWithStatus status =
-                flip (,) []
+                (\m -> ( m, [] ))
                     >> Build.handleCallback
                         (Callback.BuildFetched
                             (Ok
@@ -150,14 +150,14 @@ all =
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchStartedBuild =
-                flip (,) []
+                (\m -> ( m, [] ))
                     >> (Build.handleCallback <| Callback.BuildFetched <| Ok ( 1, startedBuild ))
 
             fetchJobDetails :
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchJobDetails =
-                flip (,) []
+                (\m -> ( m, [] ))
                     >> (Build.handleCallback <|
                             Callback.BuildJobDetailsFetched <|
                                 Ok
@@ -183,7 +183,7 @@ all =
                 Models.Model
                 -> ( Models.Model, List Effects.Effect )
             fetchJobDetailsNoTrigger =
-                flip (,) []
+                (\m -> ( m, [] ))
                     >> (Build.handleCallback <|
                             Callback.BuildJobDetailsFetched <|
                                 Ok
@@ -207,7 +207,7 @@ all =
 
             fetchHistory : Models.Model -> ( Models.Model, List Effects.Effect )
             fetchHistory =
-                flip (,) []
+                (\m -> ( m, [] ))
                     >> Build.handleCallback
                         (Callback.BuildHistoryFetched
                             (Ok
@@ -233,17 +233,12 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/1"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/jobs/j/builds/1"
+                    , query = Nothing
+                    , fragment = Nothing
                     }
                     |> Tuple.first
         in
@@ -256,17 +251,12 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/jobs/j/builds/307"
-                    , search = ""
-                    , hash = "#Lstepid:1"
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/jobs/j/builds/307"
+                    , query = Nothing
+                    , fragment = Just "Lstepid:1"
                     }
                     |> Tuple.first
                     |> Application.handleCallback
@@ -342,17 +332,12 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/builds/1"
-                    , search = ""
-                    , hash = "#Lstepid:1"
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/builds/1"
+                    , query = Nothing
+                    , fragment = Just "Lstepid:1"
                     }
                     |> Tuple.first
                     |> Application.handleCallback
@@ -486,13 +471,35 @@ all =
                                 }
                         )
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.T
+                                }
+                        )
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyUp <|
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.T
+                                }
+                        )
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyUp <| Char.toCode 'T')
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.T
+                                }
+                        )
                     |> Tuple.second
                     |> Expect.equal
                         [ Effects.DoTriggerBuild
@@ -507,9 +514,25 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.G
+                                }
+                        )
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.G
+                                }
+                        )
                     |> Tuple.second
                     |> Expect.equal [ Effects.Scroll Effects.ToTop ]
         , test "pressing 'G' scrolls to the bottom" <|
@@ -518,22 +541,32 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.G
+                                }
+                        )
                     |> Tuple.second
                     |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
-        , test "pressing and releasing shift, then 'g', does nothing" <|
+        , test "pressing 'g' once does nothing" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyUp <| Keycodes.shift)
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.G
+                                }
+                        )
                     |> Tuple.second
                     |> Expect.equal []
         , test "pressing '?' shows the keyboard help" <|
@@ -542,9 +575,15 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode '¿')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.Slash
+                                }
+                        )
                     |> Tuple.first
                     |> Application.view
                     |> Query.fromHtml
@@ -586,7 +625,10 @@ all =
                         |> Build.view UserState.UserStateLoggedOut
                         |> Query.fromHtml
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.has [ style [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" ) ] ]
+                        |> Query.has
+                            [ style "background-image"
+                                "url(/public/images/concourse-logo-white.svg)"
+                            ]
             , test "has the breadcrumbs" <|
                 \_ ->
                     pageLoad
@@ -650,14 +692,13 @@ all =
                     >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find [ id "build-header" ]
-                    >> Query.has
-                        [ style [ ( "display", "flex" ) ] ]
+                    >> Query.has [ style "display" "flex" ]
             , test "when less than 24h old, shows relative time since build" <|
                 \_ ->
                     initFromApplication
                         |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
-                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (2 * Time.second))
+                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (Time.millisToPosix (2 * 1000)))
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
@@ -668,7 +709,7 @@ all =
                     initFromApplication
                         |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
-                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (24 * Time.hour))
+                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (Time.millisToPosix (24 * 60 * 60 * 1000)))
                         |> Tuple.first
                         |> Application.view
                         |> Query.fromHtml
@@ -683,7 +724,7 @@ all =
                             |> Build.view UserState.UserStateLoggedOut
                             |> Query.fromHtml
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style [ ( "background", "#9b9b9b" ) ] ]
+                            |> Query.has [ style "background" "#9b9b9b" ]
                 , test "started build has yellow banner" <|
                     \_ ->
                         pageLoad
@@ -692,7 +733,7 @@ all =
                             |> Build.view UserState.UserStateLoggedOut
                             |> Query.fromHtml
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style [ ( "background", "#f1c40f" ) ] ]
+                            |> Query.has [ style "background" "#f1c40f" ]
                 , test "succeeded build has green banner" <|
                     \_ ->
                         pageLoad
@@ -701,7 +742,7 @@ all =
                             |> Build.view UserState.UserStateLoggedOut
                             |> Query.fromHtml
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style [ ( "background", "#11c560" ) ] ]
+                            |> Query.has [ style "background" "#11c560" ]
                 , test "failed build has red banner" <|
                     \_ ->
                         pageLoad
@@ -710,7 +751,7 @@ all =
                             |> Build.view UserState.UserStateLoggedOut
                             |> Query.fromHtml
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style [ ( "background", "#ed4b35" ) ] ]
+                            |> Query.has [ style "background" "#ed4b35" ]
                 , test "errored build has amber banner" <|
                     \_ ->
                         pageLoad
@@ -719,7 +760,7 @@ all =
                             |> Build.view UserState.UserStateLoggedOut
                             |> Query.fromHtml
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style [ ( "background", "#f5a623" ) ] ]
+                            |> Query.has [ style "background" "#f5a623" ]
                 , test "aborted build has brown banner" <|
                     \_ ->
                         pageLoad
@@ -728,7 +769,7 @@ all =
                             |> Build.view UserState.UserStateLoggedOut
                             |> Query.fromHtml
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style [ ( "background", "#8b572a" ) ] ]
+                            |> Query.has [ style "background" "#8b572a" ]
                 ]
             , describe "build history tab coloration"
                 [ test "pending build has grey tab in build history" <|
@@ -740,7 +781,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style [ ( "background", "#9b9b9b" ) ] ]
+                            |> Query.has [ style "background" "#9b9b9b" ]
                 , test "started build has animated striped yellow tab in build history" <|
                     \_ ->
                         pageLoad
@@ -760,7 +801,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style [ ( "background", "#11c560" ) ] ]
+                            |> Query.has [ style "background" "#11c560" ]
                 , test "failed build has red tab in build history" <|
                     \_ ->
                         pageLoad
@@ -770,7 +811,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style [ ( "background", "#ed4b35" ) ] ]
+                            |> Query.has [ style "background" "#ed4b35" ]
                 , test "errored build has amber tab in build history" <|
                     \_ ->
                         pageLoad
@@ -780,7 +821,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style [ ( "background", "#f5a623" ) ] ]
+                            |> Query.has [ style "background" "#f5a623" ]
                 , test "aborted build has brown tab in build history" <|
                     \_ ->
                         pageLoad
@@ -790,7 +831,7 @@ all =
                             |> Query.fromHtml
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style [ ( "background", "#8b572a" ) ] ]
+                            |> Query.has [ style "background" "#8b572a" ]
                 ]
             , test "header spreads out contents" <|
                 givenBuildFetched
@@ -798,8 +839,7 @@ all =
                     >> Build.view UserState.UserStateLoggedOut
                     >> Query.fromHtml
                     >> Query.find [ id "build-header" ]
-                    >> Query.has
-                        [ style [ ( "justify-content", "space-between" ) ] ]
+                    >> Query.has [ style "justify-content" "space-between" ]
             , describe "after history and details get fetched" <|
                 let
                     givenHistoryAndDetailsFetched =
@@ -821,6 +861,147 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
+                , test "pressing 'L' switches to the next build" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ theBuild
+                                        , { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Just <| Time.millisToPosix 0
+                                                , finishedAt = Just <| Time.millisToPosix 0
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (KeyDown
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.L
+                                }
+                            )
+                        >> Tuple.second
+                        >> Expect.equal
+                            [ Effects.NavigateTo
+                                "/teams/team/pipelines/pipeline/jobs/job/builds/2"
+                            ]
+                , test "pressing Command-L does nothing" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ theBuild
+                                        , { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Just <| Time.millisToPosix 0
+                                                , finishedAt = Just <| Time.millisToPosix 0
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (KeyDown
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = True
+                                , code = Keyboard.L
+                                }
+                            )
+                        >> Tuple.second
+                        >> Expect.equal []
+                , test "pressing Control-L does nothing" <|
+                    givenBuildFetched
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ theBuild
+                                        , { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Just <| Time.millisToPosix 0
+                                                , finishedAt = Just <| Time.millisToPosix 0
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (KeyDown
+                                { ctrlKey = True
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.L
+                                }
+                            )
+                        >> Tuple.second
+                        >> Expect.equal []
                 , test "scrolling builds checks if last build is visible" <|
                     givenBuildFetched
                         >> Tuple.mapSecond (always [])
@@ -1099,15 +1280,13 @@ all =
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
                         >> Query.has
-                            [ style
-                                [ ( "padding", "10px" )
-                                , ( "background-color", brightGreen )
-                                , ( "outline", "none" )
-                                , ( "margin", "0" )
-                                , ( "border-width", "0 0 0 1px" )
-                                , ( "border-color", darkGrey )
-                                , ( "border-style", "solid" )
-                                ]
+                            [ style "padding" "10px"
+                            , style "background-color" brightGreen
+                            , style "outline" "none"
+                            , style "margin" "0"
+                            , style "border-width" "0 0 0 1px"
+                            , style "border-color" darkGrey
+                            , style "border-style" "solid"
                             ]
                 , test "hovered trigger build button is styled as a box of the secondary color of the build status" <|
                     givenHistoryAndDetailsFetched
@@ -1122,15 +1301,13 @@ all =
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
                         >> Query.has
-                            [ style
-                                [ ( "padding", "10px" )
-                                , ( "background-color", darkGreen )
-                                , ( "outline", "none" )
-                                , ( "margin", "0" )
-                                , ( "border-width", "0 0 0 1px" )
-                                , ( "border-color", darkGrey )
-                                , ( "border-style", "solid" )
-                                ]
+                            [ style "padding" "10px"
+                            , style "background-color" darkGreen
+                            , style "outline" "none"
+                            , style "margin" "0"
+                            , style "border-width" "0 0 0 1px"
+                            , style "border-color" darkGrey
+                            , style "border-style" "solid"
                             ]
                 , test "trigger build button has pointer cursor" <|
                     givenHistoryAndDetailsFetched
@@ -1141,7 +1318,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                        >> Query.has [ style [ ( "cursor", "pointer" ) ] ]
+                        >> Query.has [ style "cursor" "pointer" ]
                 , test "trigger build button has 'plus' icon" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
@@ -1178,7 +1355,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                        >> Query.has [ style [ ( "cursor", "default" ) ] ]
+                        >> Query.has [ style "cursor" "default" ]
                 , defineHoverBehaviour
                     { name = "disabled trigger build button"
                     , setup =
@@ -1190,7 +1367,7 @@ all =
                                 [ attribute <|
                                     Attr.attribute "aria-label" "Trigger Build"
                                 ]
-                    , updateFunc = \msg -> flip (,) [] >> Build.update msg >> Tuple.first
+                    , updateFunc = \msg -> (\a -> ( a, [] )) >> Build.update msg >> Tuple.first
                     , unhoveredSelector =
                         { description = "grey plus icon"
                         , selector =
@@ -1202,21 +1379,19 @@ all =
                     , hoveredSelector =
                         { description = "grey plus icon with tooltip"
                         , selector =
-                            [ style [ ( "position", "relative" ) ]
+                            [ style "position" "relative"
                             , containing
                                 [ containing
                                     [ text "manual triggering disabled in job config" ]
-                                , style
-                                    [ ( "position", "absolute" )
-                                    , ( "right", "100%" )
-                                    , ( "top", "15px" )
-                                    , ( "width", "300px" )
-                                    , ( "color", "#ecf0f1" )
-                                    , ( "font-size", "12px" )
-                                    , ( "font-family", "Inconsolata,monospace" )
-                                    , ( "padding", "10px" )
-                                    , ( "text-align", "right" )
-                                    ]
+                                , style "position" "absolute"
+                                , style "right" "100%"
+                                , style "top" "15px"
+                                , style "width" "300px"
+                                , style "color" "#ecf0f1"
+                                , style "font-size" "12px"
+                                , style "font-family" "Inconsolata,monospace"
+                                , style "padding" "10px"
+                                , style "text-align" "right"
                                 ]
                             , containing <|
                                 iconSelector
@@ -1248,7 +1423,7 @@ all =
                     >> Query.find [ id "build-header" ]
                     >> Query.children []
                     >> Query.index -1
-                    >> Query.has [ style [ ( "display", "flex" ) ] ]
+                    >> Query.has [ style "display" "flex" ]
             , test "abort build button is to the left of the trigger button" <|
                 givenBuildStarted
                     >> Tuple.first
@@ -1273,15 +1448,13 @@ all =
                             Attr.attribute "aria-label" "Abort Build"
                         ]
                     >> Query.has
-                        [ style
-                            [ ( "padding", "10px" )
-                            , ( "background-color", brightRed )
-                            , ( "outline", "none" )
-                            , ( "margin", "0" )
-                            , ( "border-width", "0 0 0 1px" )
-                            , ( "border-color", darkGrey )
-                            , ( "border-style", "solid" )
-                            ]
+                        [ style "padding" "10px"
+                        , style "background-color" brightRed
+                        , style "outline" "none"
+                        , style "margin" "0"
+                        , style "border-width" "0 0 0 1px"
+                        , style "border-color" darkGrey
+                        , style "border-style" "solid"
                         ]
             , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
@@ -1295,15 +1468,13 @@ all =
                             Attr.attribute "aria-label" "Abort Build"
                         ]
                     >> Query.has
-                        [ style
-                            [ ( "padding", "10px" )
-                            , ( "background-color", darkRed )
-                            , ( "outline", "none" )
-                            , ( "margin", "0" )
-                            , ( "border-width", "0 0 0 1px" )
-                            , ( "border-color", darkGrey )
-                            , ( "border-style", "solid" )
-                            ]
+                        [ style "padding" "10px"
+                        , style "background-color" darkRed
+                        , style "outline" "none"
+                        , style "margin" "0"
+                        , style "border-width" "0 0 0 1px"
+                        , style "border-color" darkGrey
+                        , style "border-style" "solid"
                         ]
             , test "abort build button has pointer cursor" <|
                 givenBuildStarted
@@ -1314,7 +1485,7 @@ all =
                         [ attribute <|
                             Attr.attribute "aria-label" "Abort Build"
                         ]
-                    >> Query.has [ style [ ( "cursor", "pointer" ) ] ]
+                    >> Query.has [ style "cursor" "pointer" ]
             , test "abort build button has 'X' icon" <|
                 givenBuildStarted
                     >> Tuple.first
@@ -1349,7 +1520,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleCallback (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
@@ -1361,22 +1532,18 @@ all =
                                     (Query.children []
                                         >> Query.first
                                         >> Query.has
-                                            [ style
-                                                [ ( "display", "flex" )
-                                                , ( "align-items", "center" )
-                                                ]
+                                            [ style "display" "flex"
+                                            , style "align-items" "center"
                                             ]
                                     )
                             , Query.has
-                                [ style
-                                    [ ( "background-image", icon )
-                                    , ( "background-position", "50% 50%" )
-                                    , ( "background-repeat", "no-repeat" )
-                                    , ( "background-size", "contain" )
-                                    , ( "width", "12px" )
-                                    , ( "height", "12px" )
-                                    , ( "margin-right", "5px" )
-                                    ]
+                                [ style "background-image" icon
+                                , style "background-position" "50% 50%"
+                                , style "background-repeat" "no-repeat"
+                                , style "background-size" "contain"
+                                , style "width" "12px"
+                                , style "height" "12px"
+                                , style "margin-right" "5px"
                                 , attribute <| Attr.title "not blocking"
                                 ]
                             ]
@@ -1393,7 +1560,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleCallback
                             (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
@@ -1406,21 +1573,16 @@ all =
                                     (Query.children []
                                         >> Query.first
                                         >> Query.has
-                                            [ style
-                                                [ ( "display", "flex" )
-                                                , ( "align-items", "center" )
-                                                ]
+                                            [ style "display" "flex"
+                                            , style "align-items" "center"
                                             ]
                                     )
                             , Query.has
-                                [ style
-                                    [ ( "animation"
-                                      , "container-rotate 1568ms linear infinite"
-                                      )
-                                    , ( "height", "12px" )
-                                    , ( "width", "12px" )
-                                    , ( "margin", "0 5px 0 0" )
-                                    ]
+                                [ style "animation"
+                                    "container-rotate 1568ms linear infinite"
+                                , style "height" "12px"
+                                , style "width" "12px"
+                                , style "margin" "0 5px 0 0"
                                 ]
                             , Query.has [ attribute <| Attr.title "blocking" ]
                             ]
@@ -1437,7 +1599,7 @@ all =
                     in
                     givenBuildStarted
                         >> Tuple.first
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleCallback
                             (Callback.BuildPrepFetched <| Ok ( 1, prep ))
                         >> Tuple.first
@@ -1450,21 +1612,16 @@ all =
                                     (Query.children []
                                         >> Query.first
                                         >> Query.has
-                                            [ style
-                                                [ ( "display", "flex" )
-                                                , ( "align-items", "center" )
-                                                ]
+                                            [ style "display" "flex"
+                                            , style "align-items" "center"
                                             ]
                                     )
                             , Query.has
-                                [ style
-                                    [ ( "animation"
-                                      , "container-rotate 1568ms linear infinite"
-                                      )
-                                    , ( "height", "12px" )
-                                    , ( "width", "12px" )
-                                    , ( "margin", "0 5px 0 0" )
-                                    ]
+                                [ style "animation"
+                                    "container-rotate 1568ms linear infinite"
+                                , style "height" "12px"
+                                , style "width" "12px"
+                                , style "margin" "0 5px 0 0"
                                 ]
                             , Query.has [ attribute <| Attr.title "thinking..." ]
                             ]
@@ -1480,7 +1637,7 @@ all =
                             |> Tuple.first
                             |> fetchJobDetails
                             |> Tuple.first
-                            |> flip (,) []
+                            |> (\a -> ( a, [] ))
                             |> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
@@ -1521,8 +1678,7 @@ all =
                     fetchPlanWithGetStep : () -> Models.Model
                     fetchPlanWithGetStep =
                         givenBuildStarted
-                            >> Tuple.first
-                            >> flip (,) []
+                            >> Tuple.mapSecond (always [])
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -1540,8 +1696,7 @@ all =
                     fetchPlanWithTaskStep : () -> Models.Model
                     fetchPlanWithTaskStep =
                         givenBuildStarted
-                            >> Tuple.first
-                            >> flip (,) []
+                            >> Tuple.mapSecond (always [])
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -1558,8 +1713,7 @@ all =
                     fetchPlanWithPutStep : () -> Models.Model
                     fetchPlanWithPutStep =
                         givenBuildStarted
-                            >> Tuple.first
-                            >> flip (,) []
+                            >> Tuple.mapSecond (always [])
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     Ok <|
@@ -1576,8 +1730,7 @@ all =
                     fetchPlanWithGetStepWithFirstOccurrence : () -> Models.Model
                     fetchPlanWithGetStepWithFirstOccurrence =
                         givenBuildStarted
-                            >> Tuple.first
-                            >> flip (,) []
+                            >> Tuple.mapSecond (always [])
                             >> Build.handleCallback
                                 (Callback.PlanAndResourcesFetched 307 <|
                                     let
@@ -1632,7 +1785,7 @@ all =
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
                         >> Query.find [ class "header" ]
-                        >> Query.has [ style [ ( "display", "flex" ) ] ]
+                        >> Query.has [ style "display" "flex" ]
                 , test "has two children spread apart" <|
                     fetchPlanWithGetStep
                         >> Build.view UserState.UserStateLoggedOut
@@ -1640,9 +1793,7 @@ all =
                         >> Query.find [ class "header" ]
                         >> Expect.all
                             [ Query.has
-                                [ style
-                                    [ ( "justify-content", "space-between" ) ]
-                                ]
+                                [ style "justify-content" "space-between" ]
                             , Query.children [] >> Query.count (Expect.equal 2)
                             ]
                 , test "both children lay out horizontally" <|
@@ -1652,7 +1803,7 @@ all =
                         >> Query.find [ class "header" ]
                         >> Query.children []
                         >> Query.each
-                            (Query.has [ style [ ( "display", "flex" ) ] ])
+                            (Query.has [ style "display" "flex" ])
                 , test "resource get step shows downward arrow" <|
                     fetchPlanWithGetStep
                         >> Build.view UserState.UserStateLoggedOut
@@ -1662,7 +1813,7 @@ all =
                                 { size = "28px"
                                 , image = "ic-arrow-downward.svg"
                                 }
-                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , test "task step shows terminal icon" <|
                     fetchPlanWithTaskStep
@@ -1673,9 +1824,7 @@ all =
                                 { size = "28px"
                                 , image = "ic-terminal.svg"
                                 }
-                                ++ [ style
-                                        [ ( "background-size", "14px 14px" ) ]
-                                   ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , test "put step shows upward arrow" <|
                     fetchPlanWithPutStep
@@ -1686,9 +1835,7 @@ all =
                                 { size = "28px"
                                 , image = "ic-arrow-upward.svg"
                                 }
-                                ++ [ style
-                                        [ ( "background-size", "14px 14px" ) ]
-                                   ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , test "get step on first occurrence shows yellow downward arrow" <|
                     fetchPlanWithGetStepWithFirstOccurrence
@@ -1699,9 +1846,7 @@ all =
                                 { size = "28px"
                                 , image = "ic-arrow-downward-yellow.svg"
                                 }
-                                ++ [ style
-                                        [ ( "background-size", "14px 14px" ) ]
-                                   ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , test "hovering over a grey down arrow does nothing" <|
                     fetchPlanWithGetStep
@@ -1746,7 +1891,7 @@ all =
                                 (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> flip (,) []
+                            >> (\a -> ( a, [] ))
                             >> Build.update
                                 (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
                             >> Tuple.first
@@ -1763,15 +1908,23 @@ all =
                             >> Query.count (Expect.equal 0)
                     , test "1 second after hovering, tooltip appears" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> flip (,) []
-                            >> Build.handleDelivery (ClockTicked OneSecond 0)
-                            >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> ( a, [] ))
+                            >> Build.handleDelivery
+                                (ClockTicked OneSecond <|
+                                    Time.millisToPosix 0
+                                )
+                            >> Tuple.mapSecond (always [])
                             >> Build.update
-                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
-                            >> Tuple.first
-                            >> flip (,) []
-                            >> Build.handleDelivery (ClockTicked OneSecond 1)
+                                (Message.Message.Hover <|
+                                    Just <|
+                                        Message.Message.FirstOccurrenceIcon
+                                            "foo"
+                                )
+                            >> Tuple.mapSecond (always [])
+                            >> Build.handleDelivery
+                                (ClockTicked OneSecond <|
+                                    Time.millisToPosix 1
+                                )
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1783,48 +1936,49 @@ all =
                                 )
                             >> Query.first
                             >> Query.has
-                                [ style [ ( "position", "relative" ) ]
+                                [ style "position" "relative"
                                 , containing
-                                    [ containing
-                                        [ text "new version" ]
-                                    , style
-                                        [ ( "position", "absolute" )
-                                        , ( "left", "0" )
-                                        , ( "bottom", "100%" )
-                                        , ( "background-color", tooltipGreyHex )
-                                        , ( "padding", "5px" )
-                                        , ( "z-index", "100" )
-                                        , ( "width", "6em" )
-                                        , ( "pointer-events", "none" )
-                                        , ( "cursor", "default" )
-                                        , ( "user-select", "none" )
-                                        , ( "-ms-user-select", "none" )
-                                        , ( "-moz-user-select", "none" )
-                                        , ( "-khtml-user-select", "none" )
-                                        , ( "-webkit-user-select", "none" )
-                                        , ( "-webkit-touch-callout", "none" )
-                                        ]
+                                    [ containing [ text "new version" ]
+                                    , style "position" "absolute"
+                                    , style "left" "0"
+                                    , style "bottom" "100%"
+                                    , style "background-color" tooltipGreyHex
+                                    , style "padding" "5px"
+                                    , style "z-index" "100"
+                                    , style "width" "6em"
+                                    , style "pointer-events" "none"
+                                    , style "cursor" "default"
+                                    , style "user-select" "none"
+                                    , style "-ms-user-select" "none"
+                                    , style "-moz-user-select" "none"
+                                    , style "-khtml-user-select" "none"
+                                    , style "-webkit-user-select" "none"
+                                    , style "-webkit-touch-callout" "none"
                                     ]
                                 , containing
-                                    [ style
-                                        [ ( "width", "0" )
-                                        , ( "height", "0" )
-                                        , ( "left", "50%" )
-                                        , ( "margin-left", "-5px" )
-                                        , ( "border-top"
-                                          , "5px solid " ++ tooltipGreyHex
-                                          )
-                                        , ( "border-left", "5px solid transparent" )
-                                        , ( "border-right", "5px solid transparent" )
-                                        , ( "position", "absolute" )
-                                        ]
+                                    [ style "width" "0"
+                                    , style "height" "0"
+                                    , style "left" "50%"
+                                    , style "margin-left" "-5px"
+                                    , style "border-top" <|
+                                        "5px solid "
+                                            ++ tooltipGreyHex
+                                    , style "border-left"
+                                        "5px solid transparent"
+                                    , style "border-right"
+                                        "5px solid transparent"
+                                    , style "position" "absolute"
                                     ]
                                 ]
                     , test "mousing off yellow arrow triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> flip (,) []
+                            >> (\a -> ( a, [] ))
                             >> Build.update
-                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
+                                (Message.Message.Hover <|
+                                    Just <|
+                                        Message.Message.FirstOccurrenceIcon
+                                            "foo"
+                                )
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
                             >> Query.fromHtml
@@ -1840,17 +1994,24 @@ all =
                                 (Message.Message.Hover Nothing)
                     , test "unhovering after tooltip appears dismisses" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> flip (,) []
-                            >> Build.handleDelivery (ClockTicked OneSecond 0)
-                            >> Tuple.first
-                            >> flip (,) []
+                            >> (\a -> ( a, [] ))
+                            >> Build.handleDelivery
+                                (ClockTicked OneSecond <|
+                                    Time.millisToPosix 0
+                                )
+                            >> Tuple.mapSecond (always [])
                             >> Build.update
-                                (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
-                            >> Tuple.first
-                            >> flip (,) []
-                            >> Build.handleDelivery (ClockTicked OneSecond 1)
-                            >> Tuple.first
-                            >> flip (,) []
+                                (Message.Message.Hover <|
+                                    Just <|
+                                        Message.Message.FirstOccurrenceIcon
+                                            "foo"
+                                )
+                            >> Tuple.mapSecond (always [])
+                            >> Build.handleDelivery
+                                (ClockTicked OneSecond <|
+                                    Time.millisToPosix 1
+                                )
+                            >> Tuple.mapSecond (always [])
                             >> Build.update (Message.Message.Hover Nothing)
                             >> Tuple.first
                             >> Build.view UserState.UserStateLoggedOut
@@ -1867,14 +2028,22 @@ all =
                     ]
                 , test "hovering one resource of several produces only a single tooltip" <|
                     fetchPlanWithGetStepWithFirstOccurrence
-                        >> flip (,) []
-                        >> Build.handleDelivery (ClockTicked OneSecond 0)
-                        >> Tuple.first
-                        >> flip (,) []
-                        >> Build.update (Message.Message.Hover <| Just <| Message.Message.FirstOccurrenceIcon "foo")
-                        >> Tuple.first
-                        >> flip (,) []
-                        >> Build.handleDelivery (ClockTicked OneSecond 1)
+                        >> (\a -> ( a, [] ))
+                        >> Build.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 0
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.update
+                            (Message.Message.Hover <|
+                                Just <|
+                                    Message.Message.FirstOccurrenceIcon "foo"
+                            )
+                        >> Tuple.mapSecond (always [])
+                        >> Build.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 1
+                            )
                         >> Tuple.first
                         >> Build.view UserState.UserStateLoggedOut
                         >> Query.fromHtml
@@ -1882,7 +2051,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -1907,11 +2076,11 @@ all =
                                 { size = "28px"
                                 , image = "ic-success-check.svg"
                                 }
-                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , test "get step lists resource version on the right" <|
                     fetchPlanWithGetStep
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -1934,7 +2103,7 @@ all =
                         >> Query.has [ text "v3.1.4" ]
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -1954,11 +2123,8 @@ all =
                         >> Query.children []
                         >> Query.index -1
                         >> Query.has
-                            [ style
-                                [ ( "animation"
-                                  , "container-rotate 1568ms linear infinite"
-                                  )
-                                ]
+                            [ style "animation"
+                                "container-rotate 1568ms linear infinite"
                             ]
                 , test "pending step has dashed circle at the right" <|
                     fetchPlanWithTaskStep
@@ -1972,11 +2138,11 @@ all =
                                 { size = "28px"
                                 , image = "ic-pending.svg"
                                 }
-                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , test "cancelled step has no-entry circle at the right" <|
                     fetchPlanWithTaskStep
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -1991,7 +2157,7 @@ all =
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusAborted
-                                                (Date.fromTime 0)
+                                                (Time.millisToPosix 0)
                                       }
                                     ]
                             )
@@ -2006,11 +2172,11 @@ all =
                                 { size = "28px"
                                 , image = "ic-interrupted.svg"
                                 }
-                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , test "interrupted step has dashed circle with dot at the right" <|
                     fetchPlanWithTaskStep
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -2018,7 +2184,7 @@ all =
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusAborted
-                                                (Date.fromTime 0)
+                                                (Time.millisToPosix 0)
                                       }
                                     ]
                             )
@@ -2033,11 +2199,11 @@ all =
                                 { size = "28px"
                                 , image = "ic-cancelled.svg"
                                 }
-                                ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -2062,13 +2228,11 @@ all =
                                 { size = "28px"
                                 , image = "ic-failure-times.svg"
                                 }
-                                ++ [ style
-                                        [ ( "background-size", "14px 14px" ) ]
-                                   ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , test "erroring step has orange exclamation triangle at right" <|
                     fetchPlanWithGetStep
-                        >> flip (,) []
+                        >> (\a -> ( a, [] ))
                         >> Build.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -2091,14 +2255,12 @@ all =
                                 { size = "28px"
                                 , image = "ic-exclamation-triangle.svg"
                                 }
-                                ++ [ style
-                                        [ ( "background-size", "14px 14px" ) ]
-                                   ]
+                                ++ [ style "background-size" "14px 14px" ]
                             )
                 , describe "erroring build" <|
                     [ test "has orange exclamation triangle at left" <|
                         fetchPlanWithGetStep
-                            >> flip (,) []
+                            >> (\a -> ( a, [] ))
                             >> Build.handleDelivery
                                 (EventsReceived <|
                                     Ok <|
@@ -2129,7 +2291,7 @@ all =
                                     { size = "28px"
                                     , image = "ic-exclamation-triangle.svg"
                                     }
-                                    ++ [ style [ ( "background-size", "14px 14px" ) ] ]
+                                    ++ [ style "background-size" "14px 14px" ]
                                 )
                     , test "has passport officer icon" <|
                         let
@@ -2140,7 +2302,7 @@ all =
                                 "http://localhost:8080/api/v1/builds/307/events"
                         in
                         fetchPlanWithGetStep
-                            >> flip (,) []
+                            >> (\a -> ( a, [] ))
                             >> Build.handleDelivery
                                 (EventsReceived <|
                                     Ok
@@ -2176,17 +2338,12 @@ all =
                             , authToken = ""
                             , pipelineRunningKeyframes = ""
                             }
-                            { href = ""
+                            { protocol = Url.Http
                             , host = ""
-                            , hostname = ""
-                            , protocol = ""
-                            , origin = ""
-                            , port_ = ""
-                            , pathname = "/teams/t/pipelines/p/jobs/j/builds/307"
-                            , search = ""
-                            , hash = "#Lstepid:1"
-                            , username = ""
-                            , password = ""
+                            , port_ = Nothing
+                            , path = "/teams/t/pipelines/p/jobs/j/builds/307"
+                            , query = Nothing
+                            , fragment = Just "Lstepid:1"
                             }
                             |> Tuple.first
                             |> Application.handleCallback
@@ -2261,7 +2418,7 @@ all =
                                 ]
                             |> Query.has
                                 [ tag "a"
-                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , style "text-decoration-line" "underline"
                                 , attribute <| Attr.target "_blank"
                                 , attribute <| Attr.href httpURLText
                                 ]
@@ -2273,7 +2430,7 @@ all =
                                 ]
                             |> Query.has
                                 [ tag "a"
-                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , style "text-decoration-line" "underline"
                                 , attribute <| Attr.target "_blank"
                                 , attribute <| Attr.href httpsURLText
                                 ]
@@ -2285,7 +2442,7 @@ all =
                                 ]
                             |> Query.hasNot
                                 [ tag "a"
-                                , style [ ( "text-decoration-line", "underline" ) ]
+                                , style "text-decoration-line" "underline"
                                 , attribute <| Attr.target "_blank"
                                 , attribute <| Attr.href plainText
                                 ]

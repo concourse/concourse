@@ -26,31 +26,29 @@ ordering =
 
 
 view : Bool -> Tag -> Html msg
-view isHd tag =
+view isHd t =
     Html.div
-        [ style
-            ([ ( "border", "1px solid " ++ Colors.white )
-             , ( "font-size", "0.7em" )
-             , ( "padding", "0.5em 0" )
-             , ( "line-height", "0.9em" )
-             , ( "width", "6em" )
-             , ( "text-align", "center" )
-             , ( "letter-spacing", "0.2em" )
-             ]
-                ++ (if isHd then
-                        [ ( "margin-bottom", "1em" ) ]
+        ([ style "border" ("1px solid " ++ Colors.white)
+         , style "font-size" "0.7em"
+         , style "padding" "0.5em 0"
+         , style "line-height" "0.9em"
+         , style "width" "6em"
+         , style "text-align" "center"
+         , style "letter-spacing" "0.2em"
+         ]
+            ++ (if isHd then
+                    [ style "margin-bottom" "1em" ]
 
-                    else
-                        [ ( "margin-bottom", "" ) ]
-                   )
-            )
-        ]
-        [ Html.text <| toString tag ]
+                else
+                    [ style "margin-bottom" "" ]
+               )
+        )
+        [ Html.text <| toString t ]
 
 
 toString : Tag -> String
-toString tag =
-    case tag of
+toString t =
+    case t of
         Owner ->
             "OWNER"
 
@@ -81,8 +79,8 @@ tag user teamName =
 firstRole : List String -> Maybe Tag
 firstRole roles =
     case List.head roles of
-        Just roles ->
-            parseRole roles
+        Just rs ->
+            parseRole rs
 
         Nothing ->
             Nothing

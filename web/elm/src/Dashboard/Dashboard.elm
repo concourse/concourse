@@ -30,6 +30,7 @@ import Html.Attributes
         ( attribute
         , class
         , classList
+        , download
         , draggable
         , href
         , id
@@ -60,15 +61,15 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import Monocle.Common exposing ((<|>), (=>))
+import Monocle.Compose exposing (lensWithOptional, optionalWithLens, optionalWithOptional)
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (..)
-import Regex exposing (HowMany(All), regex, replace)
+import Regex exposing (replace)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Simple.Fuzzy exposing (filter, match, root)
+import Simple.Fuzzy
 import UserState exposing (UserState)
 import Views.Styles
 import Views.TopBar as TopBar
@@ -103,7 +104,6 @@ init flags =
       , isUserMenuExpanded = False
       , dropdown = Hidden
       , screenSize = Desktop
-      , shiftDown = False
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -193,13 +193,15 @@ handleCallback msg ( model, effects ) =
             )
 
         LoggedOut (Err err) ->
-            flip always (Debug.log "failed to log out" err) <|
+            (\a -> always a (Debug.log "failed to log out" err)) <|
                 ( model, effects )
 
-        ScreenResized size ->
+        ScreenResized viewport ->
             let
                 newSize =
-                    ScreenSize.fromWindowSize size
+                    ScreenSize.fromWindowSize
+                        viewport.viewport.width
+                        viewport.viewport.height
             in
             ( { model | screenSize = newSize }, effects )
 
@@ -292,16 +294,20 @@ updateBody msg ( model, effects ) =
                 dragDropOptional : Monocle.Optional.Optional Model ( Models.DragState, Models.DropState )
                 dragDropOptional =
                     substateOptional
-                        =|> Monocle.Lens.tuple
+                        |> optionalWithLens
+                            (Monocle.Lens.tuple
                                 Details.dragStateLens
                                 Details.dropStateLens
+                            )
 
                 dragDropIndexOptional : Monocle.Optional.Optional Model ( Group.PipelineIndex, Group.PipelineIndex )
                 dragDropIndexOptional =
                     dragDropOptional
-                        => Monocle.Optional.zip
-                            Group.dragIndexOptional
-                            Group.dropIndexOptional
+                        |> optionalWithOptional
+                            (Monocle.Optional.zip
+                                Group.dragIndexOptional
+                                Group.dropIndexOptional
+                            )
 
                 groupsLens : Monocle.Lens.Lens Model (List Group)
                 groupsLens =
@@ -309,13 +315,18 @@ updateBody msg ( model, effects ) =
 
                 groupOptional : Monocle.Optional.Optional Model Group
                 groupOptional =
+                    -- the point of this optional is to find the group whose
+                    -- name matches the name name in the dragstate
                     (substateOptional
-                        =|> Details.dragStateLens
-                        => Group.teamNameOptional
+                        |> optionalWithLens Details.dragStateLens
+                        |> optionalWithOptional Group.teamNameOptional
                     )
-                        >>= (\teamName ->
+                        |> bind
+                            (\teamName ->
                                 groupsLens
-                                    <|= Group.findGroupOptional teamName
+                                    |> Monocle.Optional.fromLens
+                                    |> optionalWithOptional
+                                        (Group.findGroupOptional teamName)
                             )
 
                 bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group )
@@ -329,10 +340,10 @@ updateBody msg ( model, effects ) =
                         |> modifyWithEffect bigOptional
                             (\( t, g ) ->
                                 let
-                                    ( newG, msg ) =
+                                    ( newG, newMsg ) =
                                         updatePipelines t g
                                 in
-                                ( ( t, newG ), msg )
+                                ( ( t, newG ), newMsg )
                             )
                         |> Tuple.mapFirst (dragDropOptional.set ( Models.NotDragging, Models.NotDropping ))
             in
@@ -384,13 +395,13 @@ subscriptions model =
 view : UserState -> Model -> Html Message
 view userState model =
     Html.div
-        [ style Views.Styles.pageIncludingTopBar
-        , id "page-including-top-bar"
-        ]
+        ([ id "page-including-top-bar" ]
+            ++ Views.Styles.pageIncludingTopBar
+        )
         [ Html.div
-            [ id "top-bar-app"
-            , style <| Views.Styles.topBar False
-            ]
+            ([ id "top-bar-app" ]
+                ++ Views.Styles.topBar False
+            )
           <|
             [ TopBar.concourseLogo ]
                 ++ (let
@@ -416,7 +427,7 @@ view userState model =
                         [ Login.view userState model False ]
                    )
         , Html.div
-            [ id "page-below-top-bar", style Views.Styles.pageBelowTopBar ]
+            ([ id "page-below-top-bar" ] ++ Views.Styles.pageBelowTopBar)
             (dashboardView model)
         ]
 
@@ -435,9 +446,9 @@ dashboardView model =
 
         RemoteData.Success substate ->
             [ Html.div
-                [ class <| .pageBodyClass Message.Effects.stickyHeaderConfig
-                , style <| Styles.content model.highDensity
-                ]
+                ([ class <| .pageBodyClass Message.Effects.stickyHeaderConfig ]
+                    ++ Styles.content model.highDensity
+                )
               <|
                 welcomeCard model
                     :: pipelinesView
@@ -467,43 +478,40 @@ welcomeCard { hovered, groups, userState } =
             List.isEmpty (groups |> List.concatMap .pipelines)
 
         cliIcon : Maybe Hoverable -> Cli.Cli -> Html Message
-        cliIcon hovered cli =
+        cliIcon hoverable cli =
             Html.a
-                [ href (Cli.downloadUrl cli)
-                , attribute "aria-label" <| Cli.label cli
-                , style <|
-                    Styles.topCliIcon
+                ([ href <| Cli.downloadUrl cli
+                 , attribute "aria-label" <| Cli.label cli
+                 , id <| "top-cli-" ++ Cli.id cli
+                 , onMouseEnter <| Hover <| Just <| Message.WelcomeCardCliIcon cli
+                 , onMouseLeave <| Hover Nothing
+                 , download ""
+                 ]
+                    ++ Styles.topCliIcon
                         { hovered =
-                            hovered
+                            hoverable
                                 == (Just <| Message.WelcomeCardCliIcon cli)
                         , cli = cli
                         }
-                , id <| "top-cli-" ++ Cli.id cli
-                , onMouseEnter <| Hover <| Just <| Message.WelcomeCardCliIcon cli
-                , onMouseLeave <| Hover Nothing
-                ]
+                )
                 []
     in
     if noPipelines then
         Html.div
-            [ id "welcome-card"
-            , style Styles.welcomeCard
-            ]
+            ([ id "welcome-card" ] ++ Styles.welcomeCard)
             [ Html.div
-                [ style Styles.welcomeCardTitle ]
+                Styles.welcomeCardTitle
                 [ Html.text Text.welcome ]
             , Html.div
-                [ style Styles.welcomeCardBody ]
+                Styles.welcomeCardBody
               <|
                 [ Html.div
-                    [ style
-                        [ ( "display", "flex" )
-                        , ( "align-items", "center" )
-                        ]
+                    [ style "display" "flex"
+                    , style "align-items" "center"
                     ]
                   <|
                     [ Html.div
-                        [ style [ ( "margin-right", "10px" ) ] ]
+                        [ style "margin-right" "10px" ]
                         [ Html.text Text.cliInstructions ]
                     ]
                         ++ List.map (cliIcon hovered) Cli.clis
@@ -513,7 +521,7 @@ welcomeCard { hovered, groups, userState } =
                 ]
                     ++ loginInstruction userState
             , Html.pre
-                [ style Styles.asciiArt ]
+                Styles.asciiArt
                 [ Html.text Text.asciiArt ]
             ]
 
@@ -530,12 +538,12 @@ loginInstruction userState =
         _ ->
             [ Html.div
                 [ id "login-instruction"
-                , style [ ( "line-height", "42px" ) ]
+                , style "line-height" "42px"
                 ]
                 [ Html.text "login "
                 , Html.a
                     [ href "/login"
-                    , style [ ( "text-decoration", "underline" ) ]
+                    , style "text-decoration" "underline"
                     ]
                     [ Html.text "here" ]
                 ]
@@ -549,9 +557,7 @@ noResultsView query =
             Html.span [ class "monospace-bold" ] [ Html.text query ]
     in
     Html.div
-        [ class "no-results"
-        , style Styles.noResults
-        ]
+        ([ class "no-results" ] ++ Styles.noResults)
         [ Html.text "No results for "
         , boldedQuery
         , Html.text " matched your search."
@@ -611,7 +617,7 @@ pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, user
                         )
     in
     if List.isEmpty groupViews && not (String.isEmpty query) then
-        [ noResultsView (toString query) ]
+        [ noResultsView query ]
 
     else
         groupViews
@@ -619,15 +625,28 @@ pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, user
 
 filterTerms : String -> List String
 filterTerms =
-    replace All (regex "team:\\s*") (\_ -> "team:")
-        >> replace All (regex "status:\\s*") (\_ -> "status:")
-        >> String.words
-        >> List.filter (not << String.isEmpty)
+    let
+        teamRegex =
+            Regex.fromString "team:\\s*"
+
+        statusRegex =
+            Regex.fromString "status:\\s*"
+    in
+    case ( teamRegex, statusRegex ) of
+        ( Just teamMatcher, Just statusMatcher ) ->
+            replace teamMatcher (\_ -> "team:")
+                >> replace statusMatcher (\_ -> "status:")
+                >> String.words
+                >> List.filter (not << String.isEmpty)
+
+        _ ->
+            String.words
+                >> List.filter (not << String.isEmpty)
 
 
 filter : String -> List Group -> List Group
 filter =
-    filterTerms >> flip (List.foldl filterGroupsByTerm)
+    filterTerms >> (\b a -> List.foldl filterGroupsByTerm a b)
 
 
 filterPipelinesByTerm : String -> Group -> Group

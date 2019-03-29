@@ -20,12 +20,14 @@ provider "google" {
 
 data "google_compute_zones" "available" {}
 
+resource "random_pet" "smoke" {}
+
 resource "google_compute_address" "smoke" {
-  name = "smoke"
+  name = "smoke-${random_pet.smoke.id}-ip"
 }
 
 resource "google_compute_firewall" "bosh-director" {
-  name    = "allow-smoke-http"
+  name    = "smoke-${random_pet.smoke.id}-allow-http"
   network = "default"
 
   allow {
@@ -37,7 +39,7 @@ resource "google_compute_firewall" "bosh-director" {
 }
 
 resource "google_compute_instance" "smoke" {
-  name = "smoke"
+  name = "smoke-${random_pet.smoke.id}"
   machine_type = "custom-8-8192"
   zone = "${data.google_compute_zones.available.names[0]}"
   tags = ["smoke"]

@@ -850,7 +850,7 @@ func (b *build) SaveOutput(
 	}
 
 	if !found {
-		return ResourceNotFoundInPipeline{resource.Name(), b.pipelineName}
+		return ResourceNotFoundInPipeline{resourceName, b.pipelineName}
 	}
 
 	tx, err := b.conn.Begin()

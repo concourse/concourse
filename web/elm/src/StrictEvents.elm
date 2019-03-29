@@ -40,15 +40,21 @@ onLeftClickNoPreventDefault msg =
 
 onLeftClickCapturing : Bool -> Json.Decode.Decoder x -> (x -> msg) -> Html.Attribute msg
 onLeftClickCapturing preventDefault captured msg =
-    Html.Events.onWithOptions "click"
-        { stopPropagation = False, preventDefault = preventDefault }
+    Html.Events.custom "click"
         (assertNoModifier
             |> Json.Decode.andThen
                 (\_ ->
                     assertLeftButton
                         |> Json.Decode.andThen
                             (\_ ->
-                                Json.Decode.map msg captured
+                                Json.Decode.map
+                                    (\x ->
+                                        { message = msg x
+                                        , stopPropagation = False
+                                        , preventDefault = preventDefault
+                                        }
+                                    )
+                                    captured
                             )
                 )
         )
@@ -56,8 +62,7 @@ onLeftClickCapturing preventDefault captured msg =
 
 onLeftClickOrShiftLeftClick : msg -> msg -> Html.Attribute msg
 onLeftClickOrShiftLeftClick msg shiftMsg =
-    Html.Events.onWithOptions "click"
-        { stopPropagation = False, preventDefault = True }
+    Html.Events.custom "click"
         (assertLeftButton
             |> Json.Decode.andThen
                 (\_ ->
@@ -70,7 +75,17 @@ onLeftClickOrShiftLeftClick msg shiftMsg =
                                             assertNo "metaKey"
                                                 |> Json.Decode.andThen
                                                     (\_ ->
-                                                        determineClickMsg msg shiftMsg
+                                                        Json.Decode.map
+                                                            (\x ->
+                                                                { message = x
+                                                                , stopPropagation = False
+                                                                , preventDefault = True
+                                                                }
+                                                            )
+                                                            (determineClickMsg
+                                                                msg
+                                                                shiftMsg
+                                                            )
                                                     )
                                         )
                             )
@@ -85,15 +100,21 @@ onLeftMouseDown msg =
 
 onLeftMouseDownCapturing : Json.Decode.Decoder x -> (x -> msg) -> Html.Attribute msg
 onLeftMouseDownCapturing captured msg =
-    Html.Events.onWithOptions "mousedown"
-        { stopPropagation = False, preventDefault = True }
+    Html.Events.custom "mousedown"
         (assertNoModifier
             |> Json.Decode.andThen
                 (\_ ->
                     assertLeftButton
                         |> Json.Decode.andThen
                             (\_ ->
-                                Json.Decode.map msg captured
+                                Json.Decode.map
+                                    (\x ->
+                                        { message = msg x
+                                        , stopPropagation = False
+                                        , preventDefault = True
+                                        }
+                                    )
+                                    captured
                             )
                 )
         )
@@ -101,9 +122,16 @@ onLeftMouseDownCapturing captured msg =
 
 onMouseWheel : (MouseWheelEvent -> msg) -> Html.Attribute msg
 onMouseWheel cons =
-    Html.Events.onWithOptions "mousewheel"
-        { stopPropagation = False, preventDefault = True }
-        (Json.Decode.map cons decodeMouseWheelEvent)
+    Html.Events.custom "mousewheel"
+        (Json.Decode.map
+            (\x ->
+                { message = cons x
+                , stopPropagation = False
+                , preventDefault = True
+                }
+            )
+            decodeMouseWheelEvent
+        )
 
 
 onScroll : (ScrollState -> msg) -> Html.Attribute msg

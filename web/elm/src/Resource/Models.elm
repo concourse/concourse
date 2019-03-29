@@ -10,7 +10,6 @@ module Resource.Models exposing
 
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
-import Date exposing (Date)
 import Login.Login as Login
 import Message.Message exposing (Hoverable)
 import Pinned exposing (CommentState, ResourcePinState)
@@ -34,15 +33,14 @@ type alias Model =
         , checkStatus : CheckStatus
         , checkError : String
         , checkSetupError : String
-        , lastChecked : Maybe Date
+        , lastChecked : Maybe Time.Posix
         , pinnedVersion : PinnedVersion
-        , now : Maybe Time.Time
+        , now : Maybe Time.Posix
         , resourceIdentifier : Concourse.ResourceIdentifier
         , currentPage : Maybe Page
         , hovered : Maybe Hoverable
         , versions : Paginated Version
         , pinCommentLoading : Bool
-        , ctrlDown : Bool
         , textAreaFocused : Bool
         }
 

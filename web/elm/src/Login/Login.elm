@@ -39,8 +39,9 @@ view :
     -> Bool
     -> Html Message
 view userState model isPaused =
-    Html.div [ id "login-component", style Styles.loginComponent ] <|
-        viewLoginState userState model.isUserMenuExpanded isPaused
+    Html.div
+        ([ id "login-component" ] ++ Styles.loginComponent)
+        (viewLoginState userState model.isUserMenuExpanded isPaused)
 
 
 viewLoginState : UserState -> Bool -> Bool -> List (Html Message)
@@ -51,16 +52,15 @@ viewLoginState userState isUserMenuExpanded isPaused =
 
         UserStateLoggedOut ->
             [ Html.div
-                [ href "/sky/login"
-                , attribute "aria-label" "Log In"
-                , id "login-container"
-                , onClick LogIn
-                , style (Styles.loginContainer isPaused)
-                ]
+                ([ href "/sky/login"
+                 , attribute "aria-label" "Log In"
+                 , id "login-container"
+                 , onClick LogIn
+                 ]
+                    ++ Styles.loginContainer isPaused
+                )
                 [ Html.div
-                    [ style Styles.loginItem
-                    , id "login-item"
-                    ]
+                    ([ id "login-item" ] ++ Styles.loginItem)
                     [ Html.a
                         [ href "/sky/login" ]
                         [ Html.text "login" ]
@@ -70,21 +70,23 @@ viewLoginState userState isUserMenuExpanded isPaused =
 
         UserStateLoggedIn user ->
             [ Html.div
-                [ id "login-container"
-                , onClick ToggleUserMenu
-                , style (Styles.loginContainer isPaused)
-                ]
-                [ Html.div [ id "user-id", style Styles.loginItem ]
+                ([ id "login-container"
+                 , onClick ToggleUserMenu
+                 ]
+                    ++ Styles.loginContainer isPaused
+                )
+                [ Html.div ([ id "user-id" ] ++ Styles.loginItem)
                     ([ Html.div
-                        [ style Styles.loginText ]
+                        Styles.loginText
                         [ Html.text (userDisplayName user) ]
                      ]
                         ++ (if isUserMenuExpanded then
                                 [ Html.div
-                                    [ id "logout-button"
-                                    , style Styles.logoutButton
-                                    , onClick LogOut
-                                    ]
+                                    ([ id "logout-button"
+                                     , onClick LogOut
+                                     ]
+                                        ++ Styles.logoutButton
+                                    )
                                     [ Html.text "logout" ]
                                 ]
 

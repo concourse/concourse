@@ -50,7 +50,7 @@ import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(.
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
-import Time exposing (Time)
+import Time
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
@@ -68,7 +68,7 @@ type alias Model =
         , pausedChanging : Bool
         , buildsWithResources : Paginated BuildWithResources
         , currentPage : Maybe Page
-        , now : Time
+        , now : Time.Posix
         , hovered : Maybe Hoverable
         }
 
@@ -104,7 +104,7 @@ init flags =
                     , nextPage = Nothing
                     }
                 }
-            , now = 0
+            , now = Time.millisToPosix 0
             , currentPage = flags.paging
             , hovered = Nothing
             , isUserMenuExpanded = False
@@ -392,13 +392,9 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            [ style Views.Styles.pageIncludingTopBar
-            , id "page-including-top-bar"
-            ]
+            ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
             [ Html.div
-                [ id "top-bar-app"
-                , style <| Views.Styles.topBar False
-                ]
+                ([ id "top-bar-app" ] ++ Views.Styles.topBar False)
                 [ TopBar.concourseLogo
                 , TopBar.breadcrumbs <|
                     Routes.Job
@@ -408,7 +404,7 @@ view userState model =
                 , Login.view userState model False
                 ]
             , Html.div
-                [ id "page-below-top-bar", style Styles.pageBelowTopBar ]
+                ([ id "page-below-top-bar" ] ++ Styles.pageBelowTopBar)
                 [ viewMainJobsSection model ]
             ]
         ]
@@ -432,25 +428,24 @@ viewMainJobsSection model =
                 Html.div [ class "fixed-header" ]
                     [ Html.div
                         [ class "build-header"
-                        , style
-                            [ ( "display", "flex" )
-                            , ( "justify-content", "space-between" )
-                            , ( "background"
-                              , Colors.buildStatusColor True <| headerBuildStatus job.finishedBuild
-                              )
-                            ]
+                        , style "display" "flex"
+                        , style "justify-content" "space-between"
+                        , style "background" <|
+                            Colors.buildStatusColor True <|
+                                headerBuildStatus job.finishedBuild
                         ]
                         [ Html.div
-                            [ style [ ( "display", "flex" ) ] ]
+                            [ style "display" "flex" ]
                             [ Html.button
-                                [ id "pause-toggle"
-                                , style <|
-                                    Styles.triggerButton False toggleHovered <|
-                                        headerBuildStatus job.finishedBuild
-                                , onMouseEnter <| Hover <| Just ToggleJobButton
-                                , onMouseLeave <| Hover Nothing
-                                , onClick TogglePaused
-                                ]
+                                ([ id "pause-toggle"
+                                 , onMouseEnter <| Hover <| Just ToggleJobButton
+                                 , onMouseLeave <| Hover Nothing
+                                 , onClick TogglePaused
+                                 ]
+                                    ++ (Styles.triggerButton False toggleHovered <|
+                                            headerBuildStatus job.finishedBuild
+                                       )
+                                )
                                 [ Icon.icon
                                     { sizePx = 40
                                     , image =
@@ -460,7 +455,7 @@ viewMainJobsSection model =
                                         else
                                             "ic-pause-circle-outline-white.svg"
                                     }
-                                    [ style <| Styles.icon toggleHovered ]
+                                    (Styles.icon toggleHovered)
                                 ]
                             , Html.h1 []
                                 [ Html.span
@@ -469,30 +464,30 @@ viewMainJobsSection model =
                                 ]
                             ]
                         , Html.button
-                            [ class "trigger-build"
-                            , onLeftClick TriggerBuildJob
-                            , attribute "aria-label" "Trigger Build"
-                            , attribute "title" "Trigger Build"
-                            , onMouseEnter <| Hover <| Just TriggerBuildButton
-                            , onMouseLeave <| Hover Nothing
-                            , style <|
-                                Styles.triggerButton job.disableManualTrigger triggerHovered <|
-                                    headerBuildStatus job.finishedBuild
-                            ]
+                            ([ class "trigger-build"
+                             , onLeftClick TriggerBuildJob
+                             , attribute "aria-label" "Trigger Build"
+                             , attribute "title" "Trigger Build"
+                             , onMouseEnter <| Hover <| Just TriggerBuildButton
+                             , onMouseLeave <| Hover Nothing
+                             ]
+                                ++ (Styles.triggerButton job.disableManualTrigger triggerHovered <|
+                                        headerBuildStatus job.finishedBuild
+                                   )
+                            )
                           <|
                             [ Icon.icon
                                 { sizePx = 40
                                 , image = "ic-add-circle-outline-white.svg"
                                 }
-                                [ style <|
-                                    Styles.icon <|
-                                        triggerHovered
-                                            && not job.disableManualTrigger
-                                ]
+                                (Styles.icon <|
+                                    triggerHovered
+                                        && not job.disableManualTrigger
+                                )
                             ]
                                 ++ (if job.disableManualTrigger && triggerHovered then
                                         [ Html.div
-                                            [ style Styles.triggerTooltip ]
+                                            Styles.triggerTooltip
                                             [ Html.text <|
                                                 "manual triggering disabled "
                                                     ++ "in job config"
@@ -505,19 +500,15 @@ viewMainJobsSection model =
                         ]
                     , Html.div
                         [ id "pagination-header"
-                        , style
-                            [ ( "display", "flex" )
-                            , ( "justify-content", "space-between" )
-                            , ( "align-items", "stretch" )
-                            , ( "height", "60px" )
-                            , ( "background-color", Colors.secondaryTopBar )
-                            ]
+                        , style "display" "flex"
+                        , style "justify-content" "space-between"
+                        , style "align-items" "stretch"
+                        , style "height" "60px"
+                        , style "background-color" Colors.secondaryTopBar
                         ]
                         [ Html.h1
-                            [ style
-                                [ ( "margin", "0 18px" )
-                                , ( "font-weight", "700" )
-                                ]
+                            [ style "margin" "0 18px"
+                            , style "font-weight" "700"
                             ]
                             [ Html.text "builds" ]
                         , viewPaginationBar model
@@ -549,23 +540,20 @@ viewPaginationBar : Model -> Html Message
 viewPaginationBar model =
     Html.div
         [ id "pagination"
-        , style
-            [ ( "display", "flex" )
-            , ( "align-items", "stretch" )
-            ]
+        , style "display" "flex"
+        , style "align-items" "stretch"
         ]
         [ case model.buildsWithResources.pagination.previousPage of
             Nothing ->
                 Html.div
-                    [ style chevronContainer ]
+                    chevronContainer
                     [ Html.div
-                        [ style <|
-                            chevron
-                                { direction = "left"
-                                , enabled = False
-                                , hovered = False
-                                }
-                        ]
+                        (chevron
+                            { direction = "left"
+                            , enabled = False
+                            , hovered = False
+                            }
+                        )
                         []
                     ]
 
@@ -575,35 +563,35 @@ viewPaginationBar model =
                         Routes.Job { id = model.jobIdentifier, page = Just page }
                 in
                 Html.div
-                    [ style chevronContainer
-                    , onMouseEnter <| Hover <| Just PreviousPageButton
-                    , onMouseLeave <| Hover Nothing
-                    ]
+                    ([ onMouseEnter <| Hover <| Just PreviousPageButton
+                     , onMouseLeave <| Hover Nothing
+                     ]
+                        ++ chevronContainer
+                    )
                     [ Html.a
-                        [ StrictEvents.onLeftClick <| GoToRoute jobRoute
-                        , href <| Routes.toString <| jobRoute
-                        , attribute "aria-label" "Previous Page"
-                        , style <|
-                            chevron
+                        ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
+                         , href <| Routes.toString <| jobRoute
+                         , attribute "aria-label" "Previous Page"
+                         ]
+                            ++ chevron
                                 { direction = "left"
                                 , enabled = True
                                 , hovered = model.hovered == Just PreviousPageButton
                                 }
-                        ]
+                        )
                         []
                     ]
         , case model.buildsWithResources.pagination.nextPage of
             Nothing ->
                 Html.div
-                    [ style chevronContainer ]
+                    chevronContainer
                     [ Html.div
-                        [ style <|
-                            chevron
-                                { direction = "right"
-                                , enabled = False
-                                , hovered = False
-                                }
-                        ]
+                        (chevron
+                            { direction = "right"
+                            , enabled = False
+                            , hovered = False
+                            }
+                        )
                         []
                     ]
 
@@ -613,21 +601,22 @@ viewPaginationBar model =
                         Routes.Job { id = model.jobIdentifier, page = Just page }
                 in
                 Html.div
-                    [ style chevronContainer
-                    , onMouseEnter <| Hover <| Just NextPageButton
-                    , onMouseLeave <| Hover Nothing
-                    ]
+                    ([ onMouseEnter <| Hover <| Just NextPageButton
+                     , onMouseLeave <| Hover Nothing
+                     ]
+                        ++ chevronContainer
+                    )
                     [ Html.a
-                        [ StrictEvents.onLeftClick <| GoToRoute jobRoute
-                        , href <| Routes.toString jobRoute
-                        , attribute "aria-label" "Next Page"
-                        , style <|
-                            chevron
+                        ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
+                         , href <| Routes.toString jobRoute
+                         , attribute "aria-label" "Next Page"
+                         ]
+                            ++ chevron
                                 { direction = "right"
                                 , enabled = True
                                 , hovered = model.hovered == Just NextPageButton
                                 }
-                        ]
+                        )
                         []
                     ]
         ]
@@ -681,24 +670,24 @@ viewBuildResources model buildWithResources =
     in
     [ Html.div [ class "inputs mrl" ]
         [ Html.div
-            [ style Styles.buildResourceHeader ]
+            Styles.buildResourceHeader
             [ Icon.icon
                 { sizePx = 12
                 , image = "ic-arrow-downward.svg"
                 }
-                [ style Styles.buildResourceIcon ]
+                Styles.buildResourceIcon
             , Html.text "inputs"
             ]
         , inputsTable
         ]
     , Html.div [ class "outputs mrl" ]
         [ Html.div
-            [ style Styles.buildResourceHeader ]
+            Styles.buildResourceHeader
             [ Icon.icon
                 { sizePx = 12
                 , image = "ic-arrow-upward.svg"
                 }
-                [ style Styles.buildResourceIcon ]
+                Styles.buildResourceIcon
             , Html.text "outputs"
             ]
         , outputsTable
