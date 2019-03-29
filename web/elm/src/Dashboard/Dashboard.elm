@@ -397,7 +397,7 @@ subscriptions model =
 
 documentTitle : Model -> String
 documentTitle model =
-    "Dashboard - Concourse"
+    "Dashboard"
 
 
 view : UserState -> Model -> Html Message

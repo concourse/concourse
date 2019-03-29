@@ -92,7 +92,7 @@ update msg ( model, effects ) =
 
 documentTitle : Model -> String
 documentTitle model =
-    ""
+    "Fly Login"
 
 
 view : UserState -> Model -> Html Message

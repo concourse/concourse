@@ -294,41 +294,45 @@ urlUpdate route =
 
 view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState mdl =
-    case mdl of
-        BuildModel model ->
-            { title = Build.documentTitle model
-            , body = [ Html.map Update (Build.view userState model) ]
-            }
+    let
+        ( title, body ) =
+            case mdl of
+                BuildModel model ->
+                    ( Build.documentTitle model
+                    , Build.view userState model
+                    )
 
-        JobModel model ->
-            { title = Job.documentTitle model
-            , body = [ Html.map Update (Job.view userState model) ]
-            }
+                JobModel model ->
+                    ( Job.documentTitle model
+                    , Job.view userState model
+                    )
 
-        PipelineModel model ->
-            { title = Pipeline.documentTitle model
-            , body = [ Html.map Update (Pipeline.view userState model) ]
-            }
+                PipelineModel model ->
+                    ( Pipeline.documentTitle model
+                    , Pipeline.view userState model
+                    )
 
-        ResourceModel model ->
-            { title = Resource.documentTitle model
-            , body = [ Html.map Update (Resource.view userState model) ]
-            }
+                ResourceModel model ->
+                    ( Resource.documentTitle model
+                    , Resource.view userState model
+                    )
 
-        DashboardModel model ->
-            { title = Dashboard.documentTitle model
-            , body = [ Html.map Update (Dashboard.view userState model) ]
-            }
+                DashboardModel model ->
+                    ( Dashboard.documentTitle model
+                    , Dashboard.view userState model
+                    )
 
-        NotFoundModel model ->
-            { title = NotFound.documentTitle model
-            , body = [ Html.map Update (NotFound.view userState model) ]
-            }
+                NotFoundModel model ->
+                    ( NotFound.documentTitle model
+                    , NotFound.view userState model
+                    )
 
-        FlySuccessModel model ->
-            { title = FlySuccess.documentTitle model
-            , body = [ Html.map Update (FlySuccess.view userState model) ]
-            }
+                FlySuccessModel model ->
+                    ( FlySuccess.documentTitle model
+                    , FlySuccess.view userState model
+                    )
+    in
+    { title = title ++ " - Concourse", body = [ Html.map Update body ] }
 
 
 subscriptions : Model -> List Subscription

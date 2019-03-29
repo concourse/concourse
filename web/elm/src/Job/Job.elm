@@ -393,7 +393,7 @@ isRunning build =
 
 documentTitle : Model -> String
 documentTitle model =
-    model.jobIdentifier.jobName ++ " - Concourse"
+    model.jobIdentifier.jobName
 
 
 view : UserState -> Model -> Html Message

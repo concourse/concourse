@@ -177,13 +177,13 @@ extractTitle : Model -> String
 extractTitle model =
     case ( model.currentBuild |> RemoteData.toMaybe, currentJob model, model.page ) of
         ( Just build, Just { jobName }, _ ) ->
-            jobName ++ " #" ++ build.build.name ++ " - Concourse"
+            jobName ++ " #" ++ build.build.name
 
         ( _, _, JobBuildPage { jobName, buildName } ) ->
-            jobName ++ " #" ++ buildName ++ " - Concourse"
+            jobName ++ " #" ++ buildName
 
         ( _, _, OneOffBuildPage id ) ->
-            "#" ++ String.fromInt id ++ " - Concourse"
+            "#" ++ String.fromInt id
 
 
 currentJob : Model -> Maybe Concourse.JobIdentifier

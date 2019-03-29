@@ -647,7 +647,7 @@ permalink versionedResources =
 
 documentTitle : Model -> String
 documentTitle model =
-    model.resourceIdentifier.resourceName ++ " - Concourse"
+    model.resourceIdentifier.resourceName
 
 
 view : UserState -> Model -> Html Message

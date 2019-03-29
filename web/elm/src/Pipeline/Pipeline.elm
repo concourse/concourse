@@ -377,7 +377,7 @@ subscriptions model =
 
 documentTitle : Model -> String
 documentTitle model =
-    model.pipelineLocator.pipelineName ++ " - Concourse"
+    model.pipelineLocator.pipelineName
 
 
 view : UserState -> Model -> Html Message

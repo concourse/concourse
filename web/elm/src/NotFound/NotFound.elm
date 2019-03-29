@@ -32,7 +32,7 @@ init flags =
 
 documentTitle : Model -> String
 documentTitle model =
-    "Not Found - Concourse"
+    "Not Found"
 
 
 view : UserState -> Model -> Html Message
