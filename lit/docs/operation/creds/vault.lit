@@ -59,8 +59,8 @@ quite involved.
 
   Concourse is currently limited to looking under a single path, meaning only
   one secrets engine is supported: \code{kv}, version 1. This may change in the
-  future - we're still collecting ideas in \link{(RF)RFC
-  #5}{https://github.com/concourse/rfcs/issues/5}.
+  future - we're still collecting ideas in \link{RFC
+  #21}{https://github.com/concourse/rfcs/pull/21}.
 
   So, let's configure the \code{kv} secrets engine and mount it at
   \code{/concourse}:
