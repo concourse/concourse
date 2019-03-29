@@ -45,7 +45,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		WorkerName: registration.Name,
 		Containers: registration.ActiveContainers,
 		Platform:   registration.Platform,
-		Team:       registration.Team,
+		TeamName:   registration.Team,
 		Tags:       registration.Tags,
 	}.Emit(s.logger)
 
@@ -53,7 +53,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		WorkerName: registration.Name,
 		Volumes:    registration.ActiveVolumes,
 		Platform:   registration.Platform,
-		Team:       registration.Team,
+		TeamName:   registration.Team,
 		Tags:       registration.Tags,
 	}.Emit(s.logger)
 
