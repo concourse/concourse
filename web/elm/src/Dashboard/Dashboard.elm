@@ -1,5 +1,6 @@
 module Dashboard.Dashboard exposing
-    ( handleCallback
+    ( documentTitle
+    , handleCallback
     , handleDelivery
     , init
     , subscriptions
@@ -394,15 +395,13 @@ subscriptions model =
     ]
 
 
-view : UserState -> Model -> Browser.Document TopLevelMessage
+documentTitle : Model -> String
+documentTitle model =
+    "Dashboard - Concourse"
+
+
+view : UserState -> Model -> Html Message
 view userState model =
-    { title = "Dashboard - Concourse"
-    , body = [ Html.map Update (viewHtml userState model) ]
-    }
-
-
-viewHtml : UserState -> Model -> Html Message
-viewHtml userState model =
     Html.div
         ([ id "page-including-top-bar" ]
             ++ Views.Styles.pageIncludingTopBar

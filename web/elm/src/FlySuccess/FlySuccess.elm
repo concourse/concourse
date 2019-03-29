@@ -1,5 +1,6 @@
 module FlySuccess.FlySuccess exposing
-    ( handleCallback
+    ( documentTitle
+    , handleCallback
     , init
     , update
     , view
@@ -89,13 +90,13 @@ update msg ( model, effects ) =
             ( model, effects )
 
 
-view : UserState -> Model -> Browser.Document TopLevelMessage
+documentTitle : Model -> String
+documentTitle model =
+    ""
+
+
+view : UserState -> Model -> Html Message
 view userState model =
-    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
-
-
-viewHtml : UserState -> Model -> Html Message
-viewHtml userState model =
     Html.div []
         [ Html.div
             ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)

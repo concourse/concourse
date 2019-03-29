@@ -296,25 +296,39 @@ view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState mdl =
     case mdl of
         BuildModel model ->
-            Build.view userState model
+            { title = Build.documentTitle model
+            , body = [ Html.map Update (Build.view userState model) ]
+            }
 
         JobModel model ->
-            Job.view userState model
+            { title = Job.documentTitle model
+            , body = [ Html.map Update (Job.view userState model) ]
+            }
 
         PipelineModel model ->
-            Pipeline.view userState model
+            { title = Pipeline.documentTitle model
+            , body = [ Html.map Update (Pipeline.view userState model) ]
+            }
 
         ResourceModel model ->
-            Resource.view userState model
+            { title = Resource.documentTitle model
+            , body = [ Html.map Update (Resource.view userState model) ]
+            }
 
         DashboardModel model ->
-            Dashboard.view userState model
+            { title = Dashboard.documentTitle model
+            , body = [ Html.map Update (Dashboard.view userState model) ]
+            }
 
         NotFoundModel model ->
-            NotFound.view userState model
+            { title = NotFound.documentTitle model
+            , body = [ Html.map Update (NotFound.view userState model) ]
+            }
 
         FlySuccessModel model ->
-            FlySuccess.view userState model
+            { title = FlySuccess.documentTitle model
+            , body = [ Html.map Update (FlySuccess.view userState model) ]
+            }
 
 
 subscriptions : Model -> List Subscription

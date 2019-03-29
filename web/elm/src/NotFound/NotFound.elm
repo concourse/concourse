@@ -1,4 +1,4 @@
-module NotFound.NotFound exposing (init, view)
+module NotFound.NotFound exposing (documentTitle, init, view)
 
 import Browser
 import Html exposing (Html)
@@ -30,15 +30,13 @@ init flags =
     )
 
 
-view : UserState -> Model -> Browser.Document TopLevelMessage
+documentTitle : Model -> String
+documentTitle model =
+    "Not Found - Concourse"
+
+
+view : UserState -> Model -> Html Message
 view userState model =
-    { title = "Not Found - Concourse"
-    , body = [ Html.map Update (viewHtml userState model) ]
-    }
-
-
-viewHtml : UserState -> Model -> Html Message
-viewHtml userState model =
     Html.div []
         [ Html.div
             ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)

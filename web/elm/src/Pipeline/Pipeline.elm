@@ -2,6 +2,7 @@ module Pipeline.Pipeline exposing
     ( Flags
     , Model
     , changeToPipelineAndGroups
+    , documentTitle
     , getUpdateMessage
     , handleCallback
     , handleDelivery
@@ -374,15 +375,13 @@ subscriptions model =
     ]
 
 
-view : UserState -> Model -> Browser.Document TopLevelMessage
+documentTitle : Model -> String
+documentTitle model =
+    model.pipelineLocator.pipelineName ++ " - Concourse"
+
+
+view : UserState -> Model -> Html Message
 view userState model =
-    { title = model.pipelineLocator.pipelineName ++ " - Concourse"
-    , body = [ Html.map Update (viewHtml userState model) ]
-    }
-
-
-viewHtml : UserState -> Model -> Html Message
-viewHtml userState model =
     Html.div [ Html.Attributes.style "height" "100%" ]
         [ Html.div
             ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)

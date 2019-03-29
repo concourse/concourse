@@ -1,5 +1,6 @@
 module Build.Build exposing
     ( changeToBuild
+    , documentTitle
     , getScrollBehavior
     , getUpdateMessage
     , handleCallback
@@ -736,15 +737,13 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
         ( model, effects )
 
 
-view : UserState -> Model -> Browser.Document TopLevelMessage
+documentTitle : Model -> String
+documentTitle =
+    extractTitle
+
+
+view : UserState -> Model -> Html Message
 view userState model =
-    { title = extractTitle model
-    , body = [ Html.map Update (viewHtml userState model) ]
-    }
-
-
-viewHtml : UserState -> Model -> Html Message
-viewHtml userState model =
     Html.div
         ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
         [ Html.div
