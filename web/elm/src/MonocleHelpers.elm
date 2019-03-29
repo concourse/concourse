@@ -1,34 +1,18 @@
-module MonocleHelpers exposing ((<|=), (=|>), (>>=), modifyWithEffect)
+module MonocleHelpers exposing (bind, modifyWithEffect)
 
 import Monocle.Lens
 import Monocle.Optional
-
-
-(=|>) :
-    Monocle.Optional.Optional a b
-    -> Monocle.Lens.Lens b c
-    -> Monocle.Optional.Optional a c
-(=|>) =
-    Monocle.Optional.composeLens
-
-
-(<|=) :
-    Monocle.Lens.Lens a b
-    -> Monocle.Optional.Optional b c
-    -> Monocle.Optional.Optional a c
-(<|=) =
-    Monocle.Optional.compose << Monocle.Optional.fromLens
 
 
 
 -- bind, like in Haskell
 
 
-(>>=) :
-    Monocle.Optional.Optional a b
-    -> (b -> Monocle.Optional.Optional a c)
+bind :
+    (b -> Monocle.Optional.Optional a c)
+    -> Monocle.Optional.Optional a b
     -> Monocle.Optional.Optional a c
-(>>=) opt f =
+bind f opt  =
     { getOption =
         \a ->
             opt.getOption a
@@ -49,5 +33,5 @@ modifyWithEffect :
 modifyWithEffect l f m =
     l.getOption m
         |> Maybe.map f
-        |> Maybe.map (Tuple.mapFirst (flip l.set m))
+        |> Maybe.map (Tuple.mapFirst (\a -> l.set a m))
         |> Maybe.withDefault ( m, [] )

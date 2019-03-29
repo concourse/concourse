@@ -6,7 +6,7 @@ import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, id, placeholder, style, value)
+import Html.Attributes exposing (attribute, id, placeholder, value)
 import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseDown)
 import Keycodes
 import Message.Callback exposing (Callback(..))
@@ -15,7 +15,6 @@ import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
-import Window
 
 
 searchInputId : String
@@ -80,11 +79,11 @@ showSearchInput ( model, effects ) =
             ( model, effects )
 
 
-screenResize : Window.Size -> Model -> Model
-screenResize size model =
+screenResize : Float -> Float -> Model -> Model
+screenResize width height model =
     let
         newSize =
-            ScreenSize.fromWindowSize size
+            ScreenSize.fromWindowSize width height
 
         newModel =
             { model | screenSize = newSize }
@@ -103,8 +102,13 @@ screenResize size model =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
-        ScreenResized size ->
-            ( screenResize size model, effects )
+        ScreenResized viewport ->
+            ( screenResize
+                viewport.viewport.width
+                viewport.viewport.height
+                model
+            , effects
+            )
 
         _ ->
             ( model, effects )
@@ -113,8 +117,8 @@ handleCallback callback ( model, effects ) =
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        WindowResized size ->
-            ( screenResize size model, effects )
+        WindowResized width height ->
+            ( screenResize width height model, effects )
 
         KeyUp keyCode ->
             if keyCode == Keycodes.shift then
@@ -159,14 +163,12 @@ handleDelivery delivery ( model, effects ) =
                                     Nothing ->
                                         ( model, effects )
 
-                                    Just selectedIdx ->
+                                    Just idx ->
                                         let
-                                            options =
-                                                Array.fromList <|
-                                                    dropdownOptions model
-
                                             selectedItem =
-                                                Array.get selectedIdx options
+                                                options
+                                                    |> Array.fromList
+                                                    |> Array.get idx
                                                     |> Maybe.withDefault
                                                         model.query
                                         in
@@ -217,10 +219,10 @@ arrowUp options dropdown =
                     in
                     Shown { selectedIdx = Just lastItem }
 
-                Just selectedIdx ->
+                Just idx ->
                     let
                         newSelection =
-                            (selectedIdx - 1) % List.length options
+                            modBy (List.length options) (idx - 1)
                     in
                     Shown { selectedIdx = Just newSelection }
 
@@ -236,10 +238,10 @@ arrowDown options dropdown =
                 Nothing ->
                     Shown { selectedIdx = Just 0 }
 
-                Just selectedIdx ->
+                Just idx ->
                     let
                         newSelection =
-                            (selectedIdx + 1) % List.length options
+                            modBy (List.length options) (idx + 1)
                     in
                     Shown { selectedIdx = Just newSelection }
 
@@ -274,38 +276,39 @@ view ({ screenSize, query, dropdown, groups } as params) =
 
     else if isDropDownHidden && isMobile && query == "" then
         Html.div
-            [ style <|
-                Styles.showSearchContainer params
-            ]
+            (Styles.showSearchContainer params)
             [ Html.a
-                [ id "show-search-button"
-                , onClick ShowSearchInput
-                , style Styles.searchButton
-                ]
+                ([ id "show-search-button"
+                 , onClick ShowSearchInput
+                 ]
+                    ++ Styles.searchButton
+                )
                 []
             ]
 
     else
         Html.div
-            [ id "search-container"
-            , style (Styles.searchContainer screenSize)
-            ]
+            ([ id "search-container" ]
+                ++ Styles.searchContainer screenSize
+            )
             ([ Html.input
-                [ id searchInputId
-                , style (Styles.searchInput screenSize)
-                , placeholder "search"
-                , attribute "autocomplete" "off"
-                , value query
-                , onFocus FocusMsg
-                , onBlur BlurMsg
-                , onInput FilterMsg
-                ]
+                ([ id searchInputId
+                 , placeholder "search"
+                 , attribute "autocomplete" "off"
+                 , value query
+                 , onFocus FocusMsg
+                 , onBlur BlurMsg
+                 , onInput FilterMsg
+                 ]
+                    ++ Styles.searchInput screenSize
+                )
                 []
              , Html.div
-                [ id "search-clear"
-                , onClick (FilterMsg "")
-                , style (Styles.searchClearButton (String.length query > 0))
-                ]
+                ([ id "search-clear"
+                 , onClick (FilterMsg "")
+                 ]
+                    ++ Styles.searchClearButton (String.length query > 0)
+                )
                 []
              ]
                 ++ viewDropdownItems params
@@ -330,15 +333,15 @@ viewDropdownItems ({ dropdown, screenSize } as model) =
                 dropdownItem : Int -> String -> Html Message
                 dropdownItem idx text =
                     Html.li
-                        [ onMouseDown (FilterMsg text)
-                        , style (Styles.dropdownItem (Just idx == selectedIdx))
-                        ]
+                        ([ onMouseDown (FilterMsg text) ]
+                            ++ Styles.dropdownItem (Just idx == selectedIdx)
+                        )
                         [ Html.text text ]
             in
             [ Html.ul
-                [ id "search-dropdown"
-                , style (Styles.dropdownContainer screenSize)
-                ]
+                ([ id "search-dropdown" ]
+                    ++ Styles.dropdownContainer screenSize
+                )
                 (List.indexedMap dropdownItem (dropdownOptions model))
             ]
 

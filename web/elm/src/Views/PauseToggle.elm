@@ -44,15 +44,14 @@ view margin userState { isPaused, pipeline, isToggleHovered, isToggleLoading } =
                 else
                     "ic-pause-white.svg"
             }
-            ([ style <|
-                Styles.pauseToggleIcon
+            ([ onMouseEnter <| Hover <| Just <| PipelineButton pipeline
+             , onMouseLeave <| Hover Nothing
+             ]
+                ++ Styles.pauseToggleIcon
                     { isHovered = isClickable && isToggleHovered
                     , isClickable = isClickable
                     , margin = margin
                     }
-             , onMouseEnter <| Hover <| Just <| PipelineButton pipeline
-             , onMouseLeave <| Hover Nothing
-             ]
                 ++ (if isClickable then
                         [ onClick <| TogglePipelinePaused pipeline isPaused ]
 

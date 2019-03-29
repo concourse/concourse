@@ -21,6 +21,7 @@ import Html exposing (Html)
 import Html.Attributes
     exposing
         ( class
+        , download
         , height
         , href
         , id
@@ -43,7 +44,7 @@ import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
-import Time exposing (Time)
+import Time
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views.PauseToggle as PauseToggle
@@ -64,7 +65,7 @@ type alias Model =
         , experiencingTurbulence : Bool
         , selectedGroups : List String
         , hideLegend : Bool
-        , hideLegendCounter : Time
+        , hideLegendCounter : Float
         , isToggleHovered : Bool
         , isToggleLoading : Bool
         , isPinMenuExpanded : Bool
@@ -130,14 +131,14 @@ changeToPipelineAndGroups { pipelineLocator, selectedGroups } ( model, effects )
         ( newModel, effects ++ newEffects )
 
 
-timeUntilHidden : Time
+timeUntilHidden : Float
 timeUntilHidden =
-    10 * Time.second
+    10 * 1000
 
 
-timeUntilHiddenCheckInterval : Time
+timeUntilHiddenCheckInterval : Float
 timeUntilHiddenCheckInterval =
-    1 * Time.second
+    1 * 1000
 
 
 getUpdateMessage : Model -> UpdateMsg
@@ -269,7 +270,7 @@ handleCallback callback ( model, effects ) =
             )
 
         VersionFetched (Err err) ->
-            flip always (Debug.log "failed to fetch version" err) <|
+            (\a -> always a (Debug.log "failed to fetch version" err)) <|
                 ( { model | experiencingTurbulence = True }, effects )
 
         _ ->
@@ -326,12 +327,12 @@ update msg ( model, effects ) =
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
-        TogglePipelinePaused pipelineIdentifier isPaused ->
+        TogglePipelinePaused pipelineIdentifier paused ->
             ( { model | isToggleLoading = True }
             , effects
                 ++ [ SendTogglePipelineRequest
                         pipelineIdentifier
-                        isPaused
+                        paused
                    ]
             )
 
@@ -374,17 +375,15 @@ subscriptions model =
 
 view : UserState -> Model -> Html Message
 view userState model =
-    Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
+    Html.div [ Html.Attributes.style "height" "100%" ]
         [ Html.div
-            [ Html.Attributes.style Views.Styles.pageIncludingTopBar
-            , id "page-including-top-bar"
-            ]
+            ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
             [ Html.div
-                [ id "top-bar-app"
-                , Html.Attributes.style <|
-                    Views.Styles.topBar <|
-                        isPaused model.pipeline
-                ]
+                ([ id "top-bar-app" ]
+                    ++ (Views.Styles.topBar <|
+                            isPaused model.pipeline
+                       )
+                )
                 [ TopBar.concourseLogo
                 , TopBar.breadcrumbs <|
                     Routes.Pipeline
@@ -397,11 +396,9 @@ view userState model =
                     , isPinMenuExpanded = model.isPinMenuExpanded
                     }
                 , Html.div
-                    [ id "top-bar-pause-toggle"
-                    , Html.Attributes.style <|
-                        Styles.pauseToggle <|
-                            isPaused model.pipeline
-                    ]
+                    ([ id "top-bar-pause-toggle" ]
+                        ++ (Styles.pauseToggle <| isPaused model.pipeline)
+                    )
                     [ PauseToggle.view "17px"
                         userState
                         { pipeline = model.pipelineLocator
@@ -413,9 +410,7 @@ view userState model =
                 , Login.view userState model <| isPaused model.pipeline
                 ]
             , Html.div
-                [ Html.Attributes.style Views.Styles.pipelinePageBelowTopBar
-                , id "page-below-top-bar"
-                ]
+                ([ id "page-below-top-bar" ] ++ Views.Styles.pipelinePageBelowTopBar)
                 [ viewSubPage model ]
             ]
         ]
@@ -429,23 +424,21 @@ viewPinMenu :
     -> Html Message
 viewPinMenu ({ pinnedResources, pipeline, isPinMenuExpanded } as params) =
     Html.div
-        [ Html.Attributes.style <|
-            Styles.pinIconContainer isPinMenuExpanded
-        , id "pin-icon"
-        ]
+        ([ id "pin-icon" ]
+            ++ Styles.pinIconContainer isPinMenuExpanded
+        )
         [ if List.length pinnedResources > 0 then
             Html.div
-                [ Html.Attributes.style <| Styles.pinIcon
-                , onMouseEnter <| Hover <| Just PinIcon
-                , onMouseLeave <| Hover Nothing
-                ]
+                ([ onMouseEnter <| Hover <| Just PinIcon
+                 , onMouseLeave <| Hover Nothing
+                 ]
+                    ++ Styles.pinIcon
+                )
                 ([ Html.div
-                    [ Html.Attributes.style Styles.pinBadge
-                    , id "pin-badge"
-                    ]
+                    ([ id "pin-badge" ] ++ Styles.pinBadge)
                     [ Html.div []
                         [ Html.text <|
-                            toString <|
+                            String.fromInt <|
                                 List.length pinnedResources
                         ]
                     ]
@@ -454,7 +447,7 @@ viewPinMenu ({ pinnedResources, pipeline, isPinMenuExpanded } as params) =
                 )
 
           else
-            Html.div [ Html.Attributes.style <| Styles.pinIcon ] []
+            Html.div Styles.pinIcon []
         ]
 
 
@@ -467,12 +460,12 @@ viewPinMenuDropdown :
 viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
     if isPinMenuExpanded then
         [ Html.ul
-            [ Html.Attributes.style Styles.pinIconDropdown ]
+            Styles.pinIconDropdown
             (pinnedResources
                 |> List.map
                     (\( resourceName, pinnedVersion ) ->
                         Html.li
-                            [ onClick <|
+                            ([ onClick <|
                                 GoToRoute <|
                                     Routes.Resource
                                         { id =
@@ -482,10 +475,11 @@ viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
                                             }
                                         , page = Nothing
                                         }
-                            , Html.Attributes.style Styles.pinDropdownCursor
-                            ]
+                             ]
+                                ++ Styles.pinDropdownCursor
+                            )
                             [ Html.div
-                                [ Html.Attributes.style Styles.pinText ]
+                                Styles.pinText
                                 [ Html.text resourceName ]
                             , Html.table []
                                 (pinnedVersion
@@ -501,7 +495,7 @@ viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
                             ]
                     )
             )
-        , Html.div [ Html.Attributes.style Styles.pinHoverHighlight ] []
+        , Html.div Styles.pinHoverHighlight []
         ]
 
     else
@@ -549,8 +543,7 @@ viewSubPage model =
                     , Html.dt [ class "paused" ] []
                     , Html.dd [] [ Html.text "paused" ]
                     , Html.dt
-                        [ Html.Attributes.style
-                            [ ( "background-color", Colors.pinned ) ]
+                        [ Html.Attributes.style "background-color" Colors.pinned
                         ]
                         []
                     , Html.dd [] [ Html.text "pinned" ]
@@ -574,11 +567,12 @@ viewSubPage model =
                                 (\cli ->
                                     Html.li []
                                         [ Html.a
-                                            [ href <| Cli.downloadUrl cli
-                                            , ariaLabel <| Cli.label cli
-                                            , Html.Attributes.style <|
-                                                Styles.cliIcon cli
-                                            ]
+                                            ([ href <| Cli.downloadUrl cli
+                                             , ariaLabel <| Cli.label cli
+                                             , download ""
+                                             ]
+                                                ++ Styles.cliIcon cli
+                                            )
                                             []
                                         ]
                                 )
@@ -623,13 +617,8 @@ viewGroupsBar model =
 
     else
         Html.nav
-            [ id "groups-bar"
-            , Html.Attributes.style Styles.groupsBar
-            ]
-            [ Html.ul
-                [ Html.Attributes.style Styles.groupsList ]
-                groupList
-            ]
+            ([ id "groups-bar" ] ++ Styles.groupsBar)
+            [ Html.ul Styles.groupsList groupList ]
 
 
 viewGroup :
@@ -648,12 +637,13 @@ viewGroup { selectedGroups, pipelineLocator } grp =
     Html.li
         []
         [ Html.a
-            [ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
-            , Html.Attributes.style <| Styles.groupItem <| List.member grp.name selectedGroups
-            , onLeftClickOrShiftLeftClick
+            ([ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
+             , onLeftClickOrShiftLeftClick
                 (SetGroups [ grp.name ])
                 (ToggleGroup grp)
-            ]
+             ]
+                ++ (Styles.groupItem <| List.member grp.name selectedGroups)
+            )
             [ Html.text grp.name ]
         ]
 
@@ -669,7 +659,7 @@ jobAppearsInGroups groupNames pi jobJson =
             anyIntersect cj.groups groupNames
 
         Err err ->
-            flip always (Debug.log "failed to check if job is in group" err) <|
+            (\a -> always a (Debug.log "failed to check if job is in group" err)) <|
                 False
 
 
@@ -689,7 +679,7 @@ expandJsonList flatList =
 
 filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
 filterJobs model value =
-    Json.Encode.list <|
+    Json.Encode.list identity <|
         List.filter
             (jobAppearsInGroups (activeGroups model) model.pipelineLocator)
             (expandJsonList value)
@@ -783,8 +773,8 @@ selectedGroupsOrDefault model =
 getDefaultSelectedGroups : WebData Concourse.Pipeline -> List String
 getDefaultSelectedGroups pipeline =
     case pipeline of
-        RemoteData.Success pipeline ->
-            case List.head pipeline.groups of
+        RemoteData.Success p ->
+            case List.head p.groups of
                 Nothing ->
                     []
 

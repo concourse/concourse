@@ -150,32 +150,32 @@ genericUpdate :
     -> ET Model
 genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
     case model of
-        BuildModel model ->
-            fBuild ( model, effects )
+        BuildModel buildModel ->
+            fBuild ( buildModel, effects )
                 |> Tuple.mapFirst BuildModel
 
-        JobModel model ->
-            fJob ( model, effects )
+        JobModel jobModel ->
+            fJob ( jobModel, effects )
                 |> Tuple.mapFirst JobModel
 
-        PipelineModel model ->
-            fPipe ( model, effects )
+        PipelineModel pipelineModel ->
+            fPipe ( pipelineModel, effects )
                 |> Tuple.mapFirst PipelineModel
 
-        ResourceModel model ->
-            fRes ( model, effects )
+        ResourceModel resourceModel ->
+            fRes ( resourceModel, effects )
                 |> Tuple.mapFirst ResourceModel
 
-        DashboardModel model ->
-            fDash ( model, effects )
+        DashboardModel dashboardModel ->
+            fDash ( dashboardModel, effects )
                 |> Tuple.mapFirst DashboardModel
 
-        FlySuccessModel model ->
-            fFS ( model, effects )
+        FlySuccessModel flySuccessModel ->
+            fFS ( flySuccessModel, effects )
                 |> Tuple.mapFirst FlySuccessModel
 
-        NotFoundModel model ->
-            fNF ( model, effects )
+        NotFoundModel notFoundModel ->
+            fNF ( notFoundModel, effects )
                 |> Tuple.mapFirst NotFoundModel
 
 
@@ -208,11 +208,7 @@ handleCallback callback =
 handleLoggedOut : ET { a | isUserMenuExpanded : Bool }
 handleLoggedOut ( m, effs ) =
     ( { m | isUserMenuExpanded = False }
-    , effs
-        ++ [ NavigateTo <|
-                Routes.toString <|
-                    Routes.dashboardRoute False
-           ]
+    , effs ++ [ NavigateTo <| Routes.toString <| Routes.dashboardRoute False ]
     )
 
 

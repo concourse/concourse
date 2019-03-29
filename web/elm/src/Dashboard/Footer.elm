@@ -6,7 +6,7 @@ import Dashboard.Group.Models exposing (Group)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, href, id, style)
+import Html.Attributes exposing (attribute, class, download, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Effects as Effects
 import Message.Message exposing (Hoverable(..), Message(..))
@@ -119,13 +119,12 @@ infoBar :
     -> Html Message
 infoBar model =
     Html.div
-        [ id "dashboard-info"
-        , style <|
-            Styles.infoBar
+        ([ id "dashboard-info" ]
+            ++ Styles.infoBar
                 { hideLegend = hideLegend model
                 , screenSize = model.screenSize
                 }
-        ]
+        )
         [ legend model
         , concourseInfo model
         ]
@@ -144,21 +143,20 @@ legend model =
 
     else
         Html.div
-            [ id "legend"
-            , style Styles.legend
-            ]
+            ([ id "legend" ] ++ Styles.legend)
         <|
             List.map legendItem
                 [ PipelineStatusPending False
                 , PipelineStatusPaused
                 ]
-                ++ [ Html.div [ style Styles.legendItem ]
+                ++ [ Html.div
+                        Styles.legendItem
                         [ Icon.icon
                             { sizePx = 20
                             , image = "ic-running-legend.svg"
                             }
                             []
-                        , Html.div [ style [ ( "width", "10px" ) ] ] []
+                        , Html.div [ style "width" "10px" ] []
                         , Html.text "running"
                         ]
                    ]
@@ -176,12 +174,13 @@ concourseInfo :
     { a | version : String, hovered : Maybe Hoverable }
     -> Html Message
 concourseInfo { version, hovered } =
-    Html.div [ id "concourse-info", style Styles.info ]
-        [ Html.div [ style Styles.infoItem ]
+    Html.div ([ id "concourse-info" ] ++ Styles.info)
+        [ Html.div
+            Styles.infoItem
             [ Html.text <| "version: v" ++ version ]
-        , Html.div [ style Styles.infoItem ] <|
+        , Html.div Styles.infoItem <|
             [ Html.span
-                [ style [ ( "margin-right", "10px" ) ] ]
+                [ style "margin-right" "10px" ]
                 [ Html.text "cli: " ]
             ]
                 ++ List.map (cliIcon hovered) Cli.clis
@@ -195,9 +194,10 @@ hideLegend { groups } =
 
 legendItem : PipelineStatus -> Html Message
 legendItem status =
-    Html.div [ style Styles.legendItem ]
+    Html.div
+        Styles.legendItem
         [ PipelineStatus.icon status
-        , Html.div [ style [ ( "width", "10px" ) ] ] []
+        , Html.div [ style "width" "10px" ] []
         , Html.text <| PipelineStatus.show status
         ]
 
@@ -205,11 +205,12 @@ legendItem status =
 toggleView : Bool -> Html Message
 toggleView highDensity =
     Html.a
-        [ style Styles.highDensityToggle
-        , href <| Routes.toString <| Routes.dashboardRoute (not highDensity)
-        , attribute "aria-label" "Toggle high-density view"
-        ]
-        [ Html.div [ style <| Styles.highDensityIcon highDensity ] []
+        ([ href <| Routes.toString <| Routes.dashboardRoute (not highDensity)
+         , attribute "aria-label" "Toggle high-density view"
+         ]
+            ++ Styles.highDensityToggle
+        )
+        [ Html.div (Styles.highDensityIcon highDensity) []
         , Html.text "high-density"
         ]
 
@@ -221,30 +222,25 @@ legendSeparator screenSize =
             []
 
         ScreenSize.Desktop ->
-            [ Html.div
-                [ style Styles.legendSeparator ]
-                [ Html.text "|" ]
-            ]
+            [ Html.div Styles.legendSeparator [ Html.text "|" ] ]
 
         ScreenSize.BigDesktop ->
-            [ Html.div
-                [ style Styles.legendSeparator ]
-                [ Html.text "|" ]
-            ]
+            [ Html.div Styles.legendSeparator [ Html.text "|" ] ]
 
 
 cliIcon : Maybe Hoverable -> Cli.Cli -> Html Message
 cliIcon hovered cli =
     Html.a
-        [ href (Cli.downloadUrl cli)
-        , attribute "aria-label" <| Cli.label cli
-        , style <|
-            Styles.infoCliIcon
+        ([ href <| Cli.downloadUrl cli
+         , attribute "aria-label" <| Cli.label cli
+         , id <| "cli-" ++ Cli.id cli
+         , onMouseEnter <| Hover <| Just <| FooterCliIcon cli
+         , onMouseLeave <| Hover Nothing
+         , download ""
+         ]
+            ++ Styles.infoCliIcon
                 { hovered = hovered == (Just <| FooterCliIcon cli)
                 , cli = cli
                 }
-        , id <| "cli-" ++ Cli.id cli
-        , onMouseEnter <| Hover <| Just <| FooterCliIcon cli
-        , onMouseLeave <| Hover Nothing
-        ]
+        )
         []
