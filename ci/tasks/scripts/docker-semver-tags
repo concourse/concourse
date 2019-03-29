@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e -u
+
+version=$(cat version/version)
+latest_of_same_major_version=$(cat latest-of-same-major-version/version)
+latest_version=$(cat latest-version/version)
+
+major_version=$(echo $version | cut -d. -f1)
+minor_version=$(echo $version | cut -d. -f1,2)
+
+latest_minor_version=$(echo $latest_version | cut -d. -f1,2)
+latest_minor_of_same_major_version=$(echo $latest_of_same_major_version | cut -d. -f1,2)
+
+echo $version       >> tags/tags
+echo $minor_version >> tags/tags
+
+# if the version we're publishing is for the latest minor version *of our major
+# version*, bump the major tag
+if [ "$minor_version" = "$latest_minor_of_same_major_version" ]; then
+  echo $major_version >> tags/tags
+fi
+
+# if the version we're publishing is for the latest minor version, *overall*,
+# bump the latest tag
+if [ "$minor_version" = "$latest_minor_version" ]; then
+  echo latest >> tags/tags
+fi

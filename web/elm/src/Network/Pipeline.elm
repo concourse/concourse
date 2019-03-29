@@ -1,7 +1,6 @@
 module Network.Pipeline exposing (fetchPipeline, fetchPipelines, order, togglePause)
 
 import Concourse
-import Concourse.PipelineStatus
 import Http
 import Json.Decode
 import Json.Encode
@@ -16,7 +15,7 @@ order teamName pipelineNames csrfToken =
             , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/ordering"
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , expect = Http.expectStringResponse (always (Ok ()))
-            , body = Http.jsonBody (Json.Encode.list (List.map Json.Encode.string pipelineNames))
+            , body = Http.jsonBody (Json.Encode.list Json.Encode.string pipelineNames)
             , timeout = Nothing
             , withCredentials = False
             }
@@ -39,13 +38,13 @@ fetchPipelines =
 
 
 togglePause :
-    Concourse.PipelineStatus.PipelineStatus
+    Bool
     -> String
     -> String
     -> Concourse.CSRFToken
     -> Task Http.Error ()
-togglePause status =
-    if status == Concourse.PipelineStatus.PipelineStatusPaused then
+togglePause isPaused =
+    if isPaused then
         putAction "unpause"
 
     else

@@ -28,6 +28,23 @@ type FakeWorkerProvider struct {
 		result2 bool
 		result3 error
 	}
+	FindWorkerForVolumeStub        func(lager.Logger, int, string) (worker.Worker, bool, error)
+	findWorkerForVolumeMutex       sync.RWMutex
+	findWorkerForVolumeArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 int
+		arg3 string
+	}
+	findWorkerForVolumeReturns struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}
+	findWorkerForVolumeReturnsOnCall map[int]struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}
 	FindWorkersForContainerByOwnerStub        func(lager.Logger, db.ContainerOwner) ([]worker.Worker, error)
 	findWorkersForContainerByOwnerMutex       sync.RWMutex
 	findWorkersForContainerByOwnerArgsForCall []struct {
@@ -135,6 +152,74 @@ func (fake *FakeWorkerProvider) FindWorkerForContainerReturnsOnCall(i int, resul
 		})
 	}
 	fake.findWorkerForContainerReturnsOnCall[i] = struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForVolume(arg1 lager.Logger, arg2 int, arg3 string) (worker.Worker, bool, error) {
+	fake.findWorkerForVolumeMutex.Lock()
+	ret, specificReturn := fake.findWorkerForVolumeReturnsOnCall[len(fake.findWorkerForVolumeArgsForCall)]
+	fake.findWorkerForVolumeArgsForCall = append(fake.findWorkerForVolumeArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 int
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("FindWorkerForVolume", []interface{}{arg1, arg2, arg3})
+	fake.findWorkerForVolumeMutex.Unlock()
+	if fake.FindWorkerForVolumeStub != nil {
+		return fake.FindWorkerForVolumeStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.findWorkerForVolumeReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForVolumeCallCount() int {
+	fake.findWorkerForVolumeMutex.RLock()
+	defer fake.findWorkerForVolumeMutex.RUnlock()
+	return len(fake.findWorkerForVolumeArgsForCall)
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForVolumeCalls(stub func(lager.Logger, int, string) (worker.Worker, bool, error)) {
+	fake.findWorkerForVolumeMutex.Lock()
+	defer fake.findWorkerForVolumeMutex.Unlock()
+	fake.FindWorkerForVolumeStub = stub
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForVolumeArgsForCall(i int) (lager.Logger, int, string) {
+	fake.findWorkerForVolumeMutex.RLock()
+	defer fake.findWorkerForVolumeMutex.RUnlock()
+	argsForCall := fake.findWorkerForVolumeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForVolumeReturns(result1 worker.Worker, result2 bool, result3 error) {
+	fake.findWorkerForVolumeMutex.Lock()
+	defer fake.findWorkerForVolumeMutex.Unlock()
+	fake.FindWorkerForVolumeStub = nil
+	fake.findWorkerForVolumeReturns = struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForVolumeReturnsOnCall(i int, result1 worker.Worker, result2 bool, result3 error) {
+	fake.findWorkerForVolumeMutex.Lock()
+	defer fake.findWorkerForVolumeMutex.Unlock()
+	fake.FindWorkerForVolumeStub = nil
+	if fake.findWorkerForVolumeReturnsOnCall == nil {
+		fake.findWorkerForVolumeReturnsOnCall = make(map[int]struct {
+			result1 worker.Worker
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findWorkerForVolumeReturnsOnCall[i] = struct {
 		result1 worker.Worker
 		result2 bool
 		result3 error
@@ -336,6 +421,8 @@ func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.findWorkerForContainerMutex.RLock()
 	defer fake.findWorkerForContainerMutex.RUnlock()
+	fake.findWorkerForVolumeMutex.RLock()
+	defer fake.findWorkerForVolumeMutex.RUnlock()
 	fake.findWorkersForContainerByOwnerMutex.RLock()
 	defer fake.findWorkersForContainerByOwnerMutex.RUnlock()
 	fake.newGardenWorkerMutex.RLock()

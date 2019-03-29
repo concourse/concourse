@@ -10,7 +10,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
@@ -58,8 +57,6 @@ type ContainerProvider interface {
 		delegate ImageFetchingDelegate,
 		metadata db.ContainerMetadata,
 		containerSpec ContainerSpec,
-		workerSpec WorkerSpec,
-		resourceTypes creds.VersionedResourceTypes,
 		image Image,
 	) (Container, error)
 }
@@ -97,8 +94,6 @@ func (p *containerProvider) FindOrCreateContainer(
 	delegate ImageFetchingDelegate,
 	metadata db.ContainerMetadata,
 	containerSpec ContainerSpec,
-	workerSpec WorkerSpec,
-	resourceTypes creds.VersionedResourceTypes,
 	image Image,
 ) (Container, error) {
 	var (

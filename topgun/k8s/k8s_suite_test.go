@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -39,6 +41,8 @@ type environment struct {
 var (
 	Environment environment
 	fly         Fly
+	namespace   string
+	releaseName string
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -67,6 +71,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	envBytes, err := json.Marshal(parsedEnv)
 	Expect(err).ToNot(HaveOccurred())
 
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	return envBytes
 }, func(data []byte) {
 	err := json.Unmarshal(data, &Environment)
@@ -74,6 +80,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
+
+	SetDefaultEventuallyTimeout(30 * time.Second)
+	SetDefaultConsistentlyDuration(30 * time.Second)
+
 	tmp, err := ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
@@ -86,6 +96,11 @@ var _ = BeforeEach(func() {
 	err = os.Mkdir(fly.Home, 0755)
 	Expect(err).ToNot(HaveOccurred())
 })
+
+func setReleaseNameAndNamespace(description string) {
+	releaseName = fmt.Sprintf("topgun-"+description+"-%d-%d", rand.Int(), GinkgoParallelNode())
+	namespace = releaseName
+}
 
 type pod struct {
 	Status struct {
@@ -222,7 +237,6 @@ func deletePods(namespace string, flags ...string) []string {
 
 	return podNames
 }
-
 
 func startPortForwarding(namespace, resource, port string) (*gexec.Session, string) {
 	session := Start(nil, "kubectl", "port-forward", "--namespace="+namespace, resource, ":"+port)

@@ -10,14 +10,12 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-
 	"github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	"github.com/lib/pq"
-
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . Conn
@@ -121,7 +119,7 @@ var encryptedColumns = map[string]string{
 	"resources":      "config",
 	"jobs":           "config",
 	"resource_types": "config",
-	"builds":         "engine_metadata",
+	"builds":         "private_plan",
 }
 
 func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *encryption.Key) error {

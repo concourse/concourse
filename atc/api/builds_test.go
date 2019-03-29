@@ -5,21 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine/enginefakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Builds API", func() {
@@ -38,7 +33,6 @@ var _ = Describe("Builds API", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			fakeaccess = new(accessorfakes.FakeAccess)
 			plan = atc.Plan{
 				Task: &atc.TaskPlan{
 					Config: &atc.TaskConfig{
@@ -48,7 +42,6 @@ var _ = Describe("Builds API", func() {
 					},
 				},
 			}
-			fakeaccess.IsAuthenticatedReturns(true)
 		})
 
 		JustBeforeEach(func() {
@@ -66,52 +59,64 @@ var _ = Describe("Builds API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authorized", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(false)
 			})
 
-			Context("when creating a one-off build succeeds", func() {
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not trigger a build", func() {
+				Expect(dbTeam.CreateStartedBuildCallCount()).To(BeZero())
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when not authorized", func() {
 				BeforeEach(func() {
-					dbTeam.CreateOneOffBuildStub = func() (db.Build, error) {
-						Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
-						teamName := dbTeamFactory.FindTeamArgsForCall(0)
-						build.IDReturns(42)
-						build.NameReturns("1")
-						build.TeamNameReturns(teamName)
-						build.StatusReturns(db.BuildStatusStarted)
-						build.StartTimeReturns(time.Unix(1, 0))
-						build.EndTimeReturns(time.Unix(100, 0))
-						build.ReapTimeReturns(time.Unix(200, 0))
-						return build, nil
-					}
+					fakeaccess.IsAuthorizedReturns(false)
 				})
 
-				Context("and building succeeds", func() {
-					var fakeEngineBuild *enginefakes.FakeBuild
-					var resumed <-chan struct{}
-					var blockForever *sync.WaitGroup
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
 
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthorizedReturns(true)
+				})
+
+				Context("when creating a started build fails", func() {
 					BeforeEach(func() {
-						fakeEngineBuild = new(enginefakes.FakeBuild)
-
-						blockForever = new(sync.WaitGroup)
-
-						forever := blockForever
-						forever.Add(1)
-
-						r := make(chan struct{})
-						resumed = r
-						fakeEngineBuild.ResumeStub = func(lager.Logger) {
-							close(r)
-							forever.Wait()
-						}
-
-						fakeEngine.CreateBuildReturns(fakeEngineBuild, nil)
+						dbTeam.CreateStartedBuildReturns(nil, errors.New("oh no!"))
 					})
 
-					AfterEach(func() {
-						blockForever.Done()
+					It("returns 500 Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when creating a started build succeeds", func() {
+					var fakeBuild *dbfakes.FakeBuild
+
+					BeforeEach(func() {
+						fakeBuild = new(dbfakes.FakeBuild)
+						fakeBuild.IDReturns(42)
+						fakeBuild.NameReturns("1")
+						fakeBuild.TeamNameReturns("some-team")
+						fakeBuild.StatusReturns("started")
+						fakeBuild.StartTimeReturns(time.Unix(1, 0))
+						fakeBuild.EndTimeReturns(time.Unix(100, 0))
+						fakeBuild.ReapTimeReturns(time.Unix(200, 0))
+
+						dbTeam.CreateStartedBuildReturns(fakeBuild, nil)
 					})
 
 					It("returns 201 Created", func() {
@@ -122,7 +127,12 @@ var _ = Describe("Builds API", func() {
 						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 					})
 
-					It("creates build for specified team", func() {
+					It("creates a started build", func() {
+						Expect(dbTeam.CreateStartedBuildCallCount()).To(Equal(1))
+						Expect(dbTeam.CreateStartedBuildArgsForCall(0)).To(Equal(plan))
+					})
+
+					It("returns the created build", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
@@ -138,56 +148,11 @@ var _ = Describe("Builds API", func() {
 						}`))
 					})
 
-					It("creates a one-off build and runs it asynchronously", func() {
-						Expect(dbTeam.CreateOneOffBuildCallCount()).To(Equal(1))
-
-						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-						_, oneOffBuild, builtPlan := fakeEngine.CreateBuildArgsForCall(0)
-						Expect(oneOffBuild).To(Equal(build))
-
-						Expect(builtPlan).To(Equal(plan))
-
-						<-resumed
-					})
 				})
-
-				Context("and building fails", func() {
-					BeforeEach(func() {
-						fakeEngine.CreateBuildReturns(nil, errors.New("oh no!"))
-					})
-
-					It("returns 500 Internal Server Error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
-			})
-
-			Context("when creating a one-off build fails", func() {
-				BeforeEach(func() {
-					dbTeam.CreateOneOffBuildReturns(nil, errors.New("oh no!"))
-				})
-
-				It("returns 500 Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
-			})
-
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-			})
-
-			It("does not trigger a build", func() {
-				Expect(dbTeam.CreateOneOffBuildCallCount()).To(BeZero())
-				Expect(fakeEngine.CreateBuildCallCount()).To(BeZero())
 			})
 		})
 	})
+
 	Describe("GET /api/v1/builds", func() {
 		var response *http.Response
 		var queryParams string
@@ -999,74 +964,28 @@ var _ = Describe("Builds API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
-			Context("when the build can be found", func() {
+			Context("when looking up the build fails", func() {
 				BeforeEach(func() {
-					build.TeamNameReturns("some-team")
-					dbBuildFactory.BuildReturns(build, true, nil)
+					dbBuildFactory.BuildReturns(nil, false, errors.New("nope"))
 				})
 
-				Context("when accessing same team's build", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(true)
-					})
-
-					Context("when the engine returns a build", func() {
-						var engineBuild *enginefakes.FakeBuild
-
-						BeforeEach(func() {
-							engineBuild = new(enginefakes.FakeBuild)
-							fakeEngine.LookupBuildReturns(engineBuild, nil)
-						})
-
-						It("aborts the build", func() {
-							Expect(engineBuild.AbortCallCount()).To(Equal(1))
-						})
-
-						Context("when aborting succeeds", func() {
-							BeforeEach(func() {
-								engineBuild.AbortReturns(nil)
-							})
-
-							It("returns 204", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
-							})
-						})
-
-						Context("when aborting fails", func() {
-							BeforeEach(func() {
-								engineBuild.AbortReturns(errors.New("oh no!"))
-							})
-
-							It("returns 500", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							})
-						})
-					})
-
-					Context("when the engine returns no build", func() {
-						BeforeEach(func() {
-							fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
-						})
-
-						It("returns Internal Server Error", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-					})
-				})
-
-				Context("when accessing other team's build", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(false)
-					})
-
-					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-					})
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
@@ -1075,29 +994,52 @@ var _ = Describe("Builds API", func() {
 					dbBuildFactory.BuildReturns(nil, false, nil)
 				})
 
-				It("returns Not Found", func() {
+				It("returns 404", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
-			Context("when calling the database fails", func() {
+			Context("when the build is found", func() {
 				BeforeEach(func() {
-					dbBuildFactory.BuildReturns(nil, false, errors.New("nope"))
+					build.TeamNameReturns("some-team")
+					dbBuildFactory.BuildReturns(build, true, nil)
 				})
 
-				It("returns Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				Context("when not authorized", func() {
+					BeforeEach(func() {
+						fakeaccess.IsAuthorizedReturns(false)
+					})
+
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
 				})
-			})
-		})
 
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
-			})
+				Context("when authorized", func() {
+					BeforeEach(func() {
+						fakeaccess.IsAuthorizedReturns(true)
+					})
 
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					Context("when aborting the build fails", func() {
+						BeforeEach(func() {
+							build.MarkAsAbortedReturns(errors.New("nope"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when aborting succeeds", func() {
+						BeforeEach(func() {
+							build.MarkAsAbortedReturns(nil)
+						})
+
+						It("returns 204", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+						})
+					})
+				})
 			})
 		})
 	})
@@ -1327,15 +1269,10 @@ var _ = Describe("Builds API", func() {
 		})
 
 		Context("when the build is found", func() {
-			var engineBuild *enginefakes.FakeBuild
-
 			BeforeEach(func() {
 				build.JobNameReturns("job1")
 				build.TeamNameReturns("some-team")
 				dbBuildFactory.BuildReturns(build, true, nil)
-
-				engineBuild = new(enginefakes.FakeBuild)
-				fakeEngine.LookupBuildReturns(engineBuild, nil)
 			})
 
 			Context("when authenticated, but not authorized", func() {
@@ -1439,7 +1376,7 @@ var _ = Describe("Builds API", func() {
 				Context("when the build returns a plan", func() {
 					BeforeEach(func() {
 						build.PublicPlanReturns(plan)
-						build.EngineReturns("some-schema")
+						build.SchemaReturns("some-schema")
 					})
 
 					It("returns OK", func() {
@@ -1480,389 +1417,6 @@ var _ = Describe("Builds API", func() {
 
 			It("returns 500 Internal Server Error", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
-	})
-
-	Describe("PUT /api/v1/builds/:build_id/plan/:plan_id/input", func() {
-		var (
-			otherTracker *ghttp.Server
-
-			response *http.Response
-		)
-
-		BeforeEach(func() {
-			otherTracker = ghttp.NewServer()
-
-			otherTracker.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", "/api/v1/builds/128/plan/some-plan/input"),
-					ghttp.VerifyBody([]byte("some-payload")),
-					ghttp.RespondWith(http.StatusTeapot, "im a teapot"),
-				),
-			)
-		})
-
-		JustBeforeEach(func() {
-			var err error
-
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/builds/128/plan/some-plan/input", bytes.NewBufferString("some-payload"))
-			Expect(err).NotTo(HaveOccurred())
-
-			response, err = client.Do(req)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			otherTracker.Close()
-		})
-
-		Context("when authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-			})
-
-			Context("when the build can be found", func() {
-				BeforeEach(func() {
-					build.TeamNameReturns("some-team")
-					dbBuildFactory.BuildReturns(build, true, nil)
-				})
-
-				Context("when accessing same teams build", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(true)
-					})
-
-					Context("when the build is tracked by the current ATC", func() {
-						BeforeEach(func() {
-							build.TrackerReturns("http://127.0.0.1:1234")
-						})
-
-						Context("when the engine returns a build", func() {
-							var engineBuild *enginefakes.FakeBuild
-							var streamedBody string
-
-							BeforeEach(func() {
-								engineBuild = new(enginefakes.FakeBuild)
-								fakeEngine.LookupBuildReturns(engineBuild, nil)
-
-								engineBuild.ReceiveInputStub = func(logger lager.Logger, id atc.PlanID, stream io.ReadCloser) {
-									p, err := ioutil.ReadAll(stream)
-									Expect(err).ToNot(HaveOccurred())
-
-									streamedBody = string(p)
-								}
-							})
-
-							It("sends the request body to the plan", func() {
-								Expect(engineBuild.ReceiveInputCallCount()).To(Equal(1))
-
-								_, id, _ := engineBuild.ReceiveInputArgsForCall(0)
-								Expect(id).To(Equal(atc.PlanID("some-plan")))
-								Expect(streamedBody).To(Equal("some-payload"))
-							})
-
-							It("returns No Content", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
-							})
-
-							Context("when the build is initially not tracked", func() {
-								BeforeEach(func() {
-									build.ReloadReturns(true, nil)
-
-									build.TrackerReturnsOnCall(0, "")
-									build.TrackerReturnsOnCall(2, "http://127.0.0.1:1234")
-								})
-
-								It("waits until it is", func() {
-									Expect(response.StatusCode).To(Equal(http.StatusNoContent))
-
-									Expect(engineBuild.ReceiveInputCallCount()).To(Equal(1))
-
-									_, id, _ := engineBuild.ReceiveInputArgsForCall(0)
-									Expect(id).To(Equal(atc.PlanID("some-plan")))
-									Expect(streamedBody).To(Equal("some-payload"))
-								})
-							})
-						})
-
-						Context("when the engine returns no build", func() {
-							BeforeEach(func() {
-								fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
-							})
-
-							It("returns Internal Server Error", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							})
-						})
-					})
-
-					Context("when the build is tracked by another ATC", func() {
-						BeforeEach(func() {
-							build.TrackerReturns(otherTracker.URL())
-						})
-
-						It("does not bother looking up the build in the engine", func() {
-							Expect(fakeEngine.LookupBuildCallCount()).To(Equal(0))
-						})
-
-						It("forwards the request to the other ATC", func() {
-							Expect(otherTracker.ReceivedRequests()).To(HaveLen(1))
-							Expect(response.StatusCode).To(Equal(http.StatusTeapot))
-							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("im a teapot")))
-						})
-
-						Context("when the build is initially not tracked", func() {
-							BeforeEach(func() {
-								build.ReloadReturns(true, nil)
-
-								build.TrackerReturnsOnCall(0, "")
-								build.TrackerReturnsOnCall(2, otherTracker.URL())
-							})
-
-							It("waits until it is", func() {
-								Expect(fakeEngine.LookupBuildCallCount()).To(Equal(0))
-
-								Expect(otherTracker.ReceivedRequests()).To(HaveLen(1))
-								Expect(response.StatusCode).To(Equal(http.StatusTeapot))
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("im a teapot")))
-							})
-						})
-					})
-				})
-
-				Context("when accessing other teams build", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(false)
-					})
-
-					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-					})
-				})
-			})
-
-			Context("when the build can not be found", func() {
-				BeforeEach(func() {
-					dbBuildFactory.BuildReturns(nil, false, nil)
-				})
-
-				It("returns Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when calling the database fails", func() {
-				BeforeEach(func() {
-					dbBuildFactory.BuildReturns(nil, false, errors.New("nope"))
-				})
-
-				It("returns Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
-			})
-
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-			})
-
-			It("does not abort the build", func() {
-				Expect(otherTracker.ReceivedRequests()).To(BeEmpty())
-			})
-		})
-	})
-
-	Describe("GET /api/v1/builds/:build_id/plan/:plan_id/output", func() {
-		var (
-			otherTracker *ghttp.Server
-
-			response *http.Response
-		)
-
-		BeforeEach(func() {
-			otherTracker = ghttp.NewServer()
-
-			otherTracker.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/builds/128/plan/some-plan/output"),
-					ghttp.RespondWith(http.StatusTeapot, "im a teapot"),
-				),
-			)
-		})
-
-		JustBeforeEach(func() {
-			var err error
-
-			req, err := http.NewRequest("GET", server.URL+"/api/v1/builds/128/plan/some-plan/output", nil)
-			Expect(err).NotTo(HaveOccurred())
-
-			response, err = client.Do(req)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			otherTracker.Close()
-		})
-
-		Context("when authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-			})
-
-			Context("when the build can be found", func() {
-				BeforeEach(func() {
-					build.TeamNameReturns("some-team")
-					dbBuildFactory.BuildReturns(build, true, nil)
-				})
-
-				Context("when accessing same team's build", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(true)
-					})
-
-					Context("when the build is tracked by the current ATC", func() {
-						BeforeEach(func() {
-							build.TrackerReturns("http://127.0.0.1:1234")
-						})
-
-						Context("when the engine returns a build", func() {
-							var engineBuild *enginefakes.FakeBuild
-
-							BeforeEach(func() {
-								engineBuild = new(enginefakes.FakeBuild)
-								fakeEngine.LookupBuildReturns(engineBuild, nil)
-
-								engineBuild.SendOutputStub = func(logger lager.Logger, id atc.PlanID, dest io.Writer) {
-									fmt.Fprintln(dest, "hello from build")
-								}
-							})
-
-							It("sends the plan's output to the response body", func() {
-								Expect(engineBuild.SendOutputCallCount()).To(Equal(1))
-
-								_, id, _ := engineBuild.SendOutputArgsForCall(0)
-								Expect(id).To(Equal(atc.PlanID("some-plan")))
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("hello from build\n")))
-							})
-
-							It("returns OK", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-							})
-
-							Context("when the build is initially not tracked", func() {
-								BeforeEach(func() {
-									build.ReloadReturns(true, nil)
-
-									build.TrackerReturnsOnCall(0, "")
-									build.TrackerReturnsOnCall(2, "http://127.0.0.1:1234")
-								})
-
-								It("waits until it is", func() {
-									Expect(response.StatusCode).To(Equal(http.StatusOK))
-
-									Expect(engineBuild.SendOutputCallCount()).To(Equal(1))
-
-									_, id, _ := engineBuild.SendOutputArgsForCall(0)
-									Expect(id).To(Equal(atc.PlanID("some-plan")))
-									Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("hello from build\n")))
-								})
-							})
-						})
-
-						Context("when the engine returns no build", func() {
-							BeforeEach(func() {
-								fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
-							})
-
-							It("returns Internal Server Error", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							})
-						})
-					})
-
-					Context("when the build is tracked by another ATC", func() {
-						BeforeEach(func() {
-							build.TrackerReturns(otherTracker.URL())
-						})
-
-						It("does not bother looking up the build in the engine", func() {
-							Expect(fakeEngine.LookupBuildCallCount()).To(Equal(0))
-						})
-
-						It("forwards the request to the other ATC", func() {
-							Expect(otherTracker.ReceivedRequests()).To(HaveLen(1))
-							Expect(response.StatusCode).To(Equal(http.StatusTeapot))
-							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("im a teapot")))
-						})
-
-						Context("when the build is initially not tracked", func() {
-							BeforeEach(func() {
-								build.ReloadReturns(true, nil)
-
-								build.TrackerReturnsOnCall(0, "")
-								build.TrackerReturnsOnCall(2, otherTracker.URL())
-							})
-
-							It("waits until it is", func() {
-								Expect(fakeEngine.LookupBuildCallCount()).To(Equal(0))
-
-								Expect(otherTracker.ReceivedRequests()).To(HaveLen(1))
-								Expect(response.StatusCode).To(Equal(http.StatusTeapot))
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("im a teapot")))
-							})
-						})
-					})
-				})
-
-				Context("when accessing other team's build", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(false)
-					})
-
-					It("returns 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-					})
-				})
-			})
-
-			Context("when the build can not be found", func() {
-				BeforeEach(func() {
-					dbBuildFactory.BuildReturns(nil, false, nil)
-				})
-
-				It("returns Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when calling the database fails", func() {
-				BeforeEach(func() {
-					dbBuildFactory.BuildReturns(nil, false, errors.New("nope"))
-				})
-
-				It("returns Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
-			})
-
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-			})
-
-			It("does not abort the build", func() {
-				Expect(otherTracker.ReceivedRequests()).To(BeEmpty())
 			})
 		})
 	})

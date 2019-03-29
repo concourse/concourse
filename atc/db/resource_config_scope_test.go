@@ -226,42 +226,76 @@ var _ = Describe("Resource Config Scope", func() {
 		})
 
 		Context("when there has been a check recently", func() {
+			interval := 1 * time.Second
+
 			BeforeEach(func() {
-				updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
+				updated, err := resourceConfigScope.UpdateLastChecked(interval, false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updated).To(BeTrue())
 			})
 
 			Context("when not immediate", func() {
-				It("does not update the last checked", func() {
-					updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
+				It("does not update the last checked until the interval has elapsed", func() {
+					updated, err := resourceConfigScope.UpdateLastChecked(interval, false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(updated).To(BeFalse())
 				})
 
-				It("updates the last checked and stops others from periodically updating at the same time", func() {
-					Consistently(func() bool {
-						updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
+				Context("when the interval has elapsed", func() {
+					BeforeEach(func() {
+						time.Sleep(interval)
+					})
+
+					It("updates the last checked", func() {
+						updated, err := resourceConfigScope.UpdateLastChecked(interval, false)
 						Expect(err).ToNot(HaveOccurred())
-
-						return updated
-					}, time.Second, 100*time.Millisecond).Should(BeFalse())
-
-					time.Sleep(time.Second)
-
-					updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(updated).To(BeTrue())
+						Expect(updated).To(BeTrue())
+					})
 				})
 			})
 
 			Context("when it is immediate", func() {
-				It("updates the last checked and stops others from updating too", func() {
+				It("updates the last checked", func() {
 					updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, true)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(updated).To(BeTrue())
 				})
 			})
+		})
+	})
+
+	Describe("UpdateLastCheckFinished", func() {
+		var (
+			someResource        db.Resource
+			resourceConfigScope db.ResourceConfigScope
+		)
+
+		BeforeEach(func() {
+			var err error
+			var found bool
+
+			someResource, found, err = defaultPipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceConfigScope, err = someResource.SetResourceConfig(
+				logger,
+				someResource.Source(),
+				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
+			)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should update last check finished", func() {
+			updated, err := resourceConfigScope.UpdateLastCheckFinished()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(updated).To(BeTrue())
+
+			someResource.Reload()
+			Expect(someResource.LastCheckFinished()).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
 		})
 	})
 
@@ -300,6 +334,10 @@ var _ = Describe("Resource Config Scope", func() {
 				lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger, 1*time.Second)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(acquired).To(BeTrue())
+			})
+
+			AfterEach(func() {
+				_ = lock.Release()
 			})
 
 			It("does not get the lock", func() {

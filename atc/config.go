@@ -13,23 +13,11 @@ const DefaultTeamName = "main"
 
 type Tags []string
 
-type ConfigResponse struct {
-	Config    *Config   `json:"config"`
-	Errors    []string  `json:"errors"`
-	RawConfig RawConfig `json:"raw_config"`
-}
-
 type Config struct {
 	Groups        GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
 	Resources     ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
 	ResourceTypes ResourceTypes   `yaml:"resource_types" json:"resource_types" mapstructure:"resource_types"`
 	Jobs          JobConfigs      `yaml:"jobs" json:"jobs" mapstructure:"jobs"`
-}
-
-type RawConfig string
-
-func (r RawConfig) String() string {
-	return string(r)
 }
 
 type GroupConfig struct {
@@ -52,6 +40,7 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, int, bool) {
 
 type ResourceConfig struct {
 	Name         string  `yaml:"name" json:"name" mapstructure:"name"`
+	Public       bool    `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
 	WebhookToken string  `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
 	Type         string  `yaml:"type" json:"type" mapstructure:"type"`
 	Source       Source  `yaml:"source" json:"source" mapstructure:"source"`

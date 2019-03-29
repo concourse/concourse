@@ -9,7 +9,6 @@ module Build.Output.Output exposing
 
 import Ansi.Log
 import Array exposing (Array)
-import Build.Msgs exposing (Msg(..))
 import Build.Output.Models exposing (OutputModel, OutputState(..))
 import Build.StepTree.Models as StepTree
     exposing
@@ -23,9 +22,7 @@ import Build.StepTree.StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
-import Date exposing (Date)
 import Dict exposing (Dict)
-import Effects exposing (Effect(..))
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -38,14 +35,19 @@ import Html.Attributes
         , title
         )
 import Http
-import LoadingIndicator
-import NotAuthorized
+import Json.Decode
+import Message.Effects exposing (Effect(..))
+import Message.Message exposing (Message(..))
 import Routes exposing (StepID)
+import Time
+import Views.Icon as Icon
+import Views.LoadingIndicator as LoadingIndicator
+import Views.NotAuthorized as NotAuthorized
 
 
 type OutMsg
     = OutNoop
-    | OutBuildStatus Concourse.BuildStatus Date
+    | OutBuildStatus Concourse.BuildStatus Time.Posix
 
 
 type alias Flags =
@@ -106,7 +108,7 @@ planAndResourcesFetched :
 planAndResourcesFetched buildId ( plan, resources ) model =
     let
         url =
-            "/api/v1/builds/" ++ toString buildId ++ "/events"
+            "/api/v1/builds/" ++ String.fromInt buildId ++ "/events"
     in
     ( { model
         | steps =
@@ -205,20 +207,18 @@ handleEvent event ( model, effects, outmsg ) =
 
         BuildStatus status date ->
             let
-                ( newSt, newEffects ) =
-                    case model.steps of
-                        Just st ->
-                            if not <| Concourse.BuildStatus.isRunning status then
-                                Build.StepTree.StepTree.finished st
-                                    |> Tuple.mapFirst Just
+                newSt =
+                    model.steps
+                        |> Maybe.map
+                            (\st ->
+                                if Concourse.BuildStatus.isRunning status then
+                                    st
 
-                            else
-                                ( Just st, [] )
-
-                        Nothing ->
-                            ( Nothing, [] )
+                                else
+                                    Build.StepTree.StepTree.finished st
+                            )
             in
-            ( { model | steps = newSt }, effects ++ newEffects, OutBuildStatus status date )
+            ( { model | steps = newSt }, effects, OutBuildStatus status date )
 
         BuildError message ->
             ( { model
@@ -237,6 +237,9 @@ handleEvent event ( model, effects, outmsg ) =
             , outmsg
             )
 
+        NetworkError ->
+            ( model, effects, outmsg )
+
 
 updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel
 updateStep id update model =
@@ -248,9 +251,9 @@ setRunning =
     setStepState StepStateRunning
 
 
-appendStepLog : String -> Maybe Date -> StepTree -> StepTree
+appendStepLog : String -> Maybe Time.Posix -> StepTree -> StepTree
 appendStepLog output mtime tree =
-    flip StepTree.map tree <|
+    (\a -> StepTree.map a tree) <|
         \step ->
             let
                 outputLineCount =
@@ -309,7 +312,7 @@ setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
 
 
-view : Concourse.Build -> OutputModel -> Html Msg
+view : Concourse.Build -> OutputModel -> Html Message
 view build { steps, errors, state } =
     Html.div [ class "steps" ]
         [ viewErrors errors
@@ -321,7 +324,7 @@ viewStepTree :
     Concourse.Build
     -> Maybe StepTreeModel
     -> OutputState
-    -> Html Msg
+    -> Html Message
 viewStepTree build steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
@@ -337,7 +340,7 @@ viewStepTree build steps state =
             Html.div [] []
 
 
-viewErrors : Maybe Ansi.Log.Model -> Html msg
+viewErrors : Maybe Ansi.Log.Model -> Html Message
 viewErrors errors =
     case errors of
         Nothing ->
@@ -346,11 +349,11 @@ viewErrors errors =
         Just log ->
             Html.div [ class "build-step" ]
                 [ Html.div [ class "header" ]
-                    [ Html.div
-                        [ style <|
-                            Styles.stepStatusIcon "ic-exclamation-triangle"
-                        ]
-                        []
+                    [ Icon.icon
+                        { sizePx = 28
+                        , image = "ic-exclamation-triangle.svg"
+                        }
+                        Styles.stepStatusIcon
                     , Html.h3 [] [ Html.text "error" ]
                     ]
                 , Html.div [ class "step-body build-errors-body" ]

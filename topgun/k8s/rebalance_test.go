@@ -1,7 +1,6 @@
 package k8s_test
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -14,15 +13,12 @@ import (
 
 var _ = Describe("Worker Rebalancing", func() {
 	var (
-		releaseName  string
-		namespace    string
 		proxySession *gexec.Session
 		atcEndpoint  string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-wr-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
-		namespace = releaseName
+		setReleaseNameAndNamespace("wr")
 
 		deployConcourseChart(releaseName,
 			"--set=concourse.worker.ephemeral=true",
@@ -34,7 +30,7 @@ var _ = Describe("Worker Rebalancing", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/" + releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)

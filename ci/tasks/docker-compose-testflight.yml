@@ -16,7 +16,7 @@ caches:
 - path: gopath
 
 params:
-  DOCKERFILE: Dockerfile
+  BUILD:
 
 run:
   path: concourse/ci/tasks/scripts/with-docker-compose

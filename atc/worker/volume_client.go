@@ -39,6 +39,13 @@ type VolumeClient interface {
 		int,
 		string,
 	) (Volume, error)
+	CreateVolume(
+		lager.Logger,
+		VolumeSpec,
+		int,
+		string,
+		db.VolumeType,
+	) (Volume, error)
 	FindVolumeForResourceCache(
 		lager.Logger,
 		db.UsedResourceCache,
@@ -64,6 +71,23 @@ type VolumeClient interface {
 
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
+
+type VolumeSpec struct {
+	Strategy   baggageclaim.Strategy
+	Properties VolumeProperties
+	Privileged bool
+	TTL        time.Duration
+}
+
+func (spec VolumeSpec) baggageclaimVolumeSpec() baggageclaim.VolumeSpec {
+	return baggageclaim.VolumeSpec{
+		Strategy:   spec.Strategy,
+		Privileged: spec.Privileged,
+		Properties: baggageclaim.VolumeProperties(spec.Properties),
+	}
+}
+
+type VolumeProperties map[string]string
 
 type ErrCreatedVolumeNotFound struct {
 	Handle     string
@@ -142,6 +166,25 @@ func (c *volumeClient) FindOrCreateCOWVolumeForContainer(
 		},
 		func() (db.CreatingVolume, error) {
 			return parent.CreateChildForContainer(container, mountPath)
+		},
+	)
+}
+
+func (c *volumeClient) CreateVolume(
+	logger lager.Logger,
+	volumeSpec VolumeSpec,
+	teamID int,
+	workerName string,
+	volumeType db.VolumeType,
+) (Volume, error) {
+	return c.findOrCreateVolume(
+		logger.Session("find-or-create-volume-for-artifact"),
+		volumeSpec,
+		func() (db.CreatingVolume, db.CreatedVolume, error) {
+			return nil, nil, nil
+		},
+		func() (db.CreatingVolume, error) {
+			return c.dbVolumeRepository.CreateVolume(teamID, workerName, volumeType)
 		},
 	)
 }

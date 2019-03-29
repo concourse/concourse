@@ -8,6 +8,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -87,6 +89,11 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 
 		w.WriteHeader(http.StatusOK)
+
+		acc := accessor.GetAccessor(r)
+		hideMetadata := !resource.Public() && !acc.IsAuthorized(teamName)
+
+		versions = present.ResourceVersions(hideMetadata, versions)
 
 		err = json.NewEncoder(w).Encode(versions)
 		if err != nil {

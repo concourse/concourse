@@ -4,16 +4,15 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden/gardenfakes"
-
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	wfakes "github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -183,15 +182,37 @@ var _ = Describe("Worker", func() {
 			Expect(checkErr).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 		})
-
 	})
 
-	Describe("Satisfying", func() {
+	Describe("CreateVolume", func() {
+		var (
+			fakeVolume *wfakes.FakeVolume
+			volume     Volume
+			err        error
+		)
+
+		BeforeEach(func() {
+			fakeVolume = new(wfakes.FakeVolume)
+			fakeVolumeClient.CreateVolumeReturns(fakeVolume, nil)
+		})
+
+		JustBeforeEach(func() {
+			volume, err = gardenWorker.CreateVolume(logger, VolumeSpec{}, 42, db.VolumeTypeArtifact)
+		})
+
+		It("calls the volume client", func() {
+			Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(1))
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(volume).To(Equal(fakeVolume))
+		})
+	})
+
+	Describe("Satisfies", func() {
 		var (
 			spec WorkerSpec
 
-			satisfyingWorker Worker
-			satisfyingErr    error
+			satisfies bool
 
 			customTypes creds.VersionedResourceTypes
 		)
@@ -250,7 +271,7 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(logger, spec)
+			satisfies = gardenWorker.Satisfies(logger, spec)
 		})
 
 		Context("when the platform is compatible", func() {
@@ -263,8 +284,8 @@ var _ = Describe("Worker", func() {
 					spec.Tags = nil
 				})
 
-				It("returns ErrIncompatiblePlatform", func() {
-					Expect(satisfyingErr).To(Equal(ErrMismatchedTags))
+				It("returns false", func() {
+					Expect(satisfies).To(BeFalse())
 				})
 			})
 
@@ -274,12 +295,8 @@ var _ = Describe("Worker", func() {
 					spec.Tags = []string{}
 				})
 
-				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(gardenWorker))
-				})
-
-				It("returns no error", func() {
-					Expect(satisfyingErr).NotTo(HaveOccurred())
+				It("returns true", func() {
+					Expect(satisfies).To(BeTrue())
 				})
 			})
 
@@ -288,12 +305,8 @@ var _ = Describe("Worker", func() {
 					spec.Tags = []string{"some", "tags"}
 				})
 
-				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(gardenWorker))
-				})
-
-				It("returns no error", func() {
-					Expect(satisfyingErr).NotTo(HaveOccurred())
+				It("returns true", func() {
+					Expect(satisfies).To(BeTrue())
 				})
 			})
 
@@ -302,12 +315,8 @@ var _ = Describe("Worker", func() {
 					spec.Tags = []string{"some"}
 				})
 
-				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(gardenWorker))
-				})
-
-				It("returns no error", func() {
-					Expect(satisfyingErr).NotTo(HaveOccurred())
+				It("returns true", func() {
+					Expect(satisfies).To(BeTrue())
 				})
 			})
 
@@ -316,8 +325,8 @@ var _ = Describe("Worker", func() {
 					spec.Tags = []string{"bogus", "tags"}
 				})
 
-				It("returns ErrMismatchedTags", func() {
-					Expect(satisfyingErr).To(Equal(ErrMismatchedTags))
+				It("returns false", func() {
+					Expect(satisfies).To(BeFalse())
 				})
 			})
 		})
@@ -327,8 +336,8 @@ var _ = Describe("Worker", func() {
 				spec.Platform = "some-bogus-platform"
 			})
 
-			It("returns ErrIncompatiblePlatform", func() {
-				Expect(satisfyingErr).To(Equal(ErrIncompatiblePlatform))
+			It("returns false", func() {
+				Expect(satisfies).To(BeFalse())
 			})
 		})
 
@@ -342,12 +351,8 @@ var _ = Describe("Worker", func() {
 					spec.Tags = []string{"some", "tags"}
 				})
 
-				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(gardenWorker))
-				})
-
-				It("returns no error", func() {
-					Expect(satisfyingErr).NotTo(HaveOccurred())
+				It("returns true", func() {
+					Expect(satisfies).To(BeTrue())
 				})
 			})
 
@@ -356,12 +361,8 @@ var _ = Describe("Worker", func() {
 					spec.Tags = []string{"some"}
 				})
 
-				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(gardenWorker))
-				})
-
-				It("returns no error", func() {
-					Expect(satisfyingErr).NotTo(HaveOccurred())
+				It("returns true", func() {
+					Expect(satisfies).To(BeTrue())
 				})
 			})
 
@@ -370,8 +371,8 @@ var _ = Describe("Worker", func() {
 					spec.Tags = []string{"bogus", "tags"}
 				})
 
-				It("returns ErrMismatchedTags", func() {
-					Expect(satisfyingErr).To(Equal(ErrMismatchedTags))
+				It("returns false", func() {
+					Expect(satisfies).To(BeFalse())
 				})
 			})
 		})
@@ -381,12 +382,8 @@ var _ = Describe("Worker", func() {
 				spec.ResourceType = "custom-type-c"
 			})
 
-			It("returns the worker", func() {
-				Expect(satisfyingWorker).To(Equal(gardenWorker))
-			})
-
-			It("returns no error", func() {
-				Expect(satisfyingErr).NotTo(HaveOccurred())
+			It("returns true", func() {
+				Expect(satisfies).To(BeTrue())
 			})
 		})
 
@@ -408,12 +405,8 @@ var _ = Describe("Worker", func() {
 				spec.ResourceType = "some-resource"
 			})
 
-			It("returns the worker", func() {
-				Expect(satisfyingWorker).To(Equal(gardenWorker))
-			})
-
-			It("returns no error", func() {
-				Expect(satisfyingErr).NotTo(HaveOccurred())
+			It("returns true", func() {
+				Expect(satisfies).To(BeTrue())
 			})
 		})
 
@@ -449,8 +442,8 @@ var _ = Describe("Worker", func() {
 				spec.ResourceType = "circle-a"
 			})
 
-			It("returns ErrUnsupportedResourceType", func() {
-				Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+			It("returns false", func() {
+				Expect(satisfies).To(BeFalse())
 			})
 		})
 
@@ -459,8 +452,8 @@ var _ = Describe("Worker", func() {
 				spec.ResourceType = "unknown-custom-type"
 			})
 
-			It("returns ErrUnsupportedResourceType", func() {
-				Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+			It("returns false", func() {
+				Expect(satisfies).To(BeFalse())
 			})
 		})
 
@@ -469,8 +462,8 @@ var _ = Describe("Worker", func() {
 				spec.ResourceType = "some-other-resource"
 			})
 
-			It("returns ErrUnsupportedResourceType", func() {
-				Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+			It("returns false", func() {
+				Expect(satisfies).To(BeFalse())
 			})
 		})
 
@@ -481,12 +474,8 @@ var _ = Describe("Worker", func() {
 			})
 
 			Context("when worker belongs to same team", func() {
-				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(gardenWorker))
-				})
-
-				It("returns no error", func() {
-					Expect(satisfyingErr).NotTo(HaveOccurred())
+				It("returns true", func() {
+					Expect(satisfies).To(BeTrue())
 				})
 			})
 
@@ -495,18 +484,14 @@ var _ = Describe("Worker", func() {
 					teamID = 777
 				})
 
-				It("returns ErrTeamMismatch", func() {
-					Expect(satisfyingErr).To(Equal(ErrTeamMismatch))
+				It("returns false", func() {
+					Expect(satisfies).To(BeFalse())
 				})
 			})
 
 			Context("when worker does not belong to any team", func() {
-				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(gardenWorker))
-				})
-
-				It("returns no error", func() {
-					Expect(satisfyingErr).NotTo(HaveOccurred())
+				It("returns true", func() {
+					Expect(satisfies).To(BeTrue())
 				})
 			})
 		})
@@ -517,12 +502,8 @@ var _ = Describe("Worker", func() {
 					teamID = 0
 				})
 
-				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(gardenWorker))
-				})
-
-				It("returns no error", func() {
-					Expect(satisfyingErr).NotTo(HaveOccurred())
+				It("returns true", func() {
+					Expect(satisfies).To(BeTrue())
 				})
 			})
 
@@ -531,8 +512,8 @@ var _ = Describe("Worker", func() {
 					teamID = 555
 				})
 
-				It("returns ErrTeamMismatch", func() {
-					Expect(satisfyingErr).To(Equal(ErrTeamMismatch))
+				It("returns false", func() {
+					Expect(satisfies).To(BeFalse())
 				})
 			})
 		})

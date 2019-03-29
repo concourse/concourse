@@ -1,23 +1,19 @@
 package engine_test
 
 import (
-	"bytes"
 	"errors"
-	"io"
-	"io/ioutil"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("DBEngine", func() {
@@ -35,15 +31,15 @@ var _ = Describe("DBEngine", func() {
 		logger = lagertest.NewTestLogger("test")
 
 		fakeEngineA = new(enginefakes.FakeEngine)
-		fakeEngineA.NameReturns("fake-engine-a")
+		fakeEngineA.SchemaReturns("fake-schema-a")
 
 		fakeEngineB = new(enginefakes.FakeEngine)
-		fakeEngineB.NameReturns("fake-engine-b")
+		fakeEngineB.SchemaReturns("fake-schema-b")
 
 		dbBuild = new(dbfakes.FakeBuild)
 		dbBuild.IDReturns(128)
 
-		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB}, "http://10.2.3.4:8080")
+		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB})
 	})
 
 	Describe("CreateBuild", func() {
@@ -103,9 +99,8 @@ var _ = Describe("DBEngine", func() {
 			It("starts the build in the database", func() {
 				Expect(dbBuild.StartCallCount()).To(Equal(1))
 
-				engine, metadata, _ := dbBuild.StartArgsForCall(0)
-				Expect(engine).To(Equal("fake-engine-a"))
-				Expect(metadata).To(Equal("some-metadata"))
+				engine, _ := dbBuild.StartArgsForCall(0)
+				Expect(engine).To(Equal("fake-schema-a"))
 			})
 
 			Context("when the build fails to transition to started", func() {
@@ -239,7 +234,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is active", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
-						dbBuild.EngineReturns("fake-engine-b")
+						dbBuild.SchemaReturns("fake-schema-b")
 
 						dbBuild.MarkAsAbortedStub = func() error {
 							Expect(dbBuild.AcquireTrackingLockCallCount()).To(Equal(1))
@@ -343,7 +338,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
-						dbBuild.EngineReturns("")
+						dbBuild.SchemaReturns("")
 					})
 
 					It("succeeds", func() {
@@ -460,28 +455,11 @@ var _ = Describe("DBEngine", func() {
 					dbBuild.AcquireTrackingLockReturns(fakeLock, true, nil)
 				})
 
-				It("updates the tracking information on the build", func() {
-					Expect(dbBuild.TrackedByCallCount()).To(Equal(1))
-					Expect(dbBuild.TrackedByArgsForCall(0)).To(Equal("http://10.2.3.4:8080"))
-				})
-
 				Context("when the build is active", func() {
 					BeforeEach(func() {
-						dbBuild.EngineReturns("fake-engine-b")
+						dbBuild.SchemaReturns("fake-schema-b")
 						dbBuild.IsRunningReturns(true)
 						dbBuild.ReloadReturns(true, nil)
-					})
-
-					Context("when updating the tracking information fails", func() {
-						disaster := errors.New("oh no")
-
-						BeforeEach(func() {
-							dbBuild.TrackedByReturns(disaster)
-						})
-
-						It("does not resume the build", func() {
-							Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
-						})
 					})
 
 					Context("when the engine build exists", func() {
@@ -640,24 +618,24 @@ var _ = Describe("DBEngine", func() {
 					})
 				})
 
-				Context("when the build's engine is unknown", func() {
+				Context("when the build's schema is unknown", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
 						dbBuild.IsRunningReturns(true)
-						dbBuild.EngineReturns("bogus")
+						dbBuild.SchemaReturns("bogus")
 					})
 
 					It("marks the build as errored", func() {
 						Expect(dbBuild.FinishWithErrorCallCount()).To(Equal(1))
 						finishErr := dbBuild.FinishWithErrorArgsForCall(0)
-						Expect(finishErr).To(Equal(UnknownEngineError{Engine: "bogus"}))
+						Expect(finishErr).To(Equal(UnknownEngineError{Schema: "bogus"}))
 					})
 				})
 
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
-						dbBuild.EngineReturns("")
+						dbBuild.SchemaReturns("")
 					})
 
 					It("does not look up the build in the engine", func() {
@@ -672,7 +650,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build has already finished", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
-						dbBuild.EngineReturns("fake-engine-b")
+						dbBuild.SchemaReturns("fake-schema-b")
 						dbBuild.StatusReturns(db.BuildStatusSucceeded)
 					})
 
@@ -709,58 +687,6 @@ var _ = Describe("DBEngine", func() {
 					Expect(dbBuild.ReloadCallCount()).To(BeZero())
 					Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 				})
-			})
-		})
-
-		Describe("ReceiveInput", func() {
-			var (
-				input io.ReadCloser
-
-				realBuild *enginefakes.FakeBuild
-			)
-
-			BeforeEach(func() {
-				input = ioutil.NopCloser(bytes.NewBufferString("some-payload"))
-				dbBuild.EngineReturns("fake-engine-b")
-				realBuild = new(enginefakes.FakeBuild)
-				fakeEngineB.LookupBuildReturns(realBuild, nil)
-			})
-
-			JustBeforeEach(func() {
-				build.ReceiveInput(lagertest.NewTestLogger("test"), "some-plan-id", input)
-			})
-
-			It("delegates to the real build", func() {
-				Expect(realBuild.ReceiveInputCallCount()).To(Equal(1))
-				_, id, in := realBuild.ReceiveInputArgsForCall(0)
-				Expect(id).To(Equal(atc.PlanID("some-plan-id")))
-				Expect(in).To(Equal(input))
-			})
-		})
-
-		Describe("SendOutput", func() {
-			var (
-				output *bytes.Buffer
-
-				realBuild *enginefakes.FakeBuild
-			)
-
-			BeforeEach(func() {
-				output = new(bytes.Buffer)
-				dbBuild.EngineReturns("fake-engine-b")
-				realBuild = new(enginefakes.FakeBuild)
-				fakeEngineB.LookupBuildReturns(realBuild, nil)
-			})
-
-			JustBeforeEach(func() {
-				build.SendOutput(lagertest.NewTestLogger("test"), "some-plan-id", output)
-			})
-
-			It("delegates to the real build", func() {
-				Expect(realBuild.SendOutputCallCount()).To(Equal(1))
-				_, id, out := realBuild.SendOutputArgsForCall(0)
-				Expect(id).To(Equal(atc.PlanID("some-plan-id")))
-				Expect(out).To(Equal(output))
 			})
 		})
 	})

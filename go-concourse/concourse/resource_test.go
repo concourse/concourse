@@ -13,46 +13,32 @@ var _ = Describe("ATC Handler Resource", func() {
 	Describe("team.ListResources", func() {
 		var expectedResources []atc.Resource
 
-		Context("when pipeline name is empty", func() {
-			BeforeEach(func() {
-				expectedResources = []atc.Resource{}
-			})
+		BeforeEach(func() {
+			expectedURL := "/api/v1/teams/some-team/pipelines/some-pipeline/resources"
 
-			It("returns empty resource and name required error", func() {
-				pipelines, err := team.ListResources("")
-				Expect(err).To(HaveOccurred())
-				Expect(pipelines).To(Equal(expectedResources))
-			})
+			expectedResources = []atc.Resource{
+				{
+					Name: "resource-1",
+					Type: "type-1",
+				},
+				{
+					Name: "resource-2",
+					Type: "type-2",
+				},
+			}
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResources),
+				),
+			)
 		})
 
-		Context("when pipeline name is not empty", func() {
-			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/some-team/pipelines/some-pipeline/resources"
-
-				expectedResources = []atc.Resource{
-					{
-						Name: "resource-1",
-						Type: "type-1",
-					},
-					{
-						Name: "resource-2",
-						Type: "type-2",
-					},
-				}
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResources),
-					),
-				)
-			})
-
-			It("returns resources that belong to the pipeline", func() {
-				pipelines, err := team.ListResources("some-pipeline")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pipelines).To(Equal(expectedResources))
-			})
+		It("returns resources that belong to the pipeline", func() {
+			pipelines, err := team.ListResources("some-pipeline")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pipelines).To(Equal(expectedResources))
 		})
 	})
 

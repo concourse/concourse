@@ -2,13 +2,13 @@
 package pipelinesfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	creds "github.com/concourse/concourse/atc/creds"
-	db "github.com/concourse/concourse/atc/db"
-	pipelines "github.com/concourse/concourse/atc/pipelines"
-	radar "github.com/concourse/concourse/atc/radar"
-	scheduler "github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/pipelines"
+	"github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeRadarSchedulerFactory struct {
@@ -25,12 +25,10 @@ type FakeRadarSchedulerFactory struct {
 	buildScanRunnerFactoryReturnsOnCall map[int]struct {
 		result1 radar.ScanRunnerFactory
 	}
-	BuildSchedulerStub        func(db.Pipeline, string, creds.Variables) scheduler.BuildScheduler
+	BuildSchedulerStub        func(db.Pipeline) scheduler.BuildScheduler
 	buildSchedulerMutex       sync.RWMutex
 	buildSchedulerArgsForCall []struct {
 		arg1 db.Pipeline
-		arg2 string
-		arg3 creds.Variables
 	}
 	buildSchedulerReturns struct {
 		result1 scheduler.BuildScheduler
@@ -104,18 +102,16 @@ func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryReturnsOnCall(i int
 	}{result1}
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScheduler(arg1 db.Pipeline, arg2 string, arg3 creds.Variables) scheduler.BuildScheduler {
+func (fake *FakeRadarSchedulerFactory) BuildScheduler(arg1 db.Pipeline) scheduler.BuildScheduler {
 	fake.buildSchedulerMutex.Lock()
 	ret, specificReturn := fake.buildSchedulerReturnsOnCall[len(fake.buildSchedulerArgsForCall)]
 	fake.buildSchedulerArgsForCall = append(fake.buildSchedulerArgsForCall, struct {
 		arg1 db.Pipeline
-		arg2 string
-		arg3 creds.Variables
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("BuildScheduler", []interface{}{arg1, arg2, arg3})
+	}{arg1})
+	fake.recordInvocation("BuildScheduler", []interface{}{arg1})
 	fake.buildSchedulerMutex.Unlock()
 	if fake.BuildSchedulerStub != nil {
-		return fake.BuildSchedulerStub(arg1, arg2, arg3)
+		return fake.BuildSchedulerStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -130,17 +126,17 @@ func (fake *FakeRadarSchedulerFactory) BuildSchedulerCallCount() int {
 	return len(fake.buildSchedulerArgsForCall)
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildSchedulerCalls(stub func(db.Pipeline, string, creds.Variables) scheduler.BuildScheduler) {
+func (fake *FakeRadarSchedulerFactory) BuildSchedulerCalls(stub func(db.Pipeline) scheduler.BuildScheduler) {
 	fake.buildSchedulerMutex.Lock()
 	defer fake.buildSchedulerMutex.Unlock()
 	fake.BuildSchedulerStub = stub
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.Pipeline, string, creds.Variables) {
+func (fake *FakeRadarSchedulerFactory) BuildSchedulerArgsForCall(i int) db.Pipeline {
 	fake.buildSchedulerMutex.RLock()
 	defer fake.buildSchedulerMutex.RUnlock()
 	argsForCall := fake.buildSchedulerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {

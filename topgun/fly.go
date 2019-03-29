@@ -120,7 +120,7 @@ func (f *Fly) GetUserRole(teamName string) []string {
 	var teamsInfo RoleInfo = RoleInfo{}
 
 	sess := f.Start("userinfo", "--json")
-	<- sess.Exited
+	<-sess.Exited
 	Expect(sess.ExitCode()).To(BeZero())
 
 	err := json.Unmarshal(sess.Out.Contents(), &teamsInfo)

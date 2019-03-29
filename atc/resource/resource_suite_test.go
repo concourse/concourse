@@ -11,18 +11,16 @@ import (
 )
 
 var (
-	workerClient  *workerfakes.FakeClient
 	fakeContainer *workerfakes.FakeContainer
 
 	resourceForContainer resource.Resource
 )
 
 var _ = BeforeEach(func() {
-	workerClient = new(workerfakes.FakeClient)
-
 	fakeContainer = new(workerfakes.FakeContainer)
 
-	resourceForContainer = resource.NewResourceForContainer(fakeContainer)
+	resourceFactory := resource.NewResourceFactory()
+	resourceForContainer = resourceFactory.NewResourceForContainer(fakeContainer)
 })
 
 func TestResource(t *testing.T) {

@@ -24,9 +24,9 @@ module Build.StepTree.Models exposing
 import Ansi.Log
 import Array exposing (Array)
 import Concourse
-import Date exposing (Date)
 import Dict exposing (Dict)
 import Routes exposing (Highlight, StepID)
+import Time
 
 
 type alias StepTreeModel =
@@ -66,7 +66,7 @@ type alias Step =
     , version : Maybe Version
     , metadata : List MetadataField
     , firstOccurrence : Bool
-    , timestamps : Dict Int Date
+    , timestamps : Dict Int Time.Posix
     }
 
 
@@ -112,17 +112,18 @@ type alias BuildEventEnvelope =
 
 
 type BuildEvent
-    = BuildStatus Concourse.BuildStatus Date
+    = BuildStatus Concourse.BuildStatus Time.Posix
     | Initialize Origin
     | StartTask Origin
     | FinishTask Origin Int
     | FinishGet Origin Int Concourse.Version Concourse.Metadata
     | FinishPut Origin Int Concourse.Version Concourse.Metadata
-    | Log Origin String (Maybe Date)
+    | Log Origin String (Maybe Time.Posix)
     | Error Origin String
     | BuildError String
     | End
     | Opened
+    | NetworkError
 
 
 type alias Origin =
@@ -142,14 +143,14 @@ focusRetry tab tree =
             Retry id tab User steps
 
         _ ->
-            Debug.crash "impossible (non-retry tab focus)"
+            Debug.todo "impossible (non-retry tab focus)"
 
 
 updateAt : StepID -> (StepTree -> StepTree) -> StepTreeModel -> StepTreeModel
 updateAt id update root =
     case Dict.get id root.foci of
         Nothing ->
-            Debug.crash ("updateAt: id " ++ id ++ " not found")
+            Debug.todo ("updateAt: id " ++ id ++ " not found")
 
         Just focus ->
             { root | tree = focus.update update root.tree }
@@ -208,7 +209,7 @@ updateStep update tree =
             Timeout (update step)
 
         _ ->
-            Debug.crash "impossible"
+            Debug.todo "impossible"
 
 
 updateHook : (StepTree -> StepTree) -> StepTree -> StepTree
@@ -227,7 +228,7 @@ updateHook update tree =
             Ensure { hookedStep | hook = update hookedStep.hook }
 
         _ ->
-            Debug.crash "impossible"
+            Debug.todo "impossible"
 
 
 getMultiStepIndex : Int -> StepTree -> StepTree
@@ -245,14 +246,14 @@ getMultiStepIndex idx tree =
                     trees
 
                 _ ->
-                    Debug.crash "impossible"
+                    Debug.todo "impossible"
     in
     case Array.get idx steps of
         Just sub ->
             sub
 
         Nothing ->
-            Debug.crash "impossible"
+            Debug.todo "impossible"
 
 
 setMultiStepIndex : Int -> (StepTree -> StepTree) -> StepTree -> StepTree
@@ -277,7 +278,7 @@ setMultiStepIndex idx update tree =
                     Retry id tab User updatedSteps
 
         _ ->
-            Debug.crash "impossible"
+            Debug.todo "impossible"
 
 
 finishTree : StepTree -> StepTree

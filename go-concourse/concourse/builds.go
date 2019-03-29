@@ -54,10 +54,6 @@ func (team *team) CreateJobBuild(pipelineName string, jobName string) (atc.Build
 }
 
 func (team *team) JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error) {
-	if pipelineName == "" {
-		return atc.Build{}, false, NameRequiredError("pipeline")
-	}
-
 	params := rata.Params{
 		"job_name":      jobName,
 		"build_name":    buildName,
@@ -171,4 +167,21 @@ func (team *team) Builds(page Page) ([]atc.Build, Pagination, error) {
 	default:
 		return nil, Pagination{}, err
 	}
+}
+
+func (client *client) ListBuildArtifacts(buildID string) ([]atc.WorkerArtifact, error) {
+	params := rata.Params{
+		"build_id": buildID,
+	}
+
+	var artifacts []atc.WorkerArtifact
+
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.ListBuildArtifacts,
+		Params:      params,
+	}, &internal.Response{
+		Result: &artifacts,
+	})
+
+	return artifacts, err
 }

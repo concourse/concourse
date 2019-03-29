@@ -31,9 +31,9 @@ RUN apt update && apt install -y \
     btrfs-tools \
     ca-certificates \
     dumb-init \
-    iproute2
+    iproute2 \
+    file
 
 COPY --from=assets /usr/local/concourse /usr/local/concourse
-
 
 ENTRYPOINT ["dumb-init", "/usr/local/concourse/bin/concourse"]

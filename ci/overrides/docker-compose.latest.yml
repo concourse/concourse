@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  web:
+    image: concourse/concourse:${CONCOURSE_LATEST_TAG}
+
+  worker:
+    image: concourse/concourse:${CONCOURSE_LATEST_TAG}

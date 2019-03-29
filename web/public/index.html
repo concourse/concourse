@@ -76,12 +76,15 @@
     <script type="text/javascript">
       var node = document.getElementById("elm-app-embed");
 
-      var app = Elm.Main.embed(node, {
-        turbulenceImgSrc: {{asset "images/buckleup.svg"}},
-        notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
-        csrfToken: {{ .CSRFToken }},
-        authToken: {{ .AuthToken }},
-        pipelineRunningKeyframes: "pipeline-running"
+      var app = Elm.Main.init({
+        node : node,
+        flags : {
+          turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+          notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
+          csrfToken: {{ .CSRFToken }},
+          authToken: {{ .AuthToken }},
+          pipelineRunningKeyframes: "pipeline-running"
+        }
       });
       var resizeTimer;
 
@@ -214,6 +217,71 @@
           es.close();
         });
         setInterval(flush, 200);
+      });
+
+      window.onscroll = function(event) {
+        var yOffset = event.currentTarget.pageYOffset;
+        var clientHeight = event.target.documentElement.clientHeight;
+        var scrollHeight = event.target.documentElement.scrollHeight;
+        var atBottom = scrollHeight === yOffset + clientHeight;
+        app.ports.scrolledToBottom.send(atBottom);
+      }
+
+      app.ports.checkIsVisible.subscribe(function(id) {
+        var interval = setInterval(function() {
+          var element = document.getElementById(id);
+          if (element) {
+            clearInterval(interval);
+            var isVisible =
+              element.getBoundingClientRect().left < window.innerWidth;
+            app.ports.reportIsVisible.send([id, isVisible]);
+          }
+        }, 20);
+      });
+
+      app.ports.scrollIntoView.subscribe(function(id) {
+        var interval = setInterval(function() {
+          buildTab = document.getElementById(id);
+          if (buildTab) {
+            clearInterval(interval);
+            buildTab.scrollIntoView();
+          }
+        }, 20);
+      });
+
+      app.ports.scrollElement.subscribe(function(arg) {
+        var id = arg[0];
+        var delta = arg[1];
+        document.getElementById(id).scrollLeft -= delta;
+      });
+
+      app.ports.scrollToBottom.subscribe(function() {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      app.ports.scrollToTop.subscribe(function() {
+        window.scrollTo(0, 0);
+      });
+
+      app.ports.scrollUp.subscribe(function() {
+        window.scrollBy(0, -60);
+      });
+
+      app.ports.scrollDown.subscribe(function() {
+        window.scrollBy(0, 60);
+      });
+
+      app.ports.setFavicon.subscribe(function(url) {
+        var oldIcon = document.getElementById("favicon");
+        var newIcon = document.createElement("link");
+        newIcon.id = "favicon";
+        newIcon.rel = "shortcut icon";
+        newIcon.href = url;
+        if (oldIcon) {
+          document.head.removeChild(oldIcon);
+        }
+
+        document.head.appendChild(newIcon);
       });
 
     </script>

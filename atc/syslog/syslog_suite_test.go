@@ -31,7 +31,7 @@ func newTestServer(cert *tls.Certificate) *testServer {
 	server := &testServer{
 		Messages: make(chan string, 20),
 
-		wg:    new(sync.WaitGroup),
+		wg: new(sync.WaitGroup),
 	}
 
 	server.ListenTCP(cert)
@@ -109,4 +109,3 @@ func (server *testServer) Close() {
 	server.ln.Close()
 	server.wg.Wait()
 }
-

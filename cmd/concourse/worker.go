@@ -40,7 +40,9 @@ type WorkerCommand struct {
 	HealthcheckBindPort uint16        `long:"healthcheck-bind-port"  default:"8888"     description:"Port on which to listen for health checking requests."`
 	HealthCheckTimeout  time.Duration `long:"healthcheck-timeout"    default:"5s"       description:"HTTP timeout for the full duration of health checking."`
 
-	SweepInterval time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
+	SweepInterval               time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
+	VolumeSweeperMaxInFlight    uint16        `long:"volume-sweeper-max-in-flight" default:"5" description:"Maximum number of volumes which can be swept in parallel."`
+	ContainerSweeperMaxInFlight uint16        `long:"container-sweeper-max-in-flight" default:"5" description:"Maximum number of containers which can be swept in parallel."`
 
 	RebalanceInterval time.Duration `long:"rebalance-interval" description:"Duration after which the registration should be swapped to another random SSH gateway."`
 
@@ -90,6 +92,57 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.HealthCheckTimeout,
 	)
 
+	tsaClient := cmd.TSA.Client(atcWorker)
+
+	beaconRunner := worker.NewBeaconRunner(
+		logger.Session("beacon-runner"),
+		tsaClient,
+		cmd.RebalanceInterval,
+		cmd.ConnectionDrainTimeout,
+		cmd.gardenAddr(),
+		cmd.baggageclaimAddr(),
+	)
+
+	gardenClient := gclient.New(
+		gconn.NewWithLogger(
+			"tcp",
+			cmd.gardenAddr(),
+			logger.Session("garden-connection"),
+		),
+	)
+
+	baggageclaimClient := bclient.NewWithHTTPClient(
+		cmd.baggageclaimURL(),
+
+		// ensure we don't use baggageclaim's default retryhttp client; all
+		// traffic should be local, so any failures are unlikely to be transient.
+		// we don't want a retry loop to block up sweeping and prevent the worker
+		// from existing.
+		&http.Client{
+			Transport: &http.Transport{
+				// don't let a slow (possibly stuck) baggageclaim server slow down
+				// sweeping too much
+				ResponseHeaderTimeout: 1 * time.Minute,
+			},
+		},
+	)
+
+	containerSweeper := worker.NewContainerSweeper(
+		logger.Session("container-sweeper"),
+		cmd.SweepInterval,
+		tsaClient,
+		gardenClient,
+		cmd.ContainerSweeperMaxInFlight,
+	)
+
+	volumeSweeper := worker.NewVolumeSweeper(
+		logger.Session("volume-sweeper"),
+		cmd.SweepInterval,
+		tsaClient,
+		baggageclaimClient,
+		cmd.VolumeSweeperMaxInFlight,
+	)
+
 	members := grouper.Members{
 		{
 			Name:   "garden",
@@ -119,64 +172,27 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				),
 			),
 		},
-	}
-
-	if cmd.TSA.WorkerPrivateKey != nil {
-		tsaClient := cmd.TSA.Client(atcWorker)
-
-		members = append(members, grouper.Member{
+		{
 			Name: "beacon",
 			Runner: NewLoggingRunner(
 				logger.Session("beacon-runner"),
-				worker.NewBeaconRunner(
-					logger.Session("beacon-runner"),
-					tsaClient,
-					cmd.RebalanceInterval,
-					cmd.ConnectionDrainTimeout,
-					cmd.gardenAddr(),
-					cmd.baggageclaimAddr(),
-				),
+				beaconRunner,
 			),
-		})
-
-		gardenClient := gclient.New(
-			gconn.NewWithLogger(
-				"tcp",
-				cmd.gardenAddr(),
-				logger.Session("garden-connection"),
-			),
-		)
-
-		baggageclaimClient := bclient.NewWithHTTPClient(
-			cmd.baggageclaimURL(),
-
-			// ensure we don't use baggageclaim's default retryhttp client; all
-			// traffic should be local, so any failures are unlikely to be transient.
-			// we don't want a retry loop to block up sweeping and prevent the worker
-			// from existing.
-			&http.Client{
-				Transport: &http.Transport{
-					// don't let a slow (possibly stuck) baggageclaim server slow down
-					// sweeping too much
-					ResponseHeaderTimeout: 1 * time.Minute,
-				},
-			},
-		)
-
-		members = append(members, grouper.Member{
-			Name: "sweeper",
+		},
+		{
+			Name: "container-sweeper",
 			Runner: NewLoggingRunner(
-				logger.Session("sweeper"),
-				&worker.SweepRunner{
-					Logger:             logger.Session("sweeper-runner"),
-					Interval:           cmd.SweepInterval,
-					TSAClient:          tsaClient,
-					GardenClient:       gardenClient,
-					BaggageclaimClient: baggageclaimClient,
-				},
+				logger.Session("container-sweeper"),
+				containerSweeper,
 			),
-		})
-
+		},
+		{
+			Name: "volume-sweeper",
+			Runner: NewLoggingRunner(
+				logger.Session("volume-sweeper"),
+				volumeSweeper,
+			),
+		},
 	}
 
 	return grouper.NewParallel(os.Interrupt, members), nil

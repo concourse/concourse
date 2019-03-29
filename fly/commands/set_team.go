@@ -52,36 +52,38 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 	sort.Strings(roles)
 
-	fmt.Println("Team Name:", command.TeamName)
+	fmt.Println("setting team:", ui.Embolden("%s", command.TeamName))
 
 	for _, role := range roles {
 		authUsers := authRoles[role]["users"]
 		authGroups := authRoles[role]["groups"]
 
-		fmt.Printf("\nUsers (%s):\n", role)
+		fmt.Println()
+		fmt.Printf("role %s:\n", ui.Embolden(role))
+		fmt.Printf("  users:\n")
 		if len(authUsers) > 0 {
 			for _, user := range authUsers {
-				fmt.Println("-", user)
+				fmt.Printf("  - %s\n", user)
 			}
 		} else {
-			fmt.Println("- none")
+			fmt.Printf("    %s\n", ui.OffColor.Sprint("none"))
 		}
 
-		fmt.Printf("\nGroups (%s):\n", role)
+		fmt.Println()
+		fmt.Printf("  groups:\n")
 		if len(authGroups) > 0 {
 			for _, group := range authGroups {
-				fmt.Println("-", group)
+				fmt.Printf("  - %s\n", group)
 			}
 		} else {
-			fmt.Println("- none")
+			fmt.Printf("    %s\n", ui.OffColor.Sprint("none"))
 		}
-
 	}
 
 	confirm := true
 	if !command.SkipInteractive {
 		confirm = false
-		err = interact.NewInteraction("\napply configuration?").Resolve(&confirm)
+		err = interact.NewInteraction("\napply team configuration?").Resolve(&confirm)
 		if err != nil {
 			return err
 		}

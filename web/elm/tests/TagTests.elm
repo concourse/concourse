@@ -19,7 +19,7 @@ tag =
 
 white : String
 white =
-    "#fff"
+    "#ffffff"
 
 
 all : Test
@@ -30,7 +30,7 @@ all =
             hasStyle styles =
                 Tag.view False
                     >> Query.fromHtml
-                    >> Query.has [ style styles ]
+                    >> Query.has (List.map (\( k, v ) -> style k v) styles)
         in
         [ fuzz tag "has a white border" <|
             hasStyle [ ( "border", "1px solid " ++ white ) ]

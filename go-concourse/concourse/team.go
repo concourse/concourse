@@ -1,6 +1,8 @@
 package concourse
 
 import (
+	"io"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 )
@@ -23,7 +25,7 @@ type Team interface {
 	HidePipeline(pipelineName string) (bool, error)
 	RenamePipeline(pipelineName, name string) (bool, error)
 	ListPipelines() ([]atc.Pipeline, error)
-	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
+	PipelineConfig(pipelineName string) (atc.Config, string, bool, error)
 	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error)
 
 	CreatePipelineBuild(pipelineName string, plan atc.Plan) (atc.Build, error)
@@ -54,10 +56,14 @@ type Team interface {
 	BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 
 	ListContainers(queryList map[string]string) ([]atc.Container, error)
+	GetContainer(id string) (atc.Container, error)
 	ListVolumes() ([]atc.Volume, error)
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	Builds(page Page) ([]atc.Build, Pagination, error)
 	OrderingPipelines(pipelineNames []string) error
+
+	CreateArtifact(io.Reader) (atc.WorkerArtifact, error)
+	GetArtifact(int) (io.ReadCloser, error)
 }
 
 type team struct {

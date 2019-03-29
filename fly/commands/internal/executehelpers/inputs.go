@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/ui/progress"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/vbauerster/mpb/v4"
 )
 
 type Input struct {
@@ -23,40 +26,43 @@ func DetermineInputs(
 	team concourse.Team,
 	taskInputs []atc.TaskInputConfig,
 	localInputMappings []flaghelpers.InputPairFlag,
-	jobInputMappings map[string]string,
+	userInputMappings []flaghelpers.VariablePairFlag,
 	jobInputImage string,
 	inputsFrom flaghelpers.JobFlag,
-) ([]Input, *atc.ImageResource, error) {
+	includeIgnored bool,
+) ([]Input, map[string]string, *atc.ImageResource, error) {
+	inputMappings := ConvertInputMappings(userInputMappings)
+
 	err := CheckForUnknownInputMappings(localInputMappings, taskInputs)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = CheckForInputType(localInputMappings)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if len(localInputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		localInputMappings = append(localInputMappings, flaghelpers.InputPairFlag{
 			Name: filepath.Base(wd),
-			Path: wd,
+			Path: ".",
 		})
 	}
 
-	inputsFromLocal, err := GenerateLocalInputs(fact, localInputMappings)
+	inputsFromLocal, err := GenerateLocalInputs(fact, team, localInputMappings, includeIgnored)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	inputsFromJob, imageResourceFromJob, err := FetchInputsFromJob(fact, team, inputsFrom, jobInputImage)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	inputs := []Input{}
@@ -65,7 +71,7 @@ func DetermineInputs(
 		if !found {
 
 			jobInputName := taskInput.Name
-			if name, ok := jobInputMappings[taskInput.Name]; ok {
+			if name, ok := inputMappings[taskInput.Name]; ok {
 				jobInputName = name
 			}
 
@@ -74,7 +80,7 @@ func DetermineInputs(
 				if taskInput.Optional {
 					continue
 				} else {
-					return nil, nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
+					return nil, nil, nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
 				}
 			}
 		}
@@ -82,10 +88,10 @@ func DetermineInputs(
 		inputs = append(inputs, input)
 	}
 
-	return inputs, imageResourceFromJob, nil
+	return inputs, inputMappings, imageResourceFromJob, nil
 }
 
-func DetermineInputMappings(variables []flaghelpers.VariablePairFlag) map[string]string {
+func ConvertInputMappings(variables []flaghelpers.VariablePairFlag) map[string]string {
 	inputMappings := map[string]string{}
 	for _, flag := range variables {
 		inputMappings[flag.Name] = flag.Value
@@ -127,23 +133,53 @@ func TaskInputsContainsName(inputs []atc.TaskInputConfig, name string) bool {
 	return false
 }
 
-func GenerateLocalInputs(fact atc.PlanFactory, inputMappings []flaghelpers.InputPairFlag) (map[string]Input, error) {
-	kvMap := map[string]Input{}
+func GenerateLocalInputs(
+	fact atc.PlanFactory,
+	team concourse.Team,
+	inputMappings []flaghelpers.InputPairFlag,
+	includeIgnored bool,
+) (map[string]Input, error) {
+	inputs := map[string]Input{}
 
-	for _, i := range inputMappings {
-		inputName := i.Name
-		absPath := i.Path
+	artifacts := new(sync.Map)
 
-		kvMap[inputName] = Input{
-			Name: inputName,
-			Path: absPath,
-			Plan: fact.NewPlan(atc.UserArtifactPlan{
-				Name: inputName,
+	prog := progress.New()
+
+	for _, mapping := range inputMappings {
+		name := mapping.Name
+		path := mapping.Path
+
+		prog.Go("uploading "+name, func(bar *mpb.Bar) error {
+			artifact, err := Upload(bar, team, path, includeIgnored)
+			if err != nil {
+				return err
+			}
+
+			artifacts.Store(name, artifact)
+
+			return nil
+		})
+	}
+
+	err := prog.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, mapping := range inputMappings {
+		val, _ := artifacts.Load(mapping.Name)
+
+		inputs[mapping.Name] = Input{
+			Name: mapping.Name,
+			Path: mapping.Path,
+			Plan: fact.NewPlan(atc.ArtifactInputPlan{
+				ArtifactID: val.(atc.WorkerArtifact).ID,
+				Name:       mapping.Name,
 			}),
 		}
 	}
 
-	return kvMap, nil
+	return inputs, nil
 }
 
 func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag, imageName string) (map[string]Input, *atc.ImageResource, error) {

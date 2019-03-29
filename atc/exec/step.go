@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/exec/artifact"
 )
 
 //go:generate counterfeiter . Step
@@ -35,16 +35,10 @@ type InputHandler func(io.ReadCloser) error
 type OutputHandler func(io.Writer) error
 
 type RunState interface {
-	Artifacts() *worker.ArtifactRepository
+	Artifacts() *artifact.Repository
 
 	Result(atc.PlanID, interface{}) bool
 	StoreResult(atc.PlanID, interface{})
-
-	SendUserInput(atc.PlanID, io.ReadCloser)
-	ReadUserInput(atc.PlanID, InputHandler) error
-
-	ReadPlanOutput(atc.PlanID, io.Writer)
-	SendPlanOutput(atc.PlanID, OutputHandler) error
 }
 
 // ExitStatus is the resulting exit code from the process that the step ran.

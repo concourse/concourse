@@ -1,7 +1,6 @@
 package worker_test
 
 import (
-	"context"
 	"errors"
 
 	"code.cloudfoundry.org/lager"
@@ -9,11 +8,9 @@ import (
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -22,218 +19,33 @@ var _ = Describe("Pool", func() {
 	var (
 		logger       *lagertest.TestLogger
 		fakeProvider *workerfakes.FakeWorkerProvider
-		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
-		pool         Client
+		pool         Pool
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeProvider = new(workerfakes.FakeWorkerProvider)
-		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
-		pool = NewPool(fakeProvider, fakeStrategy)
+		pool = NewPool(fakeProvider)
 	})
 
-	Describe("Satisfying", func() {
+	Describe("FindOrChooseWorkerForContainer", func() {
 		var (
-			spec WorkerSpec
+			spec          ContainerSpec
+			workerSpec    WorkerSpec
+			resourceTypes creds.VersionedResourceTypes
+			fakeOwner     *dbfakes.FakeContainerOwner
 
-			satisfyingErr    error
-			satisfyingWorker Worker
-			resourceTypes    creds.VersionedResourceTypes
-		)
-
-		BeforeEach(func() {
-			variables := template.StaticVariables{
-				"secret-source": "super-secret-source",
-			}
-
-			resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "some-resource-type",
-						Type:   "some-underlying-type",
-						Source: atc.Source{"some": "((secret-source))"},
-					},
-					Version: atc.Version{"some": "version"},
-				},
-			})
-
-			spec = WorkerSpec{
-				Platform:      "some-platform",
-				Tags:          []string{"step", "tags"},
-				ResourceTypes: resourceTypes,
-			}
-		})
-
-		JustBeforeEach(func() {
-			satisfyingWorker, satisfyingErr = pool.Satisfying(logger, spec)
-		})
-
-		Context("with multiple workers", func() {
-			var (
-				workerA *workerfakes.FakeWorker
-				workerB *workerfakes.FakeWorker
-				workerC *workerfakes.FakeWorker
-			)
-
-			BeforeEach(func() {
-				workerA = new(workerfakes.FakeWorker)
-				workerB = new(workerfakes.FakeWorker)
-				workerC = new(workerfakes.FakeWorker)
-
-				workerA.SatisfyingReturns(workerA, nil)
-				workerB.SatisfyingReturns(workerB, nil)
-				workerC.SatisfyingReturns(nil, errors.New("nope"))
-
-				fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
-			})
-
-			It("succeeds", func() {
-				Expect(satisfyingErr).NotTo(HaveOccurred())
-			})
-
-			It("checks that the workers satisfy the given spec", func() {
-				Expect(workerA.SatisfyingCallCount()).To(Equal(1))
-				_, actualSpec := workerA.SatisfyingArgsForCall(0)
-				Expect(actualSpec).To(Equal(spec))
-
-				Expect(workerB.SatisfyingCallCount()).To(Equal(1))
-				_, actualSpec = workerB.SatisfyingArgsForCall(0)
-				Expect(actualSpec).To(Equal(spec))
-
-				Expect(workerC.SatisfyingCallCount()).To(Equal(1))
-				_, actualSpec = workerC.SatisfyingArgsForCall(0)
-				Expect(actualSpec).To(Equal(spec))
-			})
-
-			It("returns a random worker satisfying the spec", func() {
-				chosenCount := map[Worker]int{workerA: 0, workerB: 0, workerC: 0}
-				for i := 0; i < 100; i++ {
-					satisfyingWorker, satisfyingErr = pool.Satisfying(logger, spec)
-					Expect(satisfyingErr).NotTo(HaveOccurred())
-					chosenCount[satisfyingWorker]++
-				}
-				Expect(chosenCount[workerA]).To(BeNumerically("~", chosenCount[workerB], 50))
-				Expect(chosenCount[workerC]).To(BeZero())
-			})
-
-			Context("when no workers satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfyingReturns(nil, errors.New("nope"))
-					workerB.SatisfyingReturns(nil, errors.New("nope"))
-					workerC.SatisfyingReturns(nil, errors.New("nope"))
-				})
-
-				It("returns a NoCompatibleWorkersError", func() {
-					Expect(satisfyingErr).To(Equal(NoCompatibleWorkersError{
-						Spec: spec,
-					}))
-				})
-			})
-		})
-
-		Context("with no workers", func() {
-			BeforeEach(func() {
-				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
-			})
-
-			It("returns ErrNoWorkers", func() {
-				Expect(satisfyingErr).To(Equal(ErrNoWorkers))
-			})
-		})
-
-		Context("when getting the workers fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeProvider.RunningWorkersReturns(nil, disaster)
-			})
-
-			It("returns the error", func() {
-				Expect(satisfyingErr).To(Equal(disaster))
-			})
-		})
-	})
-
-	Describe("FindContainerByHandle", func() {
-		var (
-			foundContainer Container
-			found          bool
-			findErr        error
-		)
-
-		JustBeforeEach(func() {
-			foundContainer, found, findErr = pool.FindContainerByHandle(
-				logger,
-				4567,
-				"some-handle",
-			)
-		})
-
-		Context("when a worker is found with the container", func() {
-			var fakeWorker *workerfakes.FakeWorker
-			var fakeContainer *workerfakes.FakeContainer
-
-			BeforeEach(func() {
-				fakeWorker = new(workerfakes.FakeWorker)
-				fakeProvider.FindWorkerForContainerReturns(fakeWorker, true, nil)
-
-				fakeContainer = new(workerfakes.FakeContainer)
-				fakeWorker.FindContainerByHandleReturns(fakeContainer, true, nil)
-			})
-
-			It("succeeds", func() {
-				Expect(found).To(BeTrue())
-				Expect(findErr).NotTo(HaveOccurred())
-			})
-
-			It("returns the created container", func() {
-				Expect(foundContainer).To(Equal(fakeContainer))
-			})
-
-			It("finds on the particular worker", func() {
-				Expect(fakeWorker.FindContainerByHandleCallCount()).To(Equal(1))
-
-				_, actualTeamID, actualHandle := fakeProvider.FindWorkerForContainerArgsForCall(0)
-				Expect(actualTeamID).To(Equal(4567))
-				Expect(actualHandle).To(Equal("some-handle"))
-			})
-		})
-
-		Context("when no worker is found with the container", func() {
-			BeforeEach(func() {
-				fakeProvider.FindWorkerForContainerReturns(nil, false, nil)
-			})
-
-			It("returns no container, false, and no error", func() {
-			})
-		})
-	})
-
-	Describe("FindOrCreateContainer", func() {
-		var (
-			ctx                       context.Context
-			fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
-			metadata                  db.ContainerMetadata
-			spec                      ContainerSpec
-			workerSpec                WorkerSpec
-			resourceTypes             creds.VersionedResourceTypes
-			fakeOwner                 *dbfakes.FakeContainerOwner
-
-			fakeContainer *workerfakes.FakeContainer
-
-			createdContainer Container
-			createErr        error
+			chosenWorker Worker
+			chooseErr    error
 
 			incompatibleWorker *workerfakes.FakeWorker
 			compatibleWorker   *workerfakes.FakeWorker
+			fakeStrategy       *workerfakes.FakeContainerPlacementStrategy
 		)
 
 		BeforeEach(func() {
-			ctx = context.Background()
-
-			fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
+			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
 			fakeOwner = new(dbfakes.FakeContainerOwner)
 
@@ -294,26 +106,20 @@ var _ = Describe("Pool", func() {
 				ResourceTypes: resourceTypes,
 			}
 
-			fakeContainer = new(workerfakes.FakeContainer)
-
 			incompatibleWorker = new(workerfakes.FakeWorker)
-			incompatibleWorker.SatisfyingReturns(nil, ErrIncompatiblePlatform)
+			incompatibleWorker.SatisfiesReturns(false)
 
 			compatibleWorker = new(workerfakes.FakeWorker)
-			compatibleWorker.SatisfyingReturns(compatibleWorker, nil)
-			compatibleWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+			compatibleWorker.SatisfiesReturns(true)
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = pool.FindOrCreateContainer(
-				ctx,
+			chosenWorker, chooseErr = pool.FindOrChooseWorkerForContainer(
 				logger,
-				fakeImageFetchingDelegate,
 				fakeOwner,
-				metadata,
 				spec,
 				workerSpec,
-				resourceTypes,
+				fakeStrategy,
 			)
 		})
 
@@ -339,83 +145,76 @@ var _ = Describe("Pool", func() {
 
 			Context("when one of the workers satisfy the spec", func() {
 				BeforeEach(func() {
-					workerA.SatisfyingReturns(workerA, nil)
-					workerB.SatisfyingReturns(nil, errors.New("nope"))
-					workerC.SatisfyingReturns(nil, errors.New("nope"))
-
-					workerA.FindOrCreateContainerReturns(fakeContainer, nil)
+					workerA.SatisfiesReturns(true)
+					workerB.SatisfiesReturns(false)
+					workerC.SatisfiesReturns(false)
 				})
 
 				It("checks that the workers satisfy the given worker spec", func() {
-					Expect(workerA.SatisfyingCallCount()).To(Equal(1))
-					_, actualSpec := workerA.SatisfyingArgsForCall(0)
+					Expect(workerA.SatisfiesCallCount()).To(Equal(1))
+					_, actualSpec := workerA.SatisfiesArgsForCall(0)
 					Expect(actualSpec).To(Equal(workerSpec))
 
-					Expect(workerB.SatisfyingCallCount()).To(Equal(1))
-					_, actualSpec = workerB.SatisfyingArgsForCall(0)
+					Expect(workerB.SatisfiesCallCount()).To(Equal(1))
+					_, actualSpec = workerB.SatisfiesArgsForCall(0)
 					Expect(actualSpec).To(Equal(workerSpec))
 
-					Expect(workerC.SatisfyingCallCount()).To(Equal(1))
-					_, actualSpec = workerC.SatisfyingArgsForCall(0)
+					Expect(workerC.SatisfiesCallCount()).To(Equal(1))
+					_, actualSpec = workerC.SatisfiesArgsForCall(0)
 					Expect(actualSpec).To(Equal(workerSpec))
 				})
 
 				It("succeeds and returns the compatible worker with the container", func() {
 					Expect(fakeStrategy.ChooseCallCount()).To(Equal(0))
 
-					Expect(createErr).NotTo(HaveOccurred())
-					Expect(createdContainer).To(Equal(fakeContainer))
+					Expect(chooseErr).NotTo(HaveOccurred())
+					Expect(chosenWorker.Name()).To(Equal(workerA.Name()))
 				})
 			})
 
 			Context("when multiple workers satisfy the spec", func() {
 				BeforeEach(func() {
-					workerA.SatisfyingReturns(workerA, nil)
-					workerB.SatisfyingReturns(workerB, nil)
-					workerC.SatisfyingReturns(nil, errors.New("nope"))
-
-					workerA.FindOrCreateContainerReturns(fakeContainer, nil)
+					workerA.SatisfiesReturns(true)
+					workerB.SatisfiesReturns(true)
+					workerC.SatisfiesReturns(false)
 				})
 
 				It("succeeds and returns the first compatible worker with the container", func() {
 					Expect(fakeStrategy.ChooseCallCount()).To(Equal(0))
 
-					Expect(createErr).NotTo(HaveOccurred())
-					Expect(createdContainer).To(Equal(fakeContainer))
+					Expect(chooseErr).NotTo(HaveOccurred())
+					Expect(chosenWorker.Name()).To(Equal(workerA.Name()))
 				})
 			})
 
 			Context("when no workers satisfy the spec", func() {
 				BeforeEach(func() {
-					workerA.SatisfyingReturns(nil, errors.New("nope"))
-					workerB.SatisfyingReturns(nil, errors.New("nope"))
-					workerC.SatisfyingReturns(nil, errors.New("nope"))
+					workerA.SatisfiesReturns(false)
+					workerB.SatisfiesReturns(false)
+					workerC.SatisfiesReturns(false)
 				})
 
 				It("returns a NoCompatibleWorkersError", func() {
-					Expect(createErr).To(Equal(NoCompatibleWorkersError{
+					Expect(chooseErr).To(Equal(NoCompatibleWorkersError{
 						Spec: workerSpec,
 					}))
 				})
 			})
 
-			Context("when the workers that have the containers do not match the workers that satisfy the spec", func() {
+			Context("when the worker that have the container does not satisfy the spec", func() {
 				BeforeEach(func() {
-					workerA.SatisfyingReturns(workerA, nil)
-					workerB.SatisfyingReturns(workerB, nil)
-					workerC.SatisfyingReturns(workerC, nil)
+					workerA.SatisfiesReturns(true)
+					workerB.SatisfiesReturns(true)
+					workerC.SatisfiesReturns(false)
 
-					workerD := new(workerfakes.FakeWorker)
-					workerD.NameReturns("workerD")
-
-					fakeProvider.FindWorkersForContainerByOwnerReturns([]Worker{workerD}, nil)
+					fakeProvider.FindWorkersForContainerByOwnerReturns([]Worker{workerC}, nil)
 				})
 
-				It("creates a new container", func() {
+				It("chooses a satisfying worker", func() {
 					Expect(fakeStrategy.ChooseCallCount()).To(Equal(1))
 
-					Expect(createErr).NotTo(HaveOccurred())
-					Expect(createdContainer).ToNot(Equal(fakeContainer))
+					Expect(chooseErr).NotTo(HaveOccurred())
+					Expect(chosenWorker.Name()).ToNot(Equal(workerC.Name()))
 				})
 			})
 		})
@@ -437,42 +236,42 @@ var _ = Describe("Pool", func() {
 					workerB = new(workerfakes.FakeWorker)
 					workerC = new(workerfakes.FakeWorker)
 
-					workerA.SatisfyingReturns(workerA, nil)
-					workerB.SatisfyingReturns(workerB, nil)
-					workerC.SatisfyingReturns(nil, errors.New("nope"))
+					workerA.SatisfiesReturns(true)
+					workerB.SatisfiesReturns(true)
+					workerC.SatisfiesReturns(false)
 
 					fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
 					fakeStrategy.ChooseReturns(workerA, nil)
 				})
 
 				It("checks that the workers satisfy the given worker spec", func() {
-					Expect(workerA.SatisfyingCallCount()).To(Equal(1))
-					_, actualSpec := workerA.SatisfyingArgsForCall(0)
+					Expect(workerA.SatisfiesCallCount()).To(Equal(1))
+					_, actualSpec := workerA.SatisfiesArgsForCall(0)
 					Expect(actualSpec).To(Equal(workerSpec))
 
-					Expect(workerB.SatisfyingCallCount()).To(Equal(1))
-					_, actualSpec = workerB.SatisfyingArgsForCall(0)
+					Expect(workerB.SatisfiesCallCount()).To(Equal(1))
+					_, actualSpec = workerB.SatisfiesArgsForCall(0)
 					Expect(actualSpec).To(Equal(workerSpec))
 
-					Expect(workerC.SatisfyingCallCount()).To(Equal(1))
-					_, actualSpec = workerC.SatisfyingArgsForCall(0)
+					Expect(workerC.SatisfiesCallCount()).To(Equal(1))
+					_, actualSpec = workerC.SatisfiesArgsForCall(0)
 					Expect(actualSpec).To(Equal(workerSpec))
 				})
 
 				It("returns all workers satisfying the spec", func() {
-					_, satisfyingWorkers, _, _ := fakeStrategy.ChooseArgsForCall(0)
+					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
 					Expect(satisfyingWorkers).To(ConsistOf(workerA, workerB))
 				})
 
 				Context("when no workers satisfy the spec", func() {
 					BeforeEach(func() {
-						workerA.SatisfyingReturns(nil, errors.New("nope"))
-						workerB.SatisfyingReturns(nil, errors.New("nope"))
-						workerC.SatisfyingReturns(nil, errors.New("nope"))
+						workerA.SatisfiesReturns(false)
+						workerB.SatisfiesReturns(false)
+						workerC.SatisfiesReturns(false)
 					})
 
 					It("returns a NoCompatibleWorkersError", func() {
-						Expect(createErr).To(Equal(NoCompatibleWorkersError{
+						Expect(chooseErr).To(Equal(NoCompatibleWorkersError{
 							Spec: workerSpec,
 						}))
 					})
@@ -489,22 +288,22 @@ var _ = Describe("Pool", func() {
 
 				BeforeEach(func() {
 					teamWorker1 = new(workerfakes.FakeWorker)
-					teamWorker1.SatisfyingReturns(teamWorker1, nil)
+					teamWorker1.SatisfiesReturns(true)
 					teamWorker1.IsOwnedByTeamReturns(true)
 					teamWorker2 = new(workerfakes.FakeWorker)
-					teamWorker2.SatisfyingReturns(teamWorker2, nil)
+					teamWorker2.SatisfiesReturns(true)
 					teamWorker2.IsOwnedByTeamReturns(true)
 					teamWorker3 = new(workerfakes.FakeWorker)
-					teamWorker3.SatisfyingReturns(nil, errors.New("nope"))
+					teamWorker3.SatisfiesReturns(false)
 					generalWorker = new(workerfakes.FakeWorker)
-					generalWorker.SatisfyingReturns(generalWorker, nil)
+					generalWorker.SatisfiesReturns(true)
 					generalWorker.IsOwnedByTeamReturns(false)
 					fakeProvider.RunningWorkersReturns([]Worker{generalWorker, teamWorker1, teamWorker2, teamWorker3}, nil)
 					fakeStrategy.ChooseReturns(teamWorker1, nil)
 				})
 
 				It("returns only the team workers that satisfy the spec", func() {
-					_, satisfyingWorkers, _, _ := fakeStrategy.ChooseArgsForCall(0)
+					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
 					Expect(satisfyingWorkers).To(ConsistOf(teamWorker1, teamWorker2))
 				})
 			})
@@ -518,18 +317,18 @@ var _ = Describe("Pool", func() {
 
 				BeforeEach(func() {
 					teamWorker = new(workerfakes.FakeWorker)
-					teamWorker.SatisfyingReturns(nil, errors.New("nope"))
+					teamWorker.SatisfiesReturns(false)
 					generalWorker1 = new(workerfakes.FakeWorker)
-					generalWorker1.SatisfyingReturns(generalWorker1, nil)
+					generalWorker1.SatisfiesReturns(true)
 					generalWorker1.IsOwnedByTeamReturns(false)
 					generalWorker2 = new(workerfakes.FakeWorker)
-					generalWorker2.SatisfyingReturns(nil, errors.New("nope"))
+					generalWorker2.SatisfiesReturns(false)
 					fakeProvider.RunningWorkersReturns([]Worker{generalWorker1, generalWorker2, teamWorker}, nil)
 					fakeStrategy.ChooseReturns(generalWorker1, nil)
 				})
 
 				It("returns the general workers that satisfy the spec", func() {
-					_, satisfyingWorkers, _, _ := fakeStrategy.ChooseArgsForCall(0)
+					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
 					Expect(satisfyingWorkers).To(ConsistOf(generalWorker1))
 				})
 			})
@@ -540,7 +339,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns ErrNoWorkers", func() {
-					Expect(createErr).To(Equal(ErrNoWorkers))
+					Expect(chooseErr).To(Equal(ErrNoWorkers))
 				})
 			})
 
@@ -552,7 +351,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns the error", func() {
-					Expect(createErr).To(Equal(disaster))
+					Expect(chooseErr).To(Equal(disaster))
 				})
 			})
 
@@ -562,7 +361,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns ErrNoWorkers", func() {
-					Expect(createErr).To(Equal(ErrNoWorkers))
+					Expect(chooseErr).To(Equal(ErrNoWorkers))
 				})
 			})
 
@@ -572,7 +371,7 @@ var _ = Describe("Pool", func() {
 				})
 
 				It("returns NoCompatibleWorkersError", func() {
-					Expect(createErr).To(Equal(NoCompatibleWorkersError{
+					Expect(chooseErr).To(Equal(NoCompatibleWorkersError{
 						Spec: workerSpec,
 					}))
 				})
@@ -592,10 +391,9 @@ var _ = Describe("Pool", func() {
 					})
 
 					It("chooses a worker", func() {
-						Expect(createErr).ToNot(HaveOccurred())
+						Expect(chooseErr).ToNot(HaveOccurred())
 						Expect(fakeStrategy.ChooseCallCount()).To(Equal(1))
-						Expect(compatibleWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-						Expect(createdContainer).To(Equal(fakeContainer))
+						Expect(chosenWorker.Name()).To(Equal(compatibleWorker.Name()))
 					})
 				})
 
@@ -610,7 +408,7 @@ var _ = Describe("Pool", func() {
 					})
 
 					It("returns an error", func() {
-						Expect(createErr).To(Equal(strategyError))
+						Expect(chooseErr).To(Equal(strategyError))
 					})
 				})
 			})

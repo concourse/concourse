@@ -8,7 +8,6 @@ image_resource:
 params:
   CONCOURSE_CHART_DIR:
   CONCOURSE_IMAGE_NAME:
-  CONCOURSE_IMAGE_TAG:
   KUBE_CONFIG:
 
 inputs:

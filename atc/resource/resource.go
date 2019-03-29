@@ -16,7 +16,6 @@ type Resource interface {
 	Get(context.Context, worker.Volume, IOConfig, atc.Source, atc.Params, atc.Version) (VersionedSource, error)
 	Put(context.Context, IOConfig, atc.Source, atc.Params) (VersionedSource, error)
 	Check(context.Context, atc.Source, atc.Version) ([]atc.Version, error)
-	Container() worker.Container
 }
 
 type ResourceType string
@@ -45,12 +44,22 @@ type resource struct {
 	ScriptFailure bool
 }
 
-func NewResourceForContainer(container worker.Container) Resource {
+//go:generate counterfeiter . ResourceFactory
+
+type ResourceFactory interface {
+	NewResourceForContainer(worker.Container) Resource
+}
+
+func NewResourceFactory() ResourceFactory {
+	return &resourceFactory{}
+}
+
+// TODO: This factory is purely used for testing and faking out the Resource
+// object. Please remove asap if possible.
+type resourceFactory struct{}
+
+func (rf *resourceFactory) NewResourceForContainer(container worker.Container) Resource {
 	return &resource{
 		container: container,
 	}
-}
-
-func (r *resource) Container() worker.Container {
-	return r.container
 }

@@ -27,3 +27,21 @@ func (team *team) ListContainers(queryList map[string]string) ([]atc.Container, 
 	})
 	return containers, err
 }
+
+func (team *team) GetContainer(handle string) (atc.Container, error) {
+	var container atc.Container
+
+	params := rata.Params{
+		"id":        handle,
+		"team_name": team.name,
+	}
+
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.GetContainer,
+		Params:      params,
+	}, &internal.Response{
+		Result: &container,
+	})
+
+	return container, err
+}

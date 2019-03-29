@@ -150,7 +150,7 @@ var _ = Describe("Fly CLI", func() {
 						atcServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", path),
-								ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: &config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+								ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 							),
 						)
 					})
@@ -187,87 +187,6 @@ var _ = Describe("Fly CLI", func() {
 
 							Expect(printedConfig).To(Equal(config))
 						})
-					})
-				})
-
-				Context("when atc returns an error loading config", func() {
-					BeforeEach(func() {
-						configResponse := atc.ConfigResponse{
-							Errors: []string{"invalid-config"},
-							RawConfig: atc.RawConfig(`{
-								"foo":{"bar": [1, 2, 3]},
-								"baz":"quux"
-							}`),
-						}
-						atcServer.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.RespondWithJSONEncoded(200, configResponse, http.Header{atc.ConfigVersionHeader: {"42"}}),
-							),
-						)
-					})
-
-					It("prints raw config as yaml with error", func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline")
-
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
-
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(1))
-						Expect(sess.Err).To(gbytes.Say("error: invalid-config"))
-						var printedConfig map[string]interface{}
-						err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(printedConfig).To(Equal(map[string]interface{}{
-							"foo": map[interface{}]interface{}{
-								"bar": []interface{}{1, 2, 3},
-							},
-							"baz": "quux",
-						},
-						))
-					})
-
-					Context("when requesting JSON format", func() {
-						It("prints raw config as json with error", func() {
-							flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline", "-j")
-
-							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-							Expect(err).NotTo(HaveOccurred())
-
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(1))
-							Expect(sess.Err).To(gbytes.Say("error: invalid-config"))
-							Expect(sess.Out.Contents()).To(MatchJSON(`{
-								"foo":{"bar": [1, 2, 3]},
-								"baz":"quux"
-							}`))
-						})
-					})
-				})
-
-				Context("when atc returns an error loading config but returns an empty raw config", func() {
-					BeforeEach(func() {
-						configResponse := atc.ConfigResponse{Errors: []string{"invalid-config"}, RawConfig: atc.RawConfig("")}
-						atcServer.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", path),
-								ghttp.RespondWithJSONEncoded(200, configResponse, http.Header{atc.ConfigVersionHeader: {"42"}}),
-							),
-						)
-					})
-
-					It("does not print the (empty) raw config", func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline")
-
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
-
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(1))
-						Expect(sess.Err).To(gbytes.Say("error: invalid-config"))
-						Expect(sess.Out.Contents()).To(HaveLen(0))
 					})
 				})
 			})

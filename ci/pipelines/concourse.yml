@@ -3,6 +3,11 @@ resource_types:
   type: registry-image
   source: {repository: frodenas/gcs-resource}
 
+# needed for 'tag' file creation; can be removed once shipped
+- name: registry-image
+  type: registry-image
+  source: {repository: concourse/registry-image-resource}
+
 - name: bosh-release
   type: registry-image
   source: {repository: dpb587/bosh-release-resource}
@@ -64,6 +69,7 @@ groups:
 - name: images
   jobs:
   - unit-image
+  - golang-builder-image
 
 - name: publish
   jobs:
@@ -73,9 +79,9 @@ groups:
   - publish-binaries
   - publish-image
   - publish-bosh-release
-  - publish-bosh-deployment
+  - promote-cbd
+  - bump-cbd-versions
   - publish-docs
-  - patch
 
 - name: workers
   jobs:
@@ -104,6 +110,24 @@ jobs:
       caches: [{path: cache}]
       run: {path: build}
   - put: unit-image
+    params: {image: image/image.tar}
+
+- name: golang-builder-image
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      resource: golang-builder-dockerfile
+      trigger: true
+    - get: builder
+    - get: golang-linux
+      trigger: true
+  - task: build
+    image: builder
+    privileged: true
+    file: concourse/ci/tasks/build-golang-builder-image.yml
+  - put: golang-builder-image
     params: {image: image/image.tar}
 
 - name: unit
@@ -213,7 +237,6 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-testflight.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: watsjs
   public: true
@@ -236,7 +259,6 @@ jobs:
     privileged: true
     timeout: 1h
     file: concourse/ci/tasks/docker-compose-watsjs.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: upgrade
   public: true
@@ -244,20 +266,22 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
+      trigger: true
+    - get: unit-image
+      passed: [unit, dev-image]
+    - get: concourse-image
+      params: {format: oci}
     - get: postgres-image
       params: {format: oci}
-    - get: unit-image
-      passed: [dev-image]
   - task: upgrade-test
     privileged: true
     image: unit-image
     file: concourse/ci/tasks/upgrade-test.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: downgrade
   public: true
@@ -265,20 +289,22 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [dev-image]
+      passed: [unit, dev-image]
       trigger: true
     - get: dev-image
       passed: [dev-image]
       params: {format: oci}
+      trigger: true
+    - get: unit-image
+      passed: [unit, dev-image]
+    - get: concourse-image
+      params: {format: oci}
     - get: postgres-image
       params: {format: oci}
-    - get: unit-image
-      passed: [dev-image]
   - task: downgrade-test
     privileged: true
     image: unit-image
     file: concourse/ci/tasks/downgrade-test.yml
-    params: {DOCKERFILE: ci/dockerfiles/dev-test/Dockerfile}
 
 - name: k8s-check-helm-params
   public: true
@@ -333,9 +359,9 @@ jobs:
       image: unit-image
       file: concourse/ci/tasks/k8s-delete.yml
       params:
-       KUBE_CONFIG: ((kube_config))
-       RELEASE_NAME: concourse-smoke
-       CONCOURSE_IMAGE: concourse/concourse-rc
+        KUBE_CONFIG: ((kube_config))
+        RELEASE_NAME: concourse-smoke
+        CONCOURSE_IMAGE: concourse/concourse-rc
   - task: deploy
     image: unit-image
     input_mapping: {image-info: concourse-rc-image}
@@ -355,9 +381,9 @@ jobs:
     image: unit-image
     file: concourse/ci/tasks/k8s-delete.yml
     params:
-     KUBE_CONFIG: ((kube_config))
-     RELEASE_NAME: concourse-smoke
-     CONCOURSE_IMAGE: concourse/concourse-rc
+      KUBE_CONFIG: ((kube_config))
+      RELEASE_NAME: concourse-smoke
+      CONCOURSE_IMAGE: concourse/concourse-rc
 
 - name: k8s-topgun
   public: true
@@ -384,8 +410,8 @@ jobs:
     file: concourse/ci/tasks/k8s-topgun.yml
     image: unit-image
     params:
-     KUBE_CONFIG: ((kube_config))
-     CONCOURSE_IMAGE_NAME: concourse/concourse-rc
+      KUBE_CONFIG: ((kube_config))
+      CONCOURSE_IMAGE_NAME: concourse/concourse-rc
 
 - name: rc
   public: true
@@ -599,6 +625,8 @@ jobs:
       - bpm-release/*.tgz
       stemcells:
       - gcp-xenial-stemcell/*.tgz
+      vars:
+        deployment_name: concourse-smoke
   - task: discover-bosh-endpoint-info
     file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
     image: unit-image
@@ -655,7 +683,7 @@ jobs:
       BOSH_CA_CERT: ((tmp_bosh_client.ca_cert))
       BOSH_CLIENT: ((bosh_client.id))
       BOSH_CLIENT_SECRET: ((bosh_client.secret))
-      BOSH_KEY: ((topgun_bosh_key))
+      BOSH_SSH_KEY: ((topgun_bosh_key))
       AWS_REGION: ((topgun_aws_ssm.region))
       AWS_ACCESS_KEY_ID: ((topgun_aws_ssm.access_key_id))
       AWS_SECRET_ACCESS_KEY: ((topgun_aws_ssm.secret_access_key))
@@ -903,7 +931,7 @@ jobs:
       tarball: concourse-release/*.tgz
       version: version/version
 
-- name: publish-bosh-deployment
+- name: bump-cbd-versions
   serial: true
   plan:
   - aggregate:
@@ -911,25 +939,39 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [shipit]
-    - get: cbd
+    - get: cbd-master
     - get: version
       passed: [shipit]
     - get: bpm-release
       passed: [shipit]
     - get: postgres-release
       passed: [shipit]
-  # TODO: check that boshio version matches given version
   - task: bump-versions
     file: cbd/ci/bump-versions.yml
-    input_mapping: {concourse-bosh-deployment: cbd}
+    input_mapping: {concourse-bosh-deployment: cbd-master}
     image: unit-image
-  - put: cbd
-    params:
-      repository: bumped-repo
-      merge: true
   - put: cbd-master
     params:
       repository: bumped-repo
+      merge: true
+
+- name: promote-cbd
+  serial: true
+  plan:
+  - aggregate:
+    - get: version
+      passed: [shipit]
+      trigger: true
+    - get: cbd
+    - get: unit-image
+      passed: [shipit]
+    - get: bpm-release
+      passed: [shipit]
+    - get: postgres-release
+      passed: [shipit]
+  - put: cbd-master
+    params:
+      repository: cbd
       merge: true
 
 - name: publish-image
@@ -944,9 +986,11 @@ jobs:
     - get: concourse-rc-image
       passed: [shipit]
       params: {format: oci}
+    - get: latest-version
   - task: docker-semver-tags
     file: concourse/ci/tasks/docker-semver-tags.yml
-    params: {MAJOR: "true"}
+    input_mapping:
+      latest-of-same-major-version: latest-version
   - put: concourse-image
     params:
       image: concourse-rc-image/image.tar
@@ -966,16 +1010,6 @@ jobs:
     params: {ANALYTICS_ID: ((analytics_id))}
   - put: docs-gh-pages
     params: {repository: built-docs}
-
-- name: patch
-  public: true
-  serial_groups: [version]
-  plan:
-  - get: version
-    passed: [shipit]
-    trigger: true
-  - put: version
-    params: {bump: patch, pre: rc}
 
 - name: merge-cbd
   public: true
@@ -1033,6 +1067,13 @@ resources:
     branch: master
     paths: [ci/dockerfiles/unit]
 
+- name: golang-builder-dockerfile
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: master
+    paths: [ci/dockerfiles/golang-builder]
+
 - name: dev-image
   type: registry-image
   source:
@@ -1058,6 +1099,13 @@ resources:
   type: registry-image
   source:
     repository: concourse/unit
+    username: ((docker.username))
+    password: ((docker.password))
+
+- name: golang-builder-image
+  type: registry-image
+  source:
+    repository: concourse/golang-builder
     username: ((docker.username))
     password: ((docker.password))
 
@@ -1361,6 +1409,13 @@ resources:
     bucket: golang
     regexp: 'go(\d+\.\d+(\.\d+)?)\.windows-amd64\.msi'
 
+- name: golang-linux
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(\d+\.\d+(\.\d+)?)\.linux-amd64\.tar\.gz'
+
 - name: concourse-github-release
   type: github-release
   source:
@@ -1372,3 +1427,10 @@ resources:
   type: bosh-io-release
   source:
     repository: concourse/concourse-bosh-release
+
+- name: latest-version
+  type: github-release
+  source:
+    owner: concourse
+    repository: concourse
+    access_token: ((concourse_github_release.access_token))

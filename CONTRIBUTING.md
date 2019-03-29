@@ -112,7 +112,7 @@ silly air-traffic-themed names.
 | `/skymarshal`   | Adapts [Dex](https://github.com/dexidp/dex) into an embeddable auth component for the ATC, plus the auth flag specifications for `fly` and `concourse web`. |
 | `/tsa`          | A custom-built SSH server responsible for securely authenticating and registering workers. The other half of `concourse web`. |
 | `/worker`       | The `concourse worker` library code for registering with the TSA, periodically reaping containers/volumes, etc. |
-| `/bin`          | This is mainly glue code to wire the ATC, TSA, [BaggageClaim](https://github.com/concourse/baggageclaim), and Garden into the single `concourse` CLI. |
+| `/cmd`          | This is mainly glue code to wire the ATC, TSA, [BaggageClaim](https://github.com/concourse/baggageclaim), and Garden into the single `concourse` CLI. |
 | `/topgun`       | Another acceptance suite which covers operator-level features and technical aspects of the Concourse runtime. Deploys its own Concourse clusters, runs tests against them, and tears them down. |
 | `/ci`           | This folder contains all of our Concourse tasks, pipelines, and Docker images for the Concourse project itself. |
 
@@ -134,7 +134,26 @@ using the fresh image:
 ```sh
 $ docker pull concourse/dev
 $ docker-compose up --build -d
-```   
+```
+
+If you're working on a dependency that doesn't live under this repository (for instance,
+`baggageclaim`), you'll need to update `go.mod` with a `replace` directive with the exact
+reference that the module lives at:
+
+```sh
+# after pushing to the `sample` branch in your baggageclaim fork,
+# try to fetch the module revision and get the version.
+$ go mod download -json github.com/your-user/baggageclaim@sample | jq '.Version'
+go: finding github.com/cirocosta/baggageclaim sample
+"v1.3.6-0.20190315100745-09d349f19891"
+
+# with that version, update `go.mod` including a replace directive
+$ echo 'replace github.com/concourse/baggageclaim => github.com/your-user/baggageclaim v1.3.6-0.20190315100745-09d349f19891' \
+  > ./go.mod
+
+# run the usual build
+$ docker-compose up --build -d
+```
 
 ### Working on the web UI
 
@@ -163,7 +182,7 @@ build` whenever they change.
 ### Debugging with `dlv`
 
 With concourse already running, during local development is possible to attach
-[`dlv`](https://github.com/derekparker/delve) to either the `web` or `worker` instance,
+[`dlv`](https://github.com/go-delve/delve) to either the `web` or `worker` instance,
 allowing you to set breakpoints and inspect the current state of either one of those.
 
 To trace a running web instance:

@@ -404,7 +404,6 @@ var _ = Describe("DBProvider", func() {
 			Context("creating the connection to garden", func() {
 				var (
 					containerSpec ContainerSpec
-					workerSpec    WorkerSpec
 				)
 
 				JustBeforeEach(func() {
@@ -412,10 +411,6 @@ var _ = Describe("DBProvider", func() {
 						ImageSpec: ImageSpec{
 							ResourceType: "some-resource-a",
 						},
-					}
-
-					workerSpec = WorkerSpec{
-						ResourceType: "some-resource-a",
 					}
 
 					fakeContainer := new(gfakes.FakeContainer)
@@ -426,7 +421,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, workerSpec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -477,17 +472,13 @@ var _ = Describe("DBProvider", func() {
 						},
 					}
 
-					workerSpec := WorkerSpec{
-						ResourceType: "some-resource-a",
-					}
-
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("created-handle")
 
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, workerSpec, nil)
+					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(container.Handle()).To(Equal("created-handle"))
@@ -596,6 +587,96 @@ var _ = Describe("DBProvider", func() {
 
 			BeforeEach(func() {
 				fakeDBTeam.FindWorkerForContainerReturns(nil, false, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(findErr).To(Equal(disaster))
+				Expect(foundWorker).To(BeNil())
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("FindWorkerForVolume", func() {
+		var (
+			foundWorker Worker
+			found       bool
+			findErr     error
+		)
+
+		JustBeforeEach(func() {
+			foundWorker, found, findErr = provider.FindWorkerForVolume(
+				logger,
+				345278,
+				"some-handle",
+			)
+		})
+
+		Context("when the worker is found", func() {
+			var fakeExistingWorker *dbfakes.FakeWorker
+
+			BeforeEach(func() {
+				addr := "1.2.3.4:7777"
+
+				fakeExistingWorker = new(dbfakes.FakeWorker)
+				fakeExistingWorker.NameReturns("some-worker")
+				fakeExistingWorker.GardenAddrReturns(&addr)
+				workerVersion := "1.1.0"
+				fakeExistingWorker.VersionReturns(&workerVersion)
+
+				fakeDBTeam.FindWorkerForVolumeReturns(fakeExistingWorker, true, nil)
+			})
+
+			It("returns true", func() {
+				Expect(found).To(BeTrue())
+				Expect(findErr).ToNot(HaveOccurred())
+			})
+
+			It("returns the worker", func() {
+				Expect(foundWorker).ToNot(BeNil())
+				Expect(foundWorker.Name()).To(Equal("some-worker"))
+			})
+
+			It("found the worker for the right handle", func() {
+				handle := fakeDBTeam.FindWorkerForVolumeArgsForCall(0)
+				Expect(handle).To(Equal("some-handle"))
+			})
+
+			It("found the right team", func() {
+				actualTeam := fakeDBTeamFactory.GetByIDArgsForCall(0)
+				Expect(actualTeam).To(Equal(345278))
+			})
+
+			Context("when the worker version is outdated", func() {
+				BeforeEach(func() {
+					fakeExistingWorker.VersionReturns(nil)
+				})
+
+				It("returns an error", func() {
+					Expect(findErr).ToNot(HaveOccurred())
+					Expect(foundWorker).To(BeNil())
+					Expect(found).To(BeFalse())
+				})
+			})
+		})
+
+		Context("when the worker is not found", func() {
+			BeforeEach(func() {
+				fakeDBTeam.FindWorkerForVolumeReturns(nil, false, nil)
+			})
+
+			It("returns false", func() {
+				Expect(findErr).ToNot(HaveOccurred())
+				Expect(foundWorker).To(BeNil())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when finding the worker fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeDBTeam.FindWorkerForVolumeReturns(nil, false, disaster)
 			})
 
 			It("returns the error", func() {

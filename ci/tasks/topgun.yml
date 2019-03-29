@@ -6,11 +6,12 @@ image_resource:
   source: {repository: concourse/unit}
 
 params:
+  DEPLOYMENT_NAME_PREFIX:
   BOSH_CA_CERT:
   BOSH_CLIENT:
   BOSH_CLIENT_SECRET:
   BOSH_ENVIRONMENT:
-  BOSH_KEY:
+  BOSH_SSH_KEY:
   BOSH_PASSWORD:
   BOSH_USER:
   SKIP:

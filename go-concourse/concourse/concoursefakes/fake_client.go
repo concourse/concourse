@@ -2,13 +2,13 @@
 package concoursefakes
 
 import (
-	io "io"
-	http "net/http"
-	sync "sync"
-	time "time"
+	"io"
+	"net/http"
+	"sync"
+	"time"
 
-	atc "github.com/concourse/concourse/atc"
-	concourse "github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type FakeClient struct {
@@ -145,6 +145,19 @@ type FakeClient struct {
 	landWorkerReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ListBuildArtifactsStub        func(string) ([]atc.WorkerArtifact, error)
+	listBuildArtifactsMutex       sync.RWMutex
+	listBuildArtifactsArgsForCall []struct {
+		arg1 string
+	}
+	listBuildArtifactsReturns struct {
+		result1 []atc.WorkerArtifact
+		result2 error
+	}
+	listBuildArtifactsReturnsOnCall map[int]struct {
+		result1 []atc.WorkerArtifact
+		result2 error
+	}
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct {
@@ -192,22 +205,6 @@ type FakeClient struct {
 	pruneWorkerReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ReadOutputFromBuildPlanStub        func(int, atc.PlanID) (io.ReadCloser, bool, error)
-	readOutputFromBuildPlanMutex       sync.RWMutex
-	readOutputFromBuildPlanArgsForCall []struct {
-		arg1 int
-		arg2 atc.PlanID
-	}
-	readOutputFromBuildPlanReturns struct {
-		result1 io.ReadCloser
-		result2 bool
-		result3 error
-	}
-	readOutputFromBuildPlanReturnsOnCall map[int]struct {
-		result1 io.ReadCloser
-		result2 bool
-		result3 error
-	}
 	SaveWorkerStub        func(atc.Worker, *time.Duration) (*atc.Worker, error)
 	saveWorkerMutex       sync.RWMutex
 	saveWorkerArgsForCall []struct {
@@ -220,21 +217,6 @@ type FakeClient struct {
 	}
 	saveWorkerReturnsOnCall map[int]struct {
 		result1 *atc.Worker
-		result2 error
-	}
-	SendInputToBuildPlanStub        func(int, atc.PlanID, io.Reader) (bool, error)
-	sendInputToBuildPlanMutex       sync.RWMutex
-	sendInputToBuildPlanArgsForCall []struct {
-		arg1 int
-		arg2 atc.PlanID
-		arg3 io.Reader
-	}
-	sendInputToBuildPlanReturns struct {
-		result1 bool
-		result2 error
-	}
-	sendInputToBuildPlanReturnsOnCall map[int]struct {
-		result1 bool
 		result2 error
 	}
 	TeamStub        func(string) concourse.Team
@@ -895,6 +877,69 @@ func (fake *FakeClient) LandWorkerReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeClient) ListBuildArtifacts(arg1 string) ([]atc.WorkerArtifact, error) {
+	fake.listBuildArtifactsMutex.Lock()
+	ret, specificReturn := fake.listBuildArtifactsReturnsOnCall[len(fake.listBuildArtifactsArgsForCall)]
+	fake.listBuildArtifactsArgsForCall = append(fake.listBuildArtifactsArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("ListBuildArtifacts", []interface{}{arg1})
+	fake.listBuildArtifactsMutex.Unlock()
+	if fake.ListBuildArtifactsStub != nil {
+		return fake.ListBuildArtifactsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.listBuildArtifactsReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) ListBuildArtifactsCallCount() int {
+	fake.listBuildArtifactsMutex.RLock()
+	defer fake.listBuildArtifactsMutex.RUnlock()
+	return len(fake.listBuildArtifactsArgsForCall)
+}
+
+func (fake *FakeClient) ListBuildArtifactsCalls(stub func(string) ([]atc.WorkerArtifact, error)) {
+	fake.listBuildArtifactsMutex.Lock()
+	defer fake.listBuildArtifactsMutex.Unlock()
+	fake.ListBuildArtifactsStub = stub
+}
+
+func (fake *FakeClient) ListBuildArtifactsArgsForCall(i int) string {
+	fake.listBuildArtifactsMutex.RLock()
+	defer fake.listBuildArtifactsMutex.RUnlock()
+	argsForCall := fake.listBuildArtifactsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeClient) ListBuildArtifactsReturns(result1 []atc.WorkerArtifact, result2 error) {
+	fake.listBuildArtifactsMutex.Lock()
+	defer fake.listBuildArtifactsMutex.Unlock()
+	fake.ListBuildArtifactsStub = nil
+	fake.listBuildArtifactsReturns = struct {
+		result1 []atc.WorkerArtifact
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) ListBuildArtifactsReturnsOnCall(i int, result1 []atc.WorkerArtifact, result2 error) {
+	fake.listBuildArtifactsMutex.Lock()
+	defer fake.listBuildArtifactsMutex.Unlock()
+	fake.ListBuildArtifactsStub = nil
+	if fake.listBuildArtifactsReturnsOnCall == nil {
+		fake.listBuildArtifactsReturnsOnCall = make(map[int]struct {
+			result1 []atc.WorkerArtifact
+			result2 error
+		})
+	}
+	fake.listBuildArtifactsReturnsOnCall[i] = struct {
+		result1 []atc.WorkerArtifact
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) ListPipelines() ([]atc.Pipeline, error) {
 	fake.listPipelinesMutex.Lock()
 	ret, specificReturn := fake.listPipelinesReturnsOnCall[len(fake.listPipelinesArgsForCall)]
@@ -1120,73 +1165,6 @@ func (fake *FakeClient) PruneWorkerReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) ReadOutputFromBuildPlan(arg1 int, arg2 atc.PlanID) (io.ReadCloser, bool, error) {
-	fake.readOutputFromBuildPlanMutex.Lock()
-	ret, specificReturn := fake.readOutputFromBuildPlanReturnsOnCall[len(fake.readOutputFromBuildPlanArgsForCall)]
-	fake.readOutputFromBuildPlanArgsForCall = append(fake.readOutputFromBuildPlanArgsForCall, struct {
-		arg1 int
-		arg2 atc.PlanID
-	}{arg1, arg2})
-	fake.recordInvocation("ReadOutputFromBuildPlan", []interface{}{arg1, arg2})
-	fake.readOutputFromBuildPlanMutex.Unlock()
-	if fake.ReadOutputFromBuildPlanStub != nil {
-		return fake.ReadOutputFromBuildPlanStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.readOutputFromBuildPlanReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeClient) ReadOutputFromBuildPlanCallCount() int {
-	fake.readOutputFromBuildPlanMutex.RLock()
-	defer fake.readOutputFromBuildPlanMutex.RUnlock()
-	return len(fake.readOutputFromBuildPlanArgsForCall)
-}
-
-func (fake *FakeClient) ReadOutputFromBuildPlanCalls(stub func(int, atc.PlanID) (io.ReadCloser, bool, error)) {
-	fake.readOutputFromBuildPlanMutex.Lock()
-	defer fake.readOutputFromBuildPlanMutex.Unlock()
-	fake.ReadOutputFromBuildPlanStub = stub
-}
-
-func (fake *FakeClient) ReadOutputFromBuildPlanArgsForCall(i int) (int, atc.PlanID) {
-	fake.readOutputFromBuildPlanMutex.RLock()
-	defer fake.readOutputFromBuildPlanMutex.RUnlock()
-	argsForCall := fake.readOutputFromBuildPlanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakeClient) ReadOutputFromBuildPlanReturns(result1 io.ReadCloser, result2 bool, result3 error) {
-	fake.readOutputFromBuildPlanMutex.Lock()
-	defer fake.readOutputFromBuildPlanMutex.Unlock()
-	fake.ReadOutputFromBuildPlanStub = nil
-	fake.readOutputFromBuildPlanReturns = struct {
-		result1 io.ReadCloser
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeClient) ReadOutputFromBuildPlanReturnsOnCall(i int, result1 io.ReadCloser, result2 bool, result3 error) {
-	fake.readOutputFromBuildPlanMutex.Lock()
-	defer fake.readOutputFromBuildPlanMutex.Unlock()
-	fake.ReadOutputFromBuildPlanStub = nil
-	if fake.readOutputFromBuildPlanReturnsOnCall == nil {
-		fake.readOutputFromBuildPlanReturnsOnCall = make(map[int]struct {
-			result1 io.ReadCloser
-			result2 bool
-			result3 error
-		})
-	}
-	fake.readOutputFromBuildPlanReturnsOnCall[i] = struct {
-		result1 io.ReadCloser
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeClient) SaveWorker(arg1 atc.Worker, arg2 *time.Duration) (*atc.Worker, error) {
 	fake.saveWorkerMutex.Lock()
 	ret, specificReturn := fake.saveWorkerReturnsOnCall[len(fake.saveWorkerArgsForCall)]
@@ -1247,71 +1225,6 @@ func (fake *FakeClient) SaveWorkerReturnsOnCall(i int, result1 *atc.Worker, resu
 	}
 	fake.saveWorkerReturnsOnCall[i] = struct {
 		result1 *atc.Worker
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) SendInputToBuildPlan(arg1 int, arg2 atc.PlanID, arg3 io.Reader) (bool, error) {
-	fake.sendInputToBuildPlanMutex.Lock()
-	ret, specificReturn := fake.sendInputToBuildPlanReturnsOnCall[len(fake.sendInputToBuildPlanArgsForCall)]
-	fake.sendInputToBuildPlanArgsForCall = append(fake.sendInputToBuildPlanArgsForCall, struct {
-		arg1 int
-		arg2 atc.PlanID
-		arg3 io.Reader
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("SendInputToBuildPlan", []interface{}{arg1, arg2, arg3})
-	fake.sendInputToBuildPlanMutex.Unlock()
-	if fake.SendInputToBuildPlanStub != nil {
-		return fake.SendInputToBuildPlanStub(arg1, arg2, arg3)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.sendInputToBuildPlanReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeClient) SendInputToBuildPlanCallCount() int {
-	fake.sendInputToBuildPlanMutex.RLock()
-	defer fake.sendInputToBuildPlanMutex.RUnlock()
-	return len(fake.sendInputToBuildPlanArgsForCall)
-}
-
-func (fake *FakeClient) SendInputToBuildPlanCalls(stub func(int, atc.PlanID, io.Reader) (bool, error)) {
-	fake.sendInputToBuildPlanMutex.Lock()
-	defer fake.sendInputToBuildPlanMutex.Unlock()
-	fake.SendInputToBuildPlanStub = stub
-}
-
-func (fake *FakeClient) SendInputToBuildPlanArgsForCall(i int) (int, atc.PlanID, io.Reader) {
-	fake.sendInputToBuildPlanMutex.RLock()
-	defer fake.sendInputToBuildPlanMutex.RUnlock()
-	argsForCall := fake.sendInputToBuildPlanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeClient) SendInputToBuildPlanReturns(result1 bool, result2 error) {
-	fake.sendInputToBuildPlanMutex.Lock()
-	defer fake.sendInputToBuildPlanMutex.Unlock()
-	fake.SendInputToBuildPlanStub = nil
-	fake.sendInputToBuildPlanReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) SendInputToBuildPlanReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.sendInputToBuildPlanMutex.Lock()
-	defer fake.sendInputToBuildPlanMutex.Unlock()
-	fake.SendInputToBuildPlanStub = nil
-	if fake.sendInputToBuildPlanReturnsOnCall == nil {
-		fake.sendInputToBuildPlanReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.sendInputToBuildPlanReturnsOnCall[i] = struct {
-		result1 bool
 		result2 error
 	}{result1, result2}
 }
@@ -1506,6 +1419,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.hTTPClientMutex.RUnlock()
 	fake.landWorkerMutex.RLock()
 	defer fake.landWorkerMutex.RUnlock()
+	fake.listBuildArtifactsMutex.RLock()
+	defer fake.listBuildArtifactsMutex.RUnlock()
 	fake.listPipelinesMutex.RLock()
 	defer fake.listPipelinesMutex.RUnlock()
 	fake.listTeamsMutex.RLock()
@@ -1514,12 +1429,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.listWorkersMutex.RUnlock()
 	fake.pruneWorkerMutex.RLock()
 	defer fake.pruneWorkerMutex.RUnlock()
-	fake.readOutputFromBuildPlanMutex.RLock()
-	defer fake.readOutputFromBuildPlanMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
-	fake.sendInputToBuildPlanMutex.RLock()
-	defer fake.sendInputToBuildPlanMutex.RUnlock()
 	fake.teamMutex.RLock()
 	defer fake.teamMutex.RUnlock()
 	fake.uRLMutex.RLock()

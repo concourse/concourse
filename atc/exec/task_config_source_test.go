@@ -4,32 +4,30 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	"gopkg.in/yaml.v2"
-
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("TaskConfigSource", func() {
 	var (
 		taskConfig atc.TaskConfig
 		taskVars   atc.Params
-		repo       *worker.ArtifactRepository
+		repo       *artifact.Repository
 		logger     *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("task-config-source-test")
-		repo = worker.NewArtifactRepository()
+		repo = artifact.NewRepository()
 		taskConfig = atc.TaskConfig{
 			Platform:  "some-platform",
 			RootfsURI: "some-image",

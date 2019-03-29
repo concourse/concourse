@@ -56,13 +56,12 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		// pipeline and job are public or authorized
 		case atc.GetBuildPreparation,
 			atc.BuildEvents,
-			atc.GetBuildPlan:
+			atc.GetBuildPlan,
+			atc.ListBuildArtifacts:
 			newHandler = wrappa.checkBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(handler, rejector)
 
-		// resource belongs to authorized team
-		case atc.AbortBuild,
-			atc.SendInputToBuildPlan,
-			atc.ReadOutputFromBuildPlan:
+			// resource belongs to authorized team
+		case atc.AbortBuild:
 			newHandler = wrappa.checkBuildWriteAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		// requester is system, admin team, or worker owning team
@@ -139,7 +138,9 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ExposePipeline,
 			atc.HidePipeline,
 			atc.SaveConfig,
-			atc.ClearTaskCache:
+			atc.ClearTaskCache,
+			atc.CreateArtifact,
+			atc.GetArtifact:
 			newHandler = auth.CheckAuthorizationHandler(handler, rejector)
 
 		// think about it!

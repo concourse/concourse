@@ -8,16 +8,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Jobs API", func() {
@@ -25,7 +21,6 @@ var _ = Describe("Jobs API", func() {
 	var fakeaccess *accessorfakes.FakeAccess
 	var versionedResourceTypes atc.VersionedResourceTypes
 	var fakePipeline *dbfakes.FakePipeline
-	var variables creds.Variables
 
 	BeforeEach(func() {
 		fakeJob = new(dbfakes.FakeJob)
@@ -33,11 +28,6 @@ var _ = Describe("Jobs API", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
-
-		variables = template.StaticVariables{
-			"some-param": "lol",
-		}
-		fakeVariablesFactory.NewVariablesReturns(variables)
 
 		versionedResourceTypes = atc.VersionedResourceTypes{
 			atc.VersionedResourceType{
@@ -1410,18 +1400,11 @@ var _ = Describe("Jobs API", func() {
 		var request *http.Request
 		var response *http.Response
 
-		var fakeScheduler *schedulerfakes.FakeBuildScheduler
-		var fakeResource *dbfakes.FakeResource
-		var fakeResource2 *dbfakes.FakeResource
-
 		BeforeEach(func() {
 			var err error
 
 			request, err = http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds", nil)
 			Expect(err).NotTo(HaveOccurred())
-
-			fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
-			fakeSchedulerFactory.BuildSchedulerReturns(fakeScheduler)
 		})
 
 		JustBeforeEach(func() {
@@ -1437,6 +1420,26 @@ var _ = Describe("Jobs API", func() {
 				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
+			Context("when getting the job fails", func() {
+				BeforeEach(func() {
+					fakePipeline.JobReturns(nil, false, errors.New("errorrr"))
+				})
+
+				It("returns a 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the job is not found", func() {
+				BeforeEach(func() {
+					fakePipeline.JobReturns(nil, false, nil)
+				})
+
+				It("returns a 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
 			Context("when getting the job succeeds", func() {
 				BeforeEach(func() {
 					fakeJob.NameReturns("some-job")
@@ -1448,11 +1451,7 @@ var _ = Describe("Jobs API", func() {
 						fakeJob.ConfigReturns(atc.JobConfig{
 							Name:                 "some-job",
 							DisableManualTrigger: true,
-							Plan: atc.PlanSequence{
-								{
-									Get: "some-input",
-								},
-							},
+							Plan:                 atc.PlanSequence{{Get: "some-input"}},
 						})
 					})
 
@@ -1461,19 +1460,25 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("does not trigger the build", func() {
-						Expect(fakeScheduler.TriggerImmediatelyCallCount()).To(Equal(0))
+						Expect(fakeJob.CreateBuildCallCount()).To(Equal(0))
 					})
 				})
 
-				Context("when getting the job config succeeds", func() {
+				Context("when manual triggering is enabled", func() {
 					BeforeEach(func() {
 						fakeJob.ConfigReturns(atc.JobConfig{
-							Name: "some-job",
-							Plan: atc.PlanSequence{
-								{
-									Get: "some-input",
-								},
-							},
+							Name:                 "some-job",
+							DisableManualTrigger: false,
+							Plan:                 atc.PlanSequence{{Get: "some-input"}},
+						})
+					})
+
+					Context("when triggering the build fails", func() {
+						BeforeEach(func() {
+							fakeJob.CreateBuildReturns(nil, errors.New("nopers"))
+						})
+						It("returns a 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
 					})
 
@@ -1488,26 +1493,12 @@ var _ = Describe("Jobs API", func() {
 							build.StatusReturns(db.BuildStatusStarted)
 							build.StartTimeReturns(time.Unix(1, 0))
 							build.EndTimeReturns(time.Unix(100, 0))
-							fakeScheduler.TriggerImmediatelyReturns(build, nil, nil)
 
-							fakeResource = new(dbfakes.FakeResource)
-							fakeResource.NameReturns("resource-1")
-							fakeResource.TypeReturns("some-type")
-
-							fakeResource2 = new(dbfakes.FakeResource)
-							fakeResource2.NameReturns("resource-2")
-							fakeResource2.TypeReturns("some-other-type")
-
-							fakePipeline.ResourcesReturns(db.Resources{fakeResource, fakeResource2}, nil)
+							fakeJob.CreateBuildReturns(build, nil)
 						})
 
-						It("triggers using the current config", func() {
-							Expect(fakeScheduler.TriggerImmediatelyCallCount()).To(Equal(1))
-
-							_, job, resources, resourceTypes := fakeScheduler.TriggerImmediatelyArgsForCall(0)
-							Expect(job).To(Equal(fakeJob))
-							Expect(resources).To(Equal(db.Resources{fakeResource, fakeResource2}))
-							Expect(resourceTypes).To(Equal(versionedResourceTypes))
+						It("triggers the build", func() {
+							Expect(fakeJob.CreateBuildCallCount()).To(Equal(1))
 						})
 
 						It("returns 200 OK", func() {
@@ -1535,46 +1526,6 @@ var _ = Describe("Jobs API", func() {
 						}`))
 						})
 					})
-
-					Context("when getting the config fails", func() {
-						BeforeEach(func() {
-							fakePipeline.ResourcesReturns(db.Resources{}, errors.New("oh no!"))
-						})
-
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-					})
-
-					Context("when triggering the build fails", func() {
-						BeforeEach(func() {
-							fakeScheduler.TriggerImmediatelyReturns(nil, nil, errors.New("oh no!"))
-						})
-
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-					})
-				})
-			})
-
-			Context("when getting the job fails", func() {
-				BeforeEach(func() {
-					fakePipeline.JobReturns(nil, false, errors.New("errorrr"))
-				})
-
-				It("returns a 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("when the job is not found", func() {
-				BeforeEach(func() {
-					fakePipeline.JobReturns(nil, false, nil)
-				})
-
-				It("returns a 404", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 		})
@@ -1590,26 +1541,58 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authorized", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
-			It("looked up the proper pipeline", func() {
-				Expect(dbTeam.PipelineCallCount()).To(Equal(1))
-				pipelineName := dbTeam.PipelineArgsForCall(0)
-				Expect(pipelineName).To(Equal("some-pipeline"))
+			Context("when not authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthorizedReturns(false)
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
 			})
 
-			Context("when getting the job succeeds", func() {
-				var fakeJob *dbfakes.FakeJob
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthorizedReturns(true)
+				})
 
-				Context("when it contains the requested job", func() {
-					var fakeScheduler *schedulerfakes.FakeBuildScheduler
+				Context("when getting the job fails", func() {
 					BeforeEach(func() {
-						fakeJob = new(dbfakes.FakeJob)
-						fakeJob.NameReturns("some-job")
+						fakePipeline.JobReturns(nil, false, errors.New("some-error"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the job is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.JobReturns(nil, false, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when getting the job succeeds", func() {
+					BeforeEach(func() {
 						fakeJob.ConfigReturns(atc.JobConfig{
 							Name: "some-job",
 							Plan: atc.PlanSequence{
@@ -1628,31 +1611,60 @@ var _ = Describe("Jobs API", func() {
 								},
 							},
 						})
+
 						fakePipeline.JobReturns(fakeJob, true, nil)
-
-						fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
-						fakeSchedulerFactory.BuildSchedulerReturns(fakeScheduler)
-
-						resource1 := new(dbfakes.FakeResource)
-						resource1.IDReturns(1)
-						resource1.NameReturns("some-resource")
-						resource1.TypeReturns("some-type")
-						resource1.SourceReturns(atc.Source{"some": "source"})
-
-						resource2 := new(dbfakes.FakeResource)
-						resource1.IDReturns(2)
-						resource2.NameReturns("some-other-resource")
-						resource2.TypeReturns("some-other-type")
-						resource2.SourceReturns(atc.Source{"some": "other-source"})
-						fakePipeline.ResourcesReturns([]db.Resource{resource1, resource2}, nil)
 					})
 
-					Context("when the input versions for the job can be determined", func() {
+					Context("when getting the resources fails", func() {
 						BeforeEach(func() {
-							fakeJob.GetNextBuildInputsStub = func() ([]db.BuildInput, bool, error) {
-								defer GinkgoRecover()
-								Expect(fakeScheduler.SaveNextInputMappingCallCount()).To(Equal(1))
-								return []db.BuildInput{
+							fakePipeline.ResourcesReturns(nil, errors.New("some-error"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when getting the resources succeeds", func() {
+						BeforeEach(func() {
+							resource1 := new(dbfakes.FakeResource)
+							resource1.IDReturns(1)
+							resource1.NameReturns("some-resource")
+							resource1.TypeReturns("some-type")
+							resource1.SourceReturns(atc.Source{"some": "source"})
+
+							resource2 := new(dbfakes.FakeResource)
+							resource1.IDReturns(2)
+							resource2.NameReturns("some-other-resource")
+							resource2.TypeReturns("some-other-type")
+							resource2.SourceReturns(atc.Source{"some": "other-source"})
+
+							fakePipeline.ResourcesReturns([]db.Resource{resource1, resource2}, nil)
+						})
+
+						Context("when getting the input versions for the job fails", func() {
+							BeforeEach(func() {
+								fakeJob.GetNextBuildInputsReturns(nil, false, errors.New("oh no!"))
+							})
+
+							It("returns 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
+						})
+
+						Context("when the job has no input versions available", func() {
+							BeforeEach(func() {
+								fakeJob.GetNextBuildInputsReturns(nil, false, nil)
+							})
+
+							It("returns 404", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+							})
+						})
+
+						Context("when the job has input versions", func() {
+							BeforeEach(func() {
+								inputs := []db.BuildInput{
 									{
 										Name:       "some-input",
 										Version:    atc.Version{"some": "version"},
@@ -1663,35 +1675,24 @@ var _ = Describe("Jobs API", func() {
 										Version:    atc.Version{"some": "other-version"},
 										ResourceID: 2,
 									},
-								}, true, nil
-							}
-						})
+								}
 
-						It("returns 200 OK", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
+								fakeJob.GetNextBuildInputsReturns(inputs, true, nil)
+							})
 
-						It("returns Content-Type 'application/json'", func() {
-							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-						})
+							It("returns 200 OK", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
 
-						It("created the scheduler with the correct fakePipeline and external URL", func() {
-							actualPipeline, actualExternalURL, actualVariables := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
-							Expect(actualPipeline.Name()).To(Equal(fakePipeline.Name()))
-							Expect(actualExternalURL).To(Equal(externalURL))
-							Expect(actualVariables).To(Equal(variables))
-						})
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
 
-						It("determined the inputs with the correct job config", func() {
-							_, receivedJob, _ := fakeScheduler.SaveNextInputMappingArgsForCall(0)
-							Expect(receivedJob.Name()).To(Equal(fakeJob.Name()))
-						})
+							It("returns the inputs", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
 
-						It("returns the inputs", func() {
-							body, err := ioutil.ReadAll(response.Body)
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(body).To(MatchJSON(`[
+								Expect(body).To(MatchJSON(`[
 									{
 										"name": "some-input",
 										"resource": "some-resource",
@@ -1710,71 +1711,10 @@ var _ = Describe("Jobs API", func() {
 										"tags": ["some-tag"]
 									}
 								]`))
-
-						})
-
-						Context("when getting the resources fails", func() {
-							BeforeEach(func() {
-								fakePipeline.ResourcesReturns(nil, errors.New("some-error"))
-							})
-
-							It("returns 500", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 							})
 						})
 					})
-
-					Context("when the job has no input versions available", func() {
-						BeforeEach(func() {
-							fakeJob.GetNextBuildInputsReturns(nil, false, nil)
-						})
-
-						It("returns 404", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-						})
-					})
-
-					Context("when the input versions for the job can not be determined", func() {
-						BeforeEach(func() {
-							fakeJob.GetNextBuildInputsReturns(nil, false, errors.New("oh no!"))
-						})
-
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-					})
 				})
-			})
-
-			Context("when it does not contain the requested job", func() {
-				BeforeEach(func() {
-					fakePipeline.JobReturns(nil, false, nil)
-				})
-
-				It("returns 404 Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when getting the job fails", func() {
-				BeforeEach(func() {
-					fakePipeline.JobReturns(nil, false, errors.New("some-error"))
-				})
-
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
-			})
-
-			It("returns unauthorized", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

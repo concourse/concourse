@@ -1,17 +1,19 @@
 module Build.Models exposing
     ( BuildPageType(..)
     , CurrentBuild
-    , Hoverable(..)
     , Model
     , StepHeaderType(..)
     )
 
 import Build.Output.Models exposing (OutputModel)
 import Concourse
+import Concourse.Pagination exposing (Page)
+import Keyboard
+import Login.Login as Login
+import Message.Message exposing (Hoverable)
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight, StepID)
-import Time exposing (Time)
-import TopBar.Model
+import Time
 
 
 
@@ -19,21 +21,24 @@ import TopBar.Model
 
 
 type alias Model =
-    TopBar.Model.Model
+    Login.Model
         { page : BuildPageType
-        , now : Maybe Time
-        , job : Maybe Concourse.Job
+        , now : Maybe Time.Posix
+        , disableManualTrigger : Bool
         , history : List Concourse.Build
+        , nextPage : Maybe Page
         , currentBuild : WebData CurrentBuild
         , browsingIndex : Int
         , autoScroll : Bool
-        , previousKeyPress : Maybe Char
+        , previousKeyPress : Maybe Keyboard.KeyEvent
         , shiftDown : Bool
         , previousTriggerBuildByKey : Bool
         , showHelp : Bool
         , highlight : Highlight
         , hoveredElement : Maybe Hoverable
         , hoveredCounter : Int
+        , fetchingHistory : Bool
+        , scrolledToCurrentBuild : Bool
         , authorized : Bool
         }
 
@@ -54,9 +59,3 @@ type StepHeaderType
     = StepHeaderPut
     | StepHeaderGet Bool
     | StepHeaderTask
-
-
-type Hoverable
-    = Abort
-    | Trigger
-    | FirstOccurrence StepID

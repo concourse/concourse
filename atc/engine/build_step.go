@@ -5,7 +5,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/worker"
 )
 
 func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) exec.Step {
@@ -158,10 +157,22 @@ func (build *execBuild) buildRetryStep(logger lager.Logger, plan atc.Plan) exec.
 	return exec.Retry(steps...)
 }
 
-func (build *execBuild) buildUserArtifactStep(logger lager.Logger, plan atc.Plan) exec.Step {
-	return exec.UserArtifact(plan.ID, worker.ArtifactName(plan.UserArtifact.Name), build.delegate.BuildStepDelegate(plan.ID))
+func (build *execBuild) buildArtifactInputStep(logger lager.Logger, plan atc.Plan) exec.Step {
+
+	return build.factory.ArtifactInputStep(
+		logger,
+		plan,
+		build.dbBuild,
+		build.delegate.BuildStepDelegate(plan.ID),
+	)
 }
 
 func (build *execBuild) buildArtifactOutputStep(logger lager.Logger, plan atc.Plan) exec.Step {
-	return exec.ArtifactOutput(plan.ID, worker.ArtifactName(plan.ArtifactOutput.Name), build.delegate.BuildStepDelegate(plan.ID))
+
+	return build.factory.ArtifactOutputStep(
+		logger,
+		plan,
+		build.dbBuild,
+		build.delegate.BuildStepDelegate(plan.ID),
+	)
 }

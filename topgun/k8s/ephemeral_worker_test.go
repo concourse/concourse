@@ -14,14 +14,11 @@ import (
 var _ = Describe("Ephemeral workers", func() {
 	var (
 		proxySession *gexec.Session
-		releaseName  string
-		namespace    string
 		atcEndpoint  string
 	)
 
 	BeforeEach(func() {
-		releaseName = fmt.Sprintf("topgun-ew-%d-%d", GinkgoRandomSeed(), GinkgoParallelNode())
-		namespace = releaseName
+		setReleaseNameAndNamespace("ew")
 
 		deployConcourseChart(releaseName,
 			// TODO: https://github.com/concourse/concourse/issues/2827
@@ -33,7 +30,7 @@ var _ = Describe("Ephemeral workers", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/" + releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)

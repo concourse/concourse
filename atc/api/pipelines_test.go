@@ -8,19 +8,15 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"time"
-
-	"code.cloudfoundry.org/lager"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine/enginefakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Pipelines API", func() {
@@ -1663,19 +1659,6 @@ var _ = Describe("Pipelines API", func() {
 					},
 				},
 			}
-
-			dbPipeline.CreateOneOffBuildStub = func() (db.Build, error) {
-				Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
-				teamName := dbTeamFactory.FindTeamArgsForCall(0)
-				build.IDReturns(42)
-				build.NameReturns("1")
-				build.TeamNameReturns(teamName)
-				build.StatusReturns(db.BuildStatusStarted)
-				build.StartTimeReturns(time.Unix(1, 0))
-				build.EndTimeReturns(time.Unix(100, 0))
-				build.ReapTimeReturns(time.Unix(200, 0))
-				return build, nil
-			}
 		})
 
 		JustBeforeEach(func() {
@@ -1691,120 +1674,6 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
-			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-			})
-
-			Context("when requester belongs to the team", func() {
-				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
-					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-					fakeTeam.PipelineReturns(dbPipeline, true, nil)
-				})
-
-				Context("when building succeeds", func() {
-					var fakeEngineBuild *enginefakes.FakeBuild
-					var resumed <-chan struct{}
-					var blockForever *sync.WaitGroup
-
-					BeforeEach(func() {
-						fakeEngineBuild = new(enginefakes.FakeBuild)
-
-						blockForever = new(sync.WaitGroup)
-
-						forever := blockForever
-						forever.Add(1)
-
-						r := make(chan struct{})
-						resumed = r
-						fakeEngineBuild.ResumeStub = func(lager.Logger) {
-							close(r)
-							forever.Wait()
-						}
-
-						fakeEngine.CreateBuildReturns(fakeEngineBuild, nil)
-					})
-
-					AfterEach(func() {
-						blockForever.Done()
-					})
-
-					It("constructs teamDB with provided team name", func() {
-						Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
-						Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
-					})
-
-					It("injects the proper pipeline", func() {
-						pipelineName := fakeTeam.PipelineArgsForCall(0)
-						Expect(pipelineName).To(Equal("a-pipeline"))
-					})
-
-					It("returns 201 Created", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusCreated))
-					})
-
-					It("creates build for specified team", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(body).To(MatchJSON(`{
-								"id": 42,
-								"name": "1",
-								"team_name": "a-team",
-								"status": "started",
-								"api_url": "/api/v1/builds/42",
-								"start_time": 1,
-								"end_time": 100,
-								"reap_time": 200
-							}`))
-					})
-
-					It("creates a one-off build and runs it asynchronously", func() {
-						Expect(dbPipeline.CreateOneOffBuildCallCount()).To(Equal(1))
-
-						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-						_, oneOffBuild, builtPlan := fakeEngine.CreateBuildArgsForCall(0)
-						Expect(oneOffBuild).To(Equal(build))
-
-						Expect(builtPlan).To(Equal(plan))
-
-						<-resumed
-					})
-				})
-
-				Context("and building fails", func() {
-					BeforeEach(func() {
-						fakeEngine.CreateBuildReturns(nil, errors.New("oh no!"))
-					})
-
-					It("returns 500 Internal Server Error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
-
-				Context("when creating a one-off build fails", func() {
-					BeforeEach(func() {
-						dbPipeline.CreateOneOffBuildReturns(nil, errors.New("oh no!"))
-					})
-
-					It("returns 500 Internal Server Error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
-			})
-
-			Context("when requester does not belong to the team", func() {
-				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(false)
-				})
-
-				It("returns 403", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-				})
-			})
-		})
-
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(false)
@@ -1816,7 +1685,86 @@ var _ = Describe("Pipelines API", func() {
 
 			It("does not trigger a build", func() {
 				Expect(dbPipeline.CreateOneOffBuildCallCount()).To(BeZero())
-				Expect(fakeEngine.CreateBuildCallCount()).To(BeZero())
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when not authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthorizedReturns(false)
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthorizedReturns(true)
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+					fakeTeam.PipelineReturns(dbPipeline, true, nil)
+				})
+
+				Context("when creating a started build fails", func() {
+					BeforeEach(func() {
+						dbPipeline.CreateStartedBuildReturns(nil, errors.New("oh no!"))
+					})
+
+					It("returns 500 Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when creating a started build succeeds", func() {
+					var fakeBuild *dbfakes.FakeBuild
+
+					BeforeEach(func() {
+						fakeBuild = new(dbfakes.FakeBuild)
+						fakeBuild.IDReturns(42)
+						fakeBuild.NameReturns("1")
+						fakeBuild.TeamNameReturns("some-team")
+						fakeBuild.StatusReturns("started")
+						fakeBuild.StartTimeReturns(time.Unix(1, 0))
+						fakeBuild.EndTimeReturns(time.Unix(100, 0))
+						fakeBuild.ReapTimeReturns(time.Unix(200, 0))
+
+						dbPipeline.CreateStartedBuildReturns(fakeBuild, nil)
+					})
+
+					It("returns 201 Created", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusCreated))
+					})
+
+					It("returns Content-Type 'application/json'", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
+					It("creates a started build", func() {
+						Expect(dbPipeline.CreateStartedBuildCallCount()).To(Equal(1))
+						Expect(dbPipeline.CreateStartedBuildArgsForCall(0)).To(Equal(plan))
+					})
+
+					It("returns the created build", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{
+								"id": 42,
+								"name": "1",
+								"team_name": "some-team",
+								"status": "started",
+								"api_url": "/api/v1/builds/42",
+								"start_time": 1,
+								"end_time": 100,
+								"reap_time": 200
+						}`))
+					})
+				})
 			})
 		})
 	})

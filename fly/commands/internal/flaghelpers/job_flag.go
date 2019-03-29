@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/jessevdk/go-flags"
 
 	"github.com/concourse/concourse/fly/rc"
@@ -21,14 +20,6 @@ func (job *JobFlag) UnmarshalFlag(value string) error {
 
 	if len(vs) != 2 {
 		return errors.New("argument format should be <pipeline>/<job>")
-	}
-
-	if vs[0] == "" {
-		return concourse.NameRequiredError("pipeline")
-	}
-
-	if vs[1] == "" {
-		return concourse.NameRequiredError("job")
 	}
 
 	job.PipelineName = vs[0]

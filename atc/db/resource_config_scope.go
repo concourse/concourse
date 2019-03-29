@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -42,6 +41,8 @@ type ResourceConfigScope interface {
 		interval time.Duration,
 		immediate bool,
 	) (bool, error)
+
+	UpdateLastCheckFinished() (bool, error)
 }
 
 type resourceConfigScope struct {
@@ -119,7 +120,7 @@ func (r *resourceConfigScope) FindVersion(v atc.Version) (ResourceConfigVersion,
 		Where(sq.Eq{
 			"v.resource_config_scope_id": r.id,
 		}).
-		Where(sq.Expr(fmt.Sprintf("v.version_md5 = md5('%s')", versionByte))).
+		Where(sq.Expr("v.version_md5 = md5(?)", versionByte)).
 		RunWith(r.conn).
 		QueryRow()
 
@@ -212,6 +213,35 @@ func (r *resourceConfigScope) UpdateLastChecked(
 			SET last_checked = now()
 			WHERE id = $1
 		`+condition, params...)
+	if err != nil {
+		return false, err
+	}
+
+	if !updated {
+		return false, nil
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (r *resourceConfigScope) UpdateLastCheckFinished() (bool, error) {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer Rollback(tx)
+
+	updated, err := checkIfRowsUpdated(tx, `
+			UPDATE resource_config_scopes
+			SET last_check_finished = now()
+			WHERE id = $1
+		`, r.id)
 	if err != nil {
 		return false, err
 	}

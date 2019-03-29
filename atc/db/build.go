@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -43,7 +42,7 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.public_plan, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.tracked_by, b.drained").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -63,14 +62,14 @@ type Build interface {
 	PipelineName() string
 	TeamID() int
 	TeamName() string
-	Engine() string
-	EngineMetadata() string
+	Schema() string
+	PrivatePlan() string
 	PublicPlan() *json.RawMessage
 	Status() BuildStatus
 	StartTime() time.Time
+	CreateTime() time.Time
 	EndTime() time.Time
 	ReapTime() time.Time
-	Tracker() string
 	IsManuallyTriggered() bool
 	IsScheduled() bool
 	IsRunning() bool
@@ -78,12 +77,11 @@ type Build interface {
 	Reload() (bool, error)
 
 	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
-	TrackedBy(peerURL string) error
 
 	Interceptible() (bool, error)
 	Preparation() (BuildPreparation, bool, error)
 
-	Start(string, string, atc.Plan) (bool, error)
+	Start(string, atc.Plan) (bool, error)
 	FinishWithError(cause error) error
 	Finish(BuildStatus) error
 
@@ -91,6 +89,9 @@ type Build interface {
 
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
+
+	Artifacts() ([]WorkerArtifact, error)
+	Artifact(artifactID int) (WorkerArtifact, error)
 
 	SaveOutput(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
 	UseInputs(inputs []BuildInput) error
@@ -125,15 +126,14 @@ type build struct {
 
 	isManuallyTriggered bool
 
-	engine         string
-	engineMetadata string
-	publicPlan     *json.RawMessage
+	schema      string
+	privatePlan string
+	publicPlan  *json.RawMessage
 
-	startTime time.Time
-	endTime   time.Time
-	reapTime  time.Time
-
-	trackedBy string
+	createTime time.Time
+	startTime  time.Time
+	endTime    time.Time
+	reapTime   time.Time
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -142,6 +142,7 @@ type build struct {
 
 var ErrBuildDisappeared = errors.New("build disappeared from db")
 var ErrBuildHasNoPipeline = errors.New("build has no pipeline")
+var ErrBuildArtifactNotFound = errors.New("build artifact not found")
 
 type ResourceNotFoundInPipeline struct {
 	Resource string
@@ -161,14 +162,14 @@ func (b *build) PipelineName() string         { return b.pipelineName }
 func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
-func (b *build) Engine() string               { return b.engine }
-func (b *build) EngineMetadata() string       { return b.engineMetadata }
+func (b *build) Schema() string               { return b.schema }
+func (b *build) PrivatePlan() string          { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
+func (b *build) CreateTime() time.Time        { return b.createTime }
 func (b *build) StartTime() time.Time         { return b.startTime }
 func (b *build) EndTime() time.Time           { return b.endTime }
 func (b *build) ReapTime() time.Time          { return b.reapTime }
 func (b *build) Status() BuildStatus          { return b.status }
-func (b *build) Tracker() string              { return b.trackedBy }
 func (b *build) IsScheduled() bool            { return b.scheduled }
 func (b *build) IsDrained() bool              { return b.drained }
 
@@ -239,7 +240,7 @@ func (b *build) SetInterceptible(i bool) error {
 	return nil
 }
 
-func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
+func (b *build) Start(schema string, plan atc.Plan) (bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return false, err
@@ -247,7 +248,12 @@ func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
 
 	defer Rollback(tx)
 
-	encryptedMetadata, nonce, err := b.conn.EncryptionStrategy().Encrypt([]byte(metadata))
+	metadata, err := json.Marshal(plan)
+	if err != nil {
+		return false, err
+	}
+
+	encryptedPlan, nonce, err := b.conn.EncryptionStrategy().Encrypt([]byte(metadata))
 	if err != nil {
 		return false, err
 	}
@@ -255,10 +261,10 @@ func (b *build) Start(engine, metadata string, plan atc.Plan) (bool, error) {
 	var startTime time.Time
 
 	err = psql.Update("builds").
-		Set("status", "started").
+		Set("status", BuildStatusStarted).
 		Set("start_time", sq.Expr("now()")).
-		Set("engine", engine).
-		Set("engine_metadata", encryptedMetadata).
+		Set("schema", schema).
+		Set("private_plan", encryptedPlan).
 		Set("public_plan", plan.Public()).
 		Set("nonce", nonce).
 		Where(sq.Eq{
@@ -329,7 +335,7 @@ func (b *build) Finish(status BuildStatus) error {
 		Set("status", status).
 		Set("end_time", sq.Expr("now()")).
 		Set("completed", true).
-		Set("engine_metadata", nil).
+		Set("private_plan", nil).
 		Set("nonce", nil).
 		Where(sq.Eq{"id": b.id}).
 		Suffix("RETURNING end_time").
@@ -549,28 +555,6 @@ func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration)
 	return lock, true, nil
 }
 
-func (b *build) TrackedBy(peerURL string) error {
-	rows, err := psql.Update("builds").
-		Set("tracked_by", peerURL).
-		Where(sq.Eq{"id": b.id}).
-		RunWith(b.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if affected == 0 {
-		return ErrBuildDisappeared
-	}
-
-	return nil
-}
-
 func (b *build) Preparation() (BuildPreparation, bool, error) {
 	if b.jobID == 0 || b.status != BuildStatusPending {
 		return BuildPreparation{
@@ -784,6 +768,56 @@ func (b *build) SaveEvent(event atc.Event) error {
 	return b.conn.Bus().Notify(buildEventsChannel(b.id))
 }
 
+func (b *build) Artifact(artifactID int) (WorkerArtifact, error) {
+
+	artifact := artifact{
+		conn: b.conn,
+	}
+
+	err := psql.Select("id", "name", "created_at").
+		From("worker_artifacts").
+		Where(sq.Eq{
+			"id": artifactID,
+		}).
+		RunWith(b.conn).
+		Scan(&artifact.id, &artifact.name, &artifact.createdAt)
+
+	return &artifact, err
+}
+
+func (b *build) Artifacts() ([]WorkerArtifact, error) {
+	artifacts := []WorkerArtifact{}
+
+	rows, err := psql.Select("id", "name", "created_at").
+		From("worker_artifacts").
+		Where(sq.Eq{
+			"build_id": b.id,
+		}).
+		RunWith(b.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	for rows.Next() {
+		wa := artifact{
+			conn:    b.conn,
+			buildID: b.id,
+		}
+
+		err = rows.Scan(&wa.id, &wa.name, &wa.createdAt)
+		if err != nil {
+			return nil, err
+		}
+
+		artifacts = append(artifacts, &wa)
+	}
+
+	return artifacts, nil
+}
+
 func (b *build) SaveOutput(
 	logger lager.Logger,
 	resourceType string,
@@ -816,7 +850,7 @@ func (b *build) SaveOutput(
 	}
 
 	if !found {
-		return ResourceNotFoundInPipeline{resource.Name(), b.pipelineName}
+		return ResourceNotFoundInPipeline{resourceName, b.pipelineName}
 	}
 
 	tx, err := b.conn.Begin()
@@ -862,7 +896,7 @@ func (b *build) SaveOutput(
 
 	_, err = psql.Insert("build_resource_config_version_outputs").
 		Columns("resource_id", "build_id", "version_md5", "name").
-		Values(resource.ID(), strconv.Itoa(b.id), sq.Expr(fmt.Sprintf("md5('%s')", versionJSON)), sq.Expr(fmt.Sprintf("'%s'", outputName))).
+		Values(resource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
@@ -1040,7 +1074,7 @@ func (p *build) saveInputTx(tx Tx, buildID int, input BuildInput) error {
 
 	_, err = psql.Insert("build_resource_config_version_inputs").
 		Columns("build_id", "resource_id", "version_md5", "name").
-		Values(buildID, input.ResourceID, sq.Expr(fmt.Sprintf("md5('%s')", versionJSON)), input.Name).
+		Values(buildID, input.ResourceID, sq.Expr("md5(?)", versionJSON), input.Name).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
@@ -1061,16 +1095,15 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, pipelineID                                                    sql.NullInt64
-		engine, engineMetadata, jobName, pipelineName, publicPlan, trackedBy sql.NullString
-		startTime, endTime, reapTime                                         pq.NullTime
-		nonce                                                                sql.NullString
-		drained                                                              bool
-
-		status string
+		jobID, pipelineID                                      sql.NullInt64
+		schema, privatePlan, jobName, pipelineName, publicPlan sql.NullString
+		createTime, startTime, endTime, reapTime               pq.NullTime
+		nonce                                                  sql.NullString
+		drained                                                bool
+		status                                                 string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &engine, &engineMetadata, &publicPlan, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &trackedBy, &drained)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained)
 	if err != nil {
 		return err
 	}
@@ -1080,26 +1113,26 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.jobID = int(jobID.Int64)
 	b.pipelineName = pipelineName.String
 	b.pipelineID = int(pipelineID.Int64)
-	b.engine = engine.String
+	b.schema = schema.String
+	b.createTime = createTime.Time
 	b.startTime = startTime.Time
 	b.endTime = endTime.Time
 	b.reapTime = reapTime.Time
-	b.trackedBy = trackedBy.String
 	b.drained = drained
 
 	var (
-		noncense                *string
-		decryptedEngineMetadata []byte
+		noncense      *string
+		decryptedPlan []byte
 	)
 	if nonce.Valid {
 		noncense = &nonce.String
-		decryptedEngineMetadata, err = encryptionStrategy.Decrypt(string(engineMetadata.String), noncense)
+		decryptedPlan, err = encryptionStrategy.Decrypt(string(privatePlan.String), noncense)
 		if err != nil {
 			return err
 		}
-		b.engineMetadata = string(decryptedEngineMetadata)
+		b.privatePlan = string(decryptedPlan)
 	} else {
-		b.engineMetadata = engineMetadata.String
+		b.privatePlan = privatePlan.String
 	}
 
 	if publicPlan.Valid {
