@@ -104,7 +104,6 @@ init flags =
       , isUserMenuExpanded = False
       , dropdown = Hidden
       , screenSize = Desktop
-      , shiftDown = False
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig

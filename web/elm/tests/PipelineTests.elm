@@ -5,6 +5,7 @@ import Char
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
+import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message exposing (Message(..))
@@ -207,13 +208,43 @@ all =
                 , test "KeyPressed" <|
                     \_ ->
                         setupGroupsBar []
-                            |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'a')
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    KeyDown <|
+                                        { ctrlKey = False
+                                        , shiftKey = False
+                                        , metaKey = False
+                                        , code = Keyboard.A
+                                        }
+                                )
                             |> Tuple.second
                             |> Expect.equal []
                 , test "KeyPressed f" <|
                     \_ ->
                         setupGroupsBar []
-                            |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'f')
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    KeyDown <|
+                                        { ctrlKey = False
+                                        , shiftKey = False
+                                        , metaKey = False
+                                        , code = Keyboard.F
+                                        }
+                                )
+                            |> Tuple.second
+                            |> Expect.equal [ Effects.ResetPipelineFocus ]
+                , test "KeyPressed F" <|
+                    \_ ->
+                        setupGroupsBar []
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    KeyDown <|
+                                        { ctrlKey = False
+                                        , shiftKey = True
+                                        , metaKey = False
+                                        , code = Keyboard.F
+                                        }
+                                )
                             |> Tuple.second
                             |> Expect.equal [ Effects.ResetPipelineFocus ]
                 ]

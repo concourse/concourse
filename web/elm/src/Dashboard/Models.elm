@@ -72,7 +72,6 @@ type alias FooterModel r =
         , hovered : Maybe Message.Hoverable
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , shiftDown : Bool
         , dropdown : Dropdown
         , highDensity : Bool
     }

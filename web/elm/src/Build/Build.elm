@@ -41,7 +41,7 @@ import Html.Attributes
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Http
-import Keycodes
+import Keyboard
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra
@@ -273,20 +273,16 @@ handleCallback action ( model, effects ) =
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keycode ->
-            handleKeyPressed keycode ( model, effects )
+        KeyDown keyEvent ->
+            handleKeyPressed keyEvent ( model, effects )
 
-        KeyUp keycode ->
-            if keycode == Keycodes.shift then
-                ( { model | shiftDown = False }, effects )
+        KeyUp keyEvent ->
+            case keyEvent.code of
+                Keyboard.T ->
+                    ( { model | previousTriggerBuildByKey = False }, effects )
 
-            else
-                case Char.fromCode keycode of
-                    'T' ->
-                        ( { model | previousTriggerBuildByKey = False }, effects )
-
-                    _ ->
-                        ( model, effects )
+                _ ->
+                    ( model, effects )
 
         ClockTicked OneSecond time ->
             let
@@ -492,26 +488,26 @@ updateOutput updater ( model, effects ) =
             ( model, effects )
 
 
-handleKeyPressed : Keycodes.KeyCode -> ET Model
-handleKeyPressed key ( model, effects ) =
+handleKeyPressed : Keyboard.KeyEvent -> ET Model
+handleKeyPressed keyEvent ( model, effects ) =
     let
         currentBuild =
             model.currentBuild |> RemoteData.toMaybe |> Maybe.map .build
 
         newModel =
-            case ( model.previousKeyPress, model.shiftDown, Char.fromCode key ) of
-                ( Nothing, False, 'G' ) ->
-                    { model | previousKeyPress = Just 'G' }
+            case ( model.previousKeyPress, keyEvent.shiftKey, keyEvent.code ) of
+                ( Nothing, False, Keyboard.G ) ->
+                    { model | previousKeyPress = Just keyEvent }
 
                 _ ->
                     { model | previousKeyPress = Nothing }
     in
-    if key == Keycodes.shift then
-        ( { newModel | shiftDown = True }, [] )
+    if Keyboard.hasControlModifier keyEvent then
+        ( newModel, [] )
 
     else
-        case ( Char.fromCode key, newModel.shiftDown ) of
-            ( 'H', False ) ->
+        case ( keyEvent.code, keyEvent.shiftKey ) of
+            ( Keyboard.H, False ) ->
                 case Maybe.andThen (nextBuild newModel.history) currentBuild of
                     Just build ->
                         update (SwitchToBuild build) ( newModel, effects )
@@ -519,21 +515,23 @@ handleKeyPressed key ( model, effects ) =
                     Nothing ->
                         ( newModel, [] )
 
-            ( 'L', False ) ->
-                case Maybe.andThen (prevBuild newModel.history) currentBuild of
+            ( Keyboard.L, False ) ->
+                case
+                    Maybe.andThen (prevBuild newModel.history) currentBuild
+                of
                     Just build ->
                         update (SwitchToBuild build) ( newModel, effects )
 
                     Nothing ->
                         ( newModel, [] )
 
-            ( 'J', False ) ->
+            ( Keyboard.J, False ) ->
                 ( newModel, [ Scroll Down ] )
 
-            ( 'K', False ) ->
+            ( Keyboard.K, False ) ->
                 ( newModel, [ Scroll Up ] )
 
-            ( 'T', True ) ->
+            ( Keyboard.T, True ) ->
                 if not newModel.previousTriggerBuildByKey then
                     update
                         (TriggerBuild (currentBuild |> Maybe.andThen .job))
@@ -542,7 +540,7 @@ handleKeyPressed key ( model, effects ) =
                 else
                     ( newModel, [] )
 
-            ( 'A', True ) ->
+            ( Keyboard.A, True ) ->
                 if currentBuild == List.head newModel.history then
                     case currentBuild of
                         Just build ->
@@ -554,17 +552,20 @@ handleKeyPressed key ( model, effects ) =
                 else
                     ( newModel, [] )
 
-            ( 'G', True ) ->
+            ( Keyboard.G, True ) ->
                 ( { newModel | autoScroll = True }, [ Scroll ToBottom ] )
 
-            ( 'G', False ) ->
-                if model.previousKeyPress == Just 'G' then
+            ( Keyboard.G, False ) ->
+                if
+                    (model.previousKeyPress |> Maybe.map .code)
+                        == Just Keyboard.G
+                then
                     ( { newModel | autoScroll = False }, [ Scroll ToTop ] )
 
                 else
                     ( newModel, [] )
 
-            ( '¿', True ) ->
+            ( Keyboard.Slash, True ) ->
                 ( { newModel | showHelp = not newModel.showHelp }, [] )
 
             _ ->

@@ -8,7 +8,7 @@ import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, id, placeholder, value)
 import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseDown)
-import Keycodes
+import Keyboard
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
@@ -120,88 +120,72 @@ handleDelivery delivery ( model, effects ) =
         WindowResized width height ->
             ( screenResize width height model, effects )
 
-        KeyUp keyCode ->
-            if keyCode == Keycodes.shift then
-                ( { model | shiftDown = False }, effects )
+        KeyDown keyEvent ->
+            let
+                options =
+                    dropdownOptions model
+            in
+            case keyEvent.code of
+                Keyboard.ArrowUp ->
+                    ( { model
+                        | dropdown =
+                            arrowUp options model.dropdown
+                      }
+                    , effects
+                    )
 
-            else
-                ( model, effects )
+                Keyboard.ArrowDown ->
+                    ( { model
+                        | dropdown =
+                            arrowDown options model.dropdown
+                      }
+                    , effects
+                    )
 
-        KeyDown keyCode ->
-            if keyCode == Keycodes.shift then
-                ( { model | shiftDown = True }, effects )
+                Keyboard.Enter ->
+                    case model.dropdown of
+                        Shown { selectedIdx } ->
+                            case selectedIdx of
+                                Nothing ->
+                                    ( model, effects )
 
-            else
-                let
-                    options =
-                        dropdownOptions model
-                in
-                case keyCode of
-                    -- up arrow
-                    38 ->
-                        ( { model
-                            | dropdown =
-                                arrowUp options model.dropdown
-                          }
-                        , effects
-                        )
+                                Just idx ->
+                                    let
+                                        selectedItem =
+                                            options
+                                                |> Array.fromList
+                                                |> Array.get idx
+                                                |> Maybe.withDefault
+                                                    model.query
+                                    in
+                                    ( { model
+                                        | dropdown = Shown { selectedIdx = Nothing }
+                                        , query = selectedItem
+                                      }
+                                    , [ ModifyUrl <|
+                                            Routes.toString <|
+                                                Routes.Dashboard (Routes.Normal (Just selectedItem))
+                                      ]
+                                    )
 
-                    -- down arrow
-                    40 ->
-                        ( { model
-                            | dropdown =
-                                arrowDown options model.dropdown
-                          }
-                        , effects
-                        )
+                        _ ->
+                            ( model, effects )
 
-                    -- enter key
-                    13 ->
-                        case model.dropdown of
-                            Shown { selectedIdx } ->
-                                case selectedIdx of
-                                    Nothing ->
-                                        ( model, effects )
+                Keyboard.Escape ->
+                    ( model, effects ++ [ Blur searchInputId ] )
 
-                                    Just idx ->
-                                        let
-                                            selectedItem =
-                                                options
-                                                    |> Array.fromList
-                                                    |> Array.get idx
-                                                    |> Maybe.withDefault
-                                                        model.query
-                                        in
-                                        ( { model
-                                            | dropdown = Shown { selectedIdx = Nothing }
-                                            , query = selectedItem
-                                          }
-                                        , [ ModifyUrl <|
-                                                Routes.toString <|
-                                                    Routes.Dashboard (Routes.Normal (Just selectedItem))
-                                          ]
-                                        )
+                Keyboard.Slash ->
+                    ( model
+                    , if keyEvent.shiftKey then
+                        effects
 
-                            _ ->
-                                ( model, effects )
+                      else
+                        effects ++ [ Focus searchInputId ]
+                    )
 
-                    -- escape key
-                    27 ->
-                        ( model, effects ++ [ Blur searchInputId ] )
-
-                    -- '/'
-                    191 ->
-                        ( model
-                        , if model.shiftDown then
-                            effects
-
-                          else
-                            effects ++ [ Focus searchInputId ]
-                        )
-
-                    -- any other keycode
-                    _ ->
-                        ( model, effects )
+                -- any other keycode
+                _ ->
+                    ( model, effects )
 
         _ ->
             ( model, effects )
