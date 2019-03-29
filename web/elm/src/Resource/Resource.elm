@@ -702,21 +702,18 @@ header model =
                         [ style
                             [ ( "margin-right", toString 10 ++ "px" )
                             , ( "height", toString Resource.Styles.headerHeight ++ "px" )
-                            , ( "width", toString (Resource.Styles.headerHeight - 2 * 10) ++ "px" )
+                            , ( "width", toString 24 ++ "px" )
+                            , ( "margin-left", toString -6 ++ "px" )
                             ]
                         ]
                         [ Svg.svg
                             [ style
-                                [ ( "margin-top", toString 10 ++ "px" )
-                                , ( "height", toString (Resource.Styles.headerHeight - 2 * 10) ++ "px" )
-                                , ( "width", toString (Resource.Styles.headerHeight - 2 * 10) ++ "px" )
+                                [ ( "margin-top", toString (toFloat (Resource.Styles.headerHeight - 24) / 2) ++ "px" )
                                 ]
                             , SvgAttributes.fill "white"
                             ]
                             [ Svg.use
-                                [ SvgAttributes.xlinkHref ("#" ++ icon ++ "-svg-icon")
-                                , SvgAttributes.transform ("scale(" ++ toString (toFloat (Resource.Styles.headerHeight - 2 * 10) / 24) ++ ")")
-                                ]
+                                [ SvgAttributes.xlinkHref ("#" ++ icon ++ "-svg-icon") ]
                                 []
                             ]
                         ]
