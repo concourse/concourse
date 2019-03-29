@@ -40,7 +40,7 @@ func (o OnErrorStep) Run(ctx context.Context, state RunState) error {
 	if stepRunErr != context.Canceled {
 		err := o.hook.Run(context.Background(), state)
 		if err != nil {
-			// This causes to return both the errors as expected
+			// This causes to return both the errors as expected.
 			errs = multierror.Append(errs, stepRunErr)
 		}
 	}
