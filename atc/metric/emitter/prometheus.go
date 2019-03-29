@@ -448,9 +448,9 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
 		return
 	}
-	team, exists := event.Attributes["team"]
-	if !exists || team == "" {
-		logger.Error("failed-to-find-team-in-event", fmt.Errorf("expected team to exist in event.Attributes"))
+	team, exists := event.Attributes["team_name"]
+	if !exists {
+		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
 		return
 	}
 	tags, _ := event.Attributes["tags"]
@@ -491,9 +491,9 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
 		return
 	}
-	team, exists := event.Attributes["team"]
-	if !exists || team == "" {
-		logger.Error("failed-to-find-team-in-event", fmt.Errorf("expected team to exist in event.Attributes"))
+	team, exists := event.Attributes["team_name"]
+	if !exists {
+		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
 		return
 	}
 	tags, _ := event.Attributes["tags"]
@@ -588,9 +588,9 @@ func (emitter *PrometheusEmitter) resourceMetric(logger lager.Logger, event metr
 		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
 		return
 	}
-	team, exists := event.Attributes["team"]
+	team, exists := event.Attributes["team_name"]
 	if !exists {
-		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
+		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
 		return
 	}
 

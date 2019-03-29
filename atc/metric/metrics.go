@@ -116,7 +116,7 @@ type WorkerContainers struct {
 	WorkerName string
 	Platform   string
 	Containers int
-	Team       string
+	TeamName   string
 	Tags       []string
 }
 
@@ -128,10 +128,10 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 			Value: event.Containers,
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"worker":   event.WorkerName,
-				"platform": event.Platform,
-				"team":     event.Team,
-				"tags":     strings.Join(event.Tags[:], " "),
+				"worker":    event.WorkerName,
+				"platform":  event.Platform,
+				"team_name": event.TeamName,
+				"tags":      strings.Join(event.Tags[:], "/"),
 			},
 		},
 	)
@@ -141,7 +141,7 @@ type WorkerVolumes struct {
 	WorkerName string
 	Platform   string
 	Volumes    int
-	Team       string
+	TeamName   string
 	Tags       []string
 }
 
@@ -153,10 +153,10 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 			Value: event.Volumes,
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"worker":   event.WorkerName,
-				"platform": event.Platform,
-				"team":     event.Team,
-				"tags":     strings.Join(event.Tags[:], " "),
+				"worker":    event.WorkerName,
+				"platform":  event.Platform,
+				"team_name": event.TeamName,
+				"tags":      strings.Join(event.Tags[:], "/"),
 			},
 		},
 	)
@@ -440,9 +440,9 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 			Value: 1,
 			State: state,
 			Attributes: map[string]string{
-				"pipeline": event.PipelineName,
-				"resource": event.ResourceName,
-				"team":     event.TeamName,
+				"pipeline":  event.PipelineName,
+				"resource":  event.ResourceName,
+				"team_name": event.TeamName,
 			},
 		},
 	)
