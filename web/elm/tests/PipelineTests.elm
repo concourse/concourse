@@ -209,6 +209,12 @@ all =
                             |> Expect.equal [ Effects.ResetPipelineFocus ]
                 ]
             ]
+        , test "title should include the pipline name" <|
+            \_ ->
+                init "/teams/team/pipelines/pipelineName"
+                    |> Application.view
+                    |> .title
+                    |> Expect.equal "pipelineName - Concourse"
         , describe "update" <|
             let
                 defaultModel : Pipeline.Model

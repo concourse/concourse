@@ -140,6 +140,26 @@ all =
                     |> Tuple.second
                     |> List.member Effects.GetScreenSize
                     |> Expect.true "should request screen size"
+        , test "title says 'Dashboard - Concourse'" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.first
+                    |> Application.view
+                    |> .title
+                    |> Expect.equal "Dashboard - Concourse"
         , describe "welcome card" <|
             let
                 hasWelcomeCard : (() -> ( Application.Model, List Effects.Effect )) -> List Test

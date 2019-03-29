@@ -58,7 +58,7 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..), setTitle)
+import Message.Effects exposing (Effect(..))
 import Message.Message as Message exposing (Hoverable(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
@@ -227,7 +227,7 @@ handleCallback callback ( model, effects ) =
                 , lastChecked = resource.lastChecked
               }
                 |> updatePinnedVersion resource
-            , effects ++ [ SetTitle <| resource.name ++ " - " ]
+            , effects
             )
 
         ResourceFetched (Err err) ->
@@ -646,7 +646,9 @@ permalink versionedResources =
 
 view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
-    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+    { title = model.resourceIdentifier.resourceName ++ " - Concourse"
+    , body = [ Html.map Update (viewHtml userState model) ]
+    }
 
 
 viewHtml : UserState -> Model -> Html Message

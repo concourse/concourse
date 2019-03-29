@@ -183,7 +183,7 @@ handleCallback callback ( model, effects ) =
 
         JobFetched (Ok job) ->
             ( { model | job = RemoteData.Success job }
-            , effects ++ [ SetTitle <| job.name ++ " - " ]
+            , effects
             )
 
         JobFetched (Err err) ->
@@ -392,7 +392,9 @@ isRunning build =
 
 view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
-    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+    { title = model.jobIdentifier.jobName ++ " - Concourse"
+    , body = [ Html.map Update (viewHtml userState model) ]
+    }
 
 
 viewHtml : UserState -> Model -> Html Message

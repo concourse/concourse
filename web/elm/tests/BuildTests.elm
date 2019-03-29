@@ -334,6 +334,71 @@ all =
                         , containing [ text "log message" ]
                         ]
                     |> Query.has [ class "highlighted-line" ]
+        , describe "page title"
+            [ test "with a job build" <|
+                \_ ->
+                    Application.init
+                        { turbulenceImgSrc = ""
+                        , notFoundImgSrc = ""
+                        , csrfToken = ""
+                        , authToken = ""
+                        , pipelineRunningKeyframes = ""
+                        }
+                        { protocol = Url.Http
+                        , host = ""
+                        , port_ = Nothing
+                        , path = "/builds/1"
+                        , query = Nothing
+                        , fragment = Just "Lstepid:1"
+                        }
+                        |> Tuple.first
+                        |> fetchBuild
+                        |> Tuple.first
+                        |> Application.view
+                        |> .title
+                        |> Expect.equal "job #1 - Concourse"
+            , test "with a one-off-build" <|
+                \_ ->
+                    Application.init
+                        { turbulenceImgSrc = ""
+                        , notFoundImgSrc = ""
+                        , csrfToken = ""
+                        , authToken = ""
+                        , pipelineRunningKeyframes = ""
+                        }
+                        { protocol = Url.Http
+                        , host = ""
+                        , port_ = Nothing
+                        , path = "/builds/1"
+                        , query = Nothing
+                        , fragment = Just "Lstepid:1"
+                        }
+                        |> Tuple.first
+                        |> fetchBuildWithStatus Concourse.BuildStatusFailed
+                        |> Application.view
+                        |> .title
+                        |> Expect.equal "#1 - Concourse"
+            , test "with just the page name" <|
+                \_ ->
+                    Application.init
+                        { turbulenceImgSrc = ""
+                        , notFoundImgSrc = ""
+                        , csrfToken = ""
+                        , authToken = ""
+                        , pipelineRunningKeyframes = ""
+                        }
+                        { protocol = Url.Http
+                        , host = ""
+                        , port_ = Nothing
+                        , path = "/teams/team/pipelines/pipeline/jobs/routejob/builds/1"
+                        , query = Nothing
+                        , fragment = Just "Lstepid:1"
+                        }
+                        |> Tuple.first
+                        |> Application.view
+                        |> .title
+                        |> Expect.equal "routejob #1 - Concourse"
+            ]
         , test "events from a different build are discarded" <|
             \_ ->
                 Application.init

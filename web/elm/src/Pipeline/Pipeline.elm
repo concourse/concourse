@@ -169,7 +169,6 @@ handleCallback callback ( model, effects ) =
             , effects
                 ++ [ FetchJobs model.pipelineLocator
                    , FetchResources model.pipelineLocator
-                   , SetTitle <| pipeline.name ++ " - "
                    ]
             )
 
@@ -377,7 +376,9 @@ subscriptions model =
 
 view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
-    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+    { title = model.pipelineLocator.pipelineName ++ " - Concourse"
+    , body = [ Html.map Update (viewHtml userState model) ]
+    }
 
 
 viewHtml : UserState -> Model -> Html Message

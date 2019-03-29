@@ -174,15 +174,15 @@ changeToBuild { highlight, pageType } ( model, effects ) =
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model ) of
-        ( Just build, Just { jobName } ) ->
-            jobName ++ ((" #" ++ build.build.name) ++ " - ")
+    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model, model.page ) of
+        ( Just build, Just { jobName }, _ ) ->
+            jobName ++ " #" ++ build.build.name ++ " - Concourse"
 
-        ( Just build, Nothing ) ->
-            "#" ++ (String.fromInt build.build.id ++ " - ")
+        ( _, _, JobBuildPage { jobName, buildName } ) ->
+            jobName ++ " #" ++ buildName ++ " - Concourse"
 
-        _ ->
-            ""
+        ( _, _, OneOffBuildPage id ) ->
+            "#" ++ String.fromInt id ++ " - Concourse"
 
 
 currentJob : Model -> Maybe Concourse.JobIdentifier
@@ -262,7 +262,9 @@ handleCallback action ( model, effects ) =
             handleHistoryFetched history ( model, effects )
 
         BuildJobDetailsFetched (Ok job) ->
-            handleBuildJobFetched job ( model, effects )
+            ( { model | disableManualTrigger = job.disableManualTrigger }
+            , effects
+            )
 
         BuildJobDetailsFetched (Err err) ->
             (\a -> always a (Debug.log "failed to fetch build job details" err)) <|
@@ -663,11 +665,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                     ( withBuild, effects )
         in
         ( { newModel | fetchingHistory = True }
-        , cmd
-            ++ [ SetFavIcon (Just build.status)
-               , SetTitle (extractTitle newModel)
-               ]
-            ++ fetchJobAndHistory
+        , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status) ]
         )
 
     else
@@ -694,17 +692,6 @@ initBuildOutput build ( model, effects ) =
                 model.currentBuild
       }
     , effects ++ outputCmd
-    )
-
-
-handleBuildJobFetched : Concourse.Job -> ET Model
-handleBuildJobFetched job ( model, effects ) =
-    let
-        withJobDetails =
-            { model | disableManualTrigger = job.disableManualTrigger }
-    in
-    ( withJobDetails
-    , effects ++ [ SetTitle (extractTitle withJobDetails) ]
     )
 
 
@@ -751,7 +738,9 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
 
 view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
-    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+    { title = extractTitle model
+    , body = [ Html.map Update (viewHtml userState model) ]
+    }
 
 
 viewHtml : UserState -> Model -> Html Message

@@ -150,7 +150,27 @@ all =
                     ]
             in
             [ describe "while page is loading"
-                [ test "shows two spinners before anything has loaded" <|
+                [ test "title includes job name" <|
+                    \_ ->
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = ""
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                            |> Tuple.first
+                            |> Application.view
+                            |> .title
+                            |> Expect.equal "job - Concourse"
+                , test "shows two spinners before anything has loaded" <|
                     \_ ->
                         Application.init
                             { turbulenceImgSrc = ""

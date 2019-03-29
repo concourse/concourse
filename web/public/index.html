@@ -151,11 +151,6 @@
         document.location.href = loginUrl;
       });
 
-      app.ports.setTitle.subscribe(function(title) {
-        setTimeout(function(){
-          document.title = title + "Concourse";
-        }, 0)
-      });
 
       app.ports.tooltip.subscribe(function (pipelineInfo) {
         var pipelineName = pipelineInfo[0];

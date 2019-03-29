@@ -191,6 +191,12 @@ all =
                                     Routes.Normal Nothing
                         ]
             ]
+        , test "has title with resouce name" <|
+            \_ ->
+                init
+                    |> Application.view
+                    |> .title
+                    |> Expect.equal "some-resource - Concourse"
         , test "has default layout" <|
             \_ ->
                 init

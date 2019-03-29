@@ -3,7 +3,6 @@ port module Message.Effects exposing
     , ScrollDirection(..)
     , renderPipeline
     , runEffect
-    , setTitle
     , stickyHeaderConfig
     )
 
@@ -32,9 +31,6 @@ import Routes
 import Task
 import Time
 import Views.Styles
-
-
-port setTitle : String -> Cmd msg
 
 
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
@@ -142,7 +138,6 @@ type Effect
     | LoadExternal String
     | NavigateTo String
     | ModifyUrl String
-    | SetTitle String
     | DoPinVersion Concourse.VersionedResourceIdentifier
     | DoUnpinVersion Concourse.ResourceIdentifier
     | DoToggleVersion VersionToggleAction VersionId
@@ -269,9 +264,6 @@ runEffect effect key csrfToken =
 
         RenderPipeline jobs resources ->
             renderPipeline ( jobs, resources )
-
-        SetTitle newTitle ->
-            setTitle newTitle
 
         DoPinVersion version ->
             Network.Resource.pinVersion version csrfToken
