@@ -41,7 +41,6 @@ type alias Model =
         , hovered : Maybe Hoverable
         , versions : Paginated Version
         , pinCommentLoading : Bool
-        , ctrlDown : Bool
         , textAreaFocused : Bool
         }
 

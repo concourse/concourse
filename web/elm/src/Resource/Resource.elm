@@ -52,7 +52,7 @@ import Html.Events
         , onMouseOver
         )
 import Http
-import Keycodes
+import Keyboard
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
@@ -101,7 +101,6 @@ init flags =
                 }
             , now = Nothing
             , pinCommentLoading = False
-            , ctrlDown = False
             , textAreaFocused = False
             , isUserMenuExpanded = False
             }
@@ -422,11 +421,12 @@ handleCallback callback ( model, effects ) =
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keycode ->
-            if Keycodes.isControlModifier keycode then
-                ( { model | ctrlDown = True }, effects )
-
-            else if keycode == Keycodes.enter && model.ctrlDown && model.textAreaFocused then
+        KeyDown keyEvent ->
+            if
+                (keyEvent.code == Keyboard.Enter)
+                    && Keyboard.hasControlModifier keyEvent
+                    && model.textAreaFocused
+            then
                 ( model
                 , case model.pinnedVersion of
                     PinnedDynamicallyTo { comment } _ ->
@@ -435,13 +435,6 @@ handleDelivery delivery ( model, effects ) =
                     _ ->
                         effects
                 )
-
-            else
-                ( model, effects )
-
-        KeyUp keycode ->
-            if Keycodes.isControlModifier keycode then
-                ( { model | ctrlDown = False }, effects )
 
             else
                 ( model, effects )

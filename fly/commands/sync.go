@@ -5,16 +5,19 @@ import (
 	"runtime"
 	"strconv"
 
-	pb "gopkg.in/cheggaaa/pb.v1"
-
 	update "github.com/inconshreveable/go-update"
+	"github.com/vbauerster/mpb/v4"
+	"github.com/vbauerster/mpb/v4/decor"
 
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/ui"
 )
 
-type SyncCommand struct{}
+type SyncCommand struct {
+	Force bool `long:"force" short:"f" description:"Sync even if versions already match."`
+}
 
 func (command *SyncCommand) Execute(args []string) error {
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
@@ -26,7 +29,7 @@ func (command *SyncCommand) Execute(args []string) error {
 		return err
 	}
 
-	if info.Version == concourse.Version {
+	if !command.Force && info.Version == concourse.Version {
 		fmt.Printf("version %s already matches; skipping\n", info.Version)
 		return nil
 	}
@@ -34,7 +37,6 @@ func (command *SyncCommand) Execute(args []string) error {
 	updateOptions := update.Options{}
 	err = updateOptions.CheckPermissions()
 	if err != nil {
-
 		displayhelpers.FailWithErrorf("update failed", err)
 	}
 
@@ -44,19 +46,35 @@ func (command *SyncCommand) Execute(args []string) error {
 		return err
 	}
 
-	fmt.Printf("downloading fly from %s... \n", client.URL())
+	fmt.Printf("downloading fly from %s...\n", client.URL())
+	fmt.Println()
 
-	filesSize, _ := strconv.ParseInt(headers.Get("Content-Length"), 10, 64)
-	progressBar := pb.New64(filesSize).SetUnits(pb.U_BYTES)
-	progressBar.Start()
-	defer progressBar.FinishPrint(fmt.Sprintf("successfully updated from %s to %s", concourse.Version, info.Version))
-	r := body
-	reader := progressBar.NewProxyReader(r)
-
-	err = update.Apply(reader, updateOptions)
+	size, err := strconv.ParseInt(headers.Get("Content-Length"), 10, 64)
 	if err != nil {
-		displayhelpers.FailWithErrorf("update failed", err)
+		fmt.Printf("warning: failed to parse Content-Length: %s\n", err)
+		size = 0
 	}
+
+	progress := mpb.New(mpb.WithWidth(50))
+
+	progressBar := progress.AddBar(
+		size,
+		mpb.PrependDecorators(decor.Name("fly "+ui.Embolden("v"+info.Version))),
+		mpb.AppendDecorators(decor.CountersKibiByte("%.1f/%.1f")),
+	)
+
+	err = update.Apply(progressBar.ProxyReader(body), updateOptions)
+	if err != nil {
+		displayhelpers.FailWithErrorf("failed to apply update", err)
+	}
+
+	if size == 0 {
+		progressBar.SetTotal(progressBar.Current(), true)
+	}
+
+	progress.Wait()
+
+	fmt.Println("done")
 
 	return nil
 }

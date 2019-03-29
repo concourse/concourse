@@ -1,0 +1,15 @@
+---
+resources:
+- name: controlled-trigger
+  type: mock
+  source: {initial_version: first}
+
+jobs:
+- name: use-doomed-worker
+  plan:
+  - get: controlled-trigger
+    tags: [doomed]
+
+- name: use-safe-worker
+  plan:
+  - get: controlled-trigger

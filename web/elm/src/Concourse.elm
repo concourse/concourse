@@ -39,6 +39,7 @@ module Concourse exposing
     , VersionedResource
     , VersionedResourceIdentifier
     , csrfTokenHeaderName
+    , customDecoder
     , decodeAuthToken
     , decodeBuild
     , decodeBuildPlan

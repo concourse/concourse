@@ -16,6 +16,7 @@ import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
+import Keyboard
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message
@@ -1730,8 +1731,7 @@ all =
                                         |> givenResourcePinnedWithComment
                                         |> givenUserEditedComment
                                         |> givenTextareaFocused
-                                        |> givenControlKeyDown
-                                        |> pressEnterKey
+                                        |> pressControlEnter
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ Effects.SetPinComment
@@ -1741,33 +1741,14 @@ all =
                                                 }
                                                 "foo"
                                             ]
-                            , test "Left Command + Enter sends SaveComment msg" <|
+                            , test "Command + Enter sends SaveComment msg" <|
                                 \_ ->
                                     init
                                         |> givenUserIsAuthorized
                                         |> givenResourcePinnedWithComment
                                         |> givenUserEditedComment
                                         |> givenTextareaFocused
-                                        |> givenLeftCommandKeyDown
-                                        |> pressEnterKey
-                                        |> Tuple.second
-                                        |> Expect.equal
-                                            [ Effects.SetPinComment
-                                                { teamName = teamName
-                                                , pipelineName = pipelineName
-                                                , resourceName = resourceName
-                                                }
-                                                "foo"
-                                            ]
-                            , test "Right Command + Enter sends SaveComment msg" <|
-                                \_ ->
-                                    init
-                                        |> givenUserIsAuthorized
-                                        |> givenResourcePinnedWithComment
-                                        |> givenUserEditedComment
-                                        |> givenTextareaFocused
-                                        |> givenRightCommandKeyDown
-                                        |> pressEnterKey
+                                        |> pressMetaEnter
                                         |> Tuple.second
                                         |> Expect.equal
                                             [ Effects.SetPinComment
@@ -1799,8 +1780,7 @@ all =
                                         |> givenUserEditedComment
                                         |> givenTextareaFocused
                                         |> givenTextareaBlurred
-                                        |> givenControlKeyDown
-                                        |> pressEnterKey
+                                        |> pressControlEnter
                                         |> Tuple.second
                                         |> Expect.equal []
                             , test
@@ -1814,8 +1794,6 @@ all =
                                         |> givenResourcePinnedWithComment
                                         |> givenUserEditedComment
                                         |> givenTextareaFocused
-                                        |> givenControlKeyDown
-                                        |> givenControlKeyUp
                                         |> pressEnterKey
                                         |> Tuple.second
                                         |> Expect.equal []
@@ -3267,35 +3245,49 @@ givenTextareaBlurred =
         >> Tuple.first
 
 
-givenControlKeyDown : Application.Model -> Application.Model
-givenControlKeyDown =
-    Application.update (Msgs.DeliveryReceived <| KeyDown 17)
-        >> Tuple.first
-
-
-givenLeftCommandKeyDown : Application.Model -> Application.Model
-givenLeftCommandKeyDown =
-    Application.update (Msgs.DeliveryReceived <| KeyDown 91)
-        >> Tuple.first
-
-
-givenRightCommandKeyDown : Application.Model -> Application.Model
-givenRightCommandKeyDown =
-    Application.update (Msgs.DeliveryReceived <| KeyDown 93)
-        >> Tuple.first
-
-
-givenControlKeyUp : Application.Model -> Application.Model
-givenControlKeyUp =
-    Application.update (Msgs.DeliveryReceived <| KeyUp 17)
-        >> Tuple.first
-
-
 pressEnterKey :
     Application.Model
     -> ( Application.Model, List Effects.Effect )
 pressEnterKey =
-    Application.update (Msgs.DeliveryReceived <| KeyDown 13)
+    Application.update
+        (Msgs.DeliveryReceived <|
+            KeyDown
+                { ctrlKey = False
+                , shiftKey = False
+                , metaKey = False
+                , code = Keyboard.Enter
+                }
+        )
+
+
+pressControlEnter :
+    Application.Model
+    -> ( Application.Model, List Effects.Effect )
+pressControlEnter =
+    Application.update
+        (Msgs.DeliveryReceived <|
+            KeyDown
+                { ctrlKey = True
+                , shiftKey = False
+                , metaKey = False
+                , code = Keyboard.Enter
+                }
+        )
+
+
+pressMetaEnter :
+    Application.Model
+    -> ( Application.Model, List Effects.Effect )
+pressMetaEnter =
+    Application.update
+        (Msgs.DeliveryReceived <|
+            KeyDown
+                { ctrlKey = False
+                , shiftKey = False
+                , metaKey = True
+                , code = Keyboard.Enter
+                }
+        )
 
 
 versionSelector : String -> List Selector

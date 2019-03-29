@@ -19,7 +19,7 @@ import DashboardTests
 import Dict
 import Expect
 import Html.Attributes as Attr
-import Keycodes
+import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message
@@ -546,13 +546,35 @@ all =
                                 }
                         )
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.T
+                                }
+                        )
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyUp <|
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.T
+                                }
+                        )
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyUp <| Char.toCode 'T')
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'T')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.T
+                                }
+                        )
                     |> Tuple.second
                     |> Expect.equal
                         [ Effects.DoTriggerBuild
@@ -567,9 +589,25 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.G
+                                }
+                        )
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.G
+                                }
+                        )
                     |> Tuple.second
                     |> Expect.equal [ Effects.Scroll Effects.ToTop ]
         , test "pressing 'G' scrolls to the bottom" <|
@@ -578,22 +616,32 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.G
+                                }
+                        )
                     |> Tuple.second
                     |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
-        , test "pressing and releasing shift, then 'g', does nothing" <|
+        , test "pressing 'g' once does nothing" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyUp <| Keycodes.shift)
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'G')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.G
+                                }
+                        )
                     |> Tuple.second
                     |> Expect.equal []
         , test "pressing '?' shows the keyboard help" <|
@@ -602,9 +650,15 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Keycodes.shift)
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode '¿')
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.Slash
+                                }
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "keyboard-help" ]
@@ -857,6 +911,147 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
+                , test "pressing 'L' switches to the next build" <|
+                    givenBuildFetched
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ theBuild
+                                        , { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Just <| Time.millisToPosix 0
+                                                , finishedAt = Just <| Time.millisToPosix 0
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (KeyDown
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.L
+                                }
+                            )
+                        >> Tuple.second
+                        >> Expect.equal
+                            [ Effects.NavigateTo
+                                "/teams/team/pipelines/pipeline/jobs/job/builds/2"
+                            ]
+                , test "pressing Command-L does nothing" <|
+                    givenBuildFetched
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ theBuild
+                                        , { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Just <| Time.millisToPosix 0
+                                                , finishedAt = Just <| Time.millisToPosix 0
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (KeyDown
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = True
+                                , code = Keyboard.L
+                                }
+                            )
+                        >> Tuple.second
+                        >> Expect.equal []
+                , test "pressing Control-L does nothing" <|
+                    givenBuildFetched
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ theBuild
+                                        , { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                          , status = Concourse.BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Just <| Time.millisToPosix 0
+                                                , finishedAt = Just <| Time.millisToPosix 0
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (KeyDown
+                                { ctrlKey = True
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.L
+                                }
+                            )
+                        >> Tuple.second
+                        >> Expect.equal []
                 , test "scrolling builds checks if last build is visible" <|
                     givenBuildFetched
                         >> Tuple.first

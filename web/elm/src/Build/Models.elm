@@ -7,6 +7,7 @@ module Build.Models exposing
 import Build.Output.Models exposing (OutputModel)
 import Concourse
 import Concourse.Pagination exposing (Page)
+import Keyboard
 import Login.Login as Login
 import Message.Message exposing (Hoverable)
 import RemoteData exposing (WebData)
@@ -28,7 +29,7 @@ type alias Model =
         , currentBuild : WebData CurrentBuild
         , browsingIndex : Int
         , autoScroll : Bool
-        , previousKeyPress : Maybe Char
+        , previousKeyPress : Maybe Keyboard.KeyEvent
         , shiftDown : Bool
         , previousTriggerBuildByKey : Bool
         , showHelp : Bool

@@ -32,6 +32,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
 import Json.Decode
 import Json.Encode
+import Keyboard
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
@@ -277,9 +278,9 @@ handleCallback callback ( model, effects ) =
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keycode ->
+        KeyDown keyEvent ->
             ( { model | hideLegend = False, hideLegendCounter = 0 }
-            , if (Char.fromCode keycode |> Char.toLower) == 'f' then
+            , if keyEvent.code == Keyboard.F then
                 effects ++ [ ResetPipelineFocus ]
 
               else
