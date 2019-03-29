@@ -5,6 +5,7 @@ module FlySuccess.FlySuccess exposing
     , view
     )
 
+import Browser
 import EffectTransformer exposing (ET)
 import FlySuccess.Models
     exposing
@@ -25,6 +26,7 @@ import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import UserState exposing (UserState)
 import Views.Icon as Icon
@@ -87,8 +89,13 @@ update msg ( model, effects ) =
             ( model, effects )
 
 
-view : UserState -> Model -> Html Message
+view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
+    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+
+
+viewHtml : UserState -> Model -> Html Message
+viewHtml userState model =
     Html.div []
         [ Html.div
             ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)

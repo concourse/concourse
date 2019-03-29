@@ -11,6 +11,7 @@ module Job.Job exposing
     , view
     )
 
+import Browser
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -47,6 +48,7 @@ import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick)
@@ -388,8 +390,13 @@ isRunning build =
     Concourse.BuildStatus.isRunning build.status
 
 
-view : UserState -> Model -> Html Message
+view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
+    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+
+
+viewHtml : UserState -> Model -> Html Message
+viewHtml userState model =
     Html.div []
         [ Html.div
             ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)

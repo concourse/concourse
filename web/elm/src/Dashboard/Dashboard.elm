@@ -7,6 +7,7 @@ module Dashboard.Dashboard exposing
     , view
     )
 
+import Browser
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Details as Details
@@ -61,6 +62,7 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Monocle.Compose exposing (lensWithOptional, optionalWithLens, optionalWithOptional)
 import Monocle.Lens
 import Monocle.Optional
@@ -393,8 +395,13 @@ subscriptions model =
     ]
 
 
-view : UserState -> Model -> Html Message
+view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
+    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+
+
+viewHtml : UserState -> Model -> Html Message
+viewHtml userState model =
     Html.div
         ([ id "page-including-top-bar" ]
             ++ Views.Styles.pageIncludingTopBar

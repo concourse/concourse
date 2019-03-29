@@ -13,6 +13,7 @@ module Resource.Resource exposing
     , viewVersionHeader
     )
 
+import Browser
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -60,6 +61,7 @@ import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..), setTitle)
 import Message.Message as Message exposing (Hoverable(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
@@ -642,8 +644,13 @@ permalink versionedResources =
             }
 
 
-view : UserState -> Model -> Html Message
+view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
+    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+
+
+viewHtml : UserState -> Model -> Html Message
+viewHtml userState model =
     Html.div []
         [ Html.div
             ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)

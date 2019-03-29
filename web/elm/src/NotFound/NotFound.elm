@@ -1,10 +1,12 @@
 module NotFound.NotFound exposing (init, view)
 
+import Browser
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src)
 import Login.Login as Login
 import Message.Effects as Effects exposing (Effect)
 import Message.Message exposing (Message(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model exposing (Model)
 import Routes
 import UserState exposing (UserState)
@@ -28,8 +30,13 @@ init flags =
     )
 
 
-view : UserState -> Model -> Html Message
+view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
+    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+
+
+viewHtml : UserState -> Model -> Html Message
+viewHtml userState model =
     Html.div []
         [ Html.div
             ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)

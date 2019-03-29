@@ -1,6 +1,7 @@
 module ResourceTests exposing (all)
 
 import Application.Application as Application
+import Common exposing (queryView)
 import Concourse
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -3142,12 +3143,6 @@ givenResourceIsNotPinned =
                 }
         )
         >> Tuple.first
-
-
-queryView : Application.Model -> Query.Single Msgs.TopLevelMessage
-queryView =
-    Application.view
-        >> Query.fromHtml
 
 
 hoverOverPinBar : Application.Model -> Application.Model

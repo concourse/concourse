@@ -59,13 +59,7 @@ main =
 
 view : TopLevelModel -> Browser.Document Msgs.TopLevelMessage
 view model =
-    let
-        html =
-            Application.view model.model
-    in
-    { title = ""
-    , body = [ html ]
-    }
+    Application.view model.model
 
 
 effectsToCmd :

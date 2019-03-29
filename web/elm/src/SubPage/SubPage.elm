@@ -10,6 +10,7 @@ module SubPage.SubPage exposing
     , view
     )
 
+import Browser
 import Build.Build as Build
 import Build.Models
 import Dashboard.Dashboard as Dashboard
@@ -24,6 +25,7 @@ import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model
 import NotFound.NotFound as NotFound
 import Pipeline.Pipeline as Pipeline
@@ -290,7 +292,7 @@ urlUpdate route =
         identity
 
 
-view : UserState -> Model -> Html Message
+view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState mdl =
     case mdl of
         BuildModel model ->

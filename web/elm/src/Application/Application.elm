@@ -252,9 +252,9 @@ urlUpdate route model =
     )
 
 
-view : Model -> Html TopLevelMessage
+view : Model -> Browser.Document TopLevelMessage
 view model =
-    Html.map Update (SubPage.view model.userState model.subModel)
+    SubPage.view model.userState model.subModel
 
 
 subscriptions : Model -> List Subscription

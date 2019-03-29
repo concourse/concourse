@@ -10,6 +10,7 @@ module Build.Build exposing
     , view
     )
 
+import Browser
 import Build.Models as Models exposing (BuildPageType(..), Model)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
@@ -49,6 +50,7 @@ import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
@@ -747,8 +749,13 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
         ( model, effects )
 
 
-view : UserState -> Model -> Html Message
+view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState model =
+    { title = "", body = [ Html.map Update (viewHtml userState model) ] }
+
+
+viewHtml : UserState -> Model -> Html Message
+viewHtml userState model =
     Html.div
         ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
         [ Html.div
