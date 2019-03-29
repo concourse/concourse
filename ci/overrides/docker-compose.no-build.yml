@@ -2,9 +2,9 @@ version: '3'
 
 services:
   web:
-    image: concourse/dev:latest
+    image: concourse/dev:${CONCOURSE_DEV_TAG}
     volumes: ["./keys:/concourse-keys"]
 
   worker:
-    image: concourse/dev:latest
+    image: concourse/dev:${CONCOURSE_DEV_TAG}
     volumes: ["./keys:/concourse-keys"]
