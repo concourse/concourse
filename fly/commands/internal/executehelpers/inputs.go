@@ -9,10 +9,9 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/ui/progress"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/vbauerster/mpb/v4"
-	"github.com/vbauerster/mpb/v4/decor"
 )
 
 type Input struct {
@@ -32,7 +31,6 @@ func DetermineInputs(
 	inputsFrom flaghelpers.JobFlag,
 	includeIgnored bool,
 ) ([]Input, map[string]string, *atc.ImageResource, error) {
-
 	inputMappings := ConvertInputMappings(userInputMappings)
 
 	err := CheckForUnknownInputMappings(localInputMappings, taskInputs)
@@ -143,63 +141,42 @@ func GenerateLocalInputs(
 ) (map[string]Input, error) {
 	inputs := map[string]Input{}
 
-	uploadResults := new(sync.Map)
+	artifacts := new(sync.Map)
 
-	progress := mpb.New(mpb.WithWidth(1))
+	prog := progress.New()
 
-	for i, mapping := range inputMappings {
-		name := "uploading " + mapping.Name
+	for _, mapping := range inputMappings {
+		name := mapping.Name
+		path := mapping.Path
 
-		bar := progress.AddSpinner(
-			0,
-			mpb.SpinnerOnLeft,
-			mpb.PrependDecorators(decor.Name(name, decor.WC{W: len(name), C: decor.DSyncWidthR})),
-			mpb.AppendDecorators(
-				decor.OnComplete(
-					decor.AverageSpeed(decor.UnitKiB, "(%.1f)"),
-					" "+ui.Embolden("done"),
-				),
-			),
-			mpb.BarClearOnComplete(),
-		)
-
-		go func(idx int, path string) {
+		prog.Go("uploading "+name, func(bar *mpb.Bar) error {
 			artifact, err := Upload(bar, team, path, includeIgnored)
-			if err == nil {
-				bar.SetTotal(bar.Current(), true)
-				uploadResults.Store(idx, artifact)
-			} else {
-				bar.Abort(false)
-				uploadResults.Store(idx, err)
+			if err != nil {
+				return err
 			}
-		}(i, mapping.Path)
+
+			artifacts.Store(name, artifact)
+
+			return nil
+		})
 	}
 
-	progress.Wait()
-
-	var err error
-	uploadResults.Range(func(k, v interface{}) bool {
-		mapping := inputMappings[k.(int)]
-
-		switch x := v.(type) {
-		case error:
-			err = fmt.Errorf("failed to upload input %s: %s", mapping.Name, x)
-			return false
-		case atc.WorkerArtifact:
-			inputs[mapping.Name] = Input{
-				Name: mapping.Name,
-				Path: mapping.Path,
-				Plan: fact.NewPlan(atc.ArtifactInputPlan{
-					ArtifactID: x.ID,
-					Name:       mapping.Name,
-				}),
-			}
-		}
-
-		return true
-	})
+	err := prog.Wait()
 	if err != nil {
 		return nil, err
+	}
+
+	for _, mapping := range inputMappings {
+		val, _ := artifacts.Load(mapping.Name)
+
+		inputs[mapping.Name] = Input{
+			Name: mapping.Name,
+			Path: mapping.Path,
+			Plan: fact.NewPlan(atc.ArtifactInputPlan{
+				ArtifactID: val.(atc.WorkerArtifact).ID,
+				Name:       mapping.Name,
+			}),
+		}
 	}
 
 	return inputs, nil
