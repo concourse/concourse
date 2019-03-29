@@ -8,7 +8,7 @@ module Build.Output.Output exposing
     )
 
 import Ansi.Log
-import Array exposing (Array)
+import Array
 import Build.Output.Models exposing (OutputModel, OutputState(..))
 import Build.StepTree.Models as StepTree
     exposing
@@ -22,18 +22,9 @@ import Build.StepTree.StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
-import Dict exposing (Dict)
+import Dict
 import Html exposing (Html)
-import Html.Attributes
-    exposing
-        ( action
-        , class
-        , classList
-        , id
-        , method
-        , style
-        , title
-        )
+import Html.Attributes exposing (class)
 import Http
 import Json.Decode
 import Message.Effects exposing (Effect(..))
@@ -50,12 +41,8 @@ type OutMsg
     | OutBuildStatus Concourse.BuildStatus Time.Posix
 
 
-type alias Flags =
-    { highlight : Routes.Highlight }
-
-
-init : Flags -> Concourse.Build -> ( OutputModel, List Effect )
-init { highlight } build =
+init : Routes.Highlight -> Concourse.Build -> ( OutputModel, List Effect )
+init highlight build =
     let
         outputState =
             if Concourse.BuildStatus.isRunning build.status then
@@ -121,8 +108,8 @@ planAndResourcesFetched buildId result model =
                         model
 
                 _ ->
-                    (\a -> always a (Debug.log "failed to fetch plan" err)) <|
-                        model
+                    -- https://github.com/concourse/concourse/issues/3201
+                    model
 
         Ok ( plan, resources ) ->
             { model
@@ -145,9 +132,9 @@ handleEnvelopes action model =
                 |> List.reverse
                 |> List.foldr handleEnvelope ( model, [], OutNoop )
 
-        Err err ->
-            (\a -> always a (Debug.log "failed to get event" err)) <|
-                ( model, [], OutNoop )
+        Err _ ->
+            -- https://github.com/concourse/concourse/issues/3201
+            ( model, [], OutNoop )
 
 
 handleEnvelope :
@@ -286,7 +273,7 @@ appendStepLog output mtime tree =
                     max (Array.length step.log.lines - 1) 0
 
                 setLineTimestamp line timestamps =
-                    Dict.update line (\mval -> mtime) timestamps
+                    Dict.update line (always mtime) timestamps
 
                 newTimestamps =
                     List.foldl
@@ -335,20 +322,19 @@ setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
 
 
-view : Concourse.Build -> OutputModel -> Html Message
-view build { steps, errors, state } =
+view : OutputModel -> Html Message
+view { steps, errors, state } =
     Html.div [ class "steps" ]
         [ viewErrors errors
-        , viewStepTree build steps state
+        , viewStepTree steps state
         ]
 
 
 viewStepTree :
-    Concourse.Build
-    -> Maybe StepTreeModel
+    Maybe StepTreeModel
     -> OutputState
     -> Html Message
-viewStepTree build steps state =
+viewStepTree steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
             LoadingIndicator.view

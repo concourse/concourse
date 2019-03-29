@@ -2,7 +2,6 @@ module Views.PauseToggle exposing (view)
 
 import Concourse
 import Html exposing (Html)
-import Html.Attributes exposing (id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (Hoverable(..), Message(..))
 import UserState exposing (UserState(..))

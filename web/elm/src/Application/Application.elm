@@ -11,9 +11,7 @@ module Application.Application exposing
     )
 
 import Browser
-import Browser.Navigation as Navigation
 import Concourse
-import Html exposing (Html)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
@@ -83,7 +81,7 @@ init flags url =
                 , Effects.ModifyUrl <| Routes.toString route
                 ]
     in
-    ( model, [ FetchUser ] ++ handleTokenEffect ++ subEffects )
+    ( model, FetchUser :: handleTokenEffect ++ subEffects )
 
 
 locationMsg : Url.Url -> TopLevelMessage
@@ -100,32 +98,32 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback callback model =
     case callback of
         BuildTriggered (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         BuildAborted (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         PausedToggled (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         JobBuildsFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         InputToFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         OutputOfFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         LoggedOut (Ok ()) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 
-        APIDataFetched (Ok ( time, data )) ->
+        APIDataFetched (Ok ( _, data )) ->
             subpageHandleCallback
                 { model | userState = data.user |> Maybe.map UserStateLoggedIn |> Maybe.withDefault UserStateLoggedOut }
                 callback
 
-        APIDataFetched (Err err) ->
+        APIDataFetched (Err _) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 
         UserFetched (Ok user) ->
@@ -205,8 +203,7 @@ handleDeliveryForApplication delivery model =
                             ( model, [ NavigateTo <| Routes.toString route ] )
 
                         Nothing ->
-                            Debug.log "couldn't parse"
-                                ( model, [ LoadExternal <| Url.toString url ] )
+                            ( model, [ LoadExternal <| Url.toString url ] )
 
                 Browser.External url ->
                     ( model, [ LoadExternal url ] )
@@ -215,8 +212,8 @@ handleDeliveryForApplication delivery model =
             ( model, [] )
 
 
-redirectToLoginIfNecessary : Model -> Http.Error -> List Effect
-redirectToLoginIfNecessary model err =
+redirectToLoginIfNecessary : Http.Error -> List Effect
+redirectToLoginIfNecessary err =
     case err of
         Http.BadStatus { status } ->
             if status.code == 401 then

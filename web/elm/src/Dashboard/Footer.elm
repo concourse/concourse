@@ -53,7 +53,7 @@ handleDelivery delivery ( model, effects ) =
         Moused ->
             ( { model | hideFooter = False, hideFooterCounter = 0 }, effects )
 
-        ClockTicked OneSecond time ->
+        ClockTicked OneSecond _ ->
             ( if model.hideFooterCounter > 4 then
                 { model | hideFooter = True }
 
@@ -119,8 +119,8 @@ infoBar :
     -> Html Message
 infoBar model =
     Html.div
-        ([ id "dashboard-info" ]
-            ++ Styles.infoBar
+        (id "dashboard-info"
+            :: Styles.infoBar
                 { hideLegend = hideLegend model
                 , screenSize = model.screenSize
                 }
@@ -143,24 +143,23 @@ legend model =
 
     else
         Html.div
-            ([ id "legend" ] ++ Styles.legend)
+            (id "legend" :: Styles.legend)
         <|
             List.map legendItem
                 [ PipelineStatusPending False
                 , PipelineStatusPaused
                 ]
-                ++ [ Html.div
-                        Styles.legendItem
-                        [ Icon.icon
-                            { sizePx = 20
-                            , image = "ic-running-legend.svg"
-                            }
-                            []
-                        , Html.div [ style "width" "10px" ] []
-                        , Html.text "running"
-                        ]
-                   ]
-                ++ List.map legendItem
+                ++ Html.div
+                    Styles.legendItem
+                    [ Icon.icon
+                        { sizePx = 20
+                        , image = "ic-running-legend.svg"
+                        }
+                        []
+                    , Html.div [ style "width" "10px" ] []
+                    , Html.text "running"
+                    ]
+                :: List.map legendItem
                     [ PipelineStatusFailed PipelineStatus.Running
                     , PipelineStatusErrored PipelineStatus.Running
                     , PipelineStatusAborted PipelineStatus.Running
@@ -174,7 +173,7 @@ concourseInfo :
     { a | version : String, hovered : Maybe Hoverable }
     -> Html Message
 concourseInfo { version, hovered } =
-    Html.div ([ id "concourse-info" ] ++ Styles.info)
+    Html.div (id "concourse-info" :: Styles.info)
         [ Html.div
             Styles.infoItem
             [ Html.text <| "version: v" ++ version ]

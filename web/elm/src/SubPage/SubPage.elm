@@ -18,7 +18,7 @@ import Dashboard.Models
 import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
-import Html exposing (Html)
+import Html
 import Job.Job as Job
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -100,7 +100,7 @@ init flags route =
                 }
                 |> Tuple.mapFirst DashboardModel
 
-        Routes.FlySuccess { flyPort } ->
+        Routes.FlySuccess flyPort ->
             FlySuccess.init
                 { authToken = flags.authToken
                 , flyPort = flyPort
@@ -318,17 +318,17 @@ view userState mdl =
                     )
 
                 DashboardModel model ->
-                    ( Dashboard.documentTitle model
+                    ( Dashboard.documentTitle
                     , Dashboard.view userState model
                     )
 
                 NotFoundModel model ->
-                    ( NotFound.documentTitle model
+                    ( NotFound.documentTitle
                     , NotFound.view userState model
                     )
 
                 FlySuccessModel model ->
-                    ( FlySuccess.documentTitle model
+                    ( FlySuccess.documentTitle
                     , FlySuccess.view userState model
                     )
     in
@@ -341,17 +341,17 @@ subscriptions mdl =
         BuildModel model ->
             Build.subscriptions model
 
-        JobModel model ->
-            Job.subscriptions model
+        JobModel _ ->
+            Job.subscriptions
 
-        PipelineModel model ->
-            Pipeline.subscriptions model
+        PipelineModel _ ->
+            Pipeline.subscriptions
 
-        ResourceModel model ->
-            Resource.subscriptions model
+        ResourceModel _ ->
+            Resource.subscriptions
 
-        DashboardModel model ->
-            Dashboard.subscriptions model
+        DashboardModel _ ->
+            Dashboard.subscriptions
 
         NotFoundModel _ ->
             []

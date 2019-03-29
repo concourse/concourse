@@ -12,7 +12,6 @@ module Pipeline.Pipeline exposing
     , view
     )
 
-import Browser
 import Char
 import Colors
 import Concourse
@@ -24,11 +23,9 @@ import Html.Attributes
     exposing
         ( class
         , download
-        , height
         , href
         , id
         , src
-        , width
         )
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -42,12 +39,11 @@ import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pipeline.Styles as Styles
-import RemoteData exposing (..)
+import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import Svg exposing (..)
+import Svg
 import Svg.Attributes as SvgAttributes
-import Time
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views.PauseToggle as PauseToggle
@@ -271,9 +267,8 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        VersionFetched (Err err) ->
-            (\a -> always a (Debug.log "failed to fetch version" err)) <|
-                ( { model | experiencingTurbulence = True }, effects )
+        VersionFetched (Err _) ->
+            ( { model | experiencingTurbulence = True }, effects )
 
         _ ->
             ( model, effects )
@@ -365,8 +360,8 @@ getPinnedResources model =
                 |> List.filterMap (\r -> Maybe.map (\v -> ( r.name, v )) r.pinnedVersion)
 
 
-subscriptions : Model -> List Subscription
-subscriptions model =
+subscriptions : List Subscription
+subscriptions =
     [ OnClockTick OneMinute
     , OnClockTick FiveSeconds
     , OnClockTick OneSecond
@@ -384,10 +379,10 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div [ Html.Attributes.style "height" "100%" ]
         [ Html.div
-            ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
+            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
-                ([ id "top-bar-app" ]
-                    ++ (Views.Styles.topBar <|
+                (id "top-bar-app"
+                    :: (Views.Styles.topBar <|
                             isPaused model.pipeline
                        )
                 )
@@ -403,8 +398,8 @@ view userState model =
                     , isPinMenuExpanded = model.isPinMenuExpanded
                     }
                 , Html.div
-                    ([ id "top-bar-pause-toggle" ]
-                        ++ (Styles.pauseToggle <| isPaused model.pipeline)
+                    (id "top-bar-pause-toggle"
+                        :: (Styles.pauseToggle <| isPaused model.pipeline)
                     )
                     [ PauseToggle.view "17px"
                         userState
@@ -417,7 +412,7 @@ view userState model =
                 , Login.view userState model <| isPaused model.pipeline
                 ]
             , Html.div
-                ([ id "page-below-top-bar" ] ++ Views.Styles.pipelinePageBelowTopBar)
+                (id "page-below-top-bar" :: Views.Styles.pipelinePageBelowTopBar)
                 [ viewSubPage model ]
             ]
         ]
@@ -429,11 +424,9 @@ viewPinMenu :
     , isPinMenuExpanded : Bool
     }
     -> Html Message
-viewPinMenu ({ pinnedResources, pipeline, isPinMenuExpanded } as params) =
+viewPinMenu ({ pinnedResources, isPinMenuExpanded } as params) =
     Html.div
-        ([ id "pin-icon" ]
-            ++ Styles.pinIconContainer isPinMenuExpanded
-        )
+        (id "pin-icon" :: Styles.pinIconContainer isPinMenuExpanded)
         [ if List.length pinnedResources > 0 then
             Html.div
                 ([ onMouseEnter <| Hover <| Just PinIcon
@@ -441,16 +434,15 @@ viewPinMenu ({ pinnedResources, pipeline, isPinMenuExpanded } as params) =
                  ]
                     ++ Styles.pinIcon
                 )
-                ([ Html.div
-                    ([ id "pin-badge" ] ++ Styles.pinBadge)
+                (Html.div
+                    (id "pin-badge" :: Styles.pinBadge)
                     [ Html.div []
                         [ Html.text <|
                             String.fromInt <|
                                 List.length pinnedResources
                         ]
                     ]
-                 ]
-                    ++ viewPinMenuDropdown params
+                    :: viewPinMenuDropdown params
                 )
 
           else
@@ -472,8 +464,8 @@ viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
                 |> List.map
                     (\( resourceName, pinnedVersion ) ->
                         Html.li
-                            ([ onClick <|
-                                GoToRoute <|
+                            (onClick
+                                (GoToRoute <|
                                     Routes.Resource
                                         { id =
                                             { teamName = pipeline.teamName
@@ -482,8 +474,8 @@ viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
                                             }
                                         , page = Nothing
                                         }
-                             ]
-                                ++ Styles.pinDropdownCursor
+                                )
+                                :: Styles.pinDropdownCursor
                             )
                             [ Html.div
                                 Styles.pinText
@@ -624,7 +616,7 @@ viewGroupsBar model =
 
     else
         Html.nav
-            ([ id "groups-bar" ] ++ Styles.groupsBar)
+            (id "groups-bar" :: Styles.groupsBar)
             [ Html.ul Styles.groupsList groupList ]
 
 
@@ -665,9 +657,9 @@ jobAppearsInGroups groupNames pi jobJson =
         Ok cj ->
             anyIntersect cj.groups groupNames
 
-        Err err ->
-            (\a -> always a (Debug.log "failed to check if job is in group" err)) <|
-                False
+        Err _ ->
+            -- failed to check if job is in group
+            False
 
 
 expandJsonList : Json.Encode.Value -> List Json.Decode.Value
@@ -680,7 +672,7 @@ expandJsonList flatList =
         Ok res ->
             res
 
-        Err err ->
+        Err _ ->
             []
 
 

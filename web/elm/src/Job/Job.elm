@@ -12,7 +12,6 @@ module Job.Job exposing
     , view
     )
 
-import Browser
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -20,18 +19,16 @@ import Concourse.Pagination
     exposing
         ( Page
         , Paginated
-        , Pagination
         , chevron
         , chevronContainer
         )
-import Dict exposing (Dict)
+import Dict
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
         ( attribute
         , class
-        , disabled
         , href
         , id
         , style
@@ -137,8 +134,8 @@ changeToJob flags ( model, effects ) =
     )
 
 
-subscriptions : Model -> List Subscription
-subscriptions model =
+subscriptions : List Subscription
+subscriptions =
     [ OnClockTick FiveSeconds
     , OnClockTick OneSecond
     ]
@@ -225,7 +222,7 @@ handleCallback callback ( model, effects ) =
                     , effects
                     )
 
-        BuildResourcesFetched (Err err) ->
+        BuildResourcesFetched (Err _) ->
             ( model, effects )
 
         PausedToggled (Ok ()) ->
@@ -244,7 +241,7 @@ handleDelivery delivery ( model, effects ) =
         ClockTicked OneSecond time ->
             ( { model | now = time }, effects )
 
-        ClockTicked FiveSeconds time ->
+        ClockTicked FiveSeconds _ ->
             ( model
             , effects
                 ++ [ FetchJobBuilds model.jobIdentifier model.currentPage
@@ -362,7 +359,7 @@ setExistingResources paginatedBuilds model =
 updateResourcesIfNeeded : BuildWithResources -> Maybe Effect
 updateResourcesIfNeeded bwr =
     case ( bwr.resources, isRunning bwr.build ) of
-        ( Just resources, False ) ->
+        ( Just _, False ) ->
             Nothing
 
         _ ->
@@ -400,9 +397,9 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
+            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
-                ([ id "top-bar-app" ] ++ Views.Styles.topBar False)
+                (id "top-bar-app" :: Views.Styles.topBar False)
                 [ TopBar.concourseLogo
                 , TopBar.breadcrumbs <|
                     Routes.Job
@@ -412,7 +409,7 @@ view userState model =
                 , Login.view userState model False
                 ]
             , Html.div
-                ([ id "page-below-top-bar" ] ++ Styles.pageBelowTopBar)
+                (id "page-below-top-bar" :: Styles.pageBelowTopBar)
                 [ viewMainJobsSection model ]
             ]
         ]
@@ -635,17 +632,17 @@ viewBuildWithResources model bwr =
     Html.li [ class "js-build" ] <|
         let
             buildResourcesView =
-                viewBuildResources model bwr
+                viewBuildResources bwr
         in
-        [ viewBuildHeader model bwr.build
+        [ viewBuildHeader bwr.build
         , Html.div [ class "pam clearfix" ] <|
             BuildDuration.view bwr.build.duration model.now
                 :: buildResourcesView
         ]
 
 
-viewBuildHeader : Model -> Concourse.Build -> Html Message
-viewBuildHeader model b =
+viewBuildHeader : Concourse.Build -> Html Message
+viewBuildHeader b =
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
         , StrictEvents.onLeftClick <| GoToRoute <| Routes.buildRoute b
@@ -655,8 +652,8 @@ viewBuildHeader model b =
         ]
 
 
-viewBuildResources : Model -> BuildWithResources -> List (Html Message)
-viewBuildResources model buildWithResources =
+viewBuildResources : BuildWithResources -> List (Html Message)
+viewBuildResources buildWithResources =
     let
         inputsTable =
             case buildWithResources.resources of
@@ -665,7 +662,7 @@ viewBuildResources model buildWithResources =
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|
-                        List.map (viewBuildInputs model) resources.inputs
+                        List.map viewBuildInputs resources.inputs
 
         outputsTable =
             case buildWithResources.resources of
@@ -674,7 +671,7 @@ viewBuildResources model buildWithResources =
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|
-                        List.map (viewBuildOutputs model) resources.outputs
+                        List.map viewBuildOutputs resources.outputs
     in
     [ Html.div [ class "inputs mrl" ]
         [ Html.div
@@ -703,8 +700,8 @@ viewBuildResources model buildWithResources =
     ]
 
 
-viewBuildInputs : Model -> Concourse.BuildResourcesInput -> Html Message
-viewBuildInputs model bi =
+viewBuildInputs : Concourse.BuildResourcesInput -> Html Message
+viewBuildInputs bi =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
             [ Html.text bi.name
@@ -715,8 +712,8 @@ viewBuildInputs model bi =
         ]
 
 
-viewBuildOutputs : Model -> Concourse.BuildResourcesOutput -> Html Message
-viewBuildOutputs model bo =
+viewBuildOutputs : Concourse.BuildResourcesOutput -> Html Message
+viewBuildOutputs bo =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
             [ Html.text bo.name
@@ -729,7 +726,6 @@ viewBuildOutputs model bo =
 
 viewVersion : Concourse.Version -> Html Message
 viewVersion version =
-    DictView.view []
-        << Dict.map (\_ s -> Html.text s)
-    <|
-        version
+    version
+        |> Dict.map (always Html.text)
+        |> DictView.view []

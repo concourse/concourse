@@ -10,7 +10,7 @@ import Browser.Dom exposing (getViewport)
 import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus
-import Concourse.Pagination exposing (Page, Paginated)
+import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Json.Encode
 import Message.Callback exposing (Callback(..))
@@ -27,7 +27,6 @@ import Network.Pipeline
 import Network.Resource
 import Network.User
 import Process
-import Routes
 import Task
 import Time
 import Views.Styles
@@ -214,7 +213,6 @@ runEffect effect key csrfToken =
 
         FetchVersion ->
             Network.Info.fetch
-                |> Task.map .version
                 |> Task.attempt VersionFetched
 
         FetchInputTo id ->

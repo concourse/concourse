@@ -93,7 +93,7 @@ runSubscription s =
                         (toFloat height)
                 )
 
-        FromEventSource key ->
+        FromEventSource _ ->
             eventSource
                 (Json.Decode.decodeValue
                     (Json.Decode.list decodeBuildEventEnvelope)

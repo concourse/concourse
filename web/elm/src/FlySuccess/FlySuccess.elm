@@ -6,22 +6,18 @@ module FlySuccess.FlySuccess exposing
     , view
     )
 
-import Browser
 import EffectTransformer exposing (ET)
 import FlySuccess.Models
     exposing
         ( ButtonState(..)
         , Model
-        , TokenTransfer
         , TransferFailure(..)
         , hover
-        , isClicked
-        , isPending
         )
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, id, style)
+import Html.Attributes exposing (attribute, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -90,8 +86,8 @@ update msg ( model, effects ) =
             ( model, effects )
 
 
-documentTitle : Model -> String
-documentTitle model =
+documentTitle : String
+documentTitle =
     "Fly Login"
 
 
@@ -99,20 +95,20 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
+            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
-                ([ id "top-bar-app" ] ++ Views.Styles.topBar False)
+                (id "top-bar-app" :: Views.Styles.topBar False)
                 [ TopBar.concourseLogo
                 , Login.view userState model False
                 ]
-            , Html.div ([ id "page-below-top-bar" ] ++ Views.Styles.pageBelowTopBar)
+            , Html.div (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar)
                 [ Html.div
-                    ([ id "success-card" ] ++ Styles.card)
+                    (id "success-card" :: Styles.card)
                     [ Html.p
-                        ([ id "success-card-title" ] ++ Styles.title)
+                        (id "success-card-title" :: Styles.title)
                         [ Html.text Text.title ]
                     , Html.div
-                        ([ id "success-card-body" ] ++ Styles.body)
+                        (id "success-card-body" :: Styles.body)
                       <|
                         body model
                     ]
@@ -174,12 +170,11 @@ paragraph { identifier, lines } =
     lines
         |> List.map Html.text
         |> List.intersperse (Html.br [] [])
-        |> Html.p
-            ([ id identifier ] ++ Styles.paragraph)
+        |> Html.p (id identifier :: Styles.paragraph)
 
 
 button : Model -> Html Message
-button { tokenTransfer, authToken, buttonState } =
+button { authToken, buttonState } =
     Html.span
         ([ id "copy-token"
          , onMouseEnter <| Hover <| Just CopyTokenButton

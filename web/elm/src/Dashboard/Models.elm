@@ -80,4 +80,4 @@ type alias FooterModel r =
 
 type Dropdown
     = Hidden
-    | Shown { selectedIdx : Maybe Int }
+    | Shown (Maybe Int)

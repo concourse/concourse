@@ -4,7 +4,6 @@ import Application.Application as Application
 import Browser
 import Browser.Navigation as Navigation
 import Concourse
-import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Subscription as Subscription
 import Message.TopLevelMessage as Msgs
@@ -12,7 +11,9 @@ import Url
 
 
 type alias TopLevelModel =
-    { key : Navigation.Key, model : Application.Model }
+    { key : Navigation.Key
+    , model : Application.Model
+    }
 
 
 init :

@@ -63,7 +63,7 @@ labeledDate label now date =
                 , DateFormat.amPmUppercase
                 ]
                 Time.utc
-                -- TODO handle time zones
+                -- https://github.com/concourse/concourse/issues/2226
                 date
 
         relativeDate =
