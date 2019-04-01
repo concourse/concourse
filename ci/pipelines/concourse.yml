@@ -751,7 +751,6 @@ jobs:
       - cbd/cluster/operations/backup-atc.yml
       - cbd/cluster/operations/task-limits.yml
       - cbd/cluster/operations/windows-worker-network.yml
-      - cbd/cluster/operations/debug-concourse.yml
       - cbd/cluster/operations/syslog-drainer.yml
       - cbd/cluster/operations/worker-rebalancing.yml
       - cbd/cluster/operations/enable-global-resources.yml
@@ -813,7 +812,6 @@ jobs:
       - bpm-release/*.tgz
       ops_files:
       - cbd/cluster/operations/dev-versions.yml
-      - cbd/cluster/operations/debug-concourse.yml
       - cbd/cluster/operations/privileged-http.yml
       - cbd/cluster/operations/privileged-https.yml
       - cbd/cluster/operations/tls.yml
