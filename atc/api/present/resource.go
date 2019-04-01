@@ -32,8 +32,8 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 		PinComment:      resource.PinComment(),
 	}
 
-	if !resource.LastCheckStartTime().IsZero() {
-		atcResource.LastChecked = resource.LastCheckStartTime().Unix()
+	if !resource.LastCheckEndTime().IsZero() {
+		atcResource.LastChecked = resource.LastCheckEndTime().Unix()
 	}
 
 	if resource.ConfigPinnedVersion() != nil {
