@@ -221,7 +221,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 
 		defer lock.Release()
 
-		updated, err := resourceConfigScope.UpdateLastChecked(interval, mustComplete)
+		updated, err := resourceConfigScope.UpdateLastCheckStartTime(interval, mustComplete)
 		if err != nil {
 			return interval, err
 		}
@@ -398,7 +398,7 @@ func (scanner *resourceScanner) check(
 		}
 	}
 
-	updated, err := resourceConfigScope.UpdateLastCheckFinished()
+	updated, err := resourceConfigScope.UpdateLastCheckEndTime()
 	if err != nil {
 		return err
 	}
