@@ -154,12 +154,12 @@ var _ = Describe("APIAuthWrappa", func() {
 				// authorized or public pipeline
 				atc.GetBuild:       doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuild]),
 				atc.BuildResources: doesNotCheckIfPrivateJob(inputHandlers[atc.BuildResources]),
-				atc.GetBuildPlan:   doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuildPlan]),
 
 				// authorized or public pipeline and public job
 				atc.BuildEvents:         checksIfPrivateJob(inputHandlers[atc.BuildEvents]),
 				atc.ListBuildArtifacts:  checksIfPrivateJob(inputHandlers[atc.ListBuildArtifacts]),
 				atc.GetBuildPreparation: checksIfPrivateJob(inputHandlers[atc.GetBuildPreparation]),
+				atc.GetBuildPlan:        checksIfPrivateJob(inputHandlers[atc.GetBuildPlan]),
 
 				// resource belongs to authorized team
 				atc.AbortBuild: checkWritePermissionForBuild(inputHandlers[atc.AbortBuild]),

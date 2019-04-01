@@ -1,5 +1,6 @@
 module Build.Models exposing
     ( BuildPageType(..)
+    , CurrentBuild
     , Model
     , StepHeaderType(..)
     )
@@ -38,6 +39,7 @@ type alias Model =
         , hoveredCounter : Int
         , fetchingHistory : Bool
         , scrolledToCurrentBuild : Bool
+        , authorized : Bool
         }
 
 

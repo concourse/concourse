@@ -25,6 +25,7 @@ type Job interface {
 	TeamName() string
 	Config() atc.JobConfig
 	Tags() []string
+	Public() bool
 
 	Reload() (bool, error)
 
@@ -106,6 +107,7 @@ func (j *job) TeamID() int             { return j.teamID }
 func (j *job) TeamName() string        { return j.teamName }
 func (j *job) Config() atc.JobConfig   { return j.config }
 func (j *job) Tags() []string          { return j.tags }
+func (j *job) Public() bool            { return j.Config().Public }
 
 func (j *job) Reload() (bool, error) {
 	row := jobsQuery.Where(sq.Eq{"j.id": j.id}).
