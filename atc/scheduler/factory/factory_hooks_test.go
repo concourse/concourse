@@ -452,6 +452,113 @@ var _ = Describe("Factory Hooks", func() {
 			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 
+		It("can build a job with one error hook", func() {
+			var input atc.JobConfig
+			input = atc.JobConfig{
+				Plan: atc.PlanSequence{
+					{
+						Task: "those who resist our will",
+						Error: &atc.PlanConfig{
+							Task: "task errored",
+						},
+					},
+				},
+			}
+			actual, err := buildFactory.Create(input, nil, nil, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			expected := expectedPlanFactory.NewPlan(atc.OnErrorPlan{
+				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name: "those who resist our will",
+				}),
+				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name: "task errored",
+				}),
+			})
+
+			Expect(actual).To(testhelpers.MatchPlan(expected))
+		})
+
+		It("can build a job with one error hook that has a timeout", func() {
+			actual, err := buildFactory.Create(atc.JobConfig{
+				Plan: atc.PlanSequence{
+					{
+						Task: "those who resist our will",
+						Error: &atc.PlanConfig{
+							Get:     "some-resource",
+							Timeout: "10s",
+						},
+					},
+				},
+			}, resources, resourceTypes, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			expected := expectedPlanFactory.NewPlan(atc.OnErrorPlan{
+				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:                   "those who resist our will",
+					VersionedResourceTypes: resourceTypes,
+				}),
+				Next: expectedPlanFactory.NewPlan(atc.TimeoutPlan{
+					Duration: "10s",
+					Step: expectedPlanFactory.NewPlan(atc.GetPlan{
+						Name:     "some-resource",
+						Type:     "git",
+						Resource: "some-resource",
+						Source: atc.Source{
+							"uri": "git://some-resource",
+						},
+						Version:                &version,
+						VersionedResourceTypes: resourceTypes,
+					}),
+				}),
+			})
+
+			Expect(actual).To(testhelpers.MatchPlan(expected))
+		})
+
+		It("can build a job with multiple error hooks", func() {
+			actual, err := buildFactory.Create(atc.JobConfig{
+				Plan: atc.PlanSequence{
+					{
+						Task: "those who resist our will",
+						Error: &atc.PlanConfig{
+							Get: "some-resource",
+							Error: &atc.PlanConfig{
+								Task: "those who still resist our will",
+							},
+						},
+					},
+				},
+			}, resources, resourceTypes, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			expected := expectedPlanFactory.NewPlan(atc.OnErrorPlan{
+				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:                   "those who resist our will",
+					VersionedResourceTypes: resourceTypes,
+				}),
+				Next: expectedPlanFactory.NewPlan(atc.OnErrorPlan{
+					Step: expectedPlanFactory.NewPlan(atc.GetPlan{
+						Name:     "some-resource",
+						Type:     "git",
+						Resource: "some-resource",
+						Source: atc.Source{
+							"uri": "git://some-resource",
+						},
+						Version:                &version,
+						VersionedResourceTypes: resourceTypes,
+					}),
+					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:                   "those who still resist our will",
+						VersionedResourceTypes: resourceTypes,
+					}),
+				}),
+			})
+
+			Expect(actual).To(testhelpers.MatchPlan(expected))
+		})
+
+
 		It("can build a job with one failure hook", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{

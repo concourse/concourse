@@ -322,6 +322,7 @@ var _ = Describe("ExecEngine", func() {
 			var (
 				retryPlan     atc.Plan
 				onAbortPlan   atc.Plan
+				onErrorPlan   atc.Plan
 				onSuccessPlan atc.Plan
 				onFailurePlan atc.Plan
 				ensurePlan    atc.Plan
@@ -341,8 +342,13 @@ var _ = Describe("ExecEngine", func() {
 					Next: leafPlan,
 				})
 
-				onSuccessPlan = planFactory.NewPlan(atc.OnSuccessPlan{
+				onErrorPlan = planFactory.NewPlan(atc.OnErrorPlan{
 					Step: onAbortPlan,
+					Next: leafPlan,
+				})
+
+				onSuccessPlan = planFactory.NewPlan(atc.OnSuccessPlan{
+					Step: onErrorPlan,
 					Next: leafPlan,
 				})
 
@@ -363,7 +369,7 @@ var _ = Describe("ExecEngine", func() {
 				build, err = execEngine.CreateBuild(logger, dbBuild, retryPlan)
 				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
-				Expect(fakeFactory.TaskCallCount()).To(Equal(5))
+				Expect(fakeFactory.TaskCallCount()).To(Equal(6))
 			})
 
 			It("constructs nested steps correctly", func() {
