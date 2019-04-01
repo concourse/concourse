@@ -2584,7 +2584,7 @@ all =
                         >> Query.children []
                         >> Query.index -1
                         >> Query.has [ text "v3.1.4" ]
-                , test "finist task lists initialization duration in tooltip" <|
+                , test "finished task lists initialization duration in tooltip" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
                             (EventsReceived <|
@@ -2631,7 +2631,7 @@ all =
                         >> Query.findAll [ tag "tr" ]
                         >> Query.index 0
                         >> Query.has [ text "initialization", text "10s" ]
-                , test "finist task lists step duration in tooltip" <|
+                , test "finished task lists step duration in tooltip" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
                             (EventsReceived <|
