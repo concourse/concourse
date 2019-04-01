@@ -43,6 +43,7 @@ import Message.Message exposing (Hoverable(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
 import Time
+import Url exposing (fromString)
 import Views.DictView as DictView
 import Views.Icon as Icon
 import Views.Spinner as Spinner
@@ -604,16 +605,17 @@ viewMetadata =
         (\{ name, value } ->
             ( name
             , Html.pre []
-                [ if String.startsWith "http://" value || String.startsWith "https://" value then
-                    Html.a
-                        [ href value
-                        , target "_blank"
-                        , style "text-decoration-line" "underline"
-                        ]
-                        [ Html.text value ]
+                [ case fromString value of
+                    Just _ ->
+                        Html.a
+                            [ href value
+                            , target "_blank"
+                            , style "text-decoration-line" "underline"
+                            ]
+                            [ Html.text value ]
 
-                  else
-                    Html.text value
+                    Nothing ->
+                        Html.text value
                 ]
             )
         )
