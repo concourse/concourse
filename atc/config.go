@@ -48,6 +48,7 @@ type ResourceConfig struct {
 	CheckTimeout string  `yaml:"check_timeout,omitempty" json:"check_timeout" mapstructure:"check_timeout"`
 	Tags         Tags    `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
 	Version      Version `yaml:"version,omitempty" json:"version" mapstructure:"version"`
+	Icon         string  `yaml:"icon,omitempty" json:"icon,omitempty" mapstructure:"icon"`
 }
 
 type ResourceType struct {

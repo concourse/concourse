@@ -144,6 +144,16 @@ type FakeResource struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	IconStub        func() string
+	iconMutex       sync.RWMutex
+	iconArgsForCall []struct {
+	}
+	iconReturns struct {
+		result1 string
+	}
+	iconReturnsOnCall map[int]struct {
+		result1 string
+	}
 	PinCommentStub        func() string
 	pinCommentMutex       sync.RWMutex
 	pinCommentArgsForCall []struct {
@@ -1030,6 +1040,23 @@ func (fake *FakeResource) Name() string {
 		return ret.result1
 	}
 	fakeReturns := fake.nameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) Icon() string {
+	fake.iconMutex.Lock()
+	ret, specificReturn := fake.iconReturnsOnCall[len(fake.iconArgsForCall)]
+	fake.iconArgsForCall = append(fake.iconArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Icon", []interface{}{})
+	fake.iconMutex.Unlock()
+	if fake.IconStub != nil {
+		return fake.IconStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.iconReturns
 	return fakeReturns.result1
 }
 

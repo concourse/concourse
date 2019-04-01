@@ -36,6 +36,7 @@ import Html.Attributes
         , href
         , id
         , placeholder
+        , src
         , style
         , title
         , value
@@ -57,7 +58,7 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..), setTitle)
+import Message.Effects exposing (Effect(..), renderSvgIcon, setTitle)
 import Message.Message as Message exposing (Hoverable(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
@@ -65,6 +66,8 @@ import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
 import StrictEvents
+import Svg exposing (Svg)
+import Svg.Attributes as SvgAttributes
 import Time
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
@@ -102,6 +105,7 @@ init flags =
             , pinCommentLoading = False
             , textAreaFocused = False
             , isUserMenuExpanded = False
+            , icon = Nothing
             }
     in
     ( model
@@ -222,9 +226,18 @@ handleCallback callback ( model, effects ) =
                 , checkError = resource.checkError
                 , checkSetupError = resource.checkSetupError
                 , lastChecked = resource.lastChecked
+                , icon = resource.icon
               }
                 |> updatePinnedVersion resource
-            , effects ++ [ SetTitle <| resource.name ++ " - " ]
+            , effects
+                ++ [ SetTitle <| resource.name ++ " - " ]
+                ++ (case resource.icon of
+                        Just icon ->
+                            [ RenderSvgIcon <| icon ]
+
+                        Nothing ->
+                            []
+                   )
             )
 
         ResourceFetched (Err err) ->
@@ -681,12 +694,38 @@ header model =
 
                 ( _, _ ) ->
                     Html.text ""
+
+        iconView =
+            case model.icon of
+                Just icon ->
+                    Html.div
+                        [ style "margin-right" (String.fromInt 10 ++ "px")
+                        , style "height" (String.fromInt Resource.Styles.headerHeight ++ "px")
+                        , style "width" (String.fromInt 24 ++ "px")
+                        , style "margin-left" (String.fromInt -6 ++ "px")
+                        ]
+                        [ Svg.svg
+                            [ style
+                                "margin-top"
+                                (String.fromFloat (toFloat (Resource.Styles.headerHeight - 24) / 2) ++ "px")
+                            , SvgAttributes.fill "white"
+                            ]
+                            [ Svg.use
+                                [ SvgAttributes.xlinkHref ("#" ++ icon ++ "-svg-icon") ]
+                                []
+                            ]
+                        ]
+
+                Nothing ->
+                    Html.div [] []
     in
     Html.div
         ([ id "page-header" ] ++ Resource.Styles.headerBar)
         [ Html.h1
             Resource.Styles.headerResourceName
-            [ Html.text model.resourceIdentifier.resourceName ]
+            [ iconView
+            , Html.text model.resourceIdentifier.resourceName
+            ]
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]
