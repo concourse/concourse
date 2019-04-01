@@ -332,7 +332,9 @@ type alias StepName =
 
 type BuildStep
     = BuildStepTask StepName
+    | BuildStepArtifactInput StepName
     | BuildStepGet StepName (Maybe Version)
+    | BuildStepArtifactOutput StepName
     | BuildStepPut StepName
     | BuildStepAggregate (Array BuildPlan)
     | BuildStepDo (Array BuildPlan)
@@ -363,24 +365,41 @@ decodeBuildPlan_ =
     Json.Decode.succeed BuildPlan
         |> andMap (Json.Decode.field "id" Json.Decode.string)
         |> andMap
-        
-           (Json.Decode.oneOf
-            -- buckle up
-            [ Json.Decode.field "task" <| lazy (\_ -> decodeBuildStepTask)
-            , Json.Decode.field "get" <| lazy (\_ -> decodeBuildStepGet)
-            , Json.Decode.field "put" <| lazy (\_ -> decodeBuildStepPut)
-            , Json.Decode.field "dependent_get" <| lazy (\_ -> decodeBuildStepGet)
-            , Json.Decode.field "aggregate" <| lazy (\_ -> decodeBuildStepAggregate)
-            , Json.Decode.field "do" <| lazy (\_ -> decodeBuildStepDo)
-            , Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildStepOnSuccess)
-            , Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildStepOnFailure)
-            , Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildStepOnAbort)
-            , Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildStepOnError)
-            , Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildStepEnsure)
-            , Json.Decode.field "try" <| lazy (\_ -> decodeBuildStepTry)
-            , Json.Decode.field "retry" <| lazy (\_ -> decodeBuildStepRetry)
-            , Json.Decode.field "timeout" <| lazy (\_ -> decodeBuildStepTimeout)
-            ]
+            (Json.Decode.oneOf
+                -- buckle up
+                [ Json.Decode.field "task" <|
+                    lazy (\_ -> decodeBuildStepTask)
+                , Json.Decode.field "get" <|
+                    lazy (\_ -> decodeBuildStepGet)
+                , Json.Decode.field "artifact_input" <|
+                    lazy (\_ -> decodeBuildStepArtifactInput)
+                , Json.Decode.field "put" <|
+                    lazy (\_ -> decodeBuildStepPut)
+                , Json.Decode.field "artifact_output" <|
+                    lazy (\_ -> decodeBuildStepArtifactOutput)
+                , Json.Decode.field "dependent_get" <|
+                    lazy (\_ -> decodeBuildStepGet)
+                , Json.Decode.field "aggregate" <|
+                    lazy (\_ -> decodeBuildStepAggregate)
+                , Json.Decode.field "do" <|
+                    lazy (\_ -> decodeBuildStepDo)
+                , Json.Decode.field "on_success" <|
+                    lazy (\_ -> decodeBuildStepOnSuccess)
+                , Json.Decode.field "on_failure" <|
+                    lazy (\_ -> decodeBuildStepOnFailure)
+                , Json.Decode.field "on_abort" <|
+                    lazy (\_ -> decodeBuildStepOnAbort)
+                , Json.Decode.field "on_error" <|
+                    lazy (\_ -> decodeBuildStepOnError)
+                , Json.Decode.field "ensure" <|
+                    lazy (\_ -> decodeBuildStepEnsure)
+                , Json.Decode.field "try" <|
+                    lazy (\_ -> decodeBuildStepTry)
+                , Json.Decode.field "retry" <|
+                    lazy (\_ -> decodeBuildStepRetry)
+                , Json.Decode.field "timeout" <|
+                    lazy (\_ -> decodeBuildStepTimeout)
+                ]
             )
 
 decodeBuildStepTask : Json.Decode.Decoder BuildStep
@@ -389,11 +408,23 @@ decodeBuildStepTask =
         |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
+decodeBuildStepArtifactInput : Json.Decode.Decoder BuildStep
+decodeBuildStepArtifactInput =
+    Json.Decode.succeed BuildStepArtifactInput
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+
+
 decodeBuildStepGet : Json.Decode.Decoder BuildStep
 decodeBuildStepGet =
     Json.Decode.succeed BuildStepGet
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
+
+
+decodeBuildStepArtifactOutput : Json.Decode.Decoder BuildStep
+decodeBuildStepArtifactOutput =
+    Json.Decode.succeed BuildStepArtifactOutput
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 decodeBuildStepPut : Json.Decode.Decoder BuildStep
