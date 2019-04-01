@@ -382,14 +382,14 @@ updateTooltip { hoveredElement, hoveredCounter } model =
     let
         newTooltip =
             case hoveredElement of
-                Just (FirstOccurrenceIcon id) ->
+                Just (FirstOccurrenceIcon _) ->
                     if hoveredCounter > 0 then
                         hoveredElement
 
                     else
                         Nothing
 
-                Just (StepState id) ->
+                Just (StepState _) ->
                     if hoveredCounter > 0 then
                         hoveredElement
 
