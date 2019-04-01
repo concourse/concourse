@@ -2330,6 +2330,9 @@ all =
                     plainText =
                         "plain-text"
 
+                    invalidURLText =
+                        "https:// is secure!"
+
                     metadataView =
                         Application.init
                             { turbulenceImgSrc = ""
@@ -2445,6 +2448,18 @@ all =
                                 , style "text-decoration-line" "underline"
                                 , attribute <| Attr.target "_blank"
                                 , attribute <| Attr.href plainText
+                                ]
+                , test "should not show hyperlink if metadata is malformed URL" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text invalidURLText ]
+                                ]
+                            |> Query.hasNot
+                                [ tag "a"
+                                , style "text-decoration-line" "underline"
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href invalidURLText
                                 ]
                 ]
             ]
