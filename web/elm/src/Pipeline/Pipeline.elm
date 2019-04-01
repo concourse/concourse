@@ -67,9 +67,8 @@ type alias Model =
         , selectedGroups : List String
         , hideLegend : Bool
         , hideLegendCounter : Float
-        , isToggleHovered : Bool
         , isToggleLoading : Bool
-        , isPinMenuExpanded : Bool
+        , hovered : Maybe Hoverable
         }
 
 
@@ -95,11 +94,10 @@ init flags =
             , experiencingTurbulence = False
             , hideLegend = False
             , hideLegendCounter = 0
-            , isToggleHovered = False
             , isToggleLoading = False
             , selectedGroups = flags.selectedGroups
-            , isPinMenuExpanded = False
             , isUserMenuExpanded = False
+            , hovered = Nothing
             }
     in
     ( model
@@ -337,16 +335,8 @@ update msg ( model, effects ) =
                    ]
             )
 
-        Hover (Just (PipelineButton _)) ->
-            ( { model | isToggleHovered = True }, effects )
-
-        Hover (Just PinIcon) ->
-            ( { model | isPinMenuExpanded = True }, effects )
-
-        Hover Nothing ->
-            ( { model | isToggleHovered = False, isPinMenuExpanded = False }
-            , effects
-            )
+        Hover hoverable ->
+            ( { model | hovered = hoverable }, effects )
 
         _ ->
             ( model, effects )
@@ -394,7 +384,8 @@ view userState model =
                 , viewPinMenu
                     { pinnedResources = getPinnedResources model
                     , pipeline = model.pipelineLocator
-                    , isPinMenuExpanded = model.isPinMenuExpanded
+                    , isPinMenuExpanded =
+                        model.hovered == Just PinIcon
                     }
                 , Html.div
                     ([ id "top-bar-pause-toggle" ]
@@ -404,7 +395,11 @@ view userState model =
                         userState
                         { pipeline = model.pipelineLocator
                         , isPaused = isPaused model.pipeline
-                        , isToggleHovered = model.isToggleHovered
+                        , isToggleHovered =
+                            model.hovered
+                                == (Just <|
+                                        PipelineButton model.pipelineLocator
+                                   )
                         , isToggleLoading = model.isToggleLoading
                         }
                     ]
@@ -602,10 +597,11 @@ viewGroupsBar model =
         groupList =
             case model.pipeline of
                 RemoteData.Success pipeline ->
-                    List.map
+                    List.indexedMap
                         (viewGroup
                             { selectedGroups = selectedGroupsOrDefault model
                             , pipelineLocator = model.pipelineLocator
+                            , hovered = model.hovered
                             }
                         )
                         pipeline.groups
@@ -626,24 +622,31 @@ viewGroup :
     { a
         | selectedGroups : List String
         , pipelineLocator : Concourse.PipelineIdentifier
+        , hovered : Maybe Hoverable
     }
+    -> Int
     -> Concourse.PipelineGroup
     -> Html Message
-viewGroup { selectedGroups, pipelineLocator } grp =
+viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
     let
         url =
             Routes.toString <|
-                Routes.Pipeline { id = pipelineLocator, groups = [] }
+                Routes.Pipeline { id = pipelineLocator, groups = [ grp.name ] }
     in
     Html.li
         []
         [ Html.a
-            ([ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
+            ([ Html.Attributes.href <| url
              , onLeftClickOrShiftLeftClick
                 (SetGroups [ grp.name ])
                 (ToggleGroup grp)
+             , onMouseEnter <| Hover <| Just <| JobGroup idx
+             , onMouseLeave <| Hover Nothing
              ]
-                ++ (Styles.groupItem <| List.member grp.name selectedGroups)
+                ++ Styles.groupItem
+                    { selected = List.member grp.name selectedGroups
+                    , hovered = hovered == (Just <| JobGroup idx)
+                    }
             )
             [ Html.text grp.name ]
         ]
