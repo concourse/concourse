@@ -1,6 +1,7 @@
 module FlySuccessTests exposing (all)
 
 import Application.Application as Application
+import Common exposing (queryView)
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
@@ -173,16 +174,12 @@ type alias Query =
 
 topBar : Query
 topBar =
-    Application.view
-        >> Query.fromHtml
-        >> Query.find [ id "top-bar-app" ]
+    queryView >> Query.find [ id "top-bar-app" ]
 
 
 successCard : Query
 successCard =
-    Application.view
-        >> Query.fromHtml
-        >> Query.find [ id "success-card" ]
+    queryView >> Query.find [ id "success-card" ]
 
 
 title : Query

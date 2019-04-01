@@ -9,7 +9,7 @@ module Concourse.BuildEvents exposing
 
 import Build.StepTree.Models exposing (BuildEvent(..), BuildEventEnvelope, Origin)
 import Concourse
-import Dict exposing (Dict)
+import Dict
 import Json.Decode
 import Time
 

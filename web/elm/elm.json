@@ -17,8 +17,6 @@
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
-            "elm-community/graph": "6.0.0",
-            "elm-community/intdict": "3.0.0",
             "elm-community/json-extra": "4.0.0",
             "elm-community/list-extra": "8.1.0",
             "elm-community/maybe-extra": "5.0.0",
@@ -26,7 +24,6 @@
             "krisajenkins/remotedata": "5.0.0",
             "lukewestby/elm-http-builder": "6.0.0",
             "matthewsj/elm-ordering": "2.0.0",
-            "rtfeldman/elm-css": "16.0.0",
             "ryannhg/date-format": "2.3.0",
             "truqu/elm-base64": "2.0.4",
             "vito/elm-ansi": "9.0.1"

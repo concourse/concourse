@@ -54,7 +54,7 @@ type StepTree
 
 
 type alias StepFocus =
-    { update : (StepTree -> StepTree) -> StepTree -> StepTree }
+    (StepTree -> StepTree) -> StepTree -> StepTree
 
 
 type alias Step =
@@ -144,17 +144,19 @@ focusRetry tab tree =
             Retry id tab User steps
 
         _ ->
-            Debug.todo "impossible (non-retry tab focus)"
+            -- impossible (non-retry tab focus)
+            tree
 
 
 updateAt : StepID -> (StepTree -> StepTree) -> StepTreeModel -> StepTreeModel
 updateAt id update root =
     case Dict.get id root.foci of
         Nothing ->
-            Debug.todo ("updateAt: id " ++ id ++ " not found")
+            -- updateAt: id " ++ id ++ " not found"
+            root
 
         Just focus ->
-            { root | tree = focus.update update root.tree }
+            { root | tree = focus update root.tree }
 
 
 map : (Step -> Step) -> StepTree -> StepTree
@@ -175,17 +177,17 @@ map f tree =
 
 wrapMultiStep : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
 wrapMultiStep i =
-    Dict.map (\_ subFocus -> { update = \upd tree -> setMultiStepIndex i (subFocus.update upd) tree })
+    Dict.map (\_ subFocus -> subFocus >> setMultiStepIndex i)
 
 
-wrapStep : StepID -> StepFocus -> StepFocus
-wrapStep id subFocus =
-    { update = \upd tree -> updateStep (subFocus.update upd) tree }
+wrapStep : StepFocus -> StepFocus
+wrapStep subFocus =
+    subFocus >> updateStep
 
 
-wrapHook : StepID -> StepFocus -> StepFocus
-wrapHook id subFocus =
-    { update = \upd tree -> updateHook (subFocus.update upd) tree }
+wrapHook : StepFocus -> StepFocus
+wrapHook subFocus =
+    subFocus >> updateHook
 
 
 updateStep : (StepTree -> StepTree) -> StepTree -> StepTree
@@ -213,7 +215,8 @@ updateStep update tree =
             Timeout (update step)
 
         _ ->
-            Debug.todo "impossible"
+            --impossible
+            tree
 
 
 updateHook : (StepTree -> StepTree) -> StepTree -> StepTree
@@ -235,7 +238,8 @@ updateHook update tree =
             Ensure { hookedStep | hook = update hookedStep.hook }
 
         _ ->
-            Debug.todo "impossible"
+            -- impossible
+            tree
 
 
 getMultiStepIndex : Int -> StepTree -> StepTree
@@ -253,14 +257,16 @@ getMultiStepIndex idx tree =
                     trees
 
                 _ ->
-                    Debug.todo "impossible"
+                    -- impossible
+                    Array.fromList []
     in
     case Array.get idx steps of
         Just sub ->
             sub
 
         Nothing ->
-            Debug.todo "impossible"
+            -- impossible
+            tree
 
 
 setMultiStepIndex : Int -> (StepTree -> StepTree) -> StepTree -> StepTree
@@ -285,7 +291,8 @@ setMultiStepIndex idx update tree =
                     Retry id tab User updatedSteps
 
         _ ->
-            Debug.todo "impossible"
+            -- impossible
+            tree
 
 
 finishTree : StepTree -> StepTree

@@ -7,8 +7,8 @@ type ScreenSize
     | BigDesktop
 
 
-fromWindowSize : Float -> Float -> ScreenSize
-fromWindowSize width height =
+fromWindowSize : Float -> ScreenSize
+fromWindowSize width =
     if width < 812 then
         Mobile
 

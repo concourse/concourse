@@ -28,7 +28,7 @@ type ResourcePinState version id comment
 type VersionPinState
     = Enabled
     | PinnedDynamically
-    | PinnedStatically { showTooltip : Bool }
+    | PinnedStatically Bool
     | Disabled
     | InTransition
 
@@ -108,7 +108,7 @@ pinState version id resourcePinState =
     case resourcePinState of
         PinnedStaticallyTo v ->
             if v == version then
-                PinnedStatically { showTooltip = False }
+                PinnedStatically False
 
             else
                 Disabled

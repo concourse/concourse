@@ -1,6 +1,7 @@
 module ResourceTests exposing (all)
 
 import Application.Application as Application
+import Common exposing (queryView)
 import Concourse
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -196,6 +197,12 @@ all =
                                     Routes.Normal Nothing
                         ]
             ]
+        , test "has title with resouce name" <|
+            \_ ->
+                init
+                    |> Application.view
+                    |> .title
+                    |> Expect.equal "some-resource - Concourse"
         , test "has default layout" <|
             \_ ->
                 init
@@ -3180,12 +3187,6 @@ givenResourceHasIcon =
                 }
         )
         >> Tuple.first
-
-
-queryView : Application.Model -> Query.Single Msgs.TopLevelMessage
-queryView =
-    Application.view
-        >> Query.fromHtml
 
 
 hoverOverPinBar : Application.Model -> Application.Model

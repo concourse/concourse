@@ -17,7 +17,6 @@ import Build.StepTree.Models
         ( HookedStep
         , MetadataField
         , Step
-        , StepFocus
         , StepName
         , StepState(..)
         , StepTree(..)
@@ -35,11 +34,10 @@ import Build.StepTree.Models
 import Build.Styles as Styles
 import Concourse
 import DateFormat
-import Debug
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style, target)
-import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
@@ -116,7 +114,7 @@ initMultiStep hl resources planId constructor plans =
             Array.map .tree inited
 
         selfFoci =
-            Dict.singleton planId { update = identity }
+            Dict.singleton planId identity
 
         foci =
             inited
@@ -166,7 +164,7 @@ initBottom hl create id name =
             }
     in
     { tree = create step
-    , foci = Dict.singleton id { update = identity }
+    , foci = Dict.singleton id identity
     , highlight = hl
     , tooltip = Nothing
     }
@@ -184,7 +182,7 @@ initWrappedStep hl resources create plan =
             init hl resources plan
     in
     { tree = create tree
-    , foci = Dict.map wrapStep foci
+    , foci = Dict.map (always wrapStep) foci
     , highlight = hl
     , tooltip = Nothing
     }
@@ -207,8 +205,8 @@ initHookedStep hl resources create hookedPlan =
     { tree = create { step = stepModel.tree, hook = hookModel.tree }
     , foci =
         Dict.union
-            (Dict.map wrapStep stepModel.foci)
-            (Dict.map wrapHook hookModel.foci)
+            (Dict.map (always wrapStep) stepModel.foci)
+            (Dict.map (always wrapHook) hookModel.foci)
     , highlight = hl
     , tooltip = Nothing
     }
@@ -404,7 +402,8 @@ viewTree model tree =
                         viewTree model step
 
                     Nothing ->
-                        Debug.todo "impossible (bogus tab selected)"
+                        -- impossible (bogus tab selected)
+                        Html.text ""
                 ]
 
         Timeout step ->
@@ -471,7 +470,7 @@ autoExpanded state =
 
 
 viewStep : StepTreeModel -> Step -> StepHeaderType -> Html Message
-viewStep model { id, name, log, state, error, expanded, version, metadata, firstOccurrence, timestamps } headerType =
+viewStep model { id, name, log, state, error, expanded, version, metadata, timestamps } headerType =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -549,7 +548,7 @@ viewTimestampedLine timestamps hl id lineNo line =
             , ( "highlighted-line", highlighted )
             ]
         ]
-        [ viewTimestamp hl id ( lineNo, ts )
+        [ viewTimestamp id ( lineNo, ts )
         , viewLine line
         ]
 
@@ -561,8 +560,8 @@ viewLine line =
         ]
 
 
-viewTimestamp : Highlight -> String -> ( Int, Maybe Time.Posix ) -> Html Message
-viewTimestamp hl id ( line, date ) =
+viewTimestamp : String -> ( Int, Maybe Time.Posix ) -> Html Message
+viewTimestamp id ( line, date ) =
     Html.a
         [ href (showHighlight (HighlightLine id line))
         , StrictEvents.onLeftClickOrShiftLeftClick
@@ -582,7 +581,7 @@ viewTimestamp hl id ( line, date ) =
                             , DateFormat.secondFixed
                             ]
                             Time.utc
-                            -- TODO handle timezones
+                            -- https://github.com/concourse/concourse/issues/2226
                             d
                     ]
                     []
@@ -633,8 +632,8 @@ viewStepState state =
                 { sizePx = 28
                 , image = "ic-pending.svg"
                 }
-                ([ attribute "data-step-state" "pending" ]
-                    ++ Styles.stepStatusIcon
+                (attribute "data-step-state" "pending"
+                    :: Styles.stepStatusIcon
                 )
 
         StepStateInterrupted ->
@@ -642,8 +641,8 @@ viewStepState state =
                 { sizePx = 28
                 , image = "ic-interrupted.svg"
                 }
-                ([ attribute "data-step-state" "interrupted" ]
-                    ++ Styles.stepStatusIcon
+                (attribute "data-step-state" "interrupted"
+                    :: Styles.stepStatusIcon
                 )
 
         StepStateCancelled ->
@@ -651,8 +650,8 @@ viewStepState state =
                 { sizePx = 28
                 , image = "ic-cancelled.svg"
                 }
-                ([ attribute "data-step-state" "cancelled" ]
-                    ++ Styles.stepStatusIcon
+                (attribute "data-step-state" "cancelled"
+                    :: Styles.stepStatusIcon
                 )
 
         StepStateSucceeded ->
@@ -660,8 +659,8 @@ viewStepState state =
                 { sizePx = 28
                 , image = "ic-success-check.svg"
                 }
-                ([ attribute "data-step-state" "succeeded" ]
-                    ++ Styles.stepStatusIcon
+                (attribute "data-step-state" "succeeded"
+                    :: Styles.stepStatusIcon
                 )
 
         StepStateFailed ->
@@ -669,8 +668,8 @@ viewStepState state =
                 { sizePx = 28
                 , image = "ic-failure-times.svg"
                 }
-                ([ attribute "data-step-state" "failed" ]
-                    ++ Styles.stepStatusIcon
+                (attribute "data-step-state" "failed"
+                    :: Styles.stepStatusIcon
                 )
 
         StepStateErrored ->
@@ -678,8 +677,8 @@ viewStepState state =
                 { sizePx = 28
                 , image = "ic-exclamation-triangle.svg"
                 }
-                ([ attribute "data-step-state" "errored" ]
-                    ++ Styles.stepStatusIcon
+                (attribute "data-step-state" "errored"
+                    :: Styles.stepStatusIcon
                 )
 
 

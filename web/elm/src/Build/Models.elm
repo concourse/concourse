@@ -12,7 +12,7 @@ import Keyboard
 import Login.Login as Login
 import Message.Message exposing (Hoverable)
 import RemoteData exposing (WebData)
-import Routes exposing (Highlight, StepID)
+import Routes exposing (Highlight)
 import Time
 
 

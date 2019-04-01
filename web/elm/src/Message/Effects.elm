@@ -4,7 +4,6 @@ port module Message.Effects exposing
     , renderPipeline
     , renderSvgIcon
     , runEffect
-    , setTitle
     , stickyHeaderConfig
     )
 
@@ -12,7 +11,7 @@ import Browser.Dom exposing (getViewport)
 import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus
-import Concourse.Pagination exposing (Page, Paginated)
+import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Json.Encode
 import Message.Callback exposing (Callback(..))
@@ -29,13 +28,9 @@ import Network.Pipeline
 import Network.Resource
 import Network.User
 import Process
-import Routes
 import Task
 import Time
 import Views.Styles
-
-
-port setTitle : String -> Cmd msg
 
 
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
@@ -146,7 +141,6 @@ type Effect
     | LoadExternal String
     | NavigateTo String
     | ModifyUrl String
-    | SetTitle String
     | DoPinVersion Concourse.VersionedResourceIdentifier
     | DoUnpinVersion Concourse.ResourceIdentifier
     | DoToggleVersion VersionToggleAction VersionId
@@ -224,7 +218,6 @@ runEffect effect key csrfToken =
 
         FetchVersion ->
             Network.Info.fetch
-                |> Task.map .version
                 |> Task.attempt VersionFetched
 
         FetchInputTo id ->
@@ -274,9 +267,6 @@ runEffect effect key csrfToken =
 
         RenderPipeline jobs resources ->
             renderPipeline ( jobs, resources )
-
-        SetTitle newTitle ->
-            setTitle newTitle
 
         DoPinVersion version ->
             Network.Resource.pinVersion version csrfToken
