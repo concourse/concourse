@@ -61,7 +61,7 @@ var _ = Describe("Resources API", func() {
 				resource1.TeamNameReturns("some-team")
 				resource1.NameReturns("resource-1")
 				resource1.TypeReturns("type-1")
-				resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+				resource1.LastCheckStartTimeReturns(time.Unix(1513364881, 0))
 
 				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
@@ -187,7 +187,7 @@ var _ = Describe("Resources API", func() {
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.NameReturns("resource-1")
 				resource1.TypeReturns("type-1")
-				resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+				resource1.LastCheckStartTimeReturns(time.Unix(1513364881, 0))
 
 				resource2 := new(dbfakes.FakeResource)
 				resource2.IDReturns(2)
@@ -926,7 +926,7 @@ var _ = Describe("Resources API", func() {
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
 					resource1.TypeReturns("type-1")
-					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+					resource1.LastCheckStartTimeReturns(time.Unix(1513364881, 0))
 
 					fakePipeline.ResourceReturns(resource1, true, nil)
 				})
@@ -996,7 +996,7 @@ var _ = Describe("Resources API", func() {
 						resource1.PipelineNameReturns("a-pipeline")
 						resource1.NameReturns("resource-1")
 						resource1.TypeReturns("type-1")
-						resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+						resource1.LastCheckStartTimeReturns(time.Unix(1513364881, 0))
 						resource1.ConfigPinnedVersionReturns(atc.Version{"version": "v1"})
 
 						fakePipeline.ResourceReturns(resource1, true, nil)
@@ -1035,7 +1035,7 @@ var _ = Describe("Resources API", func() {
 						resource1.PipelineNameReturns("a-pipeline")
 						resource1.NameReturns("resource-1")
 						resource1.TypeReturns("type-1")
-						resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+						resource1.LastCheckStartTimeReturns(time.Unix(1513364881, 0))
 						resource1.APIPinnedVersionReturns(atc.Version{"version": "v1"})
 
 						fakePipeline.ResourceReturns(resource1, true, nil)
@@ -1071,7 +1071,7 @@ var _ = Describe("Resources API", func() {
 						resource1.PipelineNameReturns("a-pipeline")
 						resource1.NameReturns("resource-1")
 						resource1.TypeReturns("type-1")
-						resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+						resource1.LastCheckStartTimeReturns(time.Unix(1513364881, 0))
 						resource1.APIPinnedVersionReturns(atc.Version{"version": "v1"})
 						resource1.PinCommentReturns("a pin comment")
 						fakePipeline.ResourceReturns(resource1, true, nil)
@@ -1122,7 +1122,7 @@ var _ = Describe("Resources API", func() {
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
 					resource1.TypeReturns("type-1")
-					resource1.LastCheckedReturns(time.Unix(1513364881, 0))
+					resource1.LastCheckStartTimeReturns(time.Unix(1513364881, 0))
 
 					fakePipeline.ResourceReturns(resource1, true, nil)
 				})
