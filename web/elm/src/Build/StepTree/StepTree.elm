@@ -87,6 +87,9 @@ init hl resources buildPlan =
         Concourse.BuildStepOnAbort hookedPlan ->
             initHookedStep hl resources OnAbort hookedPlan
 
+        Concourse.BuildStepOnError hookedPlan ->
+            initHookedStep hl resources OnError hookedPlan
+
         Concourse.BuildStepEnsure hookedPlan ->
             initHookedStep hl resources Ensure hookedPlan
 
@@ -227,6 +230,9 @@ treeIsActive stepTree =
             treeIsActive step
 
         OnAbort { step } ->
+            treeIsActive step
+
+        OnError { step } ->
             treeIsActive step
 
         Ensure { step } ->
@@ -420,6 +426,9 @@ viewTree model tree =
 
         OnAbort { step, hook } ->
             viewHooked "abort" model step hook
+
+        OnError { step, hook } ->
+            viewHooked "error" model step hook
 
         Ensure { step, hook } ->
             viewHooked "ensure" model step hook

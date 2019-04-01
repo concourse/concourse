@@ -89,6 +89,7 @@ func (types ResourceTypes) Without(name string) ResourceTypes {
 
 type Hooks struct {
 	Abort   *PlanConfig
+	Error   *PlanConfig
 	Failure *PlanConfig
 	Ensure  *PlanConfig
 	Success *PlanConfig
@@ -355,6 +356,9 @@ type PlanConfig struct {
 	// used by any step to run something when the build is aborted during execution of the step
 	Abort *PlanConfig `yaml:"on_abort,omitempty" json:"on_abort,omitempty" mapstructure:"on_abort"`
 
+	// used by any step to run something when the build errors during execution of the step
+	Error *PlanConfig `yaml:"on_error,omitempty" json:"on_error,omitempty" mapstructure:"on_error"`
+
 	// used by any step to run something when the step reports a failure
 	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
 
@@ -419,7 +423,7 @@ func (config PlanConfig) ResourceName() string {
 }
 
 func (config PlanConfig) Hooks() Hooks {
-	return Hooks{Abort: config.Abort, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
+	return Hooks{Abort: config.Abort, Error: config.Error, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
 }
 
 type ResourceConfigs []ResourceConfig
