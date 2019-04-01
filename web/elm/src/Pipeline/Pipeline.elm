@@ -12,7 +12,6 @@ module Pipeline.Pipeline exposing
     , view
     )
 
-import Char
 import Colors
 import Concourse
 import Concourse.Cli as Cli

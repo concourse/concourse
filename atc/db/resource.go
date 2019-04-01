@@ -41,6 +41,7 @@ type Resource interface {
 	SetPinComment(string) error
 	ResourceConfigID() int
 	ResourceConfigScopeID() int
+	Icon() string
 
 	CurrentPinnedVersion() atc.Version
 
@@ -90,6 +91,7 @@ type resource struct {
 	pinComment            string
 	resourceConfigID      int
 	resourceConfigScopeID int
+	icon                  string
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -128,6 +130,7 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 			CheckEvery:   r.CheckEvery(),
 			Tags:         r.Tags(),
 			Version:      r.ConfigPinnedVersion(),
+			Icon:         r.Icon(),
 		})
 	}
 
@@ -155,6 +158,7 @@ func (r *resource) APIPinnedVersion() atc.Version    { return r.apiPinnedVersion
 func (r *resource) PinComment() string               { return r.pinComment }
 func (r *resource) ResourceConfigID() int            { return r.resourceConfigID }
 func (r *resource) ResourceConfigScopeID() int       { return r.resourceConfigScopeID }
+func (r *resource) Icon() string                     { return r.icon }
 
 func (r *resource) Reload() (bool, error) {
 	row := resourcesQuery.Where(sq.Eq{"r.id": r.id}).
@@ -630,6 +634,7 @@ func scanResource(r *resource, row scannable) error {
 	r.tags = config.Tags
 	r.webhookToken = config.WebhookToken
 	r.configPinnedVersion = config.Version
+	r.icon = config.Icon
 
 	if apiPinnedVersion.Valid {
 		err = json.Unmarshal([]byte(apiPinnedVersion.String), &r.apiPinnedVersion)

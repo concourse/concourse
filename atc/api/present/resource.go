@@ -25,6 +25,7 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 		PipelineName: resource.PipelineName(),
 		TeamName:     teamName,
 		Type:         resource.Type(),
+		Icon:         resource.Icon(),
 
 		FailingToCheck:  failingToCheck,
 		CheckSetupError: checkErrString,

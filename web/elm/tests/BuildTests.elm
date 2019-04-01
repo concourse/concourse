@@ -19,6 +19,7 @@ import DashboardTests
 import Dict
 import Expect
 import Html.Attributes as Attr
+import Http
 import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
@@ -399,6 +400,70 @@ all =
                         |> .title
                         |> Expect.equal "routejob #1 - Concourse"
             ]
+        , test "shows passport officer when build plan request gives 401" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 1 <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 401
+                                        , message = ""
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ class "not-authorized" ]
+        , test "shows passport officer when build prep request gives 401" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job =
+                                        Just
+                                            { teamName = "team"
+                                            , pipelineName = "pipeline"
+                                            , jobName = "job"
+                                            }
+                                  , status = Concourse.BuildStatusPending
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildPrepFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { status =
+                                        { code = 401
+                                        , message = "Unauthorized"
+                                        }
+                                    , headers =
+                                        Dict.empty
+                                    , url = ""
+                                    , body = "not authorized"
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ class "not-authorized" ]
         , test "events from a different build are discarded" <|
             \_ ->
                 Application.init
@@ -1677,7 +1742,7 @@ all =
                 ]
             , describe "build events subscription" <|
                 let
-                    buildPlanReceived _ =
+                    preBuildPlanReceived _ =
                         pageLoad
                             |> Tuple.first
                             |> fetchStartedBuild
@@ -1686,21 +1751,21 @@ all =
                             |> Tuple.first
                             |> fetchJobDetails
                             |> Tuple.first
-                            |> Application.handleCallback
-                                (Callback.PlanAndResourcesFetched 1 <|
-                                    Ok <|
-                                        ( { id = "plan"
-                                          , step =
-                                                Concourse.BuildStepGet
-                                                    "step"
-                                                    Nothing
-                                          }
-                                        , { inputs = [], outputs = [] }
-                                        )
-                                )
                 in
                 [ test "after build plan is received, opens event stream" <|
-                    buildPlanReceived
+                    preBuildPlanReceived
+                        >> Application.handleCallback
+                            (Callback.PlanAndResourcesFetched 1 <|
+                                Ok <|
+                                    ( { id = "plan"
+                                      , step =
+                                            Concourse.BuildStepGet
+                                                "step"
+                                                Nothing
+                                      }
+                                    , { inputs = [], outputs = [] }
+                                    )
+                            )
                         >> Expect.all
                             [ Tuple.second
                                 >> Expect.equal
@@ -1719,6 +1784,34 @@ all =
                                     )
                                 >> Expect.true
                                     "why aren't we listening for build events!?"
+                            ]
+                , test "if build plan request fails, no event stream" <|
+                    preBuildPlanReceived
+                        >> Application.handleCallback
+                            (Callback.PlanAndResourcesFetched 1 <|
+                                Err <|
+                                    Http.BadStatus
+                                        { url = "http://example.com"
+                                        , status =
+                                            { code = 401
+                                            , message = ""
+                                            }
+                                        , headers = Dict.empty
+                                        , body = ""
+                                        }
+                            )
+                        >> Expect.all
+                            [ Tuple.second >> Expect.equal []
+                            , Tuple.first
+                                >> Application.subscriptions
+                                >> List.member
+                                    (Subscription.FromEventSource
+                                        ( "/api/v1/builds/1/events"
+                                        , [ "end", "event" ]
+                                        )
+                                    )
+                                >> Expect.false
+                                    "should not listen for build events"
                             ]
                 ]
             , describe "step header" <|

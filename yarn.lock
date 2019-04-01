@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@mdi/svg@^3.5.95":
+  version "3.5.95"
+  resolved "https://registry.yarnpkg.com/@mdi/svg/-/svg-3.5.95.tgz#9e5c3dda43957bb436b75d5e0f3f7e57d8d2efb7"
+  integrity sha512-OOHqPi6s6nEeOOvo9uZgdfLyTHGDiIXiAXtvIrCBbnU4mZFSHpskQUw7Yqmp/tluYzI6neLN5Dwy/vTusDcsdA==
+
 abbrev@1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/abbrev/-/abbrev-1.1.1.tgz#f8f2c887ad10bf67f634f005b6987fed3179aac8"
