@@ -43,6 +43,7 @@ type alias Model =
         , pinCommentLoading : Bool
         , textAreaFocused : Bool
         , icon : Maybe String
+        , timeZone : Time.Zone
         }
 
 

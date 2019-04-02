@@ -96,8 +96,9 @@ init flags =
           , scrolledToCurrentBuild = False
           , shiftDown = False
           , isUserMenuExpanded = False
+          , timeZone = Time.utc
           }
-        , [ GetCurrentTime ]
+        , [ GetCurrentTime, GetCurrentTimeZone ]
         )
 
 
@@ -196,6 +197,9 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback action ( model, effects ) =
     case action of
+        GotCurrentTimeZone zone ->
+            ( { model | timeZone = zone }, effects )
+
         BuildTriggered (Ok build) ->
             ( { model | history = build :: model.history }
             , effects
@@ -860,6 +864,7 @@ viewBuildPage model =
                     { currentBuild = currentBuild
                     , authorized = model.authorized
                     , showHelp = model.showHelp
+                    , timeZone = model.timeZone
                     }
                 ]
 
@@ -871,16 +876,17 @@ body :
     { currentBuild : CurrentBuild
     , authorized : Bool
     , showHelp : Bool
+    , timeZone : Time.Zone
     }
     -> Html Message
-body { currentBuild, authorized, showHelp } =
+body { currentBuild, authorized, showHelp, timeZone } =
     Html.div [ class "scrollable-body build-body" ] <|
         if authorized then
             [ viewBuildPrep currentBuild.prep
-            , Html.Lazy.lazy viewBuildOutput currentBuild.output
+            , Html.Lazy.lazy2 viewBuildOutput timeZone currentBuild.output
             , keyboardHelp showHelp
             ]
-                ++ tombstone currentBuild
+                ++ tombstone timeZone currentBuild
 
         else
             [ NotAuthorized.view ]
@@ -953,8 +959,8 @@ keyboardHelp showHelp =
         ]
 
 
-tombstone : CurrentBuild -> List (Html Message)
-tombstone currentBuild =
+tombstone : Time.Zone -> CurrentBuild -> List (Html Message)
+tombstone timeZone currentBuild =
     let
         build =
             currentBuild.build
@@ -990,9 +996,9 @@ tombstone currentBuild =
                 , Html.div
                     [ class "date" ]
                     [ Html.text <|
-                        mmDDYY birthDate
+                        mmDDYY timeZone birthDate
                             ++ "-"
-                            ++ mmDDYY reapTime
+                            ++ mmDDYY timeZone reapTime
                     ]
                 , Html.div
                     [ class "epitaph" ]
@@ -1027,7 +1033,7 @@ tombstone currentBuild =
             []
 
 
-mmDDYY : Time.Posix -> String
+mmDDYY : Time.Zone -> Time.Posix -> String
 mmDDYY =
     DateFormat.format
         [ DateFormat.monthFixed
@@ -1036,15 +1042,13 @@ mmDDYY =
         , DateFormat.text "/"
         , DateFormat.yearNumberLastTwo
         ]
-        -- https://github.com/concourse/concourse/issues/2226
-        Time.utc
 
 
-viewBuildOutput : Maybe OutputModel -> Html Message
-viewBuildOutput output =
+viewBuildOutput : Time.Zone -> Maybe OutputModel -> Html Message
+viewBuildOutput timeZone output =
     case output of
         Just o ->
-            Build.Output.Output.view o
+            Build.Output.Output.view timeZone o
 
         Nothing ->
             Html.div [] []
@@ -1260,7 +1264,7 @@ viewBuildHeader build model =
                 [ Html.h1 [] [ buildTitle ]
                 , case model.now of
                     Just n ->
-                        BuildDuration.view build.duration n
+                        BuildDuration.view model.timeZone build.duration n
 
                     Nothing ->
                         Html.text ""

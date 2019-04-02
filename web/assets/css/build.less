@@ -57,14 +57,10 @@
     padding-right: 20px;
     flex-shrink: 0;
     user-select: none;
+    color: @grey-secondary;
+    display: inline-block;
 
-    &::before {
-      content: attr(data-timestamp);
-      color: @grey-secondary;
-      display: inline-block;
-    }
-
-    &:hover::before {
+    &:hover {
       color: @base06;
     }
 
@@ -76,7 +72,7 @@
   &.highlighted-line {
     background: @base02;
 
-    .timestamp::before {
+    .timestamp {
       color: @base0A;
     }
   }

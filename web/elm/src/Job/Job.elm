@@ -70,6 +70,7 @@ type alias Model =
         , currentPage : Maybe Page
         , now : Time.Posix
         , hovered : Maybe Hoverable
+        , timeZone : Time.Zone
         }
 
 
@@ -108,12 +109,14 @@ init flags =
             , currentPage = flags.paging
             , hovered = Nothing
             , isUserMenuExpanded = False
+            , timeZone = Time.utc
             }
     in
     ( model
     , [ FetchJob flags.jobId
       , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
+      , GetCurrentTimeZone
       ]
     )
 
@@ -154,6 +157,9 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
+        GotCurrentTimeZone zone ->
+            ( { model | timeZone = zone }, effects )
+
         BuildTriggered (Ok build) ->
             ( model
             , case build.job of
@@ -636,7 +642,7 @@ viewBuildWithResources model bwr =
         in
         [ viewBuildHeader bwr.build
         , Html.div [ class "pam clearfix" ] <|
-            BuildDuration.view bwr.build.duration model.now
+            BuildDuration.view model.timeZone bwr.build.duration model.now
                 :: buildResourcesView
         ]
 

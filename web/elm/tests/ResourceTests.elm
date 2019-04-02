@@ -203,6 +203,31 @@ all =
                     |> Application.view
                     |> .title
                     |> Expect.equal "some-resource - Concourse"
+        , test "fetches time zone on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path =
+                        "/teams/"
+                            ++ teamName
+                            ++ "/pipelines/"
+                            ++ pipelineName
+                            ++ "/resources/"
+                            ++ resourceName
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> List.member Effects.GetCurrentTimeZone
+                    |> Expect.true "should get timezone"
         , test "has default layout" <|
             \_ ->
                 init
@@ -2988,6 +3013,45 @@ all =
                             |> queryView
                             |> Query.find [ id "last-checked" ]
                             |> Query.has [ text "2s ago" ]
+                , test "'last checked' tooltip respects timezone" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , name = resourceName
+                                        , failingToCheck = False
+                                        , checkError = ""
+                                        , checkSetupError = ""
+                                        , lastChecked =
+                                            Just
+                                                (Time.millisToPosix 0)
+                                        , pinnedVersion = Nothing
+                                        , pinnedInConfig = False
+                                        , pinComment = Nothing
+                                        , icon = Nothing
+                                        }
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.GotCurrentTimeZone <|
+                                    Time.customZone (5 * 60) []
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    ClockTicked OneSecond <|
+                                        Time.millisToPosix 1000
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "last-checked" ]
+                            |> Query.has
+                                [ attribute <|
+                                    Attr.title "Jan 1 1970 05:00:00 AM"
+                                ]
                 ]
             , test "unsuccessful check shows a warning icon on the right" <|
                 \_ ->

@@ -170,6 +170,25 @@ all =
                             |> Application.view
                             |> .title
                             |> Expect.equal "job - Concourse"
+                , test "gets current timezone" <|
+                    \_ ->
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = ""
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                            |> Tuple.second
+                            |> List.member Effects.GetCurrentTimeZone
+                            |> Expect.true "should get current timezone"
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
                         Application.init
@@ -1004,6 +1023,33 @@ all =
                     >> queryView
                     >> Query.find [ class "js-build" ]
                     >> Query.has [ text "2s ago" ]
+            , test "shows build timestamps in current timezone" <|
+                init { disabled = False, paused = False }
+                    >> Application.handleCallback
+                        (Callback.GotCurrentTimeZone <|
+                            Time.customZone (5 * 60) []
+                        )
+                    >> Tuple.first
+                    >> Application.handleCallback
+                        (Callback.JobBuildsFetched <|
+                            Ok
+                                { content = [ someBuild ]
+                                , pagination =
+                                    { nextPage = Nothing
+                                    , previousPage = Nothing
+                                    }
+                                }
+                        )
+                    >> Tuple.first
+                    >> Application.update
+                        (Msgs.DeliveryReceived <|
+                            ClockTicked OneSecond <|
+                                Time.millisToPosix (24 * 60 * 60 * 1000)
+                        )
+                    >> Tuple.first
+                    >> queryView
+                    >> Query.find [ class "js-build" ]
+                    >> Query.has [ text "Jan 1 1970 05:00:00 AM" ]
             ]
         ]
 

@@ -16,6 +16,7 @@ type alias Fetched a =
 type Callback
     = EmptyCallback
     | GotCurrentTime Time.Posix
+    | GotCurrentTimeZone Time.Zone
     | BuildTriggered (Fetched Concourse.Build)
     | JobBuildsFetched (Fetched (Paginated Concourse.Build))
     | JobFetched (Fetched Concourse.Job)
