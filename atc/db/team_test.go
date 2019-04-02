@@ -1947,7 +1947,7 @@ var _ = Describe("Team", func() {
 			job, found, err := pipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(job.Config().Public).To(BeFalse())
+			Expect(job.Public()).To(BeFalse())
 		})
 
 		It("marks job inactive when it is no longer in pipeline", func() {

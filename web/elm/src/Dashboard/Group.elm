@@ -31,13 +31,12 @@ import Concourse.BuildStatus
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Group.Tag as Tag
-import Dashboard.Models as Models exposing (DragState(..), DropState(..))
+import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
-import Date exposing (Date)
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (on, onMouseEnter)
+import Html exposing (Html)
+import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
+import Html.Events exposing (on)
 import Json.Decode
 import List.Extra
 import Maybe.Extra
@@ -46,7 +45,7 @@ import Message.Message exposing (Hoverable(..), Message(..))
 import Monocle.Optional
 import Ordering exposing (Ordering)
 import Set
-import Time exposing (Time)
+import Time
 import UserState exposing (UserState)
 
 
@@ -57,15 +56,15 @@ ordering =
 
 
 findGroupOptional : String -> Monocle.Optional.Optional (List Group) Group
-findGroupOptional teamName =
+findGroupOptional name =
     let
         predicate =
-            .teamName >> (==) teamName
+            .teamName >> (==) name
     in
     Monocle.Optional.Optional (List.Extra.find predicate)
         (\g gs ->
             List.Extra.findIndex predicate gs
-                |> Maybe.andThen (\i -> List.Extra.setAt i g gs)
+                |> Maybe.map (\i -> List.Extra.setAt i g gs)
                 |> Maybe.withDefault gs
         )
 
@@ -92,18 +91,18 @@ dropIndexOptional =
 teamName : DragState -> Maybe Concourse.TeamName
 teamName dragState =
     case dragState of
-        Dragging teamName _ ->
-            Just teamName
+        Dragging name _ ->
+            Just name
 
         NotDragging ->
             Nothing
 
 
 setTeamName : Concourse.TeamName -> DragState -> DragState
-setTeamName teamName dragState =
+setTeamName name dragState =
     case dragState of
-        Dragging _ dragIndex ->
-            Dragging teamName dragIndex
+        Dragging _ dragIdx ->
+            Dragging name dragIdx
 
         NotDragging ->
             NotDragging
@@ -112,18 +111,18 @@ setTeamName teamName dragState =
 dragIndex : DragState -> Maybe PipelineIndex
 dragIndex dragState =
     case dragState of
-        Dragging _ dragIndex ->
-            Just dragIndex
+        Dragging _ dragIdx ->
+            Just dragIdx
 
         NotDragging ->
             Nothing
 
 
 setDragIndex : PipelineIndex -> DragState -> DragState
-setDragIndex dragIndex dragState =
+setDragIndex dragIdx dragState =
     case dragState of
-        Dragging teamName _ ->
-            Dragging teamName dragIndex
+        Dragging name _ ->
+            Dragging name dragIdx
 
         NotDragging ->
             NotDragging
@@ -132,18 +131,18 @@ setDragIndex dragIndex dragState =
 dropIndex : DropState -> Maybe PipelineIndex
 dropIndex dropState =
     case dropState of
-        Dropping dropIndex ->
-            Just dropIndex
+        Dropping dropIdx ->
+            Just dropIdx
 
         NotDropping ->
             Nothing
 
 
 setDropIndex : PipelineIndex -> DropState -> DropState
-setDropIndex dropIndex dropState =
+setDropIndex dropIdx dropState =
     case dropState of
         Dropping _ ->
-            Dropping dropIndex
+            Dropping dropIdx
 
         NotDropping ->
             NotDropping
@@ -202,13 +201,13 @@ pipelineStatus pipeline jobs =
                 jobs
                     |> List.filter (jobStatus >> (/=) Concourse.BuildStatusSucceeded)
                     |> List.filterMap transition
-                    |> List.sort
+                    |> List.sortBy Time.posixToMillis
                     |> List.head
 
             lastTransition =
                 jobs
                     |> List.filterMap transition
-                    |> List.sort
+                    |> List.sortBy Time.posixToMillis
                     |> List.reverse
                     |> List.head
 
@@ -272,43 +271,31 @@ jobStatus job =
             Concourse.BuildStatusPending
 
 
-transition : Concourse.Job -> Maybe Time
-transition job =
-    case job.transitionBuild of
-        Just build ->
-            build.duration.finishedAt
-                |> Maybe.map Date.toTime
-
-        Nothing ->
-            Nothing
+transition : Concourse.Job -> Maybe Time.Posix
+transition =
+    .transitionBuild >> Maybe.andThen (.duration >> .finishedAt)
 
 
 shiftPipelines : Int -> Int -> Group -> Group
-shiftPipelines dragIndex dropIndex group =
-    if dragIndex == dropIndex then
-        group
+shiftPipelines dragIdx dropIdx g =
+    if dragIdx == dropIdx then
+        g
 
     else
         let
             pipelines =
                 case
                     List.head <|
-                        List.drop dragIndex <|
-                            group.pipelines
+                        List.drop dragIdx <|
+                            g.pipelines
                 of
                     Nothing ->
-                        group.pipelines
+                        g.pipelines
 
                     Just pipeline ->
-                        shiftPipelineTo pipeline dropIndex group.pipelines
+                        shiftPipelineTo pipeline dropIdx g.pipelines
         in
-        { group | pipelines = pipelines }
-
-
-
--- TODO this is pretty hard to reason about. really deeply nested and nasty. doesn't exactly relate
--- to the hd refactor as hd doesn't have the drag-and-drop feature, but it's a big contributor
--- to the 'length of this file' tire fire
+        { g | pipelines = pipelines }
 
 
 shiftPipelineTo : Pipeline -> Int -> List Pipeline -> List Pipeline
@@ -354,33 +341,27 @@ groups apiData =
 
 
 group : List Pipeline -> Maybe Concourse.User -> String -> Group
-group allPipelines user teamName =
-    { pipelines = List.filter (.teamName >> (==) teamName) allPipelines
-    , teamName = teamName
-    , tag =
-        case user of
-            Just u ->
-                Tag.tag u teamName
-
-            Nothing ->
-                Nothing
+group pipelines user name =
+    { pipelines = List.filter (.teamName >> (==) name) pipelines
+    , teamName = name
+    , tag = user |> Maybe.andThen (\u -> Tag.tag u name)
     }
 
 
 view :
     { dragState : DragState
     , dropState : DropState
-    , now : Time
+    , now : Time.Posix
     , hovered : Maybe Hoverable
     , pipelineRunningKeyframes : String
     , userState : UserState
     }
     -> Group
     -> Html Message
-view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState } group =
+view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState } g =
     let
         pipelines =
-            if List.isEmpty group.pipelines then
+            if List.isEmpty g.pipelines then
                 [ Pipeline.pipelineNotSetView ]
 
             else
@@ -394,7 +375,7 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
                                     }
                             in
                             Html.div [ class "pipeline-wrapper" ]
-                                [ pipelineDropAreaView dragState dropState group.teamName i
+                                [ pipelineDropAreaView dragState dropState g.teamName i
                                 , Html.div
                                     [ classList
                                         [ ( "card", True )
@@ -423,25 +404,25 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
                                     ]
                                 ]
                         )
-                        group.pipelines
+                        g.pipelines
                     )
-                    [ pipelineDropAreaView dragState dropState group.teamName (List.length group.pipelines) ]
+                    [ pipelineDropAreaView dragState dropState g.teamName (List.length g.pipelines) ]
     in
     Html.div
-        [ id group.teamName
+        [ id g.teamName
         , class "dashboard-team-group"
-        , attribute "data-team-name" group.teamName
+        , attribute "data-team-name" g.teamName
         ]
         [ Html.div
-            [ style [ ( "display", "flex" ), ( "align-items", "center" ) ]
+            [ style "display" "flex"
+            , style "align-items" "center"
             , class <| .sectionHeaderClass Effects.stickyHeaderConfig
             ]
-            ([ Html.div
+            (Html.div
                 [ class "dashboard-team-name" ]
-                [ Html.text group.teamName ]
-             ]
-                ++ (Maybe.Extra.maybeToList <|
-                        Maybe.map (Tag.view False) group.tag
+                [ Html.text g.teamName ]
+                :: (Maybe.Extra.toList <|
+                        Maybe.map (Tag.view False) g.tag
                    )
             )
         , Html.div
@@ -451,21 +432,20 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
 
 
 hdView : String -> Group -> List (Html Message)
-hdView pipelineRunningKeyframes group =
+hdView pipelineRunningKeyframes g =
     let
         header =
-            [ Html.div
+            Html.div
                 [ class "dashboard-team-name" ]
-                [ Html.text group.teamName ]
-            ]
-                ++ (Maybe.Extra.maybeToList <| Maybe.map (Tag.view True) group.tag)
+                [ Html.text g.teamName ]
+                :: (Maybe.Extra.toList <| Maybe.map (Tag.view True) g.tag)
 
         teamPipelines =
-            if List.isEmpty group.pipelines then
+            if List.isEmpty g.pipelines then
                 [ pipelineNotSetView ]
 
             else
-                group.pipelines
+                g.pipelines
                     |> List.map
                         (\p ->
                             Pipeline.hdPipelineView
@@ -482,9 +462,7 @@ hdView pipelineRunningKeyframes group =
             -- Wrap the team name and the first pipeline together so
             -- the team name is not the last element in a column
             Html.div
-                [ class "dashboard-team-name-wrapper"
-                , style Styles.teamNameHd
-                ]
+                (class "dashboard-team-name-wrapper" :: Styles.teamNameHd)
                 (header ++ [ p ])
                 :: ps
 
@@ -494,30 +472,30 @@ pipelineNotSetView =
     Html.div
         [ class "card" ]
         [ Html.div
-            [ style Styles.noPipelineCardHd ]
+            Styles.noPipelineCardHd
             [ Html.div
-                [ style Styles.noPipelineCardTextHd ]
+                Styles.noPipelineCardTextHd
                 [ Html.text "no pipelines set" ]
             ]
         ]
 
 
 pipelineDropAreaView : DragState -> DropState -> String -> Int -> Html Message
-pipelineDropAreaView dragState dropState teamName index =
+pipelineDropAreaView dragState dropState name index =
     let
         ( active, over ) =
             case ( dragState, dropState ) of
-                ( Dragging team dragIndex, NotDropping ) ->
-                    ( team == teamName, index == dragIndex )
+                ( Dragging team dragIdx, NotDropping ) ->
+                    ( team == name, index == dragIdx )
 
-                ( Dragging team dragIndex, Dropping dropIndex ) ->
-                    ( team == teamName, index == dropIndex )
+                ( Dragging team _, Dropping dropIdx ) ->
+                    ( team == name, index == dropIdx )
 
                 _ ->
                     ( False, False )
     in
     Html.div
         [ classList [ ( "drop-area", True ), ( "active", active ), ( "over", over ), ( "animation", dropState /= NotDropping ) ]
-        , on "dragenter" (Json.Decode.succeed (DragOver teamName index))
+        , on "dragenter" (Json.Decode.succeed (DragOver name index))
         ]
         [ Html.text "" ]

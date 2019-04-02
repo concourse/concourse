@@ -64,6 +64,10 @@ jobs:
     timeout: 5m
     file: concourse-pr/ci/tasks/check-migration-order.yml
     tags: [pr]
+  - task: yarn-analyse
+    file: concourse-pr/ci/tasks/yarn-analyse.yml
+    input_mapping: {concourse: concourse-pr}
+    tags: [pr]
   - task: yarn-test
     file: concourse-pr/ci/tasks/yarn-test.yml
     input_mapping: {concourse: concourse-pr}

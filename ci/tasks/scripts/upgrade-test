@@ -14,6 +14,9 @@ start_docker
 [ -d concourse-image ] && docker load -i concourse-image/image.tar
 [ -d postgres-image ] && docker load -i postgres-image/image.tar
 
+export CONCOURSE_DEV_TAG=$(cat dev-image/tag)
+export CONCOURSE_LATEST_TAG=$(cat concourse-image/tag)
+
 cd concourse
 
 # generate keys for the cluster

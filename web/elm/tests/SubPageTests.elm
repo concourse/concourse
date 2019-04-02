@@ -9,6 +9,7 @@ import NotFound.Model
 import Routes
 import SubPage.SubPage exposing (..)
 import Test exposing (..)
+import Url
 
 
 notFoundResult : Result Http.Error a
@@ -36,17 +37,12 @@ all =
                         , authToken = ""
                         , pipelineRunningKeyframes = ""
                         }
-                        { href = ""
+                        { protocol = Url.Http
                         , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = path
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
+                        , port_ = Nothing
+                        , path = path
+                        , query = Nothing
+                        , fragment = Nothing
                         }
                         |> Tuple.first
             in

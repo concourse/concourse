@@ -7,7 +7,7 @@ module Message.Message exposing
 
 import Concourse
 import Concourse.Cli as Cli
-import Concourse.Pagination exposing (Page, Paginated)
+import Concourse.Pagination exposing (Page)
 import Routes exposing (StepID)
 import StrictEvents
 
@@ -78,6 +78,7 @@ type Hoverable
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
+    | JobGroup Int
 
 
 type VersionToggleAction

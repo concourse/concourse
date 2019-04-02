@@ -2,7 +2,6 @@ module Views.PauseToggle exposing (view)
 
 import Concourse
 import Html exposing (Html)
-import Html.Attributes exposing (id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (Hoverable(..), Message(..))
 import UserState exposing (UserState(..))
@@ -44,15 +43,14 @@ view margin userState { isPaused, pipeline, isToggleHovered, isToggleLoading } =
                 else
                     "ic-pause-white.svg"
             }
-            ([ style <|
-                Styles.pauseToggleIcon
+            ([ onMouseEnter <| Hover <| Just <| PipelineButton pipeline
+             , onMouseLeave <| Hover Nothing
+             ]
+                ++ Styles.pauseToggleIcon
                     { isHovered = isClickable && isToggleHovered
                     , isClickable = isClickable
                     , margin = margin
                     }
-             , onMouseEnter <| Hover <| Just <| PipelineButton pipeline
-             , onMouseLeave <| Hover Nothing
-             ]
                 ++ (if isClickable then
                         [ onClick <| TogglePipelinePaused pipeline isPaused ]
 

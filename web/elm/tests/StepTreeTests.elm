@@ -494,7 +494,7 @@ assertFocus id foci tree update expected =
         Just focus ->
             Expect.equal
                 expected
-                (focus.update (updateStep update) tree)
+                (focus (updateStep update) tree)
 
 
 cookedLog : Ansi.Log.Model

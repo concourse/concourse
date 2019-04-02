@@ -2,6 +2,7 @@ module Application.Application exposing
     ( Flags
     , Model
     , handleCallback
+    , handleDelivery
     , init
     , locationMsg
     , subscriptions
@@ -9,16 +10,16 @@ module Application.Application exposing
     , view
     )
 
+import Browser
 import Concourse
-import Html exposing (Html)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
-import Navigation
 import Routes
 import SubPage.SubPage as SubPage
+import Url
 import UserState exposing (UserState(..))
 
 
@@ -43,11 +44,12 @@ type alias Model =
     }
 
 
-init : Flags -> Navigation.Location -> ( Model, List Effect )
-init flags location =
+init : Flags -> Url.Url -> ( Model, List Effect )
+init flags url =
     let
         route =
-            Routes.parsePath location
+            Routes.parsePath url
+                |> Maybe.withDefault (Routes.Dashboard (Routes.Normal Nothing))
 
         ( subModel, subEffects ) =
             SubPage.init
@@ -79,44 +81,49 @@ init flags location =
                 , Effects.ModifyUrl <| Routes.toString route
                 ]
     in
-    ( model, [ FetchUser ] ++ handleTokenEffect ++ subEffects )
+    ( model, FetchUser :: handleTokenEffect ++ subEffects )
 
 
-locationMsg : Navigation.Location -> TopLevelMessage
-locationMsg =
-    Routes.parsePath >> RouteChanged >> DeliveryReceived
+locationMsg : Url.Url -> TopLevelMessage
+locationMsg url =
+    case Routes.parsePath url of
+        Just route ->
+            DeliveryReceived <| RouteChanged route
+
+        Nothing ->
+            Msgs.Callback EmptyCallback
 
 
 handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback callback model =
     case callback of
         BuildTriggered (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         BuildAborted (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         PausedToggled (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         JobBuildsFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         InputToFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         OutputOfFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary model err )
+            ( model, redirectToLoginIfNecessary err )
 
         LoggedOut (Ok ()) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 
-        APIDataFetched (Ok ( time, data )) ->
+        APIDataFetched (Ok ( _, data )) ->
             subpageHandleCallback
                 { model | userState = data.user |> Maybe.map UserStateLoggedIn |> Maybe.withDefault UserStateLoggedOut }
                 callback
 
-        APIDataFetched (Err err) ->
+        APIDataFetched (Err _) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 
         UserFetched (Ok user) ->
@@ -180,7 +187,7 @@ handleDeliveryForApplication : Delivery -> Model -> ( Model, List Effect )
 handleDeliveryForApplication delivery model =
     case delivery of
         NonHrefLinkClicked route ->
-            ( model, [ NavigateTo route ] )
+            ( model, [ LoadExternal route ] )
 
         TokenReceived (Just tokenValue) ->
             ( { model | csrfToken = tokenValue }, [] )
@@ -188,12 +195,25 @@ handleDeliveryForApplication delivery model =
         RouteChanged route ->
             urlUpdate route model
 
+        UrlRequest request ->
+            case request of
+                Browser.Internal url ->
+                    case Routes.parsePath url of
+                        Just route ->
+                            ( model, [ NavigateTo <| Routes.toString route ] )
+
+                        Nothing ->
+                            ( model, [ LoadExternal <| Url.toString url ] )
+
+                Browser.External url ->
+                    ( model, [ LoadExternal url ] )
+
         _ ->
             ( model, [] )
 
 
-redirectToLoginIfNecessary : Model -> Http.Error -> List Effect
-redirectToLoginIfNecessary model err =
+redirectToLoginIfNecessary : Http.Error -> List Effect
+redirectToLoginIfNecessary err =
     case err of
         Http.BadStatus { status } ->
             if status.code == 401 then
@@ -229,9 +249,9 @@ urlUpdate route model =
     )
 
 
-view : Model -> Html TopLevelMessage
+view : Model -> Browser.Document TopLevelMessage
 view model =
-    Html.map Update (SubPage.view model.userState model.subModel)
+    SubPage.view model.userState model.subModel
 
 
 subscriptions : Model -> List Subscription
@@ -257,8 +277,8 @@ routeMatchesModel route model =
         ( Routes.Job _, SubPage.JobModel _ ) ->
             True
 
-        ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->
-            True
+        ( Routes.Dashboard searchType, SubPage.DashboardModel dashboardModel ) ->
+            dashboardModel.highDensity == (searchType == Routes.HighDensity)
 
         _ ->
             False

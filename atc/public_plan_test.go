@@ -295,6 +295,32 @@ var _ = Describe("Plan", func() {
 							Name: "some-name",
 						},
 					},
+
+					atc.Plan{
+						ID: "33",
+						OnError: &atc.OnErrorPlan{
+							Step: atc.Plan{
+								ID: "34",
+								Task: &atc.TaskPlan{
+									Name:       "name",
+									ConfigPath: "some/config/path.yml",
+									Config: &atc.TaskConfig{
+										Params: map[string]string{"some": "secret"},
+									},
+								},
+							},
+							Next: atc.Plan{
+								ID: "35",
+								Task: &atc.TaskPlan{
+									Name:       "name",
+									ConfigPath: "some/config/path.yml",
+									Config: &atc.TaskConfig{
+										Params: map[string]string{"some": "secret"},
+									},
+								},
+							},
+						},
+					},
 				},
 			}
 
@@ -511,6 +537,25 @@ var _ = Describe("Plan", func() {
 			"artifact_output": {
 				"name": "some-name"
 			}
+		},
+		{
+      "id": "33",
+      "on_error": {
+        "step": {
+          "id": "34",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+        },
+        "on_error": {
+          "id": "35",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+        }
+      }
 		}
   ]
 }

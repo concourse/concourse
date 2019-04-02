@@ -1,6 +1,8 @@
 module ApplicationTests exposing (all)
 
 import Application.Application as Application
+import Browser
+import Common exposing (queryView)
 import Expect
 import Message.Effects as Effects
 import Message.Subscription as Subscription exposing (Delivery(..))
@@ -8,11 +10,12 @@ import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (style)
+import Url
 
 
 all : Test
 all =
-    describe "top-level layout"
+    describe "top-level application"
         [ test "bold and antialiasing on dashboard" <|
             \_ ->
                 Application.init
@@ -22,26 +25,18 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
                     }
                     |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
+                    |> queryView
                     |> Query.has
-                        [ style
-                            [ ( "-webkit-font-smoothing", "antialiased" )
-                            , ( "font-weight", "700" )
-                            ]
+                        [ style "-webkit-font-smoothing" "antialiased"
+                        , style "font-weight" "700"
                         ]
         , test "bold and antialiasing on resource page" <|
             \_ ->
@@ -52,26 +47,18 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/resources/r"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/resources/r"
+                    , query = Nothing
+                    , fragment = Nothing
                     }
                     |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
+                    |> queryView
                     |> Query.has
-                        [ style
-                            [ ( "-webkit-font-smoothing", "antialiased" )
-                            , ( "font-weight", "700" )
-                            ]
+                        [ style "-webkit-font-smoothing" "antialiased"
+                        , style "font-weight" "700"
                         ]
         , test "bold and antialiasing everywhere else" <|
             \_ ->
@@ -82,26 +69,18 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/team/pipelines/pipeline"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/teams/team/pipelines/pipeline"
+                    , query = Nothing
+                    , fragment = Nothing
                     }
                     |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
+                    |> queryView
                     |> Query.has
-                        [ style
-                            [ ( "-webkit-font-smoothing", "antialiased" )
-                            , ( "font-weight", "700" )
-                            ]
+                        [ style "-webkit-font-smoothing" "antialiased"
+                        , style "font-weight" "700"
                         ]
         , test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline, and the token return" <|
             \_ ->
@@ -112,17 +91,12 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/"
+                    , query = Nothing
+                    , fragment = Nothing
                     }
                     |> Tuple.first
                     |> Application.subscriptions
@@ -141,22 +115,20 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/"
+                    , query = Nothing
+                    , fragment = Nothing
                     }
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| NonHrefLinkClicked "/foo/bar")
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            NonHrefLinkClicked "/foo/bar"
+                        )
                     |> Tuple.second
-                    |> Expect.equal [ Effects.NavigateTo "/foo/bar" ]
+                    |> Expect.equal [ Effects.LoadExternal "/foo/bar" ]
         , test "received token is passed to all subsquent requests" <|
             \_ ->
                 let
@@ -170,20 +142,19 @@ all =
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
                     }
-                    { href = ""
+                    { protocol = Url.Http
                     , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
                     }
                     |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| TokenReceived <| Just "real-token")
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            TokenReceived <|
+                                Just "real-token"
+                        )
                     |> Tuple.first
                     |> .csrfToken
                     |> Expect.equal "real-token"

@@ -2,9 +2,12 @@ module PipelineTests exposing (all)
 
 import Application.Application as Application
 import Char
+import Common
+import DashboardTests exposing (defineHoverBehaviour)
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
+import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message exposing (Message(..))
@@ -25,6 +28,8 @@ import Test.Html.Selector as Selector
         , tag
         , text
         )
+import Time
+import Url
 
 
 rspecStyleDescribe : String -> model -> List (model -> Test) -> Test
@@ -63,17 +68,12 @@ all =
                         , authToken = ""
                         , pipelineRunningKeyframes = ""
                         }
-                        { href = ""
+                        { protocol = Url.Http
                         , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = "/teams/team/pipelines/pipeline"
-                        , search = "?groups=other-group"
-                        , hash = ""
-                        , username = ""
-                        , password = ""
+                        , port_ = Nothing
+                        , path = "/teams/team/pipelines/pipeline"
+                        , query = Just "group=other-group"
+                        , fragment = Nothing
                         }
                         |> Tuple.first
                         |> Application.handleCallback
@@ -92,107 +92,112 @@ all =
             in
             [ describe "groups bar styling"
                 [ describe "with groups"
-                    [ test "is flush with the bottom of the top bar" <|
+                    [ test "has light text on a dark background" <|
                         \_ ->
                             setupGroupsBar sampleGroups
-                                |> Application.view
-                                |> Query.fromHtml
-                                |> Query.find [ id "groups-bar" ]
-                                |> Query.has [ style [ ( "margin-top", "54px" ) ] ]
-                    , test "has light text on a dark background" <|
-                        \_ ->
-                            setupGroupsBar sampleGroups
-                                |> Application.view
-                                |> Query.fromHtml
+                                |> Common.queryView
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has
-                                    [ style
-                                        [ ( "background-color", "#2b2a2a" )
-                                        , ( "color", "#ffffff" )
-                                        ]
+                                    [ style "background-color" "#2b2a2a"
+                                    , style "color" "#ffffff"
                                     ]
                     , test "lays out groups in a horizontal list" <|
                         \_ ->
                             setupGroupsBar sampleGroups
-                                |> Application.view
-                                |> Query.fromHtml
+                                |> Common.queryView
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has
-                                    [ style
-                                        [ ( "flex-grow", "1" )
-                                        , ( "display", "flex" )
-                                        , ( "flex-flow", "row wrap" )
-                                        , ( "padding", "5px" )
-                                        ]
+                                    [ style "flex-grow" "1"
+                                    , style "display" "flex"
+                                    , style "flex-flow" "row wrap"
+                                    , style "padding" "5px"
                                     ]
                     , test "the individual groups are nicely spaced" <|
                         \_ ->
                             setupGroupsBar sampleGroups
-                                |> Application.view
-                                |> Query.fromHtml
+                                |> Common.queryView
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Query.each
                                     (Query.has
-                                        [ style
-                                            [ ( "margin", "5px" )
-                                            , ( "padding", "10px" )
-                                            ]
+                                        [ style "margin" "5px"
+                                        , style "padding" "10px"
                                         ]
                                     )
                     , test "the individual groups have no list style" <|
                         \_ ->
                             setupGroupsBar sampleGroups
-                                |> Application.view
-                                |> Query.fromHtml
+                                |> Common.queryView
                                 |> Query.find [ id "groups-bar" ]
-                                |> Query.has [ style [ ( "list-style", "none" ) ] ]
+                                |> Query.has [ style "list-style" "none" ]
                     , test "the individual groups have large text" <|
                         \_ ->
                             setupGroupsBar sampleGroups
-                                |> Application.view
-                                |> Query.fromHtml
+                                |> Common.queryView
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Query.each
-                                    (Query.has [ style [ ( "font-size", "14px" ) ] ])
+                                    (Query.has [ style "font-size" "14px" ])
                     , describe "the individual groups should each have a box around them"
                         [ test "the unselected ones faded" <|
                             \_ ->
                                 setupGroupsBar sampleGroups
-                                    |> Application.view
-                                    |> Query.fromHtml
+                                    |> Common.queryView
                                     |> Query.find [ id "groups-bar" ]
                                     |> Query.findAll [ tag "li" ]
                                     |> Query.index 0
                                     |> Query.has
-                                        [ style
-                                            [ ( "opacity", "0.6" )
-                                            , ( "background", "rgba(151, 151, 151, 0.1)" )
-                                            , ( "border", "1px solid #2b2a2a" )
-                                            ]
+                                        [ style "opacity" "0.6"
+                                        , style "background" "rgba(151, 151, 151, 0.1)"
+                                        , style "border" "1px solid #2b2a2a"
                                         ]
+                        , defineHoverBehaviour
+                            { name = "group"
+                            , setup = setupGroupsBar sampleGroups
+                            , query =
+                                Common.queryView
+                                    >> Query.find [ id "groups-bar" ]
+                                    >> Query.findAll [ tag "li" ]
+                                    >> Query.index 0
+                                    >> Query.find [ tag "a" ]
+                            , updateFunc =
+                                \msg ->
+                                    Application.update msg
+                                        >> Tuple.first
+                            , unhoveredSelector =
+                                { description = "dark outline"
+                                , selector =
+                                    [ style "border" "1px solid #2b2a2a" ]
+                                }
+                            , mouseEnterMsg =
+                                Msgs.Update <|
+                                    Hover <|
+                                        Just <|
+                                            Message.Message.JobGroup 0
+                            , mouseLeaveMsg = Msgs.Update <| Hover Nothing
+                            , hoveredSelector =
+                                { description = "light grey outline"
+                                , selector =
+                                    [ style "border" "1px solid #fff2" ]
+                                }
+                            }
                         , test "the selected ones brighter" <|
                             \_ ->
                                 setupGroupsBar sampleGroups
-                                    |> Application.view
-                                    |> Query.fromHtml
+                                    |> Common.queryView
                                     |> Query.find [ id "groups-bar" ]
                                     |> Query.findAll [ tag "li" ]
                                     |> Query.index 1
                                     |> Query.has
-                                        [ style
-                                            [ ( "opacity", "1" )
-                                            , ( "background", "rgba(151, 151, 151, 0.1)" )
-                                            , ( "border", "1px solid #979797" )
-                                            ]
+                                        [ style "opacity" "1"
+                                        , style "background" "rgba(151, 151, 151, 0.1)"
+                                        , style "border" "1px solid #979797"
                                         ]
                         ]
                     , test "the individual groups should each have a group name and link" <|
                         \_ ->
                             setupGroupsBar sampleGroups
-                                |> Application.view
-                                |> Query.fromHtml
+                                |> Common.queryView
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.findAll [ tag "li" ]
                                 |> Expect.all
@@ -200,37 +205,72 @@ all =
                                         >> Query.find [ tag "a" ]
                                         >> Query.has
                                             [ text "group"
-                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?groups=group"
+                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?group=group"
                                             ]
                                     , Query.index 1
                                         >> Query.find [ tag "a" ]
                                         >> Query.has
                                             [ text "other-group"
-                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?groups=other-group"
+                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?group=other-group"
                                             ]
                                     ]
                     ]
                 , test "with no groups doesn not display groups list" <|
                     \_ ->
                         setupGroupsBar []
-                            |> Application.view
-                            |> Query.fromHtml
+                            |> Common.queryView
                             |> Query.findAll [ id "groups-bar" ]
                             |> Query.count (Expect.equal 0)
                 , test "KeyPressed" <|
                     \_ ->
                         setupGroupsBar []
-                            |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'a')
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    KeyDown <|
+                                        { ctrlKey = False
+                                        , shiftKey = False
+                                        , metaKey = False
+                                        , code = Keyboard.A
+                                        }
+                                )
                             |> Tuple.second
                             |> Expect.equal []
                 , test "KeyPressed f" <|
                     \_ ->
                         setupGroupsBar []
-                            |> Application.update (Msgs.DeliveryReceived <| KeyDown <| Char.toCode 'f')
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    KeyDown <|
+                                        { ctrlKey = False
+                                        , shiftKey = False
+                                        , metaKey = False
+                                        , code = Keyboard.F
+                                        }
+                                )
+                            |> Tuple.second
+                            |> Expect.equal [ Effects.ResetPipelineFocus ]
+                , test "KeyPressed F" <|
+                    \_ ->
+                        setupGroupsBar []
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    KeyDown <|
+                                        { ctrlKey = False
+                                        , shiftKey = True
+                                        , metaKey = False
+                                        , code = Keyboard.F
+                                        }
+                                )
                             |> Tuple.second
                             |> Expect.equal [ Effects.ResetPipelineFocus ]
                 ]
             ]
+        , test "title should include the pipline name" <|
+            \_ ->
+                init "/teams/team/pipelines/pipelineName"
+                    |> Application.view
+                    |> .title
+                    |> Expect.equal "pipelineName - Concourse"
         , describe "update" <|
             let
                 defaultModel : Pipeline.Model
@@ -248,43 +288,39 @@ all =
             [ test "CLI icons at bottom right" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ class "cli-downloads" ]
                         |> Query.children []
                         |> Expect.all
                             [ Query.index 0
                                 >> Query.has
-                                    [ style
-                                        [ ( "background-image", "url(/public/images/apple-logo.svg)" )
-                                        , ( "background-position", "50% 50%" )
-                                        , ( "background-repeat", "no-repeat" )
-                                        , ( "width", "12px" )
-                                        , ( "height", "12px" )
-                                        , ( "display", "inline-block" )
-                                        ]
+                                    [ style "background-image" "url(/public/images/apple-logo.svg)"
+                                    , style "background-position" "50% 50%"
+                                    , style "background-repeat" "no-repeat"
+                                    , style "width" "12px"
+                                    , style "height" "12px"
+                                    , style "display" "inline-block"
+                                    , attribute <| Attr.download ""
                                     ]
                             , Query.index 1
                                 >> Query.has
-                                    [ style
-                                        [ ( "background-image", "url(/public/images/windows-logo.svg)" )
-                                        , ( "background-position", "50% 50%" )
-                                        , ( "background-repeat", "no-repeat" )
-                                        , ( "width", "12px" )
-                                        , ( "height", "12px" )
-                                        , ( "display", "inline-block" )
-                                        ]
+                                    [ style "background-image" "url(/public/images/windows-logo.svg)"
+                                    , style "background-position" "50% 50%"
+                                    , style "background-repeat" "no-repeat"
+                                    , style "width" "12px"
+                                    , style "height" "12px"
+                                    , style "display" "inline-block"
+                                    , attribute <| Attr.download ""
                                     ]
                             , Query.index 2
                                 >> Query.has
-                                    [ style
-                                        [ ( "background-image", "url(/public/images/linux-logo.svg)" )
-                                        , ( "background-position", "50% 50%" )
-                                        , ( "background-repeat", "no-repeat" )
-                                        , ( "width", "12px" )
-                                        , ( "height", "12px" )
-                                        , ( "display", "inline-block" )
-                                        ]
+                                    [ style "background-image" "url(/public/images/linux-logo.svg)"
+                                    , style "background-position" "50% 50%"
+                                    , style "background-repeat" "no-repeat"
+                                    , style "width" "12px"
+                                    , style "height" "12px"
+                                    , style "display" "inline-block"
+                                    , attribute <| Attr.download ""
                                     ]
                             ]
             , test "pipeline subscribes to 1s, 5s, and 1m timers" <|
@@ -299,7 +335,12 @@ all =
             , test "on five second timer, refreshes pipeline" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.update (Msgs.DeliveryReceived (ClockTicked FiveSeconds 0))
+                        |> Application.update
+                            (Msgs.DeliveryReceived
+                                (ClockTicked FiveSeconds <|
+                                    Time.millisToPosix 0
+                                )
+                            )
                         |> Tuple.second
                         |> Expect.equal
                             [ Effects.FetchPipeline
@@ -310,13 +351,23 @@ all =
             , test "on one minute timer, refreshes version" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.update (Msgs.DeliveryReceived (ClockTicked OneMinute 0))
+                        |> Application.update
+                            (Msgs.DeliveryReceived
+                                (ClockTicked OneMinute <|
+                                    Time.millisToPosix 0
+                                )
+                            )
                         |> Tuple.second
                         |> Expect.equal [ Effects.FetchVersion ]
             , describe "Legend" <|
                 let
                     clockTick =
-                        Application.update (Msgs.DeliveryReceived (ClockTicked OneSecond 0))
+                        Application.update
+                            (Msgs.DeliveryReceived
+                                (ClockTicked OneSecond <|
+                                    Time.millisToPosix 0
+                                )
+                            )
                             >> Tuple.first
 
                     clockTickALot n =
@@ -325,8 +376,7 @@ all =
                 [ test "Legend has definition for pinned resource color" <|
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
-                            |> Application.view
-                            |> Query.fromHtml
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Expect.all
@@ -335,7 +385,7 @@ all =
                                 , Query.index 3 >> Query.has [ text "errored" ]
                                 , Query.index 5 >> Query.has [ text "aborted" ]
                                 , Query.index 7 >> Query.has [ text "paused" ]
-                                , Query.index 8 >> Query.has [ style [ ( "background-color", "#5c3bd1" ) ] ]
+                                , Query.index 8 >> Query.has [ style "background-color" "#5c3bd1" ]
                                 , Query.index 9 >> Query.has [ text "pinned" ]
                                 , Query.index 11 >> Query.has [ text "failed" ]
                                 , Query.index 13 >> Query.has [ text "pending" ]
@@ -347,8 +397,7 @@ all =
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> clockTick
-                            |> Application.view
-                            |> Query.fromHtml
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.count (Expect.equal 20)
@@ -356,8 +405,7 @@ all =
                     \_ ->
                         init "/teams/team/pipelines/pipeline"
                             |> clockTickALot 11
-                            |> Application.view
-                            |> Query.fromHtml
+                            |> Common.queryView
                             |> Query.hasNot [ id "legend" ]
                 , test "Mouse action after legend hidden reshows legend" <|
                     \_ ->
@@ -365,64 +413,54 @@ all =
                             |> clockTickALot 11
                             |> Application.update (Msgs.DeliveryReceived Moused)
                             |> Tuple.first
-                            |> Application.view
-                            |> Query.fromHtml
+                            |> Common.queryView
                             |> Query.has [ id "legend" ]
                 ]
             , rspecStyleDescribe "when on pipeline page"
                 (init "/teams/team/pipelines/pipeline")
                 [ it "shows a pin icon on top bar" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.has [ id "pin-icon" ]
                 , it "top bar has a dark grey background" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
+                        >> Query.has [ style "background-color" "#1e1d1d" ]
                 , it "top bar lays out contents horizontally" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.has [ style [ ( "display", "flex" ) ] ]
+                        >> Query.has [ style "display" "flex" ]
                 , it "top bar maximizes spacing between the left and right navs" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.has [ style [ ( "justify-content", "space-between" ) ] ]
+                        >> Query.has [ style "justify-content" "space-between" ]
                 , it "top bar has a square concourse logo on the left" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
                         >> Query.index 0
                         >> Query.has
-                            [ style
-                                [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
-                                , ( "background-position", "50% 50%" )
-                                , ( "background-repeat", "no-repeat" )
-                                , ( "background-size", "42px 42px" )
-                                , ( "width", "54px" )
-                                , ( "height", "54px" )
-                                ]
+                            [ style "background-image"
+                                "url(/public/images/concourse-logo-white.svg)"
+                            , style "background-position" "50% 50%"
+                            , style "background-repeat" "no-repeat"
+                            , style "background-size" "42px 42px"
+                            , style "width" "54px"
+                            , style "height" "54px"
                             ]
                 , it "concourse logo on the left is a link to homepage" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
                         >> Query.index 0
                         >> Query.has [ tag "a", attribute <| Attr.href "/" ]
                 , it "pin icon has a pin background" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
+                        >> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
                 , it "mousing over pin icon does nothing if there are no pinned resources" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children []
@@ -431,96 +469,78 @@ all =
                         >> Event.toResult
                         >> Expect.err
                 , it "there is some space between the pin icon and the user menu" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style [ ( "margin-right", "15px" ) ] ]
+                        >> Query.has [ style "margin-right" "15px" ]
                 , it "pin icon has relative positioning" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style [ ( "position", "relative" ) ] ]
+                        >> Query.has [ style "position" "relative" ]
                 , it "pin icon does not have circular background" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.findAll
                             [ id "pin-icon"
-                            , style
-                                [ ( "border-radius", "50%" )
-                                ]
+                            , style "border-radius" "50%"
                             ]
                         >> Query.count (Expect.equal 0)
                 , it "pin icon has white color when pipeline has pinned resources" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style [ ( "background-image", "url(/public/images/pin-ic-white.svg)" ) ] ]
+                        >> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
                 , it "pin icon has pin badge when pipeline has pinned resources" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.has pinBadgeSelector
                 , it "pin badge is purple" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find pinBadgeSelector
                         >> Query.has
-                            [ style [ ( "background-color", "#5c3bd1" ) ] ]
+                            [ style "background-color" "#5c3bd1" ]
                 , it "pin badge is circular" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find pinBadgeSelector
                         >> Query.has
-                            [ style
-                                [ ( "border-radius", "50%" )
-                                , ( "width", "15px" )
-                                , ( "height", "15px" )
-                                ]
+                            [ style "border-radius" "50%"
+                            , style "width" "15px"
+                            , style "height" "15px"
                             ]
                 , it "pin badge is near the top right of the pin icon" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find pinBadgeSelector
                         >> Query.has
-                            [ style
-                                [ ( "position", "absolute" )
-                                , ( "top", "3px" )
-                                , ( "right", "3px" )
-                                ]
+                            [ style "position" "absolute"
+                            , style "top" "3px"
+                            , style "right" "3px"
                             ]
                 , it "content inside pin badge is centered horizontally and vertically" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find pinBadgeSelector
                         >> Query.has
-                            [ style
-                                [ ( "display", "flex" )
-                                , ( "align-items", "center" )
-                                , ( "justify-content", "center" )
-                                ]
+                            [ style "display" "flex"
+                            , style "align-items" "center"
+                            , style "justify-content" "center"
                             ]
                 , it "pin badge shows count of pinned resources, centered" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find pinBadgeSelector
@@ -528,8 +548,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "pin badge has no other children" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find pinBadgeSelector
@@ -537,8 +556,7 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "pin counter works with multiple pinned resources" <|
                     givenMultiplePinnedResources
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find pinBadgeSelector
@@ -546,15 +564,13 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "before Hover msg no list of pinned resources is visible" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.hasNot [ tag "ul" ]
                 , it "mousing over pin icon sends Hover msg" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children []
@@ -565,21 +581,17 @@ all =
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "pin-icon" ]
                         >> Query.has
-                            [ style
-                                [ ( "background-color", "rgba(255, 255, 255, 0.3)" )
-                                , ( "border-radius", "50%" )
-                                ]
+                            [ style "background-color" "rgba(255, 255, 255, 0.3)"
+                            , style "border-radius" "50%"
                             ]
                 , it "Hover msg causes dropdown list of pinned resources to appear" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children [ tag "ul" ]
                         >> Query.count (Expect.equal 1)
@@ -587,8 +599,7 @@ all =
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find pinBadgeSelector
@@ -598,8 +609,7 @@ all =
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
@@ -608,20 +618,18 @@ all =
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
                         >> Query.find [ tag "li", containing [ text "resource" ] ]
-                        >> Query.findAll [ tag "div", containing [ text "resource" ], style [ ( "font-weight", "700" ) ] ]
+                        >> Query.findAll [ tag "div", containing [ text "resource" ], style "font-weight" "700" ]
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources shows pinned version of each resource" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
@@ -631,133 +639,107 @@ all =
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
-                        >> Query.has [ style [ ( "background-color", "#ffffff" ) ] ]
+                        >> Query.has [ style "background-color" "#ffffff" ]
                 , it "dropdown list of pinned resources is drawn over other elements on the page" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
-                        >> Query.has [ style [ ( "z-index", "1" ) ] ]
+                        >> Query.has [ style "z-index" "1" ]
                 , it "dropdown list of pinned resources has dark grey text" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
-                        >> Query.has [ style [ ( "color", "#1e1d1d" ) ] ]
+                        >> Query.has [ style "color" "#1e1d1d" ]
                 , it "dropdown list has upward-pointing arrow" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children
-                            [ style
-                                [ ( "border-width", "5px" )
-                                , ( "border-style", "solid" )
-                                , ( "border-color", "transparent transparent #ffffff transparent" )
-                                ]
+                            [ style "border-width" "5px"
+                            , style "border-style" "solid"
+                            , style "border-color" "transparent transparent #ffffff transparent"
                             ]
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources is offset below and left of the pin icon" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
                         >> Query.has
-                            [ style
-                                [ ( "position", "absolute" )
-                                , ( "top", "100%" )
-                                , ( "right", "0" )
-                                , ( "margin-top", "0" )
-                                ]
+                            [ style "position" "absolute"
+                            , style "top" "100%"
+                            , style "right" "0"
+                            , style "margin-top" "0"
                             ]
                 , it "dropdown list of pinned resources stretches horizontally to fit content" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
-                        >> Query.has
-                            [ style
-                                [ ( "white-space", "nowrap" ) ]
-                            ]
+                        >> Query.has [ style "white-space" "nowrap" ]
                 , it "dropdown list of pinned resources has no bullet points" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
-                        >> Query.has
-                            [ style
-                                [ ( "list-style-type", "none" ) ]
-                            ]
+                        >> Query.has [ style "list-style-type" "none" ]
                 , it "dropdown list has comfortable padding" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
-                        >> Query.has
-                            [ style
-                                [ ( "padding", "10px" ) ]
-                            ]
+                        >> Query.has [ style "padding" "10px" ]
                 , it "dropdown list arrow is centered below the pin icon above the list" <|
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children
-                            [ style
-                                [ ( "border-width", "5px" )
-                                , ( "border-style", "solid" )
-                                , ( "border-color", "transparent transparent #ffffff transparent" )
-                                ]
+                            [ style "border-width" "5px"
+                            , style "border-style" "solid"
+                            , style "border-color"
+                                "transparent transparent #ffffff transparent"
                             ]
                         >> Query.first
                         >> Query.has
-                            [ style
-                                [ ( "top", "100%" )
-                                , ( "right", "50%" )
-                                , ( "margin-right", "-5px" )
-                                , ( "margin-top", "-10px" )
-                                , ( "position", "absolute" )
-                                ]
+                            [ style "top" "100%"
+                            , style "right" "50%"
+                            , style "margin-right" "-5px"
+                            , style "margin-top" "-10px"
+                            , style "position" "absolute"
                             ]
                 , it "mousing off the pin icon sends Hover Nothing msg" <|
                     givenPinnedResource
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.children []
@@ -768,8 +750,7 @@ all =
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "li" ]
                         >> Event.simulate Event.click
@@ -791,8 +772,7 @@ all =
                         >> Tuple.first
                         >> Application.update (Msgs.Update <| Message.Message.Hover Nothing)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.hasNot [ tag "ul" ]
@@ -800,48 +780,49 @@ all =
                     givenPinnedResource
                         >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> Common.queryView
                         >> Query.find [ id "pin-icon" ]
                         >> Query.find [ tag "ul" ]
                         >> Expect.all
                             [ Query.findAll [ tag "li" ]
-                                >> Query.each (Query.has [ style [ ( "cursor", "pointer" ) ] ])
-                            , Query.findAll [ style [ ( "cursor", "pointer" ) ] ]
+                                >> Query.each (Query.has [ style "cursor" "pointer" ])
+                            , Query.findAll [ style "cursor" "pointer" ]
                                 >> Query.each (Query.has [ tag "li" ])
                             ]
                 ]
             , test "top bar lays out contents horizontally" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.has [ style [ ( "display", "inline-block" ) ] ]
+                        |> Query.has [ style "display" "inline-block" ]
             , test "top bar maximizes spacing between the left and right navs" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.has [ style [ ( "justify-content", "space-between" ), ( "width", "100%" ) ] ]
+                        |> Query.has
+                            [ style "justify-content" "space-between"
+                            , style "width" "100%"
+                            ]
             , test "top bar is sticky" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.has [ style [ ( "z-index", "999" ), ( "position", "fixed" ) ] ]
+                        |> Query.has
+                            [ style "z-index" "999"
+                            , style "position" "fixed"
+                            ]
             , test "breadcrumb items are laid out horizontally" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumbs" ]
                         |> Query.children []
                         |> Query.each
-                            (Query.has [ style [ ( "display", "inline-block" ) ] ])
+                            (Query.has [ style "display" "inline-block" ])
             , describe "top bar positioning"
                 [ testTopBarPositioning "Dashboard" "/"
                 , testTopBarPositioning "Pipeline" "/teams/team/pipelines/pipeline"
@@ -853,8 +834,7 @@ all =
             , rspecStyleDescribe "when on job page"
                 (init "/teams/team/pipeline/pipeline/jobs/job/builds/1")
                 [ it "shows no pin icon on top bar when viewing build page" <|
-                    Application.view
-                        >> Query.fromHtml
+                    Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.hasNot [ id "pin-icon" ]
                 ]
@@ -874,34 +854,30 @@ all =
                                 )
                             )
                         |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.has
-                            [ style
-                                [ ( "background-color", "#3498db" ) ]
-                            ]
+                        |> Query.has [ style "background-color" "#3498db" ]
             , test "breadcrumb list is laid out horizontally" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumbs" ]
-                        |> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
+                        |> Query.has
+                            [ style "display" "inline-block"
+                            , style "padding" "0 10px"
+                            ]
             , test "pipeline breadcrumb is laid out horizontally" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
-                        |> Query.has [ style [ ( "display", "inline-block" ) ] ]
+                        |> Query.has [ style "display" "inline-block" ]
             , test "top bar has pipeline breadcrumb with icon rendered first" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.children []
@@ -910,120 +886,10 @@ all =
             , test "top bar has pipeline name after pipeline icon" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.has [ text "pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline"
-                        |> Application.view
-                        |> Query.fromHtml
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.find [ id "breadcrumbs" ]
-                        |> Query.children []
-                        |> Query.first
-                        |> Event.simulate Event.click
-                        |> Event.expect
-                            (Msgs.Update <|
-                                Message.Message.GoToRoute <|
-                                    Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
-                            )
-            , describe "build page"
-                [ test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                            |> Application.view
-                            |> Query.fromHtml
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 0
-                            |> Event.simulate Event.click
-                            |> Event.expect
-                                (Msgs.Update <|
-                                    Message.Message.GoToRoute <|
-                                        Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
-                                )
-                , test "there should be a / between pipeline and job in breadcrumb" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                            |> Application.view
-                            |> Query.fromHtml
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 1
-                            |> Query.has [ text "/" ]
-                , test "top bar has job breadcrumb with job icon rendered first" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                            |> Application.view
-                            |> Query.fromHtml
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 2
-                            |> Query.has jobBreadcrumbSelector
-                , test "top bar has build name after job icon" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                            |> Application.view
-                            |> Query.fromHtml
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 2
-                            |> Query.has [ text "job" ]
-                ]
-            , describe "resource page"
-                [ test "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/resources/resource"
-                            |> Application.view
-                            |> Query.fromHtml
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 0
-                            |> Event.simulate Event.click
-                            |> Event.expect
-                                (Msgs.Update <|
-                                    Message.Message.GoToRoute <|
-                                        Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
-                                )
-                , test "there should be a / between pipeline and resource in breadcrumb" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/resources/resource"
-                            |> Application.view
-                            |> Query.fromHtml
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 1
-                            |> Query.has [ text "/" ]
-                , test "top bar has resource breadcrumb with resource icon rendered first" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/resources/resource"
-                            |> Application.view
-                            |> Query.fromHtml
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 2
-                            |> Query.has resourceBreadcrumbSelector
-                , test "top bar has resource name after resource icon" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/resources/resource"
-                            |> Application.view
-                            |> Query.fromHtml
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 2
-                            |> Query.has [ text "resource" ]
-                ]
             ]
         ]
 
@@ -1035,28 +901,22 @@ pinBadgeSelector =
 
 pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
-    [ style
-        [ ( "background-image", "url(/public/images/ic-breadcrumb-pipeline.svg)" )
-        , ( "background-repeat", "no-repeat" )
-        ]
+    [ style "background-image" "url(/public/images/ic-breadcrumb-pipeline.svg)"
+    , style "background-repeat" "no-repeat"
     ]
 
 
 jobBreadcrumbSelector : List Selector.Selector
 jobBreadcrumbSelector =
-    [ style
-        [ ( "background-image", "url(/public/images/ic-breadcrumb-job.svg)" )
-        , ( "background-repeat", "no-repeat" )
-        ]
+    [ style "background-image" "url(/public/images/ic-breadcrumb-job.svg)"
+    , style "background-repeat" "no-repeat"
     ]
 
 
 resourceBreadcrumbSelector : List Selector.Selector
 resourceBreadcrumbSelector =
-    [ style
-        [ ( "background-image", "url(/public/images/ic-breadcrumb-resource.svg)" )
-        , ( "background-repeat", "no-repeat" )
-        ]
+    [ style "background-image" "url(/public/images/ic-breadcrumb-resource.svg)"
+    , style "background-repeat" "no-repeat"
     ]
 
 
@@ -1074,17 +934,12 @@ init path =
         , authToken = ""
         , pipelineRunningKeyframes = ""
         }
-        { href = ""
+        { protocol = Url.Http
         , host = ""
-        , hostname = ""
-        , protocol = ""
-        , origin = ""
-        , port_ = ""
-        , pathname = path
-        , search = ""
-        , hash = ""
-        , username = ""
-        , password = ""
+        , port_ = Nothing
+        , path = path
+        , query = Nothing
+        , fragment = Nothing
         }
         |> Tuple.first
 
@@ -1094,7 +949,7 @@ givenPinnedResource =
     Application.handleCallback
         (Callback.ResourcesFetched <|
             Ok <|
-                Json.Encode.list
+                Json.Encode.list identity
                     [ Json.Encode.object
                         [ ( "team_name", Json.Encode.string "team" )
                         , ( "pipeline_name", Json.Encode.string "pipeline" )
@@ -1111,7 +966,7 @@ givenMultiplePinnedResources =
     Application.handleCallback
         (Callback.ResourcesFetched <|
             Ok <|
-                Json.Encode.list
+                Json.Encode.list identity
                     [ Json.Encode.object
                         [ ( "team_name", Json.Encode.string "team" )
                         , ( "pipeline_name", Json.Encode.string "pipeline" )
@@ -1135,22 +990,18 @@ testTopBarPositioning pageName url =
         [ test "whole page fills the whole screen" <|
             \_ ->
                 init url
-                    |> Application.view
-                    |> Query.fromHtml
+                    |> Common.queryView
                     |> Query.has
                         [ id "page-including-top-bar"
-                        , style [ ( "height", "100%" ) ]
+                        , style "height" "100%"
                         ]
         , test "lower section fills the whole screen as well" <|
             \_ ->
                 init url
-                    |> Application.view
-                    |> Query.fromHtml
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has
-                        [ style
-                            [ ( "padding-top", "54px" )
-                            , ( "height", "100%" )
-                            ]
+                        [ style "padding-top" "54px"
+                        , style "height" "100%"
                         ]
         ]

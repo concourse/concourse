@@ -9,9 +9,9 @@ module Concourse.BuildEvents exposing
 
 import Build.StepTree.Models exposing (BuildEvent(..), BuildEventEnvelope, Origin)
 import Concourse
-import Date exposing (Date)
-import Dict exposing (Dict)
+import Dict
 import Json.Decode
+import Time
 
 
 decodeBuildEventEnvelope : Json.Decode.Decoder BuildEventEnvelope
@@ -23,7 +23,7 @@ decodeBuildEventEnvelope =
                 Json.Decode.string
 
         urlDecoder =
-            Json.Decode.at ["target", "url"] Json.Decode.string
+            Json.Decode.at [ "target", "url" ] Json.Decode.string
 
         dataDecoder =
             typeDecoder
@@ -48,7 +48,7 @@ decodeBuildEventEnvelope =
                                                     Json.Decode.succeed event
 
                                                 Err err ->
-                                                    Json.Decode.fail err
+                                                    Json.Decode.fail <| Debug.toString err
                                         )
                     )
     in
@@ -68,7 +68,7 @@ decodeBuildEvent =
                             "data"
                             (Json.Decode.map2 BuildStatus
                                 (Json.Decode.field "status" Concourse.decodeBuildStatus)
-                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.float)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
                     "log" ->
@@ -77,7 +77,7 @@ decodeBuildEvent =
                             (Json.Decode.map3 Log
                                 (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
                                 (Json.Decode.field "payload" Json.Decode.string)
-                                (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.float)
+                                (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
                     "error" ->
@@ -117,9 +117,9 @@ decodeBuildEvent =
             )
 
 
-dateFromSeconds : Float -> Date
+dateFromSeconds : Int -> Time.Posix
 dateFromSeconds =
-    Date.fromTime << (*) 1000
+    Time.millisToPosix << (*) 1000
 
 
 decodeFinishResource :

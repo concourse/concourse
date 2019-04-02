@@ -2,6 +2,7 @@ module TopBarTests exposing (all)
 
 import Application.Application as Application
 import Char
+import Common exposing (queryView)
 import Concourse
 import Dashboard.SearchBar as SearchBar
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
@@ -9,7 +10,7 @@ import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Http
-import Keycodes
+import Keyboard
 import Login.Login as Login
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
@@ -30,6 +31,8 @@ import Test.Html.Selector as Selector
         , tag
         , text
         )
+import Time
+import Url
 
 
 rspecStyleDescribe : String -> subject -> List (subject -> Test) -> Test
@@ -52,7 +55,7 @@ it desc expectationFunc subject =
 
 update : Msgs.Message -> Login.Model {} -> ( Login.Model {}, List Effects.Effect )
 update msg =
-    flip (,) [] >> Login.update msg
+    (\a -> ( a, [] )) >> Login.update msg
 
 
 lineHeight : String
@@ -126,36 +129,28 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/teams/team/pipelines/pipeline"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/teams/team/pipelines/pipeline"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
             )
             [ context "when login state unknown"
-                (Application.view >> Query.fromHtml)
+                queryView
                 [ it "shows concourse logo" <|
                     Query.children []
                         >> Query.index 0
                         >> Query.has
-                            [ style
-                                [ ( "background-image"
-                                  , "url(/public/images/concourse-logo-white.svg)"
-                                  )
-                                , ( "background-position", "50% 50%" )
-                                , ( "background-repeat", "no-repeat" )
-                                , ( "background-size", "42px 42px" )
-                                , ( "width", topBarHeight )
-                                , ( "height", topBarHeight )
-                                ]
+                            [ style "background-image"
+                                "url(/public/images/concourse-logo-white.svg)"
+                            , style "background-position" "50% 50%"
+                            , style "background-repeat" "no-repeat"
+                            , style "background-size" "42px 42px"
+                            , style "width" topBarHeight
+                            , style "height" topBarHeight
                             ]
                 , it "shows pipeline breadcrumb" <|
                     Query.has [ id "breadcrumb-pipeline" ]
@@ -171,27 +166,21 @@ all =
                             >> Query.has
                                 [ text "pipeline" ]
                     , it "has pointer cursor" <|
-                        Query.has [ style [ ( "cursor", "pointer" ) ] ]
-                    , it "has link to the relevant pipeline page" <|
-                        Event.simulate Event.click
-                            >> Event.expect
-                                (ApplicationMsgs.Update <|
-                                    Msgs.GoToRoute <|
-                                        Routes.Pipeline
-                                            { id =
-                                                { teamName = "team"
-                                                , pipelineName = "pipeline"
-                                                }
-                                            , groups = []
-                                            }
-                                )
+                        Query.has [ style "cursor" "pointer" ]
+                    , it "is a link to the relevant pipeline page" <|
+                        Query.has
+                            [ tag "a"
+                            , attribute <|
+                                Attr.href
+                                    "/teams/team/pipelines/pipeline"
+                            ]
                     ]
                 , it "has dark grey background" <|
-                    Query.has [ style [ ( "background-color", backgroundGrey ) ] ]
+                    Query.has [ style "background-color" backgroundGrey ]
                 , it "lays out contents horizontally" <|
-                    Query.has [ style [ ( "display", "flex" ) ] ]
+                    Query.has [ style "display" "flex" ]
                 , it "maximizes spacing between the left and right navs" <|
-                    Query.has [ style [ ( "justify-content", "space-between" ) ] ]
+                    Query.has [ style "justify-content" "space-between" ]
                 , it "renders the login component last" <|
                     Query.children []
                         >> Query.index -1
@@ -212,8 +201,7 @@ all =
                                 }
                     )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                 )
                 [ it "renders the login component last" <|
                     Query.children []
@@ -229,8 +217,7 @@ all =
                 (Application.handleCallback
                     (Callback.UserFetched <| Ok sampleUser)
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                 )
                 [ it "renders the login component last" <|
                     Query.children []
@@ -238,57 +225,51 @@ all =
                         >> Query.has [ id "login-component" ]
                 , it "renders login component with a maximum width" <|
                     Query.find [ id "login-component" ]
-                        >> Query.has [ style [ ( "max-width", "20%" ) ] ]
+                        >> Query.has [ style "max-width" "20%" ]
                 , it "renders login container with relative position" <|
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
                         >> Query.has
-                            [ style [ ( "position", "relative" ) ] ]
+                            [ style "position" "relative" ]
                 , it "lays out login container contents vertically" <|
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
                         >> Query.has
-                            [ style
-                                [ ( "display", "flex" )
-                                , ( "flex-direction", "column" )
-                                ]
+                            [ style "display" "flex"
+                            , style "flex-direction" "column"
                             ]
                 , it "draws lighter grey line to the left of login container" <|
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
                         >> Query.has
-                            [ style [ ( "border-left", "1px solid " ++ borderGrey ) ] ]
+                            [ style "border-left" <| "1px solid " ++ borderGrey ]
                 , it "renders login container tall enough" <|
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
                         >> Query.has
-                            [ style [ ( "line-height", lineHeight ) ] ]
+                            [ style "line-height" lineHeight ]
                 , it "has the login username styles" <|
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "user-id" ]
                         >> Expect.all
                             [ Query.has
-                                [ style
-                                    [ ( "padding", "0 30px" )
-                                    , ( "cursor", "pointer" )
-                                    , ( "display", "flex" )
-                                    , ( "align-items", "center" )
-                                    , ( "justify-content", "center" )
-                                    , ( "flex-grow", "1" )
-                                    ]
+                                [ style "padding" "0 30px"
+                                , style "cursor" "pointer"
+                                , style "display" "flex"
+                                , style "align-items" "center"
+                                , style "justify-content" "center"
+                                , style "flex-grow" "1"
                                 ]
                             , Query.children []
                                 >> Query.index 0
                                 >> Query.has
-                                    [ style
-                                        [ ( "overflow", "hidden" )
-                                        , ( "text-overflow", "ellipsis" )
-                                        ]
+                                    [ style "overflow" "hidden"
+                                    , style "text-overflow" "ellipsis"
                                     ]
                             ]
                 , it "shows the logged in username when the user is logged in" <|
@@ -311,11 +292,11 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Query.has
-                            [ style [ ( "background-image", "url(/public/images/ic-pause-white.svg)" ) ] ]
+                            [ style "background-image" "url(/public/images/ic-pause-white.svg)" ]
                 , it "draws lighter grey line to the left of pause pipeline button" <|
                     Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.has
-                            [ style [ ( "border-left", "1px solid " ++ borderGrey ) ] ]
+                            [ style "border-left" <| "1px solid " ++ borderGrey ]
                 ]
             , it "clicking a pinned resource navigates to the pinned resource page" <|
                 Application.update
@@ -333,7 +314,17 @@ all =
                     )
                     >> Tuple.second
                     >> Expect.equal
-                        [ Effects.NavigateTo "/teams/t/pipelines/p/resources/r" ]
+                        [ Effects.NavigateTo <|
+                            Routes.toString <|
+                                Routes.Resource
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , resourceName = "r"
+                                        }
+                                    , page = Nothing
+                                    }
+                        ]
             , context "when pipeline is paused"
                 (Application.handleCallback
                     (Callback.PipelineFetched <|
@@ -350,22 +341,16 @@ all =
                     >> Application.handleCallback
                         (Callback.UserFetched <| Ok sampleUser)
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                 )
                 [ it "has blue background" <|
-                    Query.has [ style [ ( "background-color", pausedBlue ) ] ]
+                    Query.has [ style "background-color" pausedBlue ]
                 , it "draws almost-white line to the left of login container" <|
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "login-container" ]
                         >> Query.has
-                            [ style
-                                [ ( "border-left"
-                                  , "1px solid " ++ almostWhite
-                                  )
-                                ]
-                            ]
+                            [ style "border-left" <| "1px solid " ++ almostWhite ]
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
@@ -376,17 +361,12 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/teams/team/pipelines/pipeline"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/teams/team/pipelines/pipeline"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
             )
@@ -397,8 +377,7 @@ all =
                     >> Application.update
                         (ApplicationMsgs.Update Msgs.ToggleUserMenu)
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.has [ id "logout-button" ]
             , it "renders user menu content when ToggleUserMenu msg is received and logged in" <|
                 Application.handleCallback
@@ -407,27 +386,24 @@ all =
                     >> Application.update
                         (ApplicationMsgs.Update Msgs.ToggleUserMenu)
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Expect.all
                         [ Query.has [ id "logout-button" ]
                         , Query.find [ id "logout-button" ]
                             >> Query.has [ text "logout" ]
                         , Query.find [ id "logout-button" ]
                             >> Query.has
-                                [ style
-                                    [ ( "position", "absolute" )
-                                    , ( "top", "55px" )
-                                    , ( "background-color", backgroundGrey )
-                                    , ( "height", topBarHeight )
-                                    , ( "width", "100%" )
-                                    , ( "border-top", "1px solid " ++ borderGrey )
-                                    , ( "cursor", "pointer" )
-                                    , ( "display", "flex" )
-                                    , ( "align-items", "center" )
-                                    , ( "justify-content", "center" )
-                                    , ( "flex-grow", "1" )
-                                    ]
+                                [ style "position" "absolute"
+                                , style "top" "55px"
+                                , style "background-color" backgroundGrey
+                                , style "height" topBarHeight
+                                , style "width" "100%"
+                                , style "border-top" <| "1px solid " ++ borderGrey
+                                , style "cursor" "pointer"
+                                , style "display" "flex"
+                                , style "align-items" "center"
+                                , style "justify-content" "center"
+                                , style "flex-grow" "1"
                                 ]
                         ]
             , it "when logout is clicked, a LogOut TopLevelMessage is sent" <|
@@ -437,8 +413,7 @@ all =
                     >> Application.update
                         (ApplicationMsgs.Update Msgs.ToggleUserMenu)
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "logout-button" ]
                     >> Event.simulate Event.click
                     >> Event.expect
@@ -447,8 +422,7 @@ all =
                 Application.handleCallback
                     (Callback.LoggedOut <| Ok ())
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "login-item" ]
                     >> Query.has [ text "login" ]
             ]
@@ -460,24 +434,18 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/teams/team/pipelines/pipeline"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/teams/team/pipelines/pipeline"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
                 |> Application.handleCallback
                     (Callback.LoggedOut (Ok ()))
                 |> Tuple.first
-                |> Application.view
-                |> Query.fromHtml
+                |> queryView
             )
             [ it "has a link to login" <|
                 Query.children []
@@ -489,27 +457,23 @@ all =
                     >> Query.index -1
                     >> Query.find [ id "login-container" ]
                     >> Query.has
-                        [ style
-                            [ ( "position", "relative" )
-                            , ( "display", "flex" )
-                            , ( "flex-direction", "column" )
-                            , ( "border-left", "1px solid " ++ borderGrey )
-                            , ( "line-height", lineHeight )
-                            ]
+                        [ style "position" "relative"
+                        , style "display" "flex"
+                        , style "flex-direction" "column"
+                        , style "border-left" <| "1px solid " ++ borderGrey
+                        , style "line-height" lineHeight
                         ]
             , it "has the login username styles" <|
                 Query.children []
                     >> Query.index -1
                     >> Query.find [ id "login-item" ]
                     >> Query.has
-                        [ style
-                            [ ( "padding", "0 30px" )
-                            , ( "cursor", "pointer" )
-                            , ( "display", "flex" )
-                            , ( "align-items", "center" )
-                            , ( "justify-content", "center" )
-                            , ( "flex-grow", "1" )
-                            ]
+                        [ style "padding" "0 30px"
+                        , style "cursor" "pointer"
+                        , style "display" "flex"
+                        , style "align-items" "center"
+                        , style "justify-content" "center"
+                        , style "flex-grow" "1"
                         ]
             ]
         , rspecStyleDescribe "when triggering a log in message"
@@ -520,17 +484,12 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
                 |> Application.handleCallback
@@ -551,55 +510,41 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
-                |> Application.view
-                |> Query.fromHtml
+                |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
                 Query.find
                     [ id "breadcrumbs" ]
-                    >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+                    >> Query.has [ style "flex-grow" "1" ]
             , it "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
-                    >> Event.simulate Event.click
-                    >> Event.expect
-                        (ApplicationMsgs.Update <|
-                            Msgs.GoToRoute <|
-                                Routes.Pipeline
-                                    { id =
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        }
-                                    , groups = []
-                                    }
-                        )
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline"
+                        ]
             , context "job breadcrumb"
                 (Query.find [ id "breadcrumb-job" ])
                 [ it "is laid out horizontally with appropriate spacing" <|
                     Query.has
-                        [ style
-                            [ ( "display", "inline-block" )
-                            , ( "padding", "0 10px" )
-                            ]
+                        [ style "display" "inline-block"
+                        , style "padding" "0 10px"
                         ]
                 , it "has job icon rendered first" <|
                     Query.has jobBreadcrumbSelector
                 , it "has build name after job icon" <|
                     Query.has [ text "job" ]
                 , it "does not appear clickable" <|
-                    Query.hasNot [ style [ ( "cursor", "pointer" ) ] ]
+                    Query.hasNot [ style "cursor" "pointer" ]
                 ]
             ]
         , rspecStyleDescribe "rendering top bar on resource page"
@@ -610,50 +555,43 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/teams/team/pipelines/pipeline/resources/resource"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/teams/team/pipelines/pipeline/resources/resource"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
-                |> Application.view
-                |> Query.fromHtml
+                |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
                 Query.find
                     [ id "breadcrumbs" ]
-                    >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+                    >> Query.has [ style "flex-grow" "1" ]
             , it "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
-                    >> Event.simulate Event.click
-                    >> Event.expect
-                        (ApplicationMsgs.Update <|
-                            Msgs.GoToRoute <|
-                                Routes.Pipeline
-                                    { id =
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        }
-                                    , groups = []
-                                    }
-                        )
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline"
+                        ]
             , it "there is a / between pipeline and resource in breadcrumb" <|
-                Query.findAll [ tag "li" ]
+                Query.find [ id "breadcrumbs" ]
+                    >> Query.children []
                     >> Expect.all
-                        [ Query.index 1 >> Query.has [ class "breadcrumb-separator" ]
+                        [ Query.index 1
+                            >> Query.has [ class "breadcrumb-separator" ]
                         , Query.index 1 >> Query.has [ text "/" ]
                         , Query.index 2 >> Query.has [ id "breadcrumb-resource" ]
                         ]
             , it "resource breadcrumb is laid out horizontally with appropriate spacing" <|
                 Query.find [ id "breadcrumb-resource" ]
-                    >> Query.has [ style [ ( "display", "inline-block" ), ( "padding", "0 10px" ) ] ]
+                    >> Query.has
+                        [ style "display" "inline-block"
+                        , style "padding" "0 10px"
+                        ]
             , it "top bar has resource breadcrumb with resource icon rendered first" <|
                 Query.find [ id "breadcrumb-resource" ]
                     >> Query.children []
@@ -674,44 +612,34 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/teams/team/pipelines/pipeline/jobs/job"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/teams/team/pipelines/pipeline/jobs/job"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
-                |> Application.view
-                |> Query.fromHtml
+                |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
                 Query.find
                     [ id "breadcrumbs" ]
-                    >> Query.has [ style [ ( "flex-grow", "1" ) ] ]
+                    >> Query.has [ style "flex-grow" "1" ]
             , it "pipeline breadcrumb should have a link to the pipeline page when viewing job details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
-                    >> Event.simulate Event.click
-                    >> Event.expect
-                        (ApplicationMsgs.Update <|
-                            Msgs.GoToRoute <|
-                                Routes.Pipeline
-                                    { id =
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        }
-                                    , groups = []
-                                    }
-                        )
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline"
+                        ]
             , it "there is a / between pipeline and job in breadcrumb" <|
-                Query.findAll [ tag "li" ]
+                Query.find [ id "breadcrumbs" ]
+                    >> Query.children []
                     >> Expect.all
-                        [ Query.index 1 >> Query.has [ class "breadcrumb-separator" ]
+                        [ Query.index 1
+                            >> Query.has [ class "breadcrumb-separator" ]
                         , Query.index 0 >> Query.has [ id "breadcrumb-pipeline" ]
                         , Query.index 2 >> Query.has [ id "breadcrumb-job" ]
                         ]
@@ -724,23 +652,18 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/"
-                , search = "?search=test"
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/"
+                , query = Just "search=test"
+                , fragment = Nothing
                 }
                 |> Tuple.first
                 |> Application.handleCallback
                     (Callback.APIDataFetched
                         (Ok
-                            ( 0
+                            ( Time.millisToPosix 0
                             , { teams =
                                     [ Concourse.Team 1 "team1"
                                     , Concourse.Team 2 "team2"
@@ -757,23 +680,20 @@ all =
                 |> Tuple.first
             )
             [ it "renders the search bar with the text in the search query" <|
-                Application.view
-                    >> Query.fromHtml
+                queryView
                     >> Query.find [ id SearchBar.searchInputId ]
                     >> Query.has [ tag "input", attribute <| Attr.value "test" ]
             , it "sends a FilterMsg when the clear search button is clicked" <|
-                Application.view
-                    >> Query.fromHtml
+                queryView
                     >> Query.find [ id "search-container" ]
                     >> Query.find [ id "search-clear" ]
                     >> Event.simulate Event.click
                     >> Event.expect
                         (ApplicationMsgs.Update <| Msgs.FilterMsg "")
             , it "clear search button has full opacity when there is a query" <|
-                Application.view
-                    >> Query.fromHtml
+                queryView
                     >> Query.find [ id "search-clear" ]
-                    >> Query.has [ style [ ( "opacity", "1" ) ] ]
+                    >> Query.has [ style "opacity" "1" ]
             ]
         , rspecStyleDescribe "rendering search bar on dashboard page"
             (Application.init
@@ -783,23 +703,18 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
                 |> Application.handleCallback
                     (Callback.APIDataFetched
                         (Ok
-                            ( 0
+                            ( Time.millisToPosix 0
                             , { teams =
                                     [ Concourse.Team 1 "team1"
                                     , Concourse.Team 2 "team2"
@@ -817,10 +732,13 @@ all =
             )
             [ context "when desktop sized"
                 (Application.handleCallback
-                    (ScreenResized { width = 1500, height = 900 })
+                    (ScreenResized
+                        { scene = { width = 0, height = 0 }
+                        , viewport = { x = 0, y = 0, width = 1500, height = 900 }
+                        }
+                    )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                 )
                 [ it "renders search bar" <|
                     Query.has [ id SearchBar.searchInputId ]
@@ -829,7 +747,7 @@ all =
                         >> Query.has [ tag "input" ]
                 , it "renders search bar with transparent background to remove white of search bar" <|
                     Query.find [ id SearchBar.searchInputId ]
-                        >> Query.has [ style [ ( "background-color", "transparent" ) ] ]
+                        >> Query.has [ style "background-color" "transparent" ]
                 , it "search bar does not use browser's built-in autocomplete" <|
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
@@ -837,36 +755,29 @@ all =
                 , it "sets magnifying glass on search bar in correct position" <|
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
-                            [ style
-                                [ ( "background-image"
-                                  , "url('public/images/ic-search-white-24px.svg')"
-                                  )
-                                , ( "background-position", "12px 8px" )
-                                , ( "background-repeat", "no-repeat" )
-                                ]
+                            [ style "background-image"
+                                "url('public/images/ic-search-white-24px.svg')"
+                            , style "background-position" "12px 8px"
+                            , style "background-repeat" "no-repeat"
                             ]
                 , it "styles search border and input text colour" <|
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
-                            [ style
-                                [ ( "border", searchBarBorder )
-                                , ( "color", "#ffffff" )
-                                , ( "font-size", "1.15em" )
-                                , ( "font-family", "Inconsolata, monospace" )
-                                ]
+                            [ style "border" searchBarBorder
+                            , style "color" "#ffffff"
+                            , style "font-size" "1.15em"
+                            , style "font-family" "Inconsolata, monospace"
                             ]
                 , it "renders search with appropriate size and padding" <|
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
-                            [ style
-                                [ ( "height", searchBarHeight )
-                                , ( "width", searchBarWidth )
-                                , ( "padding", searchBarPadding )
-                                ]
+                            [ style "height" searchBarHeight
+                            , style "width" searchBarWidth
+                            , style "padding" searchBarPadding
                             ]
                 , it "does not have an outline when focused" <|
                     Query.find [ id SearchBar.searchInputId ]
-                        >> Query.has [ style [ ( "outline", "0" ) ] ]
+                        >> Query.has [ style "outline" "0" ]
                 , it "has placeholder text" <|
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
@@ -876,20 +787,18 @@ all =
                     Query.find [ id "search-container" ]
                         >> Expect.all
                             [ Query.has
-                                [ style
-                                    [ ( "position", "relative" )
-                                    , ( "display", "flex" )
-                                    , ( "flex-direction", "column" )
-                                    , ( "align-items", "stretch" )
-                                    ]
+                                [ style "position" "relative"
+                                , style "display" "flex"
+                                , style "flex-direction" "column"
+                                , style "align-items" "stretch"
                                 ]
-                            , Query.hasNot [ style [ ( "flex-grow", "1" ) ] ]
+                            , Query.hasNot [ style "flex-grow" "1" ]
                             ]
                 , it "search container is sized correctly" <|
                     Query.find [ id "search-container" ]
                         >> Expect.all
-                            [ Query.has [ style [ ( "margin", "12px" ) ] ]
-                            , Query.hasNot [ style [ ( "height", "56px" ) ] ]
+                            [ Query.has [ style "margin" "12px" ]
+                            , Query.hasNot [ style "height" "56px" ]
                             ]
                 , it "has a clear search button container" <|
                     Query.find [ id "search-container" ]
@@ -900,59 +809,52 @@ all =
                 , it "has the appropriate background image for clear search and is in correct position" <|
                     Query.find [ id "search-clear" ]
                         >> Query.has
-                            [ style
-                                [ ( "background-image"
-                                  , "url('public/images/ic-close-white-24px.svg')"
-                                  )
-                                , ( "background-position", "10px 10px" )
-                                , ( "background-repeat", "no-repeat" )
-                                ]
+                            [ style "background-image"
+                                "url('public/images/ic-close-white-24px.svg')"
+                            , style "background-position" "10px 10px"
+                            , style "background-repeat" "no-repeat"
                             ]
                 , it "clear search button has no border and renders text appropriately" <|
                     Query.find [ id "search-clear" ]
                         >> Query.has
-                            [ style
-                                [ ( "border", "0" )
-                                , ( "color", searchBarGrey )
-                                ]
+                            [ style "border" "0"
+                            , style "color" searchBarGrey
                             ]
                 , it "clear search button is positioned appropriately" <|
                     Query.find [ id "search-clear" ]
                         >> Query.has
-                            [ style
-                                [ ( "position", "absolute" )
-                                , ( "right", "0" )
-                                , ( "padding", "17px" )
-                                ]
+                            [ style "position" "absolute"
+                            , style "right" "0"
+                            , style "padding" "17px"
                             ]
                 , it "sets opacity for the clear search button to low when there is no text" <|
                     Query.find [ id "search-clear" ]
-                        >> Query.has [ style [ ( "opacity", "0.2" ) ] ]
+                        >> Query.has [ style "opacity" "0.2" ]
                 ]
             , context "when mobile sized"
                 (Application.handleCallback
-                    (ScreenResized { width = 400, height = 900 })
+                    (ScreenResized
+                        { scene = { width = 0, height = 0 }
+                        , viewport = { x = 0, y = 0, width = 400, height = 900 }
+                        }
+                    )
                     >> Tuple.first
                 )
                 [ it "should not have a search bar" <|
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.hasNot
                             [ id SearchBar.searchInputId ]
                 , it "should have a magnifying glass icon" <|
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.find [ id "show-search-button" ]
                         >> Query.has
-                            [ style
-                                [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
-                                , ( "background-position", "12px 8px" )
-                                , ( "background-repeat", "no-repeat" )
-                                ]
+                            [ style "background-image"
+                                "url('public/images/ic-search-white-24px.svg')"
+                            , style "background-position" "12px 8px"
+                            , style "background-repeat" "no-repeat"
                             ]
                 , it "shows the login component" <|
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.has [ id "login-component" ]
                 , context "after clicking the search icon"
                     (Application.update
@@ -964,8 +866,7 @@ all =
                                 [ Effects.Focus SearchBar.searchInputId ]
                     , context "the ui"
                         (Tuple.first
-                            >> Application.view
-                            >> Query.fromHtml
+                            >> queryView
                         )
                         [ it "renders search bar" <|
                             Query.has [ id SearchBar.searchInputId ]
@@ -980,19 +881,17 @@ all =
                         , it "positions the search container appropriately" <|
                             Query.find [ id "search-container" ]
                                 >> Query.has
-                                    [ style
-                                        [ ( "position", "relative" )
-                                        , ( "display", "flex" )
-                                        , ( "flex-direction", "column" )
-                                        , ( "align-items", "stretch" )
-                                        , ( "flex-grow", "1" )
-                                        ]
+                                    [ style "position" "relative"
+                                    , style "display" "flex"
+                                    , style "flex-direction" "column"
+                                    , style "align-items" "stretch"
+                                    , style "flex-grow" "1"
                                     ]
                         , it "search container is sized correctly" <|
                             Query.find [ id "search-container" ]
                                 >> Expect.all
-                                    [ Query.has [ style [ ( "margin", "12px" ) ] ]
-                                    , Query.hasNot [ style [ ( "height", "56px" ) ] ]
+                                    [ Query.has [ style "margin" "12px" ]
+                                    , Query.hasNot [ style "height" "56px" ]
                                     ]
                         , it "has a clear search button container" <|
                             Query.find [ id "search-container" ]
@@ -1000,11 +899,10 @@ all =
                         , it "has the appropriate background image for clear search and is in correct position" <|
                             Query.find [ id "search-clear" ]
                                 >> Query.has
-                                    [ style
-                                        [ ( "background-image", "url('public/images/ic-close-white-24px.svg')" )
-                                        , ( "background-position", "10px 10px" )
-                                        , ( "background-repeat", "no-repeat" )
-                                        ]
+                                    [ style "background-image"
+                                        "url('public/images/ic-close-white-24px.svg')"
+                                    , style "background-position" "10px 10px"
+                                    , style "background-repeat" "no-repeat"
                                     ]
                         , it "hides the login component" <|
                             Query.hasNot [ id "login-component" ]
@@ -1016,8 +914,7 @@ all =
                             >> Tuple.first
                         )
                         [ it "should display a dropdown of options" <|
-                            Application.view
-                                >> Query.fromHtml
+                            queryView
                                 >> Query.find [ id "search-dropdown" ]
                                 >> Query.findAll [ tag "li" ]
                                 >> Expect.all
@@ -1026,29 +923,24 @@ all =
                                     , Query.index 1 >> Query.has [ text "team: " ]
                                     ]
                         , it "the search dropdown is positioned below the search bar" <|
-                            Application.view
-                                >> Query.fromHtml
+                            queryView
                                 >> Query.find [ id "search-dropdown" ]
                                 >> Expect.all
                                     [ Query.has
-                                        [ style
-                                            [ ( "top", "100%" )
-                                            , ( "margin", "0" )
-                                            ]
+                                        [ style "top" "100%"
+                                        , style "margin" "0"
                                         ]
-                                    , Query.hasNot [ style [ ( "position", "absolute" ) ] ]
+                                    , Query.hasNot [ style "position" "absolute" ]
                                     ]
                         , it "the search dropdown is the same width as search bar" <|
-                            Application.view
-                                >> Query.fromHtml
+                            queryView
                                 >> Query.find [ id "search-dropdown" ]
-                                >> Query.has [ style [ ( "width", "100%" ) ] ]
+                                >> Query.has [ style "width" "100%" ]
                         , context "after the search is blurred"
                             (Application.update
                                 (ApplicationMsgs.Update Msgs.BlurMsg)
                                 >> Tuple.first
-                                >> Application.view
-                                >> Query.fromHtml
+                                >> queryView
                             )
                             [ it "should not have a search bar" <|
                                 Query.hasNot
@@ -1056,11 +948,10 @@ all =
                             , it "should have a magnifying glass icon" <|
                                 Query.find [ id "show-search-button" ]
                                     >> Query.has
-                                        [ style
-                                            [ ( "background-image", "url('public/images/ic-search-white-24px.svg')" )
-                                            , ( "background-position", "12px 8px" )
-                                            , ( "background-repeat", "no-repeat" )
-                                            ]
+                                        [ style "background-image"
+                                            "url('public/images/ic-search-white-24px.svg')"
+                                        , style "background-position" "12px 8px"
+                                        , style "background-repeat" "no-repeat"
                                         ]
                             , it "shows the login component" <|
                                 Query.has [ id "login-component" ]
@@ -1074,8 +965,7 @@ all =
                                 >> Application.update
                                     (ApplicationMsgs.Update <| Msgs.BlurMsg)
                                 >> Tuple.first
-                                >> Application.view
-                                >> Query.fromHtml
+                                >> queryView
                             )
                             [ it "should have a search bar" <|
                                 Query.has [ id SearchBar.searchInputId ]
@@ -1098,23 +988,18 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
                 |> Application.handleCallback
                     (Callback.APIDataFetched
                         (Ok
-                            ( 0
+                            ( Time.millisToPosix 0
                             , { teams =
                                     [ Concourse.Team 1 "team1"
                                     , Concourse.Team 2 "team2"
@@ -1143,8 +1028,7 @@ all =
                             Msgs.FilterMsg "status:"
                         )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.findAll [ tag "li" ]
                     >> Expect.all
@@ -1169,8 +1053,7 @@ all =
                             Msgs.FilterMsg "status: pending"
                         )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.findAll [ id "search-dropdown" ]
                     >> Query.first
                     >> Query.children []
@@ -1184,23 +1067,18 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/"
-                , search = "?search=status:"
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/"
+                , query = Just "search=status:"
+                , fragment = Nothing
                 }
                 |> Tuple.first
                 |> Application.handleCallback
                     (Callback.APIDataFetched
                         (Ok
-                            ( 0
+                            ( Time.millisToPosix 0
                             , { teams =
                                     [ Concourse.Team 1 "team1"
                                     , Concourse.Team 2 "team2"
@@ -1220,8 +1098,7 @@ all =
                 Application.update
                     (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.findAll [ tag "li" ]
                     >> Expect.all
@@ -1243,17 +1120,12 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/"
-                , search = "?search=team:"
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/"
+                , query = Just "search=team:"
+                , fragment = Nothing
                 }
                 |> Tuple.first
             )
@@ -1261,7 +1133,7 @@ all =
                 Application.handleCallback
                     (Callback.APIDataFetched
                         (Ok
-                            ( 0
+                            ( Time.millisToPosix 0
                             , { teams = [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
@@ -1276,8 +1148,7 @@ all =
                     >> Application.update
                         (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.children []
                     >> Expect.all
@@ -1289,7 +1160,7 @@ all =
                 Application.handleCallback
                     (Callback.APIDataFetched
                         (Ok
-                            ( 0
+                            ( Time.millisToPosix 0
                             , { teams =
                                     [ Concourse.Team 1 "team1"
                                     , Concourse.Team 2 "team2"
@@ -1316,8 +1187,7 @@ all =
                     >> Application.update
                         (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.children []
                     >> Query.count (Expect.equal 10)
@@ -1330,23 +1200,18 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
-                { href = ""
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/"
-                , search = ""
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/"
+                , query = Nothing
+                , fragment = Nothing
                 }
                 |> Tuple.first
                 |> Application.handleCallback
                     (Callback.APIDataFetched <|
                         Ok
-                            ( 0
+                            ( Time.millisToPosix 0
                             , { teams = [ { id = 0, name = "team" } ]
                               , pipelines =
                                     [ { id = 0
@@ -1367,7 +1232,7 @@ all =
                 |> Tuple.first
             )
             [ context "before receiving FocusMsg"
-                (Application.view >> Query.fromHtml)
+                queryView
                 [ it "has no dropdown" <|
                     Query.findAll [ id "search-dropdown" ]
                         >> Query.count (Expect.equal 0)
@@ -1378,47 +1243,40 @@ all =
                 ]
             , it "hitting '/' focuses search input" <|
                 Application.update
-                    (ApplicationMsgs.DeliveryReceived <| KeyDown 191)
+                    (ApplicationMsgs.DeliveryReceived <|
+                        KeyDown
+                            { ctrlKey = False
+                            , shiftKey = False
+                            , metaKey = False
+                            , code = Keyboard.Slash
+                            }
+                    )
                     >> Tuple.second
                     >> Expect.equal [ Effects.Focus SearchBar.searchInputId ]
             , it "hitting shift + '/' (= '?') does not focus search input" <|
                 Application.update
                     (ApplicationMsgs.DeliveryReceived <|
-                        KeyDown Keycodes.shift
+                        KeyDown
+                            { ctrlKey = False
+                            , shiftKey = True
+                            , metaKey = False
+                            , code = Keyboard.Slash
+                            }
                     )
-                    >> Tuple.first
-                    >> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            KeyDown 191
-                        )
                     >> Tuple.second
                     >> Expect.equal []
-            , it "pressing + releasing shift, then '/', focuses search input" <|
-                Application.update
-                    (ApplicationMsgs.DeliveryReceived <|
-                        KeyDown Keycodes.shift
-                    )
-                    >> Tuple.first
-                    >> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            KeyUp Keycodes.shift
-                        )
-                    >> Tuple.first
-                    >> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            KeyDown 191
-                        )
-                    >> Tuple.second
-                    >> Expect.equal [ Effects.Focus SearchBar.searchInputId ]
             , it "hitting other keys does not cause dropdown to expand" <|
                 Application.update
                     (ApplicationMsgs.DeliveryReceived <|
-                        KeyDown <|
-                            Char.toCode 'A'
+                        KeyDown
+                            { ctrlKey = False
+                            , shiftKey = False
+                            , metaKey = False
+                            , code = Keyboard.A
+                            }
                     )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.findAll [ id "search-dropdown" ]
                     >> Query.count (Expect.equal 0)
             , context "after receiving FocusMsg"
@@ -1428,7 +1286,12 @@ all =
                             (Tuple.first
                                 >> Application.update
                                     (ApplicationMsgs.DeliveryReceived <|
-                                        KeyDown 40
+                                        KeyDown
+                                            { ctrlKey = False
+                                            , shiftKey = False
+                                            , metaKey = False
+                                            , code = Keyboard.ArrowDown
+                                            }
                                     )
                             )
                             ([ testDropdown [ 0 ] [ 1 ] ]
@@ -1436,7 +1299,12 @@ all =
                                         (Tuple.first
                                             >> Application.update
                                                 (ApplicationMsgs.DeliveryReceived <|
-                                                    KeyDown 40
+                                                    KeyDown
+                                                        { ctrlKey = False
+                                                        , shiftKey = False
+                                                        , metaKey = False
+                                                        , code = Keyboard.ArrowDown
+                                                        }
                                                 )
                                         )
                                         ([ testDropdown [ 1 ] [ 0 ] ]
@@ -1444,7 +1312,12 @@ all =
                                                     (Tuple.first
                                                         >> Application.update
                                                             (ApplicationMsgs.DeliveryReceived <|
-                                                                KeyDown 40
+                                                                KeyDown
+                                                                    { ctrlKey = False
+                                                                    , shiftKey = False
+                                                                    , metaKey = False
+                                                                    , code = Keyboard.ArrowDown
+                                                                    }
                                                             )
                                                     )
                                                     [ testDropdown [ 0 ] [ 1 ] ]
@@ -1452,7 +1325,12 @@ all =
                                                     (Tuple.first
                                                         >> Application.update
                                                             (ApplicationMsgs.DeliveryReceived <|
-                                                                KeyDown 13
+                                                                KeyDown
+                                                                    { ctrlKey = False
+                                                                    , shiftKey = False
+                                                                    , metaKey = False
+                                                                    , code = Keyboard.Enter
+                                                                    }
                                                             )
                                                         >> viewNormally
                                                     )
@@ -1466,13 +1344,17 @@ all =
                                         (Tuple.first
                                             >> Application.update
                                                 (ApplicationMsgs.DeliveryReceived <|
-                                                    KeyDown 13
+                                                    KeyDown
+                                                        { ctrlKey = False
+                                                        , shiftKey = False
+                                                        , metaKey = False
+                                                        , code = Keyboard.Enter
+                                                        }
                                                 )
                                         )
                                         [ it "updates the query" <|
                                             Tuple.first
-                                                >> Application.view
-                                                >> Query.fromHtml
+                                                >> queryView
                                                 >> Query.find
                                                     [ id SearchBar.searchInputId ]
                                                 >> Query.has
@@ -1492,7 +1374,12 @@ all =
                             (Tuple.first
                                 >> Application.update
                                     (ApplicationMsgs.DeliveryReceived <|
-                                        KeyDown 38
+                                        KeyDown
+                                            { ctrlKey = False
+                                            , shiftKey = False
+                                            , metaKey = False
+                                            , code = Keyboard.ArrowUp
+                                            }
                                     )
                             )
                             ([ testDropdown [ 1 ] [ 0 ] ]
@@ -1500,7 +1387,12 @@ all =
                                         (Tuple.first
                                             >> Application.update
                                                 (ApplicationMsgs.DeliveryReceived <|
-                                                    KeyDown 38
+                                                    KeyDown
+                                                        { ctrlKey = False
+                                                        , shiftKey = False
+                                                        , metaKey = False
+                                                        , code = Keyboard.ArrowUp
+                                                        }
                                                 )
                                         )
                                         ([ testDropdown [ 0 ] [ 1 ] ]
@@ -1508,7 +1400,12 @@ all =
                                                     (Tuple.first
                                                         >> Application.update
                                                             (ApplicationMsgs.DeliveryReceived <|
-                                                                KeyDown 38
+                                                                KeyDown
+                                                                    { ctrlKey = False
+                                                                    , shiftKey = False
+                                                                    , metaKey = False
+                                                                    , code = Keyboard.ArrowUp
+                                                                    }
                                                             )
                                                     )
                                                     [ testDropdown [ 1 ] [ 0 ] ]
@@ -1521,7 +1418,12 @@ all =
                             (Tuple.first
                                 >> Application.update
                                     (ApplicationMsgs.DeliveryReceived <|
-                                        KeyDown 27
+                                        KeyDown
+                                            { ctrlKey = False
+                                            , shiftKey = False
+                                            , metaKey = False
+                                            , code = Keyboard.Escape
+                                            }
                                     )
                             )
                             [ it "search input is blurred" <|
@@ -1552,17 +1454,12 @@ all =
                         , authToken = ""
                         , pipelineRunningKeyframes = ""
                         }
-                        { href = ""
+                        { protocol = Url.Http
                         , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = "/teams/t/pipelines/p"
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
+                        , port_ = Nothing
+                        , path = "/teams/t/pipelines/p"
+                        , query = Nothing
+                        , fragment = Nothing
                         }
                         |> Tuple.first
                         |> Application.handleCallback
@@ -1623,8 +1520,7 @@ all =
                 { name = "play pipeline icon when authorized"
                 , setup = givenPipelinePaused |> givenUserAuthorized
                 , query =
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.children []
                         >> Query.first
@@ -1635,11 +1531,9 @@ all =
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
-                        [ style
-                            [ ( "opacity", "0.5" )
-                            , ( "margin", "17px" )
-                            , ( "cursor", "pointer" )
-                            ]
+                        [ style "opacity" "0.5"
+                        , style "margin" "17px"
+                        , style "cursor" "pointer"
                         ]
                             ++ iconSelector
                                 { size = "20px"
@@ -1649,11 +1543,9 @@ all =
                 , hoveredSelector =
                     { description = "white play button with light border"
                     , selector =
-                        [ style
-                            [ ( "opacity", "1" )
-                            , ( "margin", "17px" )
-                            , ( "cursor", "pointer" )
-                            ]
+                        [ style "opacity" "1"
+                        , style "margin" "17px"
+                        , style "cursor" "pointer"
                         ]
                             ++ iconSelector
                                 { size = "20px"
@@ -1676,8 +1568,7 @@ all =
                 { name = "play pipeline icon when unauthenticated"
                 , setup = givenPipelinePaused
                 , query =
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.children []
                         >> Query.first
@@ -1688,11 +1579,9 @@ all =
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
-                        [ style
-                            [ ( "opacity", "0.5" )
-                            , ( "margin", "17px" )
-                            , ( "cursor", "pointer" )
-                            ]
+                        [ style "opacity" "0.5"
+                        , style "margin" "17px"
+                        , style "cursor" "pointer"
                         ]
                             ++ iconSelector
                                 { size = "20px"
@@ -1702,11 +1591,9 @@ all =
                 , hoveredSelector =
                     { description = "white play button with light border"
                     , selector =
-                        [ style
-                            [ ( "opacity", "1" )
-                            , ( "margin", "17px" )
-                            , ( "cursor", "pointer" )
-                            ]
+                        [ style "opacity" "1"
+                        , style "margin" "17px"
+                        , style "cursor" "pointer"
                         ]
                             ++ iconSelector
                                 { size = "20px"
@@ -1729,8 +1616,7 @@ all =
                 { name = "play pipeline icon when unauthorized"
                 , setup = givenPipelinePaused |> givenUserUnauthorized
                 , query =
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.children []
                         >> Query.first
@@ -1741,11 +1627,9 @@ all =
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
-                        [ style
-                            [ ( "opacity", "0.5" )
-                            , ( "margin", "17px" )
-                            , ( "cursor", "default" )
-                            ]
+                        [ style "opacity" "0.5"
+                        , style "margin" "17px"
+                        , style "cursor" "default"
                         ]
                             ++ iconSelector
                                 { size = "20px"
@@ -1755,11 +1639,9 @@ all =
                 , hoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
-                        [ style
-                            [ ( "margin", "17px" )
-                            , ( "cursor", "default" )
-                            , ( "opacity", "0.5" )
-                            ]
+                        [ style "margin" "17px"
+                        , style "cursor" "default"
+                        , style "opacity" "0.5"
                         ]
                             ++ iconSelector
                                 { size = "20px"
@@ -1781,8 +1663,7 @@ all =
             , test "clicking play button sends TogglePipelinePaused msg" <|
                 \_ ->
                     givenPipelinePaused
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> queryView
                         |> Query.find [ id "top-bar-pause-toggle" ]
                         |> Query.children []
                         |> Query.first
@@ -1792,8 +1673,7 @@ all =
                 \_ ->
                     givenPipelinePaused
                         |> givenUserUnauthorized
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> queryView
                         |> Query.find [ id "top-bar-pause-toggle" ]
                         |> Query.children []
                         |> Query.first
@@ -1815,19 +1695,15 @@ all =
                     givenPipelinePaused
                         |> Application.update toggleMsg
                         |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> queryView
                         |> Query.find [ id "top-bar-pause-toggle" ]
                         |> Query.children []
                         |> Query.first
                         |> Query.has
-                            [ style
-                                [ ( "animation"
-                                  , "container-rotate 1568ms linear infinite"
-                                  )
-                                , ( "height", "20px" )
-                                , ( "width", "20px" )
-                                ]
+                            [ style "animation"
+                                "container-rotate 1568ms linear infinite"
+                            , style "height" "20px"
+                            , style "width" "20px"
                             ]
             , test "successful PipelineToggled callback turns topbar dark" <|
                 \_ ->
@@ -1837,11 +1713,10 @@ all =
                         |> Application.handleCallback
                             (Callback.PipelineToggled pipelineIdentifier <| Ok ())
                         |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
-                            [ style [ ( "background-color", backgroundGrey ) ] ]
+                            [ style "background-color" backgroundGrey ]
             , test "successful callback turns spinner into pause button" <|
                 \_ ->
                     givenPipelinePaused
@@ -1850,8 +1725,7 @@ all =
                         |> Application.handleCallback
                             (Callback.PipelineToggled pipelineIdentifier <| Ok ())
                         |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> queryView
                         |> Query.find [ id "top-bar-pause-toggle" ]
                         |> Query.children []
                         |> Query.first
@@ -1897,18 +1771,17 @@ all =
                                         }
                             )
                         |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
-                            [ style [ ( "background-color", pausedBlue ) ] ]
+                            [ style "background-color" pausedBlue ]
             ]
         ]
 
 
-eachHasStyle : List ( String, String ) -> Query.Multiple msg -> Expectation
-eachHasStyle styles =
-    Query.each <| Query.has [ style styles ]
+eachHasStyle : String -> String -> Query.Multiple msg -> Expectation
+eachHasStyle property value =
+    Query.each <| Query.has [ style property value ]
 
 
 sampleUser : Concourse.User
@@ -1918,28 +1791,22 @@ sampleUser =
 
 pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
-    [ style
-        [ ( "background-image", "url(/public/images/ic-breadcrumb-pipeline.svg)" )
-        , ( "background-repeat", "no-repeat" )
-        ]
+    [ style "background-image" "url(/public/images/ic-breadcrumb-pipeline.svg)"
+    , style "background-repeat" "no-repeat"
     ]
 
 
 jobBreadcrumbSelector : List Selector.Selector
 jobBreadcrumbSelector =
-    [ style
-        [ ( "background-image", "url(/public/images/ic-breadcrumb-job.svg)" )
-        , ( "background-repeat", "no-repeat" )
-        ]
+    [ style "background-image" "url(/public/images/ic-breadcrumb-job.svg)"
+    , style "background-repeat" "no-repeat"
     ]
 
 
 resourceBreadcrumbSelector : List Selector.Selector
 resourceBreadcrumbSelector =
-    [ style
-        [ ( "background-image", "url(/public/images/ic-breadcrumb-resource.svg)" )
-        , ( "background-repeat", "no-repeat" )
-        ]
+    [ style "background-image" "url(/public/images/ic-breadcrumb-resource.svg)"
+    , style "background-repeat" "no-repeat"
     ]
 
 
@@ -1958,7 +1825,7 @@ viewNormally :
     ( Application.Model, List Effects.Effect )
     -> Query.Single ApplicationMsgs.TopLevelMessage
 viewNormally =
-    Tuple.first >> Application.view >> Query.fromHtml
+    Tuple.first >> queryView
 
 
 testDropdown :
@@ -1980,32 +1847,30 @@ testDropdown selecteds notSelecteds =
         , context "dropdown elements"
             (Query.findAll [ tag "li" ])
             [ it "have the same width and padding as search bar" <|
-                eachHasStyle [ ( "padding", searchBarPadding ) ]
+                eachHasStyle "padding" searchBarPadding
             , it "have the same height as the search bar" <|
-                eachHasStyle [ ( "line-height", searchBarHeight ) ]
+                eachHasStyle "line-height" searchBarHeight
             , it "have no bullet points" <|
-                eachHasStyle [ ( "list-style-type", "none" ) ]
+                eachHasStyle "list-style-type" "none"
             , it "have the same border style as the search bar" <|
-                eachHasStyle [ ( "border", searchBarBorder ) ]
+                eachHasStyle "border" searchBarBorder
             , it "are vertically aligned flush to each other" <|
-                eachHasStyle [ ( "margin-top", "-1px" ) ]
+                eachHasStyle "margin-top" "-1px"
             , it "have slightly larger font" <|
-                eachHasStyle [ ( "font-size", "1.15em" ) ]
+                eachHasStyle "font-size" "1.15em"
             , it "have a pointer cursor" <|
-                eachHasStyle [ ( "cursor", "pointer" ) ]
+                eachHasStyle "cursor" "pointer"
             ]
         , it "the search dropdown is positioned below the search bar" <|
             Query.find [ id "search-dropdown" ]
                 >> Query.has
-                    [ style
-                        [ ( "position", "absolute" )
-                        , ( "top", "100%" )
-                        , ( "margin", "0" )
-                        ]
+                    [ style "position" "absolute"
+                    , style "top" "100%"
+                    , style "margin" "0"
                     ]
         , it "the search dropdown is the same width as search bar" <|
             Query.find [ id "search-dropdown" ]
-                >> Query.has [ style [ ( "width", "100%" ) ] ]
+                >> Query.has [ style "width" "100%" ]
         , it "the search dropdown has 2 elements" <|
             Query.find [ id "search-dropdown" ]
                 >> Expect.all
@@ -2035,12 +1900,12 @@ testDropdown selecteds notSelecteds =
             (List.concat
                 (List.map
                     (\idx ->
-                        [ it ("has the first element highlighted " ++ toString idx) <|
+                        [ it ("has the first element highlighted " ++ String.fromInt idx) <|
                             Query.index idx
-                                >> Query.has [ style [ ( "background-color", "#1e1d1d" ) ] ]
-                        , it ("has white text " ++ toString idx) <|
+                                >> Query.has [ style "background-color" "#1e1d1d" ]
+                        , it ("has white text " ++ String.fromInt idx) <|
                             Query.index idx
-                                >> Query.has [ style [ ( "color", "#ffffff" ) ] ]
+                                >> Query.has [ style "color" "#ffffff" ]
                         ]
                     )
                     selecteds
@@ -2052,12 +1917,12 @@ testDropdown selecteds notSelecteds =
             (List.concat
                 (List.map
                     (\idx ->
-                        [ it ("has the other elements not highlighted " ++ toString idx) <|
+                        [ it ("has the other elements not highlighted " ++ String.fromInt idx) <|
                             Query.index idx
-                                >> Query.has [ style [ ( "background-color", dropdownBackgroundGrey ) ] ]
-                        , it ("have light grey text " ++ toString idx) <|
+                                >> Query.has [ style "background-color" dropdownBackgroundGrey ]
+                        , it ("have light grey text " ++ String.fromInt idx) <|
                             Query.index idx
-                                >> Query.has [ style [ ( "color", "#9b9b9b" ) ] ]
+                                >> Query.has [ style "color" "#9b9b9b" ]
                         ]
                     )
                     notSelecteds

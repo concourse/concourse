@@ -5,15 +5,15 @@ port module Message.Subscription exposing
     , runSubscription
     )
 
+import Browser
+import Browser.Events exposing (onClick, onKeyDown, onKeyUp, onMouseMove, onResize)
 import Build.StepTree.Models exposing (BuildEventEnvelope)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
 import Keyboard
-import Mouse
 import Routes
 import Time
-import Window
 
 
 port newUrl : (String -> msg) -> Sub msg
@@ -45,16 +45,17 @@ type Subscription
 
 
 type Delivery
-    = KeyDown Keyboard.KeyCode
-    | KeyUp Keyboard.KeyCode
+    = KeyDown Keyboard.KeyEvent
+    | KeyUp Keyboard.KeyEvent
     | Moused
-    | ClockTicked Interval Time.Time
+    | ClockTicked Interval Time.Posix
     | ScrolledToBottom Bool
-    | WindowResized Window.Size
+    | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
-    | EventsReceived (Result String (List BuildEventEnvelope))
+    | EventsReceived (Result Json.Decode.Error (List BuildEventEnvelope))
     | RouteChanged Routes.Route
+    | UrlRequest Browser.UrlRequest
     | ElementVisible ( String, Bool )
 
 
@@ -72,23 +73,28 @@ runSubscription s =
 
         OnMouse ->
             Sub.batch
-                [ Mouse.moves (always Moused)
-                , Mouse.clicks (always Moused)
+                [ onMouseMove (Json.Decode.succeed Moused)
+                , onClick (Json.Decode.succeed Moused)
                 ]
 
         OnKeyDown ->
-            Keyboard.downs KeyDown
+            onKeyDown (Keyboard.decodeKeyEvent |> Json.Decode.map KeyDown)
 
         OnKeyUp ->
-            Keyboard.ups KeyUp
+            onKeyUp (Keyboard.decodeKeyEvent |> Json.Decode.map KeyUp)
 
         OnScrollToBottom ->
             scrolledToBottom ScrolledToBottom
 
         OnWindowResize ->
-            Window.resizes WindowResized
+            onResize
+                (\width height ->
+                    WindowResized
+                        (toFloat width)
+                        (toFloat height)
+                )
 
-        FromEventSource key ->
+        FromEventSource _ ->
             eventSource
                 (Json.Decode.decodeValue
                     (Json.Decode.list decodeBuildEventEnvelope)
@@ -105,14 +111,14 @@ runSubscription s =
             reportIsVisible ElementVisible
 
 
-intervalToTime : Interval -> Time.Time
+intervalToTime : Interval -> Float
 intervalToTime t =
     case t of
         OneSecond ->
-            Time.second
+            1000
 
         FiveSeconds ->
-            5 * Time.second
+            5 * 1000
 
         OneMinute ->
-            Time.minute
+            60 * 1000

@@ -1,6 +1,6 @@
 module TopologicalSort exposing (Digraph, flattenToLayers, tsort)
 
-import List.Extra exposing (elemIndex, find)
+import List.Extra exposing (find)
 
 
 
@@ -110,8 +110,8 @@ flattenToLayers graph =
 
 
 flattenToLayers_ : Digraph a -> List (List a) -> (a -> Maybe Int) -> (a -> Maybe Int)
-flattenToLayers_ graph sccs depths =
-    case sccs of
+flattenToLayers_ graph stronglyConnectedComponents depths =
+    case stronglyConnectedComponents of
         [] ->
             depths
 
@@ -130,16 +130,15 @@ flattenToLayers_ graph sccs depths =
             in
             case childDepths of
                 Nothing ->
-                    Debug.log "strongly-connected component preceding one of its dependencies?" <|
-                        -- "same size" recursion is safe here, because the tsort ensures we should never hit this case
-                        -- (even if they weren't in order, we should always have at least one scc that depends only on previously covered sccs)
-                        flattenToLayers_ graph (sccs ++ [ scc ]) depths
+                    -- "same size" recursion is safe here, because the tsort ensures we should never hit this case
+                    -- (even if they weren't in order, we should always have at least one scc that depends only on previously covered sccs)
+                    flattenToLayers_ graph (sccs ++ [ scc ]) depths
 
-                Just childDepths ->
+                Just cds ->
                     let
                         depth : Maybe Int
                         depth =
-                            childDepths
+                            cds
                                 |> List.maximum
                                 |> Maybe.map ((+) 1)
                                 |> Maybe.withDefault 0
@@ -179,7 +178,8 @@ getChildren graph v =
             children
 
         Nothing ->
-            Debug.log "a node was searched for with no children" []
+            -- impossible - each node should have an entry in the children list
+            []
 
 
 takeUpTo : a -> List a -> ( List a, List a )
@@ -188,16 +188,16 @@ takeUpTo t ts =
         [] ->
             ( [], [] )
 
-        s :: ts ->
-            if t == s then
-                ( [ s ], ts )
+        x :: xs ->
+            if t == x then
+                ( [ x ], xs )
 
             else
                 let
                     ( init, end ) =
-                        takeUpTo t ts
+                        takeUpTo t xs
                 in
-                ( s :: init, end )
+                ( x :: init, end )
 
 
 allDefined : List (Maybe a) -> Maybe (List a)

@@ -1,59 +1,100 @@
 module Views.BuildDuration exposing (show, view)
 
 import Concourse
-import Date exposing (Date)
-import Date.Format
+import DateFormat
 import Duration exposing (Duration)
 import Html exposing (Html)
 import Html.Attributes exposing (class, title)
-import Time exposing (Time)
+import Time
 
 
-view : Concourse.BuildDuration -> Time.Time -> Html a
-view duration now =
+view : Time.Zone -> Concourse.BuildDuration -> Time.Posix -> Html a
+view timeZone duration now =
     Html.table [ class "dictionary build-duration" ] <|
         case ( duration.startedAt, duration.finishedAt ) of
             ( Nothing, Nothing ) ->
                 [ pendingLabel "pending" ]
 
             ( Just startedAt, Nothing ) ->
-                [ labeledDate "started" now startedAt ]
+                [ labeledDate
+                    { label = "started"
+                    , timeZone = timeZone
+                    }
+                    now
+                    startedAt
+                ]
 
             ( Nothing, Just finishedAt ) ->
-                [ labeledDate "finished" now finishedAt ]
+                [ labeledDate
+                    { label = "finished"
+                    , timeZone = timeZone
+                    }
+                    now
+                    finishedAt
+                ]
 
             ( Just startedAt, Just finishedAt ) ->
                 let
                     durationElmIssue =
                         -- https://github.com/elm-lang/elm-compiler/issues/1223
-                        Duration.between (Date.toTime startedAt) (Date.toTime finishedAt)
+                        Duration.between startedAt finishedAt
                 in
-                [ labeledDate "started" now startedAt
-                , labeledDate "finished" now finishedAt
+                [ labeledDate
+                    { label = "started"
+                    , timeZone = timeZone
+                    }
+                    now
+                    startedAt
+                , labeledDate
+                    { label = "finished"
+                    , timeZone = timeZone
+                    }
+                    now
+                    finishedAt
                 , labeledDuration "duration" durationElmIssue
                 ]
 
 
-show : Time.Time -> Concourse.BuildDuration -> String
+show : Time.Posix -> Concourse.BuildDuration -> String
 show now =
     .startedAt
-        >> Maybe.map (Date.toTime >> flip Duration.between now >> Duration.format)
+        >> Maybe.map ((\a -> Duration.between a now) >> Duration.format)
         >> Maybe.withDefault ""
 
 
-labeledDate : String -> Time -> Date -> Html a
-labeledDate label now date =
+labeledDate :
+    { label : String, timeZone : Time.Zone }
+    -> Time.Posix
+    -> Time.Posix
+    -> Html a
+labeledDate { label, timeZone } now date =
     let
         ago =
-            Duration.between (Date.toTime date) now
+            Duration.between date now
 
         verboseDate =
-            Date.Format.format "%b %d %Y %I:%M:%S %p" date
+            DateFormat.format
+                [ DateFormat.monthNameAbbreviated
+                , DateFormat.text " "
+                , DateFormat.dayOfMonthNumber
+                , DateFormat.text " "
+                , DateFormat.yearNumber
+                , DateFormat.text " "
+                , DateFormat.hourFixed
+                , DateFormat.text ":"
+                , DateFormat.minuteFixed
+                , DateFormat.text ":"
+                , DateFormat.secondFixed
+                , DateFormat.text " "
+                , DateFormat.amPmUppercase
+                ]
+                timeZone
+                date
 
         relativeDate =
             Duration.format ago ++ " ago"
     in
-    if ago < 24 * Time.hour then
+    if ago < 24 * 60 * 60 * 1000 then
         Html.tr []
             [ Html.td [ class "dict-key" ] [ Html.text label ]
             , Html.td

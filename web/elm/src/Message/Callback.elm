@@ -1,12 +1,12 @@
 module Message.Callback exposing (Callback(..))
 
+import Browser.Dom
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Json.Encode
 import Message.Message exposing (VersionId, VersionToggleAction)
-import Time exposing (Time)
-import Window
+import Time
 
 
 type alias Fetched a =
@@ -15,7 +15,8 @@ type alias Fetched a =
 
 type Callback
     = EmptyCallback
-    | GotCurrentTime Time
+    | GotCurrentTime Time.Posix
+    | GotCurrentTimeZone Time.Zone
     | BuildTriggered (Fetched Concourse.Build)
     | JobBuildsFetched (Fetched (Paginated Concourse.Build))
     | JobFetched (Fetched Concourse.Job)
@@ -37,9 +38,9 @@ type Callback
     | Checked (Fetched ())
     | CommentSet (Fetched ())
     | TokenSentToFly (Fetched ())
-    | APIDataFetched (Fetched ( Time.Time, Concourse.APIData ))
+    | APIDataFetched (Fetched ( Time.Posix, Concourse.APIData ))
     | LoggedOut (Fetched ())
-    | ScreenResized Window.Size
+    | ScreenResized Browser.Dom.Viewport
     | BuildJobDetailsFetched (Fetched Concourse.Job)
     | BuildFetched (Fetched ( Int, Concourse.Build ))
     | BuildPrepFetched (Fetched ( Int, Concourse.BuildPrep ))

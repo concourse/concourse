@@ -10,6 +10,7 @@ module SubPage.SubPage exposing
     , view
     )
 
+import Browser
 import Build.Build as Build
 import Build.Models
 import Dashboard.Dashboard as Dashboard
@@ -17,13 +18,14 @@ import Dashboard.Models
 import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
-import Html exposing (Html)
+import Html
 import Job.Job as Job
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model
 import NotFound.NotFound as NotFound
 import Pipeline.Pipeline as Pipeline
@@ -98,7 +100,7 @@ init flags route =
                 }
                 |> Tuple.mapFirst DashboardModel
 
-        Routes.FlySuccess { flyPort } ->
+        Routes.FlySuccess flyPort ->
             FlySuccess.init
                 { authToken = flags.authToken
                 , flyPort = flyPort
@@ -150,32 +152,32 @@ genericUpdate :
     -> ET Model
 genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
     case model of
-        BuildModel model ->
-            fBuild ( model, effects )
+        BuildModel buildModel ->
+            fBuild ( buildModel, effects )
                 |> Tuple.mapFirst BuildModel
 
-        JobModel model ->
-            fJob ( model, effects )
+        JobModel jobModel ->
+            fJob ( jobModel, effects )
                 |> Tuple.mapFirst JobModel
 
-        PipelineModel model ->
-            fPipe ( model, effects )
+        PipelineModel pipelineModel ->
+            fPipe ( pipelineModel, effects )
                 |> Tuple.mapFirst PipelineModel
 
-        ResourceModel model ->
-            fRes ( model, effects )
+        ResourceModel resourceModel ->
+            fRes ( resourceModel, effects )
                 |> Tuple.mapFirst ResourceModel
 
-        DashboardModel model ->
-            fDash ( model, effects )
+        DashboardModel dashboardModel ->
+            fDash ( dashboardModel, effects )
                 |> Tuple.mapFirst DashboardModel
 
-        FlySuccessModel model ->
-            fFS ( model, effects )
+        FlySuccessModel flySuccessModel ->
+            fFS ( flySuccessModel, effects )
                 |> Tuple.mapFirst FlySuccessModel
 
-        NotFoundModel model ->
-            fNF ( model, effects )
+        NotFoundModel notFoundModel ->
+            fNF ( notFoundModel, effects )
                 |> Tuple.mapFirst NotFoundModel
 
 
@@ -208,11 +210,7 @@ handleCallback callback =
 handleLoggedOut : ET { a | isUserMenuExpanded : Bool }
 handleLoggedOut ( m, effs ) =
     ( { m | isUserMenuExpanded = False }
-    , effs
-        ++ [ NavigateTo <|
-                Routes.toString <|
-                    Routes.dashboardRoute False
-           ]
+    , effs ++ [ NavigateTo <| Routes.toString <| Routes.dashboardRoute False ]
     )
 
 
@@ -294,29 +292,47 @@ urlUpdate route =
         identity
 
 
-view : UserState -> Model -> Html Message
+view : UserState -> Model -> Browser.Document TopLevelMessage
 view userState mdl =
-    case mdl of
-        BuildModel model ->
-            Build.view userState model
+    let
+        ( title, body ) =
+            case mdl of
+                BuildModel model ->
+                    ( Build.documentTitle model
+                    , Build.view userState model
+                    )
 
-        JobModel model ->
-            Job.view userState model
+                JobModel model ->
+                    ( Job.documentTitle model
+                    , Job.view userState model
+                    )
 
-        PipelineModel model ->
-            Pipeline.view userState model
+                PipelineModel model ->
+                    ( Pipeline.documentTitle model
+                    , Pipeline.view userState model
+                    )
 
-        ResourceModel model ->
-            Resource.view userState model
+                ResourceModel model ->
+                    ( Resource.documentTitle model
+                    , Resource.view userState model
+                    )
 
-        DashboardModel model ->
-            Dashboard.view userState model
+                DashboardModel model ->
+                    ( Dashboard.documentTitle
+                    , Dashboard.view userState model
+                    )
 
-        NotFoundModel model ->
-            NotFound.view userState model
+                NotFoundModel model ->
+                    ( NotFound.documentTitle
+                    , NotFound.view userState model
+                    )
 
-        FlySuccessModel model ->
-            FlySuccess.view userState model
+                FlySuccessModel model ->
+                    ( FlySuccess.documentTitle
+                    , FlySuccess.view userState model
+                    )
+    in
+    { title = title ++ " - Concourse", body = [ Html.map Update body ] }
 
 
 subscriptions : Model -> List Subscription
@@ -325,17 +341,17 @@ subscriptions mdl =
         BuildModel model ->
             Build.subscriptions model
 
-        JobModel model ->
-            Job.subscriptions model
+        JobModel _ ->
+            Job.subscriptions
 
-        PipelineModel model ->
-            Pipeline.subscriptions model
+        PipelineModel _ ->
+            Pipeline.subscriptions
 
-        ResourceModel model ->
-            Resource.subscriptions model
+        ResourceModel _ ->
+            Resource.subscriptions
 
-        DashboardModel model ->
-            Dashboard.subscriptions model
+        DashboardModel _ ->
+            Dashboard.subscriptions
 
         NotFoundModel _ ->
             []

@@ -24,9 +24,9 @@ module Build.StepTree.Models exposing
 import Ansi.Log
 import Array exposing (Array)
 import Concourse
-import Date exposing (Date)
 import Dict exposing (Dict)
 import Routes exposing (Highlight, StepID)
+import Time
 
 
 type alias StepTreeModel =
@@ -39,13 +39,16 @@ type alias StepTreeModel =
 
 type StepTree
     = Task Step
+    | ArtifactInput Step
     | Get Step
+    | ArtifactOutput Step
     | Put Step
     | Aggregate (Array StepTree)
     | Do (Array StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
     | OnAbort HookedStep
+    | OnError HookedStep
     | Ensure HookedStep
     | Try StepTree
     | Retry StepID Int TabFocus (Array StepTree)
@@ -53,7 +56,7 @@ type StepTree
 
 
 type alias StepFocus =
-    { update : (StepTree -> StepTree) -> StepTree -> StepTree }
+    (StepTree -> StepTree) -> StepTree -> StepTree
 
 
 type alias Step =
@@ -66,7 +69,7 @@ type alias Step =
     , version : Maybe Version
     , metadata : List MetadataField
     , firstOccurrence : Bool
-    , timestamps : Dict Int Date
+    , timestamps : Dict Int Time.Posix
     }
 
 
@@ -112,13 +115,13 @@ type alias BuildEventEnvelope =
 
 
 type BuildEvent
-    = BuildStatus Concourse.BuildStatus Date
+    = BuildStatus Concourse.BuildStatus Time.Posix
     | Initialize Origin
     | StartTask Origin
     | FinishTask Origin Int
     | FinishGet Origin Int Concourse.Version Concourse.Metadata
     | FinishPut Origin Int Concourse.Version Concourse.Metadata
-    | Log Origin String (Maybe Date)
+    | Log Origin String (Maybe Time.Posix)
     | Error Origin String
     | BuildError String
     | End
@@ -143,17 +146,19 @@ focusRetry tab tree =
             Retry id tab User steps
 
         _ ->
-            Debug.crash "impossible (non-retry tab focus)"
+            -- impossible (non-retry tab focus)
+            tree
 
 
 updateAt : StepID -> (StepTree -> StepTree) -> StepTreeModel -> StepTreeModel
 updateAt id update root =
     case Dict.get id root.foci of
         Nothing ->
-            Debug.crash ("updateAt: id " ++ id ++ " not found")
+            -- updateAt: id " ++ id ++ " not found"
+            root
 
         Just focus ->
-            { root | tree = focus.update update root.tree }
+            { root | tree = focus update root.tree }
 
 
 map : (Step -> Step) -> StepTree -> StepTree
@@ -174,17 +179,17 @@ map f tree =
 
 wrapMultiStep : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
 wrapMultiStep i =
-    Dict.map (\_ subFocus -> { update = \upd tree -> setMultiStepIndex i (subFocus.update upd) tree })
+    Dict.map (\_ subFocus -> subFocus >> setMultiStepIndex i)
 
 
-wrapStep : StepID -> StepFocus -> StepFocus
-wrapStep id subFocus =
-    { update = \upd tree -> updateStep (subFocus.update upd) tree }
+wrapStep : StepFocus -> StepFocus
+wrapStep subFocus =
+    subFocus >> updateStep
 
 
-wrapHook : StepID -> StepFocus -> StepFocus
-wrapHook id subFocus =
-    { update = \upd tree -> updateHook (subFocus.update upd) tree }
+wrapHook : StepFocus -> StepFocus
+wrapHook subFocus =
+    subFocus >> updateHook
 
 
 updateStep : (StepTree -> StepTree) -> StepTree -> StepTree
@@ -199,6 +204,9 @@ updateStep update tree =
         OnAbort hookedStep ->
             OnAbort { hookedStep | step = update hookedStep.step }
 
+        OnError hookedStep ->
+            OnError { hookedStep | step = update hookedStep.step }
+
         Ensure hookedStep ->
             Ensure { hookedStep | step = update hookedStep.step }
 
@@ -209,7 +217,8 @@ updateStep update tree =
             Timeout (update step)
 
         _ ->
-            Debug.crash "impossible"
+            --impossible
+            tree
 
 
 updateHook : (StepTree -> StepTree) -> StepTree -> StepTree
@@ -224,11 +233,15 @@ updateHook update tree =
         OnAbort hookedStep ->
             OnAbort { hookedStep | hook = update hookedStep.hook }
 
+        OnError hookedStep ->
+            OnError { hookedStep | hook = update hookedStep.hook }
+
         Ensure hookedStep ->
             Ensure { hookedStep | hook = update hookedStep.hook }
 
         _ ->
-            Debug.crash "impossible"
+            -- impossible
+            tree
 
 
 getMultiStepIndex : Int -> StepTree -> StepTree
@@ -246,14 +259,16 @@ getMultiStepIndex idx tree =
                     trees
 
                 _ ->
-                    Debug.crash "impossible"
+                    -- impossible
+                    Array.fromList []
     in
     case Array.get idx steps of
         Just sub ->
             sub
 
         Nothing ->
-            Debug.crash "impossible"
+            -- impossible
+            tree
 
 
 setMultiStepIndex : Int -> (StepTree -> StepTree) -> StepTree -> StepTree
@@ -278,7 +293,8 @@ setMultiStepIndex idx update tree =
                     Retry id tab User updatedSteps
 
         _ ->
-            Debug.crash "impossible"
+            -- impossible
+            tree
 
 
 finishTree : StepTree -> StepTree
@@ -287,8 +303,14 @@ finishTree root =
         Task step ->
             Task (finishStep step)
 
+        ArtifactInput step ->
+            ArtifactInput (finishStep step)
+
         Get step ->
             Get (finishStep step)
+
+        ArtifactOutput step ->
+            ArtifactOutput { step | state = StepStateSucceeded }
 
         Put step ->
             Put (finishStep step)
@@ -300,16 +322,19 @@ finishTree root =
             Do (Array.map finishTree trees)
 
         OnSuccess hookedStep ->
-            OnSuccess { hookedStep | step = finishTree hookedStep.step }
+            OnSuccess (finishHookedStep hookedStep)
 
         OnFailure hookedStep ->
-            OnFailure { hookedStep | step = finishTree hookedStep.step }
+            OnFailure (finishHookedStep hookedStep)
 
         OnAbort hookedStep ->
-            OnAbort { hookedStep | step = finishTree hookedStep.step }
+            OnAbort (finishHookedStep hookedStep)
+
+        OnError hookedStep ->
+            OnError (finishHookedStep hookedStep)
 
         Ensure hookedStep ->
-            Ensure { hookedStep | step = finishTree hookedStep.step }
+            Ensure (finishHookedStep hookedStep)
 
         Try tree ->
             Try (finishTree tree)
@@ -336,3 +361,11 @@ finishStep step =
                     otherwise
     in
     { step | state = newState }
+
+
+finishHookedStep : HookedStep -> HookedStep
+finishHookedStep hooked =
+    { hooked
+        | step = finishTree hooked.step
+        , hook = finishTree hooked.hook
+    }

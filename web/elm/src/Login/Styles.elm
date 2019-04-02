@@ -7,60 +7,61 @@ module Login.Styles exposing
     )
 
 import Colors
+import Html
+import Html.Attributes exposing (style)
 
 
-loginComponent : List ( String, String )
+loginComponent : List (Html.Attribute msg)
 loginComponent =
-    [ ( "max-width", "20%" ) ]
+    [ style "max-width" "20%" ]
 
 
-loginContainer : Bool -> List ( String, String )
+loginContainer : Bool -> List (Html.Attribute msg)
 loginContainer isPaused =
-    [ ( "position", "relative" )
-    , ( "display", "flex" )
-    , ( "flex-direction", "column" )
-    , ( "border-left"
-      , "1px solid "
+    [ style "position" "relative"
+    , style "display" "flex"
+    , style "flex-direction" "column"
+    , style "border-left" <|
+        "1px solid "
             ++ (if isPaused then
                     Colors.pausedTopbarSeparator
 
                 else
                     Colors.background
                )
-      )
-    , ( "line-height", "54px" )
+    , style "line-height" "54px"
     ]
 
 
-loginItem : List ( String, String )
+loginItem : List (Html.Attribute msg)
 loginItem =
-    [ ( "padding", "0 30px" )
-    , ( "cursor", "pointer" )
-    , ( "display", "flex" )
-    , ( "align-items", "center" )
-    , ( "justify-content", "center" )
-    , ( "flex-grow", "1" )
+    [ style "padding" "0 30px"
+    , style "cursor" "pointer"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "justify-content" "center"
+    , style "flex-grow" "1"
     ]
 
 
-loginText : List ( String, String )
+loginText : List (Html.Attribute msg)
 loginText =
-    [ ( "overflow", "hidden" )
-    , ( "text-overflow", "ellipsis" )
+    [ style "overflow" "hidden"
+    , style "text-overflow" "ellipsis"
     ]
 
 
-logoutButton : List ( String, String )
+logoutButton : List (Html.Attribute msg)
 logoutButton =
-    [ ( "position", "absolute" )
-    , ( "top", "55px" )
-    , ( "background-color", Colors.frame )
-    , ( "height", "54px" )
-    , ( "width", "100%" )
-    , ( "border-top", "1px solid " ++ Colors.background )
-    , ( "cursor", "pointer" )
-    , ( "display", "flex" )
-    , ( "align-items", "center" )
-    , ( "justify-content", "center" )
-    , ( "flex-grow", "1" )
+    [ style "position" "absolute"
+    , style "top" "55px"
+    , style "background-color" Colors.frame
+    , style "height" "54px"
+    , style "width" "100%"
+    , style "border-top" <| "1px solid " ++ Colors.background
+    , style "cursor" "pointer"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "justify-content" "center"
+    , style "flex-grow" "1"
     ]

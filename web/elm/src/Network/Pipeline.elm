@@ -15,7 +15,7 @@ order teamName pipelineNames csrfToken =
             , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/ordering"
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , expect = Http.expectStringResponse (always (Ok ()))
-            , body = Http.jsonBody (Json.Encode.list (List.map Json.Encode.string pipelineNames))
+            , body = Http.jsonBody (Json.Encode.list Json.Encode.string pipelineNames)
             , timeout = Nothing
             , withCredentials = False
             }

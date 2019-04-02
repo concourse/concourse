@@ -2,6 +2,7 @@ module Pipeline.Pipeline exposing
     ( Flags
     , Model
     , changeToPipelineAndGroups
+    , documentTitle
     , getUpdateMessage
     , handleCallback
     , handleDelivery
@@ -11,7 +12,6 @@ module Pipeline.Pipeline exposing
     , view
     )
 
-import Char
 import Colors
 import Concourse
 import Concourse.Cli as Cli
@@ -21,29 +21,29 @@ import Html exposing (Html)
 import Html.Attributes
     exposing
         ( class
-        , height
+        , download
         , href
         , id
         , src
-        , width
         )
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
 import Json.Decode
 import Json.Encode
+import Keyboard
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pipeline.Styles as Styles
-import RemoteData exposing (..)
+import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-import Svg exposing (..)
+import Svg
 import Svg.Attributes as SvgAttributes
-import Time exposing (Time)
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views.PauseToggle as PauseToggle
@@ -64,10 +64,9 @@ type alias Model =
         , experiencingTurbulence : Bool
         , selectedGroups : List String
         , hideLegend : Bool
-        , hideLegendCounter : Time
-        , isToggleHovered : Bool
+        , hideLegendCounter : Float
         , isToggleLoading : Bool
-        , isPinMenuExpanded : Bool
+        , hovered : Maybe Hoverable
         }
 
 
@@ -93,11 +92,10 @@ init flags =
             , experiencingTurbulence = False
             , hideLegend = False
             , hideLegendCounter = 0
-            , isToggleHovered = False
             , isToggleLoading = False
             , selectedGroups = flags.selectedGroups
-            , isPinMenuExpanded = False
             , isUserMenuExpanded = False
+            , hovered = Nothing
             }
     in
     ( model
@@ -130,14 +128,14 @@ changeToPipelineAndGroups { pipelineLocator, selectedGroups } ( model, effects )
         ( newModel, effects ++ newEffects )
 
 
-timeUntilHidden : Time
+timeUntilHidden : Float
 timeUntilHidden =
-    10 * Time.second
+    10 * 1000
 
 
-timeUntilHiddenCheckInterval : Time
+timeUntilHiddenCheckInterval : Float
 timeUntilHiddenCheckInterval =
-    1 * Time.second
+    1 * 1000
 
 
 getUpdateMessage : Model -> UpdateMsg
@@ -166,7 +164,6 @@ handleCallback callback ( model, effects ) =
             , effects
                 ++ [ FetchJobs model.pipelineLocator
                    , FetchResources model.pipelineLocator
-                   , SetTitle <| pipeline.name ++ " - "
                    ]
             )
 
@@ -268,9 +265,8 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        VersionFetched (Err err) ->
-            flip always (Debug.log "failed to fetch version" err) <|
-                ( { model | experiencingTurbulence = True }, effects )
+        VersionFetched (Err _) ->
+            ( { model | experiencingTurbulence = True }, effects )
 
         _ ->
             ( model, effects )
@@ -279,9 +275,9 @@ handleCallback callback ( model, effects ) =
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keycode ->
+        KeyDown keyEvent ->
             ( { model | hideLegend = False, hideLegendCounter = 0 }
-            , if (Char.fromCode keycode |> Char.toLower) == 'f' then
+            , if keyEvent.code == Keyboard.F then
                 effects ++ [ ResetPipelineFocus ]
 
               else
@@ -326,25 +322,17 @@ update msg ( model, effects ) =
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
-        TogglePipelinePaused pipelineIdentifier isPaused ->
+        TogglePipelinePaused pipelineIdentifier paused ->
             ( { model | isToggleLoading = True }
             , effects
                 ++ [ SendTogglePipelineRequest
                         pipelineIdentifier
-                        isPaused
+                        paused
                    ]
             )
 
-        Hover (Just (PipelineButton _)) ->
-            ( { model | isToggleHovered = True }, effects )
-
-        Hover (Just PinIcon) ->
-            ( { model | isPinMenuExpanded = True }, effects )
-
-        Hover Nothing ->
-            ( { model | isToggleHovered = False, isPinMenuExpanded = False }
-            , effects
-            )
+        Hover hoverable ->
+            ( { model | hovered = hoverable }, effects )
 
         _ ->
             ( model, effects )
@@ -362,14 +350,19 @@ getPinnedResources model =
                 |> List.filterMap (\r -> Maybe.map (\v -> ( r.name, v )) r.pinnedVersion)
 
 
-subscriptions : Model -> List Subscription
-subscriptions model =
+subscriptions : List Subscription
+subscriptions =
     [ OnClockTick OneMinute
     , OnClockTick FiveSeconds
     , OnClockTick OneSecond
     , OnMouse
     , OnKeyDown
     ]
+
+
+documentTitle : Model -> String
+documentTitle model =
+    model.pipelineLocator.pipelineName
 
 
 view : UserState -> Model -> Html Message
@@ -381,44 +374,43 @@ view userState model =
                 , groups = model.selectedGroups
                 }
     in
-    Html.div [ Html.Attributes.style [ ( "height", "100%" ) ] ]
+    Html.div [ Html.Attributes.style "height" "100%" ]
         [ Html.div
-            [ Html.Attributes.style Views.Styles.pageIncludingTopBar
-            , id "page-including-top-bar"
-            ]
+            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
-                [ id "top-bar-app"
-                , Html.Attributes.style <|
-                    Views.Styles.topBar <|
-                        isPaused model.pipeline
-                ]
+                (id "top-bar-app"
+                    :: (Views.Styles.topBar <|
+                            isPaused model.pipeline
+                       )
+                )
                 [ TopBar.concourseLogo
                 , TopBar.breadcrumbs route
                 , viewPinMenu
                     { pinnedResources = getPinnedResources model
                     , pipeline = model.pipelineLocator
-                    , isPinMenuExpanded = model.isPinMenuExpanded
+                    , isPinMenuExpanded =
+                        model.hovered == Just PinIcon
                     }
                 , Html.div
-                    [ id "top-bar-pause-toggle"
-                    , Html.Attributes.style <|
-                        Styles.pauseToggle <|
-                            isPaused model.pipeline
-                    ]
+                    (id "top-bar-pause-toggle"
+                        :: (Styles.pauseToggle <| isPaused model.pipeline)
+                    )
                     [ PauseToggle.view "17px"
                         userState
                         { pipeline = model.pipelineLocator
                         , isPaused = isPaused model.pipeline
-                        , isToggleHovered = model.isToggleHovered
+                        , isToggleHovered =
+                            model.hovered
+                                == (Just <|
+                                        PipelineButton model.pipelineLocator
+                                   )
                         , isToggleLoading = model.isToggleLoading
                         }
                     ]
                 , Login.view userState model <| isPaused model.pipeline
                 ]
             , Html.div
-                [ Html.Attributes.style <| Views.Styles.pageBelowTopBar route
-                , id "page-below-top-bar"
-                ]
+                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
                 [ viewSubPage model ]
             ]
         ]
@@ -430,34 +422,29 @@ viewPinMenu :
     , isPinMenuExpanded : Bool
     }
     -> Html Message
-viewPinMenu ({ pinnedResources, pipeline, isPinMenuExpanded } as params) =
+viewPinMenu ({ pinnedResources, isPinMenuExpanded } as params) =
     Html.div
-        [ Html.Attributes.style <|
-            Styles.pinIconContainer isPinMenuExpanded
-        , id "pin-icon"
-        ]
+        (id "pin-icon" :: Styles.pinIconContainer isPinMenuExpanded)
         [ if List.length pinnedResources > 0 then
             Html.div
-                [ Html.Attributes.style <| Styles.pinIcon
-                , onMouseEnter <| Hover <| Just PinIcon
-                , onMouseLeave <| Hover Nothing
-                ]
-                ([ Html.div
-                    [ Html.Attributes.style Styles.pinBadge
-                    , id "pin-badge"
-                    ]
+                ([ onMouseEnter <| Hover <| Just PinIcon
+                 , onMouseLeave <| Hover Nothing
+                 ]
+                    ++ Styles.pinIcon
+                )
+                (Html.div
+                    (id "pin-badge" :: Styles.pinBadge)
                     [ Html.div []
                         [ Html.text <|
-                            toString <|
+                            String.fromInt <|
                                 List.length pinnedResources
                         ]
                     ]
-                 ]
-                    ++ viewPinMenuDropdown params
+                    :: viewPinMenuDropdown params
                 )
 
           else
-            Html.div [ Html.Attributes.style <| Styles.pinIcon ] []
+            Html.div Styles.pinIcon []
         ]
 
 
@@ -470,13 +457,13 @@ viewPinMenuDropdown :
 viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
     if isPinMenuExpanded then
         [ Html.ul
-            [ Html.Attributes.style Styles.pinIconDropdown ]
+            Styles.pinIconDropdown
             (pinnedResources
                 |> List.map
                     (\( resourceName, pinnedVersion ) ->
                         Html.li
-                            [ onClick <|
-                                GoToRoute <|
+                            (onClick
+                                (GoToRoute <|
                                     Routes.Resource
                                         { id =
                                             { teamName = pipeline.teamName
@@ -485,10 +472,11 @@ viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
                                             }
                                         , page = Nothing
                                         }
-                            , Html.Attributes.style Styles.pinDropdownCursor
-                            ]
+                                )
+                                :: Styles.pinDropdownCursor
+                            )
                             [ Html.div
-                                [ Html.Attributes.style Styles.pinText ]
+                                Styles.pinText
                                 [ Html.text resourceName ]
                             , Html.table []
                                 (pinnedVersion
@@ -504,7 +492,7 @@ viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
                             ]
                     )
             )
-        , Html.div [ Html.Attributes.style Styles.pinHoverHighlight ] []
+        , Html.div Styles.pinHoverHighlight []
         ]
 
     else
@@ -552,8 +540,7 @@ viewSubPage model =
                     , Html.dt [ class "paused" ] []
                     , Html.dd [] [ Html.text "paused" ]
                     , Html.dt
-                        [ Html.Attributes.style
-                            [ ( "background-color", Colors.pinned ) ]
+                        [ Html.Attributes.style "background-color" Colors.pinned
                         ]
                         []
                     , Html.dd [] [ Html.text "pinned" ]
@@ -577,11 +564,12 @@ viewSubPage model =
                                 (\cli ->
                                     Html.li []
                                         [ Html.a
-                                            [ href <| Cli.downloadUrl cli
-                                            , ariaLabel <| Cli.label cli
-                                            , Html.Attributes.style <|
-                                                Styles.cliIcon cli
-                                            ]
+                                            ([ href <| Cli.downloadUrl cli
+                                             , ariaLabel <| Cli.label cli
+                                             , download ""
+                                             ]
+                                                ++ Styles.cliIcon cli
+                                            )
                                             []
                                         ]
                                 )
@@ -610,10 +598,11 @@ viewGroupsBar model =
         groupList =
             case model.pipeline of
                 RemoteData.Success pipeline ->
-                    List.map
+                    List.indexedMap
                         (viewGroup
                             { selectedGroups = selectedGroupsOrDefault model
                             , pipelineLocator = model.pipelineLocator
+                            , hovered = model.hovered
                             }
                         )
                         pipeline.groups
@@ -626,37 +615,40 @@ viewGroupsBar model =
 
     else
         Html.nav
-            [ id "groups-bar"
-            , Html.Attributes.style Styles.groupsBar
-            ]
-            [ Html.ul
-                [ Html.Attributes.style Styles.groupsList ]
-                groupList
-            ]
+            (id "groups-bar" :: Styles.groupsBar)
+            [ Html.ul Styles.groupsList groupList ]
 
 
 viewGroup :
     { a
         | selectedGroups : List String
         , pipelineLocator : Concourse.PipelineIdentifier
+        , hovered : Maybe Hoverable
     }
+    -> Int
     -> Concourse.PipelineGroup
     -> Html Message
-viewGroup { selectedGroups, pipelineLocator } grp =
+viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
     let
         url =
             Routes.toString <|
-                Routes.Pipeline { id = pipelineLocator, groups = [] }
+                Routes.Pipeline { id = pipelineLocator, groups = [ grp.name ] }
     in
     Html.li
         []
         [ Html.a
-            [ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
-            , Html.Attributes.style <| Styles.groupItem <| List.member grp.name selectedGroups
-            , onLeftClickOrShiftLeftClick
+            ([ Html.Attributes.href <| url
+             , onLeftClickOrShiftLeftClick
                 (SetGroups [ grp.name ])
                 (ToggleGroup grp)
-            ]
+             , onMouseEnter <| Hover <| Just <| JobGroup idx
+             , onMouseLeave <| Hover Nothing
+             ]
+                ++ Styles.groupItem
+                    { selected = List.member grp.name selectedGroups
+                    , hovered = hovered == (Just <| JobGroup idx)
+                    }
+            )
             [ Html.text grp.name ]
         ]
 
@@ -671,9 +663,9 @@ jobAppearsInGroups groupNames pi jobJson =
         Ok cj ->
             anyIntersect cj.groups groupNames
 
-        Err err ->
-            flip always (Debug.log "failed to check if job is in group" err) <|
-                False
+        Err _ ->
+            -- failed to check if job is in group
+            False
 
 
 expandJsonList : Json.Encode.Value -> List Json.Decode.Value
@@ -686,13 +678,13 @@ expandJsonList flatList =
         Ok res ->
             res
 
-        Err err ->
+        Err _ ->
             []
 
 
 filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
 filterJobs model value =
-    Json.Encode.list <|
+    Json.Encode.list identity <|
         List.filter
             (jobAppearsInGroups (activeGroups model) model.pipelineLocator)
             (expandJsonList value)
@@ -786,8 +778,8 @@ selectedGroupsOrDefault model =
 getDefaultSelectedGroups : WebData Concourse.Pipeline -> List String
 getDefaultSelectedGroups pipeline =
     case pipeline of
-        RemoteData.Success pipeline ->
-            case List.head pipeline.groups of
+        RemoteData.Success p ->
+            case List.head p.groups of
                 Nothing ->
                     []
 

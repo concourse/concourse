@@ -15,121 +15,127 @@ module Pipeline.Styles exposing
 
 import Colors
 import Concourse.Cli as Cli
+import Html
+import Html.Attributes exposing (style)
 
 
-groupsBar : List ( String, String )
+groupsBar : List (Html.Attribute msg)
 groupsBar =
-    [ ( "background-color", Colors.groupsBarBackground )
-    , ( "color", Colors.dashboardText )
-    , ( "margin-top", "54px" )
+    [ style "background-color" Colors.groupsBarBackground
+    , style "color" Colors.dashboardText
     ]
 
 
-groupsList : List ( String, String )
+groupsList : List (Html.Attribute msg)
 groupsList =
-    [ ( "flex-grow", "1" )
-    , ( "display", "flex" )
-    , ( "flex-flow", "row wrap" )
-    , ( "padding", "5px" )
-    , ( "list-style", "none" )
+    [ style "flex-grow" "1"
+    , style "display" "flex"
+    , style "flex-flow" "row wrap"
+    , style "padding" "5px"
+    , style "list-style" "none"
     ]
 
 
-groupItem : Bool -> List ( String, String )
-groupItem selected =
-    [ ( "font-size", "14px" )
-    , ( "background", Colors.groupBackground )
-    , ( "margin", "5px" )
-    , ( "padding", "10px" )
+groupItem : { selected : Bool, hovered : Bool } -> List (Html.Attribute msg)
+groupItem { selected, hovered } =
+    [ style "font-size" "14px"
+    , style "background" Colors.groupBackground
+    , style "margin" "5px"
+    , style "padding" "10px"
     ]
         ++ (if selected then
-                [ ( "opacity", "1" )
-                , ( "border", "1px solid " ++ Colors.selectedGroupBorder )
+                [ style "opacity" "1"
+                , style "border" <| "1px solid " ++ Colors.groupBorderSelected
+                ]
+
+            else if hovered then
+                [ style "opacity" "0.6"
+                , style "border" <| "1px solid " ++ Colors.groupBorderHovered
                 ]
 
             else
-                [ ( "opacity", "0.6" )
-                , ( "border", "1px solid " ++ Colors.unselectedGroupBorder )
+                [ style "opacity" "0.6"
+                , style "border" <| "1px solid " ++ Colors.groupBorderUnselected
                 ]
            )
 
 
-pinHoverHighlight : List ( String, String )
+pinHoverHighlight : List (Html.Attribute msg)
 pinHoverHighlight =
-    [ ( "border-width", "5px" )
-    , ( "border-style", "solid" )
-    , ( "border-color", "transparent transparent " ++ Colors.white ++ " transparent" )
-    , ( "position", "absolute" )
-    , ( "top", "100%" )
-    , ( "right", "50%" )
-    , ( "margin-right", "-5px" )
-    , ( "margin-top", "-10px" )
+    [ style "border-width" "5px"
+    , style "border-style" "solid"
+    , style "border-color" <| "transparent transparent " ++ Colors.white ++ " transparent"
+    , style "position" "absolute"
+    , style "top" "100%"
+    , style "right" "50%"
+    , style "margin-right" "-5px"
+    , style "margin-top" "-10px"
     ]
 
 
-pinText : List ( String, String )
+pinText : List (Html.Attribute msg)
 pinText =
-    [ ( "font-weight", "700" ) ]
+    [ style "font-weight" "700" ]
 
 
-pinDropdownCursor : List ( String, String )
+pinDropdownCursor : List (Html.Attribute msg)
 pinDropdownCursor =
-    [ ( "cursor", "pointer" ) ]
+    [ style "cursor" "pointer" ]
 
 
-pinIconDropdown : List ( String, String )
+pinIconDropdown : List (Html.Attribute msg)
 pinIconDropdown =
-    [ ( "background-color", Colors.white )
-    , ( "color", Colors.pinIconHover )
-    , ( "position", "absolute" )
-    , ( "top", "100%" )
-    , ( "right", "0" )
-    , ( "white-space", "nowrap" )
-    , ( "list-style-type", "none" )
-    , ( "padding", "10px" )
-    , ( "margin-top", "0" )
-    , ( "z-index", "1" )
+    [ style "background-color" Colors.white
+    , style "color" Colors.pinIconHover
+    , style "position" "absolute"
+    , style "top" "100%"
+    , style "right" "0"
+    , style "white-space" "nowrap"
+    , style "list-style-type" "none"
+    , style "padding" "10px"
+    , style "margin-top" "0"
+    , style "z-index" "1"
     ]
 
 
-pinIcon : List ( String, String )
+pinIcon : List (Html.Attribute msg)
 pinIcon =
-    [ ( "background-image", "url(/public/images/pin-ic-white.svg)" )
-    , ( "width", "40px" )
-    , ( "height", "40px" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "50% 50%" )
-    , ( "position", "relative" )
+    [ style "background-image" "url(/public/images/pin-ic-white.svg)"
+    , style "width" "40px"
+    , style "height" "40px"
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
+    , style "position" "relative"
     ]
 
 
-pinBadge : List ( String, String )
+pinBadge : List (Html.Attribute msg)
 pinBadge =
-    [ ( "background-color", Colors.pinned )
-    , ( "border-radius", "50%" )
-    , ( "width", "15px" )
-    , ( "height", "15px" )
-    , ( "position", "absolute" )
-    , ( "top", "3px" )
-    , ( "right", "3px" )
-    , ( "display", "flex" )
-    , ( "align-items", "center" )
-    , ( "justify-content", "center" )
+    [ style "background-color" Colors.pinned
+    , style "border-radius" "50%"
+    , style "width" "15px"
+    , style "height" "15px"
+    , style "position" "absolute"
+    , style "top" "3px"
+    , style "right" "3px"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "justify-content" "center"
     ]
 
 
-pinIconContainer : Bool -> List ( String, String )
+pinIconContainer : Bool -> List (Html.Attribute msg)
 pinIconContainer showBackground =
-    [ ( "margin-right", "15px" )
-    , ( "top", "10px" )
-    , ( "position", "relative" )
-    , ( "height", "40px" )
-    , ( "display", "flex" )
-    , ( "max-width", "20%" )
+    [ style "margin-right" "15px"
+    , style "top" "10px"
+    , style "position" "relative"
+    , style "height" "40px"
+    , style "display" "flex"
+    , style "max-width" "20%"
     ]
         ++ (if showBackground then
-                [ ( "background-color", Colors.pinHighlight )
-                , ( "border-radius", "50%" )
+                [ style "background-color" Colors.pinHighlight
+                , style "border-radius" "50%"
                 ]
 
             else
@@ -137,25 +143,24 @@ pinIconContainer showBackground =
            )
 
 
-pauseToggle : Bool -> List ( String, String )
+pauseToggle : Bool -> List (Html.Attribute msg)
 pauseToggle isPaused =
-    [ ( "border-left"
-      , if isPaused then
+    [ style "border-left" <|
+        if isPaused then
             "1px solid rgba(255, 255, 255, 0.5)"
 
         else
             "1px solid #3d3c3c"
-      )
     ]
 
 
-cliIcon : Cli.Cli -> List ( String, String )
+cliIcon : Cli.Cli -> List (Html.Attribute msg)
 cliIcon cli =
-    [ ( "width", "12px" )
-    , ( "height", "12px" )
-    , ( "background-image", Cli.iconUrl cli )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-size", "contain" )
-    , ( "display", "inline-block" )
+    [ style "width" "12px"
+    , style "height" "12px"
+    , style "background-image" <| Cli.iconUrl cli
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
+    , style "background-size" "contain"
+    , style "display" "inline-block"
     ]

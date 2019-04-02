@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/ui/progress"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/vbauerster/mpb/v4"
 )
 
 type Input struct {
@@ -28,7 +31,6 @@ func DetermineInputs(
 	inputsFrom flaghelpers.JobFlag,
 	includeIgnored bool,
 ) ([]Input, map[string]string, *atc.ImageResource, error) {
-
 	inputMappings := ConvertInputMappings(userInputMappings)
 
 	err := CheckForUnknownInputMappings(localInputMappings, taskInputs)
@@ -137,29 +139,47 @@ func GenerateLocalInputs(
 	inputMappings []flaghelpers.InputPairFlag,
 	includeIgnored bool,
 ) (map[string]Input, error) {
+	inputs := map[string]Input{}
 
-	kvMap := map[string]Input{}
+	artifacts := new(sync.Map)
 
-	for _, i := range inputMappings {
-		artifact, err := Upload(team, i.Path, includeIgnored)
-		if err != nil {
-			return nil, err
-		}
+	prog := progress.New()
 
-		inputName := i.Name
-		absPath := i.Path
+	for _, mapping := range inputMappings {
+		name := mapping.Name
+		path := mapping.Path
 
-		kvMap[inputName] = Input{
-			Name: inputName,
-			Path: absPath,
+		prog.Go("uploading "+name, func(bar *mpb.Bar) error {
+			artifact, err := Upload(bar, team, path, includeIgnored)
+			if err != nil {
+				return err
+			}
+
+			artifacts.Store(name, artifact)
+
+			return nil
+		})
+	}
+
+	err := prog.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, mapping := range inputMappings {
+		val, _ := artifacts.Load(mapping.Name)
+
+		inputs[mapping.Name] = Input{
+			Name: mapping.Name,
+			Path: mapping.Path,
 			Plan: fact.NewPlan(atc.ArtifactInputPlan{
-				ArtifactID: artifact.ID,
-				Name:       inputName,
+				ArtifactID: val.(atc.WorkerArtifact).ID,
+				Name:       mapping.Name,
 			}),
 		}
 	}
 
-	return kvMap, nil
+	return inputs, nil
 }
 
 func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag, imageName string) (map[string]Input, *atc.ImageResource, error) {

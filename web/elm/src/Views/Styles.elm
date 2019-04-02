@@ -11,6 +11,8 @@ module Views.Styles exposing
     )
 
 import Colors
+import Html
+import Html.Attributes exposing (style)
 import Routes
 
 
@@ -19,27 +21,27 @@ pageHeaderHeight =
     54
 
 
-pageIncludingTopBar : List ( String, String )
+pageIncludingTopBar : List (Html.Attribute msg)
 pageIncludingTopBar =
-    [ ( "-webkit-font-smoothing", "antialiased" )
-    , ( "font-weight", "700" )
-    , ( "height", "100%" )
+    [ style "-webkit-font-smoothing" "antialiased"
+    , style "font-weight" "700"
+    , style "height" "100%"
     ]
 
 
-pageBelowTopBar : Routes.Route -> List ( String, String )
+pageBelowTopBar : Routes.Route -> List (Html.Attribute msg)
 pageBelowTopBar route =
-    [ ( "padding-top", "54px" )
-    , ( "height", "100%" )
+    [ style "padding-top" "54px"
+    , style "height" "100%"
     ]
         ++ (case route of
                 Routes.Pipeline _ ->
-                    [ ( "box-sizing", "border-box" ) ]
+                    [ style "box-sizing" "border-box" ]
 
                 Routes.Dashboard _ ->
-                    [ ( "box-sizing", "border-box" )
-                    , ( "display", "flex" )
-                    , ( "padding-bottom", "50px" )
+                    [ style "box-sizing" "border-box"
+                    , style "display" "flex"
+                    , style "padding-bottom" "50px"
                     ]
 
                 _ ->
@@ -47,69 +49,67 @@ pageBelowTopBar route =
            )
 
 
-topBar : Bool -> List ( String, String )
+topBar : Bool -> List (Html.Attribute msg)
 topBar isPaused =
-    [ ( "position", "fixed" )
-    , ( "top", "0" )
-    , ( "width", "100%" )
-    , ( "z-index", "999" )
-    , ( "display", "flex" )
-    , ( "justify-content", "space-between" )
-    , ( "font-weight", "700" )
-    , ( "background-color"
-      , if isPaused then
+    [ style "position" "fixed"
+    , style "top" "0"
+    , style "width" "100%"
+    , style "z-index" "999"
+    , style "display" "flex"
+    , style "justify-content" "space-between"
+    , style "font-weight" "700"
+    , style "background-color" <|
+        if isPaused then
             Colors.paused
 
         else
             Colors.frame
-      )
     ]
 
 
-concourseLogo : List ( String, String )
+concourseLogo : List (Html.Attribute msg)
 concourseLogo =
-    [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-size", "42px 42px" )
-    , ( "display", "inline-block" )
-    , ( "width", "54px" )
-    , ( "height", "54px" )
+    [ style "background-image" "url(/public/images/concourse-logo-white.svg)"
+    , style "background-position" "50% 50%"
+    , style "background-repeat" "no-repeat"
+    , style "background-size" "42px 42px"
+    , style "display" "inline-block"
+    , style "width" "54px"
+    , style "height" "54px"
     ]
 
 
-breadcrumbContainer : List ( String, String )
+breadcrumbContainer : List (Html.Attribute msg)
 breadcrumbContainer =
-    [ ( "flex-grow", "1" ) ]
+    [ style "flex-grow" "1" ]
 
 
-breadcrumbComponent : String -> List ( String, String )
+breadcrumbComponent : String -> List (Html.Attribute msg)
 breadcrumbComponent componentType =
-    [ ( "background-image", "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-size", "contain" )
-    , ( "display", "inline-block" )
-    , ( "vertical-align", "middle" )
-    , ( "height", "16px" )
-    , ( "width", "32px" )
-    , ( "margin-right", "10px" )
+    [ style "background-image" <| "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)"
+    , style "background-repeat" "no-repeat"
+    , style "background-size" "contain"
+    , style "display" "inline-block"
+    , style "vertical-align" "middle"
+    , style "height" "16px"
+    , style "width" "32px"
+    , style "margin-right" "10px"
     ]
 
 
-breadcrumbItem : Bool -> List ( String, String )
+breadcrumbItem : Bool -> List (Html.Attribute msg)
 breadcrumbItem clickable =
-    [ ( "display", "inline-block" )
-    , ( "vertical-align", "middle" )
-    , ( "font-size", "18px" )
-    , ( "padding", "0 10px" )
-    , ( "line-height", "54px" )
-    , ( "cursor"
-      , if clickable then
+    [ style "display" "inline-block"
+    , style "vertical-align" "middle"
+    , style "font-size" "18px"
+    , style "padding" "0 10px"
+    , style "line-height" "54px"
+    , style "cursor" <|
+        if clickable then
             "pointer"
 
         else
             "default"
-      )
     ]
 
 
@@ -118,21 +118,19 @@ pauseToggleIcon :
     , isClickable : Bool
     , margin : String
     }
-    -> List ( String, String )
+    -> List (Html.Attribute msg)
 pauseToggleIcon { isHovered, isClickable, margin } =
-    [ ( "margin", margin )
-    , ( "opacity"
-      , if isHovered then
+    [ style "margin" margin
+    , style "opacity" <|
+        if isHovered then
             "1"
 
         else
             "0.5"
-      )
-    , ( "cursor"
-      , if isClickable then
+    , style "cursor" <|
+        if isClickable then
             "pointer"
 
         else
             "default"
-      )
     ]

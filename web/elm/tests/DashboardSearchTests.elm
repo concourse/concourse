@@ -1,6 +1,7 @@
 module DashboardSearchTests exposing (all)
 
 import Application.Application as Application
+import Common exposing (queryView)
 import Concourse
 import Expect exposing (Expectation)
 import Message.Callback as Callback
@@ -9,6 +10,8 @@ import Message.TopLevelMessage as Msgs
 import Test exposing (Test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, id, style, text)
+import Time
+import Url
 
 
 describe : String -> model -> List (model -> Test) -> Test
@@ -39,23 +42,18 @@ all =
             , authToken = ""
             , pipelineRunningKeyframes = ""
             }
-            { href = ""
+            { protocol = Url.Http
             , host = ""
-            , hostname = ""
-            , protocol = ""
-            , origin = ""
-            , port_ = ""
-            , pathname = "/"
-            , search = ""
-            , hash = ""
-            , username = ""
-            , password = ""
+            , port_ = Nothing
+            , path = "/"
+            , query = Nothing
+            , fragment = Nothing
             }
             |> Tuple.first
             |> Application.handleCallback
                 (Callback.APIDataFetched
                     (Ok
-                        ( 0
+                        ( Time.millisToPosix 0
                         , { teams =
                                 [ Concourse.Team 1 "team1"
                                 , Concourse.Team 2 "team2"
@@ -87,8 +85,7 @@ all =
                 >> Tuple.first
             )
             [ it "dropdown appears with a 'status:' option" <|
-                Application.view
-                    >> Query.fromHtml
+                queryView
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.has [ text "status:" ]
             , context "after clicking 'status:' in the dropdown"
@@ -99,8 +96,7 @@ all =
                     >> Tuple.first
                 )
                 [ it "a 'status: paused' option appears" <|
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.find [ id "search-dropdown" ]
                         >> Query.has [ text "status: paused" ]
                 , context "after clicking 'status: paused'"
@@ -111,8 +107,7 @@ all =
                         >> Tuple.first
                     )
                     [ it "the dropdown is gone" <|
-                        Application.view
-                            >> Query.fromHtml
+                        queryView
                             >> Query.find [ id "search-dropdown" ]
                             >> Query.children []
                             >> Query.count (Expect.equal 0)
@@ -123,7 +118,7 @@ all =
             Application.handleCallback
                 (Callback.APIDataFetched
                     (Ok
-                        ( 0
+                        ( Time.millisToPosix 0
                         , { teams = [ { name = "team", id = 0 } ]
                           , pipelines =
                                 [ { id = 0
@@ -148,14 +143,11 @@ all =
                         Message.Message.FilterMsg "asdf"
                     )
                 >> Tuple.first
-                >> Application.view
-                >> Query.fromHtml
+                >> queryView
                 >> Query.find [ class "no-results" ]
                 >> Query.has
-                    [ style
-                        [ ( "text-align", "center" )
-                        , ( "font-size", "13px" )
-                        , ( "margin-top", "20px" )
-                        ]
+                    [ style "text-align" "center"
+                    , style "font-size" "13px"
+                    , style "margin-top" "20px"
                     ]
         ]
