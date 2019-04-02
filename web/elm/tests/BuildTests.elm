@@ -56,7 +56,7 @@ all =
                 , buildName = "1"
                 }
 
-            pageLoad =
+            pageLoadJobBuild =
                 Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
@@ -68,6 +68,22 @@ all =
                     , host = ""
                     , port_ = Nothing
                     , path = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+
+            pageLoadOneOffBuild =
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/builds/1"
                     , query = Nothing
                     , fragment = Nothing
                     }
@@ -730,13 +746,13 @@ all =
                     |> Query.hasNot [ class "hidden" ]
         , test "says 'loading' on page load" <|
             \_ ->
-                pageLoad
+                pageLoadJobBuild
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "loading" ]
         , test "fetches build on page load" <|
             \_ ->
-                pageLoad
+                pageLoadJobBuild
                     |> Tuple.second
                     |> List.member
                         (Effects.FetchJobBuild 1
@@ -750,13 +766,13 @@ all =
         , describe "top bar" <|
             [ test "has a top bar" <|
                 \_ ->
-                    pageLoad
+                    pageLoadJobBuild
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.has [ id "top-bar-app" ]
             , test "has a concourse icon" <|
                 \_ ->
-                    pageLoad
+                    pageLoadJobBuild
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
@@ -766,7 +782,21 @@ all =
                             ]
             , test "has the breadcrumbs" <|
                 \_ ->
-                    pageLoad
+                    pageLoadJobBuild
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Expect.all
+                            [ Query.has [ id "breadcrumb-pipeline" ]
+                            , Query.has [ text "pipeline" ]
+                            , Query.has [ id "breadcrumb-job" ]
+                            , Query.has [ text "job" ]
+                            ]
+            , test "has the breadcrumbs after fetching build" <|
+                \_ ->
+                    pageLoadOneOffBuild
+                        |> Tuple.first
+                        |> fetchBuild
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
@@ -778,7 +808,7 @@ all =
                             ]
             , test "has a user section" <|
                 \_ ->
-                    pageLoad
+                    pageLoadJobBuild
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
@@ -787,7 +817,7 @@ all =
         , describe "after build is fetched" <|
             let
                 givenBuildFetched _ =
-                    pageLoad |> Tuple.first |> fetchBuild
+                    pageLoadJobBuild |> Tuple.first |> fetchBuild
             in
             [ test "has a header after the build is fetched" <|
                 givenBuildFetched
@@ -847,7 +877,7 @@ all =
             , describe "build banner coloration"
                 [ test "pending build has grey banner" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusPending
                             |> Common.queryView
@@ -855,7 +885,7 @@ all =
                             |> Query.has [ style "background" "#9b9b9b" ]
                 , test "started build has yellow banner" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusStarted
                             |> Common.queryView
@@ -863,7 +893,7 @@ all =
                             |> Query.has [ style "background" "#f1c40f" ]
                 , test "succeeded build has green banner" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
                             |> Common.queryView
@@ -871,7 +901,7 @@ all =
                             |> Query.has [ style "background" "#11c560" ]
                 , test "failed build has red banner" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusFailed
                             |> Common.queryView
@@ -879,7 +909,7 @@ all =
                             |> Query.has [ style "background" "#ed4b35" ]
                 , test "errored build has amber banner" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusErrored
                             |> Common.queryView
@@ -887,7 +917,7 @@ all =
                             |> Query.has [ style "background" "#f5a623" ]
                 , test "aborted build has brown banner" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusAborted
                             |> Common.queryView
@@ -897,7 +927,7 @@ all =
             , describe "build history tab coloration"
                 [ test "pending build has grey tab in build history" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusPending
                             |> Common.queryView
@@ -906,7 +936,7 @@ all =
                             |> Query.has [ style "background" "#9b9b9b" ]
                 , test "started build has animated striped yellow tab in build history" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusStarted
                             |> Common.queryView
@@ -915,7 +945,7 @@ all =
                             |> isColorWithStripes { thick = "#f1c40f", thin = "#fad43b" }
                 , test "succeeded build has green tab in build history" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
                             |> Common.queryView
@@ -924,7 +954,7 @@ all =
                             |> Query.has [ style "background" "#11c560" ]
                 , test "failed build has red tab in build history" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusFailed
                             |> Common.queryView
@@ -933,7 +963,7 @@ all =
                             |> Query.has [ style "background" "#ed4b35" ]
                 , test "errored build has amber tab in build history" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusErrored
                             |> Common.queryView
@@ -942,7 +972,7 @@ all =
                             |> Query.has [ style "background" "#f5a623" ]
                 , test "aborted build has brown tab in build history" <|
                     \_ ->
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusAborted
                             |> Common.queryView
@@ -1529,7 +1559,7 @@ all =
         , describe "given build started and history and details fetched" <|
             let
                 givenBuildStarted _ =
-                    pageLoad
+                    pageLoadJobBuild
                         |> Tuple.first
                         |> fetchBuildWithStatus Concourse.BuildStatusStarted
                         |> fetchHistory
@@ -1743,7 +1773,7 @@ all =
             , describe "build events subscription" <|
                 let
                     preBuildPlanReceived _ =
-                        pageLoad
+                        pageLoadJobBuild
                             |> Tuple.first
                             |> fetchStartedBuild
                             |> Tuple.first
