@@ -16,20 +16,20 @@ type IntervalRunner interface {
 type intervalRunner struct {
 	logger  lager.Logger
 	clock   clock.Clock
-	name    string
+	id      int
 	scanner Scanner
 }
 
 func NewIntervalRunner(
 	logger lager.Logger,
 	clock clock.Clock,
-	name string,
+	id int,
 	scanner Scanner,
 ) IntervalRunner {
 	return &intervalRunner{
 		logger:  logger,
 		clock:   clock,
-		name:    name,
+		id:      id,
 		scanner: scanner,
 	}
 }
@@ -47,7 +47,7 @@ func (r *intervalRunner) Run(ctx context.Context) error {
 			return nil
 		case <-timer.C():
 			var err error
-			interval, err = r.scanner.Run(r.logger, r.name)
+			interval, err = r.scanner.Run(r.logger, r.id)
 			if err != nil {
 				if err == ErrFailedToAcquireLock {
 					break

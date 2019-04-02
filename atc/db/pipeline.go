@@ -64,10 +64,12 @@ type Pipeline interface {
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 
 	Resource(name string) (Resource, bool, error)
+	ResourceByID(id int) (Resource, bool, error)
 	Resources() (Resources, error)
 
 	ResourceTypes() (ResourceTypes, error)
 	ResourceType(name string) (ResourceType, bool, error)
+	ResourceTypeByID(id int) (ResourceType, bool, error)
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
@@ -423,10 +425,24 @@ func (p *pipeline) GetBuildsWithVersionAsOutput(resourceID, resourceConfigVersio
 }
 
 func (p *pipeline) Resource(name string) (Resource, bool, error) {
-	row := resourcesQuery.Where(sq.Eq{
+	return p.resource(sq.Eq{
 		"r.pipeline_id": p.id,
 		"r.name":        name,
-	}).RunWith(p.conn).QueryRow()
+	})
+}
+
+func (p *pipeline) ResourceByID(id int) (Resource, bool, error) {
+	return p.resource(sq.Eq{
+		"r.pipeline_id": p.id,
+		"r.id":          id,
+	})
+}
+
+func (p *pipeline) resource(where map[string]interface{}) (Resource, bool, error) {
+	row := resourcesQuery.
+		Where(where).
+		RunWith(p.conn).
+		QueryRow()
 
 	resource := &resource{conn: p.conn, lockFactory: p.lockFactory}
 	err := scanResource(resource, row)
@@ -482,10 +498,24 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 }
 
 func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
-	row := resourceTypesQuery.Where(sq.Eq{
+	return p.resourceType(sq.Eq{
 		"r.pipeline_id": p.id,
 		"r.name":        name,
-	}).RunWith(p.conn).QueryRow()
+	})
+}
+
+func (p *pipeline) ResourceTypeByID(id int) (ResourceType, bool, error) {
+	return p.resourceType(sq.Eq{
+		"r.pipeline_id": p.id,
+		"r.id":          id,
+	})
+}
+
+func (p *pipeline) resourceType(where map[string]interface{}) (ResourceType, bool, error) {
+	row := resourceTypesQuery.
+		Where(where).
+		RunWith(p.conn).
+		QueryRow()
 
 	resourceType := &resourceType{conn: p.conn, lockFactory: p.lockFactory}
 	err := scanResourceType(resourceType, row)

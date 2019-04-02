@@ -37,14 +37,14 @@ var _ = Describe("IntervalRunner", func() {
 		fakeScanner = &radarfakes.FakeScanner{}
 		times = make(chan time.Time, 100)
 		interval = 1 * time.Minute
-		fakeScanner.RunStub = func(lager.Logger, string) (time.Duration, error) {
+		fakeScanner.RunStub = func(lager.Logger, int) (time.Duration, error) {
 			times <- fakeClock.Now()
 			return interval, nil
 		}
 		ctx, cancel = context.WithCancel(context.Background())
 
 		logger := lagertest.NewTestLogger("test")
-		intervalRunner = NewIntervalRunner(logger, fakeClock, "some-resource", fakeScanner)
+		intervalRunner = NewIntervalRunner(logger, fakeClock, 12, fakeScanner)
 	})
 
 	Describe("RunFunc", func() {
@@ -78,7 +78,7 @@ var _ = Describe("IntervalRunner", func() {
 
 			Context("when Run takes a while", func() {
 				BeforeEach(func() {
-					fakeScanner.RunStub = func(lager.Logger, string) (time.Duration, error) {
+					fakeScanner.RunStub = func(lager.Logger, int) (time.Duration, error) {
 						times <- fakeClock.Now()
 						fakeClock.Increment(interval / 2)
 						return interval, nil
@@ -98,7 +98,7 @@ var _ = Describe("IntervalRunner", func() {
 		Context("when scanner.Run() returns an error", func() {
 			var disaster = errors.New("failed")
 			BeforeEach(func() {
-				fakeScanner.RunStub = func(lager.Logger, string) (time.Duration, error) {
+				fakeScanner.RunStub = func(lager.Logger, int) (time.Duration, error) {
 					times <- fakeClock.Now()
 					return interval, disaster
 				}
@@ -111,7 +111,7 @@ var _ = Describe("IntervalRunner", func() {
 
 		Context("when scanner.Run() returns ErrFailedToAcquireLock error", func() {
 			BeforeEach(func() {
-				fakeScanner.RunStub = func(lager.Logger, string) (time.Duration, error) {
+				fakeScanner.RunStub = func(lager.Logger, int) (time.Duration, error) {
 					times <- fakeClock.Now()
 					return interval, ErrFailedToAcquireLock
 				}

@@ -2,18 +2,19 @@
 package radarfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	radar "github.com/concourse/concourse/atc/radar"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/radar"
 )
 
 type FakeScanRunnerFactory struct {
-	ScanResourceRunnerStub        func(lager.Logger, string) radar.IntervalRunner
+	ScanResourceRunnerStub        func(lager.Logger, db.Resource) radar.IntervalRunner
 	scanResourceRunnerMutex       sync.RWMutex
 	scanResourceRunnerArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 string
+		arg2 db.Resource
 	}
 	scanResourceRunnerReturns struct {
 		result1 radar.IntervalRunner
@@ -21,11 +22,11 @@ type FakeScanRunnerFactory struct {
 	scanResourceRunnerReturnsOnCall map[int]struct {
 		result1 radar.IntervalRunner
 	}
-	ScanResourceTypeRunnerStub        func(lager.Logger, string) radar.IntervalRunner
+	ScanResourceTypeRunnerStub        func(lager.Logger, db.ResourceType) radar.IntervalRunner
 	scanResourceTypeRunnerMutex       sync.RWMutex
 	scanResourceTypeRunnerArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 string
+		arg2 db.ResourceType
 	}
 	scanResourceTypeRunnerReturns struct {
 		result1 radar.IntervalRunner
@@ -37,12 +38,12 @@ type FakeScanRunnerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceRunner(arg1 lager.Logger, arg2 string) radar.IntervalRunner {
+func (fake *FakeScanRunnerFactory) ScanResourceRunner(arg1 lager.Logger, arg2 db.Resource) radar.IntervalRunner {
 	fake.scanResourceRunnerMutex.Lock()
 	ret, specificReturn := fake.scanResourceRunnerReturnsOnCall[len(fake.scanResourceRunnerArgsForCall)]
 	fake.scanResourceRunnerArgsForCall = append(fake.scanResourceRunnerArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 string
+		arg2 db.Resource
 	}{arg1, arg2})
 	fake.recordInvocation("ScanResourceRunner", []interface{}{arg1, arg2})
 	fake.scanResourceRunnerMutex.Unlock()
@@ -62,13 +63,13 @@ func (fake *FakeScanRunnerFactory) ScanResourceRunnerCallCount() int {
 	return len(fake.scanResourceRunnerArgsForCall)
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceRunnerCalls(stub func(lager.Logger, string) radar.IntervalRunner) {
+func (fake *FakeScanRunnerFactory) ScanResourceRunnerCalls(stub func(lager.Logger, db.Resource) radar.IntervalRunner) {
 	fake.scanResourceRunnerMutex.Lock()
 	defer fake.scanResourceRunnerMutex.Unlock()
 	fake.ScanResourceRunnerStub = stub
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceRunnerArgsForCall(i int) (lager.Logger, string) {
+func (fake *FakeScanRunnerFactory) ScanResourceRunnerArgsForCall(i int) (lager.Logger, db.Resource) {
 	fake.scanResourceRunnerMutex.RLock()
 	defer fake.scanResourceRunnerMutex.RUnlock()
 	argsForCall := fake.scanResourceRunnerArgsForCall[i]
@@ -98,12 +99,12 @@ func (fake *FakeScanRunnerFactory) ScanResourceRunnerReturnsOnCall(i int, result
 	}{result1}
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceTypeRunner(arg1 lager.Logger, arg2 string) radar.IntervalRunner {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunner(arg1 lager.Logger, arg2 db.ResourceType) radar.IntervalRunner {
 	fake.scanResourceTypeRunnerMutex.Lock()
 	ret, specificReturn := fake.scanResourceTypeRunnerReturnsOnCall[len(fake.scanResourceTypeRunnerArgsForCall)]
 	fake.scanResourceTypeRunnerArgsForCall = append(fake.scanResourceTypeRunnerArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 string
+		arg2 db.ResourceType
 	}{arg1, arg2})
 	fake.recordInvocation("ScanResourceTypeRunner", []interface{}{arg1, arg2})
 	fake.scanResourceTypeRunnerMutex.Unlock()
@@ -123,13 +124,13 @@ func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerCallCount() int {
 	return len(fake.scanResourceTypeRunnerArgsForCall)
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerCalls(stub func(lager.Logger, string) radar.IntervalRunner) {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerCalls(stub func(lager.Logger, db.ResourceType) radar.IntervalRunner) {
 	fake.scanResourceTypeRunnerMutex.Lock()
 	defer fake.scanResourceTypeRunnerMutex.Unlock()
 	fake.ScanResourceTypeRunnerStub = stub
 }
 
-func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerArgsForCall(i int) (lager.Logger, string) {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerArgsForCall(i int) (lager.Logger, db.ResourceType) {
 	fake.scanResourceTypeRunnerMutex.RLock()
 	defer fake.scanResourceTypeRunnerMutex.RUnlock()
 	argsForCall := fake.scanResourceTypeRunnerArgsForCall[i]

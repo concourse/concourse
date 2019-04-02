@@ -98,11 +98,11 @@ type resource struct {
 }
 
 type ResourceNotFoundError struct {
-	Name string
+	ID int
 }
 
 func (e ResourceNotFoundError) Error() string {
-	return fmt.Sprintf("resource '%s' not found", e.Name)
+	return fmt.Sprintf("resource '%d' not found", e.ID)
 }
 
 type Resources []Resource
