@@ -259,7 +259,7 @@ treeIsActive stepTree =
         Task step ->
             stepIsActive step
 
-        ArtifactInput step ->
+        ArtifactInput _ ->
             False
 
         Get step ->
