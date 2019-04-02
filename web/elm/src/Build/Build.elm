@@ -817,25 +817,34 @@ view userState model =
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ TopBar.concourseLogo
-            , TopBar.breadcrumbs <|
-                case model.page of
-                    OneOffBuildPage buildId ->
-                        Routes.OneOffBuild
-                            { id = buildId
-                            , highlight = model.highlight
-                            }
-
-                    JobBuildPage buildId ->
-                        Routes.Build
-                            { id = buildId
-                            , highlight = model.highlight
-                            }
+            , breadcrumbs model
             , Login.view userState model False
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pipelinePageBelowTopBar)
             [ viewBuildPage model ]
         ]
+
+
+breadcrumbs : Model -> Html Message
+breadcrumbs model =
+    case ( currentJob model, model.page ) of
+        ( Just jobId, _ ) ->
+            TopBar.breadcrumbs <|
+                Routes.Job
+                    { id = jobId
+                    , page = Nothing
+                    }
+
+        ( _, JobBuildPage buildId ) ->
+            TopBar.breadcrumbs <|
+                Routes.Build
+                    { id = buildId
+                    , highlight = model.highlight
+                    }
+
+        _ ->
+            Html.text ""
 
 
 viewBuildPage : Model -> Html Message
