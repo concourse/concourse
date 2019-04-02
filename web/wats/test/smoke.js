@@ -41,3 +41,11 @@ test('running one-off builds', async t => {
   var result = await t.context.fly.run('execute -c fixtures/smoke-task.yml -i some-input=fixtures/some-input');
   t.regex(result.stdout, /Hello, world!/);
 });
+
+test('reaching the internet', async t => {
+  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/smoke-internet-pipeline.yml');
+  await t.context.fly.run('unpause-pipeline -p some-pipeline');
+
+  var result = await t.context.fly.run('trigger-job -j some-pipeline/use-the-internet -w');
+  t.regex(result.stdout, /Hello, world!/);
+});
