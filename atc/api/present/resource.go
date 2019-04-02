@@ -25,6 +25,7 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 		PipelineName: resource.PipelineName(),
 		TeamName:     teamName,
 		Type:         resource.Type(),
+		Icon:         resource.Icon(),
 
 		FailingToCheck:  failingToCheck,
 		CheckSetupError: checkErrString,
@@ -32,8 +33,8 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 		PinComment:      resource.PinComment(),
 	}
 
-	if !resource.LastChecked().IsZero() {
-		atcResource.LastChecked = resource.LastChecked().Unix()
+	if !resource.LastCheckEndTime().IsZero() {
+		atcResource.LastChecked = resource.LastCheckEndTime().Unix()
 	}
 
 	if resource.ConfigPinnedVersion() != nil {

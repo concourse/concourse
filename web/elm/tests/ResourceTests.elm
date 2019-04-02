@@ -1,6 +1,7 @@
 module ResourceTests exposing (all)
 
 import Application.Application as Application
+import Common exposing (queryView)
 import Concourse
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -60,6 +61,11 @@ pipelineName =
 resourceName : String
 resourceName =
     "some-resource"
+
+
+resourceIcon : String
+resourceIcon =
+    "some-icon"
 
 
 versionID : Models.VersionId
@@ -191,6 +197,12 @@ all =
                                     Routes.Normal Nothing
                         ]
             ]
+        , test "has title with resouce name" <|
+            \_ ->
+                init
+                    |> Application.view
+                    |> .title
+                    |> Expect.equal "some-resource - Concourse"
         , test "has default layout" <|
             \_ ->
                 init
@@ -310,6 +322,34 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , describe "page header with icon" <|
+            let
+                pageHeader =
+                    init
+                        |> givenResourceHasIcon
+                        |> queryView
+                        |> Query.find [ id "page-header" ]
+            in
+            [ describe "resource name"
+                [ test "on the left is the resource name" <|
+                    \_ ->
+                        pageHeader
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ tag "div", text resourceName, tag "h1" ]
+                ]
+            , describe "resource icon"
+                [ test "on the left is the resource icon" <|
+                    \_ ->
+                        pageHeader
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.find [ tag "div" ]
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ tag "svg" ]
+                ]
+            ]
         , describe "page header" <|
             let
                 pageHeader =
@@ -2938,6 +2978,7 @@ all =
                                         , pinnedVersion = Nothing
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
+                                        , icon = Nothing
                                         }
                                 )
                             |> Tuple.first
@@ -2967,6 +3008,7 @@ all =
                                     , pinnedVersion = Nothing
                                     , pinnedInConfig = False
                                     , pinComment = Nothing
+                                    , icon = Nothing
                                     }
                             )
                         |> Tuple.first
@@ -3056,6 +3098,7 @@ givenResourcePinnedStatically =
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = True
                 , pinComment = Nothing
+                , icon = Nothing
                 }
         )
         >> Tuple.first
@@ -3076,6 +3119,7 @@ givenResourcePinnedDynamically =
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = False
                 , pinComment = Nothing
+                , icon = Nothing
                 }
         )
         >> Tuple.first
@@ -3097,6 +3141,7 @@ givenResourcePinnedWithComment =
                     Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = False
                 , pinComment = Just "some pin comment"
+                , icon = Nothing
                 }
         )
         >> Tuple.first
@@ -3117,15 +3162,31 @@ givenResourceIsNotPinned =
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
                 , pinComment = Nothing
+                , icon = Nothing
                 }
         )
         >> Tuple.first
 
 
-queryView : Application.Model -> Query.Single Msgs.TopLevelMessage
-queryView =
-    Application.view
-        >> Query.fromHtml
+givenResourceHasIcon : Application.Model -> Application.Model
+givenResourceHasIcon =
+    Application.handleCallback
+        (Callback.ResourceFetched <|
+            Ok
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , name = resourceName
+                , failingToCheck = False
+                , checkError = ""
+                , checkSetupError = ""
+                , lastChecked = Just (Time.millisToPosix 0)
+                , pinnedVersion = Nothing
+                , pinnedInConfig = False
+                , pinComment = Nothing
+                , icon = Just resourceIcon
+                }
+        )
+        >> Tuple.first
 
 
 hoverOverPinBar : Application.Model -> Application.Model

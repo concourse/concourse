@@ -113,7 +113,7 @@ var _ = Describe("BuildStarter", func() {
 				Context("when some of the resources are checked before build create time", func() {
 					BeforeEach(func() {
 						createdBuild.CreateTimeReturns(time.Now())
-						resource.LastCheckFinishedReturns(time.Now().Add(-time.Minute))
+						resource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute))
 					})
 
 					It("does not save the next input mapping", func() {
@@ -145,12 +145,12 @@ var _ = Describe("BuildStarter", func() {
 
 						createdBuild.CreateTimeReturns(time.Now())
 
-						resource.LastCheckFinishedReturns(time.Now().Add(time.Minute))
+						resource.LastCheckEndTimeReturns(time.Now().Add(time.Minute))
 
 						otherResource := new(dbfakes.FakeResource)
 						otherResource.NameReturns("other-resource")
 						otherResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
-						otherResource.LastCheckFinishedReturns(time.Now().Add(-time.Minute))
+						otherResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute))
 
 						resources = db.Resources{resource, otherResource}
 					})

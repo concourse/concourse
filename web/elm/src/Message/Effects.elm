@@ -2,8 +2,8 @@ port module Message.Effects exposing
     ( Effect(..)
     , ScrollDirection(..)
     , renderPipeline
+    , renderSvgIcon
     , runEffect
-    , setTitle
     , stickyHeaderConfig
     )
 
@@ -11,7 +11,7 @@ import Browser.Dom exposing (getViewport)
 import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus
-import Concourse.Pagination exposing (Page, Paginated)
+import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Json.Encode
 import Message.Callback exposing (Callback(..))
@@ -28,13 +28,9 @@ import Network.Pipeline
 import Network.Resource
 import Network.User
 import Process
-import Routes
 import Task
 import Time
 import Views.Styles
-
-
-port setTitle : String -> Cmd msg
 
 
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
@@ -91,6 +87,9 @@ port checkIsVisible : String -> Cmd msg
 port setFavicon : String -> Cmd msg
 
 
+port renderSvgIcon : String -> Cmd msg
+
+
 type alias StickyHeaderConfig =
     { pageHeaderHeight : Float
     , pageBodyClass : String
@@ -142,7 +141,6 @@ type Effect
     | LoadExternal String
     | NavigateTo String
     | ModifyUrl String
-    | SetTitle String
     | DoPinVersion Concourse.VersionedResourceIdentifier
     | DoUnpinVersion Concourse.ResourceIdentifier
     | DoToggleVersion VersionToggleAction VersionId
@@ -165,6 +163,7 @@ type Effect
     | CheckIsVisible String
     | Focus String
     | Blur String
+    | RenderSvgIcon String
 
 
 type alias VersionId =
@@ -219,7 +218,6 @@ runEffect effect key csrfToken =
 
         FetchVersion ->
             Network.Info.fetch
-                |> Task.map .version
                 |> Task.attempt VersionFetched
 
         FetchInputTo id ->
@@ -269,9 +267,6 @@ runEffect effect key csrfToken =
 
         RenderPipeline jobs resources ->
             renderPipeline ( jobs, resources )
-
-        SetTitle newTitle ->
-            setTitle newTitle
 
         DoPinVersion version ->
             Network.Resource.pinVersion version csrfToken
@@ -394,6 +389,9 @@ runEffect effect key csrfToken =
 
         CheckIsVisible id ->
             checkIsVisible id
+
+        RenderSvgIcon icon ->
+            renderSvgIcon icon
 
 
 scrollInDirection : ScrollDirection -> Cmd Callback

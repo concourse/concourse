@@ -1,6 +1,7 @@
 module DashboardSearchTests exposing (all)
 
 import Application.Application as Application
+import Common exposing (queryView)
 import Concourse
 import Expect exposing (Expectation)
 import Message.Callback as Callback
@@ -84,8 +85,7 @@ all =
                 >> Tuple.first
             )
             [ it "dropdown appears with a 'status:' option" <|
-                Application.view
-                    >> Query.fromHtml
+                queryView
                     >> Query.find [ id "search-dropdown" ]
                     >> Query.has [ text "status:" ]
             , context "after clicking 'status:' in the dropdown"
@@ -96,8 +96,7 @@ all =
                     >> Tuple.first
                 )
                 [ it "a 'status: paused' option appears" <|
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.find [ id "search-dropdown" ]
                         >> Query.has [ text "status: paused" ]
                 , context "after clicking 'status: paused'"
@@ -108,8 +107,7 @@ all =
                         >> Tuple.first
                     )
                     [ it "the dropdown is gone" <|
-                        Application.view
-                            >> Query.fromHtml
+                        queryView
                             >> Query.find [ id "search-dropdown" ]
                             >> Query.children []
                             >> Query.count (Expect.equal 0)
@@ -145,8 +143,7 @@ all =
                         Message.Message.FilterMsg "asdf"
                     )
                 >> Tuple.first
-                >> Application.view
-                >> Query.fromHtml
+                >> queryView
                 >> Query.find [ class "no-results" ]
                 >> Query.has
                     [ style "text-align" "center"

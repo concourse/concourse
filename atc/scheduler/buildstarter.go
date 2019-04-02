@@ -106,7 +106,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 				continue
 			}
 
-			if resource.LastCheckFinished().Before(nextPendingBuild.CreateTime()) {
+			if resource.LastCheckEndTime().Before(nextPendingBuild.CreateTime()) {
 				return false, nil
 			}
 		}

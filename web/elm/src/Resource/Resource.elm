@@ -1,6 +1,7 @@
 module Resource.Resource exposing
     ( Flags
     , changeToResource
+    , documentTitle
     , getUpdateMessage
     , handleCallback
     , handleDelivery
@@ -19,14 +20,13 @@ import Concourse.Pagination
     exposing
         ( Page
         , Paginated
-        , Pagination
         , chevron
         , chevronContainer
         , equal
         )
 import DateFormat
 import Dict
-import Duration exposing (Duration)
+import Duration
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
@@ -57,14 +57,17 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..), setTitle)
+import Message.Effects exposing (Effect(..))
 import Message.Message as Message exposing (Hoverable(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
 import StrictEvents
+import Svg
+import Svg.Attributes as SvgAttributes
 import Time
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
@@ -102,6 +105,7 @@ init flags =
             , pinCommentLoading = False
             , textAreaFocused = False
             , isUserMenuExpanded = False
+            , icon = Nothing
             }
     in
     ( model
@@ -168,22 +172,6 @@ updatePinnedVersion resource model =
                     }
 
 
-hasPinnedVersion : Model -> Concourse.Version -> Bool
-hasPinnedVersion model v =
-    case model.pinnedVersion of
-        PinnedStaticallyTo pv ->
-            v == pv
-
-        PinnedDynamicallyTo _ pv ->
-            v == pv
-
-        UnpinningFrom _ pv ->
-            v == pv
-
-        _ ->
-            False
-
-
 getUpdateMessage : Model -> UpdateMsg
 getUpdateMessage model =
     if model.pageStatus == Err Models.NotFound then
@@ -193,8 +181,8 @@ getUpdateMessage model =
         UpdateMsg.AOK
 
 
-subscriptions : Model -> List Subscription
-subscriptions model =
+subscriptions : List Subscription
+subscriptions =
     [ OnClockTick Subscription.FiveSeconds
     , OnClockTick Subscription.OneSecond
     , OnKeyDown
@@ -222,13 +210,21 @@ handleCallback callback ( model, effects ) =
                 , checkError = resource.checkError
                 , checkSetupError = resource.checkSetupError
                 , lastChecked = resource.lastChecked
+                , icon = resource.icon
               }
                 |> updatePinnedVersion resource
-            , effects ++ [ SetTitle <| resource.name ++ " - " ]
+            , effects
+                ++ (case resource.icon of
+                        Just icon ->
+                            [ RenderSvgIcon <| icon ]
+
+                        Nothing ->
+                            []
+                   )
             )
 
         ResourceFetched (Err err) ->
-            case Debug.log "failed to fetch resource" err of
+            case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
                         ( model, effects ++ [ RedirectToLogin ] )
@@ -327,10 +323,6 @@ handleCallback callback ( model, effects ) =
                     ( chosenModelWith requestedPageUnwrapped
                     , effects
                     )
-
-        VersionedResourcesFetched (Err err) ->
-            (\a -> always a (Debug.log "failed to fetch versioned resources" err)) <|
-                ( model, effects )
 
         InputToFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | inputTo = builds }) model
@@ -538,7 +530,7 @@ update msg ( model, effects ) =
                         model.pinnedVersion
               }
             , case version of
-                Just v ->
+                Just _ ->
                     effects ++ [ DoPinVersion versionID ]
 
                 Nothing ->
@@ -635,13 +627,18 @@ permalink versionedResources =
             }
 
 
+documentTitle : Model -> String
+documentTitle model =
+    model.resourceIdentifier.resourceName
+
+
 view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
+            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
-                ([ id "top-bar-app" ] ++ Views.Styles.topBar False)
+                (id "top-bar-app" :: Views.Styles.topBar False)
                 [ TopBar.concourseLogo
                 , TopBar.breadcrumbs <|
                     Routes.Resource
@@ -651,7 +648,7 @@ view userState model =
                 , Login.view userState model False
                 ]
             , Html.div
-                ([ id "page-below-top-bar" ] ++ Resource.Styles.pageBelowTopBar)
+                (id "page-below-top-bar" :: Resource.Styles.pageBelowTopBar)
                 [ subpageView userState model
                 , commentBar userState model
                 ]
@@ -681,12 +678,38 @@ header model =
 
                 ( _, _ ) ->
                     Html.text ""
+
+        iconView =
+            case model.icon of
+                Just icon ->
+                    Html.div
+                        [ style "margin-right" (String.fromInt 10 ++ "px")
+                        , style "height" (String.fromInt Resource.Styles.headerHeight ++ "px")
+                        , style "width" (String.fromInt 24 ++ "px")
+                        , style "margin-left" (String.fromInt -6 ++ "px")
+                        ]
+                        [ Svg.svg
+                            [ style
+                                "margin-top"
+                                (String.fromFloat (toFloat (Resource.Styles.headerHeight - 24) / 2) ++ "px")
+                            , SvgAttributes.fill "white"
+                            ]
+                            [ Svg.use
+                                [ SvgAttributes.xlinkHref ("#" ++ icon ++ "-svg-icon") ]
+                                []
+                            ]
+                        ]
+
+                Nothing ->
+                    Html.div [] []
     in
     Html.div
-        ([ id "page-header" ] ++ Resource.Styles.headerBar)
+        (id "page-header" :: Resource.Styles.headerBar)
         [ Html.h1
             Resource.Styles.headerResourceName
-            [ Html.text model.resourceIdentifier.resourceName ]
+            [ iconView
+            , Html.text model.resourceIdentifier.resourceName
+            ]
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]
@@ -716,7 +739,7 @@ body userState model =
                     False
     in
     Html.div
-        ([ id "body" ] ++ Resource.Styles.body hasCommentBar)
+        (id "body" :: Resource.Styles.body hasCommentBar)
         [ checkSection sectionModel
         , viewVersionedResources model
         ]
@@ -752,7 +775,7 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                     [ onClick <| LoadPage updatedPage ]
     in
     Html.div
-        ([ id "pagination" ] ++ Resource.Styles.pagination)
+        (id "pagination" :: Resource.Styles.pagination)
         [ case versions.pagination.previousPage of
             Nothing ->
                 Html.div
@@ -913,7 +936,7 @@ checkButton :
         , checkStatus : Models.CheckStatus
     }
     -> Html Message
-checkButton ({ hovered, userState, teamName, checkStatus } as params) =
+checkButton ({ hovered, userState, checkStatus } as params) =
     let
         isHovered =
             hovered == Just Message.CheckButton
@@ -964,7 +987,7 @@ commentBar :
             , pinCommentLoading : Bool
         }
     -> Html Message
-commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLoading } as params) =
+commentBar userState { resourceIdentifier, pinnedVersion, hovered, pinCommentLoading } =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
@@ -974,7 +997,7 @@ commentBar userState ({ resourceIdentifier, pinnedVersion, hovered, pinCommentLo
                         v
             in
             Html.div
-                ([ id "comment-bar" ] ++ Resource.Styles.commentBar)
+                (id "comment-bar" :: Resource.Styles.commentBar)
                 [ Html.div Resource.Styles.commentBarContent <|
                     let
                         commentBarHeader =
@@ -1090,10 +1113,9 @@ pinBar { pinnedVersion, hovered } =
             , ( onMouseEnter <| Hover <| Just PinBar, isPinnedStatically )
             , ( onMouseLeave <| Hover Nothing, isPinnedStatically )
             ]
-            ++ Resource.Styles.pinBar
-                { isPinned = ME.isJust pinBarVersion }
+            ++ Resource.Styles.pinBar (ME.isJust pinBarVersion)
         )
-        ([ Icon.icon
+        (Icon.icon
             { sizePx = 25
             , image =
                 if ME.isJust pinBarVersion then
@@ -1102,8 +1124,7 @@ pinBar { pinnedVersion, hovered } =
                 else
                     "pin-ic-grey.svg"
             }
-           <|
-            attrList
+            (attrList
                 [ ( id "pin-icon", True )
                 , ( onClick UnpinVersion, isPinnedDynamically )
                 , ( onMouseEnter <| Hover <| Just PinIcon, isPinnedDynamically )
@@ -1113,8 +1134,8 @@ pinBar { pinnedVersion, hovered } =
                     { isPinnedDynamically = isPinnedDynamically
                     , hover = hovered == Just PinIcon
                     }
-         ]
-            ++ (case pinBarVersion of
+            )
+            :: (case pinBarVersion of
                     Just v ->
                         [ viewVersion [] v ]
 
@@ -1123,7 +1144,7 @@ pinBar { pinnedVersion, hovered } =
                )
             ++ (if hovered == Just PinBar then
                     [ Html.div
-                        ([ id "pin-bar-tooltip" ] ++ Resource.Styles.pinBarTooltip)
+                        (id "pin-bar-tooltip" :: Resource.Styles.pinBarTooltip)
                         [ Html.text "pinned in pipeline config" ]
                     ]
 
@@ -1164,7 +1185,7 @@ viewVersionedResource { version, pinnedVersion, hovered } =
         pinState =
             case Pinned.pinState version.version version.id pinnedVersion of
                 PinnedStatically _ ->
-                    PinnedStatically { showTooltip = version.showTooltip }
+                    PinnedStatically version.showTooltip
 
                 x ->
                     x
@@ -1180,7 +1201,7 @@ viewVersionedResource { version, pinnedVersion, hovered } =
             _ ->
                 []
         )
-        ([ Html.div
+        (Html.div
             [ style "display" "flex"
             , style "margin" "5px 0px"
             ]
@@ -1200,8 +1221,7 @@ viewVersionedResource { version, pinnedVersion, hovered } =
                 , pinnedState = pinState
                 }
             ]
-         ]
-            ++ (if version.expanded then
+            :: (if version.expanded then
                     [ viewVersionBody
                         { inputTo = version.inputTo
                         , outputOf = version.outputOf
@@ -1251,7 +1271,7 @@ viewEnabledCheckbox :
         , pinState : VersionPinState
     }
     -> Html Message
-viewEnabledCheckbox ({ enabled, id, pinState } as params) =
+viewEnabledCheckbox ({ enabled, id } as params) =
     let
         clickHandler =
             case enabled of
@@ -1265,8 +1285,8 @@ viewEnabledCheckbox ({ enabled, id, pinState } as params) =
                     [ onClick <| ToggleVersion Message.Enable id ]
     in
     Html.div
-        ([ Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled" ]
-            ++ Resource.Styles.enabledCheckbox params
+        (Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
+            :: Resource.Styles.enabledCheckbox params
             ++ clickHandler
         )
         (case enabled of
@@ -1309,8 +1329,8 @@ viewPinButton { versionID, pinState, hovered } =
                     []
     in
     Html.div
-        ([ Html.Attributes.attribute "aria-label" "Pin Resource Version" ]
-            ++ Resource.Styles.pinButton pinState
+        (Html.Attributes.attribute "aria-label" "Pin Resource Version"
+            :: Resource.Styles.pinButton pinState
             ++ eventHandlers
         )
         (case pinState of
@@ -1341,8 +1361,8 @@ viewVersionHeader :
     -> Html Message
 viewVersionHeader { id, version, pinnedState } =
     Html.div
-        ([ onClick <| ExpandVersionedResource id ]
-            ++ Resource.Styles.versionHeader pinnedState
+        (onClick (ExpandVersionedResource id)
+            :: Resource.Styles.versionHeader pinnedState
         )
         [ viewVersion [] version ]
 
@@ -1378,7 +1398,8 @@ listToMap builds =
                     jobName =
                         case build.job of
                             Nothing ->
-                                Debug.todo "Jobless builds shouldn't appear on this page!" ""
+                                -- Jobless builds shouldn't appear on this page!
+                                ""
 
                             Just job ->
                                 job.jobName
@@ -1432,7 +1453,7 @@ viewLastChecked now date =
                         , DateFormat.amPmUppercase
                         ]
                         Time.utc
-                        -- TODO handle time zones
+                        -- https://github.com/concourse/concourse/issues/2226
                         date
                     )
                 ]

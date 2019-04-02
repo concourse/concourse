@@ -1,6 +1,5 @@
 module MonocleHelpers exposing (bind, modifyWithEffect)
 
-import Monocle.Lens
 import Monocle.Optional
 
 
@@ -12,7 +11,7 @@ bind :
     (b -> Monocle.Optional.Optional a c)
     -> Monocle.Optional.Optional a b
     -> Monocle.Optional.Optional a c
-bind f opt  =
+bind f opt =
     { getOption =
         \a ->
             opt.getOption a

@@ -8,7 +8,6 @@ port module Message.Subscription exposing
 import Browser
 import Browser.Events exposing (onClick, onKeyDown, onKeyUp, onMouseMove, onResize)
 import Build.StepTree.Models exposing (BuildEventEnvelope)
-import Concourse
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
@@ -95,7 +94,7 @@ runSubscription s =
                         (toFloat height)
                 )
 
-        FromEventSource key ->
+        FromEventSource _ ->
             eventSource
                 (Json.Decode.decodeValue
                     (Json.Decode.list decodeBuildEventEnvelope)

@@ -16,9 +16,7 @@ module Routes exposing
     )
 
 import Concourse
-import Concourse.Cli as Cli
 import Concourse.Pagination as Pagination exposing (Direction(..))
-import Dict
 import Url
 import Url.Builder as Builder
 import Url.Parser
@@ -46,7 +44,7 @@ type Route
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
     | Dashboard SearchType
-    | FlySuccess { flyPort : Maybe Int }
+    | FlySuccess (Maybe Int)
 
 
 type SearchType
@@ -189,7 +187,7 @@ dashboard =
 
 flySuccess : Parser (Route -> a) a
 flySuccess =
-    map (\p -> FlySuccess { flyPort = p }) (s "fly_success" <?> Query.int "fly_port")
+    map FlySuccess (s "fly_success" <?> Query.int "fly_port")
 
 
 
@@ -393,15 +391,11 @@ toString route =
         Dashboard HighDensity ->
             "/hd"
 
-        FlySuccess { flyPort } ->
-            "/fly_success"
-                ++ (case flyPort of
-                        Nothing ->
-                            ""
+        FlySuccess (Just flyPort) ->
+            "/fly_success?fly_port=" ++ String.fromInt flyPort
 
-                        Just fp ->
-                            "?fly_port=" ++ String.fromInt fp
-                   )
+        FlySuccess Nothing ->
+            "/fly_success"
 
 
 parsePath : Url.Url -> Maybe Route

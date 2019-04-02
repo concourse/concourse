@@ -16,8 +16,8 @@ module Concourse exposing
     , BuildStep(..)
     , CSRFToken
     , Cause
+    , ConcourseVersion
     , HookedPlan
-    , Info
     , Job
     , JobBuildIdentifier
     , JobIdentifier
@@ -166,7 +166,6 @@ type BuildStatus
     | BuildStatusFailed
     | BuildStatusErrored
     | BuildStatusAborted
-
 
 type alias BuildDuration =
     { startedAt : Maybe Time.Posix
@@ -340,6 +339,7 @@ type BuildStep
     | BuildStepOnSuccess HookedPlan
     | BuildStepOnFailure HookedPlan
     | BuildStepOnAbort HookedPlan
+    | BuildStepOnError HookedPlan
     | BuildStepEnsure HookedPlan
     | BuildStepTry BuildPlan
     | BuildStepRetry (Array BuildPlan)
@@ -363,24 +363,25 @@ decodeBuildPlan_ =
     Json.Decode.succeed BuildPlan
         |> andMap (Json.Decode.field "id" Json.Decode.string)
         |> andMap
-            (Json.Decode.oneOf
-                -- buckle up
-                [ Json.Decode.field "task" <| lazy (\_ -> decodeBuildStepTask)
-                , Json.Decode.field "get" <| lazy (\_ -> decodeBuildStepGet)
-                , Json.Decode.field "put" <| lazy (\_ -> decodeBuildStepPut)
-                , Json.Decode.field "dependent_get" <| lazy (\_ -> decodeBuildStepGet)
-                , Json.Decode.field "aggregate" <| lazy (\_ -> decodeBuildStepAggregate)
-                , Json.Decode.field "do" <| lazy (\_ -> decodeBuildStepDo)
-                , Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildStepOnSuccess)
-                , Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildStepOnFailure)
-                , Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildStepOnAbort)
-                , Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildStepEnsure)
-                , Json.Decode.field "try" <| lazy (\_ -> decodeBuildStepTry)
-                , Json.Decode.field "retry" <| lazy (\_ -> decodeBuildStepRetry)
-                , Json.Decode.field "timeout" <| lazy (\_ -> decodeBuildStepTimeout)
-                ]
+        
+           (Json.Decode.oneOf
+            -- buckle up
+            [ Json.Decode.field "task" <| lazy (\_ -> decodeBuildStepTask)
+            , Json.Decode.field "get" <| lazy (\_ -> decodeBuildStepGet)
+            , Json.Decode.field "put" <| lazy (\_ -> decodeBuildStepPut)
+            , Json.Decode.field "dependent_get" <| lazy (\_ -> decodeBuildStepGet)
+            , Json.Decode.field "aggregate" <| lazy (\_ -> decodeBuildStepAggregate)
+            , Json.Decode.field "do" <| lazy (\_ -> decodeBuildStepDo)
+            , Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildStepOnSuccess)
+            , Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildStepOnFailure)
+            , Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildStepOnAbort)
+            , Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildStepOnError)
+            , Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildStepEnsure)
+            , Json.Decode.field "try" <| lazy (\_ -> decodeBuildStepTry)
+            , Json.Decode.field "retry" <| lazy (\_ -> decodeBuildStepRetry)
+            , Json.Decode.field "timeout" <| lazy (\_ -> decodeBuildStepTimeout)
+            ]
             )
-
 
 decodeBuildStepTask : Json.Decode.Decoder BuildStep
 decodeBuildStepTask =
@@ -439,6 +440,13 @@ decodeBuildStepOnAbort =
             |> andMap (Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildPlan_))
         )
 
+decodeBuildStepOnError : Json.Decode.Decoder BuildStep
+decodeBuildStepOnError =
+    Json.Decode.map BuildStepOnError 
+        (Json.Decode.succeed HookedPlan
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildPlan_))
+        )
 
 decodeBuildStepEnsure : Json.Decode.Decoder BuildStep
 decodeBuildStepEnsure =
@@ -471,15 +479,13 @@ decodeBuildStepTimeout =
 -- Info
 
 
-type alias Info =
-    { version : String
-    }
+type alias ConcourseVersion =
+    String
 
 
-decodeInfo : Json.Decode.Decoder Info
+decodeInfo : Json.Decode.Decoder ConcourseVersion
 decodeInfo =
-    Json.Decode.succeed Info
-        |> andMap (Json.Decode.field "version" Json.Decode.string)
+    Json.Decode.field "version" Json.Decode.string
 
 
 
@@ -617,6 +623,7 @@ type alias Resource =
     { teamName : String
     , pipelineName : String
     , name : String
+    , icon : Maybe String
     , failingToCheck : Bool
     , checkError : String
     , checkSetupError : String
@@ -656,6 +663,7 @@ decodeResource =
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "icon" Json.Decode.string))
         |> andMap (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
         |> andMap (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
         |> andMap (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)

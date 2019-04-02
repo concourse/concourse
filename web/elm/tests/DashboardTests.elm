@@ -13,10 +13,10 @@ module DashboardTests exposing
     )
 
 import Application.Application as Application
+import Common
 import Concourse
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
-import Dashboard.Models as Models
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
@@ -140,12 +140,32 @@ all =
                     |> Tuple.second
                     |> List.member Effects.GetScreenSize
                     |> Expect.true "should request screen size"
+        , test "title says 'Dashboard - Concourse'" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.first
+                    |> Application.view
+                    |> .title
+                    |> Expect.equal "Dashboard - Concourse"
         , describe "welcome card" <|
             let
-                hasWelcomeCard : (() -> ( Models.Model, List Effects.Effect )) -> List Test
+                hasWelcomeCard : (() -> ( Application.Model, List Effects.Effect )) -> List Test
                 hasWelcomeCard setup =
                     let
-                        subject : () -> Query.Single Msgs.Message
+                        subject : () -> Query.Single ApplicationMsgs.TopLevelMessage
                         subject =
                             setup
                                 >> queryView
@@ -184,7 +204,7 @@ all =
                             >> Query.has [ style "padding" "40px" ]
                     , describe "body" <|
                         let
-                            body : () -> Query.Single Msgs.Message
+                            body : () -> Query.Single ApplicationMsgs.TopLevelMessage
                             body =
                                 subject >> Query.children [] >> Query.index 1
                         in
@@ -275,8 +295,13 @@ all =
                                 , defineHoverBehaviour
                                     { name = "os x cli icon"
                                     , setup = setup ()
-                                    , query = queryView >> Query.find [ id "top-cli-osx" ]
-                                    , updateFunc = Dashboard.update
+                                    , query =
+                                        queryView
+                                            >> Query.find [ id "top-cli-osx" ]
+                                    , updateFunc =
+                                        \msg ->
+                                            Tuple.first
+                                                >> Application.update msg
                                     , unhoveredSelector =
                                         { description = "grey apple icon"
                                         , selector =
@@ -289,10 +314,13 @@ all =
                                                     }
                                         }
                                     , mouseEnterMsg =
-                                        Msgs.Hover <|
-                                            Maybe.map Msgs.WelcomeCardCliIcon <|
-                                                List.Extra.getAt 0 Cli.clis
-                                    , mouseLeaveMsg = Msgs.Hover Nothing
+                                        ApplicationMsgs.Update <|
+                                            Msgs.Hover <|
+                                                Maybe.map Msgs.WelcomeCardCliIcon <|
+                                                    List.Extra.getAt 0 Cli.clis
+                                    , mouseLeaveMsg =
+                                        ApplicationMsgs.Update <|
+                                            Msgs.Hover Nothing
                                     , hoveredSelector =
                                         { description = "white apple icon"
                                         , selector =
@@ -312,7 +340,10 @@ all =
                                         queryView
                                             >> Query.find
                                                 [ id "top-cli-windows" ]
-                                    , updateFunc = Dashboard.update
+                                    , updateFunc =
+                                        \msg ->
+                                            Tuple.first
+                                                >> Application.update msg
                                     , unhoveredSelector =
                                         { description = "grey windows icon"
                                         , selector =
@@ -325,10 +356,13 @@ all =
                                                     }
                                         }
                                     , mouseEnterMsg =
-                                        Msgs.Hover <|
-                                            Maybe.map Msgs.WelcomeCardCliIcon <|
-                                                List.Extra.getAt 1 Cli.clis
-                                    , mouseLeaveMsg = Msgs.Hover Nothing
+                                        ApplicationMsgs.Update <|
+                                            Msgs.Hover <|
+                                                Maybe.map Msgs.WelcomeCardCliIcon <|
+                                                    List.Extra.getAt 1 Cli.clis
+                                    , mouseLeaveMsg =
+                                        ApplicationMsgs.Update <|
+                                            Msgs.Hover Nothing
                                     , hoveredSelector =
                                         { description = "white windows icon"
                                         , selector =
@@ -348,7 +382,10 @@ all =
                                         queryView
                                             >> Query.find
                                                 [ id "top-cli-linux" ]
-                                    , updateFunc = Dashboard.update
+                                    , updateFunc =
+                                        \msg ->
+                                            Tuple.first
+                                                >> Application.update msg
                                     , unhoveredSelector =
                                         { description = "grey linux icon"
                                         , selector =
@@ -361,10 +398,13 @@ all =
                                                     }
                                         }
                                     , mouseEnterMsg =
-                                        Msgs.Hover <|
-                                            Maybe.map Msgs.WelcomeCardCliIcon <|
-                                                List.Extra.getAt 2 Cli.clis
-                                    , mouseLeaveMsg = Msgs.Hover Nothing
+                                        ApplicationMsgs.Update <|
+                                            Msgs.Hover <|
+                                                Maybe.map Msgs.WelcomeCardCliIcon <|
+                                                    List.Extra.getAt 2 Cli.clis
+                                    , mouseLeaveMsg =
+                                        ApplicationMsgs.Update <|
+                                            Msgs.Hover Nothing
                                     , hoveredSelector =
                                         { description = "white linux icon"
                                         , selector =
@@ -382,7 +422,7 @@ all =
                         ]
                     , describe "ascii art" <|
                         let
-                            art : () -> Query.Single Msgs.Message
+                            art : () -> Query.Single ApplicationMsgs.TopLevelMessage
                             art =
                                 subject >> Query.children [] >> Query.index 2
                         in
@@ -572,7 +612,7 @@ all =
                     |> Query.has [ style "font-weight" "700" ]
         , test "logging out causes pipeline list to reload" <|
             let
-                showsLoadingState : ( Models.Model, List Effects.Effect ) -> Expectation
+                showsLoadingState : ( Application.Model, List Effects.Effect ) -> Expectation
                 showsLoadingState =
                     queryView
                         >> Query.findAll [ class "dashboard-team-group" ]
@@ -583,7 +623,8 @@ all =
                     |> givenDataAndUser
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                    |> Dashboard.update Msgs.LogOut
+                    |> Tuple.first
+                    |> Application.update (ApplicationMsgs.Update Msgs.LogOut)
                     |> showsLoadingState
         , test "links to specific builds" <|
             \_ ->
@@ -608,7 +649,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> Tuple.first
-                    |> handleCallback
+                    |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
@@ -618,15 +659,16 @@ all =
                     |> Expect.all
                         [ Tuple.second
                             >> Expect.equal [ Effects.ModifyUrl "/" ]
-                        , Dashboard.handleCallback
-                            (Callback.APIDataFetched <|
-                                Ok
-                                    ( Time.millisToPosix 0
-                                    , apiData
-                                        [ ( "team", [ "pipeline" ] ) ]
-                                        Nothing
-                                    )
-                            )
+                        , Tuple.first
+                            >> Application.handleCallback
+                                (Callback.APIDataFetched <|
+                                    Ok
+                                        ( Time.millisToPosix 0
+                                        , apiData
+                                            [ ( "team", [ "pipeline" ] ) ]
+                                            Nothing
+                                        )
+                                )
                             >> queryView
                             >> Query.find [ class "card-footer" ]
                             >> Query.children []
@@ -638,7 +680,8 @@ all =
         , test "HD view redirects to no pipelines view when pipelines disappear" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
-                    |> Dashboard.handleCallback
+                    |> Tuple.first
+                    |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
@@ -646,7 +689,7 @@ all =
                                 )
                         )
                     |> Tuple.first
-                    |> handleCallback
+                    |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
@@ -662,7 +705,8 @@ all =
         , test "no search bar when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.handleCallback
+                    |> Tuple.first
+                    |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
@@ -674,7 +718,8 @@ all =
         , test "typing '?' in search bar does not toggle help" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.handleCallback
+                    |> Tuple.first
+                    |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
@@ -683,8 +728,10 @@ all =
                                     Nothing
                                 )
                         )
-                    |> Dashboard.update Msgs.FocusMsg
-                    |> Dashboard.handleDelivery
+                    |> Tuple.first
+                    |> Application.update (ApplicationMsgs.Update Msgs.FocusMsg)
+                    |> Tuple.first
+                    |> Application.handleDelivery
                         (KeyDown
                             { ctrlKey = False
                             , shiftKey = True
@@ -697,7 +744,8 @@ all =
         , test "bottom bar appears when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.handleCallback
+                    |> Tuple.first
+                    |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
@@ -709,7 +757,8 @@ all =
         , test "bottom bar has no legend when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.handleCallback
+                    |> Tuple.first
+                    |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
@@ -721,7 +770,8 @@ all =
         , test "concourse info is right-justified when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.handleCallback
+                    |> Tuple.first
+                    |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
@@ -734,14 +784,16 @@ all =
         , test "pressing '?' does nothing when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Dashboard.handleCallback
+                    |> Tuple.first
+                    |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> Dashboard.handleDelivery
+                    |> Tuple.first
+                    |> Application.handleDelivery
                         (KeyDown
                             { ctrlKey = False
                             , shiftKey = True
@@ -873,19 +925,23 @@ all =
             ]
         , describe "pipeline cards" <|
             let
-                findHeader : Query.Single Msgs.Message -> Query.Single Msgs.Message
+                findHeader :
+                    Query.Single ApplicationMsgs.TopLevelMessage
+                    -> Query.Single ApplicationMsgs.TopLevelMessage
                 findHeader =
                     Query.find [ class "card-header" ]
 
-                findBody : Query.Single Msgs.Message -> Query.Single Msgs.Message
+                findBody :
+                    Query.Single ApplicationMsgs.TopLevelMessage
+                    -> Query.Single ApplicationMsgs.TopLevelMessage
                 findBody =
                     Query.find [ class "card-body" ]
 
                 pipelineWithStatus :
                     Concourse.BuildStatus
                     -> Bool
-                    -> ( Models.Model, List Effects.Effect )
-                    -> Query.Single Msgs.Message
+                    -> ( Application.Model, List Effects.Effect )
+                    -> Query.Single ApplicationMsgs.TopLevelMessage
                 pipelineWithStatus status isRunning =
                     let
                         jobFunc =
@@ -913,7 +969,7 @@ all =
             in
             [ describe "when team has no visible pipelines" <|
                 let
-                    noPipelinesCard : () -> Query.Single Msgs.Message
+                    noPipelinesCard : () -> Query.Single ApplicationMsgs.TopLevelMessage
                     noPipelinesCard _ =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
@@ -933,7 +989,7 @@ all =
                 in
                 [ describe "header" <|
                     let
-                        header : () -> Query.Single Msgs.Message
+                        header : () -> Query.Single ApplicationMsgs.TopLevelMessage
                         header =
                             noPipelinesCard
                                 >> findHeader
@@ -965,7 +1021,7 @@ all =
                     ]
                 , describe "body" <|
                     let
-                        body : () -> Query.Single Msgs.Message
+                        body : () -> Query.Single ApplicationMsgs.TopLevelMessage
                         body =
                             noPipelinesCard
                                 >> Query.find [ class "card-body" ]
@@ -1027,7 +1083,7 @@ all =
                         |> Query.has [ style "margin" "25px" ]
             , describe "header" <|
                 let
-                    header : () -> Query.Single Msgs.Message
+                    header : () -> Query.Single ApplicationMsgs.TopLevelMessage
                     header _ =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
@@ -1074,7 +1130,7 @@ all =
                             >> Query.children []
                             >> Query.first
 
-                    isSolid : String -> Query.Single Msgs.Message -> Expectation
+                    isSolid : String -> Query.Single ApplicationMsgs.TopLevelMessage -> Expectation
                     isSolid color =
                         Query.has [ style "background-color" color ]
                 in
@@ -1190,7 +1246,7 @@ all =
                             givenTwoJobs :
                                 Concourse.BuildStatus
                                 -> Concourse.BuildStatus
-                                -> Query.Single Msgs.Message
+                                -> Query.Single ApplicationMsgs.TopLevelMessage
                             givenTwoJobs firstStatus secondStatus =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated
@@ -1367,7 +1423,7 @@ all =
                                 givenTwoJobs :
                                     Concourse.BuildStatus
                                     -> Concourse.BuildStatus
-                                    -> Query.Single Msgs.Message
+                                    -> Query.Single ApplicationMsgs.TopLevelMessage
                                 givenTwoJobs firstStatus secondStatus =
                                     whenOnDashboard { highDensity = False }
                                         |> givenDataUnauthenticated
@@ -1421,14 +1477,14 @@ all =
                 ]
             , describe "on HD view" <|
                 let
-                    setup : () -> Query.Single Msgs.Message
+                    setup : () -> Query.Single ApplicationMsgs.TopLevelMessage
                     setup _ =
                         whenOnDashboard { highDensity = True }
                             |> givenDataUnauthenticated
                                 (oneTeamOnePipeline "team")
                             |> queryView
 
-                    noPipelines : () -> Query.Single Msgs.Message
+                    noPipelines : () -> Query.Single ApplicationMsgs.TopLevelMessage
                     noPipelines _ =
                         whenOnDashboard { highDensity = True }
                             |> givenDataUnauthenticated
@@ -1439,14 +1495,14 @@ all =
                                 )
                             |> queryView
 
-                    card : Query.Single Msgs.Message -> Query.Single Msgs.Message
+                    card : Query.Single ApplicationMsgs.TopLevelMessage -> Query.Single ApplicationMsgs.TopLevelMessage
                     card =
                         Query.find
                             [ class "card"
                             , containing [ text "pipeline" ]
                             ]
 
-                    cardText : Query.Single Msgs.Message -> Query.Single Msgs.Message
+                    cardText : Query.Single ApplicationMsgs.TopLevelMessage -> Query.Single ApplicationMsgs.TopLevelMessage
                     cardText =
                         card
                             >> Query.children []
@@ -1540,7 +1596,7 @@ all =
                         >> Query.count (Expect.equal 2)
                 , describe "resource error triangle" <|
                     let
-                        givenResourceError : () -> Query.Single Msgs.Message
+                        givenResourceError : () -> Query.Single ApplicationMsgs.TopLevelMessage
                         givenResourceError _ =
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
@@ -1571,6 +1627,7 @@ all =
                                               , pinnedVersion = Nothing
                                               , pinnedInConfig = False
                                               , pinComment = Nothing
+                                              , icon = Nothing
                                               }
                                             ]
                                         , version = ""
@@ -1881,8 +1938,7 @@ all =
                                             }
                                         )
                                     |> afterSeconds 1
-                                    |> Application.view
-                                    |> Query.fromHtml
+                                    |> Common.queryView
                                     |> findStatusText
                                     |> Query.has
                                         [ text "1s" ]
@@ -2058,15 +2114,13 @@ all =
                                     (oneTeamOnePipeline "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
-                            Tuple.first
-                                >> Dashboard.view UserState.UserStateLoggedOut
-                                >> Query.fromHtml
+                            queryView
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
                                 >> Query.index -1
                                 >> Query.children []
                                 >> Query.index 0
-                        , updateFunc = Dashboard.update
+                        , updateFunc = \msg -> Tuple.first >> Application.update msg
                         , unhoveredSelector =
                             { description = "a faded 20px square pause button with pointer cursor"
                             , selector =
@@ -2079,13 +2133,16 @@ all =
                                        ]
                             }
                         , mouseEnterMsg =
-                            Msgs.Hover <|
-                                Just <|
-                                    Msgs.PipelineButton
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                        , mouseLeaveMsg = Msgs.Hover Nothing
+                            ApplicationMsgs.Update <|
+                                Msgs.Hover <|
+                                    Just <|
+                                        Msgs.PipelineButton
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                        , mouseLeaveMsg =
+                            ApplicationMsgs.Update <|
+                                Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "a bright 20px square pause button with pointer cursor"
                             , selector =
@@ -2106,15 +2163,13 @@ all =
                                     (oneTeamOnePipelinePaused "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
                         , query =
-                            Tuple.first
-                                >> Dashboard.view UserState.UserStateLoggedOut
-                                >> Query.fromHtml
+                            queryView
                                 >> Query.find [ class "card-footer" ]
                                 >> Query.children []
                                 >> Query.index -1
                                 >> Query.children []
                                 >> Query.index 0
-                        , updateFunc = Dashboard.update
+                        , updateFunc = \msg -> Tuple.first >> Application.update msg
                         , unhoveredSelector =
                             { description = "a transparent 20px square play button with pointer cursor"
                             , selector =
@@ -2127,13 +2182,15 @@ all =
                                        ]
                             }
                         , mouseEnterMsg =
-                            Msgs.Hover <|
-                                Just <|
-                                    Msgs.PipelineButton
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                        , mouseLeaveMsg = Msgs.Hover Nothing
+                            ApplicationMsgs.Update <|
+                                Msgs.Hover <|
+                                    Just <|
+                                        Msgs.PipelineButton
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                        , mouseLeaveMsg =
+                            ApplicationMsgs.Update <| Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "an opaque 20px square play button with pointer cursor"
                             , selector =
@@ -2162,11 +2219,12 @@ all =
                                     )
                                 |> Event.simulate Event.click
                                 |> Event.expect
-                                    (Msgs.TogglePipelinePaused
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        False
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.TogglePipelinePaused
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                            False
                                     )
                     , test "pause button turns into spinner on click" <|
                         \_ ->
@@ -2178,12 +2236,14 @@ all =
                                 |> givenDataAndUser
                                     (oneTeamOnePipeline "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> Dashboard.update
-                                    (Msgs.TogglePipelinePaused
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        False
+                                |> Tuple.first
+                                |> Application.update
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.TogglePipelinePaused
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                            False
                                     )
                                 |> queryView
                                 |> Query.find [ class "card-footer" ]
@@ -2194,13 +2254,14 @@ all =
                                 |> givenDataAndUser
                                     (oneTeamOnePipeline "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> Tuple.mapSecond (always [])
-                                |> Dashboard.update
-                                    (Msgs.TogglePipelinePaused
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        False
+                                |> Tuple.first
+                                |> Application.update
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.TogglePipelinePaused
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                            False
                                     )
                                 |> Tuple.second
                                 |> Expect.equal
@@ -2216,15 +2277,17 @@ all =
                                 |> givenDataAndUser
                                     (oneTeamOnePipeline "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> Dashboard.update
-                                    (Msgs.TogglePipelinePaused
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        False
+                                |> Tuple.first
+                                |> Application.update
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.TogglePipelinePaused
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                            False
                                     )
-                                |> Tuple.mapSecond (always [])
-                                |> Dashboard.handleCallback
+                                |> Tuple.first
+                                |> Application.handleCallback
                                     (Callback.PipelineToggled
                                         { pipelineName = "pipeline"
                                         , teamName = "team"
@@ -2238,15 +2301,17 @@ all =
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
                                     (oneTeamOnePipeline "team")
-                                |> Dashboard.update
-                                    (Msgs.TogglePipelinePaused
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        False
+                                |> Tuple.first
+                                |> Application.update
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.TogglePipelinePaused
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                            False
                                     )
-                                |> Tuple.mapSecond (always [])
-                                |> Dashboard.handleCallback
+                                |> Tuple.first
+                                |> Application.handleCallback
                                     (Callback.PipelineToggled
                                         { pipelineName = "pipeline"
                                         , teamName = "team"
@@ -2320,9 +2385,7 @@ all =
                             (ApplicationMsgs.DeliveryReceived <|
                                 WindowResized 1229 300
                             )
-                        |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has [ style "flex-direction" "column" ]
             , describe "legend"
@@ -2399,9 +2462,7 @@ all =
                                 (ApplicationMsgs.DeliveryReceived <|
                                     WindowResized 800 300
                                 )
-                            |> Tuple.first
-                            |> Application.view
-                            |> Query.fromHtml
+                            |> queryView
                             |> Query.find [ id "legend" ]
                             |> Expect.all
                                 [ Query.hasNot [ text "|" ]
@@ -2415,9 +2476,7 @@ all =
                                 (ApplicationMsgs.DeliveryReceived <|
                                     WindowResized 800 300
                                 )
-                            |> Tuple.first
-                            |> Application.view
-                            |> Query.fromHtml
+                            |> queryView
                             |> Query.find [ id "legend" ]
                             |> Query.has [ style "flex-wrap" "wrap" ]
                 , test "legend items lay out contents horizontally, centered vertically in grey caps" <|
@@ -2689,12 +2748,18 @@ all =
                                         , size = "20px"
                                         }
                             }
-                        , updateFunc = Dashboard.update
+                        , updateFunc =
+                            \msg ->
+                                Tuple.first
+                                    >> Application.update msg
                         , mouseEnterMsg =
-                            Msgs.Hover <|
-                                Maybe.map Msgs.FooterCliIcon <|
-                                    List.Extra.getAt 0 Cli.clis
-                        , mouseLeaveMsg = Msgs.Hover Nothing
+                            ApplicationMsgs.Update <|
+                                Msgs.Hover <|
+                                    Maybe.map Msgs.FooterCliIcon <|
+                                        List.Extra.getAt 0 Cli.clis
+                        , mouseLeaveMsg =
+                            ApplicationMsgs.Update <|
+                                Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "white apple icon"
                             , selector =
@@ -2727,12 +2792,18 @@ all =
                                         , size = "20px"
                                         }
                             }
-                        , updateFunc = Dashboard.update
+                        , updateFunc =
+                            \msg ->
+                                Tuple.first
+                                    >> Application.update msg
                         , mouseEnterMsg =
-                            Msgs.Hover <|
-                                Maybe.map Msgs.FooterCliIcon <|
-                                    List.Extra.getAt 1 Cli.clis
-                        , mouseLeaveMsg = Msgs.Hover Nothing
+                            ApplicationMsgs.Update <|
+                                Msgs.Hover <|
+                                    Maybe.map Msgs.FooterCliIcon <|
+                                        List.Extra.getAt 1 Cli.clis
+                        , mouseLeaveMsg =
+                            ApplicationMsgs.Update <|
+                                Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "white windows icon"
                             , selector =
@@ -2765,12 +2836,18 @@ all =
                                         , size = "20px"
                                         }
                             }
-                        , updateFunc = Dashboard.update
+                        , updateFunc =
+                            \msg ->
+                                Tuple.first
+                                    >> Application.update msg
                         , mouseEnterMsg =
-                            Msgs.Hover <|
-                                Maybe.map Msgs.FooterCliIcon <|
-                                    List.Extra.getAt 2 Cli.clis
-                        , mouseLeaveMsg = Msgs.Hover Nothing
+                            ApplicationMsgs.Update <|
+                                Msgs.Hover <|
+                                    Maybe.map Msgs.FooterCliIcon <|
+                                        List.Extra.getAt 2 Cli.clis
+                        , mouseLeaveMsg =
+                            ApplicationMsgs.Update <|
+                                Msgs.Hover Nothing
                         , hoveredSelector =
                             { description = "white linux icon"
                             , selector =
@@ -2808,8 +2885,7 @@ all =
                     initFromApplication
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> Common.queryView
                         |> Query.hasNot [ id "dashboard-info" ]
             , test "reappears on mouse action" <|
                 \_ ->
@@ -2818,9 +2894,7 @@ all =
                         |> afterSeconds 6
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived Moused)
-                        |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> queryView
                         |> Query.has [ id "dashboard-info" ]
             , test "is replaced by keyboard help when pressing '?'" <|
                 \_ ->
@@ -2836,9 +2910,7 @@ all =
                                     , code = Keyboard.Slash
                                     }
                             )
-                        |> Tuple.first
-                        |> Application.view
-                        |> Query.fromHtml
+                        |> queryView
                         |> Expect.all
                             [ Query.hasNot [ id "dashboard-info" ]
                             , Query.has [ id "keyboard-help" ]
@@ -2848,7 +2920,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Tuple.first
-                    |> Dashboard.subscriptions
+                    |> Application.subscriptions
                     |> Expect.all
                         [ List.member (Subscription.OnClockTick OneSecond)
                             >> Expect.true "doesn't have one second timer"
@@ -2859,7 +2931,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Tuple.first
-                    |> Dashboard.subscriptions
+                    |> Application.subscriptions
                     |> List.member Subscription.OnKeyUp
                     |> Expect.true "doesn't subscribe to keyups?"
         , test "auto refreshes data every five seconds" <|
@@ -2875,9 +2947,11 @@ all =
         ]
 
 
-handleCallback : Callback.Callback -> Models.Model -> ( Models.Model, List Effects.Effect )
-handleCallback callback =
-    (\m -> ( m, [] )) >> Dashboard.handleCallback callback
+queryView :
+    ( Application.Model, List Effects.Effect )
+    -> Query.Single ApplicationMsgs.TopLevelMessage
+queryView =
+    Tuple.first >> Common.queryView
 
 
 afterSeconds : Int -> Application.Model -> Application.Model
@@ -2988,35 +3062,40 @@ iconSelector { size, image } =
     ]
 
 
-whenOnDashboard : { highDensity : Bool } -> ( Models.Model, List Effects.Effect )
+whenOnDashboard : { highDensity : Bool } -> ( Application.Model, List Effects.Effect )
 whenOnDashboard { highDensity } =
-    Dashboard.init
-        { turbulencePath = ""
+    Application.init
+        { turbulenceImgSrc = ""
+        , notFoundImgSrc = ""
+        , csrfToken = csrfToken
+        , authToken = ""
         , pipelineRunningKeyframes = pipelineRunningKeyframes
-        , searchType =
+        }
+        { protocol = Url.Http
+        , host = ""
+        , port_ = Nothing
+        , path =
             if highDensity then
-                Routes.HighDensity
+                "/hd"
 
             else
-                Routes.Normal Nothing
+                "/"
+        , query = Nothing
+        , fragment = Nothing
         }
-
-
-queryView : ( Models.Model, List Effects.Effect ) -> Query.Single Msgs.Message
-queryView =
-    Tuple.first
-        >> Dashboard.view UserState.UserStateLoggedOut
-        >> Query.fromHtml
 
 
 givenDataAndUser :
     (Maybe Concourse.User -> Concourse.APIData)
     -> Concourse.User
-    -> ( Models.Model, List Effects.Effect )
-    -> ( Models.Model, List Effects.Effect )
+    -> ( Application.Model, List Effects.Effect )
+    -> ( Application.Model, List Effects.Effect )
 givenDataAndUser data user =
-    Dashboard.handleCallback
-        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data <| Just user ))
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.APIDataFetched <|
+                Ok ( Time.millisToPosix 0, data <| Just user )
+            )
 
 
 userWithRoles : List ( String, List String ) -> Concourse.User
@@ -3042,11 +3121,12 @@ givenDataUnauthenticatedFromApplication data =
 
 givenDataUnauthenticated :
     (Maybe Concourse.User -> Concourse.APIData)
-    -> ( Models.Model, List Effects.Effect )
-    -> ( Models.Model, List Effects.Effect )
+    -> ( Application.Model, List Effects.Effect )
+    -> ( Application.Model, List Effects.Effect )
 givenDataUnauthenticated data =
-    Dashboard.handleCallback
-        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data Nothing ))
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data Nothing ))
 
 
 givenPipelineWithJob : Maybe Concourse.User -> Concourse.APIData
@@ -3390,14 +3470,21 @@ teamHeaderSelector =
     [ class <| .sectionHeaderClass Effects.stickyHeaderConfig ]
 
 
-teamHeaderHasNoPill : String -> Query.Single Msgs.Message -> Expectation
+teamHeaderHasNoPill :
+    String
+    -> Query.Single ApplicationMsgs.TopLevelMessage
+    -> Expectation
 teamHeaderHasNoPill teamName =
     Query.find (teamHeaderSelector ++ [ containing [ text teamName ] ])
         >> Query.children []
         >> Query.count (Expect.equal 1)
 
 
-teamHeaderHasPill : String -> String -> Query.Single Msgs.Message -> Expectation
+teamHeaderHasPill :
+    String
+    -> String
+    -> Query.Single ApplicationMsgs.TopLevelMessage
+    -> Expectation
 teamHeaderHasPill teamName pillText =
     Query.find (teamHeaderSelector ++ [ containing [ text teamName ] ])
         >> Query.children []

@@ -1,5 +1,6 @@
 module Build.Build exposing
     ( changeToBuild
+    , documentTitle
     , getScrollBehavior
     , getUpdateMessage
     , handleCallback
@@ -10,32 +11,27 @@ module Build.Build exposing
     , view
     )
 
-import Build.Models as Models exposing (BuildPageType(..), Model)
+import Build.Models exposing (BuildPageType(..), CurrentBuild, Model)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
+import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
-import Char
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Paginated)
 import DateFormat
-import Debug
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
-        ( action
-        , attribute
+        ( attribute
         , class
         , classList
-        , disabled
         , href
         , id
-        , method
         , style
-        , tabindex
         , title
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
@@ -46,12 +42,13 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
-import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
+import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
-import RemoteData exposing (WebData)
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import RemoteData
 import Routes
-import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
+import StrictEvents exposing (onLeftClick, onMouseWheel)
 import String
 import Time
 import UpdateMsg exposing (UpdateMsg)
@@ -59,16 +56,10 @@ import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
+import Views.NotAuthorized as NotAuthorized
 import Views.Spinner as Spinner
 import Views.Styles
 import Views.TopBar as TopBar
-
-
-type StepRenderingState
-    = StepsLoading
-    | StepsLiveUpdating
-    | StepsComplete
-    | NotAuthorized
 
 
 type alias Flags =
@@ -100,6 +91,7 @@ init flags =
           , highlight = flags.highlight
           , hoveredElement = Nothing
           , hoveredCounter = 0
+          , authorized = True
           , fetchingHistory = False
           , scrolledToCurrentBuild = False
           , shiftDown = False
@@ -172,15 +164,15 @@ changeToBuild { highlight, pageType } ( model, effects ) =
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model ) of
-        ( Just build, Just { jobName } ) ->
-            jobName ++ ((" #" ++ build.build.name) ++ " - ")
+    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model, model.page ) of
+        ( Just build, Just { jobName }, _ ) ->
+            jobName ++ " #" ++ build.build.name
 
-        ( Just build, Nothing ) ->
-            "#" ++ (String.fromInt build.build.id ++ " - ")
+        ( _, _, JobBuildPage { jobName, buildName } ) ->
+            jobName ++ " #" ++ buildName
 
-        _ ->
-            ""
+        ( _, _, OneOffBuildPage id ) ->
+            "#" ++ String.fromInt id
 
 
 currentJob : Model -> Maybe Concourse.JobIdentifier
@@ -237,34 +229,78 @@ handleCallback action ( model, effects ) =
             handleBuildPrepFetched browsingIndex buildPrep ( model, effects )
 
         BuildPrepFetched (Err err) ->
-            (\a -> always a (Debug.log "failed to fetch build preparation" err)) <|
-                ( model, effects )
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        ( { model | authorized = False }, effects )
 
-        PlanAndResourcesFetched buildId result ->
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( model, effects )
+
+        PlanAndResourcesFetched buildId (Ok planAndResources) ->
             updateOutput
-                (Build.Output.Output.planAndResourcesFetched buildId result)
+                (Build.Output.Output.planAndResourcesFetched
+                    buildId
+                    planAndResources
+                )
                 ( model
                 , effects
                     ++ [ Effects.OpenBuildEventStream
-                            { url = "/api/v1/builds/" ++ String.fromInt buildId ++ "/events"
+                            { url =
+                                "/api/v1/builds/"
+                                    ++ String.fromInt buildId
+                                    ++ "/events"
                             , eventTypes = [ "end", "event" ]
                             }
                        ]
                 )
 
-        BuildHistoryFetched (Err err) ->
-            (\a -> always a (Debug.log "failed to fetch build history" err)) <|
-                ( { model | fetchingHistory = False }, effects )
+        PlanAndResourcesFetched buildId (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 404 then
+                        let
+                            url =
+                                "/api/v1/builds/"
+                                    ++ String.fromInt buildId
+                                    ++ "/events"
+                        in
+                        updateOutput
+                            (\m ->
+                                ( { m | eventStreamUrlPath = Just url }
+                                , []
+                                , Build.Output.Output.OutNoop
+                                )
+                            )
+                            ( model, effects )
+
+                    else if status.code == 401 then
+                        ( { model | authorized = False }, effects )
+
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( model, effects )
 
         BuildHistoryFetched (Ok history) ->
             handleHistoryFetched history ( model, effects )
 
-        BuildJobDetailsFetched (Ok job) ->
-            handleBuildJobFetched job ( model, effects )
+        BuildHistoryFetched (Err _) ->
+            -- https://github.com/concourse/concourse/issues/3201
+            ( { model | fetchingHistory = False }, effects )
 
-        BuildJobDetailsFetched (Err err) ->
-            (\a -> always a (Debug.log "failed to fetch build job details" err)) <|
-                ( model, effects )
+        BuildJobDetailsFetched (Ok job) ->
+            ( { model | disableManualTrigger = job.disableManualTrigger }
+            , effects
+            )
+
+        BuildJobDetailsFetched (Err _) ->
+            -- https://github.com/concourse/concourse/issues/3201
+            ( model, effects )
 
         _ ->
             ( model, effects )
@@ -301,17 +337,53 @@ handleDelivery delivery ( model, effects ) =
         ScrolledToBottom atBottom ->
             ( { model | autoScroll = atBottom }, effects )
 
-        EventsReceived envelopes ->
-            updateOutput
-                (Build.Output.Output.handleEnvelopes envelopes)
-                ( model
-                , case getScrollBehavior model of
-                    ScrollWindow ->
-                        effects ++ [ Effects.Scroll Effects.ToBottom ]
+        EventsReceived result ->
+            let
+                scrollEffects =
+                    case getScrollBehavior model of
+                        ScrollWindow ->
+                            effects ++ [ Effects.Scroll Effects.ToBottom ]
 
-                    NoScroll ->
-                        effects
-                )
+                        NoScroll ->
+                            effects
+            in
+            case result of
+                Ok envelopes ->
+                    let
+                        newModel =
+                            if
+                                List.map .data envelopes
+                                    |> List.member STModels.NetworkError
+                            then
+                                { model | authorized = False }
+
+                            else
+                                model
+                    in
+                    updateOutput
+                        (Build.Output.Output.handleEnvelopes envelopes)
+                        ( newModel, scrollEffects )
+
+                Err _ ->
+                    let
+                        eventSourceOpened =
+                            model.currentBuild
+                                |> RemoteData.toMaybe
+                                |> Maybe.andThen .output
+                                |> Maybe.map .eventSourceOpened
+                                |> Maybe.withDefault True
+                    in
+                    ( if eventSourceOpened then
+                        -- connection could have dropped out of the blue;
+                        -- just let the browser handle reconnecting
+                        model
+
+                      else
+                        -- assume request was rejected because auth is required;
+                        -- no way to really tell
+                        { model | authorized = False }
+                    , scrollEffects
+                    )
 
         ElementVisible ( id, True ) ->
             let
@@ -662,11 +734,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                     ( withBuild, effects )
         in
         ( { newModel | fetchingHistory = True }
-        , cmd
-            ++ [ SetFavIcon (Just build.status)
-               , SetTitle (extractTitle newModel)
-               ]
-            ++ fetchJobAndHistory
+        , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status) ]
         )
 
     else
@@ -684,7 +752,7 @@ initBuildOutput : Concourse.Build -> ET Model
 initBuildOutput build ( model, effects ) =
     let
         ( output, outputCmd ) =
-            Build.Output.Output.init { highlight = model.highlight } build
+            Build.Output.Output.init model.highlight build
     in
     ( { model
         | currentBuild =
@@ -693,17 +761,6 @@ initBuildOutput build ( model, effects ) =
                 model.currentBuild
       }
     , effects ++ outputCmd
-    )
-
-
-handleBuildJobFetched : Concourse.Job -> ET Model
-handleBuildJobFetched job ( model, effects ) =
-    let
-        withJobDetails =
-            { model | disableManualTrigger = job.disableManualTrigger }
-    in
-    ( withJobDetails
-    , effects ++ [ SetTitle (extractTitle withJobDetails) ]
     )
 
 
@@ -748,12 +805,17 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
         ( model, effects )
 
 
+documentTitle : Model -> String
+documentTitle =
+    extractTitle
+
+
 view : UserState -> Model -> Html Message
 view userState model =
     Html.div
-        ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
-            ([ id "top-bar-app" ] ++ Views.Styles.topBar False)
+            (id "top-bar-app" :: Views.Styles.topBar False)
             [ TopBar.concourseLogo
             , TopBar.breadcrumbs <|
                 case model.page of
@@ -771,7 +833,7 @@ view userState model =
             , Login.view userState model False
             ]
         , Html.div
-            ([ id "page-below-top-bar" ] ++ Views.Styles.pipelinePageBelowTopBar)
+            (id "page-below-top-bar" :: Views.Styles.pipelinePageBelowTopBar)
             [ viewBuildPage model ]
         ]
 
@@ -785,149 +847,175 @@ viewBuildPage model =
                 , attribute "data-build-name" currentBuild.build.name
                 ]
                 [ viewBuildHeader currentBuild.build model
-                , Html.div [ class "scrollable-body build-body" ] <|
-                    [ viewBuildPrep currentBuild.prep
-                    , Html.Lazy.lazy2 viewBuildOutput currentBuild.build <|
-                        currentBuild.output
-                    , Html.div
-                        [ classList
-                            [ ( "keyboard-help", True )
-                            , ( "hidden", not model.showHelp )
-                            ]
-                        ]
-                        [ Html.div
-                            [ class "help-title" ]
-                            [ Html.text "keyboard shortcuts" ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "h" ]
-                                , Html.span [ class "key" ] [ Html.text "l" ]
-                                ]
-                            , Html.text "previous/next build"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "j" ]
-                                , Html.span [ class "key" ] [ Html.text "k" ]
-                                ]
-                            , Html.text "scroll down/up"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "T" ] ]
-                            , Html.text "trigger a new build"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "A" ] ]
-                            , Html.text "abort build"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "gg" ] ]
-                            , Html.text "scroll to the top"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "G" ] ]
-                            , Html.text "scroll to the bottom"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "?" ] ]
-                            , Html.text "hide/show help"
-                            ]
-                        ]
-                    ]
-                        ++ (let
-                                build =
-                                    currentBuild.build
-
-                                maybeBirthDate =
-                                    Maybe.Extra.or build.duration.startedAt build.duration.finishedAt
-                            in
-                            case ( maybeBirthDate, build.reapTime ) of
-                                ( Just birthDate, Just reapTime ) ->
-                                    [ Html.div
-                                        [ class "tombstone" ]
-                                        [ Html.div [ class "heading" ] [ Html.text "RIP" ]
-                                        , Html.div
-                                            [ class "job-name" ]
-                                            [ Html.text <|
-                                                Maybe.withDefault
-                                                    "one-off build"
-                                                <|
-                                                    Maybe.map .jobName build.job
-                                            ]
-                                        , Html.div
-                                            [ class "build-name" ]
-                                            [ Html.text <|
-                                                "build #"
-                                                    ++ (case build.job of
-                                                            Nothing ->
-                                                                String.fromInt build.id
-
-                                                            Just _ ->
-                                                                build.name
-                                                       )
-                                            ]
-                                        , Html.div
-                                            [ class "date" ]
-                                            [ Html.text <|
-                                                mmDDYY birthDate
-                                                    ++ "-"
-                                                    ++ mmDDYY reapTime
-                                            ]
-                                        , Html.div
-                                            [ class "epitaph" ]
-                                            [ Html.text <|
-                                                case build.status of
-                                                    Concourse.BuildStatusSucceeded ->
-                                                        "It passed, and now it has passed on."
-
-                                                    Concourse.BuildStatusFailed ->
-                                                        "It failed, and now has been forgotten."
-
-                                                    Concourse.BuildStatusErrored ->
-                                                        "It errored, but has found forgiveness."
-
-                                                    Concourse.BuildStatusAborted ->
-                                                        "It was never given a chance."
-
-                                                    _ ->
-                                                        "I'm not dead yet."
-                                            ]
-                                        ]
-                                    , Html.div
-                                        [ class "explanation" ]
-                                        [ Html.text "This log has been "
-                                        , Html.a
-                                            [ Html.Attributes.href "https://concourse-ci.org/jobs.html#job-build-logs-to-retain" ]
-                                            [ Html.text "reaped." ]
-                                        ]
-                                    ]
-
-                                _ ->
-                                    []
-                           )
+                , body
+                    { currentBuild = currentBuild
+                    , authorized = model.authorized
+                    , showHelp = model.showHelp
+                    }
                 ]
 
         _ ->
             LoadingIndicator.view
+
+
+body :
+    { currentBuild : CurrentBuild
+    , authorized : Bool
+    , showHelp : Bool
+    }
+    -> Html Message
+body { currentBuild, authorized, showHelp } =
+    Html.div [ class "scrollable-body build-body" ] <|
+        if authorized then
+            [ viewBuildPrep currentBuild.prep
+            , Html.Lazy.lazy viewBuildOutput currentBuild.output
+            , keyboardHelp showHelp
+            ]
+                ++ tombstone currentBuild
+
+        else
+            [ NotAuthorized.view ]
+
+
+keyboardHelp : Bool -> Html Message
+keyboardHelp showHelp =
+    Html.div
+        [ classList
+            [ ( "keyboard-help", True )
+            , ( "hidden", not showHelp )
+            ]
+        ]
+        [ Html.div
+            [ class "help-title" ]
+            [ Html.text "keyboard shortcuts" ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "h" ]
+                , Html.span [ class "key" ] [ Html.text "l" ]
+                ]
+            , Html.text "previous/next build"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "j" ]
+                , Html.span [ class "key" ] [ Html.text "k" ]
+                ]
+            , Html.text "scroll down/up"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "T" ] ]
+            , Html.text "trigger a new build"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "A" ] ]
+            , Html.text "abort build"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "gg" ] ]
+            , Html.text "scroll to the top"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "G" ] ]
+            , Html.text "scroll to the bottom"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "?" ] ]
+            , Html.text "hide/show help"
+            ]
+        ]
+
+
+tombstone : CurrentBuild -> List (Html Message)
+tombstone currentBuild =
+    let
+        build =
+            currentBuild.build
+
+        maybeBirthDate =
+            Maybe.Extra.or build.duration.startedAt build.duration.finishedAt
+    in
+    case ( maybeBirthDate, build.reapTime ) of
+        ( Just birthDate, Just reapTime ) ->
+            [ Html.div
+                [ class "tombstone" ]
+                [ Html.div [ class "heading" ] [ Html.text "RIP" ]
+                , Html.div
+                    [ class "job-name" ]
+                    [ Html.text <|
+                        Maybe.withDefault
+                            "one-off build"
+                        <|
+                            Maybe.map .jobName build.job
+                    ]
+                , Html.div
+                    [ class "build-name" ]
+                    [ Html.text <|
+                        "build #"
+                            ++ (case build.job of
+                                    Nothing ->
+                                        String.fromInt build.id
+
+                                    Just _ ->
+                                        build.name
+                               )
+                    ]
+                , Html.div
+                    [ class "date" ]
+                    [ Html.text <|
+                        mmDDYY birthDate
+                            ++ "-"
+                            ++ mmDDYY reapTime
+                    ]
+                , Html.div
+                    [ class "epitaph" ]
+                    [ Html.text <|
+                        case build.status of
+                            Concourse.BuildStatusSucceeded ->
+                                "It passed, and now it has passed on."
+
+                            Concourse.BuildStatusFailed ->
+                                "It failed, and now has been forgotten."
+
+                            Concourse.BuildStatusErrored ->
+                                "It errored, but has found forgiveness."
+
+                            Concourse.BuildStatusAborted ->
+                                "It was never given a chance."
+
+                            _ ->
+                                "I'm not dead yet."
+                    ]
+                ]
+            , Html.div
+                [ class "explanation" ]
+                [ Html.text "This log has been "
+                , Html.a
+                    [ Html.Attributes.href "https://concourse-ci.org/jobs.html#job-build-logs-to-retain" ]
+                    [ Html.text "reaped." ]
+                ]
+            ]
+
+        _ ->
+            []
 
 
 mmDDYY : Time.Posix -> String
@@ -939,18 +1027,15 @@ mmDDYY =
         , DateFormat.text "/"
         , DateFormat.yearNumberLastTwo
         ]
+        -- https://github.com/concourse/concourse/issues/2226
         Time.utc
 
 
-
--- TODO handle time zones
-
-
-viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Message
-viewBuildOutput build output =
+viewBuildOutput : Maybe OutputModel -> Html Message
+viewBuildOutput output =
     case output of
         Just o ->
-            Build.Output.Output.view build o
+            Build.Output.Output.view o
 
         Nothing ->
             Html.div [] []
@@ -1062,25 +1147,13 @@ viewBuildHeader build model =
     let
         triggerButton =
             case currentJob model of
-                Just { jobName, pipelineName, teamName } ->
+                Just _ ->
                     let
-                        actionUrl =
-                            "/teams/"
-                                ++ teamName
-                                ++ "/pipelines/"
-                                ++ pipelineName
-                                ++ "/jobs/"
-                                ++ jobName
-                                ++ "/builds"
-
                         buttonDisabled =
                             model.disableManualTrigger
 
                         buttonHovered =
                             model.hoveredElement == Just TriggerBuildButton
-
-                        buttonHighlight =
-                            buttonHovered && not buttonDisabled
                     in
                     Html.button
                         ([ attribute "role" "button"

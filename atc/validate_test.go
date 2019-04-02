@@ -246,6 +246,10 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
+						Name: "error",
+						Type: "some-type",
+					},
+					{
 						Name: "failure",
 						Type: "some-type",
 					},
@@ -302,8 +306,15 @@ var _ = Describe("ValidateConfig", func() {
 							{
 								Task:           "some-task",
 								TaskConfigPath: "some/config/path.yml",
-								Failure: &PlanConfig{
+								Abort: &PlanConfig{
 									Get: "abort",
+								},
+							},
+							{
+								Task:           "some-task",
+								TaskConfigPath: "some/config/path.yml",
+								Error: &PlanConfig{
+									Get: "error",
 								},
 							},
 							{
@@ -990,6 +1001,25 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a plan has an invalid step within an error", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, PlanConfig{
+						Get: "some-resource",
+						Error: &PlanConfig{
+							Put:      "custom-name",
+							Resource: "some-missing-resource",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.error.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+				})
+			})
+
 			Context("when a plan has an invalid step within an ensure", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
@@ -1006,25 +1036,6 @@ var _ = Describe("ValidateConfig", func() {
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.ensure.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
-				})
-			})
-
-			Context("when a plan has an invalid step within an abort", func() {
-				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
-						Get: "some-resource",
-						Abort: &PlanConfig{
-							Put:      "custom-name",
-							Resource: "some-missing-resource",
-						},
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("throws a validation error", func() {
-					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.abort.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
