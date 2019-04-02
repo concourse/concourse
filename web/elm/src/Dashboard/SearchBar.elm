@@ -1,6 +1,5 @@
 module Dashboard.SearchBar exposing
-    ( filter
-    , handleDelivery
+    ( handleDelivery
     , searchInputId
     , update
     , view
@@ -11,11 +10,8 @@ import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
         , StatusDetails(..)
-        , equal
-        , isRunning
         )
-import Dashboard.Filter as Filter
-import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Group.Models exposing (Group)
 import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
 import EffectTransformer exposing (ET)
@@ -29,7 +25,6 @@ import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
-import Simple.Fuzzy
 
 
 searchInputId : String
@@ -335,78 +330,3 @@ dropdownOptions { query, groups } =
 
         _ ->
             []
-
-
-filter : String -> List Group -> List Group
-filter query groups =
-    let
-        filters =
-            Filter.filters query
-
-        onlyFilteringTeamNames =
-            List.all
-                (\f ->
-                    case f of
-                        Filter.Match (Filter.Team _) ->
-                            True
-
-                        _ ->
-                            False
-                )
-                filters
-
-        collapser =
-            if onlyFilteringTeamNames then
-                identity
-
-            else
-                List.filter (.pipelines >> List.isEmpty >> not)
-    in
-    filters
-        |> List.foldr runFilter groups
-        |> collapser
-
-
-runFilter : Filter.Filter -> List Group -> List Group
-runFilter f =
-    case f of
-        Filter.Match (Filter.Team teamName) ->
-            List.filter (.teamName >> Simple.Fuzzy.match teamName)
-
-        Filter.Negate (Filter.Team teamName) ->
-            List.filter (.teamName >> Simple.Fuzzy.match teamName >> not)
-
-        Filter.Match (Filter.Pipeline pf) ->
-            List.map
-                (\g ->
-                    { g
-                        | pipelines =
-                            g.pipelines
-                                |> List.filter (pipelineFilter pf)
-                    }
-                )
-
-        Filter.Negate (Filter.Pipeline pf) ->
-            List.map
-                (\g ->
-                    { g
-                        | pipelines =
-                            g.pipelines
-                                |> List.filter (pipelineFilter pf >> not)
-                    }
-                )
-
-
-pipelineFilter : Filter.PipelineFilter -> Pipeline -> Bool
-pipelineFilter pf =
-    case pf of
-        Filter.Status sf ->
-            case sf of
-                Filter.PipelineStatus ps ->
-                    .status >> equal ps
-
-                Filter.PipelineRunning ->
-                    .status >> isRunning
-
-        Filter.FuzzyName term ->
-            .name >> Simple.Fuzzy.match term

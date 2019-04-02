@@ -1,12 +1,13 @@
-module Dashboard.Filter exposing
-    ( Filter(..)
-    , GroupFilter(..)
-    , PipelineFilter(..)
-    , StatusFilter(..)
-    , filters
-    )
+module Dashboard.Filter exposing (filterGroups)
 
-import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
+import Concourse.PipelineStatus
+    exposing
+        ( PipelineStatus(..)
+        , StatusDetails(..)
+        , equal
+        , isRunning
+        )
+import Dashboard.Group.Models exposing (Group, Pipeline)
 import Parser
     exposing
         ( (|.)
@@ -26,11 +27,60 @@ import Parser
         , succeed
         , symbol
         )
+import Simple.Fuzzy
 
 
-type Filter
-    = Match GroupFilter
-    | Negate GroupFilter
+type alias Filter =
+    { negate : Bool
+    , groupFilter : GroupFilter
+    }
+
+
+filterGroups : String -> List Group -> List Group
+filterGroups query groups =
+    filters query
+        |> List.foldr runFilter groups
+
+
+runFilter : Filter -> List Group -> List Group
+runFilter f =
+    let
+        negater =
+            if f.negate then
+                not
+
+            else
+                identity
+    in
+    case f.groupFilter of
+        Team teamName ->
+            List.filter (.teamName >> Simple.Fuzzy.match teamName >> negater)
+
+        Pipeline pf ->
+            List.map
+                (\g ->
+                    { g
+                        | pipelines =
+                            g.pipelines
+                                |> List.filter (pipelineFilter pf >> negater)
+                    }
+                )
+                >> List.filter (.pipelines >> List.isEmpty >> not)
+
+
+pipelineFilter : PipelineFilter -> Pipeline -> Bool
+pipelineFilter pf =
+    case pf of
+        Status sf ->
+            case sf of
+                PipelineStatus ps ->
+                    .status >> equal ps
+
+                PipelineRunning ->
+                    .status >> isRunning
+
+        FuzzyName term ->
+            .name >> Simple.Fuzzy.match term
 
 
 filters : String -> List Filter
@@ -51,8 +101,8 @@ filters =
 filter : Parser Filter
 filter =
     oneOf
-        [ succeed Negate |. spaces |. symbol "-" |= groupFilter |. spaces
-        , succeed Match |. spaces |= groupFilter |. spaces
+        [ succeed (Filter True) |. spaces |. symbol "-" |= groupFilter |. spaces
+        , succeed (Filter False) |. spaces |= groupFilter |. spaces
         ]
 
 

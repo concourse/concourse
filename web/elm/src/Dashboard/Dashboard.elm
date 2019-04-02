@@ -10,6 +10,7 @@ module Dashboard.Dashboard exposing
 
 import Concourse.Cli as Cli
 import Dashboard.Details as Details
+import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Group.Models exposing (Group)
@@ -574,7 +575,7 @@ pipelinesView :
 pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, userState, highDensity } =
     let
         filteredGroups =
-            groups |> SearchBar.filter query |> List.sortWith Group.ordering
+            groups |> Filter.filterGroups query |> List.sortWith Group.ordering
 
         groupViews =
             if highDensity then
