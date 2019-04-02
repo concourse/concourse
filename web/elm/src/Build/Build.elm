@@ -1,5 +1,6 @@
 module Build.Build exposing
     ( changeToBuild
+    , documentTitle
     , getScrollBehavior
     , getUpdateMessage
     , handleCallback
@@ -10,33 +11,27 @@ module Build.Build exposing
     , view
     )
 
-import Build.Models as Models exposing (BuildPageType(..), Model)
+import Build.Models exposing (BuildPageType(..), CurrentBuild, Model)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
-import Char
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Paginated)
 import DateFormat
-import Debug
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
-        ( action
-        , attribute
+        ( attribute
         , class
         , classList
-        , disabled
         , href
         , id
-        , method
         , style
-        , tabindex
         , title
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
@@ -47,12 +42,13 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
-import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..), runEffect)
+import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
-import RemoteData exposing (WebData)
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import RemoteData
 import Routes
-import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
+import StrictEvents exposing (onLeftClick, onMouseWheel)
 import String
 import Time
 import UpdateMsg exposing (UpdateMsg)
@@ -64,13 +60,6 @@ import Views.NotAuthorized as NotAuthorized
 import Views.Spinner as Spinner
 import Views.Styles
 import Views.TopBar as TopBar
-
-
-type StepRenderingState
-    = StepsLoading
-    | StepsLiveUpdating
-    | StepsComplete
-    | NotAuthorized
 
 
 type alias Flags =
@@ -175,15 +164,15 @@ changeToBuild { highlight, pageType } ( model, effects ) =
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model ) of
-        ( Just build, Just { jobName } ) ->
-            jobName ++ ((" #" ++ build.build.name) ++ " - ")
+    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model, model.page ) of
+        ( Just build, Just { jobName }, _ ) ->
+            jobName ++ " #" ++ build.build.name
 
-        ( Just build, Nothing ) ->
-            "#" ++ (String.fromInt build.build.id ++ " - ")
+        ( _, _, JobBuildPage { jobName, buildName } ) ->
+            jobName ++ " #" ++ buildName
 
-        _ ->
-            ""
+        ( _, _, OneOffBuildPage id ) ->
+            "#" ++ String.fromInt id
 
 
 currentJob : Model -> Maybe Concourse.JobIdentifier
@@ -260,7 +249,10 @@ handleCallback action ( model, effects ) =
                 ( model
                 , effects
                     ++ [ Effects.OpenBuildEventStream
-                            { url = "/api/v1/builds/" ++ String.fromInt buildId ++ "/events"
+                            { url =
+                                "/api/v1/builds/"
+                                    ++ String.fromInt buildId
+                                    ++ "/events"
                             , eventTypes = [ "end", "event" ]
                             }
                        ]
@@ -294,19 +286,21 @@ handleCallback action ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        BuildHistoryFetched (Err err) ->
-            (\a -> always a (Debug.log "failed to fetch build history" err)) <|
-                ( { model | fetchingHistory = False }, effects )
-
         BuildHistoryFetched (Ok history) ->
             handleHistoryFetched history ( model, effects )
 
-        BuildJobDetailsFetched (Ok job) ->
-            handleBuildJobFetched job ( model, effects )
+        BuildHistoryFetched (Err _) ->
+            -- https://github.com/concourse/concourse/issues/3201
+            ( { model | fetchingHistory = False }, effects )
 
-        BuildJobDetailsFetched (Err err) ->
-            (\a -> always a (Debug.log "failed to fetch build job details" err)) <|
-                ( model, effects )
+        BuildJobDetailsFetched (Ok job) ->
+            ( { model | disableManualTrigger = job.disableManualTrigger }
+            , effects
+            )
+
+        BuildJobDetailsFetched (Err _) ->
+            -- https://github.com/concourse/concourse/issues/3201
+            ( model, effects )
 
         _ ->
             ( model, effects )
@@ -370,7 +364,7 @@ handleDelivery delivery ( model, effects ) =
                         (Build.Output.Output.handleEnvelopes envelopes)
                         ( newModel, scrollEffects )
 
-                Err err ->
+                Err _ ->
                     let
                         eventSourceOpened =
                             model.currentBuild
@@ -740,11 +734,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                     ( withBuild, effects )
         in
         ( { newModel | fetchingHistory = True }
-        , cmd
-            ++ [ SetFavIcon (Just build.status)
-               , SetTitle (extractTitle newModel)
-               ]
-            ++ fetchJobAndHistory
+        , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status) ]
         )
 
     else
@@ -762,7 +752,7 @@ initBuildOutput : Concourse.Build -> ET Model
 initBuildOutput build ( model, effects ) =
     let
         ( output, outputCmd ) =
-            Build.Output.Output.init { highlight = model.highlight } build
+            Build.Output.Output.init model.highlight build
     in
     ( { model
         | currentBuild =
@@ -771,17 +761,6 @@ initBuildOutput build ( model, effects ) =
                 model.currentBuild
       }
     , effects ++ outputCmd
-    )
-
-
-handleBuildJobFetched : Concourse.Job -> ET Model
-handleBuildJobFetched job ( model, effects ) =
-    let
-        withJobDetails =
-            { model | disableManualTrigger = job.disableManualTrigger }
-    in
-    ( withJobDetails
-    , effects ++ [ SetTitle (extractTitle withJobDetails) ]
     )
 
 
@@ -826,12 +805,17 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
         ( model, effects )
 
 
+documentTitle : Model -> String
+documentTitle =
+    extractTitle
+
+
 view : UserState -> Model -> Html Message
 view userState model =
     Html.div
-        ([ id "page-including-top-bar" ] ++ Views.Styles.pageIncludingTopBar)
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
-            ([ id "top-bar-app" ] ++ Views.Styles.topBar False)
+            (id "top-bar-app" :: Views.Styles.topBar False)
             [ TopBar.concourseLogo
             , TopBar.breadcrumbs <|
                 case model.page of
@@ -849,7 +833,7 @@ view userState model =
             , Login.view userState model False
             ]
         , Html.div
-            ([ id "page-below-top-bar" ] ++ Views.Styles.pipelinePageBelowTopBar)
+            (id "page-below-top-bar" :: Views.Styles.pipelinePageBelowTopBar)
             [ viewBuildPage model ]
         ]
 
@@ -875,7 +859,7 @@ viewBuildPage model =
 
 
 body :
-    { currentBuild : Models.CurrentBuild
+    { currentBuild : CurrentBuild
     , authorized : Bool
     , showHelp : Bool
     }
@@ -884,8 +868,7 @@ body { currentBuild, authorized, showHelp } =
     Html.div [ class "scrollable-body build-body" ] <|
         if authorized then
             [ viewBuildPrep currentBuild.prep
-            , Html.Lazy.lazy2 viewBuildOutput currentBuild.build <|
-                currentBuild.output
+            , Html.Lazy.lazy viewBuildOutput currentBuild.output
             , keyboardHelp showHelp
             ]
                 ++ tombstone currentBuild
@@ -961,7 +944,7 @@ keyboardHelp showHelp =
         ]
 
 
-tombstone : Models.CurrentBuild -> List (Html Message)
+tombstone : CurrentBuild -> List (Html Message)
 tombstone currentBuild =
     let
         build =
@@ -1044,18 +1027,15 @@ mmDDYY =
         , DateFormat.text "/"
         , DateFormat.yearNumberLastTwo
         ]
+        -- https://github.com/concourse/concourse/issues/2226
         Time.utc
 
 
-
--- TODO handle time zones
-
-
-viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Message
-viewBuildOutput build output =
+viewBuildOutput : Maybe OutputModel -> Html Message
+viewBuildOutput output =
     case output of
         Just o ->
-            Build.Output.Output.view build o
+            Build.Output.Output.view o
 
         Nothing ->
             Html.div [] []
@@ -1167,25 +1147,13 @@ viewBuildHeader build model =
     let
         triggerButton =
             case currentJob model of
-                Just { jobName, pipelineName, teamName } ->
+                Just _ ->
                     let
-                        actionUrl =
-                            "/teams/"
-                                ++ teamName
-                                ++ "/pipelines/"
-                                ++ pipelineName
-                                ++ "/jobs/"
-                                ++ jobName
-                                ++ "/builds"
-
                         buttonDisabled =
                             model.disableManualTrigger
 
                         buttonHovered =
                             model.hoveredElement == Just TriggerBuildButton
-
-                        buttonHighlight =
-                            buttonHovered && not buttonDisabled
                     in
                     Html.button
                         ([ attribute "role" "button"

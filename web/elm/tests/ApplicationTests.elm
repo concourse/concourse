@@ -2,6 +2,7 @@ module ApplicationTests exposing (all)
 
 import Application.Application as Application
 import Browser
+import Common exposing (queryView)
 import Expect
 import Message.Effects as Effects
 import Message.Subscription as Subscription exposing (Delivery(..))
@@ -32,8 +33,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
+                    |> queryView
                     |> Query.has
                         [ style "-webkit-font-smoothing" "antialiased"
                         , style "font-weight" "700"
@@ -55,8 +55,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
+                    |> queryView
                     |> Query.has
                         [ style "-webkit-font-smoothing" "antialiased"
                         , style "font-weight" "700"
@@ -78,8 +77,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
+                    |> queryView
                     |> Query.has
                         [ style "-webkit-font-smoothing" "antialiased"
                         , style "font-weight" "700"

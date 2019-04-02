@@ -1,6 +1,7 @@
 module JobTests exposing (all)
 
 import Application.Application as Application
+import Common exposing (queryView)
 import Concourse exposing (Build, BuildId, BuildStatus(..), Job)
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -149,7 +150,7 @@ all =
                     ]
             in
             [ describe "while page is loading"
-                [ test "shows two spinners before anything has loaded" <|
+                [ test "title includes job name" <|
                     \_ ->
                         Application.init
                             { turbulenceImgSrc = ""
@@ -167,7 +168,26 @@ all =
                             }
                             |> Tuple.first
                             |> Application.view
-                            |> Query.fromHtml
+                            |> .title
+                            |> Expect.equal "job - Concourse"
+                , test "shows two spinners before anything has loaded" <|
+                    \_ ->
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = ""
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                            |> Tuple.first
+                            |> queryView
                             |> Query.findAll loadingIndicatorSelector
                             |> Query.count (Expect.equal 2)
                 , test "loading build has spinners for inputs and outputs" <|
@@ -206,8 +226,7 @@ all =
                                     }
                             )
                         >> Tuple.first
-                        >> Application.view
-                        >> Query.fromHtml
+                        >> queryView
                         >> Expect.all
                             [ Query.find [ class "inputs" ]
                                 >> Query.has loadingIndicatorSelector
@@ -217,8 +236,7 @@ all =
                 ]
             , test "build header lays out contents horizontally" <|
                 init { disabled = False, paused = False }
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ class "build-header" ]
                     >> Query.has
                         [ style "display" "flex"
@@ -226,14 +244,12 @@ all =
                         ]
             , test "header has play/pause button at the left" <|
                 init { disabled = False, paused = False }
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ class "build-header" ]
                     >> Query.has [ id "pause-toggle" ]
             , test "play/pause has background of the header color, faded" <|
                 init { disabled = False, paused = False }
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "pause-toggle" ]
                     >> Query.has
                         [ style "padding" "10px"
@@ -249,8 +265,7 @@ all =
                                 Just Message.Message.ToggleJobButton
                         )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "pause-toggle" ]
                     >> Query.has
                         [ style "padding" "10px"
@@ -263,9 +278,7 @@ all =
                 , setup =
                     init { disabled = False, paused = False } ()
                 , query =
-                    Application.view
-                        >> Query.fromHtml
-                        >> Query.find [ id "pause-toggle" ]
+                    queryView >> Query.find [ id "pause-toggle" ]
                 , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey pause icon"
@@ -298,9 +311,7 @@ all =
                 , setup =
                     init { disabled = False, paused = True } ()
                 , query =
-                    Application.view
-                        >> Query.fromHtml
-                        >> Query.find [ id "pause-toggle" ]
+                    queryView >> Query.find [ id "pause-toggle" ]
                 , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey play icon"
@@ -330,8 +341,7 @@ all =
                 }
             , test "trigger build button has background of the header color, faded" <|
                 init { disabled = False, paused = False }
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find
                         [ attribute <|
                             Attr.attribute "aria-label" "Trigger Build"
@@ -350,8 +360,7 @@ all =
                                 Just Message.Message.TriggerBuildButton
                         )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find
                         [ attribute <|
                             Attr.attribute "aria-label" "Trigger Build"
@@ -364,8 +373,7 @@ all =
                         ]
             , test "trigger build button has 'plus' icon" <|
                 init { disabled = False, paused = False }
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find
                         [ attribute <|
                             Attr.attribute "aria-label" "Trigger Build"
@@ -383,8 +391,7 @@ all =
                 , setup =
                     init { disabled = False, paused = False } ()
                 , query =
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.find
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
@@ -421,8 +428,7 @@ all =
                 , setup =
                     init { disabled = True, paused = False } ()
                 , query =
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.find
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
@@ -506,8 +512,7 @@ all =
                                 }
                         )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ class "inputs" ]
                     >> Query.children []
                     >> Query.first
@@ -565,8 +570,7 @@ all =
                                 }
                         )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ class "outputs" ]
                     >> Query.children []
                     >> Query.first
@@ -590,8 +594,7 @@ all =
                         ]
             , test "pagination header lays out horizontally" <|
                 init { disabled = False, paused = False }
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "pagination-header" ]
                     >> Query.has
                         [ style "display" "flex"
@@ -602,8 +605,7 @@ all =
                         ]
             , test "the word 'builds' is bold and indented" <|
                 init { disabled = False, paused = False }
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "pagination-header" ]
                     >> Query.children []
                     >> Query.first
@@ -614,8 +616,7 @@ all =
                         ]
             , test "pagination lays out horizontally" <|
                 init { disabled = False, paused = False }
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "pagination" ]
                     >> Query.has
                         [ style "display" "flex"
@@ -657,8 +658,7 @@ all =
                                 }
                         )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ id "pagination" ]
                     >> Query.children []
                     >> Expect.all
@@ -750,8 +750,7 @@ all =
                             )
                         |> Tuple.first
                 , query =
-                    Application.view
-                        >> Query.fromHtml
+                    queryView
                         >> Query.find [ id "pagination" ]
                         >> Query.children []
                         >> Query.index 0
@@ -1002,8 +1001,7 @@ all =
                                 Time.millisToPosix (2 * 1000)
                         )
                     >> Tuple.first
-                    >> Application.view
-                    >> Query.fromHtml
+                    >> queryView
                     >> Query.find [ class "js-build" ]
                     >> Query.has [ text "2s ago" ]
             ]

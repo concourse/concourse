@@ -1,6 +1,6 @@
 module TopologicalSort exposing (Digraph, flattenToLayers, tsort)
 
-import List.Extra exposing (elemIndex, find)
+import List.Extra exposing (find)
 
 
 
@@ -130,10 +130,9 @@ flattenToLayers_ graph stronglyConnectedComponents depths =
             in
             case childDepths of
                 Nothing ->
-                    Debug.log "strongly-connected component preceding one of its dependencies?" <|
-                        -- "same size" recursion is safe here, because the tsort ensures we should never hit this case
-                        -- (even if they weren't in order, we should always have at least one scc that depends only on previously covered sccs)
-                        flattenToLayers_ graph (sccs ++ [ scc ]) depths
+                    -- "same size" recursion is safe here, because the tsort ensures we should never hit this case
+                    -- (even if they weren't in order, we should always have at least one scc that depends only on previously covered sccs)
+                    flattenToLayers_ graph (sccs ++ [ scc ]) depths
 
                 Just cds ->
                     let
@@ -179,7 +178,8 @@ getChildren graph v =
             children
 
         Nothing ->
-            Debug.log "a node was searched for with no children" []
+            -- impossible - each node should have an entry in the children list
+            []
 
 
 takeUpTo : a -> List a -> ( List a, List a )

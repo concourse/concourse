@@ -10,6 +10,7 @@ type Plan struct {
 	Put       *PutPlan       `json:"put,omitempty"`
 	Task      *TaskPlan      `json:"task,omitempty"`
 	OnAbort   *OnAbortPlan   `json:"on_abort,omitempty"`
+	OnError   *OnErrorPlan   `json:"on_error,omitempty"`
 	Ensure    *EnsurePlan    `json:"ensure,omitempty"`
 	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
 	OnFailure *OnFailurePlan `json:"on_failure,omitempty"`
@@ -39,6 +40,11 @@ type ArtifactOutputPlan struct {
 type OnAbortPlan struct {
 	Step Plan `json:"step"`
 	Next Plan `json:"on_abort"`
+}
+
+type OnErrorPlan struct {
+	Step Plan `json:"step"`
+	Next Plan `json:"on_error"`
 }
 
 type OnFailurePlan struct {
