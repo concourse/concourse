@@ -379,7 +379,7 @@ toString route =
                             ""
 
                         gs ->
-                            "?groups=" ++ String.join "&groups=" gs
+                            "?group=" ++ String.join "&group=" gs
                    )
 
         Dashboard (Normal (Just search)) ->

@@ -3,6 +3,7 @@ module PipelineTests exposing (all)
 import Application.Application as Application
 import Char
 import Common
+import DashboardTests exposing (defineHoverBehaviour)
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
@@ -156,6 +157,36 @@ all =
                                         , style "background" "rgba(151, 151, 151, 0.1)"
                                         , style "border" "1px solid #2b2a2a"
                                         ]
+                        , defineHoverBehaviour
+                            { name = "group"
+                            , setup = setupGroupsBar sampleGroups
+                            , query =
+                                Common.queryView
+                                    >> Query.find [ id "groups-bar" ]
+                                    >> Query.findAll [ tag "li" ]
+                                    >> Query.index 0
+                                    >> Query.find [ tag "a" ]
+                            , updateFunc =
+                                \msg ->
+                                    Application.update msg
+                                        >> Tuple.first
+                            , unhoveredSelector =
+                                { description = "dark outline"
+                                , selector =
+                                    [ style "border" "1px solid #2b2a2a" ]
+                                }
+                            , mouseEnterMsg =
+                                Msgs.Update <|
+                                    Hover <|
+                                        Just <|
+                                            Message.Message.JobGroup 0
+                            , mouseLeaveMsg = Msgs.Update <| Hover Nothing
+                            , hoveredSelector =
+                                { description = "light grey outline"
+                                , selector =
+                                    [ style "border" "1px solid #fff2" ]
+                                }
+                            }
                         , test "the selected ones brighter" <|
                             \_ ->
                                 setupGroupsBar sampleGroups
@@ -180,13 +211,13 @@ all =
                                         >> Query.find [ tag "a" ]
                                         >> Query.has
                                             [ text "group"
-                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?groups=group"
+                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?group=group"
                                             ]
                                     , Query.index 1
                                         >> Query.find [ tag "a" ]
                                         >> Query.has
                                             [ text "other-group"
-                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?groups=other-group"
+                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?group=other-group"
                                             ]
                                     ]
                     ]

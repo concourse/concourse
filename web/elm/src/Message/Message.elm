@@ -78,6 +78,7 @@ type Hoverable
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
+    | JobGroup Int
 
 
 type VersionToggleAction
