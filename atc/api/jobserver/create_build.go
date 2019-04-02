@@ -39,6 +39,22 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
+		resources, err := pipeline.Resources()
+		if err != nil {
+			logger.Error("failed-to-create-job-build", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		for _, input := range job.Config().Inputs() {
+			resource, found := resources.Lookup(input.Resource)
+			if found {
+				if err = resource.NotifyScan(); err != nil {
+					logger.Error("failed-to-notify-scan", err)
+				}
+			}
+		}
+
 		err = json.NewEncoder(w).Encode(present.Build(build))
 		if err != nil {
 			logger.Error("failed-to-encode-build", err)

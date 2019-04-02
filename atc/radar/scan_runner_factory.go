@@ -23,6 +23,7 @@ type scanRunnerFactory struct {
 	clock               clock.Clock
 	resourceScanner     Scanner
 	resourceTypeScanner Scanner
+	notifications       Notifications
 }
 
 func NewScanRunnerFactory(
@@ -36,6 +37,7 @@ func NewScanRunnerFactory(
 	externalURL string,
 	variables creds.Variables,
 	strategy worker.ContainerPlacementStrategy,
+	notifications Notifications,
 ) ScanRunnerFactory {
 	resourceTypeScanner := NewResourceTypeScanner(
 		clock,
@@ -64,6 +66,7 @@ func NewScanRunnerFactory(
 		clock:               clock,
 		resourceScanner:     resourceScanner,
 		resourceTypeScanner: resourceTypeScanner,
+		notifications:       notifications,
 	}
 }
 
@@ -73,6 +76,7 @@ func (sf *scanRunnerFactory) ScanResourceRunner(logger lager.Logger, resource db
 		sf.clock,
 		resource.ID(),
 		sf.resourceScanner,
+		sf.notifications,
 	)
 }
 
@@ -82,5 +86,6 @@ func (sf *scanRunnerFactory) ScanResourceTypeRunner(logger lager.Logger, resourc
 		sf.clock,
 		resourceType.ID(),
 		sf.resourceTypeScanner,
+		sf.notifications,
 	)
 }

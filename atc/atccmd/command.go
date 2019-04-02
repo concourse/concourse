@@ -772,6 +772,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbPipelineFactory,
 				radarSchedulerFactory,
 				variablesFactory,
+				bus,
 			),
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
@@ -1353,6 +1354,7 @@ func (cmd *RunCommand) constructPipelineSyncer(
 	pipelineFactory db.PipelineFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	variablesFactory creds.VariablesFactory,
+	bus db.NotificationsBus,
 ) *pipelines.Syncer {
 	return pipelines.NewSyncer(
 		logger,
@@ -1368,7 +1370,7 @@ func (cmd *RunCommand) constructPipelineSyncer(
 							"pipeline": pipeline.Name(),
 						}),
 						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables),
+						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables, bus),
 						pipeline,
 						1*time.Minute,
 					),
