@@ -400,6 +400,45 @@ all =
                         |> .title
                         |> Expect.equal "routejob #1 - Concourse"
             ]
+        , test "shows tombstone for reaped build with date in current zone" <|
+            \_ ->
+                let
+                    buildTime =
+                        Just <|
+                            Time.millisToPosix
+                                (12 * 60 * 60 * 1000)
+                in
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job =
+                                        Just
+                                            { teamName = "team"
+                                            , pipelineName = "pipeline"
+                                            , jobName = "job"
+                                            }
+                                  , status = Concourse.BuildStatusSucceeded
+                                  , duration =
+                                        { startedAt = buildTime
+                                        , finishedAt = buildTime
+                                        }
+                                  , reapTime = buildTime
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.GotCurrentTimeZone <|
+                            Time.customZone 720 []
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ class "tombstone" ]
+                    |> Query.has [ text "01/02/70" ]
         , test "shows passport officer when build plan request gives 401" <|
             \_ ->
                 initFromApplication
@@ -517,16 +556,104 @@ all =
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
-                        , data = STModels.Log { id = "stepid", source = "stdout" } "log message" Nothing
+                        , data =
+                            STModels.Log
+                                { id = "stepid"
+                                , source = "stdout"
+                                }
+                                "log message"
+                                Nothing
                         }
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/2/events"
-                        , data = STModels.Log { id = "stepid", source = "stdout" } "bad message" Nothing
+                        , data =
+                            STModels.Log
+                                { id = "stepid"
+                                , source = "stdout"
+                                }
+                                "bad message"
+                                Nothing
                         }
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.hasNot [ text "bad message" ]
+        , test "log lines have timestamps in current zone" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = ""
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/builds/1"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job = Nothing
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 1 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data =
+                            STModels.StartTask
+                                { id = "stepid"
+                                , source = ""
+                                }
+                        }
+                    |> Tuple.first
+                    |> receiveEvent
+                        { url = "http://localhost:8080/api/v1/builds/1/events"
+                        , data =
+                            STModels.Log
+                                { id = "stepid"
+                                , source = "stdout"
+                                }
+                                "log message\n"
+                                (Just <| Time.millisToPosix 0)
+                        }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.GotCurrentTimeZone <|
+                            Time.customZone (5 * 60) []
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.findAll [ class "timestamped-line" ]
+                    |> Query.first
+                    |> Query.has [ text "05:00:00" ]
         , test "when build is running it scrolls every build event" <|
             \_ ->
                 initFromApplication
@@ -747,6 +874,12 @@ all =
                             }
                         )
                     |> Expect.true "should fetch build"
+        , test "gets current timezone on page load" <|
+            \_ ->
+                pageLoad
+                    |> Tuple.second
+                    |> List.member Effects.GetCurrentTimeZone
+                    |> Expect.true "should get timezone"
         , describe "top bar" <|
             [ test "has a top bar" <|
                 \_ ->
@@ -829,7 +962,12 @@ all =
                     initFromApplication
                         |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
                         |> Tuple.first
-                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (Time.millisToPosix (2 * 1000)))
+                        |> Application.update
+                            (Msgs.DeliveryReceived <|
+                                ClockTicked
+                                    OneSecond
+                                    (Time.millisToPosix (2 * 1000))
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "build-header" ]
@@ -837,13 +975,44 @@ all =
             , test "when at least 24h old, shows absolute time of build" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Application.handleCallback
+                            (Callback.BuildFetched <|
+                                Ok ( 1, theBuild )
+                            )
                         |> Tuple.first
-                        |> Application.update (Msgs.DeliveryReceived <| ClockTicked OneSecond (Time.millisToPosix (24 * 60 * 60 * 1000)))
+                        |> Application.update
+                            (Msgs.DeliveryReceived <|
+                                ClockTicked
+                                    OneSecond
+                                    (Time.millisToPosix (24 * 60 * 60 * 1000))
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "build-header" ]
-                        |> Query.hasNot [ text "1d" ]
+                        |> Query.has [ text "Jan 1 1970 12:00:00 AM" ]
+            , test "when at least 24h old, absolute time is in current zone" <|
+                \_ ->
+                    initFromApplication
+                        |> Application.handleCallback
+                            (Callback.GotCurrentTimeZone <|
+                                Time.customZone (5 * 60) []
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.BuildFetched <|
+                                Ok ( 1, theBuild )
+                            )
+                        |> Tuple.first
+                        |> Application.update
+                            (Msgs.DeliveryReceived <|
+                                ClockTicked
+                                    OneSecond
+                                    (Time.millisToPosix (24 * 60 * 60 * 1000))
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "build-header" ]
+                        |> Query.has [ text "Jan 1 1970 05:00:00 AM" ]
             , describe "build banner coloration"
                 [ test "pending build has grey banner" <|
                     \_ ->

@@ -59,7 +59,12 @@ import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message as Message exposing (Hoverable(..), Message(..))
-import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.Subscription as Subscription
+    exposing
+        ( Delivery(..)
+        , Interval(..)
+        , Subscription(..)
+        )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
@@ -106,11 +111,13 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = False
             , icon = Nothing
+            , timeZone = Time.utc
             }
     in
     ( model
     , [ FetchResource flags.resourceId
       , FetchVersionedResources flags.resourceId flags.paging
+      , GetCurrentTimeZone
       ]
     )
 
@@ -193,6 +200,9 @@ subscriptions =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
+        GotCurrentTimeZone zone ->
+            ( { model | timeZone = zone }, effects )
+
         ResourceFetched (Ok resource) ->
             ( { model
                 | pageStatus = Ok ()
@@ -674,7 +684,7 @@ header model =
         lastCheckedView =
             case ( model.now, model.lastChecked ) of
                 ( Just now, Just date ) ->
-                    viewLastChecked now date
+                    viewLastChecked model.timeZone now date
 
                 ( _, _ ) ->
                     Html.text ""
@@ -1425,8 +1435,8 @@ viewBuilds buildDict =
     List.concatMap (viewBuildsByJob buildDict) <| Dict.keys buildDict
 
 
-viewLastChecked : Time.Posix -> Time.Posix -> Html a
-viewLastChecked now date =
+viewLastChecked : Time.Zone -> Time.Posix -> Time.Posix -> Html a
+viewLastChecked timeZone now date =
     let
         ago =
             Duration.between date now
@@ -1452,8 +1462,7 @@ viewLastChecked now date =
                         , DateFormat.text " "
                         , DateFormat.amPmUppercase
                         ]
-                        Time.utc
-                        -- https://github.com/concourse/concourse/issues/2226
+                        timeZone
                         date
                     )
                 ]

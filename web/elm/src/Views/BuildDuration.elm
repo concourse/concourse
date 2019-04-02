@@ -8,18 +8,30 @@ import Html.Attributes exposing (class, title)
 import Time
 
 
-view : Concourse.BuildDuration -> Time.Posix -> Html a
-view duration now =
+view : Time.Zone -> Concourse.BuildDuration -> Time.Posix -> Html a
+view timeZone duration now =
     Html.table [ class "dictionary build-duration" ] <|
         case ( duration.startedAt, duration.finishedAt ) of
             ( Nothing, Nothing ) ->
                 [ pendingLabel "pending" ]
 
             ( Just startedAt, Nothing ) ->
-                [ labeledDate "started" now startedAt ]
+                [ labeledDate
+                    { label = "started"
+                    , timeZone = timeZone
+                    }
+                    now
+                    startedAt
+                ]
 
             ( Nothing, Just finishedAt ) ->
-                [ labeledDate "finished" now finishedAt ]
+                [ labeledDate
+                    { label = "finished"
+                    , timeZone = timeZone
+                    }
+                    now
+                    finishedAt
+                ]
 
             ( Just startedAt, Just finishedAt ) ->
                 let
@@ -27,8 +39,18 @@ view duration now =
                         -- https://github.com/elm-lang/elm-compiler/issues/1223
                         Duration.between startedAt finishedAt
                 in
-                [ labeledDate "started" now startedAt
-                , labeledDate "finished" now finishedAt
+                [ labeledDate
+                    { label = "started"
+                    , timeZone = timeZone
+                    }
+                    now
+                    startedAt
+                , labeledDate
+                    { label = "finished"
+                    , timeZone = timeZone
+                    }
+                    now
+                    finishedAt
                 , labeledDuration "duration" durationElmIssue
                 ]
 
@@ -40,8 +62,12 @@ show now =
         >> Maybe.withDefault ""
 
 
-labeledDate : String -> Time.Posix -> Time.Posix -> Html a
-labeledDate label now date =
+labeledDate :
+    { label : String, timeZone : Time.Zone }
+    -> Time.Posix
+    -> Time.Posix
+    -> Html a
+labeledDate { label, timeZone } now date =
     let
         ago =
             Duration.between date now
@@ -62,8 +88,7 @@ labeledDate label now date =
                 , DateFormat.text " "
                 , DateFormat.amPmUppercase
                 ]
-                Time.utc
-                -- https://github.com/concourse/concourse/issues/2226
+                timeZone
                 date
 
         relativeDate =

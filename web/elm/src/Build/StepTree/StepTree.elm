@@ -367,25 +367,25 @@ updateTooltip { hoveredElement, hoveredCounter } model =
     ( { model | tooltip = newTooltip }, [] )
 
 
-view : StepTreeModel -> Html Message
-view model =
-    viewTree model model.tree
+view : Time.Zone -> StepTreeModel -> Html Message
+view timeZone model =
+    viewTree timeZone model model.tree
 
 
-viewTree : StepTreeModel -> StepTree -> Html Message
-viewTree model tree =
+viewTree : Time.Zone -> StepTreeModel -> StepTree -> Html Message
+viewTree timeZone model tree =
     case tree of
         Task step ->
-            viewStep model step StepHeaderTask
+            viewStep model timeZone step StepHeaderTask
 
         Get step ->
-            viewStep model step (StepHeaderGet step.firstOccurrence)
+            viewStep model timeZone step (StepHeaderGet step.firstOccurrence)
 
         Put step ->
-            viewStep model step StepHeaderPut
+            viewStep model timeZone step StepHeaderPut
 
         Try step ->
-            viewTree model step
+            viewTree timeZone model step
 
         Retry id tab _ steps ->
             Html.div [ class "retry" ]
@@ -393,7 +393,7 @@ viewTree model tree =
                     (Array.toList <| Array.indexedMap (viewTab id tab) steps)
                 , case Array.get (tab - 1) steps of
                     Just step ->
-                        viewTree model step
+                        viewTree timeZone model step
 
                     Nothing ->
                         -- impossible (bogus tab selected)
@@ -401,27 +401,27 @@ viewTree model tree =
                 ]
 
         Timeout step ->
-            viewTree model step
+            viewTree timeZone model step
 
         Aggregate steps ->
             Html.div [ class "aggregate" ]
-                (Array.toList <| Array.map (viewSeq model) steps)
+                (Array.toList <| Array.map (viewSeq timeZone model) steps)
 
         Do steps ->
             Html.div [ class "do" ]
-                (Array.toList <| Array.map (viewSeq model) steps)
+                (Array.toList <| Array.map (viewSeq timeZone model) steps)
 
         OnSuccess { step, hook } ->
-            viewHooked "success" model step hook
+            viewHooked timeZone "success" model step hook
 
         OnFailure { step, hook } ->
-            viewHooked "failure" model step hook
+            viewHooked timeZone "failure" model step hook
 
         OnAbort { step, hook } ->
-            viewHooked "abort" model step hook
+            viewHooked timeZone "abort" model step hook
 
         Ensure { step, hook } ->
-            viewHooked "ensure" model step hook
+            viewHooked timeZone "ensure" model step hook
 
 
 viewTab : StepID -> Int -> Int -> StepTree -> Html Message
@@ -435,17 +435,17 @@ viewTab id currentTab idx step =
         [ Html.a [ onClick (SwitchTab id tab) ] [ Html.text (String.fromInt tab) ] ]
 
 
-viewSeq : StepTreeModel -> StepTree -> Html Message
-viewSeq model tree =
-    Html.div [ class "seq" ] [ viewTree model tree ]
+viewSeq : Time.Zone -> StepTreeModel -> StepTree -> Html Message
+viewSeq timeZone model tree =
+    Html.div [ class "seq" ] [ viewTree timeZone model tree ]
 
 
-viewHooked : String -> StepTreeModel -> StepTree -> StepTree -> Html Message
-viewHooked name model step hook =
+viewHooked : Time.Zone -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
+viewHooked timeZone name model step hook =
     Html.div [ class "hooked" ]
-        [ Html.div [ class "step" ] [ viewTree model step ]
+        [ Html.div [ class "step" ] [ viewTree timeZone model step ]
         , Html.div [ class "children" ]
-            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree model hook ]
+            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree timeZone model hook ]
             ]
         ]
 
@@ -460,8 +460,8 @@ autoExpanded state =
     isActive state && state /= StepStateSucceeded
 
 
-viewStep : StepTreeModel -> Step -> StepHeaderType -> Html Message
-viewStep model { id, name, log, state, error, expanded, version, metadata, timestamps } headerType =
+viewStep : StepTreeModel -> Time.Zone -> Step -> StepHeaderType -> Html Message
+viewStep model timeZone { id, name, log, state, error, expanded, version, metadata, timestamps } headerType =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -497,7 +497,7 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, times
             if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
                 [ viewMetadata metadata
                 , Html.pre [ class "timestamped-logs" ] <|
-                    viewLogs log timestamps model.highlight id
+                    viewLogs log timestamps model.highlight timeZone id
                 , case error of
                     Nothing ->
                         Html.span [] []
@@ -511,16 +511,42 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, times
         ]
 
 
-viewLogs : Ansi.Log.Model -> Dict Int Time.Posix -> Highlight -> String -> List (Html Message)
-viewLogs { lines } timestamps hl id =
-    Array.toList <| Array.indexedMap (\idx -> viewTimestampedLine timestamps hl id (idx + 1)) lines
+viewLogs :
+    Ansi.Log.Model
+    -> Dict Int Time.Posix
+    -> Highlight
+    -> Time.Zone
+    -> String
+    -> List (Html Message)
+viewLogs { lines } timestamps hl timeZone id =
+    Array.toList <|
+        Array.indexedMap
+            (\idx line ->
+                viewTimestampedLine
+                    { timestamps = timestamps
+                    , highlight = hl
+                    , id = id
+                    , lineNo = idx + 1
+                    , line = line
+                    , timeZone = timeZone
+                    }
+            )
+            lines
 
 
-viewTimestampedLine : Dict Int Time.Posix -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Message
-viewTimestampedLine timestamps hl id lineNo line =
+viewTimestampedLine :
+    { timestamps : Dict Int Time.Posix
+    , highlight : Highlight
+    , id : StepID
+    , lineNo : Int
+    , line : Ansi.Log.Line
+    , timeZone : Time.Zone
+    }
+    -> Html Message
+viewTimestampedLine { timestamps, highlight, id, lineNo, line, timeZone } =
     let
         highlighted =
-            case hl of
+            case highlight of
                 HighlightNothing ->
                     False
 
@@ -539,7 +565,12 @@ viewTimestampedLine timestamps hl id lineNo line =
             , ( "highlighted-line", highlighted )
             ]
         ]
-        [ viewTimestamp id ( lineNo, ts )
+        [ viewTimestamp
+            { id = id
+            , line = lineNo
+            , date = ts
+            , timeZone = timeZone
+            }
         , viewLine line
         ]
 
@@ -551,8 +582,14 @@ viewLine line =
         ]
 
 
-viewTimestamp : String -> ( Int, Maybe Time.Posix ) -> Html Message
-viewTimestamp id ( line, date ) =
+viewTimestamp :
+    { id : String
+    , line : Int
+    , date : Maybe Time.Posix
+    , timeZone : Time.Zone
+    }
+    -> Html Message
+viewTimestamp { id, line, date, timeZone } =
     Html.a
         [ href (showHighlight (HighlightLine id line))
         , StrictEvents.onLeftClickOrShiftLeftClick
@@ -562,8 +599,8 @@ viewTimestamp id ( line, date ) =
         [ case date of
             Just d ->
                 Html.td
-                    [ class "timestamp"
-                    , attribute "data-timestamp" <|
+                    [ class "timestamp" ]
+                    [ Html.text <|
                         DateFormat.format
                             [ DateFormat.hourMilitaryFixed
                             , DateFormat.text ":"
@@ -571,11 +608,9 @@ viewTimestamp id ( line, date ) =
                             , DateFormat.text ":"
                             , DateFormat.secondFixed
                             ]
-                            Time.utc
-                            -- https://github.com/concourse/concourse/issues/2226
+                            timeZone
                             d
                     ]
-                    []
 
             _ ->
                 Html.td [ class "timestamp placeholder" ] []
