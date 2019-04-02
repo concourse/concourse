@@ -59,11 +59,22 @@ init hl resources buildPlan =
         Concourse.BuildStepTask name ->
             initBottom hl Task buildPlan.id name
 
+        Concourse.BuildStepArtifactInput name ->
+            initBottom hl
+                (\s ->
+                    ArtifactInput { s | state = StepStateSucceeded }
+                )
+                buildPlan.id
+                name
+
         Concourse.BuildStepGet name version ->
             initBottom hl
                 (Get << setupGetStep resources name version)
                 buildPlan.id
                 name
+
+        Concourse.BuildStepArtifactOutput name ->
+            initBottom hl ArtifactOutput buildPlan.id name
 
         Concourse.BuildStepPut name ->
             initBottom hl Put buildPlan.id name
@@ -249,7 +260,13 @@ treeIsActive stepTree =
         Task step ->
             stepIsActive step
 
+        ArtifactInput _ ->
+            False
+
         Get step ->
+            stepIsActive step
+
+        ArtifactOutput step ->
             stepIsActive step
 
         Put step ->
@@ -385,8 +402,14 @@ viewTree model tree =
         Task step ->
             viewStep model step StepHeaderTask
 
+        ArtifactInput step ->
+            viewStep model step (StepHeaderGet False)
+
         Get step ->
             viewStep model step (StepHeaderGet step.firstOccurrence)
+
+        ArtifactOutput step ->
+            viewStep model step StepHeaderPut
 
         Put step ->
             viewStep model step StepHeaderPut

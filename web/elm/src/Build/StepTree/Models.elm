@@ -39,7 +39,9 @@ type alias StepTreeModel =
 
 type StepTree
     = Task Step
+    | ArtifactInput Step
     | Get Step
+    | ArtifactOutput Step
     | Put Step
     | Aggregate (Array StepTree)
     | Do (Array StepTree)
@@ -230,7 +232,7 @@ updateHook update tree =
 
         OnAbort hookedStep ->
             OnAbort { hookedStep | hook = update hookedStep.hook }
-        
+
         OnError hookedStep ->
             OnError { hookedStep | hook = update hookedStep.hook }
 
@@ -301,8 +303,14 @@ finishTree root =
         Task step ->
             Task (finishStep step)
 
+        ArtifactInput step ->
+            ArtifactInput (finishStep step)
+
         Get step ->
             Get (finishStep step)
+
+        ArtifactOutput step ->
+            ArtifactOutput { step | state = StepStateSucceeded }
 
         Put step ->
             Put (finishStep step)
@@ -314,19 +322,19 @@ finishTree root =
             Do (Array.map finishTree trees)
 
         OnSuccess hookedStep ->
-            OnSuccess { hookedStep | step = finishTree hookedStep.step }
+            OnSuccess (finishHookedStep hookedStep)
 
         OnFailure hookedStep ->
-            OnFailure { hookedStep | step = finishTree hookedStep.step }
+            OnFailure (finishHookedStep hookedStep)
 
         OnAbort hookedStep ->
-            OnAbort { hookedStep | step = finishTree hookedStep.step }
-        
+            OnAbort (finishHookedStep hookedStep)
+
         OnError hookedStep ->
-            OnError { hookedStep | step = finishTree hookedStep.step }
+            OnError (finishHookedStep hookedStep)
 
         Ensure hookedStep ->
-            Ensure { hookedStep | step = finishTree hookedStep.step }
+            Ensure (finishHookedStep hookedStep)
 
         Try tree ->
             Try (finishTree tree)
@@ -353,3 +361,11 @@ finishStep step =
                     otherwise
     in
     { step | state = newState }
+
+
+finishHookedStep : HookedStep -> HookedStep
+finishHookedStep hooked =
+    { hooked
+        | step = finishTree hooked.step
+        , hook = finishTree hooked.hook
+    }
