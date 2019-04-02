@@ -298,20 +298,19 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [k8s-check-helm-params]
+      passed: [build-rc-image]
       trigger: true
     - get: concourse-rc-image
-      passed: [k8s-check-helm-params]
+      passed: [build-rc-image]
       params: {format: oci}
       trigger: true
     - get: version
-      passed: [k8s-check-helm-params]
+      passed: [build-rc-image]
       trigger: true
     - get: charts
-      passed: [k8s-check-helm-params]
       trigger: true
     - get: unit-image
-      passed: [k8s-check-helm-params]
+      passed: [build-rc-image]
   - try:
       task: try-delete
       image: unit-image
@@ -706,12 +705,14 @@ jobs:
     passed:
     - build-rc
     - k8s-topgun
+    - k8s-check-helm-params
     - bosh-smoke
     - bosh-topgun
   - get: unit-image
     passed:
     - build-rc
     - k8s-topgun
+    - k8s-check-helm-params
     - bosh-smoke
     - bosh-topgun
   - get: final-version
@@ -720,6 +721,7 @@ jobs:
     passed:
     - build-rc
     - k8s-topgun
+    - k8s-check-helm-params
     - bosh-smoke
     - bosh-topgun
   - get: linux-rc
@@ -729,7 +731,7 @@ jobs:
   - get: darwin-rc
     passed: [build-rc]
   - get: concourse-rc-image
-    passed: [k8s-topgun]
+    passed: [k8s-topgun, k8s-check-helm-params]
   - get: concourse-release
     passed: [bosh-smoke, bosh-topgun]
   - get: bpm-release

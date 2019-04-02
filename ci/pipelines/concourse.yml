@@ -306,33 +306,6 @@ jobs:
     image: unit-image
     file: concourse/ci/tasks/downgrade-test.yml
 
-- name: k8s-check-helm-params
-  public: true
-  max_in_flight: 1
-  plan:
-  - aggregate:
-    - get: concourse
-      passed: [build-rc-image]
-      trigger: true
-    - get: concourse-rc-image
-      passed: [build-rc-image]
-      trigger: true
-    - get: version
-      passed: [build-rc-image]
-      trigger: true
-    - get: unit-image
-      passed: [build-rc-image]
-      trigger: true
-    - get: linux-rc
-      passed: [build-rc-image]
-      trigger: true
-    - get: charts
-      trigger: true
-  - task: check-params
-    file: concourse/ci/tasks/check-distribution-env.yml
-    image: unit-image
-    input_mapping: {distribution: charts}
-    params: {DISTRIBUTION: helm}
 
 - name: k8s-smoke
   public: true
@@ -340,20 +313,19 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [k8s-check-helm-params]
+      passed: [build-rc-image]
       trigger: true
     - get: concourse-rc-image
-      passed: [k8s-check-helm-params]
+      passed: [build-rc-image]
       params: {format: oci}
       trigger: true
     - get: version
-      passed: [k8s-check-helm-params]
+      passed: [build-rc-image]
       trigger: true
     - get: charts
-      passed: [k8s-check-helm-params]
       trigger: true
     - get: unit-image
-      passed: [k8s-check-helm-params]
+      passed: [build-rc-image]
   - try:
       task: try-delete
       image: unit-image
@@ -413,6 +385,33 @@ jobs:
       KUBE_CONFIG: ((kube_config))
       CONCOURSE_IMAGE_NAME: concourse/concourse-rc
 
+- name: k8s-check-helm-params
+  public: true
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [build-rc-image]
+      trigger: true
+    - get: concourse-rc-image
+      passed: [build-rc-image]
+      trigger: true
+    - get: version
+      passed: [build-rc-image]
+      trigger: true
+    - get: unit-image
+      passed: [build-rc-image]
+      trigger: true
+    - get: linux-rc
+      passed: [build-rc-image]
+      trigger: true
+    - get: charts
+      trigger: true
+  - task: check-params
+    file: concourse/ci/tasks/check-distribution-env.yml
+    image: unit-image
+    input_mapping: {distribution: charts}
+    params: {DISTRIBUTION: helm}
 - name: rc
   public: true
   serial_groups: [version]
@@ -844,12 +843,14 @@ jobs:
     passed:
     - build-rc
     - k8s-topgun
+    - k8s-check-helm-params
     - bosh-smoke
     - bosh-topgun
   - get: unit-image
     passed:
     - build-rc
     - k8s-topgun
+    - k8s-check-helm-params
     - bosh-smoke
     - bosh-topgun
   - get: final-version
@@ -858,6 +859,7 @@ jobs:
     passed:
     - build-rc
     - k8s-topgun
+    - k8s-check-helm-params
     - bosh-smoke
     - bosh-topgun
   - get: linux-rc
@@ -867,7 +869,7 @@ jobs:
   - get: darwin-rc
     passed: [build-rc]
   - get: concourse-rc-image
-    passed: [k8s-topgun]
+    passed: [k8s-topgun, k8s-check-helm-params]
   - get: concourse-release
     passed: [bosh-smoke, bosh-topgun]
   - get: bpm-release
