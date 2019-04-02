@@ -682,15 +682,15 @@ header model =
         iconView =
             case model.icon of
                 Just icon ->
-                        Svg.svg
-                            [ style "height" "24px"
-                            , style "width" "24px"
-                            , style "margin-left" "-6px"
-                            , style "margin-right" "10px"
-                            , SvgAttributes.fill "white"
-                            ]
-                            [ Svg.use [ SvgAttributes.xlinkHref ("#" ++ icon ++ "-svg-icon") ] []
-                            ]
+                    Svg.svg
+                        [ style "height" "24px"
+                        , style "width" "24px"
+                        , style "margin-left" "-6px"
+                        , style "margin-right" "10px"
+                        , SvgAttributes.fill "white"
+                        ]
+                        [ Svg.use [ SvgAttributes.xlinkHref ("#" ++ icon ++ "-svg-icon") ] []
+                        ]
 
                 Nothing ->
                     Html.text ""

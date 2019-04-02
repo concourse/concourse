@@ -9,7 +9,6 @@ module Dashboard.Dashboard exposing
     )
 
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Details as Details
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
@@ -58,11 +57,9 @@ import Monocle.Compose exposing (optionalWithLens, optionalWithOptional)
 import Monocle.Lens
 import Monocle.Optional
 import MonocleHelpers exposing (bind, modifyWithEffect)
-import Regex exposing (replace)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Simple.Fuzzy
 import UserState exposing (UserState)
 import Views.Styles
 import Views.TopBar as TopBar
@@ -577,22 +574,15 @@ pipelinesView :
 pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, userState, highDensity } =
     let
         filteredGroups =
-            groups |> filter query |> List.sortWith Group.ordering
-
-        groupsToDisplay =
-            if List.all (String.startsWith "team:") (filterTerms query) then
-                filteredGroups
-
-            else
-                filteredGroups |> List.filter (.pipelines >> List.isEmpty >> not)
+            groups |> SearchBar.filter query |> List.sortWith Group.ordering
 
         groupViews =
             if highDensity then
-                groupsToDisplay
+                filteredGroups
                     |> List.concatMap (Group.hdView pipelineRunningKeyframes)
 
             else
-                groupsToDisplay
+                filteredGroups
                     |> List.map
                         (Group.view
                             { dragState = substate.dragState
@@ -609,88 +599,3 @@ pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, user
 
     else
         groupViews
-
-
-filterTerms : String -> List String
-filterTerms =
-    let
-        teamRegex =
-            Regex.fromString "team:\\s*"
-
-        statusRegex =
-            Regex.fromString "status:\\s*"
-    in
-    case ( teamRegex, statusRegex ) of
-        ( Just teamMatcher, Just statusMatcher ) ->
-            replace teamMatcher (\_ -> "team:")
-                >> replace statusMatcher (\_ -> "status:")
-                >> String.words
-                >> List.filter (not << String.isEmpty)
-
-        _ ->
-            String.words
-                >> List.filter (not << String.isEmpty)
-
-
-filter : String -> List Group -> List Group
-filter =
-    filterTerms >> (\b a -> List.foldl filterGroupsByTerm a b)
-
-
-filterPipelinesByTerm : String -> Group -> Group
-filterPipelinesByTerm term ({ pipelines } as group) =
-    let
-        searchStatus =
-            String.startsWith "status:" term
-
-        statusSearchTerm =
-            if searchStatus then
-                String.dropLeft 7 term
-
-            else
-                term
-
-        filterByStatus =
-            fuzzySearch (.status >> PipelineStatus.show) statusSearchTerm pipelines
-    in
-    { group
-        | pipelines =
-            if searchStatus then
-                filterByStatus
-
-            else
-                fuzzySearch .name term pipelines
-    }
-
-
-filterGroupsByTerm : String -> List Group -> List Group
-filterGroupsByTerm term groups =
-    let
-        searchTeams =
-            String.startsWith "team:" term
-
-        teamSearchTerm =
-            if searchTeams then
-                String.dropLeft 5 term
-
-            else
-                term
-    in
-    if searchTeams then
-        fuzzySearch .teamName teamSearchTerm groups
-
-    else
-        groups |> List.map (filterPipelinesByTerm term)
-
-
-fuzzySearch : (a -> String) -> String -> List a -> List a
-fuzzySearch map needle records =
-    let
-        negateSearch =
-            String.startsWith "-" needle
-    in
-    if negateSearch then
-        List.filter (not << Simple.Fuzzy.match needle << map) records
-
-    else
-        List.filter (Simple.Fuzzy.match needle << map) records

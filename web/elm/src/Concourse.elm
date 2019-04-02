@@ -167,6 +167,7 @@ type BuildStatus
     | BuildStatusErrored
     | BuildStatusAborted
 
+
 type alias BuildDuration =
     { startedAt : Maybe Time.Posix
     , finishedAt : Maybe Time.Posix
@@ -402,6 +403,7 @@ decodeBuildPlan_ =
                 ]
             )
 
+
 decodeBuildStepTask : Json.Decode.Decoder BuildStep
 decodeBuildStepTask =
     Json.Decode.succeed BuildStepTask
@@ -471,13 +473,15 @@ decodeBuildStepOnAbort =
             |> andMap (Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildPlan_))
         )
 
+
 decodeBuildStepOnError : Json.Decode.Decoder BuildStep
 decodeBuildStepOnError =
-    Json.Decode.map BuildStepOnError 
+    Json.Decode.map BuildStepOnError
         (Json.Decode.succeed HookedPlan
             |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
             |> andMap (Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildPlan_))
         )
+
 
 decodeBuildStepEnsure : Json.Decode.Decoder BuildStep
 decodeBuildStepEnsure =
