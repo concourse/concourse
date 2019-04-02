@@ -730,7 +730,15 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	return build, t.conn.Bus().Notify(buildEventsChannel(build.id))
+	if err = t.conn.Bus().Notify(buildStartedChannel()); err != nil {
+		return nil, err
+	}
+
+	if err = t.conn.Bus().Notify(buildEventsChannel(build.id)); err != nil {
+		return nil, err
+	}
+
+	return build, nil
 }
 
 func (t *team) PrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {

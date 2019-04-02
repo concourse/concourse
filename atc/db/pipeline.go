@@ -1048,7 +1048,15 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	return build, p.conn.Bus().Notify(buildEventsChannel(build.id))
+	if err = p.conn.Bus().Notify(buildStartedChannel()); err != nil {
+		return nil, err
+	}
+
+	if err = p.conn.Bus().Notify(buildEventsChannel(build.id)); err != nil {
+		return nil, err
+	}
+
+	return build, nil
 }
 
 func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {
