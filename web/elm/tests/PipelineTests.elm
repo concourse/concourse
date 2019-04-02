@@ -3,6 +3,7 @@ module PipelineTests exposing (all)
 import Application.Application as Application
 import Char
 import Common
+import DashboardTests exposing (defineHoverBehaviour)
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
@@ -156,6 +157,36 @@ all =
                                         , style "background" "rgba(151, 151, 151, 0.1)"
                                         , style "border" "1px solid #2b2a2a"
                                         ]
+                        , defineHoverBehaviour
+                            { name = "group"
+                            , setup = setupGroupsBar sampleGroups
+                            , query =
+                                Common.queryView
+                                    >> Query.find [ id "groups-bar" ]
+                                    >> Query.findAll [ tag "li" ]
+                                    >> Query.index 0
+                                    >> Query.find [ tag "a" ]
+                            , updateFunc =
+                                \msg ->
+                                    Application.update msg
+                                        >> Tuple.first
+                            , unhoveredSelector =
+                                { description = "dark outline"
+                                , selector =
+                                    [ style "border" "1px solid #2b2a2a" ]
+                                }
+                            , mouseEnterMsg =
+                                Msgs.Update <|
+                                    Hover <|
+                                        Just <|
+                                            Message.Message.JobGroup 0
+                            , mouseLeaveMsg = Msgs.Update <| Hover Nothing
+                            , hoveredSelector =
+                                { description = "light grey outline"
+                                , selector =
+                                    [ style "border" "1px solid #fff2" ]
+                                }
+                            }
                         , test "the selected ones brighter" <|
                             \_ ->
                                 setupGroupsBar sampleGroups
@@ -180,13 +211,13 @@ all =
                                         >> Query.find [ tag "a" ]
                                         >> Query.has
                                             [ text "group"
-                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?groups=group"
+                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?group=group"
                                             ]
                                     , Query.index 1
                                         >> Query.find [ tag "a" ]
                                         >> Query.has
                                             [ text "other-group"
-                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?groups=other-group"
+                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?group=other-group"
                                             ]
                                     ]
                     ]
@@ -865,106 +896,6 @@ all =
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.has [ text "pipeline" ]
-            , test "pipeline breadcrumb should have a link to the pipeline page" <|
-                \_ ->
-                    init "/teams/team/pipelines/pipeline"
-                        |> Common.queryView
-                        |> Query.find [ id "top-bar-app" ]
-                        |> Query.find [ id "breadcrumbs" ]
-                        |> Query.children []
-                        |> Query.first
-                        |> Event.simulate Event.click
-                        |> Event.expect
-                            (Msgs.Update <|
-                                Message.Message.GoToRoute <|
-                                    Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
-                            )
-            , describe "build page"
-                [ test "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                            |> Common.queryView
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 0
-                            |> Event.simulate Event.click
-                            |> Event.expect
-                                (Msgs.Update <|
-                                    Message.Message.GoToRoute <|
-                                        Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
-                                )
-                , test "there should be a / between pipeline and job in breadcrumb" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/jobs/build/builds/1"
-                            |> Common.queryView
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 1
-                            |> Query.has [ text "/" ]
-                , test "top bar has job breadcrumb with job icon rendered first" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                            |> Common.queryView
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 2
-                            |> Query.has jobBreadcrumbSelector
-                , test "top bar has build name after job icon" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                            |> Common.queryView
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 2
-                            |> Query.has [ text "job" ]
-                ]
-            , describe "resource page"
-                [ test "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/resources/resource"
-                            |> Common.queryView
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 0
-                            |> Event.simulate Event.click
-                            |> Event.expect
-                                (Msgs.Update <|
-                                    Message.Message.GoToRoute <|
-                                        Routes.Pipeline { id = { teamName = "team", pipelineName = "pipeline" }, groups = [] }
-                                )
-                , test "there should be a / between pipeline and resource in breadcrumb" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/resources/resource"
-                            |> Common.queryView
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 1
-                            |> Query.has [ text "/" ]
-                , test "top bar has resource breadcrumb with resource icon rendered first" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/resources/resource"
-                            |> Common.queryView
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 2
-                            |> Query.has resourceBreadcrumbSelector
-                , test "top bar has resource name after resource icon" <|
-                    \_ ->
-                        init "/teams/team/pipelines/pipeline/resources/resource"
-                            |> Common.queryView
-                            |> Query.find [ id "top-bar-app" ]
-                            |> Query.find [ id "breadcrumbs" ]
-                            |> Query.children []
-                            |> Query.index 2
-                            |> Query.has [ text "resource" ]
-                ]
             ]
         ]
 

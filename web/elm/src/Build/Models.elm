@@ -40,6 +40,7 @@ type alias Model =
         , fetchingHistory : Bool
         , scrolledToCurrentBuild : Bool
         , authorized : Bool
+        , timeZone : Time.Zone
         }
 
 

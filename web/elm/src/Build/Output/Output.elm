@@ -296,28 +296,29 @@ setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
 
 
-view : OutputModel -> Html Message
-view { steps, errors, state } =
+view : Time.Zone -> OutputModel -> Html Message
+view timeZone { steps, errors, state } =
     Html.div [ class "steps" ]
         [ viewErrors errors
-        , viewStepTree steps state
+        , viewStepTree timeZone steps state
         ]
 
 
 viewStepTree :
-    Maybe StepTreeModel
+    Time.Zone
+    -> Maybe StepTreeModel
     -> OutputState
     -> Html Message
-viewStepTree steps state =
+viewStepTree timeZone steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
             LoadingIndicator.view
 
         ( StepsLiveUpdating, Just root ) ->
-            Build.StepTree.StepTree.view root
+            Build.StepTree.StepTree.view timeZone root
 
         ( StepsComplete, Just root ) ->
-            Build.StepTree.StepTree.view root
+            Build.StepTree.StepTree.view timeZone root
 
         ( _, Nothing ) ->
             Html.div [] []

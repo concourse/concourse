@@ -19,6 +19,9 @@ module Colors exposing
     , flySuccessTokenCopied
     , frame
     , groupBackground
+    , groupBorderHovered
+    , groupBorderSelected
+    , groupBorderUnselected
     , groupsBarBackground
     , inputOutline
     , paginationHover
@@ -31,7 +34,6 @@ module Colors exposing
     , resourceError
     , secondaryTopBar
     , sectionHeader
-    , selectedGroupBorder
     , started
     , startedFaded
     , statusColor
@@ -39,7 +41,6 @@ module Colors exposing
     , successFaded
     , text
     , tooltipBackground
-    , unselectedGroupBorder
     , white
     )
 
@@ -247,14 +248,19 @@ pinHighlight =
     "rgba(255, 255, 255, 0.3)"
 
 
-selectedGroupBorder : String
-selectedGroupBorder =
+groupBorderSelected : String
+groupBorderSelected =
     "#979797"
 
 
-unselectedGroupBorder : String
-unselectedGroupBorder =
+groupBorderUnselected : String
+groupBorderUnselected =
     "#2b2a2a"
+
+
+groupBorderHovered : String
+groupBorderHovered =
+    "#fff2"
 
 
 groupBackground : String

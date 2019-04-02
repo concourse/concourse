@@ -131,6 +131,7 @@ type Effect
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
     | GetCurrentTime
+    | GetCurrentTimeZone
     | DoTriggerBuild Concourse.JobIdentifier
     | DoAbortBuild Int
     | PauseJob Concourse.JobIdentifier
@@ -237,6 +238,9 @@ runEffect effect key csrfToken =
 
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now
+
+        GetCurrentTimeZone ->
+            Task.perform GotCurrentTimeZone Time.here
 
         DoTriggerBuild id ->
             Network.Job.triggerBuild id csrfToken

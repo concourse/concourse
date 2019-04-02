@@ -11,7 +11,6 @@ import Html.Attributes
         , href
         , id
         )
-import Html.Events exposing (onClick)
 import Message.Message exposing (Hoverable(..), Message(..))
 import Routes
 import Url
@@ -85,9 +84,11 @@ breadcrumbSeparator =
 
 pipelineBreadcumb : Concourse.PipelineIdentifier -> Html Message
 pipelineBreadcumb pipelineId =
-    Html.li
+    Html.a
         ([ id "breadcrumb-pipeline"
-         , onClick <| GoToRoute <| Routes.Pipeline { id = pipelineId, groups = [] }
+         , href <|
+            Routes.toString <|
+                Routes.Pipeline { id = pipelineId, groups = [] }
          ]
             ++ Styles.breadcrumbItem True
         )

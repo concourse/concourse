@@ -167,19 +167,13 @@ all =
                                 [ text "pipeline" ]
                     , it "has pointer cursor" <|
                         Query.has [ style "cursor" "pointer" ]
-                    , it "has link to the relevant pipeline page" <|
-                        Event.simulate Event.click
-                            >> Event.expect
-                                (ApplicationMsgs.Update <|
-                                    Msgs.GoToRoute <|
-                                        Routes.Pipeline
-                                            { id =
-                                                { teamName = "team"
-                                                , pipelineName = "pipeline"
-                                                }
-                                            , groups = []
-                                            }
-                                )
+                    , it "is a link to the relevant pipeline page" <|
+                        Query.has
+                            [ tag "a"
+                            , attribute <|
+                                Attr.href
+                                    "/teams/team/pipelines/pipeline"
+                            ]
                     ]
                 , it "has dark grey background" <|
                     Query.has [ style "background-color" backgroundGrey ]
@@ -532,18 +526,12 @@ all =
                     >> Query.has [ style "flex-grow" "1" ]
             , it "pipeline breadcrumb should have a link to the pipeline page when viewing build details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
-                    >> Event.simulate Event.click
-                    >> Event.expect
-                        (ApplicationMsgs.Update <|
-                            Msgs.GoToRoute <|
-                                Routes.Pipeline
-                                    { id =
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        }
-                                    , groups = []
-                                    }
-                        )
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline"
+                        ]
             , context "job breadcrumb"
                 (Query.find [ id "breadcrumb-job" ])
                 [ it "is laid out horizontally with appropriate spacing" <|
@@ -583,22 +571,18 @@ all =
                     >> Query.has [ style "flex-grow" "1" ]
             , it "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
-                    >> Event.simulate Event.click
-                    >> Event.expect
-                        (ApplicationMsgs.Update <|
-                            Msgs.GoToRoute <|
-                                Routes.Pipeline
-                                    { id =
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        }
-                                    , groups = []
-                                    }
-                        )
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline"
+                        ]
             , it "there is a / between pipeline and resource in breadcrumb" <|
-                Query.findAll [ tag "li" ]
+                Query.find [ id "breadcrumbs" ]
+                    >> Query.children []
                     >> Expect.all
-                        [ Query.index 1 >> Query.has [ class "breadcrumb-separator" ]
+                        [ Query.index 1
+                            >> Query.has [ class "breadcrumb-separator" ]
                         , Query.index 1 >> Query.has [ text "/" ]
                         , Query.index 2 >> Query.has [ id "breadcrumb-resource" ]
                         ]
@@ -644,22 +628,18 @@ all =
                     >> Query.has [ style "flex-grow" "1" ]
             , it "pipeline breadcrumb should have a link to the pipeline page when viewing job details" <|
                 Query.find [ id "breadcrumb-pipeline" ]
-                    >> Event.simulate Event.click
-                    >> Event.expect
-                        (ApplicationMsgs.Update <|
-                            Msgs.GoToRoute <|
-                                Routes.Pipeline
-                                    { id =
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        }
-                                    , groups = []
-                                    }
-                        )
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline"
+                        ]
             , it "there is a / between pipeline and job in breadcrumb" <|
-                Query.findAll [ tag "li" ]
+                Query.find [ id "breadcrumbs" ]
+                    >> Query.children []
                     >> Expect.all
-                        [ Query.index 1 >> Query.has [ class "breadcrumb-separator" ]
+                        [ Query.index 1
+                            >> Query.has [ class "breadcrumb-separator" ]
                         , Query.index 0 >> Query.has [ id "breadcrumb-pipeline" ]
                         , Query.index 2 >> Query.has [ id "breadcrumb-job" ]
                         ]
