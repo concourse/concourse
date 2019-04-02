@@ -692,26 +692,18 @@ header model =
         iconView =
             case model.icon of
                 Just icon ->
-                    Html.div
-                        [ style "margin-right" (String.fromInt 10 ++ "px")
-                        , style "height" (String.fromInt Resource.Styles.headerHeight ++ "px")
-                        , style "width" (String.fromInt 24 ++ "px")
-                        , style "margin-left" (String.fromInt -6 ++ "px")
-                        ]
-                        [ Svg.svg
-                            [ style
-                                "margin-top"
-                                (String.fromFloat (toFloat (Resource.Styles.headerHeight - 24) / 2) ++ "px")
+                        Svg.svg
+                            [ style "height" "24px"
+                            , style "width" "24px"
+                            , style "margin-left" "-6px"
+                            , style "margin-right" "10px"
                             , SvgAttributes.fill "white"
                             ]
-                            [ Svg.use
-                                [ SvgAttributes.xlinkHref ("#" ++ icon ++ "-svg-icon") ]
-                                []
+                            [ Svg.use [ SvgAttributes.xlinkHref ("#" ++ icon ++ "-svg-icon") ] []
                             ]
-                        ]
 
                 Nothing ->
-                    Html.div [] []
+                    Html.text ""
     in
     Html.div
         (id "page-header" :: Resource.Styles.headerBar)

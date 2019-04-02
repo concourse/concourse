@@ -2003,6 +2003,53 @@ all =
                                 )
                             >> Tuple.first
 
+                    fetchPlanWithArtifactInputStep : () -> Application.Model
+                    fetchPlanWithArtifactInputStep =
+                        givenBuildStarted
+                            >> Tuple.first
+                            >> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
+                                                Concourse.BuildStepArtifactInput
+                                                    "step"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            >> Tuple.first
+
+                    fetchPlanWithEnsureArtifactOutputStep : () -> Application.Model
+                    fetchPlanWithEnsureArtifactOutputStep =
+                        givenBuildStarted
+                            >> Tuple.first
+                            >> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
+                                                Concourse.BuildStepEnsure
+                                                    { hook =
+                                                        { id = "plan1"
+                                                        , step =
+                                                            Concourse.BuildStepArtifactOutput
+                                                                "step"
+                                                        }
+                                                    , step =
+                                                        { id = "plan2"
+                                                        , step =
+                                                            Concourse.BuildStepGet
+                                                                "step"
+                                                                Nothing
+                                                        }
+                                                    }
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            >> Tuple.first
+
                     fetchPlanWithTaskStep : () -> Application.Model
                     fetchPlanWithTaskStep =
                         givenBuildStarted
@@ -2123,6 +2170,16 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
+                , test "artifact input step shows downward arrow" <|
+                    fetchPlanWithArtifactInputStep
+                        >> Common.queryView
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-arrow-downward.svg"
+                                }
+                                ++ [ style "background-size" "14px 14px" ]
+                            )
                 , test "task step shows terminal icon" <|
                     fetchPlanWithTaskStep
                         >> Common.queryView
@@ -2130,6 +2187,16 @@ all =
                             (iconSelector
                                 { size = "28px"
                                 , image = "ic-terminal.svg"
+                                }
+                                ++ [ style "background-size" "14px 14px" ]
+                            )
+                , test "artifact output step shows upward arrow" <|
+                    fetchPlanWithEnsureArtifactOutputStep
+                        >> Common.queryView
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-arrow-upward.svg"
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -2359,6 +2426,60 @@ all =
                         >> Common.queryView
                         >> Query.findAll [ text "new version" ]
                         >> Query.count (Expect.equal 1)
+                , test "artifact input step always has checkmark at the right" <|
+                    fetchPlanWithArtifactInputStep
+                        >> Common.queryView
+                        >> Query.find [ class "header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-success-check.svg"
+                                }
+                                ++ [ style "background-size" "14px 14px" ]
+                            )
+                , test "artifact output step has pending icon while build runs" <|
+                    fetchPlanWithEnsureArtifactOutputStep
+                        >> Common.queryView
+                        >> Query.findAll [ class "header" ]
+                        >> Query.index -1
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-pending.svg"
+                                }
+                                ++ [ style "background-size" "14px 14px" ]
+                            )
+                , test "artifact output step has green check on finished build" <|
+                    fetchPlanWithEnsureArtifactOutputStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url =
+                                            "http://localhost:8080/api/v1/builds/307/events"
+                                      , data =
+                                            STModels.BuildStatus
+                                                Concourse.BuildStatusFailed
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.findAll [ class "header" ]
+                        >> Query.index -1
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-success-check.svg"
+                                }
+                                ++ [ style "background-size" "14px 14px" ]
+                            )
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -2625,6 +2746,9 @@ all =
                     plainText =
                         "plain-text"
 
+                    invalidURLText =
+                        "https:// is secure!"
+
                     metadataView =
                         Application.init
                             { turbulenceImgSrc = ""
@@ -2739,6 +2863,18 @@ all =
                                 , style "text-decoration-line" "underline"
                                 , attribute <| Attr.target "_blank"
                                 , attribute <| Attr.href plainText
+                                ]
+                , test "should not show hyperlink if metadata is malformed URL" <|
+                    \_ ->
+                        metadataView
+                            |> Query.find
+                                [ containing [ text invalidURLText ]
+                                ]
+                            |> Query.hasNot
+                                [ tag "a"
+                                , style "text-decoration-line" "underline"
+                                , attribute <| Attr.target "_blank"
+                                , attribute <| Attr.href invalidURLText
                                 ]
                 ]
             ]

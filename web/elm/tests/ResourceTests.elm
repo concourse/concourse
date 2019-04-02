@@ -361,15 +361,12 @@ all =
                         pageHeader
                             |> Query.children []
                             |> Query.index 0
-                            |> Query.has [ tag "div", text resourceName, tag "h1" ]
+                            |> Query.has [ tag "svg", text resourceName, tag "h1" ]
                 ]
             , describe "resource icon"
                 [ test "on the left is the resource icon" <|
                     \_ ->
                         pageHeader
-                            |> Query.children []
-                            |> Query.index 0
-                            |> Query.find [ tag "div" ]
                             |> Query.children []
                             |> Query.index 0
                             |> Query.has [ tag "svg" ]

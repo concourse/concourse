@@ -235,6 +235,13 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			errorMessages = append(errorMessages, planErrMessages...)
 		}
 
+		if job.Error != nil {
+			subIdentifier := fmt.Sprintf("%s.error", identifier)
+			planWarnings, planErrMessages := validatePlan(c, subIdentifier, *job.Error)
+			warnings = append(warnings, planWarnings...)
+			errorMessages = append(errorMessages, planErrMessages...)
+		}
+
 		if job.Failure != nil {
 			subIdentifier := fmt.Sprintf("%s.failure", identifier)
 			planWarnings, planErrMessages := validatePlan(c, subIdentifier, *job.Failure)
@@ -505,6 +512,13 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	if plan.Abort != nil {
 		subIdentifier := fmt.Sprintf("%s.abort", identifier)
 		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Abort)
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
+	}
+
+	if plan.Error != nil {
+		subIdentifier := fmt.Sprintf("%s.error", identifier)
+		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Error)
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)
 	}

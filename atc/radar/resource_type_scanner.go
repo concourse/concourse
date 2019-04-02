@@ -168,7 +168,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeName s
 
 		defer lock.Release()
 
-		updated, err := resourceConfigScope.UpdateLastChecked(interval, mustComplete)
+		updated, err := resourceConfigScope.UpdateLastCheckStartTime(interval, mustComplete)
 		if err != nil {
 			lockLogger.Error("failed-to-get-update-last-checked", err, lager.Data{
 				"resource-type":      resourceTypeName,

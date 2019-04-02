@@ -43,6 +43,7 @@ import Message.Message exposing (Hoverable(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
 import Time
+import Url exposing (fromString)
 import Views.DictView as DictView
 import Views.Icon as Icon
 import Views.Spinner as Spinner
@@ -58,11 +59,22 @@ init hl resources buildPlan =
         Concourse.BuildStepTask name ->
             initBottom hl Task buildPlan.id name
 
+        Concourse.BuildStepArtifactInput name ->
+            initBottom hl
+                (\s ->
+                    ArtifactInput { s | state = StepStateSucceeded }
+                )
+                buildPlan.id
+                name
+
         Concourse.BuildStepGet name version ->
             initBottom hl
                 (Get << setupGetStep resources name version)
                 buildPlan.id
                 name
+
+        Concourse.BuildStepArtifactOutput name ->
+            initBottom hl ArtifactOutput buildPlan.id name
 
         Concourse.BuildStepPut name ->
             initBottom hl Put buildPlan.id name
@@ -84,6 +96,9 @@ init hl resources buildPlan =
 
         Concourse.BuildStepOnAbort hookedPlan ->
             initHookedStep hl resources OnAbort hookedPlan
+
+        Concourse.BuildStepOnError hookedPlan ->
+            initHookedStep hl resources OnError hookedPlan
 
         Concourse.BuildStepEnsure hookedPlan ->
             initHookedStep hl resources Ensure hookedPlan
@@ -227,6 +242,9 @@ treeIsActive stepTree =
         OnAbort { step } ->
             treeIsActive step
 
+        OnError { step } ->
+            treeIsActive step
+
         Ensure { step } ->
             treeIsActive step
 
@@ -242,7 +260,13 @@ treeIsActive stepTree =
         Task step ->
             stepIsActive step
 
+        ArtifactInput _ ->
+            False
+
         Get step ->
+            stepIsActive step
+
+        ArtifactOutput step ->
             stepIsActive step
 
         Put step ->
@@ -378,8 +402,14 @@ viewTree timeZone model tree =
         Task step ->
             viewStep model timeZone step StepHeaderTask
 
+        ArtifactInput step ->
+            viewStep model timeZone step (StepHeaderGet False)
+
         Get step ->
             viewStep model timeZone step (StepHeaderGet step.firstOccurrence)
+
+        ArtifactOutput step ->
+            viewStep model timeZone step StepHeaderPut
 
         Put step ->
             viewStep model timeZone step StepHeaderPut
@@ -419,6 +449,9 @@ viewTree timeZone model tree =
 
         OnAbort { step, hook } ->
             viewHooked timeZone "abort" model step hook
+
+        OnError { step, hook } ->
+            viewHooked timeZone "error" model step hook
 
         Ensure { step, hook } ->
             viewHooked timeZone "ensure" model step hook
@@ -630,16 +663,17 @@ viewMetadata =
         (\{ name, value } ->
             ( name
             , Html.pre []
-                [ if String.startsWith "http://" value || String.startsWith "https://" value then
-                    Html.a
-                        [ href value
-                        , target "_blank"
-                        , style "text-decoration-line" "underline"
-                        ]
-                        [ Html.text value ]
+                [ case fromString value of
+                    Just _ ->
+                        Html.a
+                            [ href value
+                            , target "_blank"
+                            , style "text-decoration-line" "underline"
+                            ]
+                            [ Html.text value ]
 
-                  else
-                    Html.text value
+                    Nothing ->
+                        Html.text value
                 ]
             )
         )

@@ -58,6 +58,14 @@ func (build *execBuild) buildOnAbortStep(logger lager.Logger, plan atc.Plan) exe
 	return exec.OnAbort(step, next)
 }
 
+func (build *execBuild) buildOnErrorStep(logger lager.Logger, plan atc.Plan) exec.Step {
+	plan.OnError.Step.Attempts = plan.Attempts
+	step := build.buildStep(logger, plan.OnError.Step)
+	plan.OnError.Next.Attempts = plan.Attempts
+	next := build.buildStep(logger, plan.OnError.Next)
+	return exec.OnError(step, next)
+}
+
 func (build *execBuild) buildOnSuccessStep(logger lager.Logger, plan atc.Plan) exec.Step {
 	plan.OnSuccess.Step.Attempts = plan.Attempts
 	step := build.buildStep(logger, plan.OnSuccess.Step)

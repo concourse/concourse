@@ -134,7 +134,7 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       .attr("height", iconSize)
       .attr("fill", "white")
       .attr("y", function(node) { return node.height() / 2 - iconSize / 2 })
-      .attr("x", function(node) { return node.padding() })
+      .attr("x", function(node) { return node.padding() + (node.pinned() ? pinIconWidth + node.padding() : 0) })
 
     nodeLink.append("text")
       .text(function(node) { return node.name })
