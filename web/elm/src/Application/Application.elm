@@ -115,6 +115,18 @@ handleCallback callback model =
         OutputOfFetched (Err err) ->
             ( model, redirectToLoginIfNecessary err )
 
+        PipelineToggled _ (Err err) ->
+            subpageHandleCallback model callback
+                |> Tuple.mapSecond ((++) (redirectToLoginIfNecessary err))
+
+        PipelineHidden _ (Err err) ->
+            subpageHandleCallback model callback
+                |> Tuple.mapSecond ((++) (redirectToLoginIfNecessary err))
+
+        PipelineExposed _ (Err err) ->
+            subpageHandleCallback model callback
+                |> Tuple.mapSecond ((++) (redirectToLoginIfNecessary err))
+
         LoggedOut (Ok ()) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 

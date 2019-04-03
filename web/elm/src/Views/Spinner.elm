@@ -10,18 +10,32 @@ module Views.Spinner exposing (spinner)
 
 import Html exposing (Html)
 import Html.Attributes exposing (style)
+import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Message.Message exposing (DomID, Message(..))
 
 
-spinner : { size : String, margin : String } -> Html msg
-spinner { size, margin } =
+spinner :
+    { size : String, margin : String, hoverable : Maybe DomID }
+    -> Html Message
+spinner { size, margin, hoverable } =
     Html.div
         -- preloader-wrapper active
-        [ style "width" size
-        , style "height" size
-        , style "box-sizing" "border-box"
-        , style "animation" "container-rotate 1568ms linear infinite"
-        , style "margin" margin
-        ]
+        ([ style "width" size
+         , style "height" size
+         , style "box-sizing" "border-box"
+         , style "animation" "container-rotate 1568ms linear infinite"
+         , style "margin" margin
+         ]
+            ++ (case hoverable of
+                    Just h ->
+                        [ onMouseEnter <| Hover <| Just h
+                        , onMouseLeave <| Hover Nothing
+                        ]
+
+                    Nothing ->
+                        []
+               )
+        )
         [ Html.div
             -- spinner-layer spinner-blue-only
             [ style "height" "100%"

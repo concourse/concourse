@@ -12,12 +12,13 @@ import Dashboard.Styles as Styles
 import Duration
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, href, style)
-import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (DomID(..), Message(..))
 import Routes
 import Time
 import UserState exposing (UserState)
 import Views.PauseToggle as PauseToggle
+import Views.Spinner as Spinner
 
 
 pipelineNotSetView : Html Message
@@ -173,6 +174,7 @@ footerView userState pipeline now hovered =
                                 }
                     , isHovered =
                         hovered == (Just <| VisibilityButton pipelineId)
+                    , isVisibilityLoading = pipeline.isVisibilityLoading
                     }
                 ]
         ]
@@ -183,34 +185,49 @@ visibilityView :
     , pipelineId : Concourse.PipelineIdentifier
     , isClickable : Bool
     , isHovered : Bool
+    , isVisibilityLoading : Bool
     }
     -> Html Message
-visibilityView { public, pipelineId, isClickable, isHovered } =
-    Html.div
-        (Styles.visibilityToggle
-            { public = public
-            , isClickable = isClickable
-            , isHovered = isHovered
+visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading } =
+    if isVisibilityLoading then
+        Spinner.spinner
+            { size = "20px"
+            , margin = "0"
+            , hoverable = Just <| VisibilityButton pipelineId
             }
-            ++ [ onMouseEnter <| Hover <| Just <| VisibilityButton pipelineId
-               , onMouseLeave <| Hover Nothing
-               ]
-        )
-        (if isClickable && isHovered then
-            [ Html.div
-                Styles.visibilityTooltip
-                [ Html.text <|
-                    if public then
-                        "hide pipeline"
+
+    else
+        Html.div
+            (Styles.visibilityToggle
+                { public = public
+                , isClickable = isClickable
+                , isHovered = isHovered
+                }
+                ++ [ onMouseEnter <| Hover <| Just <| VisibilityButton pipelineId
+                   , onMouseLeave <| Hover Nothing
+                   ]
+                ++ (if isClickable then
+                        [ onClick <| Click <| VisibilityButton pipelineId ]
 
                     else
-                        "expose pipeline"
-                ]
-            ]
+                        []
+                   )
+            )
+            (if isClickable && isHovered then
+                [ Html.div
+                    Styles.visibilityTooltip
+                    [ Html.text <|
+                        if public then
+                            "hide pipeline"
 
-         else
-            []
-        )
+                        else
+                            "expose pipeline"
+                    ]
+                ]
+
+             else
+                []
+            )
 
 
 sinceTransitionText : PipelineStatus.StatusDetails -> Time.Posix -> String

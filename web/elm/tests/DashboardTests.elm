@@ -2042,12 +2042,155 @@ all =
                                                 ++ tooltipAbove "hide pipeline"
                                         }
                                     }
-
-                                -- , test "clicking
+                                , test "has click handler" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> visibilityToggle
+                                            |> Event.simulate Event.click
+                                            |> Event.expect
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                , test "click has HidePipeline effect" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> Application.update
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                            |> Tuple.second
+                                            |> Expect.equal
+                                                [ Effects.HidePipeline
+                                                    pipelineId
+                                                ]
+                                , defineHoverBehaviour
+                                    { name = "visibility spinner"
+                                    , setup =
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> Application.update
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                            |> Tuple.first
+                                    , query = visibilityToggle
+                                    , unhoveredSelector =
+                                        { description = "20px spinner"
+                                        , selector =
+                                            [ style "animation"
+                                                "container-rotate 1568ms linear infinite"
+                                            , style "height" "20px"
+                                            , style "width" "20px"
+                                            ]
+                                        }
+                                    , hoverable =
+                                        Msgs.VisibilityButton pipelineId
+                                    , hoveredSelector =
+                                        { description = "20px spinner"
+                                        , selector =
+                                            [ style "animation"
+                                                "container-rotate 1568ms linear infinite"
+                                            , style "height" "20px"
+                                            , style "width" "20px"
+                                            ]
+                                        }
+                                    }
+                                , test "success resolves spinner to slashed-out eye" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> Application.update
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                            |> Tuple.first
+                                            |> Application.handleCallback
+                                                (Callback.PipelineHidden
+                                                    pipelineId
+                                                 <|
+                                                    Ok ()
+                                                )
+                                            |> Tuple.first
+                                            |> visibilityToggle
+                                            |> Query.has slashedOutEye
+                                , test "error resolves spinner to open eye" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> Application.update
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                            |> Tuple.first
+                                            |> Application.handleCallback
+                                                (Callback.PipelineHidden
+                                                    pipelineId
+                                                 <|
+                                                    Err <|
+                                                        Http.BadStatus
+                                                            { url = "http://example.com"
+                                                            , status =
+                                                                { code = 500
+                                                                , message = ""
+                                                                }
+                                                            , headers = Dict.empty
+                                                            , body = ""
+                                                            }
+                                                )
+                                            |> Tuple.first
+                                            |> visibilityToggle
+                                            |> Query.has openEye
+                                , test "401 redirects to login" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> Application.update
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                            |> Tuple.first
+                                            |> Application.handleCallback
+                                                (Callback.PipelineHidden
+                                                    pipelineId
+                                                 <|
+                                                    Err <|
+                                                        Http.BadStatus
+                                                            { url = "http://example.com"
+                                                            , status =
+                                                                { code = 401
+                                                                , message = "unauthorized"
+                                                                }
+                                                            , headers = Dict.empty
+                                                            , body = ""
+                                                            }
+                                                )
+                                            |> Tuple.second
+                                            |> Expect.equal
+                                                [ Effects.RedirectToLogin ]
                                 ]
 
                             openEyeUnclickable setup =
-                                defineHoverBehaviour
+                                [ defineHoverBehaviour
                                     { name = "open eye toggle"
                                     , setup =
                                         whenOnDashboard { highDensity = False }
@@ -2073,9 +2216,19 @@ all =
                                                    ]
                                         }
                                     }
+                                , test "has no click handler" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> visibilityToggle
+                                            |> Event.simulate Event.click
+                                            |> Event.toResult
+                                            |> Expect.err
+                                ]
 
                             slashedOutEyeClickable setup =
-                                defineHoverBehaviour
+                                [ defineHoverBehaviour
                                     { name = "slashed-out eye toggle"
                                     , setup =
                                         whenOnDashboard { highDensity = False }
@@ -2102,9 +2255,125 @@ all =
                                                 ++ tooltipAbove "expose pipeline"
                                         }
                                     }
+                                , test "has click handler" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> visibilityToggle
+                                            |> Event.simulate Event.click
+                                            |> Event.expect
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                , test "click has ExposePipeline effect" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> Application.update
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                            |> Tuple.second
+                                            |> Expect.equal
+                                                [ Effects.ExposePipeline
+                                                    pipelineId
+                                                ]
+                                , defineHoverBehaviour
+                                    { name = "visibility spinner"
+                                    , setup =
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> Application.update
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                            |> Tuple.first
+                                    , query = visibilityToggle
+                                    , unhoveredSelector =
+                                        { description = "20px spinner"
+                                        , selector =
+                                            [ style "animation"
+                                                "container-rotate 1568ms linear infinite"
+                                            , style "height" "20px"
+                                            , style "width" "20px"
+                                            ]
+                                        }
+                                    , hoverable =
+                                        Msgs.VisibilityButton pipelineId
+                                    , hoveredSelector =
+                                        { description = "20px spinner"
+                                        , selector =
+                                            [ style "animation"
+                                                "container-rotate 1568ms linear infinite"
+                                            , style "height" "20px"
+                                            , style "width" "20px"
+                                            ]
+                                        }
+                                    }
+                                , test "success resolves spinner to open eye" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> Application.update
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                            |> Tuple.first
+                                            |> Application.handleCallback
+                                                (Callback.PipelineExposed
+                                                    pipelineId
+                                                 <|
+                                                    Ok ()
+                                                )
+                                            |> Tuple.first
+                                            |> visibilityToggle
+                                            |> Query.has openEye
+                                , test "error resolves spinner to slashed-out eye" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> Application.update
+                                                (ApplicationMsgs.Update <|
+                                                    Msgs.Click <|
+                                                        Msgs.VisibilityButton
+                                                            pipelineId
+                                                )
+                                            |> Tuple.first
+                                            |> Application.handleCallback
+                                                (Callback.PipelineExposed
+                                                    pipelineId
+                                                 <|
+                                                    Err <|
+                                                        Http.BadStatus
+                                                            { url = "http://example.com"
+                                                            , status =
+                                                                { code = 500
+                                                                , message = ""
+                                                                }
+                                                            , headers = Dict.empty
+                                                            , body = ""
+                                                            }
+                                                )
+                                            |> Tuple.first
+                                            |> visibilityToggle
+                                            |> Query.has slashedOutEye
+                                ]
 
                             slashedOutEyeUnclickable setup =
-                                defineHoverBehaviour
+                                [ defineHoverBehaviour
                                     { name = "slashed-out eye toggle"
                                     , setup =
                                         whenOnDashboard { highDensity = False }
@@ -2130,6 +2399,16 @@ all =
                                                    ]
                                         }
                                     }
+                                , test "has no click handler" <|
+                                    \_ ->
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                            |> visibilityToggle
+                                            |> Event.simulate Event.click
+                                            |> Event.toResult
+                                            |> Expect.err
+                                ]
                         in
                         [ describe "when authorized" <|
                             let
@@ -2149,8 +2428,8 @@ all =
                             in
                             [ describe "on public pipeline" <|
                                 openEyeClickable whenAuthorizedPublic
-                            , describe "on a non-public pipeline"
-                                [ slashedOutEyeClickable whenAuthorizedNonPublic ]
+                            , describe "on a non-public pipeline" <|
+                                slashedOutEyeClickable whenAuthorizedNonPublic
                             ]
                         , describe "when unauthorized" <|
                             let
@@ -2168,12 +2447,11 @@ all =
                                             [ ( "team", [ "viewer" ] ) ]
                                         )
                             in
-                            [ describe "on public pipeline"
-                                [ openEyeUnclickable whenUnauthorizedPublic ]
-                            , describe "on a non-public pipeline"
-                                [ slashedOutEyeUnclickable
+                            [ describe "on public pipeline" <|
+                                openEyeUnclickable whenUnauthorizedPublic
+                            , describe "on a non-public pipeline" <|
+                                slashedOutEyeUnclickable
                                     whenUnauthorizedNonPublic
-                                ]
                             ]
                         , describe "when unauthenticated" <|
                             let

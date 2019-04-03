@@ -177,6 +177,7 @@ allPipelines data =
                             )
                 , status = pipelineStatus p jobs
                 , isToggleLoading = False
+                , isVisibilityLoading = False
                 }
             )
 

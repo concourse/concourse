@@ -165,6 +165,8 @@ type Effect
     | Focus String
     | Blur String
     | RenderSvgIcon String
+    | HidePipeline Concourse.PipelineIdentifier
+    | ExposePipeline Concourse.PipelineIdentifier
 
 
 type alias VersionId =
@@ -396,6 +398,20 @@ runEffect effect key csrfToken =
 
         RenderSvgIcon icon ->
             renderSvgIcon icon
+
+        HidePipeline pipelineId ->
+            Network.Pipeline.hide
+                pipelineId.teamName
+                pipelineId.pipelineName
+                csrfToken
+                |> Task.attempt (PipelineHidden pipelineId)
+
+        ExposePipeline pipelineId ->
+            Network.Pipeline.expose
+                pipelineId.teamName
+                pipelineId.pipelineName
+                csrfToken
+                |> Task.attempt (PipelineExposed pipelineId)
 
 
 scrollInDirection : ScrollDirection -> Cmd Callback

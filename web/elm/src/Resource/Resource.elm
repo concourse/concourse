@@ -952,7 +952,11 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         statusIcon =
             case checkStatus of
                 Models.CurrentlyChecking ->
-                    Spinner.spinner { size = "14px", margin = "7px" }
+                    Spinner.spinner
+                        { size = "14px"
+                        , margin = "7px"
+                        , hoverable = Nothing
+                        }
 
                 _ ->
                     Icon.icon
@@ -1111,7 +1115,12 @@ commentBar userState { resourceIdentifier, pinnedVersion, hovered, pinCommentLoa
                                     }
                             )
                             (if pinCommentLoading then
-                                [ Spinner.spinner { size = "12px", margin = "0px" } ]
+                                [ Spinner.spinner
+                                    { size = "12px"
+                                    , margin = "0px"
+                                    , hoverable = Nothing
+                                    }
+                                ]
 
                              else
                                 [ Html.text "save" ]
@@ -1353,7 +1362,12 @@ viewEnabledCheckbox ({ enabled, id } as params) =
                 []
 
             Models.Changing ->
-                [ Spinner.spinner { size = "12.5px", margin = "6.25px" } ]
+                [ Spinner.spinner
+                    { size = "12.5px"
+                    , margin = "6.25px"
+                    , hoverable = Nothing
+                    }
+                ]
 
             Models.Disabled ->
                 []
@@ -1404,7 +1418,12 @@ viewPinButton { versionID, pinState, hovered } =
                     []
 
             InTransition ->
-                [ Spinner.spinner { size = "12.5px", margin = "6.25px" } ]
+                [ Spinner.spinner
+                    { size = "12.5px"
+                    , margin = "6.25px"
+                    , hoverable = Nothing
+                    }
+                ]
 
             _ ->
                 []

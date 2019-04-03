@@ -72,48 +72,6 @@ type DomID
     | BuildTab Concourse.Build
 
 
-
--- type Hoverable
---     = HToggleJobButton
---     | HTriggerBuildButton
---     | PreviousPageButton
---     | NextPageButton
---     | HCheckButton
---     | HSaveCommentButton
---     | HAbortBuildButton
---     | FirstOccurrenceIcon StepID
---     | HPinIcon
---     | HPinButton
---     | PinBar
---     | HPipelineButton Concourse.PipelineIdentifier
---     | VisibilityButton Concourse.PipelineIdentifier
---     | FooterCliIcon Cli.Cli
---     | WelcomeCardCliIcon Cli.Cli
---     | HCopyTokenButton
---     | JobGroup Int
--- type Clickable
---     = StepTab String Int
---     | StepHeader String
---     | ShowSearchButton
---     | ClearSearchButton
---     | CCopyTokenButton
---     | CToggleJobButton
---     | LoginButton
---     | LogoutButton
---     | UserMenu
---     | PaginationButton Page
---     | CCheckButton Bool
---     | CSaveCommentButton
---     | CPinIcon
---     | CPinButton VersionId
---     | VersionHeader VersionId
---     | VersionToggle VersionId
---     | CPipelineButton Concourse.PipelineIdentifier
---     | CTriggerBuildButton
---     | CAbortBuildButton
---     | BuildTab Concourse.Build
-
-
 type VersionToggleAction
     = Enable
     | Disable

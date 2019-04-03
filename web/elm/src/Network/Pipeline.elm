@@ -1,4 +1,11 @@
-module Network.Pipeline exposing (fetchPipeline, fetchPipelines, order, togglePause)
+module Network.Pipeline exposing
+    ( expose
+    , fetchPipeline
+    , fetchPipelines
+    , hide
+    , order
+    , togglePause
+    )
 
 import Concourse
 import Http
@@ -57,6 +64,44 @@ putAction action teamName pipelineName csrfToken =
         Http.request
             { method = "PUT"
             , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/" ++ action
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , expect = Http.expectStringResponse (always (Ok ()))
+            , body = Http.emptyBody
+            , timeout = Nothing
+            , withCredentials = False
+            }
+
+
+hide : String -> String -> Concourse.CSRFToken -> Task Http.Error ()
+hide teamName pipelineName csrfToken =
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url =
+                "/api/v1/teams/"
+                    ++ teamName
+                    ++ "/pipelines/"
+                    ++ pipelineName
+                    ++ "/hide"
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , expect = Http.expectStringResponse (always (Ok ()))
+            , body = Http.emptyBody
+            , timeout = Nothing
+            , withCredentials = False
+            }
+
+
+expose : String -> String -> Concourse.CSRFToken -> Task Http.Error ()
+expose teamName pipelineName csrfToken =
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url =
+                "/api/v1/teams/"
+                    ++ teamName
+                    ++ "/pipelines/"
+                    ++ pipelineName
+                    ++ "/expose"
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , expect = Http.expectStringResponse (always (Ok ()))
             , body = Http.emptyBody

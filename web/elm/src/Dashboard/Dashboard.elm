@@ -8,13 +8,14 @@ module Dashboard.Dashboard exposing
     , view
     )
 
+import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Details as Details
 import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
-import Dashboard.Group.Models exposing (Group)
+import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Models as Models
     exposing
         ( DashboardError(..)
@@ -42,7 +43,6 @@ import Html.Events
         ( onMouseEnter
         , onMouseLeave
         )
-import Http
 import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -198,22 +198,65 @@ handleCallback msg ( model, effects ) =
         PipelineToggled _ (Ok ()) ->
             ( model, effects ++ [ FetchData ] )
 
-        PipelineToggled _ (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    ( model
-                    , if status.code == 401 then
-                        effects ++ [ RedirectToLogin ]
+        PipelineHidden pipelineId (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = False, isVisibilityLoading = False })
+                pipelineId
+                model
+            , effects
+            )
 
-                      else
-                        effects
-                    )
+        PipelineHidden pipelineId (Err _) ->
+            ( updatePipeline
+                (\p -> { p | public = True, isVisibilityLoading = False })
+                pipelineId
+                model
+            , effects
+            )
 
-                _ ->
-                    ( model, effects )
+        PipelineExposed pipelineId (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = True, isVisibilityLoading = False })
+                pipelineId
+                model
+            , effects
+            )
+
+        PipelineExposed pipelineId (Err _) ->
+            ( updatePipeline
+                (\p -> { p | public = False, isVisibilityLoading = False })
+                pipelineId
+                model
+            , effects
+            )
 
         _ ->
             ( model, effects )
+
+
+updatePipeline :
+    (Pipeline -> Pipeline)
+    -> Concourse.PipelineIdentifier
+    -> Model
+    -> Model
+updatePipeline updater pipelineId model =
+    let
+        newGroups =
+            model.groups
+                |> List.Extra.updateIf
+                    (.teamName >> (==) pipelineId.teamName)
+                    (\g ->
+                        let
+                            newPipelines =
+                                g.pipelines
+                                    |> List.Extra.updateIf
+                                        (.name >> (==) pipelineId.pipelineName)
+                                        updater
+                        in
+                        { g | pipelines = newPipelines }
+                    )
+    in
+    { model | groups = newGroups }
 
 
 handleDelivery : Delivery -> ET Model
@@ -359,27 +402,47 @@ updateBody msg ( model, effects ) =
                                     |> Maybe.map
                                         (.status >> (==) PipelineStatusPaused)
                             )
-
-                newGroups =
-                    model.groups
-                        |> List.Extra.updateIf
-                            (.teamName >> (==) pipelineId.teamName)
-                            (\g ->
-                                let
-                                    newPipelines =
-                                        g.pipelines
-                                            |> List.Extra.updateIf
-                                                (.name >> (==) pipelineId.pipelineName)
-                                                (\p -> { p | isToggleLoading = True })
-                                in
-                                { g | pipelines = newPipelines }
-                            )
             in
             case isPaused of
                 Just ip ->
-                    ( { model | groups = newGroups }
+                    ( updatePipeline
+                        (\p -> { p | isToggleLoading = True })
+                        pipelineId
+                        model
                     , effects
                         ++ [ SendTogglePipelineRequest pipelineId ip ]
+                    )
+
+                Nothing ->
+                    ( model, effects )
+
+        Click (VisibilityButton pipelineId) ->
+            let
+                isPublic =
+                    model.groups
+                        |> List.Extra.find
+                            (.teamName >> (==) pipelineId.teamName)
+                        |> Maybe.andThen
+                            (\g ->
+                                g.pipelines
+                                    |> List.Extra.find
+                                        (.name >> (==) pipelineId.pipelineName)
+                                    |> Maybe.map .public
+                            )
+            in
+            case isPublic of
+                Just public ->
+                    ( updatePipeline
+                        (\p -> { p | isVisibilityLoading = True })
+                        pipelineId
+                        model
+                    , effects
+                        ++ [ if public then
+                                HidePipeline pipelineId
+
+                             else
+                                ExposePipeline pipelineId
+                           ]
                     )
 
                 Nothing ->

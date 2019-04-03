@@ -47,3 +47,5 @@ type Callback
     | BuildHistoryFetched (Fetched (Paginated Concourse.Build))
     | PlanAndResourcesFetched Int (Fetched ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Fetched ())
+    | PipelineHidden Concourse.PipelineIdentifier (Fetched ())
+    | PipelineExposed Concourse.PipelineIdentifier (Fetched ())

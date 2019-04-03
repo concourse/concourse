@@ -202,19 +202,8 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        PipelineToggled _ (Err err) ->
-            let
-                newModel =
-                    { model | isToggleLoading = False }
-            in
-            case err of
-                Http.BadStatus { status } ->
-                    ( newModel
-                    , effects ++ redirectToLoginIfUnauthenticated status
-                    )
-
-                _ ->
-                    ( newModel, effects )
+        PipelineToggled _ (Err _) ->
+            ( { model | isToggleLoading = False }, effects )
 
         JobsFetched (Ok fetchedJobs) ->
             renderIfNeeded

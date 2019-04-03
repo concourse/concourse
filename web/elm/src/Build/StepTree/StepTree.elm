@@ -692,7 +692,11 @@ viewStepState : StepState -> Html Message
 viewStepState state =
     case state of
         StepStateRunning ->
-            Spinner.spinner { size = "14px", margin = "7px" }
+            Spinner.spinner
+                { size = "14px"
+                , margin = "7px"
+                , hoverable = Nothing
+                }
 
         StepStatePending ->
             Icon.icon

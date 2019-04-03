@@ -628,8 +628,10 @@ handleKeyPressed keyEvent ( model, effects ) =
             ( Keyboard.A, True ) ->
                 if currentBuild == List.head newModel.history then
                     case currentBuild of
-                        Just build ->
-                            update (Click <| AbortBuildButton) ( newModel, effects )
+                        Just _ ->
+                            update
+                                (Click <| AbortBuildButton)
+                                ( newModel, effects )
 
                         Nothing ->
                             ( newModel, [] )
@@ -1120,7 +1122,11 @@ viewDetailItem ( name, status ) =
         [ Html.text (name ++ " - " ++ status) ]
 
 
-viewBuildPrepLi : String -> Concourse.BuildPrepStatus -> Dict String String -> Html Message
+viewBuildPrepLi :
+    String
+    -> Concourse.BuildPrepStatus
+    -> Dict String String
+    -> Html Message
 viewBuildPrepLi text status details =
     Html.li
         [ classList
@@ -1146,12 +1152,22 @@ viewBuildPrepStatus status =
         Concourse.BuildPrepStatusUnknown ->
             Html.div
                 [ title "thinking..." ]
-                [ Spinner.spinner { size = "12px", margin = "0 5px 0 0" } ]
+                [ Spinner.spinner
+                    { size = "12px"
+                    , margin = "0 5px 0 0"
+                    , hoverable = Nothing
+                    }
+                ]
 
         Concourse.BuildPrepStatusBlocking ->
             Html.div
                 [ title "blocking" ]
-                [ Spinner.spinner { size = "12px", margin = "0 5px 0 0" } ]
+                [ Spinner.spinner
+                    { size = "12px"
+                    , margin = "0 5px 0 0"
+                    , hoverable = Nothing
+                    }
+                ]
 
         Concourse.BuildPrepStatusNotBlocking ->
             Icon.icon
