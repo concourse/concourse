@@ -45,7 +45,6 @@ func (bus *notificationsBus) Notify(channel string) error {
 }
 
 func (bus *notificationsBus) Listen(channel string) (chan bool, error) {
-
 	bus.notificationsL.Lock()
 	defer bus.notificationsL.Unlock()
 
@@ -93,8 +92,30 @@ func (bus *notificationsBus) wait() {
 		bus.notificationsL.Lock()
 
 		if notification != nil {
+			// alert any relevant listeners of notification being received
+			// (nonblocking)
 			for sink := range bus.notifications[notification.Channel] {
-				sink <- true
+				select {
+				case sink <- true:
+					// notified of message being received (or queued up)
+				default:
+					// already had notification queued up; no need to handle it twice
+				}
+			}
+		} else {
+			// alert all listeners of connection break so they can check for things
+			// they may have missed
+			for _, sinks := range bus.notifications {
+				for sink := range sinks {
+					select {
+					case sink <- false:
+						// notify that connection was lost, so listener can check for
+						// things that may have changed while connection was lost
+					default:
+						// already had notification queued up; no need to check for
+						// anything missed since something will be notified anyway
+					}
+				}
 			}
 		}
 
