@@ -1,5 +1,5 @@
 module Message.Message exposing
-    ( Hoverable(..)
+    ( DomID(..)
     , Message(..)
     , VersionId
     , VersionToggleAction(..)
@@ -14,19 +14,12 @@ import StrictEvents
 
 type Message
     = -- Top Bar
-      LogIn
-    | LogOut
-    | FilterMsg String
+      FilterMsg String
     | FocusMsg
     | BlurMsg
-    | ToggleUserMenu
-    | ShowSearchInput
-    | TogglePipelinePaused Concourse.PipelineIdentifier Bool
       -- Pipeline
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
-      -- Fly Success
-    | CopyToken
       -- Dashboard
     | DragStart String Int
     | DragOver String Int
@@ -34,45 +27,31 @@ type Message
     | Tooltip String String
     | TooltipHd String String
       -- Resource
-    | LoadPage Page
-    | ExpandVersionedResource VersionId
-    | PinVersion VersionId
-    | UnpinVersion
-    | ToggleVersion VersionToggleAction VersionId
-    | CheckRequested Bool
     | EditComment String
-    | SaveComment String
     | FocusTextArea
     | BlurTextArea
-      -- Job
-    | TriggerBuildJob
-    | TogglePaused
       -- Build
-    | SwitchToBuild Concourse.Build
-    | TriggerBuild (Maybe Concourse.JobIdentifier)
-    | AbortBuild Int
     | ScrollBuilds StrictEvents.MouseWheelEvent
     | RevealCurrentBuildInHistory
-    | ToggleStep String
-    | SwitchTab String Int
     | SetHighlight String Int
     | ExtendHighlight String Int
       -- common
-    | Hover (Maybe Hoverable)
+    | Hover (Maybe DomID)
+    | Click DomID
     | GoToRoute Routes.Route
 
 
-type Hoverable
+type DomID
     = ToggleJobButton
     | TriggerBuildButton
     | PreviousPageButton
     | NextPageButton
-    | CheckButton
+    | CheckButton Bool
     | SaveCommentButton
     | AbortBuildButton
     | FirstOccurrenceIcon StepID
     | PinIcon
-    | PinButton
+    | PinButton VersionId
     | PinBar
     | PipelineButton Concourse.PipelineIdentifier
     | VisibilityButton Concourse.PipelineIdentifier
@@ -80,6 +59,59 @@ type Hoverable
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
     | JobGroup Int
+    | StepTab String Int
+    | StepHeader String
+    | ShowSearchButton
+    | ClearSearchButton
+    | LoginButton
+    | LogoutButton
+    | UserMenu
+    | PaginationButton Page
+    | VersionHeader VersionId
+    | VersionToggle VersionId
+    | BuildTab Concourse.Build
+
+
+
+-- type Hoverable
+--     = HToggleJobButton
+--     | HTriggerBuildButton
+--     | PreviousPageButton
+--     | NextPageButton
+--     | HCheckButton
+--     | HSaveCommentButton
+--     | HAbortBuildButton
+--     | FirstOccurrenceIcon StepID
+--     | HPinIcon
+--     | HPinButton
+--     | PinBar
+--     | HPipelineButton Concourse.PipelineIdentifier
+--     | VisibilityButton Concourse.PipelineIdentifier
+--     | FooterCliIcon Cli.Cli
+--     | WelcomeCardCliIcon Cli.Cli
+--     | HCopyTokenButton
+--     | JobGroup Int
+-- type Clickable
+--     = StepTab String Int
+--     | StepHeader String
+--     | ShowSearchButton
+--     | ClearSearchButton
+--     | CCopyTokenButton
+--     | CToggleJobButton
+--     | LoginButton
+--     | LogoutButton
+--     | UserMenu
+--     | PaginationButton Page
+--     | CCheckButton Bool
+--     | CSaveCommentButton
+--     | CPinIcon
+--     | CPinButton VersionId
+--     | VersionHeader VersionId
+--     | VersionToggle VersionId
+--     | CPipelineButton Concourse.PipelineIdentifier
+--     | CTriggerBuildButton
+--     | CAbortBuildButton
+--     | BuildTab Concourse.Build
 
 
 type VersionToggleAction

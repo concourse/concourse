@@ -10,7 +10,7 @@ import Html.Attributes exposing (attribute, class, download, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Keyboard
 import Message.Effects as Effects
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Routes
 import ScreenSize
@@ -111,7 +111,7 @@ keyboardHelp =
 
 infoBar :
     { a
-        | hovered : Maybe Hoverable
+        | hovered : Maybe DomID
         , screenSize : ScreenSize.ScreenSize
         , version : String
         , highDensity : Bool
@@ -171,7 +171,7 @@ legend model =
 
 
 concourseInfo :
-    { a | version : String, hovered : Maybe Hoverable }
+    { a | version : String, hovered : Maybe DomID }
     -> Html Message
 concourseInfo { version, hovered } =
     Html.div (id "concourse-info" :: Styles.info)
@@ -228,7 +228,7 @@ legendSeparator screenSize =
             [ Html.div Styles.legendSeparator [ Html.text "|" ] ]
 
 
-cliIcon : Maybe Hoverable -> Cli.Cli -> Html Message
+cliIcon : Maybe DomID -> Cli.Cli -> Html Message
 cliIcon hovered cli =
     Html.a
         ([ href <| Cli.downloadUrl cli

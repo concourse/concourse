@@ -35,8 +35,13 @@ import Keyboard
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
-import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.Message exposing (DomID(..), Message(..))
+import Message.Subscription
+    exposing
+        ( Delivery(..)
+        , Interval(..)
+        , Subscription(..)
+        )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
@@ -66,7 +71,7 @@ type alias Model =
         , hideLegend : Bool
         , hideLegendCounter : Float
         , isToggleLoading : Bool
-        , hovered : Maybe Hoverable
+        , hovered : Maybe DomID
         }
 
 
@@ -322,14 +327,23 @@ update msg ( model, effects ) =
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
-        TogglePipelinePaused pipelineIdentifier paused ->
-            ( { model | isToggleLoading = True }
-            , effects
-                ++ [ SendTogglePipelineRequest
-                        pipelineIdentifier
-                        paused
-                   ]
-            )
+        Click (PipelineButton pipelineIdentifier) ->
+            let
+                paused =
+                    model.pipeline |> RemoteData.map .paused
+            in
+            case paused of
+                RemoteData.Success p ->
+                    ( { model | isToggleLoading = True }
+                    , effects
+                        ++ [ SendTogglePipelineRequest
+                                pipelineIdentifier
+                                p
+                           ]
+                    )
+
+                _ ->
+                    ( model, effects )
 
         Hover hoverable ->
             ( { model | hovered = hoverable }, effects )
@@ -620,7 +634,7 @@ viewGroup :
     { a
         | selectedGroups : List String
         , pipelineLocator : Concourse.PipelineIdentifier
-        , hovered : Maybe Hoverable
+        , hovered : Maybe DomID
     }
     -> Int
     -> Concourse.PipelineGroup

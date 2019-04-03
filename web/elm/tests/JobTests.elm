@@ -18,7 +18,7 @@ import Http
 import Job.Job as Job exposing (update)
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as Msgs
 import RemoteData
@@ -902,7 +902,7 @@ all =
                     <|
                         Tuple.first <|
                             update
-                                TogglePaused
+                                (Click ToggleJobButton)
                                 ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled" <|
                 \_ ->

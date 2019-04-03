@@ -3,7 +3,7 @@ module Views.PauseToggle exposing (view)
 import Concourse
 import Html exposing (Html)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import UserState exposing (UserState(..))
 import Views.Icon as Icon
 import Views.Spinner as Spinner
@@ -52,7 +52,7 @@ view margin userState { isPaused, pipeline, isToggleHovered, isToggleLoading } =
                     , margin = margin
                     }
                 ++ (if isClickable then
-                        [ onClick <| TogglePipelinePaused pipeline isPaused ]
+                        [ onClick <| Click <| PipelineButton pipeline ]
 
                     else
                         []

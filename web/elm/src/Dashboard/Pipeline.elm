@@ -13,7 +13,7 @@ import Duration
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, href, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Routes
 import Time
 import UserState exposing (UserState)
@@ -74,7 +74,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
 pipelineView :
     { now : Time.Posix
     , pipeline : Pipeline
-    , hovered : Maybe Hoverable
+    , hovered : Maybe DomID
     , pipelineRunningKeyframes : String
     , userState : UserState
     }
@@ -130,7 +130,7 @@ footerView :
     UserState
     -> Pipeline
     -> Time.Posix
-    -> Maybe Hoverable
+    -> Maybe DomID
     -> Html Message
 footerView userState pipeline now hovered =
     let

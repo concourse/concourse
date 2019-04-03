@@ -150,7 +150,9 @@ tokenCopied =
     makeSetup "when token copied to clipboard"
         (steps tokenSendFailed
             >> Application.update
-                (Msgs.Update <| Message.Message.CopyToken)
+                (Msgs.Update <|
+                    Message.Message.Click Message.Message.CopyTokenButton
+                )
             >> Tuple.first
         )
 
@@ -531,7 +533,9 @@ buttonClickHandler =
     property button "sends CopyToken on click" <|
         Event.simulate Event.click
             >> Event.expect
-                (Msgs.Update <| Message.Message.CopyToken)
+                (Msgs.Update <|
+                    Message.Message.Click Message.Message.CopyTokenButton
+                )
 
 
 

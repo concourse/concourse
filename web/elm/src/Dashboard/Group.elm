@@ -41,7 +41,7 @@ import Json.Decode
 import List.Extra
 import Maybe.Extra
 import Message.Effects as Effects
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Monocle.Optional
 import Ordering exposing (Ordering)
 import Set
@@ -352,7 +352,7 @@ view :
     { dragState : DragState
     , dropState : DropState
     , now : Time.Posix
-    , hovered : Maybe Hoverable
+    , hovered : Maybe DomID
     , pipelineRunningKeyframes : String
     , userState : UserState
     }

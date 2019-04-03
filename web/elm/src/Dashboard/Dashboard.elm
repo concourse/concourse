@@ -9,6 +9,7 @@ module Dashboard.Dashboard exposing
     )
 
 import Concourse.Cli as Cli
+import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Details as Details
 import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
@@ -46,7 +47,11 @@ import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message as Message exposing (Hoverable(..), Message(..))
+import Message.Message as Message
+    exposing
+        ( DomID(..)
+        , Message(..)
+        )
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -337,11 +342,24 @@ updateBody msg ( model, effects ) =
         Hover hovered ->
             ( { model | hovered = hovered }, effects )
 
-        LogOut ->
+        Click LogoutButton ->
             ( { model | state = RemoteData.NotAsked }, effects )
 
-        TogglePipelinePaused pipelineId isPaused ->
+        Click (PipelineButton pipelineId) ->
             let
+                isPaused =
+                    model.groups
+                        |> List.Extra.find
+                            (.teamName >> (==) pipelineId.teamName)
+                        |> Maybe.andThen
+                            (\g ->
+                                g.pipelines
+                                    |> List.Extra.find
+                                        (.name >> (==) pipelineId.pipelineName)
+                                    |> Maybe.map
+                                        (.status >> (==) PipelineStatusPaused)
+                            )
+
                 newGroups =
                     model.groups
                         |> List.Extra.updateIf
@@ -357,10 +375,15 @@ updateBody msg ( model, effects ) =
                                 { g | pipelines = newPipelines }
                             )
             in
-            ( { model | groups = newGroups }
-            , effects
-                ++ [ SendTogglePipelineRequest pipelineId isPaused ]
-            )
+            case isPaused of
+                Just ip ->
+                    ( { model | groups = newGroups }
+                    , effects
+                        ++ [ SendTogglePipelineRequest pipelineId ip ]
+                    )
+
+                Nothing ->
+                    ( model, effects )
 
         _ ->
             ( model, effects )
@@ -453,7 +476,7 @@ dashboardView model =
 
 welcomeCard :
     { a
-        | hovered : Maybe Hoverable
+        | hovered : Maybe DomID
         , groups : List Group
         , userState : UserState.UserState
     }
@@ -463,7 +486,7 @@ welcomeCard { hovered, groups, userState } =
         noPipelines =
             List.isEmpty (groups |> List.concatMap .pipelines)
 
-        cliIcon : Maybe Hoverable -> Cli.Cli -> Html Message
+        cliIcon : Maybe DomID -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
             Html.a
                 ([ href <| Cli.downloadUrl cli
@@ -565,7 +588,7 @@ turbulenceView path =
 pipelinesView :
     { groups : List Group
     , substate : Models.SubState
-    , hovered : Maybe Message.Hoverable
+    , hovered : Maybe DomID
     , pipelineRunningKeyframes : String
     , query : String
     , userState : UserState.UserState

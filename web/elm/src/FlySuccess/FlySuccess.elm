@@ -22,7 +22,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import UserState exposing (UserState)
@@ -79,7 +79,7 @@ update msg ( model, effects ) =
             , effects
             )
 
-        CopyToken ->
+        Click CopyTokenButton ->
             ( { model | buttonState = Clicked }, effects )
 
         _ ->
@@ -179,7 +179,7 @@ button { authToken, buttonState } =
         ([ id "copy-token"
          , onMouseEnter <| Hover <| Just CopyTokenButton
          , onMouseLeave <| Hover Nothing
-         , onClick CopyToken
+         , onClick <| Click CopyTokenButton
          , attribute "data-clipboard-text" authToken
          ]
             ++ Styles.button buttonState

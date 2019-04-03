@@ -43,7 +43,7 @@ import Login.Login as Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
@@ -447,7 +447,7 @@ handleDelivery delivery ( model, effects ) =
 update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
-        SwitchToBuild build ->
+        Click (BuildTab build) ->
             ( model
             , effects
                 ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
@@ -462,23 +462,32 @@ update msg ( model, effects ) =
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.updateTooltip newModel)
                 ( newModel, effects )
 
-        TriggerBuild job ->
-            case job of
+        Click TriggerBuildButton ->
+            case currentJob model of
                 Nothing ->
                     ( model, effects )
 
                 Just someJob ->
                     ( model, effects ++ [ DoTriggerBuild someJob ] )
 
-        AbortBuild buildId ->
-            ( model, effects ++ [ DoAbortBuild buildId ] )
+        Click AbortBuildButton ->
+            case
+                model.currentBuild
+                    |> RemoteData.toMaybe
+                    |> Maybe.map (.build >> .id)
+            of
+                Just buildId ->
+                    ( model, effects ++ [ DoAbortBuild buildId ] )
 
-        ToggleStep id ->
+                _ ->
+                    ( model, effects )
+
+        Click (StepHeader id) ->
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
                 ( model, effects )
 
-        SwitchTab id tab ->
+        Click (StepTab id tab) ->
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.switchTab id tab)
                 ( model, effects )
@@ -586,7 +595,7 @@ handleKeyPressed keyEvent ( model, effects ) =
             ( Keyboard.H, False ) ->
                 case Maybe.andThen (nextBuild newModel.history) currentBuild of
                     Just build ->
-                        update (SwitchToBuild build) ( newModel, effects )
+                        update (Click <| BuildTab build) ( newModel, effects )
 
                     Nothing ->
                         ( newModel, [] )
@@ -596,7 +605,7 @@ handleKeyPressed keyEvent ( model, effects ) =
                     Maybe.andThen (prevBuild newModel.history) currentBuild
                 of
                     Just build ->
-                        update (SwitchToBuild build) ( newModel, effects )
+                        update (Click <| BuildTab build) ( newModel, effects )
 
                     Nothing ->
                         ( newModel, [] )
@@ -610,7 +619,7 @@ handleKeyPressed keyEvent ( model, effects ) =
             ( Keyboard.T, True ) ->
                 if not newModel.previousTriggerBuildByKey then
                     update
-                        (TriggerBuild (currentBuild |> Maybe.andThen .job))
+                        (Click TriggerBuildButton)
                         ( { newModel | previousTriggerBuildByKey = True }, effects )
 
                 else
@@ -620,7 +629,7 @@ handleKeyPressed keyEvent ( model, effects ) =
                 if currentBuild == List.head newModel.history then
                     case currentBuild of
                         Just build ->
-                            update (AbortBuild build.id) ( newModel, effects )
+                            update (Click <| AbortBuildButton) ( newModel, effects )
 
                         Nothing ->
                             ( newModel, [] )
@@ -1173,7 +1182,7 @@ viewBuildHeader build model =
                          , attribute "tabindex" "0"
                          , attribute "aria-label" "Trigger Build"
                          , attribute "title" "Trigger Build"
-                         , onLeftClick <| TriggerBuild build.job
+                         , onLeftClick <| Click TriggerBuildButton
                          , onMouseEnter <| Hover <| Just TriggerBuildButton
                          , onFocus <| Hover <| Just TriggerBuildButton
                          , onMouseLeave <| Hover Nothing
@@ -1213,7 +1222,7 @@ viewBuildHeader build model =
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
                 Html.button
-                    ([ onLeftClick (AbortBuild build.id)
+                    ([ onLeftClick (Click <| AbortBuildButton)
                      , attribute "role" "button"
                      , attribute "tabindex" "0"
                      , attribute "aria-label" "Abort Build"
@@ -1243,9 +1252,7 @@ viewBuildHeader build model =
                             Routes.Job { id = jobId, page = Nothing }
                     in
                     Html.a
-                        [ StrictEvents.onLeftClick <| GoToRoute jobRoute
-                        , href <| Routes.toString jobRoute
-                        ]
+                        [ href <| Routes.toString jobRoute ]
                         [ Html.span [ class "build-name" ] [ Html.text jobId.jobName ]
                         , Html.text (" #" ++ build.name)
                         ]
@@ -1299,7 +1306,7 @@ viewHistoryItem currentBuild build =
             ++ Styles.historyItem build.status
         )
         [ Html.a
-            [ onLeftClick <| SwitchToBuild build
+            [ onLeftClick <| Click <| BuildTab build
             , href <| Routes.toString <| Routes.buildRoute build
             ]
             [ Html.text build.name ]

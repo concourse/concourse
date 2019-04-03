@@ -44,7 +44,7 @@ import Job.Styles as Styles
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
@@ -69,7 +69,7 @@ type alias Model =
         , buildsWithResources : Paginated BuildWithResources
         , currentPage : Maybe Page
         , now : Time.Posix
-        , hovered : Maybe Hoverable
+        , hovered : Maybe DomID
         , timeZone : Time.Zone
         }
 
@@ -262,10 +262,10 @@ handleDelivery delivery ( model, effects ) =
 update : Message -> ET Model
 update action ( model, effects ) =
     case action of
-        TriggerBuildJob ->
+        Click TriggerBuildButton ->
             ( model, effects ++ [ DoTriggerBuild model.jobIdentifier ] )
 
-        TogglePaused ->
+        Click ToggleJobButton ->
             case model.job |> RemoteData.toMaybe of
                 Nothing ->
                     ( model, effects )
@@ -451,7 +451,7 @@ viewMainJobsSection model =
                                 ([ id "pause-toggle"
                                  , onMouseEnter <| Hover <| Just ToggleJobButton
                                  , onMouseLeave <| Hover Nothing
-                                 , onClick TogglePaused
+                                 , onClick <| Click ToggleJobButton
                                  ]
                                     ++ (Styles.triggerButton False toggleHovered <|
                                             headerBuildStatus job.finishedBuild
@@ -476,7 +476,7 @@ viewMainJobsSection model =
                             ]
                         , Html.button
                             ([ class "trigger-build"
-                             , onLeftClick TriggerBuildJob
+                             , onLeftClick <| Click TriggerBuildButton
                              , attribute "aria-label" "Trigger Build"
                              , attribute "title" "Trigger Build"
                              , onMouseEnter <| Hover <| Just TriggerBuildButton

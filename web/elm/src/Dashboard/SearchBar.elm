@@ -21,7 +21,7 @@ import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseDown)
 import Keyboard
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
@@ -35,8 +35,11 @@ searchInputId =
 update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
-        ShowSearchInput ->
+        Click ShowSearchButton ->
             showSearchInput ( model, effects )
+
+        Click ClearSearchButton ->
+            update (FilterMsg "") ( model, effects )
 
         FilterMsg query ->
             ( { model | query = query }
@@ -244,7 +247,7 @@ view ({ screenSize, query, dropdown, groups } as params) =
             (Styles.showSearchContainer params)
             [ Html.div
                 ([ id "show-search-button"
-                 , onClick ShowSearchInput
+                 , onClick <| Click ShowSearchButton
                  ]
                     ++ Styles.searchButton
                 )
@@ -268,7 +271,7 @@ view ({ screenSize, query, dropdown, groups } as params) =
                 []
              , Html.div
                 ([ id "search-clear"
-                 , onClick (FilterMsg "")
+                 , onClick <| Click ClearSearchButton
                  ]
                     ++ Styles.searchClearButton (String.length query > 0)
                 )

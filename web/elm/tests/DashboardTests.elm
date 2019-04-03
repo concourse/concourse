@@ -594,7 +594,10 @@ all =
                         (oneTeamOnePipelineNonPublic "team")
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
                     |> Tuple.first
-                    |> Application.update (ApplicationMsgs.Update Msgs.LogOut)
+                    |> Application.update
+                        (ApplicationMsgs.Update <|
+                            Msgs.Click Msgs.LogoutButton
+                        )
                     |> showsLoadingState
         , test "links to specific builds" <|
             \_ ->
@@ -2012,7 +2015,7 @@ all =
                                 ]
 
                             openEyeClickable setup =
-                                defineHoverBehaviour
+                                [ defineHoverBehaviour
                                     { name = "open eye toggle"
                                     , setup =
                                         whenOnDashboard { highDensity = False }
@@ -2039,6 +2042,9 @@ all =
                                                 ++ tooltipAbove "hide pipeline"
                                         }
                                     }
+
+                                -- , test "clicking
+                                ]
 
                             openEyeUnclickable setup =
                                 defineHoverBehaviour
@@ -2141,8 +2147,8 @@ all =
                                             [ ( "team", [ "owner" ] ) ]
                                         )
                             in
-                            [ describe "on public pipeline"
-                                [ openEyeClickable whenAuthorizedPublic ]
+                            [ describe "on public pipeline" <|
+                                openEyeClickable whenAuthorizedPublic
                             , describe "on a non-public pipeline"
                                 [ slashedOutEyeClickable whenAuthorizedNonPublic ]
                             ]
@@ -2175,8 +2181,8 @@ all =
                                     givenDataUnauthenticated
                                         (oneTeamOnePipeline "team")
                             in
-                            [ describe "on public pipeline"
-                                [ openEyeClickable whenUnauthenticated ]
+                            [ describe "on public pipeline" <|
+                                openEyeClickable whenUnauthenticated
                             ]
                         ]
                     , test "there is medium spacing between the eye and the play/pause button" <|
@@ -2346,11 +2352,11 @@ all =
                                     |> Event.simulate Event.click
                                     |> Event.expect
                                         (ApplicationMsgs.Update <|
-                                            Msgs.TogglePipelinePaused
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                                False
+                                            Msgs.Click <|
+                                                Msgs.PipelineButton
+                                                    { pipelineName = "pipeline"
+                                                    , teamName = "team"
+                                                    }
                                         )
                         , test "pause button turns into spinner on click" <|
                             \_ ->
@@ -2365,11 +2371,11 @@ all =
                                     |> Tuple.first
                                     |> Application.update
                                         (ApplicationMsgs.Update <|
-                                            Msgs.TogglePipelinePaused
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                                False
+                                            Msgs.Click <|
+                                                Msgs.PipelineButton
+                                                    { pipelineName = "pipeline"
+                                                    , teamName = "team"
+                                                    }
                                         )
                                     |> queryView
                                     |> Query.find [ class "card-footer" ]
@@ -2383,11 +2389,11 @@ all =
                                     |> Tuple.first
                                     |> Application.update
                                         (ApplicationMsgs.Update <|
-                                            Msgs.TogglePipelinePaused
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                                False
+                                            Msgs.Click <|
+                                                Msgs.PipelineButton
+                                                    { pipelineName = "pipeline"
+                                                    , teamName = "team"
+                                                    }
                                         )
                                     |> Tuple.second
                                     |> Expect.equal
@@ -2406,11 +2412,11 @@ all =
                                     |> Tuple.first
                                     |> Application.update
                                         (ApplicationMsgs.Update <|
-                                            Msgs.TogglePipelinePaused
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                                False
+                                            Msgs.Click <|
+                                                Msgs.PipelineButton
+                                                    { pipelineName = "pipeline"
+                                                    , teamName = "team"
+                                                    }
                                         )
                                     |> Tuple.first
                                     |> Application.handleCallback
@@ -2430,11 +2436,11 @@ all =
                                     |> Tuple.first
                                     |> Application.update
                                         (ApplicationMsgs.Update <|
-                                            Msgs.TogglePipelinePaused
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
-                                                False
+                                            Msgs.Click <|
+                                                Msgs.PipelineButton
+                                                    { pipelineName = "pipeline"
+                                                    , teamName = "team"
+                                                    }
                                         )
                                     |> Tuple.first
                                     |> Application.handleCallback
@@ -3100,7 +3106,7 @@ defineHoverBehaviour :
     , setup : Application.Model
     , query : Application.Model -> Query.Single ApplicationMsgs.TopLevelMessage
     , unhoveredSelector : { description : String, selector : List Selector }
-    , hoverable : Msgs.Hoverable
+    , hoverable : Msgs.DomID
     , hoveredSelector : { description : String, selector : List Selector }
     }
     -> Test
