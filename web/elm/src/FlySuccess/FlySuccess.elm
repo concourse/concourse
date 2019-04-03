@@ -25,6 +25,7 @@ import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Hoverable(..), Message(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
+import Routes
 import UserState exposing (UserState)
 import Views.Icon as Icon
 import Views.Styles
@@ -101,7 +102,12 @@ view userState model =
                 [ TopBar.concourseLogo
                 , Login.view userState model False
                 ]
-            , Html.div (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar)
+            , Html.div
+                (id "page-below-top-bar"
+                    :: (Views.Styles.pageBelowTopBar <|
+                            Routes.FlySuccess Nothing
+                       )
+                )
                 [ Html.div
                     (id "success-card" :: Styles.card)
                     [ Html.p

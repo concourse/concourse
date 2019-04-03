@@ -816,6 +816,21 @@ documentTitle =
 
 view : UserState -> Model -> Html Message
 view userState model =
+    let
+        route =
+            case model.page of
+                OneOffBuildPage buildId ->
+                    Routes.OneOffBuild
+                        { id = buildId
+                        , highlight = model.highlight
+                        }
+
+                JobBuildPage buildId ->
+                    Routes.Build
+                        { id = buildId
+                        , highlight = model.highlight
+                        }
+    in
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
@@ -825,7 +840,7 @@ view userState model =
             , Login.view userState model False
             ]
         , Html.div
-            (id "page-below-top-bar" :: Views.Styles.pipelinePageBelowTopBar)
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
             [ viewBuildPage model ]
         ]
 
@@ -880,7 +895,13 @@ body :
     }
     -> Html Message
 body { currentBuild, authorized, showHelp, timeZone } =
-    Html.div [ class "scrollable-body build-body" ] <|
+    Html.div
+        ([ class "scrollable-body build-body"
+         , id "build-body"
+         ]
+            ++ Styles.body
+        )
+    <|
         if authorized then
             [ viewBuildPrep currentBuild.prep
             , Html.Lazy.lazy2 viewBuildOutput timeZone currentBuild.output

@@ -644,21 +644,24 @@ documentTitle model =
 
 view : UserState -> Model -> Html Message
 view userState model =
+    let
+        route =
+            Routes.Resource
+                { id = model.resourceIdentifier
+                , page = Nothing
+                }
+    in
     Html.div []
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
                 (id "top-bar-app" :: Views.Styles.topBar False)
                 [ TopBar.concourseLogo
-                , TopBar.breadcrumbs <|
-                    Routes.Resource
-                        { id = model.resourceIdentifier
-                        , page = Nothing
-                        }
+                , TopBar.breadcrumbs route
                 , Login.view userState model False
                 ]
             , Html.div
-                (id "page-below-top-bar" :: Resource.Styles.pageBelowTopBar)
+                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
                 [ subpageView userState model
                 , commentBar userState model
                 ]

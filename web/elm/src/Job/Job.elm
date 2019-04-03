@@ -401,21 +401,24 @@ documentTitle model =
 
 view : UserState -> Model -> Html Message
 view userState model =
+    let
+        route =
+            Routes.Job
+                { id = model.jobIdentifier
+                , page = model.currentPage
+                }
+    in
     Html.div []
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
                 (id "top-bar-app" :: Views.Styles.topBar False)
                 [ TopBar.concourseLogo
-                , TopBar.breadcrumbs <|
-                    Routes.Job
-                        { id = model.jobIdentifier
-                        , page = model.currentPage
-                        }
+                , TopBar.breadcrumbs route
                 , Login.view userState model False
                 ]
             , Html.div
-                (id "page-below-top-bar" :: Styles.pageBelowTopBar)
+                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
                 [ viewMainJobsSection model ]
             ]
         ]

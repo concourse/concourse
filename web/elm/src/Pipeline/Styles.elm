@@ -23,7 +23,6 @@ groupsBar : List (Html.Attribute msg)
 groupsBar =
     [ style "background-color" Colors.groupsBarBackground
     , style "color" Colors.dashboardText
-    , style "margin-top" "54px"
     ]
 
 

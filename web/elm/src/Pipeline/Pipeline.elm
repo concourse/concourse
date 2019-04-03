@@ -367,6 +367,13 @@ documentTitle model =
 
 view : UserState -> Model -> Html Message
 view userState model =
+    let
+        route =
+            Routes.Pipeline
+                { id = model.pipelineLocator
+                , groups = model.selectedGroups
+                }
+    in
     Html.div [ Html.Attributes.style "height" "100%" ]
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
@@ -377,11 +384,7 @@ view userState model =
                        )
                 )
                 [ TopBar.concourseLogo
-                , TopBar.breadcrumbs <|
-                    Routes.Pipeline
-                        { id = model.pipelineLocator
-                        , groups = model.selectedGroups
-                        }
+                , TopBar.breadcrumbs route
                 , viewPinMenu
                     { pinnedResources = getPinnedResources model
                     , pipeline = model.pipelineLocator
@@ -407,7 +410,7 @@ view userState model =
                 , Login.view userState model <| isPaused model.pipeline
                 ]
             , Html.div
-                (id "page-below-top-bar" :: Views.Styles.pipelinePageBelowTopBar)
+                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
                 [ viewSubPage model ]
             ]
         ]

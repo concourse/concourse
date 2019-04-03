@@ -92,13 +92,7 @@ all =
             in
             [ describe "groups bar styling"
                 [ describe "with groups"
-                    [ test "is flush with the bottom of the top bar" <|
-                        \_ ->
-                            setupGroupsBar sampleGroups
-                                |> Common.queryView
-                                |> Query.find [ id "groups-bar" ]
-                                |> Query.has [ style "margin-top" "54px" ]
-                    , test "has light text on a dark background" <|
+                    [ test "has light text on a dark background" <|
                         \_ ->
                             setupGroupsBar sampleGroups
                                 |> Common.queryView
@@ -1007,13 +1001,7 @@ testTopBarPositioning pageName url =
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has
-                        -- this padding ugliness is necessary because pipeline's page is weird and not offset
-                        [ style "padding-top" <|
-                            if pageName == "Pipeline" || pageName == "Build" then
-                                "0"
-
-                            else
-                                "54px"
+                        [ style "padding-top" "54px"
                         , style "height" "100%"
                         ]
         ]
