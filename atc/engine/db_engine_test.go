@@ -79,15 +79,6 @@ var _ = Describe("DBEngine", func() {
 		})
 
 		Context("when creating the build succeeds", func() {
-			var fakeBuild *enginefakes.FakeBuild
-
-			BeforeEach(func() {
-				fakeBuild = new(enginefakes.FakeBuild)
-				fakeBuild.MetadataReturns("some-metadata")
-
-				fakeEngineA.CreateBuildReturns(fakeBuild, nil)
-			})
-
 			It("succeeds", func() {
 				Expect(buildErr).NotTo(HaveOccurred())
 			})
@@ -109,7 +100,8 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("aborts the build", func() {
-					Expect(fakeBuild.AbortCallCount()).To(Equal(1))
+					Expect(dbBuild.FinishCallCount()).To(Equal(1))
+					Expect(dbBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
 				})
 			})
 		})
@@ -118,15 +110,11 @@ var _ = Describe("DBEngine", func() {
 			disaster := errors.New("failed")
 
 			BeforeEach(func() {
-				fakeEngineA.CreateBuildReturns(nil, disaster)
+				dbBuild.StartReturns(false, disaster)
 			})
 
 			It("returns the error", func() {
 				Expect(buildErr).To(Equal(disaster))
-			})
-
-			It("does not start the build", func() {
-				Expect(dbBuild.StartCallCount()).To(Equal(0))
 			})
 		})
 	})

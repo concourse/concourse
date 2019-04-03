@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -43,18 +44,16 @@ func (*dbEngine) Schema() string {
 func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	buildEngine := engine.engines[0]
 
-	createdBuild, err := buildEngine.CreateBuild(logger, build, plan)
-	if err != nil {
-		return nil, err
-	}
-
 	started, err := build.Start(buildEngine.Schema(), plan)
 	if err != nil {
 		return nil, err
 	}
 
 	if !started {
-		createdBuild.Abort(logger.Session("aborted-immediately"))
+		if err = build.Finish(db.BuildStatusAborted); err != nil {
+			return nil, err
+		}
+		return nil, errors.New("Build not started, marking as aborted")
 	}
 
 	return &dbBuild{
