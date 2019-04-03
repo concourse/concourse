@@ -44,6 +44,16 @@ func (m *MockSecretsManagerService) GetSecretValue(input *awssecretsmanager.GetS
 }
 
 var _ = Describe("Pipelines API", func() {
+	var fakeaccess *accessorfakes.FakeAccess
+
+	BeforeEach(func() {
+		fakeaccess = new(accessorfakes.FakeAccess)
+	})
+
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
+	})
+
 	Describe("GET /api/v1/info", func() {
 		var response *http.Response
 
@@ -72,18 +82,9 @@ var _ = Describe("Pipelines API", func() {
 	Describe("GET /api/v1/info/creds", func() {
 		var (
 			response   *http.Response
-			fakeaccess *accessorfakes.FakeAccess
 			credServer *ghttp.Server
 			body       []byte
 		)
-
-		BeforeEach(func() {
-			fakeaccess = new(accessorfakes.FakeAccess)
-		})
-
-		JustBeforeEach(func() {
-			fakeAccessor.CreateReturns(fakeaccess)
-		})
 
 		JustBeforeEach(func() {
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/info/creds", nil)

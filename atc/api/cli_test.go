@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/go-archive/archivetest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,6 +17,7 @@ import (
 var _ = Describe("CLI Downloads API", func() {
 	var (
 		response *http.Response
+		fakeaccess *accessorfakes.FakeAccess
 	)
 
 	BeforeEach(func() {
@@ -62,6 +64,12 @@ var _ = Describe("CLI Downloads API", func() {
 
 		err = windowsArchive.WriteZip(zipFile)
 		Expect(err).NotTo(HaveOccurred())
+
+		fakeaccess = new(accessorfakes.FakeAccess)
+	})
+
+	JustBeforeEach(func() {
+		fakeAccessor.CreateReturns(fakeaccess)
 	})
 
 	AfterEach(func() {

@@ -28,9 +28,7 @@ var _ = Describe("Handler", func() {
 		dummyHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			innerHandlerCalled = true
 
-			if r.Context().Value("accessor") != nil {
-				access = r.Context().Value("accessor").(accessor.Access)
-			}
+			access = r.Context().Value("accessor").(accessor.Access)
 		})
 
 		var err error
@@ -45,13 +43,6 @@ var _ = Describe("Handler", func() {
 	Describe("Accessor Handler", func() {
 		BeforeEach(func() {
 			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action", new(auditorfakes.FakeAuditor))
-		})
-
-		Context("when access factory does not return valid access object", func() {
-			It("request context is set to Nil", func() {
-				Expect(innerHandlerCalled).To(BeTrue())
-				Expect(access).To(BeNil())
-			})
 		})
 
 		Context("when access factory return valid access object", func() {
