@@ -16,10 +16,11 @@ import (
 
 var _ = Describe("TrackerRunner", func() {
 	var fakeTracker *buildsfakes.FakeBuildTracker
-	var fakeListener *buildsfakes.FakeATCListener
+	var fakeNotifications *buildsfakes.FakeNotifications
 	var fakeClock *fakeclock.FakeClock
 	var tracked <-chan struct{}
-	var notify chan<- bool
+	var shutdownNotify chan bool
+	var buildStartedNotify chan bool
 	var trackerRunner TrackerRunner
 	var process ifrit.Process
 	var interval = 10 * time.Second
@@ -28,7 +29,7 @@ var _ = Describe("TrackerRunner", func() {
 
 	BeforeEach(func() {
 		fakeTracker = new(buildsfakes.FakeBuildTracker)
-		fakeListener = new(buildsfakes.FakeATCListener)
+		fakeNotifications = new(buildsfakes.FakeNotifications)
 
 		t := make(chan struct{})
 		tracked = t
@@ -38,18 +39,20 @@ var _ = Describe("TrackerRunner", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		n := make(chan bool)
-		notify = n
-		fakeListener.ListenReturns(n, nil)
+		shutdownNotify = make(chan bool)
+		buildStartedNotify = make(chan bool)
+
+		fakeNotifications.ListenReturnsOnCall(0, shutdownNotify, nil)
+		fakeNotifications.ListenReturnsOnCall(1, buildStartedNotify, nil)
 
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 
 		trackerRunner = TrackerRunner{
-			Tracker:   fakeTracker,
-			ListenBus: fakeListener,
-			Interval:  interval,
-			Clock:     fakeClock,
-			Logger:    logger,
+			Tracker:       fakeTracker,
+			Notifications: fakeNotifications,
+			Interval:      interval,
+			Clock:         fakeClock,
+			Logger:        logger,
 		}
 	})
 
@@ -66,11 +69,27 @@ var _ = Describe("TrackerRunner", func() {
 		<-tracked
 	})
 
-	Context("when it recives an ATC shutdown notice", func() {
+	Context("when it receives an ATC shutdown notice", func() {
 		JustBeforeEach(func() {
 			<-tracked
 			go func() {
-				notify <- true
+				shutdownNotify <- true
+			}()
+		})
+
+		It("tracks", func() {
+			By("waiting for it to track again")
+			<-tracked
+			By("consistently not tracking again")
+			Consistently(tracked).ShouldNot(Receive())
+		})
+	})
+
+	Context("when it receives a build started notice", func() {
+		JustBeforeEach(func() {
+			<-tracked
+			go func() {
+				buildStartedNotify <- true
 			}()
 		})
 

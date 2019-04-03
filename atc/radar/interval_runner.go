@@ -2,6 +2,7 @@ package radar
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -14,29 +15,40 @@ type IntervalRunner interface {
 }
 
 type intervalRunner struct {
-	logger  lager.Logger
-	clock   clock.Clock
-	name    string
-	scanner Scanner
+	logger        lager.Logger
+	clock         clock.Clock
+	id            int
+	scanner       Scanner
+	notifications Notifications
 }
 
 func NewIntervalRunner(
 	logger lager.Logger,
 	clock clock.Clock,
-	name string,
+	id int,
 	scanner Scanner,
+	notifications Notifications,
 ) IntervalRunner {
 	return &intervalRunner{
-		logger:  logger,
-		clock:   clock,
-		name:    name,
-		scanner: scanner,
+		logger:        logger,
+		clock:         clock,
+		id:            id,
+		scanner:       scanner,
+		notifications: notifications,
 	}
 }
 
 func (r *intervalRunner) Run(ctx context.Context) error {
-	// do an immediate initial check
-	var interval time.Duration = 0
+
+	interval := time.Duration(0)
+	channel := fmt.Sprintf("resource_scan_%d", r.id)
+
+	notifier, err := r.notifications.Listen(channel)
+	if err != nil {
+		return err
+	}
+
+	defer r.notifications.Unlisten(channel, notifier)
 
 	for {
 		timer := r.clock.NewTimer(interval)
@@ -45,9 +57,15 @@ func (r *intervalRunner) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			timer.Stop()
 			return nil
+		case <-notifier:
+			if err = r.scanner.Scan(r.logger, r.id); err != nil {
+				if err == ErrFailedToAcquireLock {
+					break
+				}
+				return err
+			}
 		case <-timer.C():
-			var err error
-			interval, err = r.scanner.Run(r.logger, r.name)
+			interval, err = r.scanner.Run(r.logger, r.id)
 			if err != nil {
 				if err == ErrFailedToAcquireLock {
 					break

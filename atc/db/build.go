@@ -1188,6 +1188,10 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	return createBuildEventSeq(tx, buildID)
 }
 
+func buildStartedChannel() string {
+	return fmt.Sprintf("build_started")
+}
+
 func buildEventsChannel(buildID int) string {
 	return fmt.Sprintf("build_events_%d", buildID)
 }
