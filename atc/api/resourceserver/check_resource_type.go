@@ -24,9 +24,22 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
+		dbResourceType, found, err := dbPipeline.ResourceType(resourceName)
+		if err != nil {
+			logger.Error("failed-to-get-resource-type", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			logger.Debug("resource-type-not-found", lager.Data{"resource": resourceName})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
 		scanner := s.scannerFactory.NewResourceTypeScanner(dbPipeline)
 
-		err = scanner.ScanFromVersion(logger, resourceName, reqBody.From)
+		err = scanner.ScanFromVersion(logger, dbResourceType.ID(), reqBody.From)
 		switch err.(type) {
 		case db.ResourceTypeNotFoundError:
 			w.WriteHeader(http.StatusNotFound)

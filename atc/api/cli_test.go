@@ -80,6 +80,7 @@ var _ = Describe("CLI Downloads API", func() {
 		It("returns 200", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/octet-stream"))
+			Expect(response.Header.Get("Content-Length")).To(Equal("11"))
 			Expect(response.Header.Get("Content-Disposition")).To(Equal("attachment; filename=fly"))
 			Expect(response.Header.Get("Last-Modified")).To(Equal("Mon, 03 Jun 1991 05:30:45 GMT"))
 		})
@@ -101,6 +102,7 @@ var _ = Describe("CLI Downloads API", func() {
 		It("returns 200", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/octet-stream"))
+			Expect(response.Header.Get("Content-Length")).To(Equal("25"))
 			Expect(response.Header.Get("Content-Disposition")).To(Equal("attachment; filename=fly.exe"))
 			Expect(response.Header.Get("Last-Modified")).To(Equal("Thu, 29 Jun 1989 05:30:44 GMT"))
 		})

@@ -9,9 +9,9 @@ import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
 import Duration
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (on, onMouseEnter, onMouseLeave)
+import Html exposing (Html)
+import Html.Attributes exposing (attribute, class, classList, draggable, href, style)
+import Html.Events exposing (onMouseEnter)
 import Message.Message exposing (Hoverable(..), Message(..))
 import Routes
 import Time
@@ -24,14 +24,14 @@ pipelineNotSetView : Html Message
 pipelineNotSetView =
     Html.div [ class "card" ]
         [ Html.div
-            ([ class "card-header" ] ++ Styles.noPipelineCardHeader)
+            (class "card-header" :: Styles.noPipelineCardHeader)
             [ Html.text "no pipeline set"
             ]
         , Html.div
-            ([ class "card-body" ] ++ Styles.cardBody)
+            (class "card-body" :: Styles.cardBody)
             [ Html.div Styles.previewPlaceholder [] ]
         , Html.div
-            ([ class "card-footer" ] ++ Styles.cardFooter)
+            (class "card-footer" :: Styles.cardFooter)
             []
         ]
 
@@ -60,7 +60,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
             )
             []
         , Html.div
-            ([ class "dashboardhd-pipeline-name" ] ++ Styles.pipelineCardBodyHd)
+            (class "dashboardhd-pipeline-name" :: Styles.pipelineCardBodyHd)
             [ Html.text pipeline.name ]
         ]
             ++ (if pipeline.resourceError then
@@ -83,8 +83,8 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState } =
     Html.div
         Styles.pipelineCard
         [ Html.div
-            ([ class "banner" ]
-                ++ Styles.pipelineCardBanner
+            (class "banner"
+                :: Styles.pipelineCardBanner
                     { status = pipeline.status
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                     }
@@ -107,9 +107,7 @@ headerView pipeline =
                 ++ Styles.pipelineCardHeader
             )
             [ Html.div
-                ([ class "dashboard-pipeline-name" ]
-                    ++ Styles.pipelineName
-                )
+                (class "dashboard-pipeline-name" :: Styles.pipelineName)
                 [ Html.text pipeline.name ]
             , Html.div
                 [ classList
@@ -124,7 +122,7 @@ headerView pipeline =
 bodyView : Pipeline -> Html Message
 bodyView pipeline =
     Html.div
-        ([ class "card-body" ] ++ Styles.pipelineCardBody)
+        (class "card-body" :: Styles.pipelineCardBody)
         [ DashboardPreview.view pipeline.jobs ]
 
 
@@ -135,9 +133,7 @@ footerView userState pipeline now hovered =
             Html.div [ style "width" "13.5px" ] []
     in
     Html.div
-        ([ class "card-footer" ]
-            ++ Styles.pipelineCardFooter
-        )
+        (class "card-footer" :: Styles.pipelineCardFooter)
         [ Html.div
             [ style "display" "flex" ]
             [ PipelineStatus.icon pipeline.status
@@ -215,7 +211,7 @@ statusAgeText pipeline now =
 transitionView : Time.Posix -> Pipeline -> Html Message
 transitionView time pipeline =
     Html.div
-        ([ class "build-duration" ]
-            ++ Styles.pipelineCardTransitionAge pipeline.status
+        (class "build-duration"
+            :: Styles.pipelineCardTransitionAge pipeline.status
         )
         [ Html.text <| statusAgeText pipeline time ]

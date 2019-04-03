@@ -391,7 +391,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory)
+	variablesFactory, err := cmd.variablesFactory(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, variablesFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -433,6 +438,7 @@ func (cmd *RunCommand) constructMembers(
 	backendConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
+	variablesFactory creds.VariablesFactory,
 ) ([]grouper.Member, error) {
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
@@ -444,12 +450,12 @@ func (cmd *RunCommand) constructMembers(
 		}()
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, variablesFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendMembers, err := cmd.constructBackendMembers(logger, backendConn, lockFactory)
+	backendMembers, err := cmd.constructBackendMembers(logger, backendConn, lockFactory, variablesFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -463,6 +469,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
+	variablesFactory creds.VariablesFactory,
 ) ([]grouper.Member, error) {
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 
@@ -530,11 +537,6 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	pool := worker.NewPool(workerProvider)
 	workerClient := worker.NewClient(pool, workerProvider)
-
-	variablesFactory, err := cmd.variablesFactory(logger)
-	if err != nil {
-		return nil, err
-	}
 
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
 
@@ -661,6 +663,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	logger lager.Logger,
 	dbConn db.Conn,
 	lockFactory lock.LockFactory,
+	variablesFactory creds.VariablesFactory,
 ) ([]grouper.Member, error) {
 
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
@@ -720,11 +723,6 @@ func (cmd *RunCommand) constructBackendMembers(
 		return nil, err
 	}
 
-	variablesFactory, err := cmd.variablesFactory(logger)
-	if err != nil {
-		return nil, err
-	}
-
 	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
 
@@ -774,6 +772,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbPipelineFactory,
 				radarSchedulerFactory,
 				variablesFactory,
+				bus,
 			),
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
@@ -784,11 +783,11 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbBuildFactory,
 				engine,
 			),
-			ListenBus: bus,
-			Interval:  cmd.BuildTrackerInterval,
-			Clock:     clock.NewClock(),
-			DrainCh:   drain,
-			Logger:    logger.Session("tracker-runner"),
+			Notifications: bus,
+			Interval:      cmd.BuildTrackerInterval,
+			Clock:         clock.NewClock(),
+			DrainCh:       drain,
+			Logger:        logger.Session("tracker-runner"),
 		}},
 		{Name: "collector", Runner: lockrunner.NewRunner(
 			logger.Session("collector"),
@@ -1355,6 +1354,7 @@ func (cmd *RunCommand) constructPipelineSyncer(
 	pipelineFactory db.PipelineFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	variablesFactory creds.VariablesFactory,
+	bus db.NotificationsBus,
 ) *pipelines.Syncer {
 	return pipelines.NewSyncer(
 		logger,
@@ -1370,7 +1370,7 @@ func (cmd *RunCommand) constructPipelineSyncer(
 							"pipeline": pipeline.Name(),
 						}),
 						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables),
+						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables, bus),
 						pipeline,
 						1*time.Minute,
 					),

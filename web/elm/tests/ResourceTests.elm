@@ -1,6 +1,7 @@
 module ResourceTests exposing (all)
 
 import Application.Application as Application
+import Common exposing (queryView)
 import Concourse
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
@@ -60,6 +61,11 @@ pipelineName =
 resourceName : String
 resourceName =
     "some-resource"
+
+
+resourceIcon : String
+resourceIcon =
+    "some-icon"
 
 
 versionID : Models.VersionId
@@ -191,12 +197,37 @@ all =
                                     Routes.Normal Nothing
                         ]
             ]
-        , test "has default layout" <|
+        , test "has title with resouce name" <|
             \_ ->
                 init
-                    |> queryView
-                    |> Query.find [ id "page-below-top-bar" ]
-                    |> Query.has [ style "display" "block" ]
+                    |> Application.view
+                    |> .title
+                    |> Expect.equal "some-resource - Concourse"
+        , test "fetches time zone on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path =
+                        "/teams/"
+                            ++ teamName
+                            ++ "/pipelines/"
+                            ++ pipelineName
+                            ++ "/resources/"
+                            ++ resourceName
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> List.member Effects.GetCurrentTimeZone
+                    |> Expect.true "should get timezone"
         , test "subscribes to the five second interval" <|
             \_ ->
                 init
@@ -310,6 +341,31 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , describe "page header with icon" <|
+            let
+                pageHeader =
+                    init
+                        |> givenResourceHasIcon
+                        |> queryView
+                        |> Query.find [ id "page-header" ]
+            in
+            [ describe "resource name"
+                [ test "on the left is the resource name" <|
+                    \_ ->
+                        pageHeader
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ tag "svg", text resourceName, tag "h1" ]
+                ]
+            , describe "resource icon"
+                [ test "on the left is the resource icon" <|
+                    \_ ->
+                        pageHeader
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ tag "svg" ]
+                ]
+            ]
         , describe "page header" <|
             let
                 pageHeader =
@@ -2938,6 +2994,7 @@ all =
                                         , pinnedVersion = Nothing
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
+                                        , icon = Nothing
                                         }
                                 )
                             |> Tuple.first
@@ -2950,6 +3007,45 @@ all =
                             |> queryView
                             |> Query.find [ id "last-checked" ]
                             |> Query.has [ text "2s ago" ]
+                , test "'last checked' tooltip respects timezone" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , name = resourceName
+                                        , failingToCheck = False
+                                        , checkError = ""
+                                        , checkSetupError = ""
+                                        , lastChecked =
+                                            Just
+                                                (Time.millisToPosix 0)
+                                        , pinnedVersion = Nothing
+                                        , pinnedInConfig = False
+                                        , pinComment = Nothing
+                                        , icon = Nothing
+                                        }
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.GotCurrentTimeZone <|
+                                    Time.customZone (5 * 60) []
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    ClockTicked OneSecond <|
+                                        Time.millisToPosix 1000
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "last-checked" ]
+                            |> Query.has
+                                [ attribute <|
+                                    Attr.title "Jan 1 1970 05:00:00 AM"
+                                ]
                 ]
             , test "unsuccessful check shows a warning icon on the right" <|
                 \_ ->
@@ -2967,6 +3063,7 @@ all =
                                     , pinnedVersion = Nothing
                                     , pinnedInConfig = False
                                     , pinComment = Nothing
+                                    , icon = Nothing
                                     }
                             )
                         |> Tuple.first
@@ -3056,6 +3153,7 @@ givenResourcePinnedStatically =
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = True
                 , pinComment = Nothing
+                , icon = Nothing
                 }
         )
         >> Tuple.first
@@ -3076,6 +3174,7 @@ givenResourcePinnedDynamically =
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = False
                 , pinComment = Nothing
+                , icon = Nothing
                 }
         )
         >> Tuple.first
@@ -3097,6 +3196,7 @@ givenResourcePinnedWithComment =
                     Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = False
                 , pinComment = Just "some pin comment"
+                , icon = Nothing
                 }
         )
         >> Tuple.first
@@ -3117,15 +3217,31 @@ givenResourceIsNotPinned =
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
                 , pinComment = Nothing
+                , icon = Nothing
                 }
         )
         >> Tuple.first
 
 
-queryView : Application.Model -> Query.Single Msgs.TopLevelMessage
-queryView =
-    Application.view
-        >> Query.fromHtml
+givenResourceHasIcon : Application.Model -> Application.Model
+givenResourceHasIcon =
+    Application.handleCallback
+        (Callback.ResourceFetched <|
+            Ok
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , name = resourceName
+                , failingToCheck = False
+                , checkError = ""
+                , checkSetupError = ""
+                , lastChecked = Just (Time.millisToPosix 0)
+                , pinnedVersion = Nothing
+                , pinnedInConfig = False
+                , pinComment = Nothing
+                , icon = Just resourceIcon
+                }
+        )
+        >> Tuple.first
 
 
 hoverOverPinBar : Application.Model -> Application.Model

@@ -15,7 +15,7 @@ module Network.Resource exposing
     )
 
 import Concourse
-import Concourse.Pagination exposing (Page, Paginated, Pagination)
+import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Json.Decode
 import Json.Encode

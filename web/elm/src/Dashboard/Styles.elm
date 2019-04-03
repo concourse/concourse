@@ -92,7 +92,7 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-    [ style "height" "7px" ] ++ texture pipelineRunningKeyframes isRunning color
+    style "height" "7px" :: texture pipelineRunningKeyframes isRunning color
 
 
 noPipelineCardHd : List (Html.Attribute msg)
@@ -233,8 +233,7 @@ pipelineCardBannerHd { status, pipelineRunningKeyframes } =
         isRunning =
             Concourse.PipelineStatus.isRunning status
     in
-    [ style "width" "8px" ]
-        ++ texture pipelineRunningKeyframes isRunning color
+    style "width" "8px" :: texture pipelineRunningKeyframes isRunning color
 
 
 solid : String -> List (Html.Attribute msg)
@@ -610,7 +609,7 @@ showSearchContainer :
         , highDensity : Bool
     }
     -> List (Html.Attribute msg)
-showSearchContainer { screenSize, highDensity } =
+showSearchContainer { highDensity } =
     let
         flexLayout =
             if highDensity then

@@ -3,21 +3,16 @@ package executehelpers
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io"
-	"os"
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/go-archive/tgzfs"
+	"github.com/vbauerster/mpb/v4"
 )
 
-func Upload(team concourse.Team, path string, includeIgnored bool) (atc.WorkerArtifact, error) {
-	if path == "" {
-		return atc.WorkerArtifact{}, errors.New("Invalid path")
-	}
-
+func Upload(bar *mpb.Bar, team concourse.Team, path string, includeIgnored bool) (atc.WorkerArtifact, error) {
 	files := getFiles(path, includeIgnored)
 
 	archiveStream, archiveWriter := io.Pipe()
@@ -26,12 +21,7 @@ func Upload(team concourse.Team, path string, includeIgnored bool) (atc.WorkerAr
 		archiveWriter.CloseWithError(tgzfs.Compress(archiveWriter, path, files...))
 	}()
 
-	pb := progress("uploading "+path+":", os.Stdout)
-
-	pb.Start()
-	defer pb.Finish()
-
-	return team.CreateArtifact(pb.NewProxyReader(archiveStream))
+	return team.CreateArtifact(bar.ProxyReader(archiveStream))
 }
 
 func getFiles(dir string, includeIgnored bool) []string {

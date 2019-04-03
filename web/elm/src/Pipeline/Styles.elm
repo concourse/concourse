@@ -23,7 +23,6 @@ groupsBar : List (Html.Attribute msg)
 groupsBar =
     [ style "background-color" Colors.groupsBarBackground
     , style "color" Colors.dashboardText
-    , style "margin-top" "54px"
     ]
 
 
@@ -37,8 +36,8 @@ groupsList =
     ]
 
 
-groupItem : Bool -> List (Html.Attribute msg)
-groupItem selected =
+groupItem : { selected : Bool, hovered : Bool } -> List (Html.Attribute msg)
+groupItem { selected, hovered } =
     [ style "font-size" "14px"
     , style "background" Colors.groupBackground
     , style "margin" "5px"
@@ -46,12 +45,17 @@ groupItem selected =
     ]
         ++ (if selected then
                 [ style "opacity" "1"
-                , style "border" <| "1px solid " ++ Colors.selectedGroupBorder
+                , style "border" <| "1px solid " ++ Colors.groupBorderSelected
+                ]
+
+            else if hovered then
+                [ style "opacity" "0.6"
+                , style "border" <| "1px solid " ++ Colors.groupBorderHovered
                 ]
 
             else
                 [ style "opacity" "0.6"
-                , style "border" <| "1px solid " ++ Colors.unselectedGroupBorder
+                , style "border" <| "1px solid " ++ Colors.groupBorderUnselected
                 ]
            )
 

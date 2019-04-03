@@ -1,5 +1,6 @@
 module Dashboard.Dashboard exposing
-    ( handleCallback
+    ( documentTitle
+    , handleCallback
     , handleDelivery
     , init
     , subscriptions
@@ -8,11 +9,11 @@ module Dashboard.Dashboard exposing
     )
 
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Details as Details
+import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
-import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Group.Models exposing (Group)
 import Dashboard.Models as Models
     exposing
         ( DashboardError(..)
@@ -29,24 +30,15 @@ import Html.Attributes
     exposing
         ( attribute
         , class
-        , classList
         , download
-        , draggable
         , href
         , id
-        , placeholder
         , src
         , style
-        , value
         )
 import Html.Events
     exposing
-        ( onBlur
-        , onClick
-        , onFocus
-        , onInput
-        , onMouseDown
-        , onMouseEnter
+        ( onMouseEnter
         , onMouseLeave
         )
 import Http
@@ -61,15 +53,14 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import Monocle.Compose exposing (lensWithOptional, optionalWithLens, optionalWithOptional)
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Monocle.Compose exposing (optionalWithLens, optionalWithOptional)
 import Monocle.Lens
 import Monocle.Optional
-import MonocleHelpers exposing (..)
-import Regex exposing (replace)
+import MonocleHelpers exposing (bind, modifyWithEffect)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Simple.Fuzzy
 import UserState exposing (UserState)
 import Views.Styles
 import Views.TopBar as TopBar
@@ -107,7 +98,6 @@ init flags =
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
-      , SetTitle <| "Dashboard" ++ " - "
       , GetScreenSize
       ]
     )
@@ -192,16 +182,11 @@ handleCallback msg ( model, effects ) =
                    ]
             )
 
-        LoggedOut (Err err) ->
-            (\a -> always a (Debug.log "failed to log out" err)) <|
-                ( model, effects )
-
         ScreenResized viewport ->
             let
                 newSize =
                     ScreenSize.fromWindowSize
                         viewport.viewport.width
-                        viewport.viewport.height
             in
             ( { model | screenSize = newSize }, effects )
 
@@ -263,7 +248,7 @@ updateBody msg ( model, effects ) =
             in
             ( newModel, effects )
 
-        DragOver teamName index ->
+        DragOver _ index ->
             let
                 newModel =
                     { model | state = RemoteData.map (\s -> { s | dropState = Models.Dropping index }) model.state }
@@ -381,8 +366,8 @@ updateBody msg ( model, effects ) =
             ( model, effects )
 
 
-subscriptions : Model -> List Subscription
-subscriptions model =
+subscriptions : List Subscription
+subscriptions =
     [ OnClockTick OneSecond
     , OnClockTick FiveSeconds
     , OnMouse
@@ -392,16 +377,17 @@ subscriptions model =
     ]
 
 
+documentTitle : String
+documentTitle =
+    "Dashboard"
+
+
 view : UserState -> Model -> Html Message
 view userState model =
     Html.div
-        ([ id "page-including-top-bar" ]
-            ++ Views.Styles.pageIncludingTopBar
-        )
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
-            ([ id "top-bar-app" ]
-                ++ Views.Styles.topBar False
-            )
+            (id "top-bar-app" :: Views.Styles.topBar False)
           <|
             [ TopBar.concourseLogo ]
                 ++ (let
@@ -427,7 +413,7 @@ view userState model =
                         [ Login.view userState model False ]
                    )
         , Html.div
-            ([ id "page-below-top-bar" ] ++ Views.Styles.pageBelowTopBar)
+            (id "page-below-top-bar" :: (Views.Styles.pageBelowTopBar <| Routes.Dashboard (Routes.Normal Nothing)))
             (dashboardView model)
         ]
 
@@ -446,8 +432,8 @@ dashboardView model =
 
         RemoteData.Success substate ->
             [ Html.div
-                ([ class <| .pageBodyClass Message.Effects.stickyHeaderConfig ]
-                    ++ Styles.content model.highDensity
+                (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
+                    :: Styles.content model.highDensity
                 )
               <|
                 welcomeCard model
@@ -498,7 +484,7 @@ welcomeCard { hovered, groups, userState } =
     in
     if noPipelines then
         Html.div
-            ([ id "welcome-card" ] ++ Styles.welcomeCard)
+            (id "welcome-card" :: Styles.welcomeCard)
             [ Html.div
                 Styles.welcomeCardTitle
                 [ Html.text Text.welcome ]
@@ -557,7 +543,7 @@ noResultsView query =
             Html.span [ class "monospace-bold" ] [ Html.text query ]
     in
     Html.div
-        ([ class "no-results" ] ++ Styles.noResults)
+        (class "no-results" :: Styles.noResults)
         [ Html.text "No results for "
         , boldedQuery
         , Html.text " matched your search."
@@ -589,22 +575,15 @@ pipelinesView :
 pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, userState, highDensity } =
     let
         filteredGroups =
-            groups |> filter query |> List.sortWith Group.ordering
-
-        groupsToDisplay =
-            if List.all (String.startsWith "team:") (filterTerms query) then
-                filteredGroups
-
-            else
-                filteredGroups |> List.filter (.pipelines >> List.isEmpty >> not)
+            groups |> Filter.filterGroups query |> List.sortWith Group.ordering
 
         groupViews =
             if highDensity then
-                groupsToDisplay
+                filteredGroups
                     |> List.concatMap (Group.hdView pipelineRunningKeyframes)
 
             else
-                groupsToDisplay
+                filteredGroups
                     |> List.map
                         (Group.view
                             { dragState = substate.dragState
@@ -621,88 +600,3 @@ pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, user
 
     else
         groupViews
-
-
-filterTerms : String -> List String
-filterTerms =
-    let
-        teamRegex =
-            Regex.fromString "team:\\s*"
-
-        statusRegex =
-            Regex.fromString "status:\\s*"
-    in
-    case ( teamRegex, statusRegex ) of
-        ( Just teamMatcher, Just statusMatcher ) ->
-            replace teamMatcher (\_ -> "team:")
-                >> replace statusMatcher (\_ -> "status:")
-                >> String.words
-                >> List.filter (not << String.isEmpty)
-
-        _ ->
-            String.words
-                >> List.filter (not << String.isEmpty)
-
-
-filter : String -> List Group -> List Group
-filter =
-    filterTerms >> (\b a -> List.foldl filterGroupsByTerm a b)
-
-
-filterPipelinesByTerm : String -> Group -> Group
-filterPipelinesByTerm term ({ pipelines } as group) =
-    let
-        searchStatus =
-            String.startsWith "status:" term
-
-        statusSearchTerm =
-            if searchStatus then
-                String.dropLeft 7 term
-
-            else
-                term
-
-        filterByStatus =
-            fuzzySearch (.status >> PipelineStatus.show) statusSearchTerm pipelines
-    in
-    { group
-        | pipelines =
-            if searchStatus then
-                filterByStatus
-
-            else
-                fuzzySearch .name term pipelines
-    }
-
-
-filterGroupsByTerm : String -> List Group -> List Group
-filterGroupsByTerm term groups =
-    let
-        searchTeams =
-            String.startsWith "team:" term
-
-        teamSearchTerm =
-            if searchTeams then
-                String.dropLeft 5 term
-
-            else
-                term
-    in
-    if searchTeams then
-        fuzzySearch .teamName teamSearchTerm groups
-
-    else
-        groups |> List.map (filterPipelinesByTerm term)
-
-
-fuzzySearch : (a -> String) -> String -> List a -> List a
-fuzzySearch map needle records =
-    let
-        negateSearch =
-            String.startsWith "-" needle
-    in
-    if negateSearch then
-        List.filter (not << Simple.Fuzzy.match needle << map) records
-
-    else
-        List.filter (Simple.Fuzzy.match needle << map) records

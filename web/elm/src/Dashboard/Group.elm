@@ -31,12 +31,12 @@ import Concourse.BuildStatus
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Group.Tag as Tag
-import Dashboard.Models as Models exposing (DragState(..), DropState(..))
+import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (on, onMouseEnter)
+import Html exposing (Html)
+import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
+import Html.Events exposing (on)
 import Json.Decode
 import List.Extra
 import Maybe.Extra
@@ -298,12 +298,6 @@ shiftPipelines dragIdx dropIdx g =
         { g | pipelines = pipelines }
 
 
-
--- TODO this is pretty hard to reason about. really deeply nested and nasty. doesn't exactly relate
--- to the hd refactor as hd doesn't have the drag-and-drop feature, but it's a big contributor
--- to the 'length of this file' tire fire
-
-
 shiftPipelineTo : Pipeline -> Int -> List Pipeline -> List Pipeline
 shiftPipelineTo pipeline position pipelines =
     case pipelines of
@@ -350,13 +344,7 @@ group : List Pipeline -> Maybe Concourse.User -> String -> Group
 group pipelines user name =
     { pipelines = List.filter (.teamName >> (==) name) pipelines
     , teamName = name
-    , tag =
-        case user of
-            Just u ->
-                Tag.tag u name
-
-            Nothing ->
-                Nothing
+    , tag = user |> Maybe.andThen (\u -> Tag.tag u name)
     }
 
 
@@ -430,11 +418,10 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
             , style "align-items" "center"
             , class <| .sectionHeaderClass Effects.stickyHeaderConfig
             ]
-            ([ Html.div
+            (Html.div
                 [ class "dashboard-team-name" ]
                 [ Html.text g.teamName ]
-             ]
-                ++ (Maybe.Extra.toList <|
+                :: (Maybe.Extra.toList <|
                         Maybe.map (Tag.view False) g.tag
                    )
             )
@@ -448,11 +435,10 @@ hdView : String -> Group -> List (Html Message)
 hdView pipelineRunningKeyframes g =
     let
         header =
-            [ Html.div
+            Html.div
                 [ class "dashboard-team-name" ]
                 [ Html.text g.teamName ]
-            ]
-                ++ (Maybe.Extra.toList <| Maybe.map (Tag.view True) g.tag)
+                :: (Maybe.Extra.toList <| Maybe.map (Tag.view True) g.tag)
 
         teamPipelines =
             if List.isEmpty g.pipelines then
@@ -476,7 +462,7 @@ hdView pipelineRunningKeyframes g =
             -- Wrap the team name and the first pipeline together so
             -- the team name is not the last element in a column
             Html.div
-                ([ class "dashboard-team-name-wrapper" ] ++ Styles.teamNameHd)
+                (class "dashboard-team-name-wrapper" :: Styles.teamNameHd)
                 (header ++ [ p ])
                 :: ps
 

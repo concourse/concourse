@@ -1,5 +1,6 @@
 module Build.Models exposing
     ( BuildPageType(..)
+    , CurrentBuild
     , Model
     , StepHeaderType(..)
     )
@@ -11,7 +12,7 @@ import Keyboard
 import Login.Login as Login
 import Message.Message exposing (Hoverable)
 import RemoteData exposing (WebData)
-import Routes exposing (Highlight, StepID)
+import Routes exposing (Highlight)
 import Time
 
 
@@ -38,6 +39,8 @@ type alias Model =
         , hoveredCounter : Int
         , fetchingHistory : Bool
         , scrolledToCurrentBuild : Bool
+        , authorized : Bool
+        , timeZone : Time.Zone
         }
 
 

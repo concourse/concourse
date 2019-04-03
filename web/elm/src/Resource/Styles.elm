@@ -18,7 +18,6 @@ module Resource.Styles exposing
     , headerHeight
     , headerLastCheckedSection
     , headerResourceName
-    , pageBelowTopBar
     , pagination
     , pinBar
     , pinBarTooltip
@@ -51,16 +50,8 @@ bodyPadding =
     10
 
 
-pageBelowTopBar : List (Html.Attribute msg)
-pageBelowTopBar =
-    [ style "padding-top" "54px"
-    , style "height" "100%"
-    , style "display" "block"
-    ]
-
-
-pinBar : { isPinned : Bool } -> List (Html.Attribute msg)
-pinBar { isPinned } =
+pinBar : Bool -> List (Html.Attribute msg)
+pinBar isPinned =
     let
         pinBarBorderColor =
             if isPinned then

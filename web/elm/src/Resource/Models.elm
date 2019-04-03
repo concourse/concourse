@@ -42,6 +42,8 @@ type alias Model =
         , versions : Paginated Version
         , pinCommentLoading : Bool
         , textAreaFocused : Bool
+        , icon : Maybe String
+        , timeZone : Time.Zone
         }
 
 

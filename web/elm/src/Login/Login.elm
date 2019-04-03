@@ -3,7 +3,7 @@ module Login.Login exposing (Model, update, view)
 import Concourse
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, href, id, style)
+import Html.Attributes exposing (attribute, href, id)
 import Html.Events exposing (onClick)
 import Login.Styles as Styles
 import Message.Effects exposing (Effect(..))
@@ -40,7 +40,7 @@ view :
     -> Html Message
 view userState model isPaused =
     Html.div
-        ([ id "login-component" ] ++ Styles.loginComponent)
+        (id "login-component" :: Styles.loginComponent)
         (viewLoginState userState model.isUserMenuExpanded isPaused)
 
 
@@ -60,7 +60,7 @@ viewLoginState userState isUserMenuExpanded isPaused =
                     ++ Styles.loginContainer isPaused
                 )
                 [ Html.div
-                    ([ id "login-item" ] ++ Styles.loginItem)
+                    (id "login-item" :: Styles.loginItem)
                     [ Html.a
                         [ href "/sky/login" ]
                         [ Html.text "login" ]
@@ -75,12 +75,11 @@ viewLoginState userState isUserMenuExpanded isPaused =
                  ]
                     ++ Styles.loginContainer isPaused
                 )
-                [ Html.div ([ id "user-id" ] ++ Styles.loginItem)
-                    ([ Html.div
+                [ Html.div (id "user-id" :: Styles.loginItem)
+                    (Html.div
                         Styles.loginText
                         [ Html.text (userDisplayName user) ]
-                     ]
-                        ++ (if isUserMenuExpanded then
+                        :: (if isUserMenuExpanded then
                                 [ Html.div
                                     ([ id "logout-button"
                                      , onClick LogOut
