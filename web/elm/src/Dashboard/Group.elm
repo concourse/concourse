@@ -368,12 +368,6 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
                 List.append
                     (List.indexedMap
                         (\i pipeline ->
-                            let
-                                pipelineId =
-                                    { pipelineName = pipeline.name
-                                    , teamName = pipeline.teamName
-                                    }
-                            in
                             Html.div [ class "pipeline-wrapper" ]
                                 [ pipelineDropAreaView dragState dropState g.teamName i
                                 , Html.div
@@ -395,9 +389,7 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
                                     [ Pipeline.pipelineView
                                         { now = now
                                         , pipeline = pipeline
-                                        , hovered =
-                                            hovered
-                                                == (Just <| PipelineButton pipelineId)
+                                        , hovered = hovered
                                         , pipelineRunningKeyframes = pipelineRunningKeyframes
                                         , userState = userState
                                         }

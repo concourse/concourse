@@ -4,6 +4,7 @@ module Dashboard.Pipeline exposing
     , pipelineView
     )
 
+import Concourse
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Group.Models exposing (Pipeline)
@@ -11,12 +12,11 @@ import Dashboard.Styles as Styles
 import Duration
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, href, style)
-import Html.Events exposing (onMouseEnter)
+import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Message exposing (Hoverable(..), Message(..))
 import Routes
 import Time
 import UserState exposing (UserState)
-import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
 
 
@@ -74,7 +74,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
 pipelineView :
     { now : Time.Posix
     , pipeline : Pipeline
-    , hovered : Bool
+    , hovered : Maybe Hoverable
     , pipelineRunningKeyframes : String
     , userState : UserState
     }
@@ -126,11 +126,21 @@ bodyView pipeline =
         [ DashboardPreview.view pipeline.jobs ]
 
 
-footerView : UserState -> Pipeline -> Time.Posix -> Bool -> Html Message
+footerView :
+    UserState
+    -> Pipeline
+    -> Time.Posix
+    -> Maybe Hoverable
+    -> Html Message
 footerView userState pipeline now hovered =
     let
         spacer =
             Html.div [ style "width" "13.5px" ] []
+
+        pipelineId =
+            { pipelineName = pipeline.name
+            , teamName = pipeline.teamName
+            }
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)
@@ -147,30 +157,60 @@ footerView userState pipeline now hovered =
                     userState
                     { isPaused =
                         pipeline.status == PipelineStatus.PipelineStatusPaused
-                    , pipeline =
-                        { pipelineName = pipeline.name
-                        , teamName = pipeline.teamName
-                        }
-                    , isToggleHovered = hovered
+                    , pipeline = pipelineId
+                    , isToggleHovered =
+                        hovered == (Just <| PipelineButton pipelineId)
                     , isToggleLoading = pipeline.isToggleLoading
                     }
-                , visibilityView pipeline.public
+                , visibilityView
+                    { public = pipeline.public
+                    , pipelineId = pipelineId
+                    , isClickable =
+                        UserState.isAnonymous userState
+                            || UserState.isMember
+                                { teamName = pipeline.teamName
+                                , userState = userState
+                                }
+                    , isHovered =
+                        hovered == (Just <| VisibilityButton pipelineId)
+                    }
                 ]
         ]
 
 
-visibilityView : Bool -> Html Message
-visibilityView public =
-    Icon.icon
-        { sizePx = 20
-        , image =
-            if public then
-                "baseline-visibility-24px.svg"
+visibilityView :
+    { public : Bool
+    , pipelineId : Concourse.PipelineIdentifier
+    , isClickable : Bool
+    , isHovered : Bool
+    }
+    -> Html Message
+visibilityView { public, pipelineId, isClickable, isHovered } =
+    Html.div
+        (Styles.visibilityToggle
+            { public = public
+            , isClickable = isClickable
+            , isHovered = isHovered
+            }
+            ++ [ onMouseEnter <| Hover <| Just <| VisibilityButton pipelineId
+               , onMouseLeave <| Hover Nothing
+               ]
+        )
+        (if isClickable && isHovered then
+            [ Html.div
+                Styles.visibilityTooltip
+                [ Html.text <|
+                    if public then
+                        "hide pipeline"
 
-            else
-                "baseline-visibility-off-24px.svg"
-        }
-        [ style "background-size" "contain" ]
+                    else
+                        "expose pipeline"
+                ]
+            ]
+
+         else
+            []
+        )
 
 
 sinceTransitionText : PipelineStatus.StatusDetails -> Time.Posix -> String

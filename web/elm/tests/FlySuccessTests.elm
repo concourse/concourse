@@ -624,19 +624,13 @@ all =
                 { name = "copy token button"
                 , setup = steps tokenSendFailed ()
                 , query = button
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description =
                         "same background as card"
                     , selector = [ style "background-color" darkGrey ]
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.CopyTokenButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable =
+                    Message.Message.CopyTokenButton
                 , hoveredSelector =
                     { description = "darker background"
                     , selector =

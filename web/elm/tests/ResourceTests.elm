@@ -546,7 +546,6 @@ all =
                                 >> Query.find [ id "pagination" ]
                                 >> Query.children []
                                 >> Query.index 0
-                        , updateFunc = \msg -> Application.update msg >> Tuple.first
                         , unhoveredSelector =
                             { description = "white left chevron"
                             , selector =
@@ -595,13 +594,7 @@ all =
                                     )
                                 ]
                             }
-                        , mouseEnterMsg =
-                            Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just Message.Message.PreviousPageButton
-                        , mouseLeaveMsg =
-                            Msgs.Update <|
-                                Message.Message.Hover Nothing
+                        , hoverable = Message.Message.PreviousPageButton
                         }
                     ]
                 ]
@@ -1722,17 +1715,7 @@ all =
                                                 ++ commentButtonBlue
                                         ]
                                     }
-                                , mouseEnterMsg =
-                                    Msgs.Update <|
-                                        Message.Message.Hover <|
-                                            Just Message.Message.SaveCommentButton
-                                , mouseLeaveMsg =
-                                    Msgs.Update <|
-                                        Message.Message.Hover Nothing
-                                , updateFunc =
-                                    \msg ->
-                                        Application.update msg
-                                            >> Tuple.first
+                                , hoverable = Message.Message.SaveCommentButton
                                 , hoveredSelector =
                                     { description = "blue background"
                                     , selector =
@@ -2565,13 +2548,7 @@ all =
                                        ]
                             ]
                         }
-                    , mouseEnterMsg =
-                        Msgs.Update <|
-                            Message.Message.Hover <|
-                                Just Message.Message.CheckButton
-                    , mouseLeaveMsg =
-                        Msgs.Update <|
-                            Message.Message.Hover Nothing
+                    , hoverable = Message.Message.CheckButton
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2591,7 +2568,6 @@ all =
                                        ]
                             ]
                         }
-                    , updateFunc = \msg -> Application.update msg >> Tuple.first
                     }
                 , test "clicking check button sends Check msg" <|
                     \_ ->
@@ -2653,10 +2629,7 @@ all =
                                        ]
                             ]
                         }
-                    , mouseEnterMsg =
-                        Msgs.Update <| Message.Message.Hover <| Just Message.Message.CheckButton
-                    , mouseLeaveMsg =
-                        Msgs.Update <| Message.Message.Hover Nothing
+                    , hoverable = Message.Message.CheckButton
                     , hoveredSelector =
                         { description = "black button with white refresh icon"
                         , selector =
@@ -2676,7 +2649,6 @@ all =
                                        ]
                             ]
                         }
-                    , updateFunc = \msg -> Application.update msg >> Tuple.first
                     }
                 , test "clicking check button sends Check msg" <|
                     \_ ->
@@ -2767,12 +2739,7 @@ all =
                                            ]
                                 ]
                             }
-                        , mouseEnterMsg =
-                            Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just Message.Message.CheckButton
-                        , mouseLeaveMsg =
-                            Msgs.Update <| Message.Message.Hover Nothing
+                        , hoverable = Message.Message.CheckButton
                         , hoveredSelector =
                             { description = "black button with white refresh icon"
                             , selector =
@@ -2791,7 +2758,6 @@ all =
                                            ]
                                 ]
                             }
-                        , updateFunc = \msg -> Application.update msg >> Tuple.first
                         }
                     ]
                 , test "when check resolves successfully, status is check" <|
@@ -2951,10 +2917,7 @@ all =
                                        ]
                             ]
                         }
-                    , mouseEnterMsg =
-                        Msgs.Update <| Message.Message.Hover <| Just Message.Message.CheckButton
-                    , mouseLeaveMsg =
-                        Msgs.Update <| Message.Message.Hover Nothing
+                    , hoverable = Message.Message.CheckButton
                     , hoveredSelector =
                         { description = "black button with grey refresh icon"
                         , selector =
@@ -2972,7 +2935,6 @@ all =
                                        ]
                             ]
                         }
-                    , updateFunc = \msg -> Application.update msg >> Tuple.first
                     }
                 , test "clicking check button does nothing" <|
                     \_ ->

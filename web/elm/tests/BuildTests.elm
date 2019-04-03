@@ -1679,10 +1679,6 @@ all =
                                 [ attribute <|
                                     Attr.attribute "aria-label" "Trigger Build"
                                 ]
-                    , updateFunc =
-                        \msg ->
-                            Application.update msg
-                                >> Tuple.first
                     , unhoveredSelector =
                         { description = "grey plus icon"
                         , selector =
@@ -1715,13 +1711,7 @@ all =
                                     }
                             ]
                         }
-                    , mouseEnterMsg =
-                        Msgs.Update <|
-                            Message.Message.Hover <|
-                                Just Message.Message.TriggerBuildButton
-                    , mouseLeaveMsg =
-                        Msgs.Update <|
-                            Message.Message.Hover Nothing
+                    , hoverable = Message.Message.TriggerBuildButton
                     }
                 ]
             ]

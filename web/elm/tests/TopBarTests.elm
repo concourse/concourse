@@ -1524,10 +1524,6 @@ all =
                         >> Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.children []
                         >> Query.first
-                , updateFunc =
-                    \msg ->
-                        Application.update msg
-                            >> Tuple.first
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
@@ -1552,17 +1548,8 @@ all =
                                 , image = "ic-play-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover <|
-                            Just <|
-                                Msgs.PipelineButton
-                                    { pipelineName = "p"
-                                    , teamName = "t"
-                                    }
-                , mouseLeaveMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover Nothing
+                , hoverable =
+                    Msgs.PipelineButton { pipelineName = "p", teamName = "t" }
                 }
             , defineHoverBehaviour
                 { name = "play pipeline icon when unauthenticated"
@@ -1572,10 +1559,6 @@ all =
                         >> Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.children []
                         >> Query.first
-                , updateFunc =
-                    \msg ->
-                        Application.update msg
-                            >> Tuple.first
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
@@ -1600,17 +1583,8 @@ all =
                                 , image = "ic-play-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover <|
-                            Just <|
-                                Msgs.PipelineButton
-                                    { pipelineName = "p"
-                                    , teamName = "t"
-                                    }
-                , mouseLeaveMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover Nothing
+                , hoverable =
+                    Msgs.PipelineButton { pipelineName = "p", teamName = "t" }
                 }
             , defineHoverBehaviour
                 { name = "play pipeline icon when unauthorized"
@@ -1620,10 +1594,6 @@ all =
                         >> Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.children []
                         >> Query.first
-                , updateFunc =
-                    \msg ->
-                        Application.update msg
-                            >> Tuple.first
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
@@ -1648,17 +1618,8 @@ all =
                                 , image = "ic-play-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover <|
-                            Just <|
-                                Msgs.PipelineButton
-                                    { pipelineName = "p"
-                                    , teamName = "t"
-                                    }
-                , mouseLeaveMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover Nothing
+                , hoverable =
+                    Msgs.PipelineButton { pipelineName = "p", teamName = "t" }
                 }
             , test "clicking play button sends TogglePipelinePaused msg" <|
                 \_ ->

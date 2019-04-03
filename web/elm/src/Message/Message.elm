@@ -75,6 +75,7 @@ type Hoverable
     | PinButton
     | PinBar
     | PipelineButton Concourse.PipelineIdentifier
+    | VisibilityButton Concourse.PipelineIdentifier
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton

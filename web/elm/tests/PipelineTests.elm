@@ -166,21 +166,12 @@ all =
                                     >> Query.findAll [ tag "li" ]
                                     >> Query.index 0
                                     >> Query.find [ tag "a" ]
-                            , updateFunc =
-                                \msg ->
-                                    Application.update msg
-                                        >> Tuple.first
                             , unhoveredSelector =
                                 { description = "dark outline"
                                 , selector =
                                     [ style "border" "1px solid #2b2a2a" ]
                                 }
-                            , mouseEnterMsg =
-                                Msgs.Update <|
-                                    Hover <|
-                                        Just <|
-                                            Message.Message.JobGroup 0
-                            , mouseLeaveMsg = Msgs.Update <| Hover Nothing
+                            , hoverable = Message.Message.JobGroup 0
                             , hoveredSelector =
                                 { description = "light grey outline"
                                 , selector =

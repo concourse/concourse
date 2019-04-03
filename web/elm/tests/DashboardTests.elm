@@ -294,14 +294,10 @@ all =
                                             ]
                                 , defineHoverBehaviour
                                     { name = "os x cli icon"
-                                    , setup = setup ()
+                                    , setup = setup () |> Tuple.first
                                     , query =
-                                        queryView
+                                        Common.queryView
                                             >> Query.find [ id "top-cli-osx" ]
-                                    , updateFunc =
-                                        \msg ->
-                                            Tuple.first
-                                                >> Application.update msg
                                     , unhoveredSelector =
                                         { description = "grey apple icon"
                                         , selector =
@@ -313,14 +309,8 @@ all =
                                                     , image = "apple-logo.svg"
                                                     }
                                         }
-                                    , mouseEnterMsg =
-                                        ApplicationMsgs.Update <|
-                                            Msgs.Hover <|
-                                                Maybe.map Msgs.WelcomeCardCliIcon <|
-                                                    List.Extra.getAt 0 Cli.clis
-                                    , mouseLeaveMsg =
-                                        ApplicationMsgs.Update <|
-                                            Msgs.Hover Nothing
+                                    , hoverable =
+                                        Msgs.WelcomeCardCliIcon Cli.OSX
                                     , hoveredSelector =
                                         { description = "white apple icon"
                                         , selector =
@@ -335,15 +325,11 @@ all =
                                     }
                                 , defineHoverBehaviour
                                     { name = "windows cli icon"
-                                    , setup = setup ()
+                                    , setup = setup () |> Tuple.first
                                     , query =
-                                        queryView
+                                        Common.queryView
                                             >> Query.find
                                                 [ id "top-cli-windows" ]
-                                    , updateFunc =
-                                        \msg ->
-                                            Tuple.first
-                                                >> Application.update msg
                                     , unhoveredSelector =
                                         { description = "grey windows icon"
                                         , selector =
@@ -355,14 +341,8 @@ all =
                                                     , image = "windows-logo.svg"
                                                     }
                                         }
-                                    , mouseEnterMsg =
-                                        ApplicationMsgs.Update <|
-                                            Msgs.Hover <|
-                                                Maybe.map Msgs.WelcomeCardCliIcon <|
-                                                    List.Extra.getAt 1 Cli.clis
-                                    , mouseLeaveMsg =
-                                        ApplicationMsgs.Update <|
-                                            Msgs.Hover Nothing
+                                    , hoverable =
+                                        Msgs.WelcomeCardCliIcon Cli.Windows
                                     , hoveredSelector =
                                         { description = "white windows icon"
                                         , selector =
@@ -377,15 +357,11 @@ all =
                                     }
                                 , defineHoverBehaviour
                                     { name = "linux cli icon"
-                                    , setup = setup ()
+                                    , setup = setup () |> Tuple.first
                                     , query =
-                                        queryView
+                                        Common.queryView
                                             >> Query.find
                                                 [ id "top-cli-linux" ]
-                                    , updateFunc =
-                                        \msg ->
-                                            Tuple.first
-                                                >> Application.update msg
                                     , unhoveredSelector =
                                         { description = "grey linux icon"
                                         , selector =
@@ -397,14 +373,8 @@ all =
                                                     , image = "linux-logo.svg"
                                                     }
                                         }
-                                    , mouseEnterMsg =
-                                        ApplicationMsgs.Update <|
-                                            Msgs.Hover <|
-                                                Maybe.map Msgs.WelcomeCardCliIcon <|
-                                                    List.Extra.getAt 2 Cli.clis
-                                    , mouseLeaveMsg =
-                                        ApplicationMsgs.Update <|
-                                            Msgs.Hover Nothing
+                                    , hoverable =
+                                        Msgs.WelcomeCardCliIcon Cli.Linux
                                     , hoveredSelector =
                                         { description = "white linux icon"
                                         , selector =
@@ -1997,52 +1967,218 @@ all =
                                     )
                     ]
                 , describe "right-hand section"
-                    [ test
-                        ("there is a 20px square open eye icon on the far right for a public pipeline"
-                            ++ " with image resized to fit"
-                        )
-                      <|
-                        \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> Query.find [ class "card-footer" ]
-                                |> Query.children []
-                                |> Query.index -1
-                                |> Query.children []
-                                |> Query.index -1
-                                |> Query.has
-                                    (iconSelector
-                                        { size = "20px"
-                                        , image = "baseline-visibility-24px.svg"
+                    [ describe "visibility toggle" <|
+                        let
+                            pipelineId =
+                                { pipelineName = "pipeline"
+                                , teamName = "team"
+                                }
+
+                            visibilityToggle =
+                                Common.queryView
+                                    >> Query.find [ class "card-footer" ]
+                                    >> Query.children []
+                                    >> Query.index -1
+                                    >> Query.children []
+                                    >> Query.index -1
+
+                            openEye =
+                                iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-visibility-24px.svg"
+                                    }
+                                    ++ [ style "background-size" "contain" ]
+
+                            slashedOutEye =
+                                iconSelector
+                                    { size = "20px"
+                                    , image = "baseline-visibility-off-24px.svg"
+                                    }
+                                    ++ [ style "background-size" "contain" ]
+
+                            tooltipAbove tooltipText =
+                                [ style "position" "relative"
+                                , containing
+                                    [ tag "div"
+                                    , containing [ text tooltipText ]
+                                    , style "background-color" "#9b9b9b"
+                                    , style "position" "absolute"
+                                    , style "bottom" "100%"
+                                    , style "white-space" "nowrap"
+                                    , style "padding" "2.5px"
+                                    , style "margin-bottom" "5px"
+                                    , style "right" "-150%"
+                                    ]
+                                ]
+
+                            openEyeClickable setup =
+                                defineHoverBehaviour
+                                    { name = "open eye toggle"
+                                    , setup =
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                    , query = visibilityToggle
+                                    , unhoveredSelector =
+                                        { description = "faded 20px square"
+                                        , selector =
+                                            openEye
+                                                ++ [ style "opacity" "0.5"
+                                                   , style "cursor" "pointer"
+                                                   ]
                                         }
-                                        ++ [ style "background-size" "contain" ]
-                                    )
-                    , test
-                        ("there is a 20px square slashed-out eye icon with on the far right for a"
-                            ++ " non-public pipeline with image resized to fit"
-                        )
-                      <|
-                        \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipelineNonPublic "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> Query.find [ class "card-footer" ]
-                                |> Query.children []
-                                |> Query.index -1
-                                |> Query.children []
-                                |> Query.index -1
-                                |> Query.has
-                                    (iconSelector
-                                        { size = "20px"
-                                        , image = "baseline-visibility-off-24px.svg"
+                                    , hoverable =
+                                        Msgs.VisibilityButton pipelineId
+                                    , hoveredSelector =
+                                        { description = "bright 20px square"
+                                        , selector =
+                                            openEye
+                                                ++ [ style "opacity" "1"
+                                                   , style "cursor" "pointer"
+                                                   ]
+                                                ++ tooltipAbove "hide pipeline"
                                         }
-                                        ++ [ style "background-size" "contain" ]
-                                    )
+                                    }
+
+                            openEyeUnclickable setup =
+                                defineHoverBehaviour
+                                    { name = "open eye toggle"
+                                    , setup =
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                    , query = visibilityToggle
+                                    , unhoveredSelector =
+                                        { description = "faded 20px square"
+                                        , selector =
+                                            openEye
+                                                ++ [ style "opacity" "0.5"
+                                                   , style "cursor" "default"
+                                                   ]
+                                        }
+                                    , hoverable =
+                                        Msgs.VisibilityButton pipelineId
+                                    , hoveredSelector =
+                                        { description = "faded 20px square"
+                                        , selector =
+                                            openEye
+                                                ++ [ style "opacity" "0.5"
+                                                   , style "cursor" "default"
+                                                   ]
+                                        }
+                                    }
+
+                            slashedOutEyeClickable setup =
+                                defineHoverBehaviour
+                                    { name = "slashed-out eye toggle"
+                                    , setup =
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                    , query = visibilityToggle
+                                    , unhoveredSelector =
+                                        { description = "faded 20px square"
+                                        , selector =
+                                            slashedOutEye
+                                                ++ [ style "opacity" "0.5"
+                                                   , style "cursor" "pointer"
+                                                   ]
+                                        }
+                                    , hoverable =
+                                        Msgs.VisibilityButton pipelineId
+                                    , hoveredSelector =
+                                        { description = "bright 20px square"
+                                        , selector =
+                                            slashedOutEye
+                                                ++ [ style "opacity" "1"
+                                                   , style "cursor" "pointer"
+                                                   ]
+                                                ++ tooltipAbove "expose pipeline"
+                                        }
+                                    }
+
+                            slashedOutEyeUnclickable setup =
+                                defineHoverBehaviour
+                                    { name = "slashed-out eye toggle"
+                                    , setup =
+                                        whenOnDashboard { highDensity = False }
+                                            |> setup
+                                            |> Tuple.first
+                                    , query = visibilityToggle
+                                    , unhoveredSelector =
+                                        { description = "faded 20px square"
+                                        , selector =
+                                            slashedOutEye
+                                                ++ [ style "opacity" "0.5"
+                                                   , style "cursor" "default"
+                                                   ]
+                                        }
+                                    , hoverable =
+                                        Msgs.VisibilityButton pipelineId
+                                    , hoveredSelector =
+                                        { description = "faded 20px square"
+                                        , selector =
+                                            slashedOutEye
+                                                ++ [ style "opacity" "0.5"
+                                                   , style "cursor" "default"
+                                                   ]
+                                        }
+                                    }
+                        in
+                        [ describe "when authorized" <|
+                            let
+                                whenAuthorizedPublic =
+                                    givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles
+                                            [ ( "team", [ "owner" ] ) ]
+                                        )
+
+                                whenAuthorizedNonPublic =
+                                    givenDataAndUser
+                                        (oneTeamOnePipelineNonPublic "team")
+                                        (userWithRoles
+                                            [ ( "team", [ "owner" ] ) ]
+                                        )
+                            in
+                            [ describe "on public pipeline"
+                                [ openEyeClickable whenAuthorizedPublic ]
+                            , describe "on a non-public pipeline"
+                                [ slashedOutEyeClickable whenAuthorizedNonPublic ]
+                            ]
+                        , describe "when unauthorized" <|
+                            let
+                                whenUnauthorizedPublic =
+                                    givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles
+                                            [ ( "team", [ "viewer" ] ) ]
+                                        )
+
+                                whenUnauthorizedNonPublic =
+                                    givenDataAndUser
+                                        (oneTeamOnePipelineNonPublic "team")
+                                        (userWithRoles
+                                            [ ( "team", [ "viewer" ] ) ]
+                                        )
+                            in
+                            [ describe "on public pipeline"
+                                [ openEyeUnclickable whenUnauthorizedPublic ]
+                            , describe "on a non-public pipeline"
+                                [ slashedOutEyeUnclickable
+                                    whenUnauthorizedNonPublic
+                                ]
+                            ]
+                        , describe "when unauthenticated" <|
+                            let
+                                whenUnauthenticated =
+                                    givenDataUnauthenticated
+                                        (oneTeamOnePipeline "team")
+                            in
+                            [ describe "on public pipeline"
+                                [ openEyeClickable whenUnauthenticated ]
+                            ]
+                        ]
                     , test "there is medium spacing between the eye and the play/pause button" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -2058,278 +2194,269 @@ all =
                                     [ Query.count (Expect.equal 3)
                                     , Query.index 1 >> Query.has [ style "width" "13.5px" ]
                                     ]
-                    , test "the right section has a 20px square pause button on the left" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> Query.find [ class "card-footer" ]
-                                |> Query.children []
-                                |> Query.index -1
-                                |> Query.children []
-                                |> Query.index 0
-                                |> Query.has
-                                    (iconSelector
-                                        { size = "20px"
-                                        , image = "ic-pause-white.svg"
-                                        }
-                                    )
-                    , test "pause button has pointer cursor" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> Query.find [ class "card-footer" ]
-                                |> Query.find
-                                    (iconSelector
-                                        { size = "20px"
-                                        , image = "ic-pause-white.svg"
-                                        }
-                                    )
-                                |> Query.has [ style "cursor" "pointer" ]
-                    , test "pause button is transparent" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> Query.find [ class "card-footer" ]
-                                |> Query.find
-                                    (iconSelector
-                                        { size = "20px"
-                                        , image = "ic-pause-white.svg"
-                                        }
-                                    )
-                                |> Query.has [ style "opacity" "0.5" ]
-                    , defineHoverBehaviour
-                        { name = "pause button"
-                        , setup =
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                        , query =
-                            queryView
-                                >> Query.find [ class "card-footer" ]
-                                >> Query.children []
-                                >> Query.index -1
-                                >> Query.children []
-                                >> Query.index 0
-                        , updateFunc = \msg -> Tuple.first >> Application.update msg
-                        , unhoveredSelector =
-                            { description = "a faded 20px square pause button with pointer cursor"
-                            , selector =
-                                iconSelector
-                                    { size = "20px"
-                                    , image = "ic-pause-white.svg"
-                                    }
-                                    ++ [ style "cursor" "pointer"
-                                       , style "opacity" "0.5"
-                                       ]
-                            }
-                        , mouseEnterMsg =
-                            ApplicationMsgs.Update <|
-                                Msgs.Hover <|
-                                    Just <|
-                                        Msgs.PipelineButton
-                                            { pipelineName = "pipeline"
-                                            , teamName = "team"
+                    , describe "pause toggle"
+                        [ test "the right section has a 20px square pause button on the left" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> queryView
+                                    |> Query.find [ class "card-footer" ]
+                                    |> Query.children []
+                                    |> Query.index -1
+                                    |> Query.children []
+                                    |> Query.index 0
+                                    |> Query.has
+                                        (iconSelector
+                                            { size = "20px"
+                                            , image = "ic-pause-white.svg"
                                             }
-                        , mouseLeaveMsg =
-                            ApplicationMsgs.Update <|
-                                Msgs.Hover Nothing
-                        , hoveredSelector =
-                            { description = "a bright 20px square pause button with pointer cursor"
-                            , selector =
-                                iconSelector
-                                    { size = "20px"
-                                    , image = "ic-pause-white.svg"
-                                    }
-                                    ++ [ style "cursor" "pointer"
-                                       , style "opacity" "1"
-                                       ]
-                            }
-                        }
-                    , defineHoverBehaviour
-                        { name = "play button"
-                        , setup =
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipelinePaused "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                        , query =
-                            queryView
-                                >> Query.find [ class "card-footer" ]
-                                >> Query.children []
-                                >> Query.index -1
-                                >> Query.children []
-                                >> Query.index 0
-                        , updateFunc = \msg -> Tuple.first >> Application.update msg
-                        , unhoveredSelector =
-                            { description = "a transparent 20px square play button with pointer cursor"
-                            , selector =
-                                iconSelector
-                                    { size = "20px"
-                                    , image = "ic-play-white.svg"
-                                    }
-                                    ++ [ style "cursor" "pointer"
-                                       , style "opacity" "0.5"
-                                       ]
-                            }
-                        , mouseEnterMsg =
-                            ApplicationMsgs.Update <|
-                                Msgs.Hover <|
-                                    Just <|
-                                        Msgs.PipelineButton
-                                            { pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            }
-                        , mouseLeaveMsg =
-                            ApplicationMsgs.Update <| Msgs.Hover Nothing
-                        , hoveredSelector =
-                            { description = "an opaque 20px square play button with pointer cursor"
-                            , selector =
-                                iconSelector
-                                    { size = "20px"
-                                    , image = "ic-play-white.svg"
-                                    }
-                                    ++ [ style "cursor" "pointer"
-                                       , style "opacity" "1"
-                                       ]
-                            }
-                        }
-                    , test "clicking pause button sends TogglePipeline msg" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
-                                |> Query.find [ class "card-footer" ]
-                                |> Query.find
-                                    (iconSelector
-                                        { size = "20px"
-                                        , image = "ic-pause-white.svg"
-                                        }
-                                    )
-                                |> Event.simulate Event.click
-                                |> Event.expect
-                                    (ApplicationMsgs.Update <|
-                                        Msgs.TogglePipelinePaused
-                                            { pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            }
-                                            False
-                                    )
-                    , test "pause button turns into spinner on click" <|
-                        \_ ->
-                            let
-                                animation =
-                                    "container-rotate 1568ms linear infinite"
-                            in
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> Tuple.first
-                                |> Application.update
-                                    (ApplicationMsgs.Update <|
-                                        Msgs.TogglePipelinePaused
-                                            { pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            }
-                                            False
-                                    )
-                                |> queryView
-                                |> Query.find [ class "card-footer" ]
-                                |> Query.has [ style "animation" animation ]
-                    , test "clicking pause button sends toggle api call" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> Tuple.first
-                                |> Application.update
-                                    (ApplicationMsgs.Update <|
-                                        Msgs.TogglePipelinePaused
-                                            { pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            }
-                                            False
-                                    )
-                                |> Tuple.second
-                                |> Expect.equal
-                                    [ Effects.SendTogglePipelineRequest
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        False
-                                    ]
-                    , test "dashboard data is refetched after ok toggle call" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
-                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> Tuple.first
-                                |> Application.update
-                                    (ApplicationMsgs.Update <|
-                                        Msgs.TogglePipelinePaused
-                                            { pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            }
-                                            False
-                                    )
-                                |> Tuple.first
-                                |> Application.handleCallback
-                                    (Callback.PipelineToggled
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        (Ok ())
-                                    )
-                                |> Tuple.second
-                                |> Expect.equal [ Effects.FetchData ]
-                    , test "401 toggle call redirects to login" <|
-                        \_ ->
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataUnauthenticated
-                                    (oneTeamOnePipeline "team")
-                                |> Tuple.first
-                                |> Application.update
-                                    (ApplicationMsgs.Update <|
-                                        Msgs.TogglePipelinePaused
-                                            { pipelineName = "pipeline"
-                                            , teamName = "team"
-                                            }
-                                            False
-                                    )
-                                |> Tuple.first
-                                |> Application.handleCallback
-                                    (Callback.PipelineToggled
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        (Err <|
-                                            Http.BadStatus
-                                                { url = "http://example.com"
-                                                , status =
-                                                    { code = 401
-                                                    , message = ""
-                                                    }
-                                                , headers = Dict.empty
-                                                , body = ""
-                                                }
                                         )
-                                    )
-                                |> Tuple.second
-                                |> Expect.equal [ Effects.RedirectToLogin ]
+                        , test "pause button has pointer cursor when authorized" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> queryView
+                                    |> Query.find [ class "card-footer" ]
+                                    |> Query.find
+                                        (iconSelector
+                                            { size = "20px"
+                                            , image = "ic-pause-white.svg"
+                                            }
+                                        )
+                                    |> Query.has [ style "cursor" "pointer" ]
+                        , test "pause button is transparent" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> queryView
+                                    |> Query.find [ class "card-footer" ]
+                                    |> Query.find
+                                        (iconSelector
+                                            { size = "20px"
+                                            , image = "ic-pause-white.svg"
+                                            }
+                                        )
+                                    |> Query.has [ style "opacity" "0.5" ]
+                        , defineHoverBehaviour
+                            { name = "pause button"
+                            , setup =
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                            , query =
+                                Common.queryView
+                                    >> Query.find [ class "card-footer" ]
+                                    >> Query.children []
+                                    >> Query.index -1
+                                    >> Query.children []
+                                    >> Query.index 0
+                            , unhoveredSelector =
+                                { description = "a faded 20px square pause button with pointer cursor"
+                                , selector =
+                                    iconSelector
+                                        { size = "20px"
+                                        , image = "ic-pause-white.svg"
+                                        }
+                                        ++ [ style "cursor" "pointer"
+                                           , style "opacity" "0.5"
+                                           ]
+                                }
+                            , hoverable =
+                                Msgs.PipelineButton
+                                    { pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    }
+                            , hoveredSelector =
+                                { description = "a bright 20px square pause button with pointer cursor"
+                                , selector =
+                                    iconSelector
+                                        { size = "20px"
+                                        , image = "ic-pause-white.svg"
+                                        }
+                                        ++ [ style "cursor" "pointer"
+                                           , style "opacity" "1"
+                                           ]
+                                }
+                            }
+                        , defineHoverBehaviour
+                            { name = "play button"
+                            , setup =
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataAndUser
+                                        (oneTeamOnePipelinePaused "team")
+                                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                            , query =
+                                Common.queryView
+                                    >> Query.find [ class "card-footer" ]
+                                    >> Query.children []
+                                    >> Query.index -1
+                                    >> Query.children []
+                                    >> Query.index 0
+                            , unhoveredSelector =
+                                { description = "a transparent 20px square play button with pointer cursor"
+                                , selector =
+                                    iconSelector
+                                        { size = "20px"
+                                        , image = "ic-play-white.svg"
+                                        }
+                                        ++ [ style "cursor" "pointer"
+                                           , style "opacity" "0.5"
+                                           ]
+                                }
+                            , hoverable =
+                                Msgs.PipelineButton
+                                    { pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    }
+                            , hoveredSelector =
+                                { description = "an opaque 20px square play button with pointer cursor"
+                                , selector =
+                                    iconSelector
+                                        { size = "20px"
+                                        , image = "ic-play-white.svg"
+                                        }
+                                        ++ [ style "cursor" "pointer"
+                                           , style "opacity" "1"
+                                           ]
+                                }
+                            }
+                        , test "clicking pause button sends TogglePipeline msg" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> queryView
+                                    |> Query.find [ class "card-footer" ]
+                                    |> Query.find
+                                        (iconSelector
+                                            { size = "20px"
+                                            , image = "ic-pause-white.svg"
+                                            }
+                                        )
+                                    |> Event.simulate Event.click
+                                    |> Event.expect
+                                        (ApplicationMsgs.Update <|
+                                            Msgs.TogglePipelinePaused
+                                                { pipelineName = "pipeline"
+                                                , teamName = "team"
+                                                }
+                                                False
+                                        )
+                        , test "pause button turns into spinner on click" <|
+                            \_ ->
+                                let
+                                    animation =
+                                        "container-rotate 1568ms linear infinite"
+                                in
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.update
+                                        (ApplicationMsgs.Update <|
+                                            Msgs.TogglePipelinePaused
+                                                { pipelineName = "pipeline"
+                                                , teamName = "team"
+                                                }
+                                                False
+                                        )
+                                    |> queryView
+                                    |> Query.find [ class "card-footer" ]
+                                    |> Query.has [ style "animation" animation ]
+                        , test "clicking pause button sends toggle api call" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.update
+                                        (ApplicationMsgs.Update <|
+                                            Msgs.TogglePipelinePaused
+                                                { pipelineName = "pipeline"
+                                                , teamName = "team"
+                                                }
+                                                False
+                                        )
+                                    |> Tuple.second
+                                    |> Expect.equal
+                                        [ Effects.SendTogglePipelineRequest
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                            False
+                                        ]
+                        , test "dashboard data is refetched after ok toggle call" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataAndUser
+                                        (oneTeamOnePipeline "team")
+                                        (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.update
+                                        (ApplicationMsgs.Update <|
+                                            Msgs.TogglePipelinePaused
+                                                { pipelineName = "pipeline"
+                                                , teamName = "team"
+                                                }
+                                                False
+                                        )
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.PipelineToggled
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                            (Ok ())
+                                        )
+                                    |> Tuple.second
+                                    |> Expect.equal [ Effects.FetchData ]
+                        , test "401 toggle call redirects to login" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> givenDataUnauthenticated
+                                        (oneTeamOnePipeline "team")
+                                    |> Tuple.first
+                                    |> Application.update
+                                        (ApplicationMsgs.Update <|
+                                            Msgs.TogglePipelinePaused
+                                                { pipelineName = "pipeline"
+                                                , teamName = "team"
+                                                }
+                                                False
+                                        )
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.PipelineToggled
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                            (Err <|
+                                                Http.BadStatus
+                                                    { url = "http://example.com"
+                                                    , status =
+                                                        { code = 401
+                                                        , message = ""
+                                                        }
+                                                    , headers = Dict.empty
+                                                    , body = ""
+                                                    }
+                                            )
+                                        )
+                                    |> Tuple.second
+                                    |> Expect.equal [ Effects.RedirectToLogin ]
+                        ]
                     ]
                 ]
             ]
@@ -2736,7 +2863,8 @@ all =
                                     (apiData
                                         [ ( "team", [ "pipeline" ] ) ]
                                     )
-                        , query = queryView >> Query.find [ id "cli-osx" ]
+                                |> Tuple.first
+                        , query = Common.queryView >> Query.find [ id "cli-osx" ]
                         , unhoveredSelector =
                             { description = "grey apple icon"
                             , selector =
@@ -2748,18 +2876,8 @@ all =
                                         , size = "20px"
                                         }
                             }
-                        , updateFunc =
-                            \msg ->
-                                Tuple.first
-                                    >> Application.update msg
-                        , mouseEnterMsg =
-                            ApplicationMsgs.Update <|
-                                Msgs.Hover <|
-                                    Maybe.map Msgs.FooterCliIcon <|
-                                        List.Extra.getAt 0 Cli.clis
-                        , mouseLeaveMsg =
-                            ApplicationMsgs.Update <|
-                                Msgs.Hover Nothing
+                        , hoverable =
+                            Msgs.FooterCliIcon Cli.OSX
                         , hoveredSelector =
                             { description = "white apple icon"
                             , selector =
@@ -2780,7 +2898,10 @@ all =
                                     (apiData
                                         [ ( "team", [ "pipeline" ] ) ]
                                     )
-                        , query = queryView >> Query.find [ id "cli-windows" ]
+                                |> Tuple.first
+                        , query =
+                            Common.queryView
+                                >> Query.find [ id "cli-windows" ]
                         , unhoveredSelector =
                             { description = "grey windows icon"
                             , selector =
@@ -2792,18 +2913,8 @@ all =
                                         , size = "20px"
                                         }
                             }
-                        , updateFunc =
-                            \msg ->
-                                Tuple.first
-                                    >> Application.update msg
-                        , mouseEnterMsg =
-                            ApplicationMsgs.Update <|
-                                Msgs.Hover <|
-                                    Maybe.map Msgs.FooterCliIcon <|
-                                        List.Extra.getAt 1 Cli.clis
-                        , mouseLeaveMsg =
-                            ApplicationMsgs.Update <|
-                                Msgs.Hover Nothing
+                        , hoverable =
+                            Msgs.FooterCliIcon Cli.Windows
                         , hoveredSelector =
                             { description = "white windows icon"
                             , selector =
@@ -2824,7 +2935,10 @@ all =
                                     (apiData
                                         [ ( "team", [ "pipeline" ] ) ]
                                     )
-                        , query = queryView >> Query.find [ id "cli-linux" ]
+                                |> Tuple.first
+                        , query =
+                            Common.queryView
+                                >> Query.find [ id "cli-linux" ]
                         , unhoveredSelector =
                             { description = "grey linux icon"
                             , selector =
@@ -2836,18 +2950,8 @@ all =
                                         , size = "20px"
                                         }
                             }
-                        , updateFunc =
-                            \msg ->
-                                Tuple.first
-                                    >> Application.update msg
-                        , mouseEnterMsg =
-                            ApplicationMsgs.Update <|
-                                Msgs.Hover <|
-                                    Maybe.map Msgs.FooterCliIcon <|
-                                        List.Extra.getAt 2 Cli.clis
-                        , mouseLeaveMsg =
-                            ApplicationMsgs.Update <|
-                                Msgs.Hover Nothing
+                        , hoverable =
+                            Msgs.FooterCliIcon Cli.Linux
                         , hoveredSelector =
                             { description = "white linux icon"
                             , selector =
@@ -2993,31 +3097,32 @@ initFromApplication =
 
 defineHoverBehaviour :
     { name : String
-    , setup : model
-    , query : model -> Query.Single msg
+    , setup : Application.Model
+    , query : Application.Model -> Query.Single ApplicationMsgs.TopLevelMessage
     , unhoveredSelector : { description : String, selector : List Selector }
-    , mouseEnterMsg : msg
-    , mouseLeaveMsg : msg
-    , updateFunc : msg -> model -> model
+    , hoverable : Msgs.Hoverable
     , hoveredSelector : { description : String, selector : List Selector }
     }
     -> Test
-defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mouseLeaveMsg, updateFunc, hoveredSelector } =
+defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hoveredSelector } =
     describe (name ++ " hover behaviour")
         [ test (name ++ " is " ++ unhoveredSelector.description) <|
             \_ ->
                 setup
                     |> query
                     |> Query.has unhoveredSelector.selector
-        , test ("mousing over " ++ name ++ " triggers " ++ Debug.toString mouseEnterMsg ++ " msg") <|
+        , test ("mousing over " ++ name ++ " triggers Hover msg") <|
             \_ ->
                 setup
                     |> query
                     |> Event.simulate Event.mouseEnter
-                    |> Event.expect mouseEnterMsg
+                    |> Event.expect
+                        (ApplicationMsgs.Update <|
+                            Msgs.Hover <|
+                                Just hoverable
+                        )
         , test
-            (Debug.toString mouseEnterMsg
-                ++ " msg causes "
+            ("Hover msg causes "
                 ++ name
                 ++ " to become "
                 ++ hoveredSelector.description
@@ -3025,19 +3130,28 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
           <|
             \_ ->
                 setup
-                    |> updateFunc mouseEnterMsg
+                    |> Application.update
+                        (ApplicationMsgs.Update <|
+                            Msgs.Hover <|
+                                Just hoverable
+                        )
+                    |> Tuple.first
                     |> query
                     |> Query.has hoveredSelector.selector
-        , test ("mousing off " ++ name ++ " triggers " ++ Debug.toString mouseLeaveMsg ++ " msg") <|
+        , test ("mousing off " ++ name ++ " triggers unhover msg") <|
             \_ ->
                 setup
-                    |> updateFunc mouseEnterMsg
+                    |> Application.update
+                        (ApplicationMsgs.Update <|
+                            Msgs.Hover <|
+                                Just hoverable
+                        )
+                    |> Tuple.first
                     |> query
                     |> Event.simulate Event.mouseLeave
-                    |> Event.expect mouseLeaveMsg
+                    |> Event.expect (ApplicationMsgs.Update <| Msgs.Hover Nothing)
         , test
-            (Debug.toString mouseLeaveMsg
-                ++ " msg causes "
+            ("unhover msg causes "
                 ++ name
                 ++ " to become "
                 ++ unhoveredSelector.description
@@ -3045,8 +3159,17 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, mouseEnterMsg, mou
           <|
             \_ ->
                 setup
-                    |> updateFunc mouseEnterMsg
-                    |> updateFunc mouseLeaveMsg
+                    |> Application.update
+                        (ApplicationMsgs.Update <|
+                            Msgs.Hover <|
+                                Just hoverable
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (ApplicationMsgs.Update <|
+                            Msgs.Hover Nothing
+                        )
+                    |> Tuple.first
                     |> query
                     |> Query.has unhoveredSelector.selector
         ]

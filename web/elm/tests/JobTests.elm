@@ -298,7 +298,6 @@ all =
                     init { disabled = False, paused = False } ()
                 , query =
                     queryView >> Query.find [ id "pause-toggle" ]
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey pause icon"
                     , selector =
@@ -317,13 +316,7 @@ all =
                                 , image = "ic-pause-circle-outline-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.ToggleJobButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.ToggleJobButton
                 }
             , defineHoverBehaviour
                 { name = "play/pause button when job is paused"
@@ -331,7 +324,6 @@ all =
                     init { disabled = False, paused = True } ()
                 , query =
                     queryView >> Query.find [ id "pause-toggle" ]
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey play icon"
                     , selector =
@@ -350,13 +342,7 @@ all =
                                 , image = "ic-play-circle-outline.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.ToggleJobButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.ToggleJobButton
                 }
             , test "trigger build button has background of the header color, faded" <|
                 init { disabled = False, paused = False }
@@ -415,7 +401,6 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey plus icon"
                     , selector =
@@ -434,13 +419,7 @@ all =
                                 , image = "ic-add-circle-outline-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.TriggerBuildButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.TriggerBuildButton
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
@@ -452,7 +431,6 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey plus icon"
                     , selector =
@@ -487,13 +465,7 @@ all =
                                     }
                         ]
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.TriggerBuildButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.TriggerBuildButton
                 }
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
@@ -773,7 +745,6 @@ all =
                         >> Query.find [ id "pagination" ]
                         >> Query.children []
                         >> Query.index 0
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "white left chevron"
                     , selector =
@@ -822,13 +793,7 @@ all =
                             )
                         ]
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.PreviousPageButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.PreviousPageButton
                 }
             , test "JobBuildsFetched" <|
                 \_ ->
