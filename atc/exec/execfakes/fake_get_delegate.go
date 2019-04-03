@@ -17,6 +17,16 @@ type FakeGetDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
+	InitializingStub        func(lager.Logger)
+	initializingMutex       sync.RWMutex
+	initializingArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	StartingStub        func(lager.Logger)
+	startingMutex       sync.RWMutex
+	startingArgsForCall []struct {
+		arg1 lager.Logger
+	}
 	FinishedStub        func(lager.Logger, exec.ExitStatus, exec.VersionInfo)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
@@ -89,6 +99,30 @@ func (fake *FakeGetDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	defer fake.erroredMutex.RUnlock()
 	argsForCall := fake.erroredArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeGetDelegate) Initializing(arg1 lager.Logger) {
+	fake.initializingMutex.Lock()
+	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("Initializing", []interface{}{arg1})
+	fake.initializingMutex.Unlock()
+	if fake.InitializingStub != nil {
+		fake.InitializingStub(arg1)
+	}
+}
+
+func (fake *FakeGetDelegate) Starting(arg1 lager.Logger) {
+	fake.startingMutex.Lock()
+	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("Starting", []interface{}{arg1})
+	fake.startingMutex.Unlock()
+	if fake.StartingStub != nil {
+		fake.StartingStub(arg1)
+	}
 }
 
 func (fake *FakeGetDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 exec.VersionInfo) {
