@@ -58,11 +58,11 @@ func (c *GenerateCommand) GenerateSQLMigration() error {
 
 	contents := ""
 
-	err := ioutil.WriteFile(path.Join(c.MigrationDirectory, upMigrationFileName), []byte(contents), os.ModePerm)
+	err := ioutil.WriteFile(path.Join(c.MigrationDirectory, upMigrationFileName), []byte(contents), 0644)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path.Join(c.MigrationDirectory, downMigrationFileName), []byte(contents), os.ModePerm)
+	err = ioutil.WriteFile(path.Join(c.MigrationDirectory, downMigrationFileName), []byte(contents), 0644)
 	if err != nil {
 		return err
 	}
