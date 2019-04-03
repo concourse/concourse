@@ -892,7 +892,7 @@ all =
                     |> Expect.true "should fetch build"
         , test "gets current timezone on page load" <|
             \_ ->
-                pageLoad
+                pageLoadJobBuild
                     |> Tuple.second
                     |> List.member Effects.GetCurrentTimeZone
                     |> Expect.true "should get timezone"

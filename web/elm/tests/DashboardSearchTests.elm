@@ -67,7 +67,40 @@ all =
                                   , groups = []
                                   }
                                 ]
-                          , jobs = []
+                          , jobs =
+                                [ { pipeline =
+                                        { teamName = "team1"
+                                        , pipelineName = "pipeline"
+                                        }
+                                  , name = "job"
+                                  , pipelineName = "pipeline"
+                                  , teamName = "team1"
+                                  , nextBuild =
+                                        Just
+                                            { id = 1
+                                            , name = "1"
+                                            , job =
+                                                Just
+                                                    { teamName = "team1"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                            , status = Concourse.BuildStatusStarted
+                                            , duration =
+                                                { startedAt = Nothing
+                                                , finishedAt = Nothing
+                                                }
+                                            , reapTime = Nothing
+                                            }
+                                  , finishedBuild = Nothing
+                                  , transitionBuild = Nothing
+                                  , paused = False
+                                  , disableManualTrigger = False
+                                  , inputs = []
+                                  , outputs = []
+                                  , groups = []
+                                  }
+                                ]
                           , resources = []
                           , user = Nothing
                           , version = ""
@@ -99,6 +132,10 @@ all =
                     queryView
                         >> Query.find [ id "search-dropdown" ]
                         >> Query.has [ text "status: paused" ]
+                , it "a 'status: running' option appears" <|
+                    queryView
+                        >> Query.find [ id "search-dropdown" ]
+                        >> Query.has [ text "status: running" ]
                 , context "after clicking 'status: paused'"
                     (Application.update
                         (Msgs.Update <|
@@ -112,8 +149,43 @@ all =
                             >> Query.children []
                             >> Query.count (Expect.equal 0)
                     ]
+                , context "after clicking 'status: running'"
+                    (Application.update
+                        (Msgs.Update <|
+                            Message.Message.FilterMsg "status: running"
+                        )
+                        >> Tuple.first
+                    )
+                    [ it "shows the running pipeline" <|
+                        queryView
+                            >> Query.find [ class "card" ]
+                            >> Query.has [ text "pipeline" ]
+                    ]
                 ]
             ]
+        , it "shows empty teams when only filtering on team name" <|
+            Application.update
+                (Msgs.Update <|
+                    Message.Message.FilterMsg "team: team2"
+                )
+                >> Tuple.first
+                >> queryView
+                >> Query.find [ class "dashboard-team-group" ]
+                >> Query.has [ text "team2" ]
+        , it "fuzzy matches team name" <|
+            Application.update
+                (Msgs.Update <|
+                    Message.Message.FilterMsg "team: team"
+                )
+                >> Tuple.first
+                >> queryView
+                >> Query.findAll [ class "dashboard-team-group" ]
+                >> Expect.all
+                    [ Query.index 0
+                        >> Query.has [ text "team1" ]
+                    , Query.index 1
+                        >> Query.has [ text "team2" ]
+                    ]
         , it "centers 'no results' message when typing a string with no hits" <|
             Application.handleCallback
                 (Callback.APIDataFetched

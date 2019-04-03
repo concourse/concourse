@@ -1,6 +1,16 @@
-module Dashboard.SearchBar exposing (handleDelivery, searchInputId, update, view)
+module Dashboard.SearchBar exposing
+    ( handleDelivery
+    , searchInputId
+    , update
+    , view
+    )
 
 import Array
+import Concourse.PipelineStatus
+    exposing
+        ( PipelineStatus(..)
+        , StatusDetails(..)
+        )
 import Dashboard.Group.Models exposing (Group)
 import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
@@ -39,18 +49,10 @@ update msg ( model, effects ) =
             )
 
         FocusMsg ->
-            let
-                newModel =
-                    { model | dropdown = Shown Nothing }
-            in
-            ( newModel, effects )
+            ( { model | dropdown = Shown Nothing }, effects )
 
         BlurMsg ->
-            let
-                newModel =
-                    { model | dropdown = Hidden }
-            in
-            ( newModel, effects )
+            ( { model | dropdown = Hidden }, effects )
 
         _ ->
             ( model, effects )
@@ -68,12 +70,11 @@ showSearchInput ( model, effects ) =
 
             isMobile =
                 model.screenSize == ScreenSize.Mobile
-
-            newModel =
-                { model | dropdown = Shown Nothing }
         in
         if isDropDownHidden && isMobile && model.query == "" then
-            ( newModel, effects ++ [ Focus searchInputId ] )
+            ( { model | dropdown = Shown Nothing }
+            , effects ++ [ Focus searchInputId ]
+            )
 
         else
             ( model, effects )
@@ -144,7 +145,8 @@ handleDelivery delivery ( model, effects ) =
                               }
                             , [ ModifyUrl <|
                                     Routes.toString <|
-                                        Routes.Dashboard (Routes.Normal (Just selectedItem))
+                                        Routes.Dashboard
+                                            (Routes.Normal (Just selectedItem))
                               ]
                             )
 

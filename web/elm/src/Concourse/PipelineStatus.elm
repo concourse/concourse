@@ -1,6 +1,7 @@
 module Concourse.PipelineStatus exposing
     ( PipelineStatus(..)
     , StatusDetails(..)
+    , equal
     , icon
     , isRunning
     , show
@@ -24,6 +25,31 @@ type PipelineStatus
     | PipelineStatusFailed StatusDetails
     | PipelineStatusPending Bool
     | PipelineStatusSucceeded StatusDetails
+
+
+equal : PipelineStatus -> PipelineStatus -> Bool
+equal ps1 ps2 =
+    case ( ps1, ps2 ) of
+        ( PipelineStatusPaused, PipelineStatusPaused ) ->
+            True
+
+        ( PipelineStatusAborted _, PipelineStatusAborted _ ) ->
+            True
+
+        ( PipelineStatusErrored _, PipelineStatusErrored _ ) ->
+            True
+
+        ( PipelineStatusFailed _, PipelineStatusFailed _ ) ->
+            True
+
+        ( PipelineStatusPending _, PipelineStatusPending _ ) ->
+            True
+
+        ( PipelineStatusSucceeded _, PipelineStatusSucceeded _ ) ->
+            True
+
+        _ ->
+            False
 
 
 show : PipelineStatus -> String
