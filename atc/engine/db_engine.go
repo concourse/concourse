@@ -42,9 +42,8 @@ func (*dbEngine) Schema() string {
 }
 
 func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
-	buildEngine := engine.engines[0]
 
-	started, err := build.Start(buildEngine.Schema(), plan)
+	started, err := build.Start(plan)
 	if err != nil {
 		return nil, err
 	}

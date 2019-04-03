@@ -18,6 +18,8 @@ import (
 	"github.com/lib/pq"
 )
 
+const schema = "exec.v2"
+
 type BuildInput struct {
 	Name       string
 	Version    atc.Version
@@ -82,7 +84,7 @@ type Build interface {
 	Interceptible() (bool, error)
 	Preparation() (BuildPreparation, bool, error)
 
-	Start(string, atc.Plan) (bool, error)
+	Start(atc.Plan) (bool, error)
 	FinishWithError(cause error) error
 	Finish(BuildStatus) error
 
@@ -238,7 +240,7 @@ func (b *build) SetInterceptible(i bool) error {
 	return nil
 }
 
-func (b *build) Start(schema string, plan atc.Plan) (bool, error) {
+func (b *build) Start(plan atc.Plan) (bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return false, err

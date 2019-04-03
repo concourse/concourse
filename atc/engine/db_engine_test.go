@@ -89,9 +89,6 @@ var _ = Describe("DBEngine", func() {
 
 			It("starts the build in the database", func() {
 				Expect(dbBuild.StartCallCount()).To(Equal(1))
-
-				engine, _ := dbBuild.StartArgsForCall(0)
-				Expect(engine).To(Equal("fake-schema-a"))
 			})
 
 			Context("when the build fails to transition to started", func() {

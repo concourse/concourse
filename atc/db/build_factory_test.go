@@ -197,7 +197,7 @@ var _ = Describe("BuildFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(i).To(BeTrue())
 
-				_, err = b.Start("exec.v2", atc.Plan{})
+				_, err = b.Start(atc.Plan{})
 				Expect(err).NotTo(HaveOccurred())
 
 				err = buildFactory.MarkNonInterceptibleBuilds()
@@ -329,7 +329,7 @@ var _ = Describe("BuildFactory", func() {
 			build4DB, err = job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			started, err := build2DB.Start("some-schema", atc.Plan{})
+			started, err := build2DB.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -381,11 +381,11 @@ var _ = Describe("BuildFactory", func() {
 			_, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			started, err := build1DB.Start("some-schema", atc.Plan{})
+			started, err := build1DB.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
-			started, err = build2DB.Start("some-schema", atc.Plan{})
+			started, err = build2DB.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 		})

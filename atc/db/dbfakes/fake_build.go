@@ -444,11 +444,10 @@ type FakeBuild struct {
 	setInterceptibleReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StartStub        func(string, atc.Plan) (bool, error)
+	StartStub        func(atc.Plan) (bool, error)
 	startMutex       sync.RWMutex
 	startArgsForCall []struct {
-		arg1 string
-		arg2 atc.Plan
+		arg1 atc.Plan
 	}
 	startReturns struct {
 		result1 bool
@@ -2625,17 +2624,16 @@ func (fake *FakeBuild) SetInterceptibleReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) Start(arg1 string, arg2 atc.Plan) (bool, error) {
+func (fake *FakeBuild) Start(arg1 atc.Plan) (bool, error) {
 	fake.startMutex.Lock()
 	ret, specificReturn := fake.startReturnsOnCall[len(fake.startArgsForCall)]
 	fake.startArgsForCall = append(fake.startArgsForCall, struct {
-		arg1 string
-		arg2 atc.Plan
-	}{arg1, arg2})
-	fake.recordInvocation("Start", []interface{}{arg1, arg2})
+		arg1 atc.Plan
+	}{arg1})
+	fake.recordInvocation("Start", []interface{}{arg1})
 	fake.startMutex.Unlock()
 	if fake.StartStub != nil {
-		return fake.StartStub(arg1, arg2)
+		return fake.StartStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -2650,17 +2648,17 @@ func (fake *FakeBuild) StartCallCount() int {
 	return len(fake.startArgsForCall)
 }
 
-func (fake *FakeBuild) StartCalls(stub func(string, atc.Plan) (bool, error)) {
+func (fake *FakeBuild) StartCalls(stub func(atc.Plan) (bool, error)) {
 	fake.startMutex.Lock()
 	defer fake.startMutex.Unlock()
 	fake.StartStub = stub
 }
 
-func (fake *FakeBuild) StartArgsForCall(i int) (string, atc.Plan) {
+func (fake *FakeBuild) StartArgsForCall(i int) atc.Plan {
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
 	argsForCall := fake.startArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeBuild) StartReturns(result1 bool, result2 error) {

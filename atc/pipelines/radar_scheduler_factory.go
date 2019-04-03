@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
@@ -30,7 +29,6 @@ type radarSchedulerFactory struct {
 	resourceConfigFactory        db.ResourceConfigFactory
 	resourceTypeCheckingInterval time.Duration
 	resourceCheckingInterval     time.Duration
-	engine                       engine.Engine
 	strategy                     worker.ContainerPlacementStrategy
 }
 
@@ -40,7 +38,6 @@ func NewRadarSchedulerFactory(
 	resourceConfigFactory db.ResourceConfigFactory,
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
-	engine engine.Engine,
 	strategy worker.ContainerPlacementStrategy,
 ) RadarSchedulerFactory {
 	return &radarSchedulerFactory{
@@ -49,7 +46,6 @@ func NewRadarSchedulerFactory(
 		resourceConfigFactory:        resourceConfigFactory,
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		resourceCheckingInterval:     resourceCheckingInterval,
-		engine:                       engine,
 		strategy:                     strategy,
 	}
 }
@@ -86,7 +82,6 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline) scheduler
 				atc.NewPlanFactory(time.Now().Unix()),
 			),
 			inputMapper,
-			rsf.engine,
 		),
 	}
 }

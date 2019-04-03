@@ -200,14 +200,14 @@ var _ = Describe("Job", func() {
 			nextBuild, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			started, err := nextBuild.Start("some-schema", atc.Plan{})
+			started, err := nextBuild.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
 			otherNextBuild, err := otherJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			otherStarted, err := otherNextBuild.Start("some-schema", atc.Plan{})
+			otherStarted, err := otherNextBuild.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(otherStarted).To(BeTrue())
 
@@ -226,7 +226,7 @@ var _ = Describe("Job", func() {
 			Expect(next.ID()).To(Equal(nextBuild.ID())) // not anotherRunningBuild
 			Expect(finished.ID()).To(Equal(finishedBuild.ID()))
 
-			started, err = anotherRunningBuild.Start("some-schema", atc.Plan{})
+			started, err = anotherRunningBuild.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -529,7 +529,7 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				_, err = startedBuild.Schedule()
 				Expect(err).NotTo(HaveOccurred())
-				_, err = startedBuild.Start("", atc.Plan{})
+				_, err = startedBuild.Start(atc.Plan{})
 				Expect(err).NotTo(HaveOccurred())
 
 				scheduledBuild, err = job.CreateBuild()
@@ -1207,7 +1207,7 @@ var _ = Describe("Job", func() {
 
 		Context("when started", func() {
 			BeforeEach(func() {
-				started, err := build1DB.Start("some-schema", atc.Plan{ID: "some-id"})
+				started, err := build1DB.Start(atc.Plan{ID: "some-id"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started).To(BeTrue())
 			})
@@ -1217,7 +1217,7 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build1DB.Status()).To(Equal(db.BuildStatusStarted))
-				Expect(build1DB.Schema()).To(Equal("some-schema"))
+				Expect(build1DB.Schema()).To(Equal("exec.v2"))
 				Expect(build1DB.PrivatePlan()).To(Equal(`{"id":"some-id"}`))
 			})
 
@@ -1283,7 +1283,7 @@ var _ = Describe("Job", func() {
 				build1, err := job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				started, err := build1.Start("some-schema", atc.Plan{})
+				started, err := build1.Start(atc.Plan{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started).To(BeTrue())
 			})
@@ -1308,7 +1308,7 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(builds2).To(HaveLen(1))
 
-				started, err := builds2[0].Start("some-schema", atc.Plan{})
+				started, err := builds2[0].Start(atc.Plan{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started).To(BeTrue())
 

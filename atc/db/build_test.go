@@ -29,7 +29,7 @@ var _ = Describe("Build", func() {
 		It("updates the model", func() {
 			build, err := team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			started, err := build.Start("schema", atc.Plan{})
+			started, err := build.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -103,7 +103,7 @@ var _ = Describe("Build", func() {
 		})
 
 		JustBeforeEach(func() {
-			started, err = build.Start("schema", plan)
+			started, err = build.Start(plan)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -248,7 +248,7 @@ var _ = Describe("Build", func() {
 			defer db.Close(events)
 
 			By("emitting a status event when started")
-			started, err := build.Start("schema", atc.Plan{})
+			started, err := build.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -692,7 +692,7 @@ var _ = Describe("Build", func() {
 
 			Context("when the build is started", func() {
 				BeforeEach(func() {
-					started, err := build.Start("some-schema", atc.Plan{})
+					started, err := build.Start(atc.Plan{})
 					Expect(started).To(BeTrue())
 					Expect(err).NotTo(HaveOccurred())
 
@@ -790,7 +790,7 @@ var _ = Describe("Build", func() {
 
 				Context("when the build is started", func() {
 					BeforeEach(func() {
-						started, err := build.Start("some-schema", atc.Plan{})
+						started, err := build.Start(atc.Plan{})
 						Expect(started).To(BeTrue())
 						Expect(err).NotTo(HaveOccurred())
 
