@@ -14,7 +14,6 @@
   }
 }
 
-\include-section{./release-notes/v5.1.0.lit}
 \include-section{./release-notes/v5.0.1.lit}
 \include-section{./release-notes/v5.0.0.lit}
 \include-section{./release-notes/v4.2.3.lit}
