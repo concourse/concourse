@@ -351,7 +351,7 @@ var _ = Describe("Targets", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("returns the saved target", func() {
+			It("returns ErrNoTargetSpecifiedNeedToChoose", func() {
 				_, err := rc.LoadTarget("", false)
 				Expect(err).To(Equal(rc.ErrNoTargetSpecifiedNeedToChoose))
 			})
