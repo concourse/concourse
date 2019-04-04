@@ -46,6 +46,10 @@ func (i *inputMapper) SaveNextInputMapping(
 			continue
 		}
 
+		if inputConfig.Version != nil && inputConfig.Version.Pinned != nil {
+			continue
+		}
+
 		if resource.CurrentPinnedVersion() != nil {
 			inputConfigs[i].Version = &atc.VersionConfig{Pinned: resource.CurrentPinnedVersion()}
 		}
