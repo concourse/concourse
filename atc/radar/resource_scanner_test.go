@@ -119,7 +119,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
 		fakeDBResource.SetResourceConfigReturns(fakeResourceConfigScope, nil)
 
-		fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+		fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
 
 		scanner = NewResourceScanner(
 			fakeClock,
@@ -153,7 +153,7 @@ var _ = Describe("ResourceScanner", func() {
 		})
 
 		JustBeforeEach(func() {
-			actualInterval, runErr = scanner.Run(scanLogger, "some-resource")
+			actualInterval, runErr = scanner.Run(scanLogger, 39)
 		})
 
 		Context("when the lock cannot be acquired", func() {
@@ -291,7 +291,7 @@ var _ = Describe("ResourceScanner", func() {
 				Context("when the resource config has a specified check interval", func() {
 					BeforeEach(func() {
 						fakeDBResource.CheckEveryReturns("10ms")
-						fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+						fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
 					})
 
 					It("leases for the configured interval", func() {
@@ -315,7 +315,7 @@ var _ = Describe("ResourceScanner", func() {
 					Context("when the interval cannot be parsed", func() {
 						BeforeEach(func() {
 							fakeDBResource.CheckEveryReturns("bad-value")
-							fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+							fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
 						})
 
 						It("sets the check error", func() {
@@ -564,7 +564,7 @@ var _ = Describe("ResourceScanner", func() {
 					disaster := errors.New("disaster")
 
 					BeforeEach(func() {
-						fakeDBPipeline.ResourceReturns(nil, false, disaster)
+						fakeDBPipeline.ResourceByIDReturns(nil, false, disaster)
 					})
 
 					It("returns an error", func() {
@@ -575,12 +575,12 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when the resource is not in the database", func() {
 					BeforeEach(func() {
-						fakeDBPipeline.ResourceReturns(nil, false, nil)
+						fakeDBPipeline.ResourceByIDReturns(nil, false, nil)
 					})
 
 					It("returns an error", func() {
 						Expect(runErr).To(HaveOccurred())
-						Expect(runErr.Error()).To(ContainSubstring("resource 'some-resource' not found"))
+						Expect(runErr.Error()).To(ContainSubstring("resource '39' not found"))
 					})
 				})
 			})
@@ -606,7 +606,7 @@ var _ = Describe("ResourceScanner", func() {
 		})
 
 		JustBeforeEach(func() {
-			scanErr = scanner.Scan(lagertest.NewTestLogger("test"), "some-resource")
+			scanErr = scanner.Scan(lagertest.NewTestLogger("test"), 39)
 		})
 
 		Context("if the lock can be acquired and last checked updated", func() {
@@ -778,7 +778,7 @@ var _ = Describe("ResourceScanner", func() {
 			Context("when the resource config has a specified check interval", func() {
 				BeforeEach(func() {
 					fakeDBResource.CheckEveryReturns("10ms")
-					fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+					fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
 				})
 
 				It("leases for the configured interval", func() {
@@ -798,7 +798,7 @@ var _ = Describe("ResourceScanner", func() {
 				Context("when the interval cannot be parsed", func() {
 					BeforeEach(func() {
 						fakeDBResource.CheckEveryReturns("bad-value")
-						fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+						fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
 					})
 
 					It("sets the check error and returns the error", func() {
@@ -814,7 +814,7 @@ var _ = Describe("ResourceScanner", func() {
 			Context("when the resource has a specified timeout", func() {
 				BeforeEach(func() {
 					fakeDBResource.CheckTimeoutReturns("10s")
-					fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+					fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
 				})
 
 				It("times out after the specified timeout", func() {
@@ -827,7 +827,7 @@ var _ = Describe("ResourceScanner", func() {
 				Context("when the timeout cannot be parsed", func() {
 					BeforeEach(func() {
 						fakeDBResource.CheckTimeoutReturns("bad-value")
-						fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
+						fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
 					})
 
 					It("fails to parse the timeout and returns the error", func() {
@@ -1081,7 +1081,7 @@ var _ = Describe("ResourceScanner", func() {
 		})
 
 		JustBeforeEach(func() {
-			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), "some-resource", fromVersion)
+			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), 39, fromVersion)
 		})
 
 		Context("if the lock can be acquired and last checked updated", func() {
@@ -1136,12 +1136,12 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the resource is not in the database", func() {
 				BeforeEach(func() {
-					fakeDBPipeline.ResourceReturns(nil, false, nil)
+					fakeDBPipeline.ResourceByIDReturns(nil, false, nil)
 				})
 
 				It("returns an error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(scanErr.Error()).To(ContainSubstring("resource 'some-resource' not found"))
+					Expect(scanErr.Error()).To(ContainSubstring("resource '39' not found"))
 				})
 			})
 		})

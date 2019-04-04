@@ -2,7 +2,6 @@ module Job.Styles exposing
     ( buildResourceHeader
     , buildResourceIcon
     , icon
-    , pageBelowTopBar
     , triggerButton
     , triggerTooltip
     )
@@ -11,13 +10,6 @@ import Colors
 import Concourse
 import Html
 import Html.Attributes exposing (style)
-
-
-pageBelowTopBar : List (Html.Attribute msg)
-pageBelowTopBar =
-    [ style "padding-top" "54px"
-    , style "height" "100%"
-    ]
 
 
 triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List (Html.Attribute msg)

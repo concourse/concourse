@@ -580,102 +580,128 @@ var _ = Describe("Resources API", func() {
 				fakeaccess.IsAuthorizedReturns(true)
 			})
 
-			It("injects the proper pipelineDB", func() {
-				Expect(dbTeam.PipelineCallCount()).To(Equal(1))
-				pipelineName := dbTeam.PipelineArgsForCall(0)
-				Expect(pipelineName).To(Equal("a-pipeline"))
-			})
-
-			It("tries to scan with no version specified", func() {
-				Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
-				_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-				Expect(actualResourceName).To(Equal("resource-name"))
-				Expect(actualFromVersion).To(BeNil())
-			})
-
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			Context("when checking with a version specified", func() {
+			Context("when looking up the resource fails", func() {
 				BeforeEach(func() {
-					checkRequestBody = atc.CheckRequestBody{
-						From: atc.Version{
-							"some-version-key": "some-version-value",
-						},
-					}
+					fakePipeline.ResourceReturns(nil, false, errors.New("nope"))
 				})
-
-				It("tries to scan with the version specified", func() {
-					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
-					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-					Expect(actualResourceName).To(Equal("resource-name"))
-					Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
-			Context("when checking fails with ResourceNotFoundError", func() {
+			Context("when the resource is not found", func() {
 				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(db.ResourceNotFoundError{})
+					fakePipeline.ResourceReturns(nil, false, nil)
 				})
-
 				It("returns 404", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
-			Context("when checking the resource fails with ResourceTypeNotFoundError", func() {
+			Context("when it finds the resource", func() {
 				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(db.ResourceTypeNotFoundError{Name: "missing-type"})
+					fakeResource := new(dbfakes.FakeResource)
+					fakeResource.IDReturns(1)
+					fakePipeline.ResourceReturns(fakeResource, true, nil)
 				})
 
-				It("returns jsonapi 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					Expect(response.Header.Get("Content-Type")).To(Equal(jsonapi.MediaType))
-				})
-			})
-
-			Context("when checking the resource fails internally", func() {
-				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(errors.New("welp"))
+				It("injects the proper pipelineDB", func() {
+					Expect(dbTeam.PipelineCallCount()).To(Equal(1))
+					pipelineName := dbTeam.PipelineArgsForCall(0)
+					Expect(pipelineName).To(Equal("a-pipeline"))
 				})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					buf := new(bytes.Buffer)
-					_, err := buf.ReadFrom(response.Body)
-					Expect(err).ToNot(HaveOccurred())
-					body := buf.String()
-					Expect(body).To(Equal("welp"))
-				})
-			})
-
-			Context("when checking the resource fails with ErrResourceScriptFailed", func() {
-				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(
-						resource.ErrResourceScriptFailed{
-							ExitStatus: 42,
-							Stderr:     "my tooth",
-						},
-					)
+				It("tries to scan with no version specified", func() {
+					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+					_, actualResourceID, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+					Expect(actualResourceID).To(Equal(1))
+					Expect(actualFromVersion).To(BeNil())
 				})
 
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				It("returns the script's exit status and stderr", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
+				Context("when checking with a version specified", func() {
+					BeforeEach(func() {
+						checkRequestBody = atc.CheckRequestBody{
+							From: atc.Version{
+								"some-version-key": "some-version-value",
+							},
+						}
+					})
 
-					Expect(body).To(MatchJSON(`{
+					It("tries to scan with the version specified", func() {
+						Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+						_, actualResourceID, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+						Expect(actualResourceID).To(Equal(1))
+						Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+					})
+				})
+
+				Context("when checking fails with ResourceNotFoundError", func() {
+					BeforeEach(func() {
+						fakeScanner.ScanFromVersionReturns(db.ResourceNotFoundError{})
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when checking the resource fails with ResourceTypeNotFoundError", func() {
+					BeforeEach(func() {
+						fakeScanner.ScanFromVersionReturns(db.ResourceTypeNotFoundError{ID: 13})
+					})
+
+					It("returns jsonapi 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						Expect(response.Header.Get("Content-Type")).To(Equal(jsonapi.MediaType))
+					})
+				})
+
+				Context("when checking the resource fails internally", func() {
+					BeforeEach(func() {
+						fakeScanner.ScanFromVersionReturns(errors.New("welp"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						buf := new(bytes.Buffer)
+						_, err := buf.ReadFrom(response.Body)
+						Expect(err).ToNot(HaveOccurred())
+						body := buf.String()
+						Expect(body).To(Equal("welp"))
+					})
+				})
+
+				Context("when checking the resource fails with ErrResourceScriptFailed", func() {
+					BeforeEach(func() {
+						fakeScanner.ScanFromVersionReturns(
+							resource.ErrResourceScriptFailed{
+								ExitStatus: 42,
+								Stderr:     "my tooth",
+							},
+						)
+					})
+
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+
+					It("returns the script's exit status and stderr", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{
 						"exit_status": 42,
 						"stderr": "my tooth"
 					}`))
-				})
+					})
 
-				It("returns application/json", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					It("returns application/json", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
 				})
 			})
 		})
@@ -1205,49 +1231,75 @@ var _ = Describe("Resources API", func() {
 				fakeScannerFactory.NewResourceTypeScannerReturns(fakeScanner)
 			})
 
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("calls Scan", func() {
-				Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
-			})
-
-			Context("when checking with a version specified", func() {
+			Context("when looking up the resource type fails", func() {
 				BeforeEach(func() {
-					checkRequestBody = atc.CheckRequestBody{
-						From: atc.Version{
-							"some-version-key": "some-version-value",
-						},
-					}
+					fakePipeline.ResourceTypeReturns(nil, false, errors.New("nope"))
 				})
-
-				It("tries to scan with the version specified", func() {
-					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
-					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-					Expect(actualResourceName).To(Equal("resource-type-name"))
-					Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
-			Context("when resource type checking fails with ResourceNotFoundError", func() {
+			Context("when the resource type is not found", func() {
 				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(db.ResourceTypeNotFoundError{})
+					fakePipeline.ResourceTypeReturns(nil, false, nil)
 				})
-
 				It("returns 404", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
-			Context("when resource type fails with unexpected error", func() {
+			Context("when it finds the resource type", func() {
 				BeforeEach(func() {
-					err := errors.New("some-error")
-					fakeScanner.ScanFromVersionReturns(err)
+					fakeResourceType := new(dbfakes.FakeResourceType)
+					fakeResourceType.IDReturns(1)
+					fakePipeline.ResourceTypeReturns(fakeResourceType, true, nil)
 				})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("calls Scan", func() {
+					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+				})
+
+				Context("when checking with a version specified", func() {
+					BeforeEach(func() {
+						checkRequestBody = atc.CheckRequestBody{
+							From: atc.Version{
+								"some-version-key": "some-version-value",
+							},
+						}
+					})
+
+					It("tries to scan with the version specified", func() {
+						Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+						_, actualResourceID, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+						Expect(actualResourceID).To(Equal(1))
+						Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+					})
+				})
+
+				Context("when resource type checking fails with ResourceNotFoundError", func() {
+					BeforeEach(func() {
+						fakeScanner.ScanFromVersionReturns(db.ResourceTypeNotFoundError{})
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when resource type fails with unexpected error", func() {
+					BeforeEach(func() {
+						err := errors.New("some-error")
+						fakeScanner.ScanFromVersionReturns(err)
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 		})
@@ -1271,6 +1323,7 @@ var _ = Describe("Resources API", func() {
 
 			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("resource-name")
+			fakeResource.IDReturns(10)
 			fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 			fakeResourceConfigVersion = new(dbfakes.FakeResourceConfigVersion)
 			fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
@@ -1356,8 +1409,8 @@ var _ = Describe("Resources API", func() {
 
 							It("tries to scan with the latest version", func() {
 								Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
-								_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-								Expect(actualResourceName).To(Equal("resource-name"))
+								_, actualResourceID, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+								Expect(actualResourceID).To(Equal(10))
 								Expect(actualFromVersion).To(Equal(atc.Version{"some": "version"}))
 							})
 
@@ -1373,8 +1426,8 @@ var _ = Describe("Resources API", func() {
 
 							It("tries to scan with no version specified", func() {
 								Eventually(fakeScanner.ScanFromVersionCallCount).Should(Equal(1))
-								_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-								Expect(actualResourceName).To(Equal("resource-name"))
+								_, actualResourceID, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+								Expect(actualResourceID).To(Equal(10))
 								Expect(actualFromVersion).To(BeNil())
 							})
 

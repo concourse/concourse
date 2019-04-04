@@ -14,11 +14,11 @@ import (
 )
 
 type ResourceTypeNotFoundError struct {
-	Name string
+	ID int
 }
 
 func (e ResourceTypeNotFoundError) Error() string {
-	return fmt.Sprintf("resource type not found: %s", e.Name)
+	return fmt.Sprintf("resource type not found: %d", e.ID)
 }
 
 //go:generate counterfeiter . ResourceType

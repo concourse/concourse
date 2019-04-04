@@ -2,14 +2,14 @@
 package dbfakes
 
 import (
-	sync "sync"
-	time "time"
+	"sync"
+	"time"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	db "github.com/concourse/concourse/atc/db"
-	algorithm "github.com/concourse/concourse/atc/db/algorithm"
-	lock "github.com/concourse/concourse/atc/db/lock"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/algorithm"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakePipeline struct {
@@ -349,6 +349,21 @@ type FakePipeline struct {
 		result2 bool
 		result3 error
 	}
+	ResourceByIDStub        func(int) (db.Resource, bool, error)
+	resourceByIDMutex       sync.RWMutex
+	resourceByIDArgsForCall []struct {
+		arg1 int
+	}
+	resourceByIDReturns struct {
+		result1 db.Resource
+		result2 bool
+		result3 error
+	}
+	resourceByIDReturnsOnCall map[int]struct {
+		result1 db.Resource
+		result2 bool
+		result3 error
+	}
 	ResourceTypeStub        func(string) (db.ResourceType, bool, error)
 	resourceTypeMutex       sync.RWMutex
 	resourceTypeArgsForCall []struct {
@@ -360,6 +375,21 @@ type FakePipeline struct {
 		result3 error
 	}
 	resourceTypeReturnsOnCall map[int]struct {
+		result1 db.ResourceType
+		result2 bool
+		result3 error
+	}
+	ResourceTypeByIDStub        func(int) (db.ResourceType, bool, error)
+	resourceTypeByIDMutex       sync.RWMutex
+	resourceTypeByIDArgsForCall []struct {
+		arg1 int
+	}
+	resourceTypeByIDReturns struct {
+		result1 db.ResourceType
+		result2 bool
+		result3 error
+	}
+	resourceTypeByIDReturnsOnCall map[int]struct {
 		result1 db.ResourceType
 		result2 bool
 		result3 error
@@ -2052,6 +2082,72 @@ func (fake *FakePipeline) ResourceReturnsOnCall(i int, result1 db.Resource, resu
 	}{result1, result2, result3}
 }
 
+func (fake *FakePipeline) ResourceByID(arg1 int) (db.Resource, bool, error) {
+	fake.resourceByIDMutex.Lock()
+	ret, specificReturn := fake.resourceByIDReturnsOnCall[len(fake.resourceByIDArgsForCall)]
+	fake.resourceByIDArgsForCall = append(fake.resourceByIDArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("ResourceByID", []interface{}{arg1})
+	fake.resourceByIDMutex.Unlock()
+	if fake.ResourceByIDStub != nil {
+		return fake.ResourceByIDStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.resourceByIDReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakePipeline) ResourceByIDCallCount() int {
+	fake.resourceByIDMutex.RLock()
+	defer fake.resourceByIDMutex.RUnlock()
+	return len(fake.resourceByIDArgsForCall)
+}
+
+func (fake *FakePipeline) ResourceByIDCalls(stub func(int) (db.Resource, bool, error)) {
+	fake.resourceByIDMutex.Lock()
+	defer fake.resourceByIDMutex.Unlock()
+	fake.ResourceByIDStub = stub
+}
+
+func (fake *FakePipeline) ResourceByIDArgsForCall(i int) int {
+	fake.resourceByIDMutex.RLock()
+	defer fake.resourceByIDMutex.RUnlock()
+	argsForCall := fake.resourceByIDArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakePipeline) ResourceByIDReturns(result1 db.Resource, result2 bool, result3 error) {
+	fake.resourceByIDMutex.Lock()
+	defer fake.resourceByIDMutex.Unlock()
+	fake.ResourceByIDStub = nil
+	fake.resourceByIDReturns = struct {
+		result1 db.Resource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) ResourceByIDReturnsOnCall(i int, result1 db.Resource, result2 bool, result3 error) {
+	fake.resourceByIDMutex.Lock()
+	defer fake.resourceByIDMutex.Unlock()
+	fake.ResourceByIDStub = nil
+	if fake.resourceByIDReturnsOnCall == nil {
+		fake.resourceByIDReturnsOnCall = make(map[int]struct {
+			result1 db.Resource
+			result2 bool
+			result3 error
+		})
+	}
+	fake.resourceByIDReturnsOnCall[i] = struct {
+		result1 db.Resource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakePipeline) ResourceType(arg1 string) (db.ResourceType, bool, error) {
 	fake.resourceTypeMutex.Lock()
 	ret, specificReturn := fake.resourceTypeReturnsOnCall[len(fake.resourceTypeArgsForCall)]
@@ -2112,6 +2208,72 @@ func (fake *FakePipeline) ResourceTypeReturnsOnCall(i int, result1 db.ResourceTy
 		})
 	}
 	fake.resourceTypeReturnsOnCall[i] = struct {
+		result1 db.ResourceType
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) ResourceTypeByID(arg1 int) (db.ResourceType, bool, error) {
+	fake.resourceTypeByIDMutex.Lock()
+	ret, specificReturn := fake.resourceTypeByIDReturnsOnCall[len(fake.resourceTypeByIDArgsForCall)]
+	fake.resourceTypeByIDArgsForCall = append(fake.resourceTypeByIDArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("ResourceTypeByID", []interface{}{arg1})
+	fake.resourceTypeByIDMutex.Unlock()
+	if fake.ResourceTypeByIDStub != nil {
+		return fake.ResourceTypeByIDStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.resourceTypeByIDReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakePipeline) ResourceTypeByIDCallCount() int {
+	fake.resourceTypeByIDMutex.RLock()
+	defer fake.resourceTypeByIDMutex.RUnlock()
+	return len(fake.resourceTypeByIDArgsForCall)
+}
+
+func (fake *FakePipeline) ResourceTypeByIDCalls(stub func(int) (db.ResourceType, bool, error)) {
+	fake.resourceTypeByIDMutex.Lock()
+	defer fake.resourceTypeByIDMutex.Unlock()
+	fake.ResourceTypeByIDStub = stub
+}
+
+func (fake *FakePipeline) ResourceTypeByIDArgsForCall(i int) int {
+	fake.resourceTypeByIDMutex.RLock()
+	defer fake.resourceTypeByIDMutex.RUnlock()
+	argsForCall := fake.resourceTypeByIDArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakePipeline) ResourceTypeByIDReturns(result1 db.ResourceType, result2 bool, result3 error) {
+	fake.resourceTypeByIDMutex.Lock()
+	defer fake.resourceTypeByIDMutex.Unlock()
+	fake.ResourceTypeByIDStub = nil
+	fake.resourceTypeByIDReturns = struct {
+		result1 db.ResourceType
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) ResourceTypeByIDReturnsOnCall(i int, result1 db.ResourceType, result2 bool, result3 error) {
+	fake.resourceTypeByIDMutex.Lock()
+	defer fake.resourceTypeByIDMutex.Unlock()
+	fake.ResourceTypeByIDStub = nil
+	if fake.resourceTypeByIDReturnsOnCall == nil {
+		fake.resourceTypeByIDReturnsOnCall = make(map[int]struct {
+			result1 db.ResourceType
+			result2 bool
+			result3 error
+		})
+	}
+	fake.resourceTypeByIDReturnsOnCall[i] = struct {
 		result1 db.ResourceType
 		result2 bool
 		result3 error
@@ -2509,8 +2671,12 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.renameMutex.RUnlock()
 	fake.resourceMutex.RLock()
 	defer fake.resourceMutex.RUnlock()
+	fake.resourceByIDMutex.RLock()
+	defer fake.resourceByIDMutex.RUnlock()
 	fake.resourceTypeMutex.RLock()
 	defer fake.resourceTypeMutex.RUnlock()
+	fake.resourceTypeByIDMutex.RLock()
+	defer fake.resourceTypeByIDMutex.RUnlock()
 	fake.resourceTypesMutex.RLock()
 	defer fake.resourceTypesMutex.RUnlock()
 	fake.resourceVersionMutex.RLock()

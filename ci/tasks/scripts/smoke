@@ -44,4 +44,5 @@ fly --version
 
 $DIR/wait-worker
 
-$DIR/watsjs test/smoke.js
+# remove --serial after dex serialization failure is fixed
+$DIR/watsjs --serial test/smoke.js

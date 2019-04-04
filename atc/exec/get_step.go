@@ -38,6 +38,8 @@ func (e ErrResourceNotFound) Error() string {
 type GetDelegate interface {
 	BuildStepDelegate
 
+	Initializing(lager.Logger)
+	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, VersionInfo)
 }
 
@@ -152,6 +154,8 @@ func NewGetStep(
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 
+	step.delegate.Initializing(logger)
+
 	version, err := step.versionSource.Version(state)
 	if err != nil {
 		return err
@@ -210,6 +214,8 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	if err != nil {
 		return err
 	}
+
+	step.delegate.Starting(logger)
 
 	versionedSource, err := step.resourceFetcher.Fetch(
 		ctx,

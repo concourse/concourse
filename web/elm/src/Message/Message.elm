@@ -50,6 +50,7 @@ type DomID
     | SaveCommentButton
     | AbortBuildButton
     | FirstOccurrenceIcon StepID
+    | StepState StepID
     | PinIcon
     | PinButton VersionId
     | PinBar
