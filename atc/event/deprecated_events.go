@@ -497,3 +497,23 @@ type FinishPutV40 struct {
 
 func (FinishPutV40) EventType() atc.EventType  { return EventTypeFinishPut }
 func (FinishPutV40) Version() atc.EventVersion { return "4.0" }
+
+type FinishGetV50 struct {
+	Origin          Origin              `json:"origin"`
+	ExitStatus      int                 `json:"exit_status"`
+	FetchedVersion  atc.Version         `json:"version"`
+	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+}
+
+func (FinishGetV50) EventType() atc.EventType  { return EventTypeFinishGet }
+func (FinishGetV50) Version() atc.EventVersion { return "5.0" }
+
+type FinishPutV50 struct {
+	Origin          Origin              `json:"origin"`
+	ExitStatus      int                 `json:"exit_status"`
+	CreatedVersion  atc.Version         `json:"version"`
+	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+}
+
+func (FinishPutV50) EventType() atc.EventType  { return EventTypeFinishPut }
+func (FinishPutV50) Version() atc.EventVersion { return "5.0" }
