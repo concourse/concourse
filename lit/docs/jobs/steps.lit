@@ -27,6 +27,7 @@ appear as outputs.
 \include-section{./steps/on_success.lit}
 \include-section{./steps/on_failure.lit}
 \include-section{./steps/on_abort.lit}
+\include-section{./steps/on_error.lit}
 \include-section{./steps/ensure.lit}
 \include-section{./steps/tags.lit}
 \include-section{./steps/timeout.lit}
