@@ -25,7 +25,6 @@ type HijackCommand struct {
 	Job            flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Name of a job to hijack"`
 	Handle         string                   `          long:"handle"                            description:"Handle id of a job to hijack"`
 	Check          flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
-	Url            string                   `short:"u" long:"url"                               description:"URL for the build, job, or check container to hijack"`
 	Build          string                   `short:"b" long:"build"                             description:"Build number within the job, or global build ID"`
 	StepName       string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
 	StepType       string                   `          long:"step-type"                         description:"Type of step to hijack (e.g. get, put, task)"`
@@ -36,27 +35,9 @@ type HijackCommand struct {
 }
 
 func (command *HijackCommand) Execute([]string) error {
-	var (
-		target rc.Target
-		name   rc.TargetName
-		err    error
-	)
-	if Fly.Target == "" && command.Url != "" {
-		u, err := url.Parse(command.Url)
-		if err != nil {
-			return err
-		}
-		urlMap := parseUrlPath(u.Path)
-		target, name, err = rc.LoadTargetFromURL(fmt.Sprintf("%s://%s", u.Scheme, u.Host), urlMap["teams"], Fly.Verbose)
-		if err != nil {
-			return err
-		}
-		Fly.Target = name
-	} else {
-		target, err = rc.LoadTarget(Fly.Target, Fly.Verbose)
-		if err != nil {
-			return err
-		}
+	target, err := Fly.RetrieveTarget()
+	if err != nil {
+		return err
 	}
 
 	err = target.Validate()
@@ -208,20 +189,6 @@ func (command *HijackCommand) Execute([]string) error {
 	return nil
 }
 
-func parseUrlPath(urlPath string) map[string]string {
-	pathWithoutFirstSlash := strings.Replace(urlPath, "/", "", 1)
-	urlComponents := strings.Split(pathWithoutFirstSlash, "/")
-	urlMap := make(map[string]string)
-
-	for i := 0; i < len(urlComponents)/2; i++ {
-		keyIndex := i * 2
-		valueIndex := keyIndex + 1
-		urlMap[urlComponents[keyIndex]] = urlComponents[valueIndex]
-	}
-
-	return urlMap
-}
-
 func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, urlParam string) (*containerFingerprint, error) {
 	u, err := url.Parse(urlParam)
 	if err != nil {
@@ -261,8 +228,8 @@ func (command *HijackCommand) getContainerFingerprint(target rc.Target) (*contai
 	var err error
 	fingerprint := &containerFingerprint{}
 
-	if command.Url != "" {
-		fingerprint, err = command.getContainerFingerprintFromUrl(target, command.Url)
+	if Fly.Url != "" {
+		fingerprint, err = command.getContainerFingerprintFromUrl(target, Fly.Url)
 		if err != nil {
 			return nil, err
 		}

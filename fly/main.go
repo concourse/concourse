@@ -12,7 +12,17 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+func UrlSetupUnknownOptionHandler(option string, arg flags.SplitArgument, args []string) ([]string, error) {
+	// just ignore additional arguments during url setup
+	return args, nil
+}
+
 func main() {
+	url_setup_parser := flags.NewParser(&commands.UrlSetup, flags.None)
+	url_setup_parser.UnknownOptionHandler = UrlSetupUnknownOptionHandler
+	url_setup_parser.Parse()
+	commands.UrlSetup.SetInEnvironment()
+
 	parser := flags.NewParser(&commands.Fly, flags.HelpFlag|flags.PassDoubleDash)
 	parser.NamespaceDelimiter = "-"
 
