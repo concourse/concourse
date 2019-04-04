@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
-	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/algorithm"
@@ -58,8 +56,6 @@ type Pipeline interface {
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
-
-	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 
@@ -768,55 +764,6 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	err = tx.Commit()
 	return err
-}
-
-func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
-	lock, acquired, err := p.lockFactory.Acquire(
-		logger.Session("lock", lager.Data{
-			"pipeline": p.name,
-		}),
-		lock.NewPipelineSchedulingLockLockID(p.id),
-	)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	var keepLock bool
-	defer func() {
-		if !keepLock {
-			err = lock.Release()
-			if err != nil {
-				logger.Error("failed-to-release-lock", err)
-			}
-		}
-	}()
-
-	result, err := p.conn.Exec(`
-		UPDATE pipelines
-		SET last_scheduled = now()
-		WHERE id = $1
-			AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
-	`, p.id, interval.Seconds())
-	if err != nil {
-		return nil, false, err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return nil, false, err
-	}
-
-	if rows == 0 {
-		return nil, false, nil
-	}
-
-	keepLock = true
-
-	return lock, true, nil
 }
 
 func (p *pipeline) CreateOneOffBuild() (Build, error) {

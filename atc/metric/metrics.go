@@ -442,7 +442,7 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 var lockTypeNames = map[int]string{
 	lock.LockTypeResourceConfigChecking: "ResourceConfigChecking",
 	lock.LockTypeBuildTracking:          "BuildTracking",
-	lock.LockTypePipelineScheduling:     "PipelineScheduling",
+	lock.LockTypeJobScheduling:          "JobScheduling",
 	lock.LockTypeBatch:                  "Batch",
 	lock.LockTypeVolumeCreating:         "VolumeCreating",
 	lock.LockTypeContainerCreating:      "ContainerCreating",

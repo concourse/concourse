@@ -25,10 +25,20 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool, error) 
 	}
 
 	for i, v := range versions {
-		mapping[configs[i].Name] = InputVersion{
-			ResourceID:      configs[i].ResourceID,
-			VersionID:       v.ID,
-			FirstOccurrence: false, // TODO
+		// inputName := inputConfig.Name
+		// inputVersionID := basicMapping[inputName]
+		// firstOccurrence, err := db.IsVersionFirstOccurrence(inputVersionID, inputConfig.JobID, inputName)
+		// if err != nil {
+		// 	return nil, false, err
+		// }
+
+		mapping[configs[i].Name] = InputSource{
+			InputVersion: InputVersion{
+				ResourceID:      configs[i].ResourceID,
+				VersionID:       v.ID,
+				FirstOccurrence: false, // TODO
+			},
+			PassedBuildIDs: v.SourceBuildIds,
 		}
 	}
 

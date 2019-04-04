@@ -3,7 +3,7 @@ resources:
 - name: some-resource
   type: mock
   source:
-    create_files: {"task.yml":((task_content))}
+    initial_version: version
 
 
 jobs:
@@ -15,7 +15,4 @@ jobs:
   plan:
   - get: some-resource
     passed: [upstream-job]
-  - task: run
-    file: some-resource/task.yml
-    input_mapping:
-      mapped-resource: some-resource
+    trigger: true

@@ -3,12 +3,14 @@ package scheduler
 import (
 	"errors"
 	"os"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 )
 
@@ -18,7 +20,7 @@ type BuildScheduler interface {
 	Schedule(
 		logger lager.Logger,
 		versions *algorithm.VersionsDB,
-		jobs []db.Job,
+		job db.Job,
 		resources db.Resources,
 		resourceTypes atc.VersionedResourceTypes,
 	) (map[string]time.Duration, error)
@@ -32,6 +34,9 @@ type Runner struct {
 	Scheduler BuildScheduler
 	Noop      bool
 	Interval  time.Duration
+
+	schedulingJobs map[int]struct{}
+	jobsLock       sync.Mutex
 }
 
 func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -69,18 +74,6 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return nil
 	}
 
-	schedulingLock, acquired, err := runner.Pipeline.AcquireSchedulingLock(logger, runner.Interval)
-	if err != nil {
-		logger.Error("failed-to-acquire-scheduling-lock", err)
-		return nil
-	}
-
-	if !acquired {
-		return nil
-	}
-
-	defer schedulingLock.Release()
-
 	start := time.Now()
 
 	defer func() {
@@ -96,37 +89,60 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return err
 	}
 
-	metric.SchedulingLoadVersionsDuration{
-		PipelineName: runner.Pipeline.Name(),
-		Duration:     time.Since(start),
-	}.Emit(logger)
-
-	found, err := runner.Pipeline.Reload()
-	if err != nil {
-		logger.Error("failed-to-update-pipeline-config", err)
-		return nil
-	}
-
-	if !found {
-		return errPipelineRemoved
-	}
-
-	resources, err := runner.Pipeline.Resources()
-	if err != nil {
-		logger.Error("failed-to-get-resources", err)
-		return err
-	}
-
 	jobs, err := runner.Pipeline.Jobs()
 	if err != nil {
 		logger.Error("failed-to-get-jobs", err)
 		return err
 	}
 
+	for _, job := range jobs {
+		schedulingLock, acquired, err := job.AcquireSchedulingLock(logger, runner.Interval)
+		if err != nil {
+			logger.Error("failed-to-acquire-scheduling-lock", err)
+			return nil
+		}
+
+		if !acquired {
+			continue
+		}
+
+		go runner.scheduleJob(logger, schedulingLock, versions, job)
+	}
+
+	return err
+}
+
+func (runner *Runner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, versions *algorithm.VersionsDB, job db.Job) {
+	defer schedulingLock.Release()
+
+	start := time.Now()
+
+	metric.SchedulingLoadVersionsDuration{
+		PipelineName: runner.Pipeline.Name(),
+		Duration:     time.Since(start),
+	}.Emit(logger)
+
+	found, err := job.Reload()
+	if err != nil {
+		logger.Error("failed-to-update-job-config", err)
+		return
+	}
+
+	if !found {
+		logger.Error("job-not-found", err)
+		return
+	}
+
+	resources, err := runner.Pipeline.Resources()
+	if err != nil {
+		logger.Error("failed-to-get-resources", err)
+		return
+	}
+
 	resourceTypes, err := runner.Pipeline.ResourceTypes()
 	if err != nil {
 		logger.Error("failed-to-get-resource-types", err)
-		return err
+		return
 	}
 
 	sLog := logger.Session("scheduling")
@@ -134,7 +150,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 	schedulingTimes, err := runner.Scheduler.Schedule(
 		sLog,
 		versions,
-		jobs,
+		job,
 		resources,
 		resourceTypes.Deserialize(),
 	)
@@ -147,5 +163,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		}.Emit(sLog)
 	}
 
-	return err
+	runner.jobsLock.Lock()
+	delete(runner.schedulingJobs, job.ID())
+	runner.jobsLock.Unlock()
 }

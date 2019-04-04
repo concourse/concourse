@@ -96,6 +96,8 @@ type Build interface {
 	SaveOutput(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
 	UseInputs(inputs []BuildInput) error
 
+	AdoptBuildPipes() error
+
 	Resources() ([]BuildInput, []BuildOutput, error)
 	SaveImageResourceVersion(UsedResourceCache) error
 
@@ -954,6 +956,17 @@ func (b *build) UseInputs(inputs []BuildInput) error {
 	}
 
 	return tx.Commit()
+}
+
+func (b *build) AdoptBuildPipes() error {
+	_, err := b.conn.Exec(`
+		INSERT INTO build_pipes (from_build_id, to_build_id)
+		SELECT nbp.from_build_id, $1
+		FROM next_build_pipes nbp
+		WHERE nbp.to_job_id = $2
+		`, b.id, b.jobID)
+
+	return err
 }
 
 func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {

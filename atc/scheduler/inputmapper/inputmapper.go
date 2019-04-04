@@ -83,6 +83,11 @@ func (i *inputMapper) SaveNextInputMapping(
 			logger.Error("failed-to-delete-next-input-mapping-after-missing-pending", err)
 		}
 
+		err = job.DeleteNextBuildPipes()
+		if err != nil {
+			logger.Error("failed-to-delete-next-build-pipes-after-failed-resolve", err)
+		}
+
 		return nil, err
 	}
 
@@ -98,10 +103,21 @@ func (i *inputMapper) SaveNextInputMapping(
 			logger.Error("failed-to-delete-next-input-mapping-after-failed-resolve", err)
 		}
 
+		err = job.DeleteNextBuildPipes()
+		if err != nil {
+			logger.Error("failed-to-delete-next-build-pipes-after-failed-resolve", err)
+		}
+
 		return nil, err
 	}
 
 	err = job.SaveNextInputMapping(resolvedMapping)
+	if err != nil {
+		logger.Error("failed-to-save-next-input-mapping", err)
+		return nil, err
+	}
+
+	err = job.SaveNextBuildPipes(resolvedMapping)
 	if err != nil {
 		logger.Error("failed-to-save-next-input-mapping", err)
 		return nil, err

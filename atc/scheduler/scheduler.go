@@ -19,41 +19,31 @@ type Scheduler struct {
 func (s *Scheduler) Schedule(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
-	jobs []db.Job,
+	job db.Job,
 	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
 ) (map[string]time.Duration, error) {
 	jobSchedulingTime := map[string]time.Duration{}
 
-	for _, job := range jobs {
-		jStart := time.Now()
-		err := s.ensurePendingBuildExists(logger, versions, job, resources)
-		jobSchedulingTime[job.Name()] = time.Since(jStart)
+	jStart := time.Now()
+	err := s.ensurePendingBuildExists(logger, versions, job, resources)
+	jobSchedulingTime[job.Name()] = time.Since(jStart)
 
-		if err != nil {
-			return jobSchedulingTime, err
-		}
+	if err != nil {
+		return jobSchedulingTime, err
 	}
 
-	nextPendingBuilds, err := s.Pipeline.GetAllPendingBuilds()
+	nextPendingBuilds, err := job.GetPendingBuilds()
 	if err != nil {
 		logger.Error("failed-to-get-all-next-pending-builds", err)
 		return jobSchedulingTime, err
 	}
 
-	for _, job := range jobs {
-		jStart := time.Now()
-		nextPendingBuildsForJob, ok := nextPendingBuilds[job.Name()]
-		if !ok {
-			continue
-		}
+	err = s.BuildStarter.TryStartPendingBuildsForJob(logger, job, resources, resourceTypes, nextPendingBuilds)
+	jobSchedulingTime[job.Name()] = jobSchedulingTime[job.Name()] + time.Since(jStart)
 
-		err := s.BuildStarter.TryStartPendingBuildsForJob(logger, job, resources, resourceTypes, nextPendingBuildsForJob)
-		jobSchedulingTime[job.Name()] = jobSchedulingTime[job.Name()] + time.Since(jStart)
-
-		if err != nil {
-			return jobSchedulingTime, err
-		}
+	if err != nil {
+		return jobSchedulingTime, err
 	}
 
 	return jobSchedulingTime, nil
@@ -71,10 +61,10 @@ func (s *Scheduler) ensurePendingBuildExists(
 	}
 
 	for _, inputConfig := range job.Config().Inputs() {
-		inputVersion, ok := inputMapping[inputConfig.Name]
+		inputSource, ok := inputMapping[inputConfig.Name]
 
 		//trigger: true, and the version has not been used
-		if ok && inputVersion.FirstOccurrence && inputConfig.Trigger {
+		if ok && inputSource.InputVersion.FirstOccurrence && inputConfig.Trigger {
 			err := job.EnsurePendingBuildExists()
 			if err != nil {
 				logger.Error("failed-to-ensure-pending-build-exists", err)

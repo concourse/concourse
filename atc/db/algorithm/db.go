@@ -1,6 +1,7 @@
 package algorithm
 
 import (
+	"database/sql"
 	"log"
 	"strconv"
 
@@ -64,6 +65,7 @@ func (db VersionsDB) LatestVersionOfResource(resourceID int) (int, error) {
 
 	return versionID, nil
 }
+
 func (db VersionsDB) SuccessfulBuilds(jobID int) ([]int, error) {
 	var buildIDs []int
 	rows, err := psql.Select("b.id").
@@ -264,4 +266,82 @@ func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet)
 		versionsQuery: query.RunWith(db.Runner),
 		buildIDs:      builds,
 	}, nil
+}
+
+func (db VersionsDB) GetLatestBuildID(jobID int) (int, error) {
+	var buildID int
+	err := psql.Select("b.id").
+		From("builds b").
+		Where(sq.Eq{
+			"b.job_id": jobID,
+		}).
+		OrderBy("b.id DESC").
+		Limit(1).
+		RunWith(db.Runner).
+		QueryRow().
+		Scan(&buildID)
+	if err != nil {
+		return 0, err
+	}
+
+	return buildID, nil
+}
+
+func (db VersionsDB) NextEveryVersion(buildID int, resourceID int) (int, error) {
+	// Grab the version_md5 for the build input using the buildID and resourceID
+	var checkOrder int
+	err := psql.Select("rcv.check_order").
+		From("resource_config_versions rcv, resources r, build_resource_config_version_inputs i").
+		Where(sq.Eq{
+			"i.build_id": buildID,
+			"r.id":       resourceID,
+		}).
+		Where(sq.Expr("r.resource_config_scope_id = rcv.resource_config_scope_id")).
+		Where(sq.Expr("i.version_md5 = rcv.version_md5")).
+		Where(sq.Expr("i.resource_id = r.id")).
+		RunWith(db.Runner).
+		QueryRow().
+		Scan(&checkOrder)
+
+	if err != nil {
+		return 0, err
+	}
+
+	// Query for all the versions of the resource with a high check_order of the version_md5 ASC
+	// Query for if the next version is disabled?
+	var nextVersionID int
+	err = psql.Select("rcv.id").
+		From("resource_config_versions rcv").
+		Where(sq.Expr("rcv.version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
+		Where(sq.Gt{"rcv.check_order": checkOrder}).
+		OrderBy("rcv.check_order ASC").
+		Limit(1).
+		RunWith(db.Runner).
+		QueryRow().
+		Scan(&nextVersionID)
+
+	if nextVersionID != 0 {
+		return nextVersionID, nil
+	}
+
+	if err != nil && err != sql.ErrNoRows {
+		return 0, err
+	}
+
+	// Query for all versions of resource with check_order =< the version_md5 DESC
+	err = psql.Select("rcv.id").
+		From("resource_config_versions rcv").
+		Where(sq.Expr("rcv.version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
+		Where(sq.LtOrEq{"rcv.check_order": checkOrder}).
+		OrderBy("rcv.check_order DESC").
+		Limit(1).
+		RunWith(db.Runner).
+		QueryRow().
+		Scan(&nextVersionID)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return nextVersionID, nil
 }

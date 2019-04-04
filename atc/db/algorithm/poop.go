@@ -9,16 +9,16 @@ package algorithm
 // to consider something 'passed'?
 
 type version struct {
-	ID int
-
-	VouchedForBy map[int]bool
+	ID             int
+	VouchedForBy   map[int]bool
+	SourceBuildIds []int
 }
 
 func newVersion(id int) *version {
 	return &version{
-		ID: id,
-
-		VouchedForBy: map[int]bool{},
+		ID:             id,
+		VouchedForBy:   map[int]bool{},
+		SourceBuildIds: []int{},
 	}
 }
 
@@ -47,6 +47,7 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 	//
 	// NOTE 3: maybe also select distinct build outputs so we don't waste time on
 	// the same thing (i.e. constantly re-triggered build)
+	// TODO: add disabling versions
 
 	for i, inputConfig := range inputConfigs {
 		debug := func(messages ...interface{}) {
@@ -71,6 +72,19 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 				// pinned
 				// TODO: do we need to verify that the id exists?
 				versionID = inputConfig.PinnedVersionID
+				debug("setting candidate", i, "to unconstrained version", versionID)
+			} else if inputConfig.UseEveryVersion {
+				buildID, err := db.GetLatestBuildID(inputConfig.JobID)
+				if err != nil {
+					return false, nil
+				}
+
+				versionID, err = db.NextEveryVersion(buildID, inputConfig.ResourceID)
+				if err != nil {
+					return false, nil
+				}
+
+				debug("setting candidate", i, "to version for version every", versionID)
 			} else {
 				// there are no passed constraints, so just take the latest version
 				var err error
@@ -78,15 +92,18 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 				if err != nil {
 					return false, nil
 				}
+
+				debug("setting candidate", i, "to version for latest", versionID)
 			}
 
-			debug("setting candidate", i, "to unconstrained version", versionID)
 			candidates[i] = newVersion(versionID)
 			continue
 		}
 
 		for jobID := range inputConfig.Passed {
 			if candidates[i] != nil {
+				debug(i, "has a candidate")
+
 				// coming from recursive call; we've already got a candidate
 				if candidates[i].VouchedForBy[jobID] {
 					debug("job", jobID, i, "already vouched for", candidates[i].ID)
@@ -145,27 +162,16 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 
 						// if this doesn't work out, restore it to either nil or the
 						// candidate *without* the job vouching for it
-						restore[c] = candidate
+						if candidate == nil {
+							restore[c] = nil
 
-						// make a copy
-						//
-						// TODO: this might not actually be necessary; we should be able to
-						// leave the job vouched regardless, because it *has* to at the end
-						// anyway - the mark is to just prevent it from trying the job
-						// again, which is what we want
-						debug("setting candidate", c, "to", output.VersionID)
-						candidates[c] = newVersion(output.VersionID)
-
-						// carry over the vouchers
-						if candidate != nil {
-							for vJobID := range candidate.VouchedForBy {
-								candidates[c].VouchedForBy[vJobID] = true
-							}
+							debug("setting candidate", c, "to", output.VersionID)
+							candidates[c] = newVersion(output.VersionID)
 						}
 
-						// vouch for it ourselves
 						debug("job", jobID, "vouching for", output.ResourceID, "version", output.VersionID)
 						candidates[c].VouchedForBy[jobID] = true
+						candidates[c].SourceBuildIds = append(candidates[c].SourceBuildIds, buildID)
 					}
 				}
 

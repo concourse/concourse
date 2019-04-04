@@ -110,23 +110,6 @@ func (s *buildStarter) tryStartNextPendingBuild(
 				return false, nil
 			}
 		}
-
-		versions, err := s.pipeline.LoadVersionsDB()
-		if err != nil {
-			logger.Error("failed-to-load-versions-db", err)
-			return false, err
-		}
-
-		_, err = s.inputMapper.SaveNextInputMapping(logger, versions, job, resources)
-		if err != nil {
-			return false, err
-		}
-
-		dbResourceTypes, err := s.pipeline.ResourceTypes()
-		if err != nil {
-			return false, err
-		}
-		resourceTypes = dbResourceTypes.Deserialize()
 	}
 
 	buildInputs, found, err := job.GetNextBuildInputs()
@@ -164,6 +147,13 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 	err = nextPendingBuild.UseInputs(buildInputs)
 	if err != nil {
+		logger.Error("failed-to-use-inputs", err)
+		return false, err
+	}
+
+	err = nextPendingBuild.AdoptBuildPipes()
+	if err != nil {
+		logger.Error("failed-to-adopt-build-pipes", err)
 		return false, err
 	}
 

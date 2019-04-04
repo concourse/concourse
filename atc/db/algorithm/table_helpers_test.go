@@ -27,6 +27,7 @@ type DBRow struct {
 	Version    string
 	CheckOrder int
 	VersionID  int
+	Disabled   bool
 }
 
 type Example struct {
@@ -158,6 +159,15 @@ func (example Example) Run() {
 			Suffix("ON CONFLICT DO NOTHING").
 			Exec()
 		Expect(err).ToNot(HaveOccurred())
+
+		if row.Disabled {
+			_, err = psql.Insert("resource_disabled_versions").
+				Columns("resource_id", "version_md5").
+				Values(resourceID, sq.Expr("md5(?)", row.Version)).
+				Suffix("ON CONFLICT DO NOTHING").
+				Exec()
+			Expect(err).ToNot(HaveOccurred())
+		}
 	}
 
 	insertRowBuild := func(row DBRow) {
@@ -376,8 +386,8 @@ func (example Example) Run() {
 	Expect(err).ToNot(HaveOccurred())
 
 	prettyValues := map[string]string{}
-	for name, inputVersion := range resolved {
-		prettyValues[name] = versionIDs.Name(inputVersion.VersionID)
+	for name, inputSource := range resolved {
+		prettyValues[name] = versionIDs.Name(inputSource.InputVersion.VersionID)
 	}
 
 	actualResult := Result{OK: ok, Values: prettyValues}
