@@ -164,6 +164,11 @@ resource "null_resource" "rerun" {
     source = "systemd/smoke-worker.conf"
   }
 
+  provisioner "file" {
+    destination = "/etc/concourse/garden.ini"
+    source = "garden/garden.ini"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "set -e -x",
