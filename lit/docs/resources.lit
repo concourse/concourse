@@ -32,6 +32,12 @@ configuration. Each configured resource consists of the following fields:
 
 }{resource-type}
 
+\define-attribute{icon: string}{
+  \italic{Optional.} The name of a \link{Material Design
+  icon}{https://materialdesignicons.com/} to show next to the resource name in
+  the web UI. For example, \code{github-circle}.
+}{resource-icon}
+
 \define-attribute{source: object}{
   \italic{Optional.} The location of the resource. This varies
   by resource type, and is a black box to Concourse; it is blindly passed to
@@ -72,6 +78,20 @@ configuration. Each configured resource consists of the following fields:
   source is internal to a worker's network, for example. See also
   \reference{tags-step-modifier}.
 }{resource-tags}
+
+\define-attribute{public: boolean}{
+  \italic{Optional. Default \code{false}.} If set to \code{true}, the metadata
+  for each version of the resource will be viewable by unauthenticated users
+  (assuming the pipeline has been \reference{exposing}{exposed}).
+
+  Resource metadata should never contain credentials or secret information, but
+  this is off by default just to be safe in case users don't want to show
+  things like commit messages and authors to the public.
+
+  Note: even when set to \code{false}, the versions identifiers will be
+  visible. In addition, if a resource is fetched in a build whose job is marked
+  \reference{job-public}, metadata will be visible in the build output.
+}{resource-public}
 
 \define-attribute{webhook_token: string}{
   \italic{Optional.} If specified, web hooks can be sent to trigger an

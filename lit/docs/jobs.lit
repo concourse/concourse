@@ -83,6 +83,11 @@ configured job consists of the following fields:
   will always be able to see the inputs, outputs, and build status history of a
   job. This is useful if you would like to expose your pipeline publicly without
   showing sensitive information in the build log.
+
+  Note: when this is set to \code{true}, any \reference{get-step} and
+  \reference{put-step}s will show the metadata for their resource version,
+  regardless of whether the resource itself has set \reference{resource-public}
+  to \code{true}.
 }{job-public}
 
 \define-attribute{disable_manual_trigger: boolean}{

@@ -1,0 +1,27 @@
+\use-plugin{concourse-docs}
+
+\title{\code{on_error} step hook}{on-error-step-hook}
+
+Any step can have \code{on_error} tacked onto it, whose value is a second step
+to execute only if the parent step errors.
+
+\define-attribute{on_error: step}{
+  The step to execute when the parent step errors. If the attached step
+  fails, the outer step is considered to have failed.
+}
+
+\right-side{Examples}{
+  \example{Running on Error}{
+    The following will perform the second task only if the first one errors:
+
+    \codeblock{yaml}{{
+    plan:
+    - get: foo
+    - task: unit
+      file: foo/unit.yml
+      on_error:
+        task: alert
+        file: foo/alert.yml
+    }}
+  }
+}
