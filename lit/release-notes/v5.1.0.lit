@@ -48,6 +48,28 @@
   name key. It defaults to \code{username}, just as before.
 }
 
+\note{feature}{
+  Previously, workers would garbage collect containers in volumes sequentially,
+  destroying containers first and then volumes. This meant that if a worker had
+  thousands of volumes to remove, it would go through and destroy them one by
+  one - meanwhile, containers were not being garbage-collected.
+
+  Containers and volumes are now garbage-collected in parallel to each other,
+  with a default max-in-flight of 5 containers and 5 volumes at a time. This
+  speeds up garbage-collection overall and prevents an imbalance in
+  volume/container counts from slowing each other down. This is especially
+  important as workers are typically capped at 250 containers, but may have
+  thousands of volumes and may even have a slow disk.
+}
+
+\note{feature}{
+  The \reference{vault-credential-manager} can now be configured with a global
+  shared path for credential lookup. This should make sharing credentials
+  between teams a bit easier to manage, in lieu of \link{RFC #21 (per-team
+  credential managers)}{https://github.com/concourse/rfcs/pull/21}. Use with
+  care! All teams will be able to access it.
+}
+
 \note{fix,security}{
   Fixed a minor information leak that would allow unauthenticated users to
   fetch the step names and structure for a build whose job is not marked
@@ -55,6 +77,40 @@
 
   This only exposed step names, but it was still a little weird to allow it to
   be fetched. It will now return a \code{401 Unauthorized} instead.
+}
+
+\note{fix,breaking}{
+  tl;dr: \code{concourse web --peer-url} -> \code{concourse web
+  --tsa-peer-address}
+
+  We have been doing a lot of internal refactoring and decoupling between
+  various components. One side effect of this is that the \reference{web-node}s
+  no longer need to stream user artifacts to one another, which was the only
+  reason the \code{concourse web --peer-url} flag was needed, so it has been
+  removed.
+
+  However, the SSH gateways (the "TSAs"), which also run on the
+  \reference{web-node}s, still need their address for the forwarded worker
+  connections advertised to other \reference{web-node}s. This value used to be
+  inferred by \code{--peer-url}, so we've added a new \code{--tsa-peer-address}
+  flag for it.
+}
+
+\note{fix}{
+  One change we've made is that manually triggered builds will no longer
+  perform resource checks in the middle of pipeline scheduling - instead, they
+  simply won't run until each resource has been checked after the time that the
+  build was created. The API will also short-circuit the check interval for the
+  job's input resources so that they happen immediately.
+
+  This removes a common cause for pipeline scheduling hangs and builds being
+  stuck in 'pending' state due to a stalling worker.
+}
+
+\note{fix}{
+  The above refactoring also fixed a race condition that could result in inputs
+  configured with \reference{get-step-version}{\code{version: every}} having
+  versions skipped when a build is manually triggered.
 }
 
 \note{fix}{
