@@ -26,7 +26,7 @@ var _ = Describe("Worker lifecycle", func() {
 		RerunJob                  bool
 	}
 
-	DescribeTable("",
+	DescribeTable("retiring a worker",
 		func(c Case) {
 			setReleaseNameAndNamespace("wl")
 
@@ -88,13 +88,13 @@ var _ = Describe("Worker lifecycle", func() {
 			Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
 			Wait(proxySession.Interrupt())
 		},
-		Entry("", Case{
+		Entry("gracefully", Case{
 			TerminationGracePeriod:    "600",
 			PipelineYamlFile:          "simple-pipeline.yml",
 			WorkerDisappearingTimeout: 1 * time.Minute,
 			RerunJob:                  true,
 		}),
-		Entry("", Case{
+		Entry("ungracefully", Case{
 			TerminationGracePeriod:    "30",
 			PipelineYamlFile:          "task-waiting.yml",
 			WorkerDisappearingTimeout: 40 * time.Second,
