@@ -97,14 +97,32 @@
 }
 
 \note{fix}{
-  One change we've made is that manually triggered builds will no longer
-  perform resource checks in the middle of pipeline scheduling - instead, they
-  simply won't run until each resource has been checked after the time that the
-  build was created. The API will also short-circuit the check interval for the
-  job's input resources so that they happen immediately.
+  Previously, manually-triggered builds would cause resource checking to be
+  performed in the job scheduling loop. This ensured that manually triggered
+  builds ran with the latest versions available, but it also slowed down
+  scheduling for every other job in the pipeline, because they're all scheduled
+  one-by-one.
 
-  This removes a common cause for pipeline scheduling hangs and builds being
-  stuck in 'pending' state due to a stalling worker.
+  In the worst case, this meant a hanging resource check could result in all
+  builds in the pipeline being stuck in the "pending" state for a long period
+  of time (or, "like, forever").
+
+  So we changed things around a bit: instead, the scheduler just won't start a
+  manually triggered build until the "last checked" timestamp of each of its
+  resources is after the build's "created at" timestamp. And to make that
+  \link{go faster}{https://www.youtube.com/watch?v=LY8P--R9L4Y}, when a build
+  is manually triggered we'll short-circuit the checking interval for each of
+  its input resources.
+
+  With this change, if/when a resource check is hanging or slow it at least
+  won't gum up the pipeline scheduling for all the other jobs.
+
+  Expect more improvements in this area in the next few releases! We'll be
+  making jobs schedule in parallel soon so they can't affect each other, and
+  we're working on a new
+  \link{"algorithm"}{https://github.com/concourse/concourse/tree/master/atc/db/algorithm}
+  that should scale a \italic{lot} better with pipelines that have a ton of
+  data or versions.
 }
 
 \note{fix}{
