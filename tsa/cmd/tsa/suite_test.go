@@ -149,6 +149,7 @@ var _ = BeforeEach(func() {
 	tsaCommand := exec.Command(
 		tsaPath,
 		"--bind-port", strconv.Itoa(tsaPort),
+		"--peer-address", forwardHost,
 		"--debug-bind-port", strconv.Itoa(tsaDebugPort),
 		"--host-key", hostKeyFile,
 		"--authorized-keys", authorizedKeysFile,

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
@@ -100,14 +99,6 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 	if cmd.SessionSigningKey == nil {
 		return nil, fmt.Errorf("missing session signing key")
-	}
-
-	if cmd.PeerAddress == "" {
-		peerAddress, err := localip.LocalIP()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get host network address: %s", err)
-		}
-		cmd.PeerAddress = peerAddress
 	}
 
 	tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
