@@ -14,9 +14,9 @@ import (
 
 var _ = Describe("Worker lifecycle", func() {
 	var (
-		proxySession           *gexec.Session
-		atcEndpoint            string
-		helmDeployTestFlags    []string
+		proxySession        *gexec.Session
+		atcEndpoint         string
+		helmDeployTestFlags []string
 	)
 
 	type Case struct {
@@ -64,7 +64,9 @@ var _ = Describe("Worker lifecycle", func() {
 
 			By("seeing that the worker state is retiring")
 			Eventually(func() string {
-				return fly.GetWorkers()[0].State
+				workers := fly.GetWorkers()
+				Expect(workers).To(HaveLen(1))
+				return workers[0].State
 			}, 10*time.Second, 2*time.Second).
 				Should(Equal("retiring"))
 
@@ -81,6 +83,11 @@ var _ = Describe("Worker lifecycle", func() {
 				ShouldNot(HaveLen(0))
 
 			if c.RerunJob {
+				By("making sure the first build has succeeded")
+				startSession := fly.Start("builds", "-j", "some-pipeline/simple-job")
+				<-startSession.Exited
+				Expect(startSession.Out).To(gbytes.Say("succeeded"))
+
 				By("running the same job again and watching it to completion")
 				fly.Run("trigger-job", "-j", "some-pipeline/simple-job", "-w")
 			}
