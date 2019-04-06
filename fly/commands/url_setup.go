@@ -7,7 +7,7 @@ import (
 )
 
 type UrlSetupOptions struct {
-	Url     string        `short:"u" long:"url" description:"URL for the team, pipeline, job, build, or container to target"`
+	Url string `short:"u" long:"url" description:"URL for the team, pipeline, job, build, or container to target"`
 }
 
 var UrlSetup UrlSetupOptions
