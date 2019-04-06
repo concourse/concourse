@@ -8,7 +8,6 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/fatih/color"
@@ -21,7 +20,7 @@ type ResourceVersionsCommand struct {
 }
 
 func (command *ResourceVersionsCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

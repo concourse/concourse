@@ -8,7 +8,6 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/eventstream"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 )
 
@@ -20,7 +19,7 @@ type TriggerJobCommand struct {
 func (command *TriggerJobCommand) Execute(args []string) error {
 	pipelineName, jobName := command.Job.PipelineName, command.Job.JobName
 
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

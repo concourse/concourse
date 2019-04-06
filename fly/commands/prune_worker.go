@@ -24,7 +24,7 @@ func (command *PruneWorkerCommand) Execute(args []string) error {
 		workersNames = append(workersNames, command.Worker)
 	}
 
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
 )
 
@@ -16,7 +15,7 @@ type ClearTaskCacheCommand struct {
 }
 
 func (command *ClearTaskCacheCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

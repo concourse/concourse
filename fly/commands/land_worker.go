@@ -2,8 +2,6 @@ package commands
 
 import (
 	"fmt"
-
-	"github.com/concourse/concourse/fly/rc"
 )
 
 type LandWorkerCommand struct {
@@ -13,7 +11,7 @@ type LandWorkerCommand struct {
 func (command *LandWorkerCommand) Execute(args []string) error {
 	workerName := command.Worker
 
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

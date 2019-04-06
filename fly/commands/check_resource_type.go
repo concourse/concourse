@@ -5,7 +5,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 )
 
 type CheckResourceTypeCommand struct {
@@ -14,7 +13,7 @@ type CheckResourceTypeCommand struct {
 }
 
 func (command *CheckResourceTypeCommand) Execute(args []string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

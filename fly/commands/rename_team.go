@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/rc"
 )
 
 type RenameTeamCommand struct {
@@ -13,7 +12,7 @@ type RenameTeamCommand struct {
 }
 
 func (command *RenameTeamCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

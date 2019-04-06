@@ -18,7 +18,7 @@ type CurlCommand struct {
 }
 
 func (command *CurlCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

@@ -11,7 +11,6 @@ import (
 
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 )
 
@@ -20,7 +19,7 @@ type SyncCommand struct {
 }
 
 func (command *SyncCommand) Execute(args []string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

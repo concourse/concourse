@@ -5,7 +5,6 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/mgutz/ansi"
 )
 
@@ -37,7 +36,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	templateVariablesFiles := command.VarsFrom
 	pipelineName := string(command.Pipeline)
 
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

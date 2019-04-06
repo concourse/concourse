@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 )
 
 type UnpauseJobCommand struct {
@@ -12,7 +11,7 @@ type UnpauseJobCommand struct {
 }
 
 func (command *UnpauseJobCommand) Execute(args []string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

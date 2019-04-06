@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 )
 
 var ErrMissingPipelineName = errors.New("Need to specify atleast one pipeline name")
@@ -30,7 +29,7 @@ func (command *OrderPipelinesCommand) Validate() ([]string, error) {
 }
 
 func (command *OrderPipelinesCommand) Execute(args []string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

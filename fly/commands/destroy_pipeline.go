@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
@@ -24,7 +23,7 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		return err
 
 	}
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}
