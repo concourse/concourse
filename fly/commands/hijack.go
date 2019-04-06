@@ -22,13 +22,13 @@ import (
 )
 
 type HijackCommand struct {
-	Job            flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Name of a job to hijack"`
-	Handle         string                   `          long:"handle"                            description:"Handle id of a job to hijack"`
-	Check          flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
-	Build          string                   `short:"b" long:"build"                             description:"Build number within the job, or global build ID"`
-	StepName       string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
-	StepType       string                   `          long:"step-type"                         description:"Type of step to hijack (e.g. get, put, task)"`
-	Attempt        string                   `short:"a" long:"attempt" value-name:"N[,N,...]"    description:"Attempt number of step to hijack."`
+	Job            flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB" env:"JOB" description:"Name of a job to hijack"`
+	Handle         string                   `          long:"handle"                                    description:"Handle id of a job to hijack"`
+	Check          flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK"         description:"Name of a resource's checking container to hijack"`
+	Build          string                   `short:"b" long:"build"                                     description:"Build number within the job, or global build ID"`
+	StepName       string                   `short:"s" long:"step"                                      description:"Name of step to hijack (e.g. build, unit, resource name)"`
+	StepType       string                   `          long:"step-type"                                 description:"Type of step to hijack (e.g. get, put, task)"`
+	Attempt        string                   `short:"a" long:"attempt" value-name:"N[,N,...]"            description:"Attempt number of step to hijack."`
 	PositionalArgs struct {
 		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: bash)"`
 	} `positional-args:"yes"`

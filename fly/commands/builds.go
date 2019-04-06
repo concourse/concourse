@@ -19,15 +19,15 @@ const timeDateLayout = "2006-01-02@15:04:05-0700"
 const inputTimeLayout = "2006-01-02 15:04:05"
 
 type BuildsCommand struct {
-	AllTeams    bool                     `short:"a" long:"all-teams"                     description:"Show builds for the all teams that user has access to"`
-	Count       int                      `short:"c" long:"count" default:"50"            description:"Number of builds you want to limit the return to"`
-	CurrentTeam bool                     `          long:"current-team"                  description:"Show builds for the currently targeted team"`
-	Job         flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
-	Json        bool                     `          long:"json"                          description:"Print command result as JSON"`
-	Pipeline    flaghelpers.PipelineFlag `short:"p" long:"pipeline" env:"PIPELINE"       description:"Name of a pipeline to get builds for"`
-	Teams       []string                 `short:"n" long:"team"                          description:"Show builds for these teams"`
-	Since       string                   `          long:"since"                         description:"Start of the range to filter builds"`
-	Until       string                   `          long:"until"                         description:"End of the range to filter builds"`
+	AllTeams    bool                     `short:"a" long:"all-teams"                               description:"Show builds for the all teams that user has access to"`
+	Count       int                      `short:"c" long:"count" default:"50"                      description:"Number of builds you want to limit the return to"`
+	CurrentTeam bool                     `          long:"current-team"                            description:"Show builds for the currently targeted team"`
+	Job         flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" env:"JOB" description:"Name of a job to get builds for"`
+	Json        bool                     `          long:"json"                                    description:"Print command result as JSON"`
+	Pipeline    flaghelpers.PipelineFlag `short:"p" long:"pipeline" env:"PIPELINE"                 description:"Name of a pipeline to get builds for"`
+	Teams       []string                 `short:"n" long:"team"                                    description:"Show builds for these teams"`
+	Since       string                   `          long:"since"                                   description:"Start of the range to filter builds"`
+	Until       string                   `          long:"until"                                   description:"End of the range to filter builds"`
 }
 
 func (command *BuildsCommand) Execute([]string) error {

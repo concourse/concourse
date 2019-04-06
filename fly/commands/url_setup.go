@@ -23,6 +23,9 @@ func (options *UrlSetupOptions) SetInEnvironment() error {
 		if os.Getenv("PIPELINE") == "" && urlMap["pipelines"] != "" {
 			os.Setenv("PIPELINE", urlMap["pipelines"])
 		}
+		if os.Getenv("JOB") == "" && urlMap["pipelines"] != "" && urlMap["jobs"] != "" {
+			os.Setenv("JOB", urlMap["pipelines"]+"/"+urlMap["jobs"])
+		}
 	}
 
 	return nil

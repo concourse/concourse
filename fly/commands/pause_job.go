@@ -7,7 +7,7 @@ import (
 )
 
 type PauseJobCommand struct {
-	Job flaghelpers.JobFlag `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to pause"`
+	Job flaghelpers.JobFlag `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" env:"JOB" description:"Name of a job to pause"`
 }
 
 func (command *PauseJobCommand) Execute(args []string) error {
