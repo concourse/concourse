@@ -25,7 +25,7 @@ type BuildsCommand struct {
 	Job         flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" env:"JOB" description:"Name of a job to get builds for"`
 	Json        bool                     `          long:"json"                                    description:"Print command result as JSON"`
 	Pipeline    flaghelpers.PipelineFlag `short:"p" long:"pipeline" env:"PIPELINE"                 description:"Name of a pipeline to get builds for"`
-	Teams       []string                 `short:"n" long:"team"                                    description:"Show builds for these teams"`
+	Teams       []string                 `short:"n" long:"team" env:"TEAM"                         description:"Show builds for these teams"`
 	Since       string                   `          long:"since"                                   description:"Start of the range to filter builds"`
 	Until       string                   `          long:"until"                                   description:"End of the range to filter builds"`
 }

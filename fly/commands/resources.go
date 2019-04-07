@@ -12,7 +12,7 @@ import (
 
 type ResourcesCommand struct {
 	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" env:"PIPELINE" description:"Get resources in this pipeline"`
-	Json     bool                     `long:"json"                                              description:"Print command result as JSON"`
+	Json     bool                     `          long:"json"                                    description:"Print command result as JSON"`
 }
 
 func (command *ResourcesCommand) Execute([]string) error {

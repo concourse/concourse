@@ -14,9 +14,9 @@ import (
 )
 
 type ResourceVersionsCommand struct {
-	Count    int                      `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
-	Resource flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to get versions for"`
-	Json     bool                     `long:"json" description:"Print command result as JSON"`
+	Count    int                      `short:"c" long:"count" default:"50"                                                     description:"Number of builds you want to limit the return to"`
+	Resource flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" env:"RESOURCE" description:"Name of a resource to get versions for"`
+	Json     bool                     `          long:"json"                                                                   description:"Print command result as JSON"`
 }
 
 func (command *ResourceVersionsCommand) Execute([]string) error {

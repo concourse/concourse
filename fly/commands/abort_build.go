@@ -9,8 +9,8 @@ import (
 )
 
 type AbortBuildCommand struct {
-	Job   flaghelpers.JobFlag `short:"j" long:"job" value-name:"PIPELINE/JOB"   description:"Name of a job to cancel"`
-	Build string              `short:"b" long:"build" required:"true" description:"If job is specified: build number to cancel. If job not specified: build id"`
+	Job   flaghelpers.JobFlag `short:"j" long:"job" value-name:"PIPELINE/JOB" env:"JOB"   description:"Name of a job to cancel"`
+	Build string              `short:"b" long:"build" required:"true"         env:"BUILD" description:"If job is specified: build number to cancel. If job not specified: build id"`
 }
 
 func (command *AbortBuildCommand) Execute([]string) error {

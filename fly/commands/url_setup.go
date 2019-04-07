@@ -20,11 +20,23 @@ func (options *UrlSetupOptions) SetInEnvironment() error {
 		}
 		urlMap := parseUrlPath(u.Path)
 
+		if os.Getenv("TEAM") == "" && urlMap["teams"] != "" {
+			os.Setenv("TEAM", urlMap["teams"])
+		}
 		if os.Getenv("PIPELINE") == "" && urlMap["pipelines"] != "" {
 			os.Setenv("PIPELINE", urlMap["pipelines"])
 		}
 		if os.Getenv("JOB") == "" && urlMap["pipelines"] != "" && urlMap["jobs"] != "" {
 			os.Setenv("JOB", urlMap["pipelines"]+"/"+urlMap["jobs"])
+		}
+		if os.Getenv("BUILD") == "" && urlMap["builds"] != "" {
+			os.Setenv("BUILD", urlMap["builds"])
+		}
+		if os.Getenv("RESOURCE") == "" && urlMap["pipelines"] != "" && urlMap["resources"] != "" {
+			os.Setenv("RESOURCE", urlMap["pipelines"]+"/"+urlMap["resources"])
+		}
+		if os.Getenv("RESOURCE_TYPE") == "" && urlMap["pipelines"] != ""  && urlMap["resource-types"] != "" {
+			os.Setenv("RESOURCE_TYPE", urlMap["pipelines"]+"/"+urlMap["resource-types"])
 		}
 	}
 
