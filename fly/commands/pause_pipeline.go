@@ -28,11 +28,6 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	found, err := target.Team().PausePipeline(pipelineName)
 	if err != nil {
 		return err

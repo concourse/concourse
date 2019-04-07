@@ -38,11 +38,6 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	config, _, found, err := target.Team().PipelineConfig(pipelineName)
 	if err != nil {
 		return err

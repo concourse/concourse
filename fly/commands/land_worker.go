@@ -16,11 +16,6 @@ func (command *LandWorkerCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	err = target.Client().LandWorker(workerName)
 	if err != nil {
 		return err

@@ -25,11 +25,6 @@ func (command *ResourceVersionsCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	page := concourse.Page{Limit: command.Count}
 
 	team := target.Team()

@@ -32,11 +32,6 @@ func (command *RenamePipelineCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	oldName := string(command.Pipeline)
 	newName := string(command.Name)
 

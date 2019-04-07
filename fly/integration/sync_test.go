@@ -51,7 +51,12 @@ var _ = Describe("Syncing", func() {
 		)
 		Expect(err).NotTo(HaveOccurred())
 
-		atcServer.AppendHandlers(cliHandler())
+		atcServer.AppendHandlers(
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET", "/api/v1/info"),
+				ghttp.RespondWithJSONEncoded(200, map[string]interface{}{"version": atcVersion, "worker_version": "test"}),
+			), cliHandler(),
+		)
 	})
 
 	Context("When versions mismatch between fly + atc", func() {

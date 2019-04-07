@@ -20,11 +20,6 @@ func (command *ContainersCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	containers, err := target.Team().ListContainers(map[string]string{})
 	if err != nil {
 		return err

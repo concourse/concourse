@@ -21,11 +21,6 @@ func (command *WatchCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	var buildId int
 	client := target.Client()
 	if command.Job.JobName != "" || command.Build == "" {

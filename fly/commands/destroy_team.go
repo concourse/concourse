@@ -21,11 +21,6 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	teamName := command.TeamName
 	fmt.Printf("!!! this will remove all data for team `%s`\n\n", teamName)
 

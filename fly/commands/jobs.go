@@ -23,11 +23,6 @@ func (command *JobsCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	var headers []string
 	var jobs []atc.Job
 

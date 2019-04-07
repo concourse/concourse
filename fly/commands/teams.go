@@ -23,11 +23,6 @@ func (command *TeamsCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	teams, err := target.Client().ListTeams()
 	if err != nil {
 		return err

@@ -34,11 +34,6 @@ func (command *SetTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	authRoles, err := command.AuthFlags.Format()
 	if err != nil {
 		command.ErrorAuthNotConfigured(err)

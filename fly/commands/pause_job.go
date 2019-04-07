@@ -16,11 +16,6 @@ func (command *PauseJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	found, err := target.Team().PauseJob(command.Job.PipelineName, command.Job.JobName)
 	if err != nil {
 		return err

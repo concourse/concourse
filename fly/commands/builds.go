@@ -36,11 +36,6 @@ func (command *BuildsCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	var (
 		timeSince time.Time
 		timeUntil time.Time

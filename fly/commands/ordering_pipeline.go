@@ -34,11 +34,6 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	pipelines, err := command.Validate()
 	if err != nil {
 		return err

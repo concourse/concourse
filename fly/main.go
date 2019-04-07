@@ -19,7 +19,7 @@ func UrlSetupUnknownOptionHandler(option string, arg flags.SplitArgument, args [
 
 func main() {
 	// do not look for completion on url
-	if (os.Getenv("GO_FLAGS_COMPLETION") != "1") {
+	if os.Getenv("GO_FLAGS_COMPLETION") != "1" {
 		url_setup_parser := flags.NewParser(&commands.UrlSetup, flags.None)
 		url_setup_parser.UnknownOptionHandler = UrlSetupUnknownOptionHandler
 		url_setup_parser.Parse()

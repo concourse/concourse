@@ -29,11 +29,6 @@ func (command *PruneWorkerCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	if command.AllStalled {
 		workers, err := target.Client().ListWorkers()
 		if err != nil {

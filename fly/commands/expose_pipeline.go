@@ -28,11 +28,6 @@ func (command *ExposePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	found, err := target.Team().ExposePipeline(pipelineName)
 	if err != nil {
 		return err

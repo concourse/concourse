@@ -41,11 +41,6 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	ansi.DisableColors(command.DisableAnsiColor)
 
 	atcConfig := setpipelinehelpers.ATCConfig{

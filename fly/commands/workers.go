@@ -24,11 +24,6 @@ func (command *WorkersCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	workers, err := target.Client().ListWorkers()
 	if err != nil {
 		return err

@@ -19,11 +19,6 @@ func (command *AbortBuildCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	var build atc.Build
 	var exists bool
 	if command.Job.PipelineName == "" && command.Job.JobName == "" {

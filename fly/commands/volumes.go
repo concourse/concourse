@@ -24,11 +24,6 @@ func (command *VolumesCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	volumes, err := target.Team().ListVolumes()
 	if err != nil {
 		return err

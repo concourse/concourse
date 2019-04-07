@@ -20,11 +20,6 @@ func (command *ClearTaskCacheCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	warningMsg := fmt.Sprintf("!!! this will remove the task cache(s) for `%s/%s`, task step `%s`",
 		command.Job.PipelineName, command.Job.JobName, command.StepName)
 	if len(command.CachePath) > 0 {

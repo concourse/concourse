@@ -24,11 +24,6 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	build, err := target.Team().CreateJobBuild(pipelineName, jobName)
 	if err != nil {
 		return err

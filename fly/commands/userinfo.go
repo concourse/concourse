@@ -20,11 +20,6 @@ func (command *UserinfoCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	userinfo, err := target.Client().UserInfo()
 	if err != nil {
 		return err

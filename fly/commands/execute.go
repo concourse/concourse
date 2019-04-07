@@ -43,11 +43,6 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	taskConfig, err := command.CreateTaskConfig(args)
 	if err != nil {
 		return err

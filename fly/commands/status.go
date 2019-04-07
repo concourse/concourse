@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/rc"
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
 type StatusCommand struct{}
 
 func (c *StatusCommand) Execute([]string) error {
-	target, err := Fly.RetrieveTarget()
+	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
 	}

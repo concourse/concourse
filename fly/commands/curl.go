@@ -23,11 +23,6 @@ func (command *CurlCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	fullUrl, err := command.makeFullUrl(target.URL(), command.Args.Path)
 	if err != nil {
 		return err

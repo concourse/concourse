@@ -18,11 +18,6 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	var version atc.Version
 	if command.Version != nil {
 		version = *command.Version

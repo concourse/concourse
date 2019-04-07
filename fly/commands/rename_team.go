@@ -17,11 +17,6 @@ func (command *RenameTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
-	}
-
 	found, err := target.Team().RenameTeam(command.TeamName, command.NewTeamName)
 	if err != nil {
 		return err
