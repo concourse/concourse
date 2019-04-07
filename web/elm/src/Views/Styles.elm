@@ -31,17 +31,24 @@ pageIncludingTopBar =
 
 pageBelowTopBar : Routes.Route -> List (Html.Attribute msg)
 pageBelowTopBar route =
-    [ style "padding-top" "54px"
-    , style "height" "100%"
-    ]
-        ++ (case route of
+    style "padding-top" "54px"
+        :: (case route of
+                Routes.FlySuccess _ ->
+                    [ style "height" "100%" ]
+
+                Routes.Resource _ ->
+                    [ style "height" "100%" ]
+
                 Routes.Pipeline _ ->
-                    [ style "box-sizing" "border-box" ]
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    ]
 
                 Routes.Dashboard _ ->
                     [ style "box-sizing" "border-box"
                     , style "display" "flex"
                     , style "padding-bottom" "50px"
+                    , style "height" "100%"
                     ]
 
                 _ ->
