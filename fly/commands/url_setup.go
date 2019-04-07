@@ -35,7 +35,7 @@ func (options *UrlSetupOptions) SetInEnvironment() error {
 		if os.Getenv("RESOURCE") == "" && urlMap["pipelines"] != "" && urlMap["resources"] != "" {
 			os.Setenv("RESOURCE", urlMap["pipelines"]+"/"+urlMap["resources"])
 		}
-		if os.Getenv("RESOURCE_TYPE") == "" && urlMap["pipelines"] != ""  && urlMap["resource-types"] != "" {
+		if os.Getenv("RESOURCE_TYPE") == "" && urlMap["pipelines"] != "" && urlMap["resource-types"] != "" {
 			os.Setenv("RESOURCE_TYPE", urlMap["pipelines"]+"/"+urlMap["resource-types"])
 		}
 	}
