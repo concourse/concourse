@@ -2,9 +2,9 @@
 package buildsfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	builds "github.com/concourse/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/builds"
 )
 
 type FakeBuildTracker struct {

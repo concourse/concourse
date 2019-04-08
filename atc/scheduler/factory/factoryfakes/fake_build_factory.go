@@ -2,11 +2,11 @@
 package factoryfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	atc "github.com/concourse/concourse/atc"
-	db "github.com/concourse/concourse/atc/db"
-	factory "github.com/concourse/concourse/atc/scheduler/factory"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/scheduler/factory"
 )
 
 type FakeBuildFactory struct {

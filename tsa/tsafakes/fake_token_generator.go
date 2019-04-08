@@ -2,9 +2,9 @@
 package tsafakes
 
 import (
-	sync "sync"
+	"sync"
 
-	tsa "github.com/concourse/concourse/tsa"
+	"github.com/concourse/concourse/tsa"
 )
 
 type FakeTokenGenerator struct {

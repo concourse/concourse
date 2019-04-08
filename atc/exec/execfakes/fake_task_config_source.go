@@ -2,12 +2,12 @@
 package execfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	exec "github.com/concourse/concourse/atc/exec"
-	artifact "github.com/concourse/concourse/atc/exec/artifact"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
 )
 
 type FakeTaskConfigSource struct {

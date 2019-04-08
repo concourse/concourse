@@ -266,6 +266,22 @@ to run the unit tests and `testflight`:
 $ go get github.com/onsi/ginkgo/ginkgo
 ```
 
+We use [Counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) to generate
+fakes for our unit tests. You may need to regenerate fakes if you add or modify an
+interface. To do so, you'll need to install `counterfeiter` as follows:
+
+```sh
+$ go get -u https://github.com/maxbrunsfeld/counterfeiter/v6
+```
+
+You can then generate the fakes by running
+
+```sh
+$ go generate ./...
+```
+
+in the directory where the interface is located.
+
 ### Running unit tests
 
 Concourse is a ton of code, so it's faster to just run the tests for the

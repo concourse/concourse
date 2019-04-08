@@ -2,12 +2,12 @@
 package inputmapperfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	db "github.com/concourse/concourse/atc/db"
-	algorithm "github.com/concourse/concourse/atc/db/algorithm"
-	inputmapper "github.com/concourse/concourse/atc/scheduler/inputmapper"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/algorithm"
+	"github.com/concourse/concourse/atc/scheduler/inputmapper"
 )
 
 type FakeInputMapper struct {
