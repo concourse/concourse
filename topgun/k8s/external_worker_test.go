@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("team external workers", func() {
+var _ = Describe("team external workers through separate deployments", func() {
 
 	var (
 		proxySession *gexec.Session
@@ -21,9 +21,9 @@ var _ = Describe("team external workers", func() {
 	JustBeforeEach(func() {
 		setReleaseNameAndNamespace("xw")
 
+		By("creating a web only deployment in one namespace")
 		helmArgs := []string{
-			"--set=worker.replicas=1",
-			"--set=concourse.worker.team=main",
+			"--set=worker.enabled=false",
 
 			"--set=secrets.teamAuthorizedKeys[0].team=main",
 			"--set=secrets.teamAuthorizedKeys[0].key=" + workerKey,
@@ -31,12 +31,25 @@ var _ = Describe("team external workers", func() {
 			"--set=web.env[0].name=CONCOURSE_TSA_AUTHORIZED_KEYS",
 			"--set=web.env[0].value=",
 		}
-		deployConcourseChart(releaseName, helmArgs...)
+		deployConcourseChart(releaseName+"-web", helmArgs...)
 
-		waitAllPodsInNamespaceToBeReady(namespace)
+		By("creating a worker only deployment in another namespace")
+		helmArgs = []string{
+			"--set=postgresql.enabled=false",
+			"--set=web.enabled=false",
+			"--set=concourse.worker.team=main",
+
+			"--set=worker.replicas=1",
+
+			"--set=concourse.worker.tsa.host=" + releaseName + "-web-web." + releaseName + "-web.svc.cluster.local",
+		}
+		deployConcourseChart(releaseName+"-worker", helmArgs...)
+
+		waitAllPodsInNamespaceToBeReady(namespace + "-worker")
+		waitAllPodsInNamespaceToBeReady(namespace + "-web")
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
+		proxySession, atcEndpoint = startPortForwarding(namespace+"-web", "service/"+releaseName+"-web-web", "8080")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
@@ -71,7 +84,8 @@ var _ = Describe("team external workers", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName+"-web", namespace+"-web", proxySession)
+		cleanup(releaseName+"-worker", namespace+"-worker", nil)
 	})
 
 })
