@@ -2,17 +2,17 @@
 package workerfakes
 
 import (
-	context "context"
-	sync "sync"
-	time "time"
+	"context"
+	"sync"
+	"time"
 
-	garden "code.cloudfoundry.org/garden"
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	creds "github.com/concourse/concourse/atc/creds"
-	db "github.com/concourse/concourse/atc/db"
-	worker "github.com/concourse/concourse/atc/worker"
-	version "github.com/cppforlife/go-semi-semantic/version"
+	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/worker"
+	"github.com/cppforlife/go-semi-semantic/version"
 )
 
 type FakeWorker struct {

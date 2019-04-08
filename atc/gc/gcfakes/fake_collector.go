@@ -2,10 +2,10 @@
 package gcfakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	gc "github.com/concourse/concourse/atc/gc"
+	"github.com/concourse/concourse/atc/gc"
 )
 
 type FakeCollector struct {

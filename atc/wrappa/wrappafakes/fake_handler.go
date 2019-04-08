@@ -2,8 +2,8 @@
 package wrappafakes
 
 import (
-	http "net/http"
-	sync "sync"
+	"net/http"
+	"sync"
 )
 
 type FakeHandler struct {

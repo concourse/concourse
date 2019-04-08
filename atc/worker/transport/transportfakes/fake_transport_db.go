@@ -2,10 +2,10 @@
 package transportfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	db "github.com/concourse/concourse/atc/db"
-	transport "github.com/concourse/concourse/atc/worker/transport"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/worker/transport"
 )
 
 type FakeTransportDB struct {

@@ -2,10 +2,10 @@
 package resourcefakes
 
 import (
-	sync "sync"
+	"sync"
 
-	resource "github.com/concourse/concourse/atc/resource"
-	worker "github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeResourceFactory struct {

@@ -2,9 +2,9 @@
 package dbfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	db "github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeNotifier struct {

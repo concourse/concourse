@@ -2,13 +2,13 @@
 package execfakes
 
 import (
-	io "io"
-	sync "sync"
+	"io"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	db "github.com/concourse/concourse/atc/db"
-	exec "github.com/concourse/concourse/atc/exec"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec"
 )
 
 type FakeTaskDelegate struct {

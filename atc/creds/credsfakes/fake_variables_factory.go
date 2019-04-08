@@ -2,9 +2,9 @@
 package credsfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	creds "github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds"
 )
 
 type FakeVariablesFactory struct {

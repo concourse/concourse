@@ -2,10 +2,10 @@
 package resourcefakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	resource "github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/resource"
 )
 
 type FakeFetchSource struct {

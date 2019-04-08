@@ -2,10 +2,10 @@
 package dbfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	squirrel "github.com/Masterminds/squirrel"
-	db "github.com/concourse/concourse/atc/db"
+	"github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeContainerOwner struct {
