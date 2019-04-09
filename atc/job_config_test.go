@@ -561,14 +561,16 @@ var _ = Describe("JobConfig", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = atc.PlanSequence{
 						{
-							Parallel: &atc.PlanSequence{
-								{Get: "a"},
-								{Put: "y"},
-								{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
-								{Get: "c", Trigger: true},
+							InParallel: &atc.InParallelConfig{
+								Steps: atc.PlanSequence{
+									{Get: "a"},
+									{Put: "y"},
+									{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
+									{Get: "c", Trigger: true},
+								},
+								Limit:    1,
+								FailFast: true,
 							},
-							MaxInParallel: 1,
-							FailFast:      true,
 						},
 					}
 				})
@@ -600,18 +602,22 @@ var _ = Describe("JobConfig", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = atc.PlanSequence{
 						{
-							Parallel: &atc.PlanSequence{
-								{
-									Parallel: &atc.PlanSequence{
-										{Get: "a"},
+							InParallel: &atc.InParallelConfig{
+								Steps: atc.PlanSequence{
+									{
+										InParallel: &atc.InParallelConfig{
+											Steps: atc.PlanSequence{
+												{Get: "a"},
+											},
+											Limit: 1,
+										},
 									},
-									MaxInParallel: 1,
+									{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
+									{Get: "c", Trigger: true},
 								},
-								{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
-								{Get: "c", Trigger: true},
+								Limit:    2,
+								FailFast: true,
 							},
-							MaxInParallel: 2,
-							FailFast:      true,
 						},
 					}
 				})
@@ -687,8 +693,10 @@ var _ = Describe("JobConfig", func() {
 						{
 							Aggregate: &atc.PlanSequence{
 								{
-									Parallel: &atc.PlanSequence{
-										{Put: "a"},
+									InParallel: &atc.InParallelConfig{
+										Steps: atc.PlanSequence{
+											{Put: "a"},
+										},
 									},
 								},
 								{Put: "b", Resource: "some-resource"},

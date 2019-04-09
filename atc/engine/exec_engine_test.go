@@ -211,8 +211,8 @@ var _ = Describe("ExecEngine", func() {
 							Next: otherDependentGetPlan,
 						}),
 					},
-					MaxInParallel: 1,
-					FailFast:      true,
+					Limit:    1,
+					FailFast: true,
 				})
 			})
 
@@ -296,9 +296,9 @@ var _ = Describe("ExecEngine", func() {
 				aggregatePlan = planFactory.NewPlan(atc.AggregatePlan{retryPlanTwo})
 
 				parallelPlan = planFactory.NewPlan(atc.InParallelPlan{
-					Steps:         []atc.Plan{aggregatePlan},
-					MaxInParallel: 1,
-					FailFast:      true,
+					Steps:    []atc.Plan{aggregatePlan},
+					Limit:    1,
+					FailFast: true,
 				})
 
 				doPlan = planFactory.NewPlan(atc.DoPlan{parallelPlan})

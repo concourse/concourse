@@ -30,25 +30,26 @@ jobs:
     - get: every-minute
       trigger: true
     - in_parallel:
-      - task: echo1
-        config: *config
-      - task: echo2
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: busybox
-          run:
-            path: /bin/sh
-            args:
-              - -cex
-              - |
-                sleep 5
-                eccho
-      - task: echo3
-        config: *config
-      - task: echo4
-        config: *config
-      max_in_parallel: 3
-      fail_fast: true
+        limit: 3
+        steps:
+        - task: echo1
+          config: *config
+        - task: echo2
+          config:
+            platform: linux
+            image_resource:
+              type: registry-image
+              source:
+                repository: busybox
+            run:
+              path: /bin/sh
+              args:
+                - -cex
+                - |
+                  sleep 5
+                  eccho
+        - task: echo3
+          config: *config
+        - task: echo4
+          config: *config
+        fail_fast: true

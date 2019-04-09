@@ -32,7 +32,7 @@ func (build *execBuild) buildParallelStep(logger lager.Logger, plan atc.Plan) ex
 		steps = append(steps, step)
 	}
 
-	return exec.Parallel(steps, plan.InParallel.MaxInParallel, plan.InParallel.FailFast)
+	return exec.InParallel(steps, plan.InParallel.Limit, plan.InParallel.FailFast)
 }
 
 func (build *execBuild) buildDoStep(logger lager.Logger, plan atc.Plan) exec.Step {

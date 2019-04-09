@@ -464,8 +464,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 								}),
 							}),
 						},
-						MaxInParallel: 1,
-						FailFast:      true,
+						Limit:    1,
+						FailFast: true,
 					}),
 					Next: planFactory.NewPlan(atc.GetPlan{
 						Name: "some-unused-step",

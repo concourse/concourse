@@ -297,16 +297,18 @@ var _ = Describe("Factory Put", func() {
 				input = atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
-							Parallel: &atc.PlanSequence{
-								{
-									Task: "some thing",
+							InParallel: &atc.InParallelConfig{
+								Steps: atc.PlanSequence{
+									{
+										Task: "some thing",
+									},
+									{
+										Put: "some-resource",
+									},
 								},
-								{
-									Put: "some-resource",
-								},
+								Limit:    1,
+								FailFast: true,
 							},
-							MaxInParallel: 1,
-							FailFast:      true,
 						},
 					},
 				}
@@ -346,8 +348,8 @@ var _ = Describe("Factory Put", func() {
 							}),
 						}),
 					},
-					MaxInParallel: 1,
-					FailFast:      true,
+					Limit:    1,
+					FailFast: true,
 				})
 				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})

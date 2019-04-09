@@ -48,16 +48,18 @@ var _ = Describe("Factory Parallel", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
-						Parallel: &atc.PlanSequence{
-							{
-								Task: "some thing",
+						InParallel: &atc.InParallelConfig{
+							Steps: atc.PlanSequence{
+								{
+									Task: "some thing",
+								},
+								{
+									Task: "some other thing",
+								},
 							},
-							{
-								Task: "some other thing",
-							},
+							Limit:    1,
+							FailFast: true,
 						},
-						MaxInParallel: 1,
-						FailFast:      true,
 					},
 				},
 			}, resources, resourceTypes, nil)
@@ -74,8 +76,8 @@ var _ = Describe("Factory Parallel", func() {
 						VersionedResourceTypes: resourceTypes,
 					}),
 				},
-				MaxInParallel: 1,
-				FailFast:      true,
+				Limit:    1,
+				FailFast: true,
 			})
 			Expect(actual).To(Equal(expected))
 		})

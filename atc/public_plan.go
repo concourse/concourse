@@ -116,13 +116,13 @@ func (plan InParallelPlan) Public() *json.RawMessage {
 	}
 
 	return enc(struct {
-		Steps         []*json.RawMessage `json:"steps"`
-		MaxInParallel int                `json:"max_in_parallel,omitempty"`
-		FailFast      bool               `json:"fail_fast,omitempty"`
+		Steps    []*json.RawMessage `json:"steps"`
+		Limit    int                `json:"limit,omitempty"`
+		FailFast bool               `json:"fail_fast,omitempty"`
 	}{
-		Steps:         steps,
-		MaxInParallel: plan.MaxInParallel,
-		FailFast:      plan.FailFast,
+		Steps:    steps,
+		Limit:    plan.Limit,
+		FailFast: plan.FailFast,
 	})
 }
 

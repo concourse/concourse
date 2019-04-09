@@ -36,7 +36,7 @@ var _ = Describe("Parallel", func() {
 		fakeStepB = new(execfakes.FakeStep)
 		fakeSteps = []Step{fakeStepA, fakeStepB}
 
-		step = Parallel(fakeSteps, len(fakeSteps), false)
+		step = InParallel(fakeSteps, len(fakeSteps), false)
 
 		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -92,7 +92,7 @@ var _ = Describe("Parallel", func() {
 
 		Context("when maxInParallel is 1", func() {
 			BeforeEach(func() {
-				step = Parallel(fakeSteps, 1, false)
+				step = InParallel(fakeSteps, 1, false)
 				ch := make(chan struct{}, 1)
 
 				fakeStepA.RunStub = func(context.Context, RunState) error {
@@ -151,7 +151,7 @@ var _ = Describe("Parallel", func() {
 
 		Context("when there are steps pending execution", func() {
 			BeforeEach(func() {
-				step = Parallel(fakeSteps, 1, false)
+				step = InParallel(fakeSteps, 1, false)
 
 				fakeStepA.RunStub = func(context.Context, RunState) error {
 					cancel()
@@ -187,7 +187,7 @@ var _ = Describe("Parallel", func() {
 
 		Context("and fail fast is false", func() {
 			BeforeEach(func() {
-				step = Parallel(fakeSteps, 1, false)
+				step = InParallel(fakeSteps, 1, false)
 			})
 			It("lets all steps finish before exiting", func() {
 				Expect(fakeStepA.RunCallCount()).To(Equal(1))
@@ -201,7 +201,7 @@ var _ = Describe("Parallel", func() {
 
 		Context("and fail fast is true", func() {
 			BeforeEach(func() {
-				step = Parallel(fakeSteps, 1, true)
+				step = InParallel(fakeSteps, 1, true)
 			})
 			It("it cancels remaining steps", func() {
 				Expect(fakeStepA.RunCallCount()).To(Equal(1))
@@ -250,7 +250,7 @@ var _ = Describe("Parallel", func() {
 
 		Context("when there are no steps", func() {
 			BeforeEach(func() {
-				step = ParallelStep{}
+				step = InParallelStep{}
 			})
 
 			It("returns true", func() {

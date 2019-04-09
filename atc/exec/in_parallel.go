@@ -7,22 +7,22 @@ import (
 	"sync"
 )
 
-// ParallelStep is a step of steps to run in parallel.
-type ParallelStep struct {
-	steps         []Step
-	maxInParallel int
-	failFast      bool
+// InParallelStep is a step of steps to run in parallel.
+type InParallelStep struct {
+	steps    []Step
+	limit    int
+	failFast bool
 }
 
-// Parallel constructs a ParallelStep.
-func Parallel(steps []Step, maxInParallel int, failFast bool) ParallelStep {
-	if maxInParallel < 1 {
-		maxInParallel = len(steps)
+// InParallel constructs a ParallelStep.
+func InParallel(steps []Step, limit int, failFast bool) InParallelStep {
+	if limit < 1 {
+		limit = len(steps)
 	}
-	return ParallelStep{
-		steps:         steps,
-		maxInParallel: maxInParallel,
-		failFast:      failFast,
+	return InParallelStep{
+		steps:    steps,
+		limit:    limit,
+		failFast: failFast,
 	}
 }
 
@@ -36,11 +36,11 @@ func Parallel(steps []Step, maxInParallel int, failFast bool) ParallelStep {
 // Cancelling a parallel step means that any outstanding steps will not be scheduled to run.
 // After all steps finish, their errors (if any) will be collected and returned as a
 // single error.
-func (step ParallelStep) Run(ctx context.Context, state RunState) error {
+func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 	var (
 		wg   sync.WaitGroup
 		errs = make(chan error, len(step.steps))
-		sem  = make(chan bool, step.maxInParallel)
+		sem  = make(chan bool, step.limit)
 	)
 
 	runCtx, cancel := context.WithCancel(ctx)
@@ -90,7 +90,7 @@ func (step ParallelStep) Run(ctx context.Context, state RunState) error {
 }
 
 // Succeeded is true if all of the steps' Succeeded is true
-func (step ParallelStep) Succeeded() bool {
+func (step InParallelStep) Succeeded() bool {
 	succeeded := true
 
 	for _, step := range step.steps {

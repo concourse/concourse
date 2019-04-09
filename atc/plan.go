@@ -75,9 +75,9 @@ type TryPlan struct {
 type AggregatePlan []Plan
 
 type InParallelPlan struct {
-	Steps         []Plan `json:"steps"`
-	MaxInParallel int    `json:"max_in_parallel,omitempty"`
-	FailFast      bool   `json:"fail_fast,omitempty"`
+	Steps    []Plan `json:"steps"`
+	Limit    int    `json:"limit,omitempty"`
+	FailFast bool   `json:"fail_fast,omitempty"`
 }
 
 type DoPlan []Plan

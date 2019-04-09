@@ -324,8 +324,8 @@ var _ = Describe("Plan", func() {
 					atc.Plan{
 						ID: "36",
 						InParallel: &atc.InParallelPlan{
-							MaxInParallel: 1,
-							FailFast:      true,
+							Limit:    1,
+							FailFast: true,
 							Steps: []atc.Plan{
 								atc.Plan{
 									ID: "37",
@@ -588,7 +588,7 @@ var _ = Describe("Plan", func() {
 						}
 					}
 				],
-				"max_in_parallel": 1,
+				"limit": 1,
 				"fail_fast": true
 			}
 		}

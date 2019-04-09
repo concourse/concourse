@@ -278,10 +278,10 @@ func (factory *buildFactory) constructUnhookedPlan(
 
 		plan = factory.planFactory.NewPlan(aggregate)
 
-	case planConfig.Parallel != nil:
+	case planConfig.InParallel != nil:
 		var steps []atc.Plan
 
-		for _, planConfig := range *planConfig.Parallel {
+		for _, planConfig := range planConfig.InParallel.Steps {
 			step, err := factory.constructPlanFromConfig(
 				planConfig,
 				resources,
@@ -296,9 +296,9 @@ func (factory *buildFactory) constructUnhookedPlan(
 		}
 
 		plan = factory.planFactory.NewPlan(atc.InParallelPlan{
-			Steps:         steps,
-			MaxInParallel: planConfig.MaxInParallel,
-			FailFast:      planConfig.FailFast,
+			Steps:    steps,
+			Limit:    planConfig.InParallel.Limit,
+			FailFast: planConfig.InParallel.FailFast,
 		})
 	}
 

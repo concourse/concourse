@@ -308,13 +308,15 @@ var _ = Describe("ValidateConfig", func() {
 								},
 							},
 							{
-								Parallel: &PlanSequence{
-									{
-										Get: "parallel",
+								InParallel: &InParallelConfig{
+									Steps: PlanSequence{
+										{
+											Get: "parallel",
+										},
 									},
+									Limit:    1,
+									FailFast: true,
 								},
-								MaxInParallel: 1,
-								FailFast:      true,
 							},
 							{
 								Task:           "some-task",
@@ -571,13 +573,15 @@ var _ = Describe("ValidateConfig", func() {
 					Get: "some-resource",
 				})
 				job.Plan = append(job.Plan, PlanConfig{
-					Parallel: &PlanSequence{
-						{
-							Get: "some-resource",
+					InParallel: &InParallelConfig{
+						Steps: PlanSequence{
+							{
+								Get: "some-resource",
+							},
 						},
+						Limit:    1,
+						FailFast: true,
 					},
-					MaxInParallel: 1,
-					FailFast:      true,
 				})
 
 				config.Jobs = append(config.Jobs, job)
@@ -595,12 +599,12 @@ var _ = Describe("ValidateConfig", func() {
 				Context("when it's not just Get and Put", func() {
 					BeforeEach(func() {
 						job.Plan = append(job.Plan, PlanConfig{
-							Get:       "some-resource",
-							Put:       "some-resource",
-							Task:      "some-resource",
-							Do:        &PlanSequence{},
-							Aggregate: &PlanSequence{},
-							Parallel:  &PlanSequence{},
+							Get:        "some-resource",
+							Put:        "some-resource",
+							Task:       "some-resource",
+							Do:         &PlanSequence{},
+							Aggregate:  &PlanSequence{},
+							InParallel: &InParallelConfig{},
 						})
 
 						config.Jobs = append(config.Jobs, job)
@@ -616,12 +620,12 @@ var _ = Describe("ValidateConfig", func() {
 				Context("when it's just Get and Put (this was valid at one point)", func() {
 					BeforeEach(func() {
 						job.Plan = append(job.Plan, PlanConfig{
-							Get:       "some-resource",
-							Put:       "some-resource",
-							Task:      "",
-							Do:        nil,
-							Aggregate: nil,
-							Parallel:  nil,
+							Get:        "some-resource",
+							Put:        "some-resource",
+							Task:       "",
+							Do:         nil,
+							Aggregate:  nil,
+							InParallel: nil,
 						})
 
 						config.Jobs = append(config.Jobs, job)

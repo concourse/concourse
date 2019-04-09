@@ -292,6 +292,12 @@ func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal("")
 }
 
+type InParallelConfig struct {
+	Steps    PlanSequence `yaml:"steps,omitempty" json:"steps" mapstructure:"steps"`
+	Limit    int          `yaml:"limit,omitempty" json:"limit,omitempty" mapstructure:"limit"`
+	FailFast bool         `yaml:"fail_fast,omitempty" json:"fail_fast,omitempty" mapstructure:"fail_fast"`
+}
+
 // A PlanConfig is a flattened set of configuration corresponding to
 // a particular Plan, where Source and Version are populated lazily.
 type PlanConfig struct {
@@ -309,11 +315,7 @@ type PlanConfig struct {
 	Aggregate *PlanSequence `yaml:"aggregate,omitempty" json:"aggregate,omitempty" mapstructure:"aggregate"`
 
 	// a nested chain of steps to run in parallel
-	Parallel *PlanSequence `yaml:"in_parallel,omitempty" json:"in_parallel,omitempty" mapstructure:"in_parallel"`
-	// limit parallelism for a Parallel plan
-	MaxInParallel int `yaml:"max_in_parallel,omitempty" json:"max_in_parallel,omitempty" mapstructure:"max_in_parallel"`
-	// cancel a parallel step on first error
-	FailFast bool `yaml:"fail_fast,omitempty" json:"fail_fast,omitempty" mapstructure:"fail_fast"`
+	InParallel *InParallelConfig `yaml:"in_parallel,omitempty" json:"in_parallel,omitempty" mapstructure:"in_parallel"`
 
 	// corresponds to Get and Put resource plans, respectively
 	// name of 'input', e.g. bosh-stemcell
