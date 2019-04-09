@@ -81,7 +81,7 @@
 
 \note{fix,breaking}{
   tl;dr: \code{concourse web --peer-url} -> \code{concourse web
-  --tsa-peer-address}
+  --peer-address}
 
   We have been doing a lot of internal refactoring and decoupling between
   various components. One side effect of this is that the \reference{web-node}s
@@ -92,7 +92,7 @@
   However, the SSH gateways (the "TSAs"), which also run on the
   \reference{web-node}s, still need their address for the forwarded worker
   connections advertised to other \reference{web-node}s. This value used to be
-  inferred by \code{--peer-url}, so we've added a new \code{--tsa-peer-address}
+  inferred by \code{--peer-url}, so we've added a new \code{--peer-address}
   flag for it.
 }
 

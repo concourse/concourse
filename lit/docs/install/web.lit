@@ -87,7 +87,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   executing \reference{steps}.
 
   Highly available: yes; \code{web} nodes can all be configured the same (aside
-  from \code{--peer-url}) and placed behind a load balancer. Periodic tasks
+  from \code{--peer-address}) and placed behind a load balancer. Periodic tasks
   like garbage-collection will not be duplicated for each node.
 
   Horizontally scalable: yes; they will coordinate workloads using the
