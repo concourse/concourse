@@ -1,21 +1,20 @@
-package exec
+package builder
 
 import (
 	"crypto/sha1"
 	"fmt"
 	"path/filepath"
 
-	"code.cloudfoundry.org/lager"
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type gardenFactory struct {
+type stepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
 	resourceFetcher       resource.Fetcher
@@ -27,7 +26,7 @@ type gardenFactory struct {
 	resourceFactory       resource.ResourceFactory
 }
 
-func NewGardenFactory(
+func NewStepFactory(
 	pool worker.Pool,
 	client worker.Client,
 	resourceFetcher resource.Fetcher,
@@ -37,8 +36,8 @@ func NewGardenFactory(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
-) Factory {
-	return &gardenFactory{
+) *stepFactory {
+	return &stepFactory{
 		pool:                  pool,
 		client:                client,
 		resourceFetcher:       resourceFetcher,
@@ -51,19 +50,18 @@ func NewGardenFactory(
 	}
 }
 
-func (factory *gardenFactory) Get(
-	logger lager.Logger,
+func (factory *stepFactory) GetStep(
 	plan atc.Plan,
 	build db.Build,
-	stepMetadata StepMetadata,
+	stepMetadata exec.StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	delegate GetDelegate,
-) Step {
+	delegate exec.GetDelegate,
+) exec.Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
-	getStep := NewGetStep(
+	getStep := exec.NewGetStep(
 		build,
 
 		plan.Get.Name,
@@ -71,7 +69,7 @@ func (factory *gardenFactory) Get(
 		plan.Get.Resource,
 		creds.NewSource(variables, plan.Get.Source),
 		creds.NewParams(variables, plan.Get.Params),
-		NewVersionSourceFromPlan(plan.Get),
+		exec.NewVersionSourceFromPlan(plan.Get),
 		plan.Get.Tags,
 
 		delegate,
@@ -89,35 +87,34 @@ func (factory *gardenFactory) Get(
 		factory.pool,
 	)
 
-	return LogError(getStep, delegate)
+	return exec.LogError(getStep, delegate)
 }
 
-func (factory *gardenFactory) Put(
-	logger lager.Logger,
+func (factory *stepFactory) PutStep(
 	plan atc.Plan,
 	build db.Build,
-	stepMetadata StepMetadata,
+	stepMetadata exec.StepMetadata,
 	workerMetadata db.ContainerMetadata,
-	delegate PutDelegate,
-) Step {
+	delegate exec.PutDelegate,
+) exec.Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
 	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
-	var putInputs PutInputs
+	var putInputs exec.PutInputs
 	if plan.Put.Inputs == nil {
 		// Put step defaults to all inputs if not specified
-		putInputs = NewAllInputs()
+		putInputs = exec.NewAllInputs()
 	} else if plan.Put.Inputs.All {
-		putInputs = NewAllInputs()
+		putInputs = exec.NewAllInputs()
 	} else {
 		// Covers both cases where inputs are specified and when there are no
 		// inputs specified and "all" field is given a false boolean, which will
 		// result in no inputs attached
-		putInputs = NewSpecificInputs(plan.Put.Inputs.Specified)
+		putInputs = exec.NewSpecificInputs(plan.Put.Inputs.Specified)
 	}
 
-	putStep := NewPutStep(
+	putStep := exec.NewPutStep(
 		build,
 
 		plan.Put.Name,
@@ -141,48 +138,50 @@ func (factory *gardenFactory) Put(
 		factory.resourceFactory,
 	)
 
-	return LogError(putStep, delegate)
+	return exec.LogError(putStep, delegate)
 }
 
-func (factory *gardenFactory) Task(
-	logger lager.Logger,
+func (factory *stepFactory) TaskStep(
 	plan atc.Plan,
 	build db.Build,
 	containerMetadata db.ContainerMetadata,
-	delegate TaskDelegate,
-) Step {
-	workingDirectory := factory.taskWorkingDirectory(artifact.Name(plan.Task.Name))
+	delegate exec.TaskDelegate,
+) exec.Step {
+	sum := sha1.Sum([]byte(plan.Task.Name))
+	workingDirectory := filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
+
 	containerMetadata.WorkingDirectory = workingDirectory
 
 	credMgrVariables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
 
-	var taskConfigSource TaskConfigSource
-	var taskVars []boshtemplate.Variables
+	var taskConfigSource exec.TaskConfigSource
+	var taskVars []template.Variables
+
 	if plan.Task.ConfigPath != "" {
 		// external task - construct a source which reads it from file
-		taskConfigSource = FileConfigSource{ConfigPath: plan.Task.ConfigPath}
+		taskConfigSource = exec.FileConfigSource{ConfigPath: plan.Task.ConfigPath}
 
 		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred mgr variables
-		taskVars = []boshtemplate.Variables{boshtemplate.StaticVariables(plan.Task.Vars), credMgrVariables}
+		taskVars = []template.Variables{template.StaticVariables(plan.Task.Vars), credMgrVariables}
 	} else {
 		// embedded task - first we take it
-		taskConfigSource = StaticConfigSource{Config: plan.Task.Config}
+		taskConfigSource = exec.StaticConfigSource{Config: plan.Task.Config}
 
 		// for interpolation - use just cred mgr variables
-		taskVars = []boshtemplate.Variables{credMgrVariables}
+		taskVars = []template.Variables{credMgrVariables}
 	}
 
 	// override params
-	taskConfigSource = &OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: plan.Task.Params}
+	taskConfigSource = &exec.OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: plan.Task.Params}
 
 	// interpolate template vars
-	taskConfigSource = InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: taskVars}
+	taskConfigSource = exec.InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: taskVars}
 
 	// validate
-	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
+	taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}
 
-	taskStep := NewTaskStep(
-		Privileged(plan.Task.Privileged),
+	taskStep := exec.NewTaskStep(
+		exec.Privileged(plan.Task.Privileged),
 		taskConfigSource,
 		plan.Task.Tags,
 		plan.Task.InputMapping,
@@ -206,28 +205,21 @@ func (factory *gardenFactory) Task(
 		factory.strategy,
 	)
 
-	return LogError(taskStep, delegate)
+	return exec.LogError(taskStep, delegate)
 }
 
-func (factory *gardenFactory) ArtifactInputStep(
-	logger lager.Logger,
+func (factory *stepFactory) ArtifactInputStep(
 	plan atc.Plan,
 	build db.Build,
-	delegate BuildStepDelegate,
-) Step {
-	return NewArtifactInputStep(plan, build, factory.client, delegate)
+	delegate exec.BuildStepDelegate,
+) exec.Step {
+	return exec.NewArtifactInputStep(plan, build, factory.client, delegate)
 }
 
-func (factory *gardenFactory) ArtifactOutputStep(
-	logger lager.Logger,
+func (factory *stepFactory) ArtifactOutputStep(
 	plan atc.Plan,
 	build db.Build,
-	delegate BuildStepDelegate,
-) Step {
-	return NewArtifactOutputStep(plan, build, factory.client, delegate)
-}
-
-func (factory *gardenFactory) taskWorkingDirectory(sourceName artifact.Name) string {
-	sum := sha1.Sum([]byte(sourceName))
-	return filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
+	delegate exec.BuildStepDelegate,
+) exec.Step {
+	return exec.NewArtifactOutputStep(plan, build, factory.client, delegate)
 }

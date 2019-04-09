@@ -304,15 +304,15 @@ type FakeBuild struct {
 		result2 bool
 		result3 error
 	}
-	PrivatePlanStub        func() string
+	PrivatePlanStub        func() atc.Plan
 	privatePlanMutex       sync.RWMutex
 	privatePlanArgsForCall []struct {
 	}
 	privatePlanReturns struct {
-		result1 string
+		result1 atc.Plan
 	}
 	privatePlanReturnsOnCall map[int]struct {
-		result1 string
+		result1 atc.Plan
 	}
 	PublicPlanStub        func() *json.RawMessage
 	publicPlanMutex       sync.RWMutex
@@ -1941,7 +1941,7 @@ func (fake *FakeBuild) PreparationReturnsOnCall(i int, result1 db.BuildPreparati
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuild) PrivatePlan() string {
+func (fake *FakeBuild) PrivatePlan() atc.Plan {
 	fake.privatePlanMutex.Lock()
 	ret, specificReturn := fake.privatePlanReturnsOnCall[len(fake.privatePlanArgsForCall)]
 	fake.privatePlanArgsForCall = append(fake.privatePlanArgsForCall, struct {
@@ -1964,32 +1964,32 @@ func (fake *FakeBuild) PrivatePlanCallCount() int {
 	return len(fake.privatePlanArgsForCall)
 }
 
-func (fake *FakeBuild) PrivatePlanCalls(stub func() string) {
+func (fake *FakeBuild) PrivatePlanCalls(stub func() atc.Plan) {
 	fake.privatePlanMutex.Lock()
 	defer fake.privatePlanMutex.Unlock()
 	fake.PrivatePlanStub = stub
 }
 
-func (fake *FakeBuild) PrivatePlanReturns(result1 string) {
+func (fake *FakeBuild) PrivatePlanReturns(result1 atc.Plan) {
 	fake.privatePlanMutex.Lock()
 	defer fake.privatePlanMutex.Unlock()
 	fake.PrivatePlanStub = nil
 	fake.privatePlanReturns = struct {
-		result1 string
+		result1 atc.Plan
 	}{result1}
 }
 
-func (fake *FakeBuild) PrivatePlanReturnsOnCall(i int, result1 string) {
+func (fake *FakeBuild) PrivatePlanReturnsOnCall(i int, result1 atc.Plan) {
 	fake.privatePlanMutex.Lock()
 	defer fake.privatePlanMutex.Unlock()
 	fake.PrivatePlanStub = nil
 	if fake.privatePlanReturnsOnCall == nil {
 		fake.privatePlanReturnsOnCall = make(map[int]struct {
-			result1 string
+			result1 atc.Plan
 		})
 	}
 	fake.privatePlanReturnsOnCall[i] = struct {
-		result1 string
+		result1 atc.Plan
 	}{result1}
 }
 

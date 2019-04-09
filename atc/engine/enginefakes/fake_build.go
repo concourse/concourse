@@ -9,27 +9,6 @@ import (
 )
 
 type FakeBuild struct {
-	AbortStub        func(lager.Logger) error
-	abortMutex       sync.RWMutex
-	abortArgsForCall []struct {
-		arg1 lager.Logger
-	}
-	abortReturns struct {
-		result1 error
-	}
-	abortReturnsOnCall map[int]struct {
-		result1 error
-	}
-	MetadataStub        func() string
-	metadataMutex       sync.RWMutex
-	metadataArgsForCall []struct {
-	}
-	metadataReturns struct {
-		result1 string
-	}
-	metadataReturnsOnCall map[int]struct {
-		result1 string
-	}
 	ResumeStub        func(lager.Logger)
 	resumeMutex       sync.RWMutex
 	resumeArgsForCall []struct {
@@ -37,118 +16,6 @@ type FakeBuild struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeBuild) Abort(arg1 lager.Logger) error {
-	fake.abortMutex.Lock()
-	ret, specificReturn := fake.abortReturnsOnCall[len(fake.abortArgsForCall)]
-	fake.abortArgsForCall = append(fake.abortArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("Abort", []interface{}{arg1})
-	fake.abortMutex.Unlock()
-	if fake.AbortStub != nil {
-		return fake.AbortStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.abortReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) AbortCallCount() int {
-	fake.abortMutex.RLock()
-	defer fake.abortMutex.RUnlock()
-	return len(fake.abortArgsForCall)
-}
-
-func (fake *FakeBuild) AbortCalls(stub func(lager.Logger) error) {
-	fake.abortMutex.Lock()
-	defer fake.abortMutex.Unlock()
-	fake.AbortStub = stub
-}
-
-func (fake *FakeBuild) AbortArgsForCall(i int) lager.Logger {
-	fake.abortMutex.RLock()
-	defer fake.abortMutex.RUnlock()
-	argsForCall := fake.abortArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeBuild) AbortReturns(result1 error) {
-	fake.abortMutex.Lock()
-	defer fake.abortMutex.Unlock()
-	fake.AbortStub = nil
-	fake.abortReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) AbortReturnsOnCall(i int, result1 error) {
-	fake.abortMutex.Lock()
-	defer fake.abortMutex.Unlock()
-	fake.AbortStub = nil
-	if fake.abortReturnsOnCall == nil {
-		fake.abortReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.abortReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) Metadata() string {
-	fake.metadataMutex.Lock()
-	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
-	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Metadata", []interface{}{})
-	fake.metadataMutex.Unlock()
-	if fake.MetadataStub != nil {
-		return fake.MetadataStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.metadataReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) MetadataCallCount() int {
-	fake.metadataMutex.RLock()
-	defer fake.metadataMutex.RUnlock()
-	return len(fake.metadataArgsForCall)
-}
-
-func (fake *FakeBuild) MetadataCalls(stub func() string) {
-	fake.metadataMutex.Lock()
-	defer fake.metadataMutex.Unlock()
-	fake.MetadataStub = stub
-}
-
-func (fake *FakeBuild) MetadataReturns(result1 string) {
-	fake.metadataMutex.Lock()
-	defer fake.metadataMutex.Unlock()
-	fake.MetadataStub = nil
-	fake.metadataReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeBuild) MetadataReturnsOnCall(i int, result1 string) {
-	fake.metadataMutex.Lock()
-	defer fake.metadataMutex.Unlock()
-	fake.MetadataStub = nil
-	if fake.metadataReturnsOnCall == nil {
-		fake.metadataReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.metadataReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
 }
 
 func (fake *FakeBuild) Resume(arg1 lager.Logger) {
@@ -185,10 +52,6 @@ func (fake *FakeBuild) ResumeArgsForCall(i int) lager.Logger {
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.abortMutex.RLock()
-	defer fake.abortMutex.RUnlock()
-	fake.metadataMutex.RLock()
-	defer fake.metadataMutex.RUnlock()
 	fake.resumeMutex.RLock()
 	defer fake.resumeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
