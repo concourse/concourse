@@ -13,7 +13,7 @@ type InParallelStep struct {
 	failFast bool
 }
 
-// InParallel constructs a ParallelStep.
+// InParallel constructs an InParallelStep.
 func InParallel(steps []Step, limit int, failFast bool) InParallelStep {
 	if limit < 1 {
 		limit = len(steps)

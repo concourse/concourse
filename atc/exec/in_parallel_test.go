@@ -66,7 +66,7 @@ var _ = Describe("Parallel", func() {
 	})
 
 	Describe("executing each step", func() {
-		Context("when not limited by maxInParallel", func() {
+		Context("when not constrained by parallel limit", func() {
 			BeforeEach(func() {
 				wg := new(sync.WaitGroup)
 				wg.Add(2)
@@ -90,7 +90,7 @@ var _ = Describe("Parallel", func() {
 			})
 		})
 
-		Context("when maxInParallel is 1", func() {
+		Context("when parallel limit is 1", func() {
 			BeforeEach(func() {
 				step = InParallel(fakeSteps, 1, false)
 				ch := make(chan struct{}, 1)
