@@ -142,6 +142,41 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 		})
+
+		Context("when the groups have two duplicate names", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, GroupConfig{
+					Name: "some-group",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorMessages[0]).To(ContainSubstring("'some-group' appears 2 times. Duplicate names are not allowed."))
+			})
+		})
+
+		Context("when the groups have four duplicate names", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, GroupConfig{
+					Name: "some-group",
+				}, GroupConfig{
+					Name: "some-group",
+				}, GroupConfig{
+					Name: "some-group",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				errorMessage := strings.Trim(errorMessages[0], "\n")
+				errorLines := strings.Split(errorMessage, "\n")
+				Expect(errorLines).To(HaveLen(2))
+				Expect(errorLines[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorLines[1]).To(ContainSubstring("group 'some-group' appears 4 times. Duplicate names are not allowed."))
+			})
+		})
 	})
 
 	Describe("invalid resources", func() {

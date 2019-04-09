@@ -56,11 +56,21 @@ func validateGroups(c Config) error {
 	errorMessages := []string{}
 
 	jobsGrouped := make(map[string]bool)
+	groupNames := make(map[string]int)
+
 	for _, job := range c.Jobs {
 		jobsGrouped[job.Name] = false
 	}
 
 	for _, group := range c.Groups {
+
+		if val, ok := groupNames[group.Name]; ok {
+			groupNames[group.Name] = val + 1
+
+		} else {
+			groupNames[group.Name] = 1
+		}
+
 		for _, job := range group.Jobs {
 			_, exists := c.Jobs.Lookup(job)
 			if !exists {
@@ -77,6 +87,13 @@ func validateGroups(c Config) error {
 				errorMessages = append(errorMessages,
 					fmt.Sprintf("group '%s' has unknown resource '%s'", group.Name, resource))
 			}
+		}
+	}
+
+	for groupName, groupCount := range groupNames {
+		if groupCount > 1 {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf("group '%s' appears %d times. Duplicate names are not allowed.", groupName, groupCount))
 		}
 	}
 
