@@ -501,16 +501,17 @@ jobs:
       passed: [build-rc]
     - get: unit-image
       passed: [build-rc]
+    - get: concourse-docker
+      trigger: true
     - get: builder
   - task: build
     image: builder
     privileged: true
-    file: concourse/ci/tasks/build-rc-image.yml
+    file: concourse-docker/ci/build-image.yml
   - put: concourse-rc-image
     params:
       image: image/image.tar
       additional_tags: version/version
-    get_params: {format: oci}
 
 - name: bin-smoke
   public: true
@@ -1389,6 +1390,11 @@ resources:
     uri: git@github.com:concourse/concourse-bosh-deployment.git
     branch: master
     private_key: ((concourse_deployment_repo_private_key))
+
+- name: concourse-docker
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse-docker
 
 - name: charts
   type: git
