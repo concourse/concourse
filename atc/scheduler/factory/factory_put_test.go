@@ -326,7 +326,7 @@ var _ = Describe("Factory Put", func() {
 					VersionedResourceTypes: resourceTypes,
 				})
 
-				expected := expectedPlanFactory.NewPlan(atc.ParallelPlan{
+				expected := expectedPlanFactory.NewPlan(atc.InParallelPlan{
 					Steps: []atc.Plan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:                   "some thing",

@@ -295,7 +295,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 			steps = append(steps, step)
 		}
 
-		plan = factory.planFactory.NewPlan(atc.ParallelPlan{
+		plan = factory.planFactory.NewPlan(atc.InParallelPlan{
 			Steps:         steps,
 			MaxInParallel: planConfig.MaxInParallel,
 			FailFast:      planConfig.FailFast,

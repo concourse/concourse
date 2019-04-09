@@ -92,9 +92,9 @@ func stripIDs(plan atc.Plan) (atc.Plan, []string) {
 		}
 	}
 
-	if plan.Parallel != nil {
-		for i, p := range plan.Parallel.Steps {
-			plan.Parallel.Steps[i], subIDs = stripIDs(p)
+	if plan.InParallel != nil {
+		for i, p := range plan.InParallel.Steps {
+			plan.InParallel.Steps[i], subIDs = stripIDs(p)
 			ids = append(ids, subIDs...)
 		}
 	}

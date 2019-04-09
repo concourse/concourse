@@ -63,7 +63,7 @@ var _ = Describe("Factory Parallel", func() {
 			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
-			expected := expectedPlanFactory.NewPlan(atc.ParallelPlan{
+			expected := expectedPlanFactory.NewPlan(atc.InParallelPlan{
 				Steps: []atc.Plan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:                   "some thing",

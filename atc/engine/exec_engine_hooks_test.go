@@ -448,7 +448,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 			It("only run the failure hooks", func() {
 				plan := planFactory.NewPlan(atc.OnSuccessPlan{
-					Step: planFactory.NewPlan(atc.ParallelPlan{
+					Step: planFactory.NewPlan(atc.InParallelPlan{
 						Steps: []atc.Plan{
 							planFactory.NewPlan(atc.TaskPlan{
 								Name:   "some-resource",

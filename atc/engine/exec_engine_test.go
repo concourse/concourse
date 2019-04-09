@@ -200,7 +200,7 @@ var _ = Describe("ExecEngine", func() {
 					Params:   atc.Params{"some": "params-2"},
 				})
 
-				outputPlan = planFactory.NewPlan(atc.ParallelPlan{
+				outputPlan = planFactory.NewPlan(atc.InParallelPlan{
 					Steps: []atc.Plan{
 						planFactory.NewPlan(atc.OnSuccessPlan{
 							Step: putPlan,
@@ -295,7 +295,7 @@ var _ = Describe("ExecEngine", func() {
 
 				aggregatePlan = planFactory.NewPlan(atc.AggregatePlan{retryPlanTwo})
 
-				parallelPlan = planFactory.NewPlan(atc.ParallelPlan{
+				parallelPlan = planFactory.NewPlan(atc.InParallelPlan{
 					Steps:         []atc.Plan{aggregatePlan},
 					MaxInParallel: 1,
 					FailFast:      true,

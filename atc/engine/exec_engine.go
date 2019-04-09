@@ -179,7 +179,7 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 		return build.buildAggregateStep(logger, plan)
 	}
 
-	if plan.Parallel != nil {
+	if plan.InParallel != nil {
 		return build.buildParallelStep(logger, plan)
 	}
 

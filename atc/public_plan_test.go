@@ -323,7 +323,7 @@ var _ = Describe("Plan", func() {
 					},
 					atc.Plan{
 						ID: "36",
-						Parallel: &atc.ParallelPlan{
+						InParallel: &atc.InParallelPlan{
 							MaxInParallel: 1,
 							FailFast:      true,
 							Steps: []atc.Plan{

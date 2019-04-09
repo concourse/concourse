@@ -27,8 +27,8 @@ func (factory PlanFactory) NewPlan(step Step) Plan {
 	switch t := step.(type) {
 	case AggregatePlan:
 		plan.Aggregate = &t
-	case ParallelPlan:
-		plan.Parallel = &t
+	case InParallelPlan:
+		plan.InParallel = &t
 	case DoPlan:
 		plan.Do = &t
 	case GetPlan:
