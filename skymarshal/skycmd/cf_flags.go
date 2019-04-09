@@ -78,10 +78,10 @@ func (flag *CFTeamFlags) GetUsers() []string {
 	return flag.Users
 }
 
-func (flag *CFTeamFlags) GetGroups() []string {
+func (flag *CFTeamFlags) GetGroups() ([]string, error) {
 	var groups []string
 	groups = append(groups, flag.Orgs...)
 	groups = append(groups, flag.Spaces...)
 	groups = append(groups, flag.SpaceGuids...)
-	return groups
+	return groups, nil
 }

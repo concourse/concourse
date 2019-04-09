@@ -118,9 +118,14 @@ func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 				}
 			}
 
-			for _, group := range teamConfig.GetGroups() {
-				if group != "" {
-					groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+			groupConfigs, err := teamConfig.GetGroups()
+			if err != nil {
+				return nil, err
+			}
+
+			for _, groupConfig := range groupConfigs {
+				if groupConfig != "" {
+					groups = append(groups, connector.ID()+":"+strings.ToLower(groupConfig))
 				}
 			}
 		}
@@ -165,9 +170,14 @@ func (flag *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
 			}
 		}
 
-		for _, group := range teamConfig.GetGroups() {
-			if group != "" {
-				groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+		groupConfigs, err := teamConfig.GetGroups()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, groupConfig := range groupConfigs {
+			if groupConfig != "" {
+				groups = append(groups, connector.ID()+":"+strings.ToLower(groupConfig))
 			}
 		}
 	}
@@ -197,7 +207,7 @@ type Config interface {
 
 type TeamConfig interface {
 	GetUsers() []string
-	GetGroups() []string
+	GetGroups() ([]string, error)
 }
 
 type Connector struct {

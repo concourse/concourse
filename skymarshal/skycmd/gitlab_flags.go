@@ -62,6 +62,6 @@ func (flag *GitlabTeamFlags) GetUsers() []string {
 	return flag.Users
 }
 
-func (flag *GitlabTeamFlags) GetGroups() []string {
-	return flag.Groups
+func (flag *GitlabTeamFlags) GetGroups() ([]string, error) {
+	return flag.Groups, nil
 }

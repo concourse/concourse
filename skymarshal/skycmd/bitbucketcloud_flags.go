@@ -60,6 +60,6 @@ func (flag *BitbucketCloudTeamFlags) GetUsers() []string {
 	return flag.Users
 }
 
-func (flag *BitbucketCloudTeamFlags) GetGroups() []string {
-	return flag.Teams
+func (flag *BitbucketCloudTeamFlags) GetGroups() ([]string, error) {
+	return flag.Teams, nil
 }

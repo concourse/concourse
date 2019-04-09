@@ -99,35 +99,52 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("Setting github auth", func() {
-				BeforeEach(func() {
-					cmdParams = []string{"-c", "fixtures/team_config_with_github_auth.yml"}
+				Context("when github auth is valid", func() {
+					BeforeEach(func() {
+						cmdParams = []string{"-c", "fixtures/team_config_with_github_auth.yml"}
+					})
+
+					It("shows the users and groups configured for github for a given role", func() {
+						sess, err := gexec.Start(flyCmd, nil, nil)
+						Expect(err).ToNot(HaveOccurred())
+
+						Eventually(sess.Out).Should(gbytes.Say("setting team: venture"))
+
+						Eventually(sess.Out).Should(gbytes.Say("role member:"))
+						Eventually(sess.Out).Should(gbytes.Say("users:"))
+						Eventually(sess.Out).Should(gbytes.Say("- github:some-user"))
+						Eventually(sess.Out).Should(gbytes.Say("groups:"))
+						Eventually(sess.Out).Should(gbytes.Say("none"))
+
+						Eventually(sess.Out).Should(gbytes.Say("role owner:"))
+						Eventually(sess.Out).Should(gbytes.Say("users:"))
+						Eventually(sess.Out).Should(gbytes.Say("none"))
+						Eventually(sess.Out).Should(gbytes.Say("groups:"))
+						Eventually(sess.Out).Should(gbytes.Say("- github:some-other-org"))
+
+						Eventually(sess.Out).Should(gbytes.Say("role viewer:"))
+						Eventually(sess.Out).Should(gbytes.Say("users:"))
+						Eventually(sess.Out).Should(gbytes.Say("- github:some-github-user"))
+						Eventually(sess.Out).Should(gbytes.Say("groups:"))
+						Eventually(sess.Out).Should(gbytes.Say("- github:some-org:some-team"))
+
+						Eventually(sess).Should(gexec.Exit(1))
+					})
 				})
 
-				It("shows the users and groups configured for github for a given role", func() {
-					sess, err := gexec.Start(flyCmd, nil, nil)
-					Expect(err).ToNot(HaveOccurred())
+				Context("when github auth is invalid", func() {
+					BeforeEach(func() {
+						cmdParams = []string{"-c", "fixtures/team_config_with_github_auth_invalid.yml"}
+					})
 
-					Eventually(sess.Out).Should(gbytes.Say("setting team: venture"))
+					It("returns error about invalid github teamm config", func() {
+						sess, err := gexec.Start(flyCmd, nil, nil)
+						Expect(err).ToNot(HaveOccurred())
 
-					Eventually(sess.Out).Should(gbytes.Say("role member:"))
-					Eventually(sess.Out).Should(gbytes.Say("users:"))
-					Eventually(sess.Out).Should(gbytes.Say("- github:some-user"))
-					Eventually(sess.Out).Should(gbytes.Say("groups:"))
-					Eventually(sess.Out).Should(gbytes.Say("none"))
+						Eventually(sess.Err).Should(gbytes.Say("argument format should be <ORG_NAME>:<TEAM_NAME>"))
 
-					Eventually(sess.Out).Should(gbytes.Say("role owner:"))
-					Eventually(sess.Out).Should(gbytes.Say("users:"))
-					Eventually(sess.Out).Should(gbytes.Say("none"))
-					Eventually(sess.Out).Should(gbytes.Say("groups:"))
-					Eventually(sess.Out).Should(gbytes.Say("- github:some-other-org"))
-
-					Eventually(sess.Out).Should(gbytes.Say("role viewer:"))
-					Eventually(sess.Out).Should(gbytes.Say("users:"))
-					Eventually(sess.Out).Should(gbytes.Say("- github:some-github-user"))
-					Eventually(sess.Out).Should(gbytes.Say("groups:"))
-					Eventually(sess.Out).Should(gbytes.Say("- github:some-org:some-team"))
-
-					Eventually(sess).Should(gexec.Exit(1))
+						Eventually(sess).Should(gexec.Exit(1))
+					})
 				})
 			})
 
@@ -501,6 +518,21 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("- cf:myorg-1"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:myorg-2:myspace"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:myspace-guid"))
+
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("Setting github auth with invalid team config", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--github-team", "samson-org:some-string:samson-team:"}
+				})
+
+				It("returns validation error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+
+					Eventually(sess.Err).Should(gbytes.Say("argument format should be <ORG_NAME>:<TEAM_NAME>"))
 
 					Eventually(sess).Should(gexec.Exit(1))
 				})

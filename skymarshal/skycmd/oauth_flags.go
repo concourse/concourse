@@ -100,6 +100,6 @@ func (flag *OAuthTeamFlags) GetUsers() []string {
 	return flag.Users
 }
 
-func (flag *OAuthTeamFlags) GetGroups() []string {
-	return flag.Groups
+func (flag *OAuthTeamFlags) GetGroups() ([]string, error) {
+	return flag.Groups, nil
 }

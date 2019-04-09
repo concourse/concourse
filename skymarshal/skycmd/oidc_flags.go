@@ -88,6 +88,6 @@ func (flag *OIDCTeamFlags) GetUsers() []string {
 	return flag.Users
 }
 
-func (flag *OIDCTeamFlags) GetGroups() []string {
-	return flag.Groups
+func (flag *OIDCTeamFlags) GetGroups() ([]string, error) {
+	return flag.Groups, nil
 }

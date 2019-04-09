@@ -114,6 +114,6 @@ func (flag *LDAPTeamFlags) GetUsers() []string {
 	return flag.Users
 }
 
-func (flag *LDAPTeamFlags) GetGroups() []string {
-	return flag.Groups
+func (flag *LDAPTeamFlags) GetGroups() ([]string, error) {
+	return flag.Groups, nil
 }

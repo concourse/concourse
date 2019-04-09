@@ -3,6 +3,8 @@ package skycmd
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/concourse/dex/connector/github"
 	"github.com/concourse/flag"
@@ -61,13 +63,21 @@ func (flag *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 type GithubTeamFlags struct {
 	Users []string `long:"user" description:"List of whitelisted GitHub users" value-name:"USERNAME"`
 	Orgs  []string `long:"org" description:"List of whitelisted GitHub orgs" value-name:"ORG_NAME"`
-	Teams []string `long:"team" description:"List of whitelisted GitHub teams" value-name:"ORG_NAME:TEAM_NAME"`
+	Teams []string `long:"team" description:"List of whitelisted GitHub teams. TEAM_NAME could be github team name or team slug" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
 func (flag *GithubTeamFlags) GetUsers() []string {
 	return flag.Users
 }
 
-func (flag *GithubTeamFlags) GetGroups() []string {
-	return append(flag.Orgs, flag.Teams...)
+func (flag *GithubTeamFlags) GetGroups() ([]string, error) {
+	for _, teamConfig := range flag.Teams {
+		vs := strings.SplitN(teamConfig, ":", -1)
+
+		if len(vs) != 2 {
+			return nil, errors.New(fmt.Sprintf("%s argument format should be <ORG_NAME>:<TEAM_NAME>", teamConfig))
+		}
+	}
+
+	return append(flag.Orgs, flag.Teams...), nil
 }
