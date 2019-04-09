@@ -355,6 +355,7 @@ type alias HookedPlan =
     , hook : BuildPlan
     }
 
+
 decodeBuildPlan : Json.Decode.Decoder BuildPlan
 decodeBuildPlan =
     Json.Decode.at [ "plan" ] <|
@@ -406,7 +407,6 @@ decodeBuildPlan_ =
             )
 
 
-
 decodeBuildStepTask : Json.Decode.Decoder BuildStep
 decodeBuildStepTask =
     Json.Decode.succeed BuildStepTask
@@ -443,10 +443,12 @@ decodeBuildStepAggregate =
     Json.Decode.succeed BuildStepAggregate
         |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
 
+
 decodeBuildStepInParallel : Json.Decode.Decoder BuildStep
 decodeBuildStepInParallel =
     Json.Decode.succeed BuildStepInParallel
-        |> andMap (Json.Decode.field "steps" <| Json.Decode.array ( lazy (\_ -> decodeBuildPlan_)))
+        |> andMap (Json.Decode.field "steps" <| Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
+
 
 decodeBuildStepDo : Json.Decode.Decoder BuildStep
 decodeBuildStepDo =

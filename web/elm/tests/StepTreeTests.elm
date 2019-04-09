@@ -2,10 +2,10 @@ module StepTreeTests exposing
     ( all
     , initAggregate
     , initAggregateNested
-    , initParallel
-    , initParallelNested
     , initEnsure
     , initGet
+    , initInParallel
+    , initInParallelNested
     , initOnFailure
     , initOnSuccess
     , initPut
@@ -281,7 +281,7 @@ initInParallel =
         [ test "the tree" <|
             \_ ->
                 Expect.equal
-                    (Models.Parallel
+                    (Models.InParallel
                         << Array.fromList
                      <|
                         [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
@@ -295,7 +295,7 @@ initInParallel =
                     foci
                     tree
                     (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Parallel
+                    (Models.InParallel
                         << Array.fromList
                      <|
                         [ Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
