@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 )
 
 // InParallelStep is a step of steps to run in parallel.
@@ -38,9 +37,9 @@ func InParallel(steps []Step, limit int, failFast bool) InParallelStep {
 // single error.
 func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 	var (
-		wg   sync.WaitGroup
-		errs = make(chan error, len(step.steps))
-		sem  = make(chan bool, step.limit)
+		errs          = make(chan error, len(step.steps))
+		sem           = make(chan bool, step.limit)
+		executedSteps int
 	)
 
 	runCtx, cancel := context.WithCancel(ctx)
@@ -54,11 +53,9 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 			break
 		}
 
-		wg.Add(1)
 		go func() {
 			defer func() {
 				<-sem
-				wg.Done()
 			}()
 
 			errs <- s.Run(runCtx, state)
@@ -66,23 +63,22 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 				cancel()
 			}
 		}()
-	}
-
-	wg.Wait()
-	close(errs)
-
-	if ctx.Err() != nil {
-		return ctx.Err()
+		executedSteps++
 	}
 
 	var errorMessages []string
-	for err := range errs {
+	for i := 0; i < executedSteps; i++ {
+		err := <-errs
 		if err != nil && err != context.Canceled {
 			// The Run context being cancelled only means that one or more steps failed, not
 			// in_parallel itself. If we return context.Canceled error messages the step will
 			// be marked as errored instead of failed, and therefore they should be ignored.
 			errorMessages = append(errorMessages, err.Error())
 		}
+	}
+
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 
 	if len(errorMessages) > 0 {
