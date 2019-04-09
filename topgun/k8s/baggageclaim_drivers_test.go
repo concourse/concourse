@@ -16,12 +16,7 @@ var _ = Describe("Baggageclaim Drivers", func() {
 	)
 
 	AfterEach(func() {
-		helmDestroy(releaseName)
-		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-
-		if proxySession != nil {
-			Wait(proxySession.Interrupt())
-		}
+		cleanup(releaseName, namespace, proxySession)
 	})
 
 	type Case struct {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/onsi/gomega/gexec"
 
-	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -78,10 +77,8 @@ var _ = Describe("Prometheus integration", func() {
 	})
 
 	AfterEach(func() {
-		helmDestroy(releaseName)
 		helmDestroy(prometheusReleaseName)
-		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-		Wait(proxySession.Interrupt())
+		cleanup(releaseName, namespace, proxySession)
 	})
 
 	It("Is able to retrieve concourse metrics", func() {

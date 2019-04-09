@@ -98,7 +98,7 @@ var _ = BeforeEach(func() {
 })
 
 func setReleaseNameAndNamespace(description string) {
-	releaseName = fmt.Sprintf("topgun-"+description+"-%d-%d", rand.Int(), GinkgoParallelNode())
+	releaseName = fmt.Sprintf("topgun-"+description+"-%d-%d", rand.Int31n(1000000), GinkgoParallelNode())
 	namespace = releaseName
 }
 
@@ -275,4 +275,13 @@ func getRunningWorkers(workers []Worker) (running []Worker) {
 		}
 	}
 	return
+}
+
+func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
+	helmDestroy(releaseName)
+	Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
+
+	if proxySession != nil {
+		Wait(proxySession.Interrupt())
+	}
 }
