@@ -334,6 +334,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		foundTypes.Find("aggregate")
 	}
 
+	if plan.Parallel != nil {
+		foundTypes.Find("parallel")
+	}
+
 	if plan.Try != nil {
 		foundTypes.Find("try")
 	}
@@ -357,6 +361,14 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	case plan.Aggregate != nil:
 		for i, plan := range *plan.Aggregate {
 			subIdentifier := fmt.Sprintf("%s.aggregate[%d]", identifier, i)
+			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
+			warnings = append(warnings, planWarnings...)
+			errorMessages = append(errorMessages, planErrMessages...)
+		}
+
+	case plan.Parallel != nil:
+		for i, plan := range *plan.Parallel {
+			subIdentifier := fmt.Sprintf("%s.parallel[%d]", identifier, i)
 			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
 			warnings = append(warnings, planWarnings...)
 			errorMessages = append(errorMessages, planErrMessages...)

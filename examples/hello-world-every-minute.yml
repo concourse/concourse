@@ -10,13 +10,29 @@ resources:
     source:
       interval: 1m
 
+config: &config
+  platform: linux
+  image_resource:
+    type: registry-image
+    source:
+      repository: busybox
+  run:
+    path: /bin/sh
+    args:
+      - -cex
+      - |
+        sleep 10
+        echo hello world
+
 jobs:
-  - name: hello-world
-    public: true
+  - name: test-parallel
     plan:
-      - get: every-minute
-        trigger: true
-      - task: echo
+    - get: every-minute
+      trigger: true
+    - in_parallel:
+      - task: echo1
+        config: *config
+      - task: echo2
         config:
           platform: linux
           image_resource:
@@ -24,6 +40,15 @@ jobs:
             source:
               repository: busybox
           run:
-            path: echo
+            path: /bin/sh
             args:
-              - hello world
+              - -cex
+              - |
+                sleep 5
+                eccho
+      - task: echo3
+        config: *config
+      - task: echo4
+        config: *config
+      max_in_parallel: 3
+      fail_fast: true

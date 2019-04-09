@@ -308,6 +308,13 @@ type PlanConfig struct {
 	// corresponds to an Aggregate plan, keyed by the name of each sub-plan
 	Aggregate *PlanSequence `yaml:"aggregate,omitempty" json:"aggregate,omitempty" mapstructure:"aggregate"`
 
+	// a nested chain of steps to run in parallel
+	Parallel *PlanSequence `yaml:"in_parallel,omitempty" json:"in_parallel,omitempty" mapstructure:"in_parallel"`
+	// limit parallelism for a Parallel plan
+	MaxInParallel int `yaml:"max_in_parallel,omitempty" json:"max_in_parallel,omitempty" mapstructure:"max_in_parallel"`
+	// cancel a parallel step on first error
+	FailFast bool `yaml:"fail_fast,omitempty" json:"fail_fast,omitempty" mapstructure:"fail_fast"`
+
 	// corresponds to Get and Put resource plans, respectively
 	// name of 'input', e.g. bosh-stemcell
 	Get string `yaml:"get,omitempty" json:"get,omitempty" mapstructure:"get"`

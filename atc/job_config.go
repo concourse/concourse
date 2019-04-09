@@ -100,6 +100,12 @@ func collectPlans(plan PlanConfig) []PlanConfig {
 		}
 	}
 
+	if plan.Parallel != nil {
+		for _, p := range *plan.Parallel {
+			plans = append(plans, collectPlans(p)...)
+		}
+	}
+
 	return append(plans, plan)
 }
 

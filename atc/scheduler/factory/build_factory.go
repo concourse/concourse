@@ -277,6 +277,29 @@ func (factory *buildFactory) constructUnhookedPlan(
 		}
 
 		plan = factory.planFactory.NewPlan(aggregate)
+
+	case planConfig.Parallel != nil:
+		var steps []atc.Plan
+
+		for _, planConfig := range *planConfig.Parallel {
+			step, err := factory.constructPlanFromConfig(
+				planConfig,
+				resources,
+				resourceTypes,
+				inputs,
+			)
+			if err != nil {
+				return atc.Plan{}, err
+			}
+
+			steps = append(steps, step)
+		}
+
+		plan = factory.planFactory.NewPlan(atc.ParallelPlan{
+			Steps:         steps,
+			MaxInParallel: planConfig.MaxInParallel,
+			FailFast:      planConfig.FailFast,
+		})
 	}
 
 	if planConfig.Timeout != "" {

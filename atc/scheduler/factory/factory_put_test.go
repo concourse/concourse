@@ -292,6 +292,67 @@ var _ = Describe("Factory Put", func() {
 			})
 		})
 
+		Context("when I have a put inside a parallel", func() {
+			BeforeEach(func() {
+				input = atc.JobConfig{
+					Plan: atc.PlanSequence{
+						{
+							Parallel: &atc.PlanSequence{
+								{
+									Task: "some thing",
+								},
+								{
+									Put: "some-resource",
+								},
+							},
+							MaxInParallel: 1,
+							FailFast:      true,
+						},
+					},
+				}
+			})
+
+			It("returns the correct plan", func() {
+				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
+					Type:     "git",
+					Name:     "some-resource",
+					Resource: "some-resource",
+					Source: atc.Source{
+						"uri": "git://some-resource",
+					},
+					VersionedResourceTypes: resourceTypes,
+				})
+
+				expected := expectedPlanFactory.NewPlan(atc.ParallelPlan{
+					Steps: []atc.Plan{
+						expectedPlanFactory.NewPlan(atc.TaskPlan{
+							Name:                   "some thing",
+							VersionedResourceTypes: resourceTypes,
+						}),
+						expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+							Step: putPlan,
+							Next: expectedPlanFactory.NewPlan(atc.GetPlan{
+								Type:     "git",
+								Name:     "some-resource",
+								Resource: "some-resource",
+								Source: atc.Source{
+									"uri": "git://some-resource",
+								},
+								VersionFrom:            &putPlan.ID,
+								VersionedResourceTypes: resourceTypes,
+							}),
+						}),
+					},
+					MaxInParallel: 1,
+					FailFast:      true,
+				})
+				Expect(actual).To(testhelpers.MatchPlan(expected))
+			})
+		})
+
 		Context("when a put plan follows a task plan", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{

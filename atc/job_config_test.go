@@ -557,6 +557,88 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
+			Context("when a simple parallel plan is the first step", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = atc.PlanSequence{
+						{
+							Parallel: &atc.PlanSequence{
+								{Get: "a"},
+								{Put: "y"},
+								{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
+								{Get: "c", Trigger: true},
+							},
+							MaxInParallel: 1,
+							FailFast:      true,
+						},
+					}
+				})
+
+				It("returns an input config for all get plans", func() {
+					Expect(inputs).To(Equal([]atc.JobInput{
+						{
+							Name:     "a",
+							Resource: "a",
+							Trigger:  false,
+						},
+						{
+							Name:     "b",
+							Resource: "some-resource",
+							Passed:   []string{"x"},
+							Trigger:  false,
+						},
+						{
+							Name:     "c",
+							Resource: "c",
+							Trigger:  true,
+						},
+					}))
+
+				})
+			})
+
+			Context("when an overly complicated parallel plan is the first step", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = atc.PlanSequence{
+						{
+							Parallel: &atc.PlanSequence{
+								{
+									Parallel: &atc.PlanSequence{
+										{Get: "a"},
+									},
+									MaxInParallel: 1,
+								},
+								{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
+								{Get: "c", Trigger: true},
+							},
+							MaxInParallel: 2,
+							FailFast:      true,
+						},
+					}
+				})
+
+				It("returns an input config for all of the get plans present", func() {
+					Expect(inputs).To(Equal([]atc.JobInput{
+						{
+							Name:     "a",
+							Resource: "a",
+							Trigger:  false,
+						},
+						{
+							Name:     "b",
+							Resource: "some-resource",
+							Passed:   []string{"x"},
+							Trigger:  false,
+						},
+						{
+							Name:     "c",
+							Resource: "c",
+							Trigger:  true,
+						},
+					}))
+
+				})
+			})
+
 			Context("when there are not gets in the plan", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = atc.PlanSequence{
@@ -605,7 +687,7 @@ var _ = Describe("JobConfig", func() {
 						{
 							Aggregate: &atc.PlanSequence{
 								{
-									Aggregate: &atc.PlanSequence{
+									Parallel: &atc.PlanSequence{
 										{Put: "a"},
 									},
 								},

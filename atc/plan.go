@@ -5,6 +5,7 @@ type Plan struct {
 	Attempts []int  `json:"attempts,omitempty"`
 
 	Aggregate *AggregatePlan `json:"aggregate,omitempty"`
+	Parallel  *ParallelPlan  `json:"parallel,omitempty"`
 	Do        *DoPlan        `json:"do,omitempty"`
 	Get       *GetPlan       `json:"get,omitempty"`
 	Put       *PutPlan       `json:"put,omitempty"`
@@ -72,6 +73,12 @@ type TryPlan struct {
 }
 
 type AggregatePlan []Plan
+
+type ParallelPlan struct {
+	Steps         []Plan `json:"steps"`
+	MaxInParallel int    `json:"max_in_parallel,omitempty"`
+	FailFast      bool   `json:"fail_fast,omitempty"`
+}
 
 type DoPlan []Plan
 

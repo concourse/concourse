@@ -242,6 +242,10 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
+						Name: "parallel",
+						Type: "some-type",
+					},
+					{
 						Name: "abort",
 						Type: "some-type",
 					},
@@ -302,6 +306,15 @@ var _ = Describe("ValidateConfig", func() {
 										Get: "aggregate",
 									},
 								},
+							},
+							{
+								Parallel: &PlanSequence{
+									{
+										Get: "parallel",
+									},
+								},
+								MaxInParallel: 1,
+								FailFast:      true,
 							},
 							{
 								Task:           "some-task",
@@ -552,6 +565,31 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
+		Context("when a job has duplicate inputs via parallel", func() {
+			BeforeEach(func() {
+				job.Plan = append(job.Plan, PlanConfig{
+					Get: "some-resource",
+				})
+				job.Plan = append(job.Plan, PlanConfig{
+					Parallel: &PlanSequence{
+						{
+							Get: "some-resource",
+						},
+					},
+					MaxInParallel: 1,
+					FailFast:      true,
+				})
+
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns a single error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
+			})
+		})
+
 		Describe("plans", func() {
 			Context("when multiple actions are specified in the same plan", func() {
 				Context("when it's not just Get and Put", func() {
@@ -562,6 +600,7 @@ var _ = Describe("ValidateConfig", func() {
 							Task:      "some-resource",
 							Do:        &PlanSequence{},
 							Aggregate: &PlanSequence{},
+							Parallel:  &PlanSequence{},
 						})
 
 						config.Jobs = append(config.Jobs, job)
@@ -570,7 +609,7 @@ var _ = Describe("ValidateConfig", func() {
 					It("returns an error", func() {
 						Expect(errorMessages).To(HaveLen(1))
 						Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-						Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has multiple actions specified (aggregate, do, get, put, task)"))
+						Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has multiple actions specified (aggregate, do, get, parallel, put, task)"))
 					})
 				})
 
@@ -582,6 +621,7 @@ var _ = Describe("ValidateConfig", func() {
 							Task:      "",
 							Do:        nil,
 							Aggregate: nil,
+							Parallel:  nil,
 						})
 
 						config.Jobs = append(config.Jobs, job)

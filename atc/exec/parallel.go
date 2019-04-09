@@ -1,0 +1,103 @@
+package exec
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"sync"
+)
+
+// ParallelStep is a step of steps to run in parallel.
+type ParallelStep struct {
+	steps         []Step
+	maxInParallel int
+	failFast      bool
+}
+
+// Parallel constructs a ParallelStep.
+func Parallel(steps []Step, maxInParallel int, failFast bool) ParallelStep {
+	if maxInParallel < 1 {
+		maxInParallel = len(steps)
+	}
+	return ParallelStep{
+		steps:         steps,
+		maxInParallel: maxInParallel,
+		failFast:      failFast,
+	}
+}
+
+// Run executes all steps in order and ensures that the number of running steps
+// does not exceed the optional limit to parallelism. By default the limit is equal
+// to the number of steps, which means all steps will all be executed in parallel.
+//
+// Fail fast can be used to abort running steps if any steps exit with an error. When set
+// to false, parallel wil wait for all the steps to exit even if a step fails or errors.
+//
+// Cancelling a parallel step means that any outstanding steps will not be scheduled to run.
+// After all steps finish, their errors (if any) will be collected and returned as a
+// single error.
+func (step ParallelStep) Run(ctx context.Context, state RunState) error {
+	var (
+		wg   sync.WaitGroup
+		errs = make(chan error, len(step.steps))
+		sem  = make(chan bool, step.maxInParallel)
+	)
+
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	for _, s := range step.steps {
+		s := s
+		sem <- true
+
+		if runCtx.Err() != nil {
+			break
+		}
+
+		wg.Add(1)
+		go func() {
+			defer func() {
+				<-sem
+				wg.Done()
+			}()
+
+			errs <- s.Run(runCtx, state)
+			if !s.Succeeded() && step.failFast {
+				cancel()
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errs)
+
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	var errorMessages []string
+	for err := range errs {
+		if err != nil {
+			errorMessages = append(errorMessages, err.Error())
+		}
+	}
+
+	if len(errorMessages) > 0 {
+		return fmt.Errorf("one or more parallel steps errored:\n%s", strings.Join(errorMessages, "\n"))
+	}
+
+	return nil
+}
+
+// Succeeded is true if all of the steps' Succeeded is true
+func (step ParallelStep) Succeeded() bool {
+	succeeded := true
+
+	for _, step := range step.steps {
+		if !step.Succeeded() {
+			succeeded = false
+		}
+	}
+
+	return succeeded
+}
