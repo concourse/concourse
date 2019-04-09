@@ -587,6 +587,8 @@ jobs:
       passed: [build-rc]
       trigger: true
     - get: concourse-release-repo
+  - task: ubuntu-image-replace
+    file: concourse/ci/tasks/ubuntu-image-replace.yml
   - task: bump-concourse-blobs
     file: concourse/ci/tasks/bump-concourse-blobs.yml
     image: unit-image
