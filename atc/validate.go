@@ -359,6 +359,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		}
 
 	case plan.Aggregate != nil:
+		warnings = append(warnings, ConfigWarning{
+			Type:    "pipeline",
+			Message: identifier + " : aggregate is deprecated and will be removed in a future version",
+		})
 		for i, plan := range *plan.Aggregate {
 			subIdentifier := fmt.Sprintf("%s.aggregate[%d]", identifier, i)
 			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
@@ -368,7 +372,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 
 	case plan.InParallel != nil:
 		for i, plan := range plan.InParallel.Steps {
-			subIdentifier := fmt.Sprintf("%s.parallel[%d]", identifier, i)
+			subIdentifier := fmt.Sprintf("%s.in_parallel[%d]", identifier, i)
 			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
 			warnings = append(warnings, planWarnings...)
 			errorMessages = append(errorMessages, planErrMessages...)

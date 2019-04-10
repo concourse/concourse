@@ -298,6 +298,35 @@ type InParallelConfig struct {
 	FailFast bool         `yaml:"fail_fast,omitempty" json:"fail_fast,omitempty" mapstructure:"fail_fast"`
 }
 
+func (c *InParallelConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var data interface{}
+
+	err := unmarshal(&data)
+	if err != nil {
+		return err
+	}
+
+	switch actual := data.(type) {
+	case []interface{}:
+		if err := unmarshal(&c.Steps); err != nil {
+			return fmt.Errorf("failed to unmarshal parallel steps: %s", err)
+		}
+	case map[interface{}]interface{}:
+		// Used to avoid infinite recursion when unmarshalling this variant.
+		type target InParallelConfig
+
+		var t target
+		if err := unmarshal(&t); err != nil {
+			return fmt.Errorf("failed to unmarshal parallel config: %s", err)
+		}
+		c.Steps, c.Limit, c.FailFast = t.Steps, t.Limit, t.FailFast
+	default:
+		return fmt.Errorf("wrong type for parallel config: %v", actual)
+	}
+
+	return nil
+}
+
 // A PlanConfig is a flattened set of configuration corresponding to
 // a particular Plan, where Source and Version are populated lazily.
 type PlanConfig struct {

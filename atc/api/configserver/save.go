@@ -339,6 +339,7 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 			atc.SanitizeDecodeHook,
 			atc.VersionConfigDecodeHook,
 			atc.InputsConfigDecodeHook,
+			atc.InParallelConfigDecodeHook,
 			atc.ContainerLimitsDecodeHook,
 		),
 	}
