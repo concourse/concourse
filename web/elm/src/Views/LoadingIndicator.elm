@@ -14,9 +14,8 @@ view =
             , style "display" "flex"
             ]
             [ Spinner.spinner
-                { size = "14px"
+                { sizePx = 14
                 , margin = "7px"
-                , hoverable = Nothing
                 }
             , Html.h3 [] [ Html.text "loading..." ]
             ]

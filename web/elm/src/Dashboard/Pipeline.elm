@@ -190,8 +190,8 @@ visibilityView :
     -> Html Message
 visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading } =
     if isVisibilityLoading then
-        Spinner.spinner
-            { size = "20px"
+        Spinner.hoverableSpinner
+            { sizePx = 20
             , margin = "0"
             , hoverable = Just <| VisibilityButton pipelineId
             }

@@ -956,9 +956,8 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
             case checkStatus of
                 Models.CurrentlyChecking ->
                     Spinner.spinner
-                        { size = "14px"
+                        { sizePx = 14
                         , margin = "7px"
-                        , hoverable = Nothing
                         }
 
                 _ ->
@@ -1119,9 +1118,8 @@ commentBar userState { resourceIdentifier, pinnedVersion, hovered, pinCommentLoa
                             )
                             (if pinCommentLoading then
                                 [ Spinner.spinner
-                                    { size = "12px"
-                                    , margin = "0px"
-                                    , hoverable = Nothing
+                                    { sizePx = 12
+                                    , margin = "0"
                                     }
                                 ]
 
@@ -1366,9 +1364,8 @@ viewEnabledCheckbox ({ enabled, id } as params) =
 
             Models.Changing ->
                 [ Spinner.spinner
-                    { size = "12.5px"
+                    { sizePx = 12.5
                     , margin = "6.25px"
-                    , hoverable = Nothing
                     }
                 ]
 
@@ -1422,9 +1419,8 @@ viewPinButton { versionID, pinState, hovered } =
 
             InTransition ->
                 [ Spinner.spinner
-                    { size = "12.5px"
+                    { sizePx = 12.5
                     , margin = "6.25px"
-                    , hoverable = Nothing
                     }
                 ]
 

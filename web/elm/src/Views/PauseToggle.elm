@@ -31,7 +31,7 @@ view margin userState { isPaused, pipeline, isToggleHovered, isToggleLoading } =
                     }
     in
     if isToggleLoading then
-        Spinner.spinner { size = "20px", margin = margin, hoverable = Nothing }
+        Spinner.spinner { sizePx = 20, margin = margin }
 
     else
         Icon.icon

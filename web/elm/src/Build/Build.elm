@@ -1170,9 +1170,8 @@ viewBuildPrepStatus status =
             Html.div
                 [ title "thinking..." ]
                 [ Spinner.spinner
-                    { size = "12px"
+                    { sizePx = 12
                     , margin = "0 5px 0 0"
-                    , hoverable = Nothing
                     }
                 ]
 
@@ -1180,9 +1179,8 @@ viewBuildPrepStatus status =
             Html.div
                 [ title "blocking" ]
                 [ Spinner.spinner
-                    { size = "12px"
+                    { sizePx = 12
                     , margin = "0 5px 0 0"
-                    , hoverable = Nothing
                     }
                 ]
 
