@@ -290,3 +290,7 @@
   The dashboard will no longer crash when a pipeline is configured with a
   circular dependency.
 }
+
+\note{fix}{
+  Fixed the rendering of many, many pipeline groups.
+}
