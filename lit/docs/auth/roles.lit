@@ -36,97 +36,90 @@ Team Viewer.
 \section{
   \title{Team Viewer role}{team-viewer-role}
 
-  Team Viewer gives users “read-only” access to a team. This locks everything
-  down, preventing users from doing a set-pipeline or hijack.
+  Team Viewer gives users "read-only" access to a team. This locks everything
+  down, preventing users from doing a \reference{fly-set-pipeline} or
+  \reference{fly-intercept}.
 }
 
 \section{
   \title{Permission Matrix}{permission-matrix}
 
-  \bold{\reference{fly} commands}
-
   \table{
-    \table-row{Command}{Anon}{Admin}{Owner}{Member}{Viewer}
+    \table-row{\reference{fly-cli} command}{Anon}{Admin}{Owner}{Member}{Viewer}
   }{
-    \table-row{abort-build}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-abort-build}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{builds}{✓}{}{✓}{✓}{✓}
+    \table-row{\reference{fly-builds}}{✓}{}{✓}{✓}{✓}
   }{
-    \table-row{check-resource}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-check-resource}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{checklist}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-containers}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{containers}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-destroy-pipeline}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{destroy-pipeline}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-destroy-team}}{✘}{✓}{✘}{✘}{✘}
   }{
-    \table-row{destroy-team}{✘}{✓}{✘}{✘}{✘}
+    \table-row{\reference{fly-execute}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{execute}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-expose-pipeline}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{expose-pipeline}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-format-pipeline}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{format-pipeline}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-get-pipeline}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{get-pipeline}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-hide-pipeline}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{help}{✓}{}{✓}{✓}{✓}
+    \table-row{\reference{fly-intercept}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{hide-pipeline}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-jobs}}{✓}{}{✓}{✓}{✓}
   }{
-    \table-row{hijack}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-login}}{✓}{}{}{}{}
   }{
-    \table-row{jobs}{✓}{}{✓}{✓}{✓}
+    \table-row{\reference{fly-logout}}{✘}{}{✓}{✓}{✓}
   }{
-    \table-row{login}{✓}{}{}{}{}
+    \table-row{\reference{fly-order-pipelines}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{logout}{✘}{}{✓}{✓}{✓}
+    \table-row{\reference{fly-pause-job}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{order-pipelines}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-pause-pipeline}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{pause-job}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-pipelines}}{✓}{}{✓}{✓}{✓}
   }{
-    \table-row{pause-pipeline}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-prune-worker}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{pipelines}{✓}{}{✓}{✓}{✓}
+    \table-row{\reference{fly-rename-pipeline}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{prune-worker}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-rename-team}}{✘}{✓}{✘}{✘}{✘}
   }{
-    \table-row{rename-pipeline}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-set-pipeline}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{rename-team}{✘}{✓}{✘}{✘}{✘}
+    \table-row{\reference{fly-set-team}}{✘}{✓}{✓}{✘}{✘}
   }{
-    \table-row{set-pipeline}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-status}}{✓}{}{✓}{✓}{✓}
   }{
-    \table-row{set-team}{✘}{✓}{✓}{✘}{✘}
+    \table-row{\reference{fly-sync}}{✓}{}{✓}{✓}{✓}
   }{
-    \table-row{status}{✓}{}{✓}{✓}{✓}
+    \table-row{\reference{fly-targets}}{✓}{}{✓}{✓}{✓}
   }{
-    \table-row{sync}{✓}{}{✓}{✓}{✓}
+    \table-row{\reference{fly-teams}}{✘}{✓}{✓}{✓}{✓}
   }{
-    \table-row{targets}{✓}{}{✓}{✓}{✓}
+    \table-row{\reference{fly-trigger-job}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{teams}{✘}{✓}{✓}{✓}{✓}
+    \table-row{\reference{fly-unpause-job}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{trigger-job}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-unpause-pipeline}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{unpause-job}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-validate-pipeline}}{✓}{}{✓}{✓}{✓}
   }{
-    \table-row{unpause-pipeline}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-volumes}}{✘}{}{✓}{✓}{✘}
   }{
-    \table-row{validate-pipeline}{✓}{}{✓}{✓}{✓}
+    \table-row{\reference{fly-watch}}{✓*}{}{✓}{✓}{✓}
   }{
-    \table-row{volumes}{✘}{}{✓}{✓}{✘}
-  }{
-    \table-row{watch}{✓*}{}{✓}{✓}{✓}
-  }{
-    \table-row{workers}{✘}{}{✓}{✓}{✘}
+    \table-row{\reference{fly-workers}}{✘}{}{✓}{✓}{✘}
   }
 
-  \bold{Web UI}
-
   \table{
-    \table-row{Page}{Action}{Owner}{Member}{Viewer}
+    \table-row{Web UI page}{Action}{Owner}{Member}{Viewer}
   }{
     \table-row{Home (HD/Dashboard)}{View}{✓}{✓}{✓}
   }{
