@@ -238,3 +238,153 @@ decide much on its own.
   resource \code{check}s on it, specify \reference{resource-tags}{\code{tags}}
   on the resource itself.
 }
+
+\section{
+  \title{Configuring \code{gdn server}}
+
+  On Linux, the \code{concourse} binary is packaged alongside a \code{gdn}
+  binary. This binary is used for running
+  \link{Guardian}{https://github.com/cloudfoundry/guardian}, which is a
+  \link{Garden}{https://github.com/cloudfoundry/garden} backend
+  implementation which runs containers via
+  \link{\code{runc}}{https://github.com/opencontainers/runc} (the same
+  technology underlying tools like Docker).
+
+  The \code{concourse worker} command automatically configures and runs
+  \code{gdn}, but depending on the environment you're running Concourse in,
+  you may need to pop open the hood and configure a few things.
+
+  The \code{gdn} server can be configured in two ways:
+
+  \ordered-list{
+    By creating a \code{config.ini} file and passing it as
+    \code{--garden-config} (or \code{CONCOURSE_GARDEN_CONFIG}).
+
+    The \code{.ini} file should look something like this:
+
+    \codeblock{ini}{{{
+    [server]
+    flag-name = flag-value
+    }}}
+
+    To learn which flags can be set, consult \code{gdn server --help}. Each
+    flag listed can be set under the \code{[server]} heading.
+  }{
+    By setting \code{CONCOURSE_GARDEN_*} environment variables.
+
+    This is primarily supported for backwards compatibility, and these
+    variables are not present in \code{concourse web --help}. They are
+    translated to flags passed to \code{gdn server} by lower-casing the
+    \code{*} portion and replacing underscores with hyphens.
+  }
+
+  \section{
+    \title{Troubleshooting and fixing DNS resolution}
+
+    By default, containers created by Guardian will carry over the
+    \code{/etc/resolv.conf} from the host into the container. This is often
+    fine, but some Linux distributions configure a special \code{127.x.x.x} DNS
+    resolver (e.g. \code{systemd-resolved}).
+
+    When Guardian copies the \code{resolv.conf} over, it removes these entries,
+    as they won't be reachable from the container's network namespace. As a
+    result, your containers may not have any valid nameservers configured.
+
+    To diagnose this problem you can \reference{fly-intercept} into a failing
+    container and check which nameservers are in \code{/etc/resolv.conf}:
+
+    \codeblock{bash}{{{
+    $ fly -t ci intercept -c concourse/concourse
+    bash-5.0# grep nameserver /etc/resolv.conf
+    bash-5.0#
+    }}}
+
+    In this case it is empty, as the host only listed a single
+    \code{127.0.0.53} address which was then stripped out. To fix this, you'll
+    just need to explicitly configure DNS instead of relying on the \code{gdn}
+    default behavior.
+
+    \section{
+      \title{Pointing to external DNS servers}
+
+      If you have no need for special DNS resolution within your Concourse
+      containers, you can just configure your containers to use specific DNS
+      server addresses external to the VM.
+
+      This can be done by listing DNS servers in \code{config.ini} like so:
+
+      \codeblock{ini}{{{
+      [server]
+      ; configure Google DNS
+      dns-server = 8.8.8.8
+      dns-server = 8.8.4.4
+      }}}
+
+      To validate whether the changes have taken effect, you can
+      \reference{fly-intercept} into any container and check
+      \code{/etc/resolv.conf} once again:
+
+      \codeblock{bash}{{{
+      $ fly -t ci intercept -c concourse/concourse
+      bash-5.0# cat /etc/resolv.conf
+      nameserver 8.8.8.8
+      nameserver 8.8.4.4
+      bash-5.0# ping google.com
+      PING google.com (108.177.111.139): 56 data bytes
+      64 bytes from 108.177.111.139: seq=0 ttl=47 time=2.672 ms
+      64 bytes from 108.177.111.139: seq=1 ttl=47 time=0.911 ms
+      }}}
+    }
+
+    \section{
+      \title{Using a local DNS server}
+
+      If you would like to use Consul, \code{dnsmasq}, or some other DNS server
+      running on the worker VM, you'll have to configure the internal address
+      of the VM as the DNS server \italic{and} allow the containers to reach
+      the address, like so:
+
+      \codeblock{ini}{{{
+      [server]
+      ; internal IP of the worker machine
+      dns-server = 10.1.2.3
+
+      ; allow containers to reach the above IP
+      allow-host-access = true
+      }}}
+
+      \warn{
+        Setting \code{allow-host-access} will, well, allow containers to access
+        your host VM's network. If you don't trust your container workloads,
+        you may not want to allow this.
+      }
+
+      To validate whether the changes have taken effect, you can
+      \reference{fly-intercept} into any container and check
+      \code{/etc/resolv.conf} once again:
+
+      \codeblock{bash}{{{
+      $ fly -t ci intercept -c concourse/concourse
+      bash-5.0# cat /etc/resolv.conf
+      nameserver 10.1.2.3
+      bash-5.0# nslookup concourse-ci.org
+      Server:         10.1.2.3
+      Address:        10.1.2.3#53
+
+      Non-authoritative answer:
+      Name:   concourse-ci.org
+      Address: 185.199.108.153
+      Name:   concourse-ci.org
+      Address: 185.199.109.153
+      Name:   concourse-ci.org
+      Address: 185.199.110.153
+      Name:   concourse-ci.org
+      Address: 185.199.111.153
+      }}}
+
+      If \code{nslookup} times out or fails, you may need to open up firewalls
+      or security group configuration so that the worker VM can send UDP/TCP
+      packets to itself.
+    }
+  }
+}
