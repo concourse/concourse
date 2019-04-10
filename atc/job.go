@@ -12,6 +12,7 @@ type Job struct {
 	NextBuild            *Build `json:"next_build"`
 	FinishedBuild        *Build `json:"finished_build"`
 	TransitionBuild      *Build `json:"transition_build,omitempty"`
+	HasNewInputs         bool   `json:"has_new_inputs,omitempty"`
 
 	Inputs  []JobInput  `json:"inputs"`
 	Outputs []JobOutput `json:"outputs"`

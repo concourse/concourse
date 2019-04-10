@@ -822,12 +822,17 @@ viewDurationTooltip minit mstart mfinish tooltip =
                     stepDuration =
                         Duration.between startedAt finishedAt
                 in
-                [ Html.div [ style "position" "inherit", style "margin-left" "-500px" ]
+                [ Html.div
+                    [ style "position" "inherit"
+                    , style "margin-left" "-500px"
+                    ]
                     [ Html.div
                         Styles.durationTooltip
                         [ DictView.view []
                             (Dict.fromList
-                                [ ( "initialization", Html.text (Duration.format initDuration) )
+                                [ ( "initialization"
+                                  , Html.text (Duration.format initDuration)
+                                  )
                                 , ( "step", Html.text (Duration.format stepDuration) )
                                 ]
                             )

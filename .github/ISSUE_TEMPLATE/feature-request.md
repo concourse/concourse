@@ -2,7 +2,7 @@
 name: Feature Request
 about: Help us understand your use case and expand Concourse's functionality
 title: ''
-labels: enhancement, triage
+labels: enhancement
 assignees: ''
 
 ---

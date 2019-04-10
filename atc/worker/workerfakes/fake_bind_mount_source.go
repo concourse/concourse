@@ -2,10 +2,10 @@
 package workerfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	garden "code.cloudfoundry.org/garden"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/garden"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeBindMountSource struct {

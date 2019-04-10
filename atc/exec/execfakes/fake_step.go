@@ -2,10 +2,10 @@
 package execfakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	exec "github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec"
 )
 
 type FakeStep struct {

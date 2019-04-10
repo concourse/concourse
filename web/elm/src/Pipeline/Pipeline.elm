@@ -25,6 +25,7 @@ import Html.Attributes
         , href
         , id
         , src
+        , style
         )
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -617,9 +618,9 @@ viewGroupsBar model =
         Html.text ""
 
     else
-        Html.nav
+        Html.div
             (id "groups-bar" :: Styles.groupsBar)
-            [ Html.ul Styles.groupsList groupList ]
+            groupList
 
 
 viewGroup :
@@ -637,23 +638,20 @@ viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
             Routes.toString <|
                 Routes.Pipeline { id = pipelineLocator, groups = [ grp.name ] }
     in
-    Html.li
-        []
-        [ Html.a
-            ([ Html.Attributes.href <| url
-             , onLeftClickOrShiftLeftClick
-                (SetGroups [ grp.name ])
-                (ToggleGroup grp)
-             , onMouseEnter <| Hover <| Just <| JobGroup idx
-             , onMouseLeave <| Hover Nothing
-             ]
-                ++ Styles.groupItem
-                    { selected = List.member grp.name selectedGroups
-                    , hovered = hovered == (Just <| JobGroup idx)
-                    }
-            )
-            [ Html.text grp.name ]
-        ]
+    Html.a
+        ([ Html.Attributes.href <| url
+         , onLeftClickOrShiftLeftClick
+            (SetGroups [ grp.name ])
+            (ToggleGroup grp)
+         , onMouseEnter <| Hover <| Just <| JobGroup idx
+         , onMouseLeave <| Hover Nothing
+         ]
+            ++ Styles.groupItem
+                { selected = List.member grp.name selectedGroups
+                , hovered = hovered == (Just <| JobGroup idx)
+                }
+        )
+        [ Html.text grp.name ]
 
 
 jobAppearsInGroups : List String -> Concourse.PipelineIdentifier -> Json.Encode.Value -> Bool

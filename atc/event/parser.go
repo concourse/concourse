@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 )
@@ -22,7 +23,7 @@ func unmarshaler(e atc.Event) func([]byte) (atc.Event, error) {
 	}
 }
 
-func registerEvent(e atc.Event) {
+func RegisterEvent(e atc.Event) {
 	versions, found := events[e.EventType()]
 	if !found {
 		versions = eventVersions{}
@@ -33,55 +34,54 @@ func registerEvent(e atc.Event) {
 }
 
 func init() {
-	registerEvent(InitializeTask{})
-	registerEvent(StartTask{})
-	registerEvent(FinishTask{})
-	registerEvent(InitializeGet{})
-	registerEvent(StartGet{})
-	registerEvent(FinishGet{})
-	registerEvent(InitializePut{})
-	registerEvent(StartPut{})
-	registerEvent(FinishPut{})
-	registerEvent(Status{})
-	registerEvent(Log{})
-	registerEvent(Error{})
+	RegisterEvent(InitializeTask{})
+	RegisterEvent(StartTask{})
+	RegisterEvent(FinishTask{})
+	RegisterEvent(InitializeGet{})
+	RegisterEvent(StartGet{})
+	RegisterEvent(FinishGet{})
+	RegisterEvent(InitializePut{})
+	RegisterEvent(StartPut{})
+	RegisterEvent(FinishPut{})
+	RegisterEvent(Status{})
+	RegisterEvent(Log{})
+	RegisterEvent(Error{})
 
 	// deprecated:
-	registerEvent(InitializeV10{})
-	registerEvent(FinishV10{})
-	registerEvent(StartV10{})
-	registerEvent(InputV10{})
-	registerEvent(InputV20{})
-	registerEvent(OutputV10{})
-	registerEvent(OutputV20{})
-	registerEvent(ErrorV10{})
-	registerEvent(ErrorV20{})
-	registerEvent(ErrorV30{})
-	registerEvent(FinishTaskV10{})
-	registerEvent(FinishTaskV20{})
-	registerEvent(FinishTaskV30{})
-	registerEvent(InitializeTaskV10{})
-	registerEvent(InitializeTaskV20{})
-	registerEvent(InitializeTaskV30{})
-	registerEvent(StartTaskV10{})
-	registerEvent(StartTaskV20{})
-	registerEvent(StartTaskV30{})
-	registerEvent(StartTaskV40{})
-	registerEvent(LogV10{})
-	registerEvent(LogV20{})
-	registerEvent(LogV30{})
-	registerEvent(LogV40{})
-	registerEvent(LogV50{})
-	registerEvent(FinishGetV10{})
-	registerEvent(FinishGetV20{})
-	registerEvent(FinishGetV30{})
-	registerEvent(FinishPutV10{})
-	registerEvent(FinishPutV20{})
-	registerEvent(FinishPutV30{})
-	registerEvent(InitializeGetV10{})
-	registerEvent(InitializePutV10{})
-	registerEvent(FinishGetV40{})
-	registerEvent(FinishPutV40{})
+	RegisterEvent(InitializeV10{})
+	RegisterEvent(FinishV10{})
+	RegisterEvent(StartV10{})
+	RegisterEvent(InputV10{})
+	RegisterEvent(InputV20{})
+	RegisterEvent(OutputV10{})
+	RegisterEvent(OutputV20{})
+	RegisterEvent(ErrorV10{})
+	RegisterEvent(ErrorV20{})
+	RegisterEvent(ErrorV30{})
+	RegisterEvent(FinishTaskV10{})
+	RegisterEvent(FinishTaskV20{})
+	RegisterEvent(FinishTaskV30{})
+	RegisterEvent(InitializeTaskV10{})
+	RegisterEvent(InitializeTaskV20{})
+	RegisterEvent(InitializeTaskV30{})
+	RegisterEvent(StartTaskV10{})
+	RegisterEvent(StartTaskV20{})
+	RegisterEvent(StartTaskV30{})
+	RegisterEvent(StartTaskV40{})
+	RegisterEvent(LogV10{})
+	RegisterEvent(LogV20{})
+	RegisterEvent(LogV30{})
+	RegisterEvent(LogV40{})
+	RegisterEvent(FinishGetV10{})
+	RegisterEvent(FinishGetV20{})
+	RegisterEvent(FinishGetV30{})
+	RegisterEvent(FinishPutV10{})
+	RegisterEvent(FinishPutV20{})
+	RegisterEvent(FinishPutV30{})
+	RegisterEvent(InitializeGetV10{})
+	RegisterEvent(InitializePutV10{})
+	RegisterEvent(FinishGetV40{})
+	RegisterEvent(FinishPutV40{})
 }
 
 type Message struct {
@@ -127,16 +127,47 @@ func (m *Message) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
+type UnknownEventTypeError struct {
+	Type atc.EventType
+}
+
+func (err UnknownEventTypeError) Error() string {
+	return fmt.Sprintf("unknown event type: %s", err.Type)
+}
+
+type UnknownEventVersionError struct {
+	Type          atc.EventType
+	Version       atc.EventVersion
+	KnownVersions []string
+}
+
+func (err UnknownEventVersionError) Error() string {
+	return fmt.Sprintf(
+		"unknown event version: %s version %s (supported versions: %s)",
+		err.Type,
+		err.Version,
+		strings.Join(err.KnownVersions, ", "),
+	)
+}
+
 func ParseEvent(version atc.EventVersion, typ atc.EventType, payload []byte) (atc.Event, error) {
 	versions, found := events[typ]
 	if !found {
-		return nil, fmt.Errorf("unknown event type: %s", typ)
+		return nil, UnknownEventTypeError{typ}
 	}
 
-	parser, found := versions[version]
-	if !found {
-		return nil, fmt.Errorf("unknown version of event: %s v%s", typ, version)
+	knownVersions := []string{}
+	for v, parser := range versions {
+		knownVersions = append(knownVersions, string(v))
+
+		if v.IsCompatibleWith(version) {
+			return parser(payload)
+		}
 	}
 
-	return parser(payload)
+	return nil, UnknownEventVersionError{
+		Type:          typ,
+		Version:       version,
+		KnownVersions: knownVersions,
+	}
 }

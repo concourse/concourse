@@ -62,6 +62,7 @@ func (delegate *BuildStepDelegate) Errored(logger lager.Logger, message string) 
 		Origin: event.Origin{
 			ID: event.OriginID(delegate.planID),
 		},
+		Time: delegate.clock.Now().Unix(),
 	})
 	if err != nil {
 		logger.Error("failed-to-save-error-event", err)

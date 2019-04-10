@@ -2,10 +2,10 @@
 package authfakes
 
 import (
-	http "net/http"
-	sync "sync"
+	"net/http"
+	"sync"
 
-	auth "github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/auth"
 )
 
 type FakeRejector struct {

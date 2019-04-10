@@ -2,10 +2,10 @@
 package metricfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	metric "github.com/concourse/concourse/atc/metric"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type FakeEmitter struct {

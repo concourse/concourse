@@ -2,9 +2,9 @@
 package lockfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lock "github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeLock struct {

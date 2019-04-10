@@ -2,12 +2,12 @@
 package transportfakes
 
 import (
-	io "io"
-	http "net/http"
-	sync "sync"
+	"io"
+	"net/http"
+	"sync"
 
-	transport "github.com/concourse/concourse/atc/worker/transport"
-	rata "github.com/tedsuo/rata"
+	"github.com/concourse/concourse/atc/worker/transport"
+	"github.com/tedsuo/rata"
 )
 
 type FakeRequestGenerator struct {

@@ -5,10 +5,11 @@ import "github.com/concourse/concourse/atc"
 type Error struct {
 	Message string `json:"message"`
 	Origin  Origin `json:"origin,omitempty"`
+	Time    int64  `json:"time"`
 }
 
 func (Error) EventType() atc.EventType  { return EventTypeError }
-func (Error) Version() atc.EventVersion { return "4.0" }
+func (Error) Version() atc.EventVersion { return "4.1" }
 
 type FinishTask struct {
 	Time       int64  `json:"time"`
@@ -128,7 +129,7 @@ func (StartGet) Version() atc.EventVersion { return "1.0" }
 
 type FinishGet struct {
 	Origin          Origin              `json:"origin"`
-	Time            int64               `json:"time,omitempty"`
+	Time            int64               `json:"time"`
 	ExitStatus      int                 `json:"exit_status"`
 	FetchedVersion  atc.Version         `json:"version"`
 	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
@@ -155,7 +156,7 @@ func (StartPut) Version() atc.EventVersion { return "1.0" }
 
 type FinishPut struct {
 	Origin          Origin              `json:"origin"`
-	Time            int64               `json:"time,omitempty"`
+	Time            int64               `json:"time"`
 	ExitStatus      int                 `json:"exit_status"`
 	CreatedVersion  atc.Version         `json:"version"`
 	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
