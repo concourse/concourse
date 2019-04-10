@@ -114,25 +114,57 @@ to consult \code{fly -h} to learn the short forms.
 \section{
   \title{\code{fly logout}}{fly-logout}
 
-  There are cases when you would like to remove all evidence of a particular
-  target. This is achieved by the \code{logout} command. There are two variants
-  of this command, one to get rid of a specific target, and another to remove
-  all targets from the \code{~/.flyrc} file.
-
-  To remove a specific target run:
+  To clear out your token for a given target, run:
 
   \codeblock{bash}{{
   $ fly -t example logout
   }}
 
-  To remove all targets run:
+  To clear out your token for \italic{all} targets, run:
 
   \codeblock{bash}{{
   $ fly logout -a
   }}
 
   Note: These two variations are mutually exclusive. If the target parameter
-  \code{-t} and all parameter \code{-a} are both specified, an error will occur.
+  \code{-t} and all parameter \code{-a} are both specified, an error will
+  occur.
+}
+
+\section{
+  \title{\code{fly edit-target}}{fly-edit-target}
+
+  To modify a target's name, team, or URL, run:
+
+  \codeblock{bash}{{
+  $ fly -t example edit-target \\
+      --target-name new-name \\
+      --concourse-url https://ci.example.com \\
+      --team-name my-team
+  }}
+
+  Each flag is optional - only the specified flags will be changed.
+}
+
+\section{
+  \title{\code{fly delete-target}}{fly-delete-target}
+
+  When logging out just isn't enough, a target can be completely removed from
+  \code{~/.flyrc} by running:
+
+  \codeblock{bash}{{
+  $ fly -t example delete-target
+  }}
+
+  To delete \italic{all} targets, run:
+
+  \codeblock{bash}{{
+  $ fly delete-target -a
+  }}
+
+  Note: These two variations are mutually exclusive. If the target parameter
+  \code{-t} and all parameter \code{-a} are both specified, an error will
+  occur.
 }
 
 \section{

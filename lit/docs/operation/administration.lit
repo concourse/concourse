@@ -25,6 +25,12 @@
   $ fly -t example prune-worker --worker worker-name
   }}
 
+  To prune \italic{all} stalled workers, run:
+
+  \codeblock{bash}{{
+  $ fly -t example prune-worker --all-stalled
+  }}
+
   This is for those cases where you know a worker is not coming back. Note that
   running workers cannot be pruned, since they'll just re-register themselves
   anyway.

@@ -3,6 +3,23 @@
 \release-version{5.1.0}
 \release-date{2019-4-8}
 
+\note{fix,breaking}{
+  tl;dr: \code{concourse web --peer-url} -> \code{concourse web
+  --peer-address}
+
+  We have been doing a lot of internal refactoring and decoupling between
+  various components. One side effect of this is that the \reference{web-node}s
+  no longer need to stream user artifacts to one another, which was the only
+  reason the \code{concourse web --peer-url} flag was needed, so it has been
+  removed.
+
+  However, the SSH gateways (the "TSAs"), which also run on the
+  \reference{web-node}s, still need their address for the forwarded worker
+  connections advertised to other \reference{web-node}s. This value used to be
+  inferred by \code{--peer-url}, so we've added a new \code{--peer-address}
+  flag for it.
+}
+
 \note{feature}{
   \reference{steps} can now be annotated with an
   \reference{on-error-step-hook}, thanks to a PR by \ghuser{amanw}!
@@ -70,6 +87,17 @@
   care! All teams will be able to access it.
 }
 
+\note{feature}{
+  Pipelines now have a play/pause button at the top bar, so you don't have to
+  go all the way back to the dashboard and find the pause button there. Thanks
+  for the PR, \ghuser{robwhitby}!
+}
+
+\note{feature}{
+  URLs in resource metadata are now clickable, thanks to a PR by
+  \ghuser{Twiknight}!
+}
+
 \note{fix,security}{
   Fixed a minor information leak that would allow unauthenticated users to
   fetch the step names and structure for a build whose job is not marked
@@ -77,23 +105,6 @@
 
   This only exposed step names, but it was still a little weird to allow it to
   be fetched. It will now return a \code{401 Unauthorized} instead.
-}
-
-\note{fix,breaking}{
-  tl;dr: \code{concourse web --peer-url} -> \code{concourse web
-  --peer-address}
-
-  We have been doing a lot of internal refactoring and decoupling between
-  various components. One side effect of this is that the \reference{web-node}s
-  no longer need to stream user artifacts to one another, which was the only
-  reason the \code{concourse web --peer-url} flag was needed, so it has been
-  removed.
-
-  However, the SSH gateways (the "TSAs"), which also run on the
-  \reference{web-node}s, still need their address for the forwarded worker
-  connections advertised to other \reference{web-node}s. This value used to be
-  inferred by \code{--peer-url}, so we've added a new \code{--peer-address}
-  flag for it.
 }
 
 \note{fix}{
@@ -129,6 +140,30 @@
   The above refactoring also fixed a race condition that could result in inputs
   configured with \reference{get-step-version}{\code{version: every}} having
   versions skipped when a build is manually triggered.
+}
+
+\note{feature}{
+  The \reference{fly-cli} learned two new commands:
+  \reference{fly-delete-target} and \reference{fly-edit-target}. Thanks for the
+  PR, \ghuser{pivotal-kahin-ng}!
+}
+
+\note{feature}{
+  The \reference{fly-intercept} command can now be given a specific container
+  \code{--handle} to intercept, thanks to another PR by
+  \ghuser{pivotal-kahin-ng}!
+}
+
+\note{feature}{
+  The \reference{fly-prune-worker} can now be given an \code{--all-stalled} or
+  \code{-a} flag to prune all the stalled workers, thanks to a PR by
+  \ghuser{aledeganopix4d}!
+}
+
+\note{fix}{
+  \reference{get-step-version} on a \reference{get-step} will now take
+  precedence over versions pinned via the web UI or via
+  \reference{resource-version} on a resource definition.
 }
 
 \note{fix}{
@@ -196,4 +231,62 @@
   of builds will be fetched and rendered instead of all of them. Older builds
   will be automatically loaded if the build being viewed is old, or as the user
   scrolls to see them.
+}
+
+\note{feature}{
+  We're now consistently using Material Design icons everywhere in our UI - the
+  last of the Font Awesome stragglers have been replaced!
+}
+
+\note{fix}{
+  Fixed quite a few quirks with the dashboard search:
+
+  \list{
+    Team name autocomplete will now work even if you're not logged in.
+  }{
+    Fixed the unstyled autosuggest menu in Chrome.
+  }{
+    Hitting the escape key will now un-focus the search field.
+  }{
+    The search autocomplete will now only appear if you press a key with the
+    search field focused.
+  }{
+    Typing \code{?} into the search field will no longer bring up the hotkey
+    help pane.
+  }
+}
+
+\note{fix}{
+  \reference{fly-execute} will now print the correct URL for the build when
+  running with \code{-j}.
+}
+
+\note{fix}{
+  \reference{fly-login} will now create \code{~/.flyrc} with stricter
+  permissions (\code{0600}).
+}
+
+\note{feature}{
+  We've added a (hopefully subtle) stripey animation to running builds in the
+  build number list to help differentiate between errored and running builds.
+}
+
+\note{feature}{
+  \reference{fly-set-pipeline} will now print a copy-pasteable
+  \reference{fly-unpause-pipeline} command, thanks to a PR by
+  \ghuser{benchristel}!
+}
+
+\note{fix}{
+  With \reference{v5.0.0} we introduced a bit of a performance regression with
+  loading the versions for a pipeline during scheduling. We've made an
+  incremental change to make it a bit faster.
+
+  This will also be fixed by the new input candidate algorithm mentioned
+  previously.
+}
+
+\note{fix}{
+  The dashboard will no longer crash when a pipeline is configured with a
+  circular dependency.
 }
