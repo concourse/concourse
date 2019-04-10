@@ -2,7 +2,6 @@ module Pipeline.Styles exposing
     ( cliIcon
     , groupItem
     , groupsBar
-    , groupsList
     , pauseToggle
     , pinBadge
     , pinDropdownCursor
@@ -23,16 +22,9 @@ groupsBar : List (Html.Attribute msg)
 groupsBar =
     [ style "background-color" Colors.groupsBarBackground
     , style "color" Colors.dashboardText
-    ]
-
-
-groupsList : List (Html.Attribute msg)
-groupsList =
-    [ style "flex-grow" "1"
     , style "display" "flex"
     , style "flex-flow" "row wrap"
     , style "padding" "5px"
-    , style "list-style" "none"
     ]
 
 

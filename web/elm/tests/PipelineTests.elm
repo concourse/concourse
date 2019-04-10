@@ -107,115 +107,106 @@ all =
                                 |> Common.queryView
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has
-                                    [ style "flex-grow" "1"
-                                    , style "display" "flex"
+                                    [ style "display" "flex"
                                     , style "flex-flow" "row wrap"
                                     , style "padding" "5px"
                                     ]
-                    , test "the individual groups are nicely spaced" <|
-                        \_ ->
-                            setupGroupsBar sampleGroups
-                                |> Common.queryView
-                                |> Query.find [ id "groups-bar" ]
-                                |> Query.findAll [ tag "li" ]
-                                |> Query.each
-                                    (Query.has
-                                        [ style "margin" "5px"
-                                        , style "padding" "10px"
-                                        ]
-                                    )
-                    , test "the individual groups have no list style" <|
-                        \_ ->
-                            setupGroupsBar sampleGroups
-                                |> Common.queryView
-                                |> Query.find [ id "groups-bar" ]
-                                |> Query.has [ style "list-style" "none" ]
-                    , test "the individual groups have large text" <|
-                        \_ ->
-                            setupGroupsBar sampleGroups
-                                |> Common.queryView
-                                |> Query.find [ id "groups-bar" ]
-                                |> Query.findAll [ tag "li" ]
-                                |> Query.each
-                                    (Query.has [ style "font-size" "14px" ])
-                    , describe "the individual groups should each have a box around them"
-                        [ test "the unselected ones faded" <|
-                            \_ ->
-                                setupGroupsBar sampleGroups
-                                    |> Common.queryView
-                                    |> Query.find [ id "groups-bar" ]
-                                    |> Query.findAll [ tag "li" ]
-                                    |> Query.index 0
-                                    |> Query.has
-                                        [ style "opacity" "0.6"
-                                        , style "background" "rgba(151, 151, 151, 0.1)"
-                                        , style "border" "1px solid #2b2a2a"
-                                        ]
-                        , defineHoverBehaviour
-                            { name = "group"
-                            , setup = setupGroupsBar sampleGroups
-                            , query =
+                    , describe "each group" <|
+                        let
+                            findGroups =
                                 Common.queryView
                                     >> Query.find [ id "groups-bar" ]
-                                    >> Query.findAll [ tag "li" ]
-                                    >> Query.index 0
-                                    >> Query.find [ tag "a" ]
-                            , updateFunc =
-                                \msg ->
-                                    Application.update msg
-                                        >> Tuple.first
-                            , unhoveredSelector =
-                                { description = "dark outline"
-                                , selector =
-                                    [ style "border" "1px solid #2b2a2a" ]
-                                }
-                            , mouseEnterMsg =
-                                Msgs.Update <|
-                                    Hover <|
-                                        Just <|
-                                            Message.Message.JobGroup 0
-                            , mouseLeaveMsg = Msgs.Update <| Hover Nothing
-                            , hoveredSelector =
-                                { description = "light grey outline"
-                                , selector =
-                                    [ style "border" "1px solid #fff2" ]
-                                }
-                            }
-                        , test "the selected ones brighter" <|
+                                    >> Query.children []
+                        in
+                        [ test "the individual groups are nicely spaced" <|
                             \_ ->
                                 setupGroupsBar sampleGroups
-                                    |> Common.queryView
-                                    |> Query.find [ id "groups-bar" ]
-                                    |> Query.findAll [ tag "li" ]
-                                    |> Query.index 1
-                                    |> Query.has
-                                        [ style "opacity" "1"
-                                        , style "background" "rgba(151, 151, 151, 0.1)"
-                                        , style "border" "1px solid #979797"
+                                    |> findGroups
+                                    |> Query.each
+                                        (Query.has
+                                            [ style "margin" "5px"
+                                            , style "padding" "10px"
+                                            ]
+                                        )
+                        , test "the individual groups have large text" <|
+                            \_ ->
+                                setupGroupsBar sampleGroups
+                                    |> findGroups
+                                    |> Query.each
+                                        (Query.has [ style "font-size" "14px" ])
+                        , describe "the individual groups should each have a box around them"
+                            [ test "the unselected ones faded" <|
+                                \_ ->
+                                    setupGroupsBar sampleGroups
+                                        |> findGroups
+                                        |> Query.index 0
+                                        |> Query.has
+                                            [ style "opacity" "0.6"
+                                            , style "background"
+                                                "rgba(151, 151, 151, 0.1)"
+                                            , style "border" "1px solid #2b2a2a"
+                                            ]
+                            , defineHoverBehaviour
+                                { name = "group"
+                                , setup = setupGroupsBar sampleGroups
+                                , query = findGroups >> Query.index 0
+                                , updateFunc =
+                                    \msg ->
+                                        Application.update msg
+                                            >> Tuple.first
+                                , unhoveredSelector =
+                                    { description = "dark outline"
+                                    , selector =
+                                        [ style "border" "1px solid #2b2a2a" ]
+                                    }
+                                , mouseEnterMsg =
+                                    Msgs.Update <|
+                                        Hover <|
+                                            Just <|
+                                                Message.Message.JobGroup 0
+                                , mouseLeaveMsg = Msgs.Update <| Hover Nothing
+                                , hoveredSelector =
+                                    { description = "light grey outline"
+                                    , selector =
+                                        [ style "border" "1px solid #fff2" ]
+                                    }
+                                }
+                            , test "the selected ones brighter" <|
+                                \_ ->
+                                    setupGroupsBar sampleGroups
+                                        |> findGroups
+                                        |> Query.index 1
+                                        |> Query.has
+                                            [ style "opacity" "1"
+                                            , style "background" "rgba(151, 151, 151, 0.1)"
+                                            , style "border" "1px solid #979797"
+                                            ]
+                            ]
+                        , test "each group should have a name and link" <|
+                            \_ ->
+                                setupGroupsBar sampleGroups
+                                    |> findGroups
+                                    |> Expect.all
+                                        [ Query.index 0
+                                            >> Query.has
+                                                [ text "group"
+                                                , attribute <|
+                                                    Attr.href
+                                                        "/teams/team/pipelines/pipeline?group=group"
+                                                , tag "a"
+                                                ]
+                                        , Query.index 1
+                                            >> Query.has
+                                                [ text "other-group"
+                                                , attribute <|
+                                                    Attr.href
+                                                        "/teams/team/pipelines/pipeline?group=other-group"
+                                                , tag "a"
+                                                ]
                                         ]
                         ]
-                    , test "the individual groups should each have a group name and link" <|
-                        \_ ->
-                            setupGroupsBar sampleGroups
-                                |> Common.queryView
-                                |> Query.find [ id "groups-bar" ]
-                                |> Query.findAll [ tag "li" ]
-                                |> Expect.all
-                                    [ Query.index 0
-                                        >> Query.find [ tag "a" ]
-                                        >> Query.has
-                                            [ text "group"
-                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?group=group"
-                                            ]
-                                    , Query.index 1
-                                        >> Query.find [ tag "a" ]
-                                        >> Query.has
-                                            [ text "other-group"
-                                            , attribute <| Attr.href "/teams/team/pipelines/pipeline?group=other-group"
-                                            ]
-                                    ]
                     ]
-                , test "with no groups doesn not display groups list" <|
+                , test "with no groups does not display groups list" <|
                     \_ ->
                         setupGroupsBar []
                             |> Common.queryView
