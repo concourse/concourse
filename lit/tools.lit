@@ -31,4 +31,6 @@
   \link{Concourse CI Pipeline Editor}{https://marketplace.visualstudio.com/items?itemName=Pivotal.vscode-concourse},
   a \bold{VSCode} plugin to help with editing Concourse pipelines.
 
+  \link{fly-lint.vim}{https://github.com/cappyzawa/fly-lint.vim},
+  a \bold{Vim} plugin to lint Concourse pipelines.
 }
