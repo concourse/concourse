@@ -48,7 +48,7 @@ require (
 	github.com/concourse/baggageclaim v1.4.0
 	github.com/concourse/dex v0.0.0-20190227205709-0d3a1049c2d9
 	github.com/concourse/flag v1.0.0
-	github.com/concourse/go-archive v1.0.0
+	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.0.1
 	github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2 // indirect
 	github.com/coreos/go-oidc v0.0.0-20170307191026-be73733bb8cc
