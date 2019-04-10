@@ -3,6 +3,7 @@ module Message.Message exposing
     , Message(..)
     , VersionId
     , VersionToggleAction(..)
+    , VisibilityAction(..)
     )
 
 import Concourse
@@ -76,6 +77,11 @@ type DomID
 type VersionToggleAction
     = Enable
     | Disable
+
+
+type VisibilityAction
+    = Expose
+    | Hide
 
 
 type alias VersionId =

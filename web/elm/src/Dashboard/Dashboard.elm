@@ -51,6 +51,7 @@ import Message.Message as Message
     exposing
         ( DomID(..)
         , Message(..)
+        , VisibilityAction(..)
         )
 import Message.Subscription
     exposing
@@ -198,7 +199,7 @@ handleCallback msg ( model, effects ) =
         PipelineToggled _ (Ok ()) ->
             ( model, effects ++ [ FetchData ] )
 
-        PipelineHidden pipelineId (Ok ()) ->
+        VisibilityChanged Hide pipelineId (Ok ()) ->
             ( updatePipeline
                 (\p -> { p | public = False, isVisibilityLoading = False })
                 pipelineId
@@ -206,7 +207,7 @@ handleCallback msg ( model, effects ) =
             , effects
             )
 
-        PipelineHidden pipelineId (Err _) ->
+        VisibilityChanged Hide pipelineId (Err _) ->
             ( updatePipeline
                 (\p -> { p | public = True, isVisibilityLoading = False })
                 pipelineId
@@ -214,7 +215,7 @@ handleCallback msg ( model, effects ) =
             , effects
             )
 
-        PipelineExposed pipelineId (Ok ()) ->
+        VisibilityChanged Expose pipelineId (Ok ()) ->
             ( updatePipeline
                 (\p -> { p | public = True, isVisibilityLoading = False })
                 pipelineId
@@ -222,7 +223,7 @@ handleCallback msg ( model, effects ) =
             , effects
             )
 
-        PipelineExposed pipelineId (Err _) ->
+        VisibilityChanged Expose pipelineId (Err _) ->
             ( updatePipeline
                 (\p -> { p | public = False, isVisibilityLoading = False })
                 pipelineId
@@ -438,10 +439,10 @@ updateBody msg ( model, effects ) =
                         model
                     , effects
                         ++ [ if public then
-                                HidePipeline pipelineId
+                                ChangeVisibility Hide pipelineId
 
                              else
-                                ExposePipeline pipelineId
+                                ChangeVisibility Expose pipelineId
                            ]
                     )
 

@@ -125,11 +125,7 @@ handleCallback callback model =
             subpageHandleCallback model callback
                 |> redirectToLoginIfNecessary err
 
-        PipelineHidden _ (Err err) ->
-            subpageHandleCallback model callback
-                |> redirectToLoginIfNecessary err
-
-        PipelineExposed _ (Err err) ->
+        VisibilityChanged _ _ (Err err) ->
             subpageHandleCallback model callback
                 |> redirectToLoginIfNecessary err
 

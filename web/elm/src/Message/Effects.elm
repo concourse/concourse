@@ -15,7 +15,7 @@ import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Json.Encode
 import Message.Callback exposing (Callback(..))
-import Message.Message exposing (VersionToggleAction(..))
+import Message.Message exposing (VersionToggleAction(..), VisibilityAction(..))
 import Network.Build
 import Network.BuildPlan
 import Network.BuildPrep
@@ -165,8 +165,7 @@ type Effect
     | Focus String
     | Blur String
     | RenderSvgIcon String
-    | HidePipeline Concourse.PipelineIdentifier
-    | ExposePipeline Concourse.PipelineIdentifier
+    | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
 
 
 type alias VersionId =
@@ -399,19 +398,13 @@ runEffect effect key csrfToken =
         RenderSvgIcon icon ->
             renderSvgIcon icon
 
-        HidePipeline pipelineId ->
-            Network.Pipeline.hide
+        ChangeVisibility action pipelineId ->
+            Network.Pipeline.changeVisibility
+                action
                 pipelineId.teamName
                 pipelineId.pipelineName
                 csrfToken
-                |> Task.attempt (PipelineHidden pipelineId)
-
-        ExposePipeline pipelineId ->
-            Network.Pipeline.expose
-                pipelineId.teamName
-                pipelineId.pipelineName
-                csrfToken
-                |> Task.attempt (PipelineExposed pipelineId)
+                |> Task.attempt (VisibilityChanged action pipelineId)
 
 
 scrollInDirection : ScrollDirection -> Cmd Callback

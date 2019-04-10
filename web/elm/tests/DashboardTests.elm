@@ -2068,7 +2068,8 @@ all =
                                                 )
                                             |> Tuple.second
                                             |> Expect.equal
-                                                [ Effects.HidePipeline
+                                                [ Effects.ChangeVisibility
+                                                    Msgs.Hide
                                                     pipelineId
                                                 ]
                                 , defineHoverBehaviour
@@ -2119,10 +2120,10 @@ all =
                                                 )
                                             |> Tuple.first
                                             |> Application.handleCallback
-                                                (Callback.PipelineHidden
+                                                (Callback.VisibilityChanged
+                                                    Msgs.Hide
                                                     pipelineId
-                                                 <|
-                                                    Ok ()
+                                                    (Ok ())
                                                 )
                                             |> Tuple.first
                                             |> visibilityToggle
@@ -2140,7 +2141,8 @@ all =
                                                 )
                                             |> Tuple.first
                                             |> Application.handleCallback
-                                                (Callback.PipelineHidden
+                                                (Callback.VisibilityChanged
+                                                    Msgs.Hide
                                                     pipelineId
                                                  <|
                                                     Err <|
@@ -2170,7 +2172,8 @@ all =
                                                 )
                                             |> Tuple.first
                                             |> Application.handleCallback
-                                                (Callback.PipelineHidden
+                                                (Callback.VisibilityChanged
+                                                    Msgs.Hide
                                                     pipelineId
                                                  <|
                                                     Err <|
@@ -2281,7 +2284,8 @@ all =
                                                 )
                                             |> Tuple.second
                                             |> Expect.equal
-                                                [ Effects.ExposePipeline
+                                                [ Effects.ChangeVisibility
+                                                    Msgs.Expose
                                                     pipelineId
                                                 ]
                                 , defineHoverBehaviour
@@ -2332,10 +2336,10 @@ all =
                                                 )
                                             |> Tuple.first
                                             |> Application.handleCallback
-                                                (Callback.PipelineExposed
+                                                (Callback.VisibilityChanged
+                                                    Msgs.Expose
                                                     pipelineId
-                                                 <|
-                                                    Ok ()
+                                                    (Ok ())
                                                 )
                                             |> Tuple.first
                                             |> visibilityToggle
@@ -2353,7 +2357,8 @@ all =
                                                 )
                                             |> Tuple.first
                                             |> Application.handleCallback
-                                                (Callback.PipelineExposed
+                                                (Callback.VisibilityChanged
+                                                    Msgs.Expose
                                                     pipelineId
                                                  <|
                                                     Err <|
