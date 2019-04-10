@@ -7,6 +7,7 @@ version=$(cat version/version)
 
 git clone concourse-release-repo bumped-concourse-release-repo
 
+# authenticate us to upload to GCS bucket
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp.key.json
 cat > $GOOGLE_APPLICATION_CREDENTIALS <<EOF
 $GCP_JSON_KEY
@@ -25,20 +26,11 @@ for blob in $(bosh blobs --column="path"  | grep concourse/); do
   bosh -n remove-blob $blob
 done
 
-mkdir temp-linux-rc
-tar -zxf ../linux-rc/concourse-*.tgz -C temp-linux-rc
-cd temp-linux-rc
-for resource in concourse/resource-types/*; do
-  file_size=`ls -lh $resource/rootfs.tgz | awk '{print $5}'`
-  resource_name=`basename $resource`
-  echo "$resource_name\t $file_size"
-done
-cd ..
-
 for blob in ../linux-rc/concourse-*.tgz ../windows-rc/concourse-*.zip; do
   bosh -n add-blob $blob concourse/$(basename $blob)
 done
 
+# Upload blobs to GCS bucket
 bosh -n upload-blobs
 
 git add -A

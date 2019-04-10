@@ -1,26 +1,24 @@
 #!/bin/bash
 set -e -x
-# resource files in ../linux-rc/concourse-*.tgz  ../windows-rc/concourse-*.zip
-# tar -zxf to untar those resource
 
-## alpine version concourse tgz package
-mkdir concourse-alpine
+# alpine version concourse tgz package
+mkdir -p concourse-alpine
 
-concourse_file_name=`ls linux-rc/concourse-*.tgz`
-echo "concourse file name: $concourse_file_name"
+concourse_file_name=$(ls linux-rc/concourse-*.tgz)
+
 tar -zxf $concourse_file_name -C concourse-alpine
 
-## unzip resource 1 and replace alpine rootfs.tgz with ubuntu
+# iterate all directories of resource-types in concourse alpine tgz file
+# replace alpine version of rootfs.tgz with ubuntu version
 for res in concourse-alpine/concourse/resource-types/*; do
   resource_name=$(basename $res)
   rm -rf concourse-alpine/concourse/resource-types/$resource_name/*
   tar -zxf resources/$resource_name/*-ubuntu.tgz -C concourse-alpine/concourse/resource-types/$resource_name/
   echo "replaced $resource_name"
 done
-## pack the concourse release again
+
+# pack the concourse for linux release again
 rm $concourse_file_name
 pushd concourse-alpine
   tar -czf ../$concourse_file_name *
 popd
-# find ./concourse-alpine -name "*"
-tar -tzf $concourse_file_name

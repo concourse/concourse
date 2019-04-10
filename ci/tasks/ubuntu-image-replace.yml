@@ -8,7 +8,6 @@ image_resource:
 
 inputs:
 - name: concourse
-
 - name: bosh-io-release-resource
   path: resources/bosh-io-release
 - name: bosh-io-stemcell-resource
@@ -37,18 +36,10 @@ inputs:
   path: resources/time
 - name: tracker-resource
   path: resources/tracker
-
-- name: linux-rc  # download using `gsutil`, put `linux-rc`
-
-
-# fly execute \
-#   -i concourse=./ \
-#   -i linux-rc=linux-rc \
-#   -i bosh-io-release-resource=bosh-io-release-resource
-
+- name: linux-rc
 
 outputs:
-- name: ubuntu-resources-image
+- name: linux-rc
 
 run:
   path: concourse/ci/tasks/scripts/ubuntu-replace-resource-types
