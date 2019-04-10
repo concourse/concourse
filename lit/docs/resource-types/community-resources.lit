@@ -13,7 +13,7 @@ Be sure to read the \code{README} file for a resource to know what it does
 before using it!
 
 \table{
-  \table-row{\bold{Resource Name}}{\bold{Maintained By}}
+  \table-row{Resource Name}{Maintained By}
 }{
   \table-row{\link{Slack Reading and Posting}{https://github.com/jleben/slack-chat-resource}}{by \ghuser{jleben}}
 }{

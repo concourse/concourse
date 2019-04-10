@@ -4,7 +4,7 @@
 
 \section{
   \table{
-    \table-row{\bold{Company}}{\bold{Reference}}
+    \table-row{Company}{Reference}
   }{
     \table-row{Cerner}{\link{Concourse in the Real World: A Case Study in CI/CD and DevOps}{https://content.pivotal.io/concourse/concourse-in-the-real-world-a-case-study-in-ci-cd-and-devops-greg-meyer-bryan-kelly}}
   }{
@@ -16,5 +16,4 @@
   }{
     \table-row{Altoros}{\link{Continuous delivery with Concourse CI}{https://www.youtube.com/watch?v=RyrxImD9aDM}}
   }
-
 }
