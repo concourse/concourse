@@ -20,6 +20,7 @@ type BuildTracker interface {
 type Notifications interface {
 	Listen(channel string) (chan bool, error)
 	Unlisten(channel string, notifier chan bool) error
+	Notify(channel string) error
 }
 
 type TrackerRunner struct {
@@ -27,7 +28,6 @@ type TrackerRunner struct {
 	Notifications Notifications
 	Interval      time.Duration
 	Clock         clock.Clock
-	DrainCh       <-chan struct{}
 	Logger        lager.Logger
 }
 
@@ -55,18 +55,23 @@ func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{})
 
 	for {
 		select {
-		case <-runner.DrainCh:
-			return nil
 		case <-shutdownNotifier:
 			runner.Logger.Info("received-atc-shutdown-message")
 			runner.Tracker.Track()
+
 		case <-buildNotifier:
 			runner.Logger.Info("received-build-started-message")
 			runner.Tracker.Track()
+
 		case <-ticker.C():
 			runner.Tracker.Track()
+
 		case <-signals:
-			return nil
+			runner.Logger.Info("releasing-tracker")
+			runner.Tracker.Release()
+			runner.Logger.Info("released-tracker")
+			runner.Logger.Info("sending-atc-shutdown-message")
+			return runner.Notifications.Notify("atc_shutdown")
 		}
 	}
 }
