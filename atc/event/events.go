@@ -5,10 +5,11 @@ import "github.com/concourse/concourse/atc"
 type Error struct {
 	Message string `json:"message"`
 	Origin  Origin `json:"origin,omitempty"`
+	Time    int64  `json:"time"`
 }
 
 func (Error) EventType() atc.EventType  { return EventTypeError }
-func (Error) Version() atc.EventVersion { return "4.0" }
+func (Error) Version() atc.EventVersion { return "4.1" }
 
 type FinishTask struct {
 	Time       int64  `json:"time"`
