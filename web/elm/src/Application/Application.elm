@@ -12,10 +12,16 @@ module Application.Application exposing
 
 import Browser
 import Concourse
+import EffectTransformer exposing (ET)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
-import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.Subscription
+    exposing
+        ( Delivery(..)
+        , Interval(..)
+        , Subscription(..)
+        )
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
 import Routes
 import SubPage.SubPage as SubPage
@@ -98,34 +104,34 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback callback model =
     case callback of
         BuildTriggered (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         BuildAborted (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         PausedToggled (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         JobBuildsFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         InputToFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         OutputOfFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         PipelineToggled _ (Err err) ->
             subpageHandleCallback model callback
-                |> Tuple.mapSecond ((++) (redirectToLoginIfNecessary err))
+                |> redirectToLoginIfNecessary err
 
         PipelineHidden _ (Err err) ->
             subpageHandleCallback model callback
-                |> Tuple.mapSecond ((++) (redirectToLoginIfNecessary err))
+                |> redirectToLoginIfNecessary err
 
         PipelineExposed _ (Err err) ->
             subpageHandleCallback model callback
-                |> Tuple.mapSecond ((++) (redirectToLoginIfNecessary err))
+                |> redirectToLoginIfNecessary err
 
         LoggedOut (Ok ()) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
@@ -224,18 +230,18 @@ handleDeliveryForApplication delivery model =
             ( model, [] )
 
 
-redirectToLoginIfNecessary : Http.Error -> List Effect
-redirectToLoginIfNecessary err =
+redirectToLoginIfNecessary : Http.Error -> ET Model
+redirectToLoginIfNecessary err ( model, effects ) =
     case err of
         Http.BadStatus { status } ->
             if status.code == 401 then
-                [ RedirectToLogin ]
+                ( model, effects ++ [ RedirectToLogin ] )
 
             else
-                []
+                ( model, effects )
 
         _ ->
-            []
+            ( model, effects )
 
 
 urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
