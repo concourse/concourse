@@ -1,8 +1,8 @@
 module FlySuccessTests exposing (all)
 
 import Application.Application as Application
-import Common exposing (queryView)
-import DashboardTests exposing (defineHoverBehaviour, iconSelector)
+import Common exposing (defineHoverBehaviour, queryView)
+import DashboardTests exposing (iconSelector)
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Http

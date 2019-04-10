@@ -3,17 +3,20 @@ module DashboardTests exposing
     , almostBlack
     , apiData
     , darkGrey
-    , defineHoverBehaviour
     , givenDataAndUser
     , givenDataUnauthenticated
     , iconSelector
-    , isColorWithStripes
     , middleGrey
     , white
     )
 
 import Application.Application as Application
 import Common
+    exposing
+        ( defineHoverBehaviour
+        , isColorWithStripes
+        , pipelineRunningKeyframes
+        )
 import Concourse
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
@@ -111,11 +114,6 @@ fadedGreen =
 orange : String
 orange =
     "#e67e22"
-
-
-pipelineRunningKeyframes : String
-pipelineRunningKeyframes =
-    "pipeline-running"
 
 
 all : Test
@@ -609,9 +607,7 @@ all =
                         , attribute <| Attr.attribute "data-team-name" "team"
                         ]
                     |> Query.find
-                        [ class "node"
-                        , attribute <| Attr.attribute "data-tooltip" "job"
-                        ]
+                        [ attribute <| Attr.attribute "data-tooltip" "job" ]
                     |> Query.find
                         [ tag "a" ]
                     |> Query.has
@@ -3379,86 +3375,6 @@ initFromApplication =
         |> Tuple.first
 
 
-defineHoverBehaviour :
-    { name : String
-    , setup : Application.Model
-    , query : Application.Model -> Query.Single ApplicationMsgs.TopLevelMessage
-    , unhoveredSelector : { description : String, selector : List Selector }
-    , hoverable : Msgs.DomID
-    , hoveredSelector : { description : String, selector : List Selector }
-    }
-    -> Test
-defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hoveredSelector } =
-    describe (name ++ " hover behaviour")
-        [ test (name ++ " is " ++ unhoveredSelector.description) <|
-            \_ ->
-                setup
-                    |> query
-                    |> Query.has unhoveredSelector.selector
-        , test ("mousing over " ++ name ++ " triggers Hover msg") <|
-            \_ ->
-                setup
-                    |> query
-                    |> Event.simulate Event.mouseEnter
-                    |> Event.expect
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover <|
-                                Just hoverable
-                        )
-        , test
-            ("Hover msg causes "
-                ++ name
-                ++ " to become "
-                ++ hoveredSelector.description
-            )
-          <|
-            \_ ->
-                setup
-                    |> Application.update
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover <|
-                                Just hoverable
-                        )
-                    |> Tuple.first
-                    |> query
-                    |> Query.has hoveredSelector.selector
-        , test ("mousing off " ++ name ++ " triggers unhover msg") <|
-            \_ ->
-                setup
-                    |> Application.update
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover <|
-                                Just hoverable
-                        )
-                    |> Tuple.first
-                    |> query
-                    |> Event.simulate Event.mouseLeave
-                    |> Event.expect (ApplicationMsgs.Update <| Msgs.Hover Nothing)
-        , test
-            ("unhover msg causes "
-                ++ name
-                ++ " to become "
-                ++ unhoveredSelector.description
-            )
-          <|
-            \_ ->
-                setup
-                    |> Application.update
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover <|
-                                Just hoverable
-                        )
-                    |> Tuple.first
-                    |> Application.update
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover Nothing
-                        )
-                    |> Tuple.first
-                    |> query
-                    |> Query.has unhoveredSelector.selector
-        ]
-
-
 iconSelector : { size : String, image : String } -> List Selector
 iconSelector { size, image } =
     [ style "background-image" <| "url(/public/images/" ++ image ++ ")"
@@ -3899,23 +3815,3 @@ teamHeaderHasPill teamName pillText =
             [ Query.count (Expect.equal 2)
             , Query.index 1 >> Query.has [ text pillText ]
             ]
-
-
-isColorWithStripes : { thick : String, thin : String } -> Query.Single msg -> Expectation
-isColorWithStripes { thick, thin } =
-    Query.has
-        [ style "background-image" <|
-            "repeating-linear-gradient(-115deg,"
-                ++ thick
-                ++ " 0,"
-                ++ thick
-                ++ " 10px,"
-                ++ thin
-                ++ " 0,"
-                ++ thin
-                ++ " 16px)"
-        , style "background-size" "106px 114px"
-        , style "animation" <|
-            pipelineRunningKeyframes
-                ++ " 3s linear infinite"
-        ]

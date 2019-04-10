@@ -70,6 +70,7 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Concourse.Build
+    | JobPreview Concourse.JobIdentifier
 
 
 type VersionToggleAction

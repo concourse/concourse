@@ -2,10 +2,10 @@ module TopBarTests exposing (all)
 
 import Application.Application as Application
 import Char
-import Common exposing (queryView)
+import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Dashboard.SearchBar as SearchBar
-import DashboardTests exposing (defineHoverBehaviour, iconSelector)
+import DashboardTests exposing (iconSelector)
 import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr

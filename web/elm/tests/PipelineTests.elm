@@ -2,8 +2,7 @@ module PipelineTests exposing (all)
 
 import Application.Application as Application
 import Char
-import Common
-import DashboardTests exposing (defineHoverBehaviour)
+import Common exposing (defineHoverBehaviour)
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
@@ -11,7 +10,11 @@ import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message exposing (Message(..))
-import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.Subscription as Subscription
+    exposing
+        ( Delivery(..)
+        , Interval(..)
+        )
 import Message.TopLevelMessage as Msgs
 import Pipeline.Pipeline as Pipeline exposing (update)
 import Routes
