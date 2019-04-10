@@ -463,24 +463,20 @@ update msg ( model, effects ) =
                 ( newModel, effects )
 
         Click TriggerBuildButton ->
-            case currentJob model of
-                Nothing ->
-                    ( model, effects )
-
-                Just someJob ->
-                    ( model, effects ++ [ DoTriggerBuild someJob ] )
+            (currentJob model
+                |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
+                |> Maybe.withDefault identity
+            )
+                ( model, effects )
 
         Click AbortBuildButton ->
-            case
-                model.currentBuild
-                    |> RemoteData.toMaybe
-                    |> Maybe.map (.build >> .id)
-            of
-                Just buildId ->
-                    ( model, effects ++ [ DoAbortBuild buildId ] )
-
-                _ ->
-                    ( model, effects )
+            (model.currentBuild
+                |> RemoteData.toMaybe
+                |> Maybe.map
+                    (.build >> .id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
+                |> Maybe.withDefault identity
+            )
+                ( model, effects )
 
         Click (StepHeader id) ->
             updateOutput
