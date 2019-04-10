@@ -66,22 +66,21 @@ var _ = Describe("Engine", func() {
 		var (
 			build     Build
 			release   chan bool
-			cancelled bool
+			cancel    chan bool
 			waitGroup *sync.WaitGroup
 		)
 
 		BeforeEach(func() {
 
 			ctx := context.Background()
-			cancel := func() { cancelled = true }
-
+			cancel = make(chan bool)
 			release = make(chan bool)
 			trackedStates := new(sync.Map)
 			waitGroup = new(sync.WaitGroup)
 
 			build = NewBuild(
 				ctx,
-				cancel,
+				func() { cancel <- true },
 				fakeBuild,
 				fakeStepBuilder,
 				release,
@@ -188,7 +187,7 @@ var _ = Describe("Engine", func() {
 
 								It("cancels the context", func() {
 									waitGroup.Wait()
-									Expect(cancelled).To(BeTrue())
+									Expect(<-cancel).To(BeTrue())
 								})
 							})
 
