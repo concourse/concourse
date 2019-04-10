@@ -39,7 +39,14 @@ update msg ( model, effects ) =
             showSearchInput ( model, effects )
 
         Click ClearSearchButton ->
-            update (FilterMsg "") ( model, effects )
+            ( { model | query = "" }
+            , effects
+                ++ [ Focus searchInputId
+                   , ModifyUrl <|
+                        Routes.toString <|
+                            Routes.Dashboard (Routes.Normal Nothing)
+                   ]
+            )
 
         FilterMsg query ->
             ( { model | query = query }
