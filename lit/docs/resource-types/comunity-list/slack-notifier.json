@@ -1,0 +1,8 @@
+{
+    "name": "Slack Notifier",
+    "site": "https://github.com/mockersf/concourse-slack-notifier",
+    "maintainer": {
+        "name": "mockersf",
+        "contact": "https://github.com/mockersf/concourse-slack-notifier"
+    }
+}
