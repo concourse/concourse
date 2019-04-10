@@ -53,7 +53,6 @@ var (
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
-	drain                   chan struct{}
 	expire                  time.Duration
 	isTLSEnabled            bool
 	cliDownloadsDir         string
@@ -108,8 +107,6 @@ var _ = BeforeEach(func() {
 
 	dbWorkerFactory = new(dbfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
-
-	drain = make(chan struct{})
 
 	fakeWorkerClient = new(workerfakes.FakeClient)
 
@@ -170,7 +167,6 @@ var _ = BeforeEach(func() {
 		dbResourceConfigFactory,
 
 		constructedEventHandler.Construct,
-		drain,
 
 		fakeWorkerClient,
 

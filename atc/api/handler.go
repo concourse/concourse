@@ -49,7 +49,6 @@ func NewHandler(
 	dbResourceConfigFactory db.ResourceConfigFactory,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
-	drain <-chan struct{},
 
 	workerClient worker.Client,
 
@@ -76,7 +75,7 @@ func NewHandler(
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
-	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
+	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory)
 	jobServer := jobserver.NewServer(logger, externalURL, variablesFactory, dbJobFactory)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory, dbResourceConfigFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
