@@ -57,6 +57,7 @@ type Resource interface {
 
 	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
+	NotifyScan() error
 
 	Reload() (bool, error)
 }
@@ -98,11 +99,11 @@ type resource struct {
 }
 
 type ResourceNotFoundError struct {
-	Name string
+	ID int
 }
 
 func (e ResourceNotFoundError) Error() string {
-	return fmt.Sprintf("resource '%s' not found", e.Name)
+	return fmt.Sprintf("resource '%d' not found", e.ID)
 }
 
 type Resources []Resource
@@ -591,6 +592,10 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 	}
 
 	return tx.Commit()
+}
+
+func (r *resource) NotifyScan() error {
+	return r.conn.Bus().Notify(fmt.Sprintf("resource_scan_%d", r.id))
 }
 
 func scanResource(r *resource, row scannable) error {

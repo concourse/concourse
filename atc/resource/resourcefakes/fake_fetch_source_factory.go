@@ -2,12 +2,12 @@
 package resourcefakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	creds "github.com/concourse/concourse/atc/creds"
-	resource "github.com/concourse/concourse/atc/resource"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeFetchSourceFactory struct {

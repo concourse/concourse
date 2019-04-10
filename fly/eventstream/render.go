@@ -37,10 +37,6 @@ func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) i
 			dstImpl.SetTimestamp(e.Time)
 			fmt.Fprintf(dstImpl, "%s", e.Payload)
 
-		case event.LogV50:
-			dstImpl.SetTimestamp(0)
-			fmt.Fprintf(dstImpl, "%s", e.Payload)
-
 		case event.InitializeTask:
 			dstImpl.SetTimestamp(e.Time)
 			fmt.Fprintf(dstImpl, "\x1b[1minitializing\x1b[0m\n")

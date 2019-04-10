@@ -45,9 +45,9 @@ var _ = Describe("Runner", func() {
 		fakePipeline.ResourcesReturns(db.Resources{fakeResource1, fakeResource2}, nil)
 
 		fakeResourceType1 := new(dbfakes.FakeResourceType)
-		fakeResourceType1.NameReturns("some-resource")
+		fakeResourceType1.NameReturns("some-resource-type")
 		fakeResourceType2 := new(dbfakes.FakeResourceType)
-		fakeResourceType2.NameReturns("some-other-resource")
+		fakeResourceType2.NameReturns("some-other-resource-type")
 		fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeResourceType1, fakeResourceType2}, nil)
 
 		fakeResourceRunner = new(radarfakes.FakeIntervalRunner)
@@ -87,7 +87,7 @@ var _ = Describe("Runner", func() {
 		_, call1Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
 		_, call2Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
 
-		resources := []string{call1Resource, call2Resource}
+		resources := []string{call1Resource.Name(), call2Resource.Name()}
 		Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource"}))
 	})
 
@@ -104,13 +104,13 @@ var _ = Describe("Runner", func() {
 
 			_, call1Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
 			_, call2Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
-			resources := []string{call1Resource, call2Resource}
+			resources := []string{call1Resource.Name(), call2Resource.Name()}
 			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource"}))
 
 			Eventually(scanRunnerFactory.ScanResourceRunnerCallCount, time.Second).Should(Equal(3))
 
 			_, call3Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(2)
-			resources = append(resources, call3Resource)
+			resources = append(resources, call3Resource.Name())
 			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource", "another-resource"}))
 
 			Consistently(scanRunnerFactory.ScanResourceRunnerCallCount).Should(Equal(3))
@@ -133,7 +133,7 @@ var _ = Describe("Runner", func() {
 
 			_, call1Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(0)
 			_, call2Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(1)
-			resources := []string{call1Resource, call2Resource}
+			resources := []string{call1Resource.Name(), call2Resource.Name()}
 
 			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource"}))
 
@@ -143,7 +143,7 @@ var _ = Describe("Runner", func() {
 
 			_, call3Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(2)
 			_, call4Resource := scanRunnerFactory.ScanResourceRunnerArgsForCall(3)
-			resources = append(resources, call3Resource, call4Resource)
+			resources = append(resources, call3Resource.Name(), call4Resource.Name())
 			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource", "some-resource", "some-other-resource"}))
 
 		})
@@ -165,7 +165,7 @@ var _ = Describe("Runner", func() {
 
 			_, call1Resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(0)
 			_, call2Resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(1)
-			resources := []string{call1Resource, call2Resource}
+			resources := []string{call1Resource.Name(), call2Resource.Name()}
 
 			close(exit)
 
@@ -173,8 +173,8 @@ var _ = Describe("Runner", func() {
 
 			_, call3Resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(2)
 			_, call4Resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(3)
-			resources = append(resources, call3Resource, call4Resource)
-			Expect(resources).To(ConsistOf([]string{"some-resource", "some-other-resource", "some-resource", "some-other-resource"}))
+			resources = append(resources, call3Resource.Name(), call4Resource.Name())
+			Expect(resources).To(ConsistOf([]string{"some-resource-type", "some-other-resource-type", "some-resource-type", "some-other-resource-type"}))
 		})
 	})
 

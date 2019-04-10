@@ -1,0 +1,18 @@
+---
+resources:
+- name: some-image
+  type: registry-image
+  source: {repository: alpine}
+
+jobs:
+- name: use-the-internet
+  plan:
+  - get: some-image
+  - task: hello
+    image: some-image
+    config:
+      platform: linux
+
+      run:
+        path: echo
+        args: ["Hello, world!"]

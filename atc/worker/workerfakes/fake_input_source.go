@@ -2,9 +2,9 @@
 package workerfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	worker "github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeInputSource struct {

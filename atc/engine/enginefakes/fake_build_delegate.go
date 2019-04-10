@@ -2,12 +2,12 @@
 package enginefakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	engine "github.com/concourse/concourse/atc/engine"
-	exec "github.com/concourse/concourse/atc/exec"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/exec"
 )
 
 type FakeBuildDelegate struct {

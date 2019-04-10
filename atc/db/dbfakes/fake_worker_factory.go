@@ -2,11 +2,11 @@
 package dbfakes
 
 import (
-	sync "sync"
-	time "time"
+	"sync"
+	"time"
 
-	atc "github.com/concourse/concourse/atc"
-	db "github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeWorkerFactory struct {

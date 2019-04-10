@@ -2,11 +2,11 @@
 package schedulerfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	atc "github.com/concourse/concourse/atc"
-	db "github.com/concourse/concourse/atc/db"
-	scheduler "github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeBuildFactory struct {

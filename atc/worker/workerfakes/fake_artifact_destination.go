@@ -2,10 +2,10 @@
 package workerfakes
 
 import (
-	io "io"
-	sync "sync"
+	"io"
+	"sync"
 
-	worker "github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeArtifactDestination struct {

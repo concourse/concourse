@@ -18,7 +18,6 @@ module Resource.Styles exposing
     , headerHeight
     , headerLastCheckedSection
     , headerResourceName
-    , pageBelowTopBar
     , pagination
     , pinBar
     , pinBarTooltip
@@ -49,14 +48,6 @@ commentBarHeight =
 bodyPadding : Int
 bodyPadding =
     10
-
-
-pageBelowTopBar : List (Html.Attribute msg)
-pageBelowTopBar =
-    [ style "padding-top" "54px"
-    , style "height" "100%"
-    , style "display" "block"
-    ]
 
 
 pinBar : Bool -> List (Html.Attribute msg)

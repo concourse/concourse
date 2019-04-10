@@ -7,13 +7,13 @@ module Views.Styles exposing
     , pageHeaderHeight
     , pageIncludingTopBar
     , pauseToggleIcon
-    , pipelinePageBelowTopBar
     , topBar
     )
 
 import Colors
 import Html
 import Html.Attributes exposing (style)
+import Routes
 
 
 pageHeaderHeight : Float
@@ -29,21 +29,31 @@ pageIncludingTopBar =
     ]
 
 
-pageBelowTopBar : List (Html.Attribute msg)
-pageBelowTopBar =
-    [ style "padding-top" "54px"
-    , style "height" "100%"
-    , style "padding-bottom" "50px"
-    , style "box-sizing" "border-box"
-    , style "display" "flex"
-    ]
+pageBelowTopBar : Routes.Route -> List (Html.Attribute msg)
+pageBelowTopBar route =
+    style "padding-top" "54px"
+        :: (case route of
+                Routes.FlySuccess _ ->
+                    [ style "height" "100%" ]
 
+                Routes.Resource _ ->
+                    [ style "height" "100%" ]
 
-pipelinePageBelowTopBar : List (Html.Attribute msg)
-pipelinePageBelowTopBar =
-    [ style "padding-top" "0"
-    , style "height" "100%"
-    ]
+                Routes.Pipeline _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    ]
+
+                Routes.Dashboard _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "display" "flex"
+                    , style "padding-bottom" "50px"
+                    , style "height" "100%"
+                    ]
+
+                _ ->
+                    []
+           )
 
 
 topBar : Bool -> List (Html.Attribute msg)

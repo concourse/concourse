@@ -25,6 +25,7 @@ import Html.Attributes
         , href
         , id
         , src
+        , style
         )
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -370,6 +371,13 @@ documentTitle model =
 
 view : UserState -> Model -> Html Message
 view userState model =
+    let
+        route =
+            Routes.Pipeline
+                { id = model.pipelineLocator
+                , groups = model.selectedGroups
+                }
+    in
     Html.div [ Html.Attributes.style "height" "100%" ]
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
@@ -380,11 +388,7 @@ view userState model =
                        )
                 )
                 [ TopBar.concourseLogo
-                , TopBar.breadcrumbs <|
-                    Routes.Pipeline
-                        { id = model.pipelineLocator
-                        , groups = model.selectedGroups
-                        }
+                , TopBar.breadcrumbs route
                 , viewPinMenu
                     { pinnedResources = getPinnedResources model
                     , pipeline = model.pipelineLocator
@@ -410,7 +414,7 @@ view userState model =
                 , Login.view userState model <| isPaused model.pipeline
                 ]
             , Html.div
-                (id "page-below-top-bar" :: Views.Styles.pipelinePageBelowTopBar)
+                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
                 [ viewSubPage model ]
             ]
         ]
@@ -614,9 +618,9 @@ viewGroupsBar model =
         Html.text ""
 
     else
-        Html.nav
+        Html.div
             (id "groups-bar" :: Styles.groupsBar)
-            [ Html.ul Styles.groupsList groupList ]
+            groupList
 
 
 viewGroup :
@@ -634,23 +638,20 @@ viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
             Routes.toString <|
                 Routes.Pipeline { id = pipelineLocator, groups = [ grp.name ] }
     in
-    Html.li
-        []
-        [ Html.a
-            ([ Html.Attributes.href <| url
-             , onLeftClickOrShiftLeftClick
-                (SetGroups [ grp.name ])
-                (ToggleGroup grp)
-             , onMouseEnter <| Hover <| Just <| JobGroup idx
-             , onMouseLeave <| Hover Nothing
-             ]
-                ++ Styles.groupItem
-                    { selected = List.member grp.name selectedGroups
-                    , hovered = hovered == (Just <| JobGroup idx)
-                    }
-            )
-            [ Html.text grp.name ]
-        ]
+    Html.a
+        ([ Html.Attributes.href <| url
+         , onLeftClickOrShiftLeftClick
+            (SetGroups [ grp.name ])
+            (ToggleGroup grp)
+         , onMouseEnter <| Hover <| Just <| JobGroup idx
+         , onMouseLeave <| Hover Nothing
+         ]
+            ++ Styles.groupItem
+                { selected = List.member grp.name selectedGroups
+                , hovered = hovered == (Just <| JobGroup idx)
+                }
+        )
+        [ Html.text grp.name ]
 
 
 jobAppearsInGroups : List String -> Concourse.PipelineIdentifier -> Json.Encode.Value -> Bool

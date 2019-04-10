@@ -46,7 +46,7 @@ view userState model =
                 , Login.view userState model False
                 ]
             , Html.div
-                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar)
+                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar model.route)
                 [ Html.div [ class "notfound" ]
                     [ Html.div [ class "title" ] [ Html.text "404" ]
                     , Html.div [ class "reason" ] [ Html.text "this page was not found" ]

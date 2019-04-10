@@ -2,10 +2,10 @@
 package credsfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	template "github.com/cloudfoundry/bosh-cli/director/template"
-	creds "github.com/concourse/concourse/atc/creds"
+	"github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/concourse/atc/creds"
 )
 
 type FakeVariables struct {

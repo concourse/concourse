@@ -2,12 +2,12 @@
 package artifactfakes
 
 import (
-	io "io"
-	sync "sync"
+	"io"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	artifact "github.com/concourse/concourse/atc/exec/artifact"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeRegisterableSource struct {

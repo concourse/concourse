@@ -93,8 +93,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	}
 
 	if nextPendingBuild.IsManuallyTriggered() {
-		jobBuildInputs := job.Config().Inputs()
-		for _, input := range jobBuildInputs {
+		for _, input := range job.Config().Inputs() {
 			resource, found := resources.Lookup(input.Resource)
 
 			if !found {

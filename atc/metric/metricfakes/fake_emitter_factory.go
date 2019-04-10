@@ -2,9 +2,9 @@
 package metricfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	metric "github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type FakeEmitterFactory struct {

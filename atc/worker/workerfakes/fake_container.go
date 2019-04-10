@@ -2,12 +2,12 @@
 package workerfakes
 
 import (
-	io "io"
-	sync "sync"
-	time "time"
+	"io"
+	"sync"
+	"time"
 
-	garden "code.cloudfoundry.org/garden"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/garden"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeContainer struct {

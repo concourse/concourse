@@ -231,12 +231,6 @@ all =
                     |> Tuple.second
                     |> List.member Effects.GetCurrentTimeZone
                     |> Expect.true "should get timezone"
-        , test "has default layout" <|
-            \_ ->
-                init
-                    |> queryView
-                    |> Query.find [ id "page-below-top-bar" ]
-                    |> Query.has [ style "display" "block" ]
         , test "subscribes to the five second interval" <|
             \_ ->
                 init

@@ -121,9 +121,7 @@ var _ = Describe("Kubernetes credential management", func() {
 	})
 
 	AfterEach(func() {
-		helmDestroy(releaseName)
-		Wait(proxySession.Interrupt())
-		Run(nil, "kubectl", "delete", "namespace", namespace)
+		cleanup(releaseName, namespace, proxySession)
 	})
 
 })

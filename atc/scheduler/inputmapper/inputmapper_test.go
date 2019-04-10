@@ -411,6 +411,75 @@ var _ = Describe("Inputmapper", func() {
 					},
 				))
 			})
+
+			Context("when the get specifies a version (latest)", func() {
+				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						Plan: atc.PlanSequence{{
+							Get: "a", Resource: "a",
+							Version: &atc.VersionConfig{Latest: true},
+						}},
+					})
+				})
+
+				It("returns an input config with the api pinned version", func() {
+					Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
+					_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
+					Expect(actualJobInputs).To(ConsistOf(
+						atc.JobInput{
+							Name:     "a",
+							Resource: "a",
+							Version:  &atc.VersionConfig{Pinned: atc.Version{"version": "v1"}},
+						},
+					))
+				})
+			})
+
+			Context("when the get specifies a version (every)", func() {
+				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						Plan: atc.PlanSequence{{
+							Get: "a", Resource: "a",
+							Version: &atc.VersionConfig{Every: true},
+						}},
+					})
+				})
+
+				It("returns an input config with the api pinned version", func() {
+					Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
+					_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
+					Expect(actualJobInputs).To(ConsistOf(
+						atc.JobInput{
+							Name:     "a",
+							Resource: "a",
+							Version:  &atc.VersionConfig{Pinned: atc.Version{"version": "v1"}},
+						},
+					))
+				})
+			})
+
+			Context("when the get specifies a pinned version", func() {
+				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						Plan: atc.PlanSequence{{
+							Get: "a", Resource: "a",
+							Version: &atc.VersionConfig{Pinned: atc.Version{"version": "v2"}},
+						}},
+					})
+				})
+
+				It("returns an input config with the version pinned on get step", func() {
+					Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
+					_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
+					Expect(actualJobInputs).To(ConsistOf(
+						atc.JobInput{
+							Name:     "a",
+							Resource: "a",
+							Version:  &atc.VersionConfig{Pinned: atc.Version{"version": "v2"}},
+						},
+					))
+				})
+			})
 		})
 
 		Context("when a resource has a pinned version", func() {
@@ -447,13 +516,14 @@ var _ = Describe("Inputmapper", func() {
 			Context("when the get specifies a version (latest)", func() {
 				BeforeEach(func() {
 					fakeJob.ConfigReturns(atc.JobConfig{
-						Plan: atc.PlanSequence{
-							{Get: "a", Resource: "a", Version: &atc.VersionConfig{Latest: true}},
-						},
+						Plan: atc.PlanSequence{{
+							Get: "a", Resource: "a",
+							Version: &atc.VersionConfig{Latest: true},
+						}},
 					})
 				})
 
-				It("returns an input config with the resource pinned version because it should take precedence over the version pinned on get step", func() {
+				It("returns an input config with the resource pinned version", func() {
 					Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
 					_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
 					Expect(actualJobInputs).To(ConsistOf(
@@ -461,6 +531,52 @@ var _ = Describe("Inputmapper", func() {
 							Name:     "a",
 							Resource: "a",
 							Version:  &atc.VersionConfig{Pinned: atc.Version{"ref": "abc"}},
+						},
+					))
+				})
+			})
+
+			Context("when the get specifies a version (every)", func() {
+				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						Plan: atc.PlanSequence{{
+							Get: "a", Resource: "a",
+							Version: &atc.VersionConfig{Every: true},
+						}},
+					})
+				})
+
+				It("returns an input config with the resource pinned version", func() {
+					Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
+					_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
+					Expect(actualJobInputs).To(ConsistOf(
+						atc.JobInput{
+							Name:     "a",
+							Resource: "a",
+							Version:  &atc.VersionConfig{Pinned: atc.Version{"ref": "abc"}},
+						},
+					))
+				})
+			})
+
+			Context("when the get specifies a pinned version", func() {
+				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						Plan: atc.PlanSequence{{
+							Get: "a", Resource: "a",
+							Version: &atc.VersionConfig{Pinned: atc.Version{"ref": "def"}},
+						}},
+					})
+				})
+
+				It("returns an input config with the version pinned on get step", func() {
+					Expect(fakeTransformer.TransformInputConfigsCallCount()).To(Equal(1))
+					_, _, actualJobInputs := fakeTransformer.TransformInputConfigsArgsForCall(0)
+					Expect(actualJobInputs).To(ConsistOf(
+						atc.JobInput{
+							Name:     "a",
+							Resource: "a",
+							Version:  &atc.VersionConfig{Pinned: atc.Version{"ref": "def"}},
 						},
 					))
 				})

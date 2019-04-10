@@ -97,7 +97,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeDBPipeline.TeamIDReturns(teamID)
 		fakeDBPipeline.ReloadReturns(true, nil)
 		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
-		fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+		fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 
 		scanner = NewResourceTypeScanner(
 			fakeClock,
@@ -131,7 +131,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		})
 
 		JustBeforeEach(func() {
-			actualInterval, runErr = scanner.Run(lagertest.NewTestLogger("test"), fakeResourceType.Name())
+			actualInterval, runErr = scanner.Run(lagertest.NewTestLogger("test"), fakeResourceType.ID())
 		})
 
 		Context("when the lock cannot be acquired", func() {
@@ -228,7 +228,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 							fakeResourceType,
 							otherResourceType,
 						}, nil)
-						fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+						fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 					})
 
 					It("constructs the resource of the correct type", func() {
@@ -274,7 +274,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Context("when the resource type config has a specified check interval", func() {
 					BeforeEach(func() {
 						fakeResourceType.CheckEveryReturns("10ms")
-						fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+						fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 					})
 
 					It("leases for the configured interval", func() {
@@ -298,7 +298,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Context("when the interval cannot be parsed", func() {
 						BeforeEach(func() {
 							fakeResourceType.CheckEveryReturns("bad-value")
-							fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+							fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 						})
 
 						It("sets the check error", func() {
@@ -454,7 +454,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		})
 
 		JustBeforeEach(func() {
-			runErr = scanner.Scan(lagertest.NewTestLogger("test"), fakeResourceType.Name())
+			runErr = scanner.Scan(lagertest.NewTestLogger("test"), fakeResourceType.ID())
 		})
 
 		Context("when the lock can be acquired and last checked is updated", func() {
@@ -525,7 +525,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						fakeResourceType,
 						otherResourceType,
 					}, nil)
-					fakeDBPipeline.ResourceTypeReturnsOnCall(0, fakeResourceType, true, nil)
+					fakeDBPipeline.ResourceTypeByIDReturnsOnCall(0, fakeResourceType, true, nil)
 				})
 
 				Context("when the custom type does not yet have a version", func() {
@@ -535,8 +535,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					It("checks for versions of the parent resource type", func() {
 						By("calling .scan() for the resource type name")
-						Expect(fakeDBPipeline.ResourceTypeCallCount()).To(Equal(2))
-						Expect(fakeDBPipeline.ResourceTypeArgsForCall(1)).To(Equal("custom-resource-parent"))
+						Expect(fakeDBPipeline.ResourceTypeByIDCallCount()).To(Equal(2))
+						Expect(fakeDBPipeline.ResourceTypeByIDArgsForCall(1)).To(Equal(39))
 					})
 
 					Context("when the check for the parent succeeds", func() {
@@ -549,7 +549,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Context("somethinng fails in the parent resource scan", func() {
 						var parentResourceTypeErr = errors.New("jma says no recursion in production")
 						BeforeEach(func() {
-							fakeDBPipeline.ResourceTypeReturnsOnCall(1, otherResourceType, true, parentResourceTypeErr)
+							fakeDBPipeline.ResourceTypeByIDReturnsOnCall(1, otherResourceType, true, parentResourceTypeErr)
 						})
 
 						It("returns the error from scanning the parent", func() {
@@ -572,7 +572,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					})
 
 					It("does not check for versions of the parent resource type", func() {
-						Expect(fakeDBPipeline.ResourceTypeCallCount()).To(Equal(1))
+						Expect(fakeDBPipeline.ResourceTypeByIDCallCount()).To(Equal(1))
 					})
 				})
 			})
@@ -592,7 +592,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						fakeResourceType,
 						otherResourceType,
 					}, nil)
-					fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+					fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 				})
 
 				It("constructs the resource of the correct type", func() {
@@ -887,7 +887,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		})
 
 		JustBeforeEach(func() {
-			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), "some-resource-type", fromVersion)
+			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), 57, fromVersion)
 		})
 
 		Context("if the lock can be acquired", func() {
@@ -947,12 +947,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			Context("when the resource is not in the database", func() {
 				BeforeEach(func() {
-					fakeDBPipeline.ResourceTypeReturns(nil, false, nil)
+					fakeDBPipeline.ResourceTypeByIDReturns(nil, false, nil)
 				})
 
 				It("returns an error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(scanErr.Error()).To(ContainSubstring("resource type not found: some-resource-type"))
+					Expect(scanErr.Error()).To(ContainSubstring("resource type not found: 57"))
 				})
 			})
 		})

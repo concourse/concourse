@@ -153,38 +153,62 @@ handleEvent event ( model, effects, outmsg ) =
             , outmsg
             )
 
-        Error origin message ->
-            ( updateStep origin.id (setStepError message) model
+        Error origin message time ->
+            ( updateStep origin.id (setStepError message time) model
             , effects
             , outmsg
             )
 
-        Initialize origin ->
-            ( updateStep origin.id setRunning model
+        InitializeTask origin time ->
+            ( updateStep origin.id (setInitialize time) model
             , effects
             , outmsg
             )
 
-        StartTask origin ->
-            ( updateStep origin.id setRunning model
+        StartTask origin time ->
+            ( updateStep origin.id (setStart time) model
             , effects
             , outmsg
             )
 
-        FinishTask origin exitStatus ->
-            ( updateStep origin.id (finishStep exitStatus) model
+        FinishTask origin exitStatus time ->
+            ( updateStep origin.id (finishStep exitStatus (Just time)) model
             , effects
             , outmsg
             )
 
-        FinishGet origin exitStatus version metadata ->
-            ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
+        InitializeGet origin time ->
+            ( updateStep origin.id (setInitialize time) model
             , effects
             , outmsg
             )
 
-        FinishPut origin exitStatus version metadata ->
-            ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
+        StartGet origin time ->
+            ( updateStep origin.id (setStart time) model
+            , effects
+            , outmsg
+            )
+
+        FinishGet origin exitStatus version metadata time ->
+            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
+            , effects
+            , outmsg
+            )
+
+        InitializePut origin time ->
+            ( updateStep origin.id (setInitialize time) model
+            , effects
+            , outmsg
+            )
+
+        StartPut origin time ->
+            ( updateStep origin.id (setStart time) model
+            , effects
+            , outmsg
+            )
+
+        FinishPut origin exitStatus version metadata time ->
+            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
             , effects
             , outmsg
             )
@@ -261,20 +285,31 @@ appendStepLog output mtime tree =
             { step | log = newLog, timestamps = newTimestamps }
 
 
-setStepError : String -> StepTree -> StepTree
-setStepError message tree =
+setStepError : String -> Time.Posix -> StepTree -> StepTree
+setStepError message time tree =
     StepTree.map
         (\step ->
             { step
                 | state = StepStateErrored
                 , error = Just message
+                , finish = Just time
             }
         )
         tree
 
 
-finishStep : Int -> StepTree -> StepTree
-finishStep exitStatus tree =
+setStart : Time.Posix -> StepTree -> StepTree
+setStart time tree =
+    setStepStart time (setStepState StepStateRunning tree)
+
+
+setInitialize : Time.Posix -> StepTree -> StepTree
+setInitialize time tree =
+    setStepInitialize time (setStepState StepStateRunning tree)
+
+
+finishStep : Int -> Maybe Time.Posix -> StepTree -> StepTree
+finishStep exitStatus mtime tree =
     let
         stepState =
             if exitStatus == 0 then
@@ -283,7 +318,7 @@ finishStep exitStatus tree =
             else
                 StepStateFailed
     in
-    setStepState stepState tree
+    setStepFinish mtime (setStepState stepState tree)
 
 
 setResourceInfo : Concourse.Version -> Concourse.Metadata -> StepTree -> StepTree
@@ -294,6 +329,21 @@ setResourceInfo version metadata tree =
 setStepState : StepState -> StepTree -> StepTree
 setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
+
+
+setStepInitialize : Time.Posix -> StepTree -> StepTree
+setStepInitialize time tree =
+    StepTree.map (\step -> { step | initialize = Just time }) tree
+
+
+setStepStart : Time.Posix -> StepTree -> StepTree
+setStepStart time tree =
+    StepTree.map (\step -> { step | start = Just time }) tree
+
+
+setStepFinish : Maybe Time.Posix -> StepTree -> StepTree
+setStepFinish mtime tree =
+    StepTree.map (\step -> { step | finish = mtime }) tree
 
 
 view : Time.Zone -> OutputModel -> Html Message

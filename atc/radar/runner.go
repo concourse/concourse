@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -93,60 +92,60 @@ func (r *Runner) tick(ctx context.Context) error {
 		return err
 	}
 
-	r.scanResourceTypes(ctx, resourceTypes.Configs())
-	r.scanResources(ctx, resources.Configs())
+	r.scanResourceTypes(ctx, resourceTypes)
+	r.scanResources(ctx, resources)
 
 	return nil
 }
 
-func (r *Runner) scanResources(ctx context.Context, resources atc.ResourceConfigs) {
+func (r *Runner) scanResources(ctx context.Context, resources db.Resources) {
 	for _, resource := range resources {
-		scopedName := "resource:" + resource.Name
+		scopedName := "resource:" + resource.Name()
 		if _, found := r.scanning.Load(scopedName); found {
 			continue
 		}
 
 		logger := r.logger.Session("scan-resource", lager.Data{
-			"resource": resource.Name,
+			"resource": resource.Name(),
 		})
 
 		r.scanningWg.Add(1)
-		go func(name string, scopedName string) {
+		go func(res db.Resource, scopedName string) {
 			defer r.scanningWg.Done()
 
 			r.scanning.Store(scopedName, true)
-			runner := r.scanRunnerFactory.ScanResourceRunner(logger, name)
+			runner := r.scanRunnerFactory.ScanResourceRunner(logger, res)
 			err := runner.Run(ctx)
 			if err != nil {
 				r.logger.Error("failed-to-run-scan-resource", err)
 			}
 			r.scanning.Delete(scopedName)
-		}(resource.Name, scopedName)
+		}(resource, scopedName)
 	}
 }
 
-func (r *Runner) scanResourceTypes(ctx context.Context, resourceTypes atc.ResourceTypes) {
+func (r *Runner) scanResourceTypes(ctx context.Context, resourceTypes db.ResourceTypes) {
 	for _, resourceType := range resourceTypes {
-		scopedName := "resource-type:" + resourceType.Name
+		scopedName := "resource-type:" + resourceType.Name()
 		if _, found := r.scanning.Load(scopedName); found {
 			continue
 		}
 
 		logger := r.logger.Session("scan-resource-type", lager.Data{
-			"resource-type": resourceType.Name,
+			"resource-type": resourceType.Name(),
 		})
 
 		r.scanningWg.Add(1)
-		go func(name string, scopedName string) {
+		go func(res db.ResourceType, scopedName string) {
 			defer r.scanningWg.Done()
 
 			r.scanning.Store(scopedName, true)
-			runner := r.scanRunnerFactory.ScanResourceTypeRunner(logger, name)
+			runner := r.scanRunnerFactory.ScanResourceTypeRunner(logger, res)
 			err := runner.Run(ctx)
 			if err != nil {
 				r.logger.Error("failed-to-run-scan-resource-type", err)
 			}
 			r.scanning.Delete(scopedName)
-		}(resourceType.Name, scopedName)
+		}(resourceType, scopedName)
 	}
 }

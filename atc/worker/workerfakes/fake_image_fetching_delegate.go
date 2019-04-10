@@ -2,11 +2,11 @@
 package workerfakes
 
 import (
-	io "io"
-	sync "sync"
+	"io"
+	"sync"
 
-	db "github.com/concourse/concourse/atc/db"
-	worker "github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeImageFetchingDelegate struct {
