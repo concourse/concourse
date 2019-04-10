@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -37,9 +36,7 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 
 		})
 		AfterEach(func() {
-			helmDestroy(releaseName)
-			Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-			Wait(proxySession.Interrupt())
+			cleanup(releaseName, namespace, proxySession)
 		})
 
 		Context("configure helm chart for tls termination at web", func() {
