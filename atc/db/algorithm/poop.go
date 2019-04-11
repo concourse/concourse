@@ -70,18 +70,33 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 			var versionID int
 			if inputConfig.PinnedVersionID != 0 {
 				// pinned
-				// TODO: do we need to verify that the id exists?
-				versionID = inputConfig.PinnedVersionID
-				debug("setting candidate", i, "to unconstrained version", versionID)
-			} else if inputConfig.UseEveryVersion {
-				buildID, err := db.GetLatestBuildID(inputConfig.JobID)
+				exists, err := db.FindVersionOfResource(inputConfig.PinnedVersionID)
 				if err != nil {
+					return false, err
+				}
+
+				if !exists {
 					return false, nil
 				}
 
-				versionID, err = db.NextEveryVersion(buildID, inputConfig.ResourceID)
+				versionID = inputConfig.PinnedVersionID
+				debug("setting candidate", i, "to unconstrained version", versionID)
+			} else if inputConfig.UseEveryVersion {
+				buildID, found, err := db.LatestBuildID(inputConfig.JobID)
 				if err != nil {
-					return false, nil
+					return false, err
+				}
+
+				if found {
+					versionID, err = db.NextEveryVersion(buildID, inputConfig.ResourceID)
+					if err != nil {
+						return false, err
+					}
+				} else {
+					versionID, err = db.LatestVersionOfResource(inputConfig.ResourceID)
+					if err != nil {
+						return false, err
+					}
 				}
 
 				debug("setting candidate", i, "to version for version every", versionID)
@@ -116,10 +131,44 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 				debug(i, "has no candidate yet")
 			}
 
+			// if inputConfig.EveryVersion {
+			//		grab latest build for inputConfig.JobID
+			//    query to build pipes for the from_build_id that the to_build_id is the latest build for inputConfig.JobID and the from_build_id is for the jobID of our passed constraint
+			//    query for all builds after the from build id fromt he build pipe and do asc order
+			//    loop over those builds
+			//    if none of those builds match the criteria, then query for all builds before and equal to the build if from build pipe in desc order
+			//    loop over those builds
+
 			// loop over previous output sets, latest first
-			builds, err := db.SuccessfulBuilds(jobID)
-			if err != nil {
-				return false, err
+			var builds []int
+
+			if inputConfig.UseEveryVersion {
+				buildID, found, err := db.LatestBuildID(inputConfig.JobID)
+				if err != nil {
+					return false, err
+				}
+
+				if found {
+					constraintBuildID, found, err := db.LatestConstraintBuildID(buildID, jobID)
+					if err != nil {
+						return false, err
+					}
+
+					if found {
+						builds, err = db.UnusedBuilds(constraintBuildID, jobID)
+						if err != nil {
+							return false, err
+						}
+					}
+				}
+			}
+
+			var err error
+			if len(builds) == 0 {
+				builds, err = db.SuccessfulBuilds(jobID)
+				if err != nil {
+					return false, err
+				}
 			}
 
 			for _, buildID := range builds {
@@ -150,6 +199,11 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 							// this candidate is unaffected by the current job
 							debug("independent", inputConfigs[c].Passed.String(), jobID)
 							continue
+						}
+
+						if db.DisabledVersionIDs[output.VersionID] {
+							mismatch = true
+							break outputs
 						}
 
 						if candidate != nil && candidate.ID != output.VersionID {

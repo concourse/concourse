@@ -670,8 +670,9 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	db := &algorithm.VersionsDB{
 		Runner: p.conn,
 
-		JobIDs:      map[string]int{},
-		ResourceIDs: map[string]int{},
+		JobIDs:             map[string]int{},
+		ResourceIDs:        map[string]int{},
+		DisabledVersionIDs: map[int]bool{},
 	}
 
 	rows, err := psql.Select("j.name, j.id").
@@ -716,6 +717,30 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		}
 
 		db.ResourceIDs[name] = id
+	}
+
+	rows, err = psql.Select("rcv.id").
+		From("resource_config_versions rcv").
+		RightJoin("resource_disabled_versions rdv ON rdv.version_md5 = rcv.version_md5").
+		Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id AND r.id = rdv.resource_id").
+		Where(sq.Eq{
+			"r.pipeline_id": p.id,
+		}).
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var versionID int
+
+		err = rows.Scan(&versionID)
+		if err != nil {
+			return nil, err
+		}
+
+		db.DisabledVersionIDs[versionID] = true
 	}
 
 	p.versionsDB = db

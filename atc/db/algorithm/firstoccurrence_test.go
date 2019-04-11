@@ -1,7 +1,6 @@
 package algorithm_test
 
 // import (
-// 	"github.com/concourse/concourse/atc/db/algorithm"
 // 	. "github.com/onsi/ginkgo"
 // 	. "github.com/onsi/gomega"
 // )
@@ -14,6 +13,64 @@ package algorithm_test
 // 	)
 
 // 	BeforeEach(func() {
+// 		jobID := insertJob(row.Job)
+
+// 		var existingJobID int
+// 		err := psql.Insert("builds").
+// 			Columns("team_id", "id", "job_id", "name", "status").
+// 			Values(teamID, row.BuildID, jobID, "some-name", "succeeded").
+// 			Suffix("ON CONFLICT (id) DO UPDATE SET name = excluded.name").
+// 			Suffix("RETURNING job_id").
+// 			QueryRow().
+// 			Scan(&existingJobID)
+// 		Expect(err).ToNot(HaveOccurred())
+
+// 		Expect(existingJobID).To(Equal(jobID), fmt.Sprintf("build ID %d already used by job other than %s", row.BuildID, row.Job))
+// 	}
+
+// 		resourceID := resourceIDs.ID(name)
+
+// 		_, err := psql.Insert("resource_configs").
+// 			Columns("id", "source_hash").
+// 			Values(resourceID, "bogus-hash").
+// 			Suffix("ON CONFLICT DO NOTHING").
+// 			Exec()
+// 		Expect(err).ToNot(HaveOccurred())
+
+// 		_, err = psql.Insert("resource_config_scopes").
+// 			Columns("id", "resource_config_id").
+// 			Values(resourceID, resourceID).
+// 			Suffix("ON CONFLICT DO NOTHING").
+// 			Exec()
+// 		Expect(err).ToNot(HaveOccurred())
+
+// 		_, err = psql.Insert("resources").
+// 			Columns("id", "name", "config", "pipeline_id", "resource_config_id", "resource_config_scope_id").
+// 			Values(resourceID, name, "{}", pipelineID, resourceID, resourceID).
+// 			Suffix("ON CONFLICT DO NOTHING").
+// 			Exec()
+// 		Expect(err).ToNot(HaveOccurred())
+
+// 		versionID := versionIDs.ID(row.Version)
+
+// 		resourceID := insertResource(row.Resource)
+
+// 		_, err = psql.Insert("resource_config_versions").
+// 			Columns("id", "resource_config_scope_id", "version", "version_md5", "check_order").
+// 			Values(versionID, resourceID, "{}", sq.Expr("md5(?)", row.Version), row.CheckOrder).
+// 			Suffix("ON CONFLICT DO NOTHING").
+// 			Exec()
+// 		Expect(err).ToNot(HaveOccurred())
+
+// 		if row.Disabled {
+// 			_, err = psql.Insert("resource_disabled_versions").
+// 				Columns("resource_id", "version_md5").
+// 				Values(resourceID, sq.Expr("md5(?)", row.Version)).
+// 				Suffix("ON CONFLICT DO NOTHING").
+// 				Exec()
+// 			Expect(err).ToNot(HaveOccurred())
+// 		}
+
 // 		versionsDB = &algorithm.VersionsDB{
 // 			ResourceVersions: []algorithm.ResourceVersion{
 // 				{VersionID: 1, ResourceID: 21, CheckOrder: 1},

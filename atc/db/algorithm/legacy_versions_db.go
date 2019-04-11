@@ -12,6 +12,7 @@ type LegacyResourceVersion struct {
 	VersionID  int
 	ResourceID int
 	CheckOrder int
+	Disabled   bool
 }
 
 type LegacyBuildOutput struct {
