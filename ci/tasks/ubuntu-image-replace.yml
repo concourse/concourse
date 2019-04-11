@@ -39,7 +39,7 @@ inputs:
 - name: linux-rc
 
 outputs:
-- name: linux-rc
+- name: ubuntu-linux-rc
 
 run:
   path: concourse/ci/tasks/scripts/ubuntu-replace-resource-types
