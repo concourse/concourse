@@ -61,6 +61,7 @@ topBar isPaused =
     [ style "position" "fixed"
     , style "top" "0"
     , style "width" "100%"
+    , style "height" "54px"
     , style "z-index" "999"
     , style "display" "flex"
     , style "justify-content" "space-between"

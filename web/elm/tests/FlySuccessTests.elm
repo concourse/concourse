@@ -54,6 +54,17 @@ authToken =
     "some_auth_token"
 
 
+flags : Application.Flags
+flags =
+    { turbulenceImgSrc = ""
+    , notFoundImgSrc = ""
+    , csrfToken = ""
+    , authToken = authToken
+    , instanceName = ""
+    , pipelineRunningKeyframes = ""
+    }
+
+
 
 -- SETUPS (i dunno, maybe use fuzzers?)
 
@@ -86,12 +97,7 @@ whenOnFlySuccessPage =
     makeSetup "when on fly success page"
         (\_ ->
             Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = authToken
-                , pipelineRunningKeyframes = ""
-                }
+                flags
                 { protocol = Url.Http
                 , host = ""
                 , port_ = Nothing
@@ -108,12 +114,7 @@ invalidFlyPort =
     makeSetup "with invalid fly port"
         (\_ ->
             Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = authToken
-                , pipelineRunningKeyframes = ""
-                }
+                flags
                 { protocol = Url.Http
                 , host = ""
                 , port_ = Nothing

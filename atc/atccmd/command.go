@@ -47,6 +47,7 @@ import (
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/concourse/web"
+	"github.com/concourse/concourse/web/indexhandler"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -129,6 +130,7 @@ type RunCommand struct {
 	} `group:"Metrics & Diagnostics"`
 
 	Server struct {
+		InstanceName  string `long:"instance-name" description:"A name for this Concourse instance, to be displayed on the dashboard page."`
 		XFrameOptions string `long:"x-frame-options" description:"The value to set for X-Frame-Options. If omitted, the header is not set."`
 	} `group:"Web Server"`
 
@@ -586,6 +588,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
+	indexhandler.InstanceName = cmd.Server.InstanceName
 	webHandler, err := webHandler(logger)
 	if err != nil {
 		return nil, err
