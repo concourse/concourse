@@ -11,6 +11,7 @@ module Dashboard.Styles exposing
     , infoBar
     , infoCliIcon
     , infoItem
+    , instanceName
     , legend
     , legendItem
     , legendSeparator
@@ -637,4 +638,13 @@ searchButton =
     , style "width" "32px"
     , style "display" "inline-block"
     , style "float" "left"
+    ]
+
+
+instanceName : List (Html.Attribute msg)
+instanceName =
+    [ style "font-size" "21px"
+    , style "color" "#ffffff"
+    , style "letter-spacing" "0.1em"
+    , style "margin-left" "10px"
     ]

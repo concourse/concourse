@@ -98,26 +98,22 @@ all =
                 csrfToken =
                     "csrf_token"
 
+                flags : Application.Flags
+                flags =
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , instanceName = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+
                 init :
                     { disabled : Bool, paused : Bool }
                     -> ()
                     -> Application.Model
                 init { disabled, paused } _ =
-                    Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = csrfToken
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { protocol = Url.Http
-                        , host = ""
-                        , port_ = Nothing
-                        , path = "/teams/team/pipelines/pipeline/jobs/job"
-                        , query = Nothing
-                        , fragment = Nothing
-                        }
-                        |> Tuple.first
+                    Common.init "/teams/team/pipelines/pipeline/jobs/job"
                         |> Application.handleCallback
                             (JobFetched <|
                                 Ok
@@ -152,21 +148,7 @@ all =
             [ describe "while page is loading"
                 [ test "title includes job name" <|
                     \_ ->
-                        Application.init
-                            { turbulenceImgSrc = ""
-                            , notFoundImgSrc = ""
-                            , csrfToken = ""
-                            , authToken = ""
-                            , pipelineRunningKeyframes = ""
-                            }
-                            { protocol = Url.Http
-                            , host = ""
-                            , port_ = Nothing
-                            , path = "/teams/team/pipelines/pipeline/jobs/job"
-                            , query = Nothing
-                            , fragment = Nothing
-                            }
-                            |> Tuple.first
+                        Common.init "/teams/team/pipelines/pipeline/jobs/job"
                             |> Application.view
                             |> .title
                             |> Expect.equal "job - Concourse"
@@ -174,10 +156,11 @@ all =
                     \_ ->
                         Application.init
                             { turbulenceImgSrc = ""
-                            , notFoundImgSrc = ""
-                            , csrfToken = ""
+                            , notFoundImgSrc = "notfound.svg"
+                            , csrfToken = "csrf_token"
                             , authToken = ""
-                            , pipelineRunningKeyframes = ""
+                            , instanceName = ""
+                            , pipelineRunningKeyframes = "pipeline-running"
                             }
                             { protocol = Url.Http
                             , host = ""
@@ -191,21 +174,7 @@ all =
                             |> Expect.true "should get current timezone"
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
-                        Application.init
-                            { turbulenceImgSrc = ""
-                            , notFoundImgSrc = ""
-                            , csrfToken = ""
-                            , authToken = ""
-                            , pipelineRunningKeyframes = ""
-                            }
-                            { protocol = Url.Http
-                            , host = ""
-                            , port_ = Nothing
-                            , path = "/teams/team/pipelines/pipeline/jobs/job"
-                            , query = Nothing
-                            , fragment = Nothing
-                            }
-                            |> Tuple.first
+                        Common.init "/teams/team/pipelines/pipeline/jobs/job"
                             |> queryView
                             |> Query.findAll loadingIndicatorSelector
                             |> Query.count (Expect.equal 2)

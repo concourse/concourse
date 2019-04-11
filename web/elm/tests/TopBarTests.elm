@@ -118,26 +118,22 @@ searchBarPadding =
     "0 42px"
 
 
+flags : Application.Flags
+flags =
+    { turbulenceImgSrc = ""
+    , notFoundImgSrc = ""
+    , csrfToken = ""
+    , authToken = ""
+    , instanceName = ""
+    , pipelineRunningKeyframes = ""
+    }
+
+
 all : Test
 all =
     describe "TopBar"
         [ rspecStyleDescribe "when on pipeline page"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/teams/team/pipelines/pipeline"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
-            )
+            (Common.init "/teams/team/pipelines/pipeline")
             [ context "when login state unknown"
                 queryView
                 [ it "shows concourse logo" <|
@@ -354,22 +350,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/teams/team/pipelines/pipeline"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
-            )
+            (Common.init "/teams/team/pipelines/pipeline")
             [ it "shows user menu when ToggleUserMenu msg is received" <|
                 Application.handleCallback
                     (Callback.UserFetched <| Ok sampleUser)
@@ -427,21 +408,7 @@ all =
                     >> Query.has [ text "login" ]
             ]
         , rspecStyleDescribe "login component when user is logged out"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/teams/team/pipelines/pipeline"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
+            (Common.init "/teams/team/pipelines/pipeline"
                 |> Application.handleCallback
                     (Callback.LoggedOut (Ok ()))
                 |> Tuple.first
@@ -477,21 +444,7 @@ all =
                         ]
             ]
         , rspecStyleDescribe "when triggering a log in message"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
+            (Common.init "/"
                 |> Application.handleCallback
                     (Callback.LoggedOut (Ok ()))
             )
@@ -503,21 +456,7 @@ all =
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
         , rspecStyleDescribe "rendering top bar on build page"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
+            (Common.init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
                 |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -548,21 +487,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering top bar on resource page"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/teams/team/pipelines/pipeline/resources/resource"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
+            (Common.init "/teams/team/pipelines/pipeline/resources/resource"
                 |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -605,21 +530,7 @@ all =
                         [ text "resource" ]
             ]
         , rspecStyleDescribe "rendering top bar on job page"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/teams/team/pipelines/pipeline/jobs/job"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
+            (Common.init "/teams/team/pipelines/pipeline/jobs/job"
                 |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -646,12 +557,7 @@ all =
             ]
         , rspecStyleDescribe "when checking search bar values"
             (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
+                flags
                 { protocol = Url.Http
                 , host = ""
                 , port_ = Nothing
@@ -696,21 +602,7 @@ all =
                     >> Query.has [ style "opacity" "1" ]
             ]
         , rspecStyleDescribe "rendering search bar on dashboard page"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
+            (Common.init "/"
                 |> Application.handleCallback
                     (Callback.APIDataFetched
                         (Ok
@@ -981,21 +873,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "when search query is updated"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
+            (Common.init "/"
                 |> Application.handleCallback
                     (Callback.APIDataFetched
                         (Ok
@@ -1061,12 +939,7 @@ all =
             ]
         , rspecStyleDescribe "when search query is `status:`"
             (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
+                flags
                 { protocol = Url.Http
                 , host = ""
                 , port_ = Nothing
@@ -1114,12 +987,7 @@ all =
             ]
         , rspecStyleDescribe "when the search query is `team:`"
             (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
+                flags
                 { protocol = Url.Http
                 , host = ""
                 , port_ = Nothing
@@ -1193,21 +1061,7 @@ all =
                     >> Query.count (Expect.equal 10)
             ]
         , rspecStyleDescribe "dropdown stuff"
-            (Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-                { protocol = Url.Http
-                , host = ""
-                , port_ = Nothing
-                , path = "/"
-                , query = Nothing
-                , fragment = Nothing
-                }
-                |> Tuple.first
+            (Common.init "/"
                 |> Application.handleCallback
                     (Callback.APIDataFetched <|
                         Ok
@@ -1447,21 +1301,7 @@ all =
         , describe "pause toggle" <|
             let
                 givenPipelinePaused =
-                    Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { protocol = Url.Http
-                        , host = ""
-                        , port_ = Nothing
-                        , path = "/teams/t/pipelines/p"
-                        , query = Nothing
-                        , fragment = Nothing
-                        }
-                        |> Tuple.first
+                    Common.init "/teams/t/pipelines/p"
                         |> Application.handleCallback
                             (Callback.PipelineFetched <|
                                 Ok

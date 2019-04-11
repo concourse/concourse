@@ -56,37 +56,21 @@ all =
                 , buildName = "1"
                 }
 
+            flags =
+                { turbulenceImgSrc = ""
+                , notFoundImgSrc = ""
+                , csrfToken = csrfToken
+                , authToken = ""
+                , instanceName = ""
+                , pipelineRunningKeyframes = ""
+                }
+
             pageLoadJobBuild =
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
+                Common.init
+                    "/teams/team/pipelines/pipeline/jobs/job/builds/1"
 
             pageLoadOneOffBuild =
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/builds/1"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
+                Common.init "/builds/1"
 
             theBuild : Concourse.Build
             theBuild =
@@ -255,31 +239,12 @@ all =
 
             initFromApplication : Application.Model
             initFromApplication =
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/teams/t/pipelines/p/jobs/j/builds/1"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
         in
         [ test "converts URL hash to highlighted line in view" <|
             \_ ->
                 Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
+                    flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
@@ -356,12 +321,7 @@ all =
             [ test "with a job build" <|
                 \_ ->
                     Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
+                        flags
                         { protocol = Url.Http
                         , host = ""
                         , port_ = Nothing
@@ -378,12 +338,7 @@ all =
             , test "with a one-off-build" <|
                 \_ ->
                     Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
+                        flags
                         { protocol = Url.Http
                         , host = ""
                         , port_ = Nothing
@@ -399,12 +354,7 @@ all =
             , test "with just the page name" <|
                 \_ ->
                     Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
+                        flags
                         { protocol = Url.Http
                         , host = ""
                         , port_ = Nothing
@@ -523,12 +473,7 @@ all =
         , test "events from a different build are discarded" <|
             \_ ->
                 Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
+                    flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
@@ -597,21 +542,7 @@ all =
                     |> Query.hasNot [ text "bad message" ]
         , test "log lines have timestamps in current zone" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/builds/1"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/builds/1"
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
@@ -876,12 +807,25 @@ all =
         , test "says 'loading' on page load" <|
             \_ ->
                 pageLoadJobBuild
-                    |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "loading" ]
         , test "fetches build on page load" <|
             \_ ->
-                pageLoadJobBuild
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , instanceName = ""
+                    , pipelineRunningKeyframes = "pipeline-running"
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
                     |> Tuple.second
                     |> List.member
                         (Effects.FetchJobBuild 1
@@ -894,7 +838,21 @@ all =
                     |> Expect.true "should fetch build"
         , test "gets current timezone on page load" <|
             \_ ->
-                pageLoadJobBuild
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , instanceName = ""
+                    , pipelineRunningKeyframes = "pipeline-running"
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
                     |> Tuple.second
                     |> List.member Effects.GetCurrentTimeZone
                     |> Expect.true "should get timezone"
@@ -902,13 +860,11 @@ all =
             [ test "has a top bar" <|
                 \_ ->
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> Common.queryView
                         |> Query.has [ id "top-bar-app" ]
             , test "has a concourse icon" <|
                 \_ ->
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
@@ -918,7 +874,6 @@ all =
             , test "has the breadcrumbs" <|
                 \_ ->
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Expect.all
@@ -930,7 +885,6 @@ all =
             , test "has the breadcrumbs after fetching build" <|
                 \_ ->
                     pageLoadOneOffBuild
-                        |> Tuple.first
                         |> fetchBuild
                         |> Tuple.first
                         |> Common.queryView
@@ -944,7 +898,6 @@ all =
             , test "has a user section" <|
                 \_ ->
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has [ id "login-component" ]
@@ -952,14 +905,13 @@ all =
         , test "page below top bar has padding to accomodate top bar" <|
             \_ ->
                 pageLoadJobBuild
-                    |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has [ style "padding-top" "54px" ]
         , describe "after build is fetched" <|
             let
                 givenBuildFetched _ =
-                    pageLoadJobBuild |> Tuple.first |> fetchBuild
+                    pageLoadJobBuild |> fetchBuild
             in
             [ test "has a header after the build is fetched" <|
                 givenBuildFetched
@@ -1068,7 +1020,6 @@ all =
                 [ test "pending build has grey banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusPending
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1076,7 +1027,6 @@ all =
                 , test "started build has yellow banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusStarted
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1084,7 +1034,6 @@ all =
                 , test "succeeded build has green banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1092,7 +1041,6 @@ all =
                 , test "failed build has red banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusFailed
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1100,7 +1048,6 @@ all =
                 , test "errored build has amber banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusErrored
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1108,7 +1055,6 @@ all =
                 , test "aborted build has brown banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusAborted
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1118,7 +1064,6 @@ all =
                 [ test "pending build has grey tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusPending
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1127,7 +1072,6 @@ all =
                 , test "started build has animated striped yellow tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusStarted
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1136,7 +1080,6 @@ all =
                 , test "succeeded build has green tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1145,7 +1088,6 @@ all =
                 , test "failed build has red tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusFailed
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1154,7 +1096,6 @@ all =
                 , test "errored build has amber tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusErrored
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1163,7 +1104,6 @@ all =
                 , test "aborted build has brown tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusAborted
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1750,7 +1690,6 @@ all =
             let
                 givenBuildStarted _ =
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> fetchBuildWithStatus Concourse.BuildStatusStarted
                         |> fetchHistory
                         |> Tuple.first
@@ -1964,7 +1903,6 @@ all =
                 let
                     preBuildPlanReceived _ =
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchStartedBuild
                             |> Tuple.first
                             |> fetchHistory
@@ -2902,12 +2840,7 @@ all =
 
                     metadataView =
                         Application.init
-                            { turbulenceImgSrc = ""
-                            , notFoundImgSrc = ""
-                            , csrfToken = "csrf_token"
-                            , authToken = ""
-                            , pipelineRunningKeyframes = ""
-                            }
+                            flags
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing
