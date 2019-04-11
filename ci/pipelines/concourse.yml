@@ -755,6 +755,7 @@ jobs:
       - cbd/cluster/operations/container-placement-strategy.yml
       - cbd/cluster/operations/worker-rebalancing.yml
       - cbd/cluster/operations/enable-global-resources.yml
+      - cbd/cluster/operations/x-frame-options-unset.yml
       - prod/prod/ops.yml
       vars_files:
       - cbd/versions.yml
