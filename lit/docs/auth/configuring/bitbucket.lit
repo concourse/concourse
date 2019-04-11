@@ -79,7 +79,7 @@ permission model.
   \codeblock{bash}{{{
   roles:
   - name: member
-    bitbucket:
+    bitbucket-cloud:
       users: ["my-bitbucket-login"]
       teams: ["my-bitbucket-team"]
   }}}
