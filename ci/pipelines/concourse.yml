@@ -1322,7 +1322,7 @@ resources:
 
 - name: linux-rc
   type: gcs
-  icon: &cloud-storage-icon cloud
+  icon: linux
   source:
     bucket: concourse-artifacts
     json_key: ((concourse_artifacts_json_key))
@@ -1330,7 +1330,7 @@ resources:
 
 - name: windows-rc
   type: gcs
-  icon: *cloud-storage-icon
+  icon: windows
   source:
     bucket: concourse-artifacts
     json_key: ((concourse_artifacts_json_key))
@@ -1338,7 +1338,7 @@ resources:
 
 - name: darwin-rc
   type: gcs
-  icon: *cloud-storage-icon
+  icon: apple
   source:
     bucket: concourse-artifacts
     json_key: ((concourse_artifacts_json_key))
@@ -1435,6 +1435,7 @@ resources:
 
 - name: smoke-deployment
   type: bosh-deployment
+  icon: fire
   source:
     target: ((bosh_target))
     client: ((bosh_client.id))
@@ -1443,7 +1444,7 @@ resources:
 
 - name: prod-deployment
   type: bosh-deployment
-  icon: reload
+  icon: sync
   source:
     target: ((bosh_target))
     client: ((bosh_client.id))
@@ -1509,7 +1510,7 @@ resources:
 
 - name: golang-windows
   type: s3
-  icon: *cloud-storage-icon
+  icon: language-go
   source:
     endpoint: storage.googleapis.com
     bucket: golang
@@ -1517,7 +1518,7 @@ resources:
 
 - name: golang-linux
   type: s3
-  icon: *cloud-storage-icon
+  icon: language-go
   source:
     endpoint: storage.googleapis.com
     bucket: golang
