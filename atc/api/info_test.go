@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	awsssm "github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/creds/credhub"
 	"github.com/concourse/concourse/atc/creds/secretsmanager"
 	"github.com/concourse/concourse/atc/creds/ssm"
@@ -44,16 +43,6 @@ func (m *MockSecretsManagerService) GetSecretValue(input *awssecretsmanager.GetS
 }
 
 var _ = Describe("Pipelines API", func() {
-	var fakeaccess *accessorfakes.FakeAccess
-
-	BeforeEach(func() {
-		fakeaccess = new(accessorfakes.FakeAccess)
-	})
-
-	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
-	})
-
 	Describe("GET /api/v1/info", func() {
 		var response *http.Response
 
@@ -105,8 +94,8 @@ var _ = Describe("Pipelines API", func() {
 			var mockService MockSsmService
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAdminReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(true)
 
 				ssmAccess := ssm.NewSsm(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", nil)
 				ssmManager := &ssm.SsmManager{
@@ -175,8 +164,8 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("vault", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAdminReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(true)
 
 				authConfig := vault.AuthConfig{
 					Backend:       "backend-server",
@@ -298,8 +287,8 @@ var _ = Describe("Pipelines API", func() {
 			)
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAdminReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(true)
 
 				tls = credhub.TLS{
 					CACerts: []string{},
@@ -399,8 +388,8 @@ var _ = Describe("Pipelines API", func() {
 			var mockService MockSecretsManagerService
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAdminReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(true)
 
 				secretsManagerAccess := secretsmanager.NewSecretsManager(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", nil)
 
