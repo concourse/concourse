@@ -129,7 +129,7 @@ type RunCommand struct {
 	} `group:"Metrics & Diagnostics"`
 
 	Server struct {
-		XFrameOptions string `long:"x-frame-options" description:"The value to set for X-Frame-Options. If omitted, the header is not set."`
+		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
 	} `group:"Web Server"`
 
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`

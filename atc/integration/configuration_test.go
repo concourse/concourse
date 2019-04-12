@@ -73,6 +73,12 @@ var _ = Describe("ATC Integration Test", func() {
 		Expect(string(bodyBytes)).To(ContainSubstring("main"))
 		Expect(string(bodyBytes)).To(ContainSubstring("local:test"))
 	})
+
+	It("X-Frame-Options header prevents clickjacking by default", func() {
+		resp, err := http.Get(atcURL)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.Header.Get("x-frame-options")).To(Equal("deny"))
+	})
 })
 
 func webLogin(atcURL, username, password string) http.Client {
