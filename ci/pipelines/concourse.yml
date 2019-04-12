@@ -587,6 +587,50 @@ jobs:
       passed: [build-rc]
       trigger: true
     - get: concourse-release-repo
+    - get: bosh-io-release-resource
+      passed: [dev-image]
+      trigger: true
+    - get: bosh-io-stemcell-resource
+      passed: [dev-image]
+      trigger: true
+    - get: cf-resource
+      passed: [dev-image]
+      trigger: true
+    - get: docker-image-resource
+      passed: [dev-image]
+      trigger: true
+    - get: git-resource
+      passed: [dev-image]
+      trigger: true
+    - get: github-release-resource
+      passed: [dev-image]
+      trigger: true
+    - get: hg-resource
+      passed: [dev-image]
+      trigger: true
+    - get: pool-resource
+      passed: [dev-image]
+      trigger: true
+    - get: registry-image-resource
+      passed: [dev-image]
+      trigger: true
+    - get: s3-resource
+      passed: [dev-image]
+      trigger: true
+    - get: semver-resource
+      passed: [dev-image]
+      trigger: true
+    - get: time-resource
+      passed: [dev-image]
+      trigger: true
+    - get: tracker-resource
+      passed: [dev-image]
+      trigger: true
+    - get: mock-resource
+      passed: [dev-image]
+      trigger: true
+  - task: ubuntu-image-replace
+    file: concourse/ci/tasks/ubuntu-image-replace.yml
   - task: bump-concourse-blobs
     file: concourse/ci/tasks/bump-concourse-blobs.yml
     image: unit-image

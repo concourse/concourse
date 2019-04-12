@@ -1,0 +1,45 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: concourse/unit
+
+inputs:
+- name: concourse
+- name: bosh-io-release-resource
+  path: resources/bosh-io-release
+- name: bosh-io-stemcell-resource
+  path: resources/bosh-io-stemcell
+- name: cf-resource
+  path: resources/cf
+- name: docker-image-resource
+  path: resources/docker-image
+- name: git-resource
+  path: resources/git
+- name: github-release-resource
+  path: resources/github-release
+- name: hg-resource
+  path: resources/hg
+- name: mock-resource
+  path: resources/mock
+- name: pool-resource
+  path: resources/pool
+- name: registry-image-resource
+  path: resources/registry-image
+- name: s3-resource
+  path: resources/s3
+- name: semver-resource
+  path: resources/semver
+- name: time-resource
+  path: resources/time
+- name: tracker-resource
+  path: resources/tracker
+- name: linux-rc
+
+outputs:
+- name: ubuntu-linux-rc
+
+run:
+  path: concourse/ci/tasks/scripts/ubuntu-replace-resource-types
