@@ -259,15 +259,15 @@ showHighlight hl =
             ""
 
         HighlightLine id line ->
-            "#L" ++ id ++ ":" ++ Debug.toString line
+            "#L" ++ id ++ ":" ++ String.fromInt line
 
         HighlightRange id line1 line2 ->
             "#L"
                 ++ id
                 ++ ":"
-                ++ Debug.toString line1
+                ++ String.fromInt line1
                 ++ ":"
-                ++ Debug.toString line2
+                ++ String.fromInt line2
 
 
 parseHighlight : Maybe String -> Highlight
