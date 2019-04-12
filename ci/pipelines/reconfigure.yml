@@ -7,6 +7,7 @@ resource_types:
 resources:
 - name: pipelines
   type: git
+  icon: github-circle
   source:
     uri: https://github.com/concourse/concourse
     paths:

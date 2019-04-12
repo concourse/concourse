@@ -334,6 +334,7 @@ local build_image(distro) = {
     {
       name: "alpine-edge",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "alpine",
         tag: "edge"
@@ -342,6 +343,7 @@ local build_image(distro) = {
     {
       name: "ubuntu-bionic",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "ubuntu",
         tag: "bionic"
@@ -350,6 +352,7 @@ local build_image(distro) = {
     {
       name: "resource-repo",
       type: "git",
+      icon: "github-circle",
       source: {
         uri: "git@github.com:concourse/"+resource+"-resource",
         branch: "master",
@@ -359,6 +362,7 @@ local build_image(distro) = {
     {
       name: "resource-repo-release",
       type: "github-release",
+      icon: "package-variant-closed",
       source: {
         owner: "concourse",
         repository: resource+"-resource",
@@ -368,6 +372,7 @@ local build_image(distro) = {
     {
       name: "version",
       type: "semver",
+      icon: "tag",
       source: {
         driver: "git",
         uri: "git@github.com:concourse/"+resource+"-resource",
@@ -379,6 +384,7 @@ local build_image(distro) = {
     {
       name: "resource-pr",
       type: "pull-request",
+      icon: "source-pull",
       source: {
         repo: "concourse/"+resource+"-resource",
         base: "master",
@@ -389,6 +395,7 @@ local build_image(distro) = {
     {
       name: "resource-image-alpine",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "concourse/"+resource+"-resource",
         tag: "alpine",
@@ -399,6 +406,7 @@ local build_image(distro) = {
     {
       name: "resource-image-ubuntu",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "concourse/"+resource+"-resource",
         tag: "ubuntu",
@@ -409,6 +417,7 @@ local build_image(distro) = {
     {
       name: "resource-image-dev-alpine",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "concourse/"+resource+"-resource",
         tag: "dev",
@@ -419,6 +428,7 @@ local build_image(distro) = {
     {
       name: "resource-image-dev-ubuntu",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "concourse/"+resource+"-resource",
         tag: "dev-ubuntu",
