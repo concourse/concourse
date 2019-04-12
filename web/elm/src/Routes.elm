@@ -173,8 +173,22 @@ job =
 
 pipeline : Parser (Route -> a) a
 pipeline =
-    map (\t p g -> Pipeline { id = { teamName = t, pipelineName = p }, groups = g })
-        (s "teams" </> string </> s "pipelines" </> string <?> Query.custom "group" identity)
+    map
+        (\t p g ->
+            Pipeline
+                { id =
+                    { teamName = t
+                    , pipelineName = p
+                    }
+                , groups = g
+                }
+        )
+        (s "teams"
+            </> string
+            </> s "pipelines"
+            </> string
+            <?> Query.custom "group" identity
+        )
 
 
 dashboard : Parser (Route -> a) a
@@ -214,7 +228,14 @@ buildRoute b =
 
 jobRoute : Concourse.Job -> Route
 jobRoute j =
-    Job { id = { teamName = j.teamName, pipelineName = j.pipelineName, jobName = j.name }, page = Nothing }
+    Job
+        { id =
+            { teamName = j.teamName
+            , pipelineName = j.pipelineName
+            , jobName = j.name
+            }
+        , page = Nothing
+        }
 
 
 pipelineRoute : { a | name : String, teamName : String } -> Route
