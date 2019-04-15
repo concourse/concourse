@@ -11,7 +11,7 @@ module Dashboard.Styles exposing
     , infoBar
     , infoCliIcon
     , infoItem
-    , instanceName
+    , clusterName
     , legend
     , legendItem
     , legendSeparator
@@ -641,8 +641,8 @@ searchButton =
     ]
 
 
-instanceName : List (Html.Attribute msg)
-instanceName =
+clusterName : List (Html.Attribute msg)
+clusterName =
     [ style "font-size" "21px"
     , style "color" "#ffffff"
     , style "letter-spacing" "0.1em"

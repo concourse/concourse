@@ -24,7 +24,7 @@ init path =
         , notFoundImgSrc = "notfound.svg"
         , csrfToken = "csrf_token"
         , authToken = ""
-        , instanceName = ""
+        , clusterName = ""
         , pipelineRunningKeyframes = "pipeline-running"
         }
         { protocol = Url.Http

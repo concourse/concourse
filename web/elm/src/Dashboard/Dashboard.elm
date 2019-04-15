@@ -70,7 +70,7 @@ type alias Flags =
     { turbulencePath : String
     , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
-    , instanceName : String
+    , clusterName : String
     }
 
 
@@ -96,7 +96,7 @@ init flags =
       , isUserMenuExpanded = False
       , dropdown = Hidden
       , screenSize = Desktop
-      , instanceName = flags.instanceName
+      , clusterName = flags.clusterName
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -395,7 +395,7 @@ view userState model =
                 [ style "display" "flex"
                 , style "align-items" "center"
                 ]
-                [ TopBar.concourseLogo, instanceName model ]
+                [ TopBar.concourseLogo, clusterName model ]
             ]
                 ++ (let
                         isDropDownHidden =
@@ -425,11 +425,11 @@ view userState model =
         ]
 
 
-instanceName : Model -> Html Message
-instanceName model =
+clusterName : Model -> Html Message
+clusterName model =
     Html.div
-        Styles.instanceName
-        [ Html.text model.instanceName ]
+        Styles.clusterName
+        [ Html.text model.clusterName ]
 
 
 dashboardView : Model -> List (Html Message)

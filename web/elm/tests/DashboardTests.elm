@@ -124,7 +124,7 @@ flags =
     , notFoundImgSrc = ""
     , csrfToken = csrfToken
     , authToken = ""
-    , instanceName = ""
+    , clusterName = ""
     , pipelineRunningKeyframes = pipelineRunningKeyframes
     }
 
@@ -139,7 +139,7 @@ all =
                     , notFoundImgSrc = "notfound.svg"
                     , csrfToken = "csrf_token"
                     , authToken = ""
-                    , instanceName = ""
+                    , clusterName = ""
                     , pipelineRunningKeyframes = "pipeline-running"
                     }
                     { protocol = Url.Http
@@ -158,14 +158,14 @@ all =
                     |> Application.view
                     |> .title
                     |> Expect.equal "Dashboard - Concourse"
-        , test "renders instance name at top left" <|
+        , test "renders cluster name at top left" <|
             \_ ->
                 Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
                     , csrfToken = csrfToken
                     , authToken = ""
-                    , instanceName = "foobar"
+                    , clusterName = "foobar"
                     , pipelineRunningKeyframes = ""
                     }
                     { protocol = Url.Http
