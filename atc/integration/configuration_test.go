@@ -61,12 +61,12 @@ var _ = Describe("ATC Integration Test", func() {
 		})
 	})
 
-	Context("when instance name is specified", func() {
+	Context("when cluster name is specified", func() {
 		BeforeEach(func() {
-			cmd.Server.InstanceName = "foobar"
+			cmd.Server.ClusterName = "foobar"
 		})
 
-		It("renders instance name into HTML template", func() {
+		It("renders cluster name into HTML template", func() {
 			resp, err := http.Get(atcURL)
 			Expect(err).NotTo(HaveOccurred())
 

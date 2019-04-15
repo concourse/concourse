@@ -131,7 +131,7 @@ type RunCommand struct {
 
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
-		InstanceName  string `long:"instance-name" description:"A name for this Concourse instance, to be displayed on the dashboard page."`
+		ClusterName   string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 	} `group:"Web Server"`
 
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
@@ -586,7 +586,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
-	indexhandler.InstanceName = cmd.Server.InstanceName
+	indexhandler.ClusterName = cmd.Server.ClusterName
 	webHandler, err := webHandler(logger)
 	if err != nil {
 		return nil, err

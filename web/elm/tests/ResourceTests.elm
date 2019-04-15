@@ -210,7 +210,7 @@ all =
                     , notFoundImgSrc = "notfound.svg"
                     , csrfToken = "csrf_token"
                     , authToken = ""
-                    , instanceName = ""
+                    , clusterName = ""
                     , pipelineRunningKeyframes = "pipeline-running"
                     }
                     { protocol = Url.Http
@@ -3094,7 +3094,7 @@ flags =
     , notFoundImgSrc = ""
     , csrfToken = csrfToken
     , authToken = ""
-    , instanceName = ""
+    , clusterName = ""
     , pipelineRunningKeyframes = ""
     }
 

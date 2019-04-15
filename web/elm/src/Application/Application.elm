@@ -28,7 +28,7 @@ type alias Flags =
     , notFoundImgSrc : String
     , csrfToken : Concourse.CSRFToken
     , authToken : String
-    , instanceName : String
+    , clusterName : String
     , pipelineRunningKeyframes : String
     }
 
@@ -42,7 +42,7 @@ type alias Model =
     , pipelineRunningKeyframes : String
     , route : Routes.Route
     , userState : UserState
-    , instanceName : String
+    , clusterName : String
     }
 
 
@@ -58,7 +58,7 @@ init flags url =
                 { turbulencePath = flags.turbulenceImgSrc
                 , authToken = flags.authToken
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-                , instanceName = flags.instanceName
+                , clusterName = flags.clusterName
                 }
                 route
 
@@ -71,7 +71,7 @@ init flags url =
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , route = route
             , userState = UserStateUnknown
-            , instanceName = flags.instanceName
+            , clusterName = flags.clusterName
             }
 
         handleTokenEffect =
@@ -245,7 +245,7 @@ urlUpdate route model =
                     { turbulencePath = model.turbulenceImgSrc
                     , authToken = model.authToken
                     , pipelineRunningKeyframes = model.pipelineRunningKeyframes
-                    , instanceName = model.instanceName
+                    , clusterName = model.clusterName
                     }
                     route
     in
