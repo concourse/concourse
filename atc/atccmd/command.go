@@ -131,7 +131,7 @@ type RunCommand struct {
 
 	Server struct {
 		ClusterName  string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
-		XFrameOptions string `long:"x-frame-options" description:"The value to set for X-Frame-Options. If omitted, the header is not set."`
+		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
 	} `group:"Web Server"`
 
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
