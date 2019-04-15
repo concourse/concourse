@@ -175,12 +175,12 @@ genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
                 |> Tuple.mapFirst NotFoundModel
 
 
-handleCallback : Callback -> ET Model
-handleCallback callback =
+handleCallback : Callback -> Session -> ET Model
+handleCallback callback session =
     genericUpdate
         (Build.handleCallback callback)
         (Job.handleCallback callback)
-        (Resource.handleCallback callback)
+        (Resource.handleCallback callback session)
         (Pipeline.handleCallback callback)
         (Dashboard.handleCallback callback)
         identity

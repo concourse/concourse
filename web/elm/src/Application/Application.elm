@@ -189,7 +189,7 @@ subpageHandleCallback model callback =
     let
         ( subModel, effects ) =
             ( model.subModel, [] )
-                |> SubPage.handleCallback callback
+                |> SubPage.handleCallback callback model.session
                 |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
     in
     ( { model | subModel = subModel }, effects )

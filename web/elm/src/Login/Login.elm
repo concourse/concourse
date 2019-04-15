@@ -1,4 +1,4 @@
-module Login.Login exposing (Model, update, view)
+module Login.Login exposing (Model, update, userDisplayName, view)
 
 import Concourse
 import EffectTransformer exposing (ET)
