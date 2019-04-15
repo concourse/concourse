@@ -7,7 +7,7 @@ import Concourse.Pagination
         , Paginated
         , Pagination
         )
-import Dict exposing (Dict)
+import Dict
 import Http
 import Json.Decode
 import List.Extra
@@ -46,7 +46,7 @@ fetch decoder segments p =
         Http.request
             { method = "GET"
             , headers = []
-            , url = Url.Builder.relative segments (params p)
+            , url = Url.Builder.absolute segments (params p)
             , body = Http.emptyBody
             , expect = Http.expectStringResponse (parsePagination decoder)
             , timeout = Nothing
