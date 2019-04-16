@@ -155,9 +155,9 @@ func (p *Plugin) DefineAttribute(attribute string, contentNode ast.Node, tags ..
 	content := stage.Result
 
 	display := booklit.Styled{
-		Style: booklit.StyleVerbatim,
+		Style: booklit.StyleBold,
 		Content: booklit.Styled{
-			Style:   booklit.StyleBold,
+			Style:   booklit.StyleVerbatim,
 			Content: booklit.String(strings.Join(p.definitionContext, ".")),
 		},
 	}

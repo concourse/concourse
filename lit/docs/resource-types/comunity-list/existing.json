@@ -1,0 +1,914 @@
+[
+  {
+    "name": "Slack Reading and Posting",
+    "site": "https://github.com/jleben/slack-chat-resource",
+    "maintainer": {
+      "name": "jleben",
+      "contact": "https://github.com/jleben"
+    }
+  },
+  {
+    "name": "Slack notifications",
+    "site": "https://github.com/cloudfoundry-community/slack-notification-resource",
+    "maintainer": {
+      "name": "cloudfoundry-community",
+      "contact": "https://github.com/cloudfoundry-community"
+    }
+  },
+  {
+    "name": "Github Pull Requests",
+    "site": "https://github.com/telia-oss/github-pr-resource",
+    "maintainer": {
+      "name": "telia-oss",
+      "contact": "https://github.com/telia-oss"
+    }
+  },
+  {
+    "name": "GitLab Merge Requests",
+    "site": "https://github.com/swisscom/gitlab-merge-request-resource",
+    "maintainer": {
+      "name": "swisscom",
+      "contact": "https://github.com/swisscom"
+    }
+  },
+  {
+    "name": "OpenStack Swift",
+    "site": "https://github.com/sapcc/concourse-swift-resource",
+    "maintainer": {
+      "name": "sapcc",
+      "contact": "https://github.com/sapcc"
+    }
+  },
+  {
+    "name": "Key Value resource",
+    "site": "https://github.com/swce/keyval-resource",
+    "maintainer": {
+      "name": "swce",
+      "contact": "https://github.com/swce"
+    }
+  },
+  {
+    "name": "Flowdock notifications",
+    "site": "https://github.com/starkandwayne/flowdock-concourse-notification-resource",
+    "maintainer": {
+      "name": "starkandwayne",
+      "contact": "https://github.com/starkandwayne"
+    }
+  },
+  {
+    "name": "Email",
+    "site": "https://github.com/pivotal-cf/email-resource",
+    "maintainer": {
+      "name": "pivotal-cf",
+      "contact": "https://github.com/pivotal-cf"
+    }
+  },
+  {
+    "name": "Formatted Email",
+    "site": "https://github.com/santoshjpawar/concourse-email-notification",
+    "maintainer": {
+      "name": "santoshjpawar",
+      "contact": "https://github.com/santoshjpawar"
+    }
+  },
+  {
+    "name": "Email with integrated MTA",
+    "site": "https://github.com/mdomke/concourse-email-resource",
+    "maintainer": {
+      "name": "mdomke",
+      "contact": "https://github.com/mdomke"
+    }
+  },
+  {
+    "name": "Bintray",
+    "site": "https://github.com/jamiemonserrate/bintray-resource",
+    "maintainer": {
+      "name": "jamiemonserrate",
+      "contact": "https://github.com/jamiemonserrate"
+    }
+  },
+  {
+    "name": "Perforce",
+    "site": "https://github.com/olhtbr/p4-resource",
+    "maintainer": {
+      "name": "olhtbr",
+      "contact": "https://github.com/olhtbr"
+    }
+  },
+  {
+    "name": "BOSH Errands",
+    "site": "https://github.com/starkandwayne/bosh-errand-resource-boshrelease",
+    "maintainer": {
+      "name": "starkandwayne",
+      "contact": "https://github.com/starkandwayne"
+    }
+  },
+  {
+    "name": "BOSH Config: cloud-config and runtime-config",
+    "site": "https://github.com/EMC-Dojo/bosh-config-resource",
+    "maintainer": {
+      "name": "EMC-Dojo",
+      "contact": "https://github.com/EMC-Dojo"
+    }
+  },
+  {
+    "name": "BOSH Release",
+    "site": "https://github.com/dpb587/bosh-release-resource",
+    "maintainer": {
+      "name": "dpb587",
+      "contact": "https://github.com/dpb587"
+    }
+  },
+  {
+    "name": "Pool Trigger",
+    "site": "https://github.com/cfmobile/pool-trigger-resource",
+    "maintainer": {
+      "name": "sfmobile",
+      "contact": "https://github.com/sfmobile"
+    }
+  },
+  {
+    "name": "Pivotal Network",
+    "site": "https://github.com/pivotal-cf-experimental/pivnet-resource",
+    "maintainer": {
+      "name": "pivotal-cf-experimental",
+      "contact": "https://github.com/pivotal-cf-experimental"
+    }
+  },
+  {
+    "name": "FTP",
+    "site": "https://github.com/aequitas/concourse-ftp-resource",
+    "maintainer": {
+      "name": "aequitas",
+      "contact": "https://github.com/aequitas"
+    }
+  },
+  {
+    "name": "lftp, access resources via ftp, http, sftp and fish",
+    "site": "https://github.com/openSUSE/lftp-concourse-resource",
+    "maintainer": {
+      "name": "openSUSE",
+      "contact": "https://github.com/openSUSE"
+    }
+  },
+  {
+    "name": "Cloudformation",
+    "site": "https://github.com/pivotal-cf-experimental/cloudformation-resource",
+    "maintainer": {
+      "name": "pivotal-cf-experimental",
+      "contact": "https://github.com/pivotal-cf-experimental"
+    }
+  },
+  {
+    "name": "Generic HTTP API",
+    "site": "https://github.com/aequitas/concourse-http-api-resource",
+    "maintainer": {
+      "name": "aequitas",
+      "contact": "https://github.com/aequitas"
+    }
+  },
+  {
+    "name": "Hockey App",
+    "site": "https://github.com/seadowg/hockey-resource",
+    "maintainer": {
+      "name": "seadowg",
+      "contact": "https://github.com/seadowg"
+    }
+  },
+  {
+    "name": "Concourse Pipelines",
+    "site": "https://github.com/robdimsdale/concourse-pipeline-resource",
+    "maintainer": {
+      "name": "robdimsdale",
+      "contact": "https://github.com/robdimsdale"
+    }
+  },
+  {
+    "name": "Twitter",
+    "site": "https://github.com/ECSTeam/twitter-resource",
+    "maintainer": {
+      "name": "ECSTeam",
+      "contact": "https://github.com/ECSTeam"
+    }
+  },
+  {
+    "name": "HipChat Notifications",
+    "site": "https://github.com/cloudfoundry-community/hipchat-notification-resource",
+    "maintainer": {
+      "name": "cloudfoundry-community",
+      "contact": "https://github.com/cloudfoundry-community"
+    }
+  },
+  {
+    "name": "Matrix Notifications",
+    "site": "https://github.com/freelock/matrix-notification-resource",
+    "maintainer": {
+      "name": "freelock",
+      "contact": "https://github.com/freelock"
+    }
+  },
+  {
+    "name": "Smuggler: generic resource framework",
+    "site": "https://github.com/redfactorlabs/concourse-smuggler-resource",
+    "maintainer": {
+      "name": "redfactorlabs",
+      "contact": "https://github.com/redfactorlabs"
+    }
+  },
+  {
+    "name": "GitHub Commit Status",
+    "site": "https://github.com/dpb587/github-status-resource",
+    "maintainer": {
+      "name": "dpb587",
+      "contact": "https://github.com/dpb587"
+    }
+  },
+  {
+    "name": "GitHub Deployment",
+    "site": "https://github.com/ahume/github-deployment-resource",
+    "maintainer": {
+      "name": "ahume",
+      "contact": "https://github.com/ahume"
+    }
+  },
+  {
+    "name": "AMI Updates",
+    "site": "https://github.com/jdub/ami-resource",
+    "maintainer": {
+      "name": "jdub",
+      "contact": "https://github.com/jdub"
+    }
+  },
+  {
+    "name": "Debian/Ubuntu Sources Updates",
+    "site": "https://github.com/jdub/debian-sources-resource",
+    "maintainer": {
+      "name": "jdub",
+      "contact": "https://github.com/jdub"
+    }
+  },
+  {
+    "name": "Open Build Service",
+    "site": "https://github.com/SUSE/open-build-service-resource",
+    "maintainer": {
+      "name": "SUSE",
+      "contact": "https://github.com/SUSE"
+    }
+  },
+  {
+    "name": "Travis-ci",
+    "site": "https://github.com/Orange-OpenSource/travis-resource",
+    "maintainer": {
+      "name": "Orange-OpenSource",
+      "contact": "https://github.com/Orange-OpenSource"
+    }
+  },
+  {
+    "name": "Bitbucket Notifications",
+    "site": "https://github.com/karunamon/concourse-resource-bitbucket",
+    "maintainer": {
+      "name": "karunamon",
+      "contact": "https://github.com/karunamon"
+    }
+  },
+  {
+    "name": "Terraform",
+    "site": "https://github.com/ljfranklin/terraform-resource",
+    "maintainer": {
+      "name": "ljfranklin",
+      "contact": "https://github.com/ljfranklin"
+    }
+  },
+  {
+    "name": "bbl (BOSH Bootloader) state",
+    "site": "https://github.com/cloudfoundry/bbl-state-resource",
+    "maintainer": {
+      "name": "cloudfoundry",
+      "contact": "https://github.com/cloudfoundry"
+    }
+  },
+  {
+    "name": "Azure Blobstore",
+    "site": "https://github.com/pivotal-cf/azure-blobstore-resource",
+    "maintainer": {
+      "name": "pivotal-cf",
+      "contact": "https://github.com/pivotal-cf"
+    }
+  },
+  {
+    "name": "Rsync",
+    "site": "https://github.com/mrsixw/concourse-rsync-resource",
+    "maintainer": {
+      "name": "mrsixw",
+      "contact": "https://github.com/mrsixw"
+    }
+  },
+  {
+    "name": "Rsync: rsyncd, for local net",
+    "site": "https://github.com/chemist/rsync-resource",
+    "maintainer": {
+      "name": "chemist",
+      "contact": "https://github.com/chemist"
+    }
+  },
+  {
+    "name": "PyPI Packages",
+    "site": "https://github.com/cf-platform-eng/concourse-pypi-resource",
+    "maintainer": {
+      "name": "cf-platform-eng",
+      "contact": "https://github.com/cf-platform-eng"
+    }
+  },
+  {
+    "name": "Devpi Server: PyPI mirror and package server",
+    "site": "https://github.com/mdomke/concourse-devpi-resource",
+    "maintainer": {
+      "name": "mdomke",
+      "contact": "https://github.com/mdomke"
+    }
+  },
+  {
+    "name": "Jira Integration",
+    "site": "https://github.com/danrspencer/jira-resource",
+    "maintainer": {
+      "name": "danrspencer",
+      "contact": "https://github.com/danrspencer"
+    }
+  },
+  {
+    "name": "Google Drive",
+    "site": "https://github.com/jpatel-pivotal/google-drive-concourse-resource",
+    "maintainer": {
+      "name": "jpatel-pivotal",
+      "contact": "https://github.com/jpatel-pivotal"
+    }
+  },
+  {
+    "name": "Google Calendar",
+    "site": "https://github.com/henrytk/calendar-resource",
+    "maintainer": {
+      "name": "henrytk",
+      "contact": "https://github.com/henrytk"
+    }
+  },
+  {
+    "name": "pagerduty Notifications",
+    "site": "https://github.com/FidelityInternational/concourse-pagerduty-notification-resource",
+    "maintainer": {
+      "name": "FidelityInternational",
+      "contact": "https://github.com/FidelityInternational"
+    }
+  },
+  {
+    "name": "Telegram",
+    "site": "https://github.com/w32blaster/telegram-notification-resource",
+    "maintainer": {
+      "name": "w32blaster",
+      "contact": "https://github.com/w32blaster"
+    }
+  },
+  {
+    "name": "Telegram",
+    "site": "https://github.com/carlo-colombo/telegram-resource",
+    "maintainer": {
+      "name": "carlo-colombo",
+      "contact": "https://github.com/carlo-colombo"
+    }
+  },
+  {
+    "name": "Telegram",
+    "site": "https://github.com/Cuttlerat/concourse-telegram-resource",
+    "maintainer": {
+      "name": "Cuttlerat",
+      "contact": "https://github.com/Cuttlerat"
+    }
+  },
+  {
+    "name": "Google Cloud Storage",
+    "site": "https://github.com/frodenas/gcs-resource",
+    "maintainer": {
+      "name": "frodenas",
+      "contact": "https://github.com/frodenas"
+    }
+  },
+  {
+    "name": "Fly",
+    "site": "https://github.com/troykinsella/concourse-fly-resource",
+    "maintainer": {
+      "name": "troykinsella",
+      "contact": "https://github.com/troykinsella"
+    }
+  },
+  {
+    "name": "Kubernetes",
+    "site": "https://github.com/jcderr/concourse-kubernetes-resource",
+    "maintainer": {
+      "name": "jcderr",
+      "contact": "https://github.com/jcderr"
+    }
+  },
+  {
+    "name": "Kubernetes",
+    "site": "https://github.com/zlabjp/kubernetes-resource",
+    "maintainer": {
+      "name": "zlabjp",
+      "contact": "https://github.com/zlabjp"
+    }
+  },
+  {
+    "name": "K8s-Kubernetes",
+    "site": "https://github.com/srinivasa-vasu/concourse-k8s",
+    "maintainer": {
+      "name": "srinivasa-vasu",
+      "contact": "https://github.com/srinivasa-vasu"
+    }
+  },
+  {
+    "name": "Kubernetes Helm",
+    "site": "https://github.com/linkyard/concourse-helm-resource",
+    "maintainer": {
+      "name": "linkyard",
+      "contact": "https://github.com/linkyard"
+    }
+  },
+  {
+    "name": "Helm Chart resource",
+    "site": "https://github.com/linkyard/helm-chart-resource",
+    "maintainer": {
+      "name": "linkyard",
+      "contact": "https://github.com/linkyard"
+    }
+  },
+  {
+    "name": "Helm Chart repository (ChartMuseum) resource",
+    "site": "https://github.com/cathive/concourse-chartmuseum-resource",
+    "maintainer": {
+      "name": "cathive",
+      "contact": "https://github.com/cathive"
+    }
+  },
+  {
+    "name": "Vault",
+    "site": "https://github.com/Docurated/concourse-vault-resource",
+    "maintainer": {
+      "name": "Docurated",
+      "contact": "https://github.com/Docurated"
+    }
+  },
+  {
+    "name": "AWS Key Management Service",
+    "site": "https://github.com/everpeace/aws-kms-resource",
+    "maintainer": {
+      "name": "everpeace",
+      "contact": "https://github.com/everpeace"
+    }
+  },
+  {
+    "name": "Marathon",
+    "site": "https://github.com/ckaznocha/marathon-resource",
+    "maintainer": {
+      "name": "ckaznocha",
+      "contact": "https://github.com/ckaznocha"
+    }
+  },
+  {
+    "name": "RSS",
+    "site": "https://github.com/suhlig/concourse-rss-resource",
+    "maintainer": {
+      "name": "suhlig",
+      "contact": "https://github.com/suhlig"
+    }
+  },
+  {
+    "name": "Maven Resource",
+    "site": "https://github.com/nulldriver/maven-resource",
+    "maintainer": {
+      "name": "nulldriver",
+      "contact": "https://github.com/nulldriver"
+    }
+  },
+  {
+    "name": "cURL File Resource",
+    "site": "https://github.com/pivotalservices/concourse-curl-resource",
+    "maintainer": {
+      "name": "pivotalservices",
+      "contact": "https://github.com/pivotalservices"
+    }
+  },
+  {
+    "name": "Pivnet Resource (rsamban)",
+    "site": "https://github.com/rsamban/pivnet-resource",
+    "maintainer": {
+      "name": "rsamban",
+      "contact": "https://github.com/rsamban"
+    }
+  },
+  {
+    "name": "Cloud Foundry Events",
+    "site": "https://github.com/mevansam/cf-event-resource-type",
+    "maintainer": {
+      "name": "mevansam",
+      "contact": "https://github.com/mevansam"
+    }
+  },
+  {
+    "name": "Apache Directory Index",
+    "site": "https://github.com/mastertinner/apache-directory-index-resource",
+    "maintainer": {
+      "name": "mastertinner",
+      "contact": "https://github.com/mastertinner"
+    }
+  },
+  {
+    "name": "Cloud Foundry CLI Resource",
+    "site": "https://github.com/nulldriver/cf-cli-resource",
+    "maintainer": {
+      "name": "nulldriver",
+      "contact": "https://github.com/nulldriver"
+    }
+  },
+  {
+    "name": "Counter",
+    "site": "https://github.com/jinlee/counter-resource",
+    "maintainer": {
+      "name": "jinlee",
+      "contact": "https://github.com/jinlee"
+    }
+  },
+  {
+    "name": "Capistrano",
+    "site": "https://github.com/SHyx0rmZ/capistrano-resource",
+    "maintainer": {
+      "name": "SHyx0rmZ",
+      "contact": "https://github.com/SHyx0rmZ"
+    }
+  },
+  {
+    "name": "aptly CLI",
+    "site": "https://github.com/SHyx0rmZ/aptly-cli-resource",
+    "maintainer": {
+      "name": "SHyx0rmZ",
+      "contact": "https://github.com/SHyx0rmZ"
+    }
+  },
+  {
+    "name": "Prometheus Alertmanager",
+    "site": "https://github.com/frodenas/alertmanager-resource",
+    "maintainer": {
+      "name": "frodenas",
+      "contact": "https://github.com/frodenas"
+    }
+  },
+  {
+    "name": "Git Bitbucket Pull Request Resource",
+    "site": "https://github.com/zarplata/concourse-git-bitbucket-pr-resource",
+    "maintainer": {
+      "name": "zarplata",
+      "contact": "https://github.com/zarplata"
+    }
+  },
+  {
+    "name": "Bitbucket Pull Request Resource",
+    "site": "https://github.com/halter-corp/bitbucket-pullrequest-resource",
+    "maintainer": {
+      "name": "halter-corp",
+      "contact": "https://github.com/halter-corp"
+    }
+  },
+  {
+    "name": "NPM Cache Resource",
+    "site": "https://github.com/ymedlop/npm-cache-resource",
+    "maintainer": {
+      "name": "ymedlop",
+      "contact": "https://github.com/ymedlop"
+    }
+  },
+  {
+    "name": "Gerrit Resource",
+    "site": "https://github.com/google/concourse-resources/tree/master/gerrit",
+    "maintainer": {
+      "name": "google",
+      "contact": "https://github.com/google"
+    }
+  },
+  {
+    "name": "Repo Resource",
+    "site": "https://github.com/google/concourse-resources/tree/master/repo",
+    "maintainer": {
+      "name": "google",
+      "contact": "https://github.com/google"
+    }
+  },
+  {
+    "name": "Trigger jobs using Slack",
+    "site": "https://github.com/ahelal/bender",
+    "maintainer": {
+      "name": "ahelal",
+      "contact": "https://github.com/ahelal"
+    }
+  },
+  {
+    "name": "Hashicorp Releases",
+    "site": "https://github.com/starkandwayne/hashicorp-release-resource",
+    "maintainer": {
+      "name": "starkandwayne",
+      "contact": "https://github.com/starkandwayne"
+    }
+  },
+  {
+    "name": "Pushover notifications",
+    "site": "https://github.com/redfactorlabs/concourse-pushover-resource",
+    "maintainer": {
+      "name": "redfactorlabs",
+      "contact": "https://github.com/redfactorlabs"
+    }
+  },
+  {
+    "name": "SonarQube static code analysis",
+    "site": "https://github.com/cathive/concourse-sonarqube-resource",
+    "maintainer": {
+      "name": "cathive",
+      "contact": "https://github.com/cathive"
+    }
+  },
+  {
+    "name": "SonarQube Notifier",
+    "site": "https://github.com/elgohr/concourse-sonarqube-notifier",
+    "maintainer": {
+      "name": "elgohr",
+      "contact": "https://github.com/elgohr"
+    }
+  },
+  {
+    "name": "Metadata resource",
+    "site": "https://github.com/swce/metadata-resource",
+    "maintainer": {
+      "name": "swce",
+      "contact": "https://github.com/swce"
+    }
+  },
+  {
+    "name": "Spinnaker Resource",
+    "site": "https://github.com/pivotal-cf/spinnaker-resource",
+    "maintainer": {
+      "name": "pivotal-cf",
+      "contact": "https://github.com/pivotal-cf"
+    }
+  },
+  {
+    "name": "New Relic Deploy Resource",
+    "site": "https://github.com/crstamps2/newrelic-deploy-resource",
+    "maintainer": {
+      "name": "crstamps2",
+      "contact": "https://github.com/crstamps2"
+    }
+  },
+  {
+    "name": "Artifactory Resource",
+    "site": "https://github.com/spring-io/artifactory-resource",
+    "maintainer": {
+      "name": "spring-io",
+      "contact": "https://github.com/spring-io"
+    }
+  },
+  {
+    "name": "Artifactory Resource",
+    "site": "https://github.com/emerald-squad/artifactory-resource",
+    "maintainer": {
+      "name": "emerald-squad",
+      "contact": "https://github.com/emerald-squad"
+    }
+  },
+  {
+    "name": "CF Zero Downtime Resource",
+    "site": "https://github.com/emerald-squad/cf-zero-downtime-resource",
+    "maintainer": {
+      "name": "emerald-squad",
+      "contact": "https://github.com/emerald-squad"
+    }
+  },
+  {
+    "name": "FiaaS Resource",
+    "site": "https://github.com/leboncoin/concourse-fiaas-resource",
+    "maintainer": {
+      "name": "leboncoin",
+      "contact": "https://github.com/leboncoin"
+    }
+  },
+  {
+    "name": "IRC notifications",
+    "site": "https://github.com/flavorjones/irc-notification-resource",
+    "maintainer": {
+      "name": "flavorjones",
+      "contact": "https://github.com/flavorjones"
+    }
+  },
+  {
+    "name": "PhraseApp Trigger",
+    "site": "https://github.com/tenjaa/concourse-phraseapp-resource",
+    "maintainer": {
+      "name": "tenjaa",
+      "contact": "https://github.com/tenjaa"
+    }
+  },
+  {
+    "name": "Debian/Ubuntu archive uploads",
+    "site": "https://github.com/seveas/concourse-dput-resource",
+    "maintainer": {
+      "name": "seveas",
+      "contact": "https://github.com/seveas"
+    }
+  },
+  {
+    "name": "Launchpad PPA packages",
+    "site": "https://github.com/seveas/concourse-ppa-resource",
+    "maintainer": {
+      "name": "seveas",
+      "contact": "https://github.com/seveas"
+    }
+  },
+  {
+    "name": "Fedora COPR packages",
+    "site": "https://github.com/seveas/concourse-copr-resource",
+    "maintainer": {
+      "name": "seveas",
+      "contact": "https://github.com/seveas"
+    }
+  },
+  {
+    "name": "Google Hangouts Notification Resource",
+    "site": "https://github.com/CloudInn/concourse-hangouts-resource",
+    "maintainer": {
+      "name": "CloudInn",
+      "contact": "https://github.com/CloudInn"
+    }
+  },
+  {
+    "name": "Yahoo! Weather Resource",
+    "site": "https://github.com/kehrlann/weather-resource",
+    "maintainer": {
+      "name": "Kehrlann",
+      "contact": "https://github.com/Kehrlann"
+    }
+  },
+  {
+    "name": "Slack build alerts",
+    "site": "https://github.com/arbourd/concourse-slack-alert-resource",
+    "maintainer": {
+      "name": "arbourd",
+      "contact": "https://github.com/arbourd"
+    }
+  },
+  {
+    "name": "Spring Initializr Resource",
+    "site": "https://github.com/jghiloni/spring-initializr-resource",
+    "maintainer": {
+      "name": "jghiloni",
+      "contact": "https://github.com/jghiloni"
+    }
+  },
+  {
+    "name": "HTTP Resource",
+    "site": "https://github.com/aequitas/concourse-http-resource",
+    "maintainer": {
+      "name": "aequitas",
+      "contact": "https://github.com/aequitas"
+    }
+  },
+  {
+    "name": "Android SDK Resource",
+    "site": "https://github.com/xaethos/android-sdk-resource",
+    "maintainer": {
+      "name": "xaethos",
+      "contact": "https://github.com/xaethos"
+    }
+  },
+  {
+    "name": "DigitalOcean Worker Provision Resource",
+    "site": "https://github.com/CloudInn/concourse-digitalocean-resource",
+    "maintainer": {
+      "name": "CloudInn",
+      "contact": "https://github.com/CloudInn"
+    }
+  },
+  {
+    "name": "Knative Service Resource",
+    "site": "https://github.com/jchesterpivotal/knative-service-resource",
+    "maintainer": {
+      "name": "jchesterpivotal",
+      "contact": "https://github.com/jchesterpivotal"
+    }
+  },
+  {
+    "name": "Sentry Releases Resource",
+    "site": "https://github.com/rubenv/concourse-sentry-releases-resource",
+    "maintainer": {
+      "name": "rubenv",
+      "contact": "https://github.com/rubenv"
+    }
+  },
+  {
+    "name": "Gate Resource",
+    "site": "https://github.com/Meshcloud/gate-resource",
+    "maintainer": {
+      "name": "Meshcloud",
+      "contact": "https://github.com/Meshcloud"
+    }
+  },
+  {
+    "name": "Packer",
+    "site": "https://github.com/Snapkitchen/concourse-packer-resource",
+    "maintainer": {
+      "name": "Snapkitchen",
+      "contact": "https://github.com/Snapkitchen"
+    }
+  },
+  {
+    "name": "Github Webhook Resource",
+    "site": "https://github.com/homedepot/github-webhook-resource",
+    "maintainer": {
+      "name": "homedepot",
+      "contact": "https://github.com/homedepot"
+    }
+  },
+  {
+    "name": "Ofcourse Resource Generator",
+    "site": "https://github.com/cloudboss/ofcourse",
+    "maintainer": {
+      "name": "cloudboss",
+      "contact": "https://github.com/cloudboss"
+    }
+  },
+  {
+    "name": "HTTP PUT Resource",
+    "site": "https://github.com/lorands/http-put-resource",
+    "maintainer": {
+      "name": "lorands",
+      "contact": "https://github.com/lorands"
+    }
+  },
+  {
+    "name": "Serverspec Resource",
+    "site": "https://github.com/opicaud/serverspec-concourse",
+    "maintainer": {
+      "name": "opicaud",
+      "contact": "https://github.com/opicaud"
+    }
+  },
+  {
+    "name": "Ansible Playbook",
+    "site": "https://github.com/troykinsella/concourse-ansible-playbook-resource",
+    "maintainer": {
+      "name": "troykinsella",
+      "contact": "https://github.com/troykinsella"
+    }
+  },
+  {
+    "name": "Artifactory Deb",
+    "site": "https://github.com/troykinsella/concourse-artifactory-deb-resource",
+    "maintainer": {
+      "name": "troykinsella",
+      "contact": "https://github.com/troykinsella"
+    }
+  },
+  {
+    "name": "Generic Artifactory",
+    "site": "https://github.com/troykinsella/concourse-artifactory-resource",
+    "maintainer": {
+      "name": "troykinsella",
+      "contact": "https://github.com/troykinsella"
+    }
+  },
+  {
+    "name": "Docker Compose",
+    "site": "https://github.com/troykinsella/concourse-docker-compose-resource",
+    "maintainer": {
+      "name": "troykinsella",
+      "contact": "https://github.com/troykinsella"
+    }
+  },
+  {
+    "name": "RubyGems",
+    "site": "https://github.com/troykinsella/concourse-rubygems-resource",
+    "maintainer": {
+      "name": "troykinsella",
+      "contact": "https://github.com/troykinsella"
+    }
+  },
+  {
+    "name": "Medium Resource",
+    "site": "https://github.com/cappyzawa/medium-resource",
+    "maintainer": {
+      "name": "cappyzawa",
+      "contact": "https://github.com/cappyzawa"
+    }
+  },
+  {
+    "name": "GitHub List Repos",
+    "site": "https://github.com/coralogix/eng-concourse-resource-github-list-repos",
+    "maintainer": {
+      "name": "ari-becker",
+      "contact": "https://github.com/ari-becker"
+    }
+  }
+]

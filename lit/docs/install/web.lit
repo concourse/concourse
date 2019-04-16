@@ -67,6 +67,26 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
 
   All logs will be emitted to \code{stdout}, with any panics or lower-level
   errors being emitted to \code{stderr}.
+
+  \section{
+    \title{Ingress}{web-ingress}
+
+    If your web nodes are going to be accessed over the network, you will need
+    to set \code{CONCOURSE_EXTERNAL_URL} to a URL accessible by your consumers.
+    If you don't set this property, logins will redirect to its default value of
+    \code{127.0.0.1}.
+
+    If your instance is available on the public internet, you may wish to
+    prevent the Concourse UI from being nefariously embedded as an iframe by
+    setting \code{CONCOURSE_X_FRAME_OPTIONS} to \code{deny} (to prevent
+    \italic{any} iframe embeddings) or \code{sameorigin} (to only allow iframe
+    embeddings in pages served from the same subdomain). This protects against
+    clickjacking.
+
+    \bold{Note:} If setting the value to \code{allow-from}, please note that not
+    all browsers support this value and when not supported, the header is ignored
+    by the browser.
+  }
 }
 
 \section{

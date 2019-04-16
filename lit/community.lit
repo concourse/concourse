@@ -31,3 +31,5 @@
 \include-section{./docs/resource-types/community-resources.lit}
 
 \include-section{./tools.lit}
+
+\include-section{./concourse-users.lit}

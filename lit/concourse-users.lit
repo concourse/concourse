@@ -1,0 +1,19 @@
+\title{Concourse Users}{concourse-users}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \table{
+    \table-row{Company}{Reference}
+  }{
+    \table-row{Cerner}{\link{Concourse in the Real World: A Case Study in CI/CD and DevOps}{https://content.pivotal.io/concourse/concourse-in-the-real-world-a-case-study-in-ci-cd-and-devops-greg-meyer-bryan-kelly}}
+  }{
+    \table-row{Express Scripts}{\link{Automated PCF Upgrades with Concourse}{https://content.pivotal.io/concourse/automated-pcf-upgrades-with-concourse-rich-ruedin-express-scripts}}
+  }{
+    \table-row{The Home Depot}{\link{Enterprise CI/CD - Scaling the Build Pipeline}{https://content.pivotal.io/concourse/enterprise-ci-cd-scaling-the-build-pipeline-at-home-depot-matt-mackenny}}
+  }{
+    \table-row{Verizon}{\link{How to Continuously Deliver Your Platform with Concourse}{https://content.pivotal.io/concourse/how-to-continuously-deliver-your-platform-with-concourse-brian-kirkland-ryan-pei}}
+  }{
+    \table-row{Altoros}{\link{Continuous delivery with Concourse CI}{https://www.youtube.com/watch?v=RyrxImD9aDM}}
+  }
+}
