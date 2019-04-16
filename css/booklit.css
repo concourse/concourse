@@ -875,4 +875,94 @@ a.github-user {
 a.github-user:hover {
   text-decoration: underline;
 }
-@include "responsive.less";
+@media (max-width: 1800px) {
+  .page-content.index {
+    grid-column-start: span 2;
+  }
+}
+@media (max-width: 1600px) {
+  .release {
+    grid-template-columns: auto auto;
+    grid-template-areas: "header downloads" "notes notes";
+    grid-gap: 20px 0;
+  }
+  .release-header {
+    flex-direction: column;
+  }
+  .release-header .release-date {
+    bottom: 0;
+  }
+  .release-downloads {
+    padding: 0;
+    border: 0;
+    align-content: center;
+  }
+  .release-downloads ul {
+    margin: 0;
+    display: flex;
+    flex-direction: row;
+  }
+  .release-downloads li {
+    margin: 0;
+    border-left: 0;
+    border-bottom: 1px solid #efeeee;
+  }
+  .release-downloads li a {
+    padding-right: 14px;
+  }
+  .release-downloads h3 {
+    display: none;
+  }
+  .release-downloads h4 {
+    border-bottom: 1px solid #efeeee;
+  }
+  .download-item {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  .download-item h4 {
+    width: 116px;
+    padding: 3px 0;
+  }
+}
+@media (max-width: 1200px) {
+  body {
+    grid-template-columns: 5fr 2fr;
+    grid-template-rows: 80px 60px auto;
+    grid-template-areas: "logo search" "primary-nav primary-nav" "content secondary-nav";
+  }
+  .page-content.index {
+    grid-column-start: 1 / span 2;
+    grid-column-end: 3;
+  }
+  .page-content.full {
+    grid-column: 1;
+  }
+  .page-content.index .section {
+    grid-template-columns: auto;
+  }
+  .segment p:first-child {
+    margin-top: 1em;
+  }
+  .splash-title {
+    grid-column-start: 1;
+  }
+  .top-nav a {
+    line-height: 60px;
+    vertical-align: top;
+  }
+  .page-aside {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .release {
+    grid-template-columns: auto;
+    grid-template-areas: "header" "downloads" "notes";
+  }
+  .download-item {
+    justify-content: flex-start;
+  }
+}
