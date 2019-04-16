@@ -17,6 +17,7 @@
 resources:
   - name: nodejs.org-git
     type: git
+    icon: github-circle
     source:
       uri: https://github.com/nodejs/nodejs.org.git
 
