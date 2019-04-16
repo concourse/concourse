@@ -958,12 +958,12 @@ jobs:
       name: release-notes/release-name
       body: release-notes/notes.md
       globs:
-      - concourse-linux/*.tgz
-      - concourse-windows/*.zip
-      - concourse-darwin/*.tgz
-      - fly-linux/fly-linux-*.tgz
-      - fly-windows/fly-windows-*.zip
-      - fly-darwin/fly-darwin-*.tgz
+      - concourse-linux/concourse-*.tgz
+      - concourse-windows/concourse-*.zip
+      - concourse-darwin/concourse-*.tgz
+      - fly-linux/fly-*.tgz
+      - fly-windows/fly-*.zip
+      - fly-darwin/fly-*.tgz
 
 - name: publish-bosh-release
   serial: true
