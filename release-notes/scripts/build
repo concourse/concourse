@@ -9,10 +9,10 @@ shift
 
 go install github.com/vito/booklit/cmd/booklit
 
-booklit -i lit/index.lit \
+booklit -i ../lit/index.lit \
   --plugin github.com/concourse/docs/go/docs \
   --plugin github.com/concourse/docs/go/resource-type-list \
   --text-file-extension md \
   --text-templates md/ \
-  --section-path lit/release-notes/$version.lit \
+  --section-path lit/$version.lit \
   "$@"
