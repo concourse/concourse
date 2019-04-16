@@ -4,7 +4,7 @@ set -e -u
 
 cd $(dirname $0)/..
 
-tag_name="$1"
+version="$1"
 shift
 
 go install github.com/vito/booklit/cmd/booklit
@@ -12,6 +12,7 @@ go install github.com/vito/booklit/cmd/booklit
 booklit -i lit/index.lit \
   --plugin github.com/concourse/docs/go/docs \
   --plugin github.com/concourse/docs/go/resource-type-list \
-  --html-templates html/release-notes/ \
-  --tag "$tag_name" \
+  --text-file-extension md \
+  --text-templates md/ \
+  --section-path lit/release-notes/$version.lit \
   "$@"

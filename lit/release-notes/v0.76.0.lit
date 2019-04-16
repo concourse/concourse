@@ -33,8 +33,7 @@
 
 \note{feature}{
   The ATC can now be configured to authenticate against a GitHub Enterprise
-  deployment, thanks to
-  \link{\bold{@aequitas}}{https://github.com/aequitas}!
+  deployment, thanks to \ghuser{aequitas}!
 }
 
 \note{fix}{
@@ -43,20 +42,20 @@
 }
 
 \note{feature}{
-  The \link{Semver resource}{https://github.com/concourse/semver-resource}
-  now supports OpenStack Swift as a storage backend, thanks to
-  \link{\bold{@ChrisPRobinson}}{https://github.com/ChrisPRobinson}!
+  The \link{Semver resource}{https://github.com/concourse/semver-resource} now
+  supports OpenStack Swift as a storage backend, thanks to
+  \ghuser{ChrisPRobinson}!
 }
 
 \note{feature}{
   The \link{Time resource}{https://github.com/concourse/time-resource}
   can now be configured to only yield new timestamps on certain days of the
-  week, thanks to \link{\bold{@joek}}{https://github.com/joek}!
+  week, thanks to \ghuser{joek}!
 }
 
 \note{feature}{
   \code{fly} learned the \reference{fly-rename-pipeline} command, thanks to
-  \link{\bold{@zachgersh}}{https://github.com/zachgersh}!
+  \ghuser{zachgersh}!
 }
 
 \note{feature}{

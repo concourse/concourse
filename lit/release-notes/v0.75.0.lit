@@ -58,13 +58,12 @@
 
 \note{feature}{
   \code{fly} learned the \reference{fly-abort-build} command, thanks to a
-  pull request from
-  \link{\bold{@zachgersh}}{https://github.com/zachgersh}.
+  pull request from \ghuser{zachgersh}.
 }
 
 \note{feature}{
   \code{fly} learned the \reference{fly-trigger-job} command, thanks to a
-  pull request from \link{\bold{@aminjam}}{https://github.com/aminjam}.
+  pull request from \ghuser{aminjam}.
 }
 
 \note{feature}{
