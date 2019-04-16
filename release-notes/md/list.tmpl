@@ -1,9 +1,0 @@
-{{if .Ordered}}
-{{range .Items}}
-1. {{. | render | joinLines "   "}}
-{{end}}
-{{else}}
-{{range .Items}}
-* {{. | render | joinLines "  "}}
-{{end}}
-{{end}}
