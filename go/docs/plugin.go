@@ -273,7 +273,7 @@ func (p Plugin) ReferenceColumn(table string, column string) booklit.Content {
 
 func (p Plugin) Boshprop(job string, target string) booklit.Content {
 	return booklit.Link{
-		Target: fmt.Sprintf("http://bosh.io/jobs/%s?source=github.com/concourse/concourse-bosh-release#p=%s", job, target),
+		Target: fmt.Sprintf("https://bosh.io/jobs/%s?source=github.com/concourse/concourse-bosh-release#p=%s", job, target),
 		Content: booklit.Styled{
 			Style:   booklit.StyleVerbatim,
 			Content: booklit.String(target),
@@ -282,21 +282,24 @@ func (p Plugin) Boshprop(job string, target string) booklit.Content {
 }
 
 func (p Plugin) Ghuser(user string) booklit.Content {
-	return booklit.Link{
-		Target: fmt.Sprintf("http://github.com/%s", user),
-		Content: booklit.Styled{
-			Style:   booklit.StyleBold,
-			Content: booklit.String("@" + user),
-		},
+	return booklit.Styled{
+		Style:   "github-user-link",
+		Content: booklit.String(user),
 	}
 }
 
-func (p Plugin) Ghpr(repo string, number string) booklit.Content {
-	return booklit.Link{
-		Target: fmt.Sprintf("http://github.com/concourse/%s/pull/%s", repo, number),
-		Content: booklit.Styled{
-			Style:   booklit.StyleBold,
-			Content: booklit.String(repo + " #" + number),
+func (p Plugin) Ghpr(number string, optionalRepo ...string) booklit.Content {
+	repo := "concourse"
+	if len(optionalRepo) > 0 {
+		repo = optionalRepo[0]
+	}
+
+	return booklit.Styled{
+		Style:   "github-pr-link",
+		Content: booklit.String(number),
+		Partials: booklit.Partials{
+			"Owner": booklit.String("concourse"),
+			"Repo":  booklit.String(repo),
 		},
 	}
 }
@@ -307,18 +310,19 @@ func (p Plugin) Ghissue(number string, optionalRepo ...string) booklit.Content {
 		repo = optionalRepo[0]
 	}
 
-	return booklit.Link{
-		Target: fmt.Sprintf("http://github.com/concourse/%s/issues/%s", repo, number),
-		Content: booklit.Styled{
-			Style:   booklit.StyleBold,
-			Content: booklit.String(repo + " #" + number),
+	return booklit.Styled{
+		Style:   "github-issue-link",
+		Content: booklit.String(number),
+		Partials: booklit.Partials{
+			"Owner": booklit.String("concourse"),
+			"Repo":  booklit.String(repo),
 		},
 	}
 }
 
 func (p Plugin) Resource(name string) booklit.Content {
 	return booklit.Link{
-		Target: fmt.Sprintf("http://github.com/concourse/%s-resource", name),
+		Target: fmt.Sprintf("https://github.com/concourse/%s-resource", name),
 		Content: booklit.Sequence{
 			booklit.Styled{
 				Style:   booklit.StyleVerbatim,
