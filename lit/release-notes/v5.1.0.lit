@@ -20,6 +20,14 @@
   flag for it.
 }
 
+\note{security,breaking}{
+  The \reference{web-node} now defaults \code{X-Frame-Options} to \code{deny}
+  to safeguard against clicjacking attacks. If you run Concourse in an
+  \code{iframe}, you'll notice that it doesn't work anymore.
+
+  To configure \code{X-Frame-Options} otherwise, see \reference{web-ingress}.
+}
+
 \note{feature}{
   \reference{steps} can now be annotated with an
   \reference{on-error-step-hook}, thanks to a PR by \ghuser{amanw}!
@@ -53,6 +61,19 @@
 \note{feature}{
   \reference{fly-execute} will now upload inputs and download outputs in
   parallel.
+}
+
+\note{feature}{
+  The \link{Concourse BOSH
+  release}{https://github.com/concourse/concourse-bosh-release} now packages
+  Ubuntu-flavored images for each core resource type instead of Alpine. This is
+  primarily for compliance reasons. Nothing should really be affected.
+
+  The \code{.tgz} distribution continues to use Alpine so the tarball doesn't
+  get even bigger. Once we minimize the amount of resource types we package
+  with Concourse (see \link{(RF)RFC
+  #23}{https://github.com/concourse/rfcs/issues/23}) we'll be removing them and
+  standardizing on Ubuntu for simplicity's sake.
 }
 
 \note{feature}{
