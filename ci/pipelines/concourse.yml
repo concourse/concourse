@@ -995,7 +995,7 @@ jobs:
     - get: postgres-release
       passed: [shipit]
   - task: bump-versions
-    file: cbd/ci/bump-versions.yml
+    file: cbd-master/ci/bump-versions.yml
     input_mapping: {concourse-bosh-deployment: cbd-master}
     image: unit-image
   - put: cbd-master
