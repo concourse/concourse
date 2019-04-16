@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/vito/booklit"
 )
@@ -35,7 +36,7 @@ func (plugin Plugin) BuildResourceTypeList(
 		return nil, fmt.Errorf("must have at least one columns")
 	}
 
-	files, err := ioutil.ReadDir(path)
+	files, err := ioutil.ReadDir(filepath.Join(filepath.Dir(plugin.section.Path), path))
 	if err != nil {
 		return nil, err
 	}
