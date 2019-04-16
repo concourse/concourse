@@ -36,9 +36,12 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeCheckWorkerTeamAccessHandlerFactory = auth.NewCheckWorkerTeamAccessHandlerFactory(workerFactory)
 	})
 
-	unauthenticated := func(handler http.Handler) http.Handler {
+	authenticateIfTokenProvided := func(handler http.Handler) http.Handler {
 		return auth.CSRFValidationHandler(
-			handler,
+			auth.CheckAuthenticationIfProvidedHandler(
+				handler,
+				rejector,
+			),
 			rejector,
 		)
 	}
@@ -139,17 +142,6 @@ var _ = Describe("APIAuthWrappa", func() {
 			}
 
 			expectedHandlers = rata.Handlers{
-				//unauthenticated / delegating to handler
-				atc.GetInfo:              unauthenticated(inputHandlers[atc.GetInfo]),
-				atc.DownloadCLI:          unauthenticated(inputHandlers[atc.DownloadCLI]),
-				atc.CheckResourceWebHook: unauthenticated(inputHandlers[atc.CheckResourceWebHook]),
-				atc.ListAllPipelines:     unauthenticated(inputHandlers[atc.ListAllPipelines]),
-				atc.ListBuilds:           unauthenticated(inputHandlers[atc.ListBuilds]),
-				atc.ListPipelines:        unauthenticated(inputHandlers[atc.ListPipelines]),
-				atc.ListAllJobs:          unauthenticated(inputHandlers[atc.ListAllJobs]),
-				atc.ListAllResources:     unauthenticated(inputHandlers[atc.ListAllResources]),
-				atc.ListTeams:            unauthenticated(inputHandlers[atc.ListTeams]),
-				atc.MainJobBadge:         unauthenticated(inputHandlers[atc.MainJobBadge]),
 
 				// authorized or public pipeline
 				atc.GetBuild:       doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuild]),
@@ -205,6 +197,18 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
 				atc.RenameTeam:      authenticated(inputHandlers[atc.RenameTeam]),
 				atc.DestroyTeam:     authenticated(inputHandlers[atc.DestroyTeam]),
+
+				//authenticateIfTokenProvided / delegating to handler
+				atc.GetInfo:              authenticateIfTokenProvided(inputHandlers[atc.GetInfo]),
+				atc.DownloadCLI:          authenticateIfTokenProvided(inputHandlers[atc.DownloadCLI]),
+				atc.CheckResourceWebHook: authenticateIfTokenProvided(inputHandlers[atc.CheckResourceWebHook]),
+				atc.ListAllPipelines:     authenticateIfTokenProvided(inputHandlers[atc.ListAllPipelines]),
+				atc.ListBuilds:           authenticateIfTokenProvided(inputHandlers[atc.ListBuilds]),
+				atc.ListPipelines:        authenticateIfTokenProvided(inputHandlers[atc.ListPipelines]),
+				atc.ListAllJobs:          authenticateIfTokenProvided(inputHandlers[atc.ListAllJobs]),
+				atc.ListAllResources:     authenticateIfTokenProvided(inputHandlers[atc.ListAllResources]),
+				atc.ListTeams:            authenticateIfTokenProvided(inputHandlers[atc.ListTeams]),
+				atc.MainJobBadge:         authenticateIfTokenProvided(inputHandlers[atc.MainJobBadge]),
 
 				// authenticated and is admin
 				atc.GetLogLevel:  authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),

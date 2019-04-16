@@ -105,6 +105,8 @@ var _ = BeforeEach(func() {
 
 	fakeAccess = new(accessorfakes.FakeAccess)
 	fakeAccessor = new(accessorfakes.FakeAccessFactory)
+	fakeAccessor.CreateReturns(fakeAccess)
+
 	fakePipeline = new(dbfakes.FakePipeline)
 	dbTeam.PipelineReturns(fakePipeline, true, nil)
 

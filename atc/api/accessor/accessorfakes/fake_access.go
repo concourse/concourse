@@ -18,6 +18,16 @@ type FakeAccess struct {
 	cSRFTokenReturnsOnCall map[int]struct {
 		result1 string
 	}
+	HasTokenStub        func() bool
+	hasTokenMutex       sync.RWMutex
+	hasTokenArgsForCall []struct {
+	}
+	hasTokenReturns struct {
+		result1 bool
+	}
+	hasTokenReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	IsAdminStub        func() bool
 	isAdminMutex       sync.RWMutex
 	isAdminArgsForCall []struct {
@@ -132,6 +142,58 @@ func (fake *FakeAccess) CSRFTokenReturnsOnCall(i int, result1 string) {
 	}
 	fake.cSRFTokenReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeAccess) HasToken() bool {
+	fake.hasTokenMutex.Lock()
+	ret, specificReturn := fake.hasTokenReturnsOnCall[len(fake.hasTokenArgsForCall)]
+	fake.hasTokenArgsForCall = append(fake.hasTokenArgsForCall, struct {
+	}{})
+	fake.recordInvocation("HasToken", []interface{}{})
+	fake.hasTokenMutex.Unlock()
+	if fake.HasTokenStub != nil {
+		return fake.HasTokenStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.hasTokenReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeAccess) HasTokenCallCount() int {
+	fake.hasTokenMutex.RLock()
+	defer fake.hasTokenMutex.RUnlock()
+	return len(fake.hasTokenArgsForCall)
+}
+
+func (fake *FakeAccess) HasTokenCalls(stub func() bool) {
+	fake.hasTokenMutex.Lock()
+	defer fake.hasTokenMutex.Unlock()
+	fake.HasTokenStub = stub
+}
+
+func (fake *FakeAccess) HasTokenReturns(result1 bool) {
+	fake.hasTokenMutex.Lock()
+	defer fake.hasTokenMutex.Unlock()
+	fake.HasTokenStub = nil
+	fake.hasTokenReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeAccess) HasTokenReturnsOnCall(i int, result1 bool) {
+	fake.hasTokenMutex.Lock()
+	defer fake.hasTokenMutex.Unlock()
+	fake.HasTokenStub = nil
+	if fake.hasTokenReturnsOnCall == nil {
+		fake.hasTokenReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.hasTokenReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -460,6 +522,8 @@ func (fake *FakeAccess) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.cSRFTokenMutex.RLock()
 	defer fake.cSRFTokenMutex.RUnlock()
+	fake.hasTokenMutex.RLock()
+	defer fake.hasTokenMutex.RUnlock()
 	fake.isAdminMutex.RLock()
 	defer fake.isAdminMutex.RUnlock()
 	fake.isAuthenticatedMutex.RLock()

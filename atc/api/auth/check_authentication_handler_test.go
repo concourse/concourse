@@ -17,29 +17,36 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("CheckAuthenticationHandler", func() {
+var _ = Describe("AuthenticationHandler", func() {
+
 	var (
+		fakeAccess   *accessorfakes.FakeAccess
 		fakeAccessor *accessorfakes.FakeAccessFactory
 		fakeRejector *authfakes.FakeRejector
-		fakeaccess   *accessorfakes.FakeAccess
+		fakeAuditor  *auditorfakes.FakeAuditor
 
 		server *httptest.Server
 		client *http.Client
+
+		err      error
+		request  *http.Request
+		response *http.Response
 	)
 
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		buffer := bytes.NewBufferString("simple ")
+		buffer := bytes.NewBufferString("simple hello")
 
 		_, err := io.Copy(w, buffer)
-		Expect(err).ToNot(HaveOccurred())
-		_, err = io.Copy(w, r.Body)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	BeforeEach(func() {
+		fakeAccess = new(accessorfakes.FakeAccess)
 		fakeAccessor = new(accessorfakes.FakeAccessFactory)
-		fakeaccess = new(accessorfakes.FakeAccess)
 		fakeRejector = new(authfakes.FakeRejector)
+		fakeAuditor = new(auditorfakes.FakeAuditor)
+
+		fakeAccessor.CreateReturns(fakeAccess)
 
 		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "nope", http.StatusUnauthorized)
@@ -50,62 +57,139 @@ var _ = Describe("CheckAuthenticationHandler", func() {
 			fakeRejector,
 		), fakeAccessor,
 			"some-action",
-			new(auditorfakes.FakeAuditor),
+			fakeAuditor,
 		))
 
-		client = &http.Client{
-			Transport: &http.Transport{},
-		}
+		client = http.DefaultClient
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		response, err = client.Do(request)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("when a request is made", func() {
-		var request *http.Request
-		var response *http.Response
+	Describe("CheckAuthenticationHandler", func() {
 
 		BeforeEach(func() {
-			var err error
-
-			request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
-			Expect(err).NotTo(HaveOccurred())
+			server = httptest.NewServer(accessor.NewHandler(auth.CheckAuthenticationHandler(
+				simpleHandler,
+				fakeRejector,
+			), fakeAccessor,
+				"some-action",
+				fakeAuditor,
+			))
 		})
 
-		JustBeforeEach(func() {
-			var err error
-
-			response, err = client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when the user is authenticated ", func() {
+		Context("when a request is made", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-			})
-
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("proxies to the handler", func() {
-				responseBody, err := ioutil.ReadAll(response.Body)
+				request, err = http.NewRequest("GET", server.URL, nil)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(responseBody)).To(Equal("simple hello"))
+			})
+
+			Context("when the user is authenticated ", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(true)
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("proxies to the handler", func() {
+					responseBody, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(responseBody)).To(Equal("simple hello"))
+				})
+			})
+
+			Context("when the user is not authenticated", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(false)
+				})
+
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+
+				It("rejects the request", func() {
+					responseBody, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(responseBody)).To(Equal("nope\n"))
+				})
 			})
 		})
+	})
 
-		Context("when the user is not authenticated", func() {
+	Describe("CheckAuthenticationIfProvidedHandler", func() {
+
+		BeforeEach(func() {
+			server = httptest.NewServer(accessor.NewHandler(auth.CheckAuthenticationIfProvidedHandler(
+				simpleHandler,
+				fakeRejector,
+			), fakeAccessor,
+				"some-action",
+				fakeAuditor,
+			))
+		})
+
+		Context("when a request is made", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				request, err = http.NewRequest("GET", server.URL, nil)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("rejects the request", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				responseBody, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(responseBody)).To(Equal("nope\n"))
+			Context("when a token is provided", func() {
+				BeforeEach(func() {
+					fakeAccess.HasTokenReturns(true)
+				})
+
+				Context("when the user is not authenticated", func() {
+					BeforeEach(func() {
+						fakeAccess.IsAuthenticatedReturns(false)
+					})
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+
+					It("rejects the request", func() {
+						responseBody, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(string(responseBody)).To(Equal("nope\n"))
+					})
+				})
+
+				Context("when the user is authenticated ", func() {
+					BeforeEach(func() {
+						fakeAccess.IsAuthenticatedReturns(true)
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("proxies to the handler", func() {
+						responseBody, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(string(responseBody)).To(Equal("simple hello"))
+					})
+				})
+			})
+
+			Context("when a token is NOT provided", func() {
+				BeforeEach(func() {
+					fakeAccess.HasTokenReturns(false)
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("proxies to the handler", func() {
+					responseBody, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(responseBody)).To(Equal("simple hello"))
+				})
 			})
 		})
 	})
