@@ -6,7 +6,7 @@
 
 \warn{
   This release has issues. Primarily with the BOSH distribution. You should
-  probably just skip straight to \reference{v3.8.0}.
+  probably just skip straight to \ghrelease{v3.8.0}.
 }
 
 \note{feature,security,breaking}{
@@ -15,7 +15,7 @@
 
   If you use the Concourse BOSH release and you haven't upgraded in a while,
   I'd suggest you check out the previous migration instructions from
-  Concourse \reference{v3.5.0} and \reference{v3.6.0}.
+  Concourse \ghrelease{v3.5.0} and \ghrelease{v3.6.0}.
 }
 
 \note{feature,breaking}{
@@ -26,8 +26,8 @@
 
   As part of this switch, we've also squashed our migrations into one big
   bang, which should also improve startup time for fresh installations.
-  However, this means that \bold{you must first upgrade to \reference{v3.6.0}
-  before upgrading to \reference{v3.7.0}!}
+  However, this means that \bold{you must first upgrade to \ghrelease{v3.6.0}
+  before upgrading to \ghrelease{v3.7.0}!}
 
   So, do that. You may need to anyway now that we've removed PostgreSQL (see
   previous note).

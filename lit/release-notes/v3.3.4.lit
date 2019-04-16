@@ -5,7 +5,7 @@
 \release-garden-runc-version{1.6.0}
 
 \note{fix}{
-  A migration introduced in \reference{v3.3.0} would load all the builds into
+  A migration introduced in \ghrelease{v3.3.0} would load all the builds into
   memory and then process them, causing a lot of issues when upgrading. We 
   optimized this migration to migrate build plans in batches, rather than all
   at once.

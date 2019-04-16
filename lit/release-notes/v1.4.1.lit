@@ -5,7 +5,7 @@
 \release-garden-runc-version{0.4.0}
 
 \note{fix}{
-  A bug introduced by \reference{v1.4.0} caused custom resource types that
+  A bug introduced by \ghrelease{v1.4.0} caused custom resource types that
   override worker-provided resource types (e.g. \code{git}, \code{s3},
   \code{docker-image}) to lead to containers being created repeatedly until
   your workers couldn't take anymore.
@@ -14,7 +14,7 @@
 }
 
 \note{fix}{
-  The TLS redirecting feature introduced as part of \reference{v1.3.0} made
+  The TLS redirecting feature introduced as part of \ghrelease{v1.3.0} made
   \reference{fly-execute} work only 50% of the time when running two ATCs.
   With three ATCs it would work 33.3%, repeating of course, of the time, and
   so on.

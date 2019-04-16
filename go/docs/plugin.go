@@ -288,6 +288,22 @@ func (p Plugin) Ghuser(user string) booklit.Content {
 	}
 }
 
+func (p Plugin) Ghrelease(tag string, optionalRepo ...string) booklit.Content {
+	repo := "concourse"
+	if len(optionalRepo) > 0 {
+		repo = optionalRepo[0]
+	}
+
+	return booklit.Styled{
+		Style:   "github-release-link",
+		Content: booklit.String(tag),
+		Partials: booklit.Partials{
+			"Owner": booklit.String("concourse"),
+			"Repo":  booklit.String(repo),
+		},
+	}
+}
+
 func (p Plugin) Ghpr(number string, optionalRepo ...string) booklit.Content {
 	repo := "concourse"
 	if len(optionalRepo) > 0 {

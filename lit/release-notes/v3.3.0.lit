@@ -9,7 +9,7 @@
   A migration introduced in this release loads all the builds into memory
   and then processes them. It has to do this (rather than read one row at a time
   and update) as it only has one transaction. This might cause some memory issues
-  on the ATC while upgrading. This migration has been fixed in \reference{v3.3.4}
+  on the ATC while upgrading. This migration has been fixed in \ghrelease{v3.3.4}
 }
 
 \note{feature}{

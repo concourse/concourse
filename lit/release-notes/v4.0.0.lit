@@ -134,7 +134,7 @@
 }
 
 \note{feature}{
-  When we redid the container lifecycle way back in \reference{v3.0.0}, one
+  When we redid the container lifecycle way back in \ghrelease{v3.0.0}, one
   side effect was that containers failed one-off builds would be garbage
   collected almost immediately, making it pretty difficult to debug (you'd
   pretty much have to hijack while it was running).

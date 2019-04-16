@@ -6,7 +6,7 @@
 
 \warn{
   This release unintentionally broke \code{--postgres-data-source}, which was
-  deprecated back in \reference{v2.7.2}. We're going to fully remove it in
+  deprecated back in \ghrelease{v2.7.2}. We're going to fully remove it in
   the next release, so now's a good time to switch to the new flags!
 }
 

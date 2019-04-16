@@ -83,7 +83,7 @@ missed since v0.17.0, our first release:
 }
 
 ...and now for the actual 1.0 release notes, if you're upgrading
-from \reference{v0.76.0}:
+from \ghrelease{v0.76.0}:
 
 \note{feature,breaking}{
   The Concourse BOSH release is now built for BOSH 2.0. You will

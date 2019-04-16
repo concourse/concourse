@@ -5,7 +5,7 @@
 \release-garden-linux-version{0.335.0}
 
 \note{fix}{
-  \reference{v0.75.0} introduced a client-side limit of 64 connections to the
+  \ghrelease{v0.75.0} introduced a client-side limit of 64 connections to the
   database, which no one would ever hit so we didn't bother putting it in the
   release notes. Then a bunch of people with large deployments hit it and their
   Concourse went cold. Sorry.

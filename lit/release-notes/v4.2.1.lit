@@ -6,7 +6,7 @@
 
 \note{fix,security}{
   Fixed a bug in the access checking logic for a few worker-related API
-  endpoints. This was introduced in \reference{v4.0.0}.
+  endpoints. This was introduced in \ghrelease{v4.0.0}.
 
   Specifically, the API allowed any logged-in user to prune, retire, and land
   workers, in addition to performing a few harmless internal

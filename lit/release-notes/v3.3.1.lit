@@ -10,7 +10,7 @@
 }
 
 \note{fix}{
-  The last release (\reference{v3.3.0}) broke resource configs with nested
+  The last release (\ghrelease{v3.3.0}) broke resource configs with nested
   maps in them. This is now fixed.
 }
 

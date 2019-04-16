@@ -14,7 +14,7 @@
 }
 
 \note{fix}{
-  A migration introduced in \reference{v3.2.0} to ensure there's only one
+  A migration introduced in \ghrelease{v3.2.0} to ensure there's only one
   volume per resource cache on a worker would fail if there were already
   duplicates, making the ATC unable to start. The migration will now nullify
   the duplicates so that they become garbage-collected.

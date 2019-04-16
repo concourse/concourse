@@ -6,7 +6,7 @@
 
 \warn{
   A migration made it in to this release that slows down scheduling for
-  pipelines with a bunch of version history. \reference{v3.14.1} has been
+  pipelines with a bunch of version history. \ghrelease{v3.14.1} has been
   released with the fix.
 }
 

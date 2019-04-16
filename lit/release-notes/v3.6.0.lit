@@ -9,7 +9,7 @@
   up-to-date, you've got nothing to worry about.
 
   If you're using the BOSH release, and have already followed the
-  instructions in \reference{v3.5.0}, you're all set.
+  instructions in \ghrelease{v3.5.0}, you're all set.
 
   If you haven't, do so! You should be able to do the same upgrade process
   with this release, except that some queries will be failing in the ATC

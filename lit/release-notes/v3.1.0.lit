@@ -91,7 +91,7 @@
 \note{fix}{
   Fixed metadata for fetched resources often not being shown for resources
   configured in multiple pipelines, due to the globalization of resource
-  caches introduced by \reference{v3.0.0}.
+  caches introduced by \ghrelease{v3.0.0}.
 }
 
 \note{feature}{

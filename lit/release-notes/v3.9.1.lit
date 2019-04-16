@@ -19,7 +19,7 @@
 
 \note{fix}{
   We've optimized the rendering of the build page, which got quite a bit
-  slower with the introduction of timestamps in \reference{v3.6.0}. There is
+  slower with the introduction of timestamps in \ghrelease{v3.6.0}. There is
   more work to do here, but we've added performance tests to catch any future
   egregious regressions.
 }

@@ -34,7 +34,7 @@
 }
 
 \note{fix}{
-  Upgrading from \reference{v2.7.0} to any of the previous releases would
+  Upgrading from \ghrelease{v2.7.0} to any of the previous releases would
   leave the user in a broken state until they logged out and back in. It
   would show that you're logged in, but any actions taken (e.g. pausing a job
   or triggering a build) would silently fail. They will now send the user to

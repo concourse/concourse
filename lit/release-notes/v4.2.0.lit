@@ -10,7 +10,7 @@
   Fixed a potential information leak: when logged in and viewing a resource
   from some other team's (exposed) pipeline, you can no longer view the
   resource's check error, as it may unintentionally have sensitive info in
-  the output. This regressed in \reference{v4.0.0}.
+  the output. This regressed in \ghrelease{v4.0.0}.
 }
 
 \note{feature}{
@@ -26,13 +26,13 @@
 }
 
 \note{fix,breaking}{
-  In \reference{v4.1.0} we accidentally broke support for
+  In \ghrelease{v4.1.0} we accidentally broke support for
   \code{--postgres-data-source}. This flag has been deprecated ever since
-  \reference{v2.7.2} (over a year ago), so we've opted to finally remove it.
+  \ghrelease{v2.7.2} (over a year ago), so we've opted to finally remove it.
 }
 
 \note{fix}{
-  When we fixed the login bug in \reference{v4.1.0} by storing Dex state in
+  When we fixed the login bug in \ghrelease{v4.1.0} by storing Dex state in
   the database (rather than in-memory), that effectively made it so that any
   changes made to auth settings (like local user config, GitHub config, etc)
   would not take effect.
@@ -45,7 +45,7 @@
 }
 
 \note{fix}{
-  With switching to Dex for auth in \reference{v4.0.0} we ended up using the
+  With switching to Dex for auth in \ghrelease{v4.0.0} we ended up using the
   external URL as part of the internal login flow callbacks. This meant it
   would break if your external URL could not be reached (perhaps it's behind
   a reverse proxy with auth, or a self-signed-cert, or a firewall).
@@ -77,7 +77,7 @@
 \note{fix}{
   The BOSH release now respects the configured \code{postgresql.client_cert}
   property, thanks to a fix by \ghuser{flavorjones}. This broke back in
-  \reference{v3.3.0} when we tweaked the type of the property.
+  \ghrelease{v3.3.0} when we tweaked the type of the property.
 }
 
 \note{fix}{

@@ -30,7 +30,7 @@
 }
 
 \note{feature,breaking}{
-  In \reference{v3.11.0} we changed the default behavior of the
+  In \ghrelease{v3.11.0} we changed the default behavior of the
   \resource{git} so that it does not fetch tags by default. In hindsight we
   should have been a bit more careful here, as many people depend on that
   behavior. We've decided to roll it back to fetching them by default, since
@@ -56,7 +56,7 @@
 
 \note{fix}{
   Fixed a memory leak in the \reference{component-tsa} introduced in
-  \reference{v3.11.0}.
+  \ghrelease{v3.11.0}.
 }
 
 \note{feature}{

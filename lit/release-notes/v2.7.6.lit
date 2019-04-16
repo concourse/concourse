@@ -6,7 +6,7 @@
 
 \note{fix}{
   We forgot to add the BOSH properties for configuring InfluxDB. Ignore these
-  release notes and read \reference{v2.7.5} and pretend that we didn't mess
+  release notes and read \ghrelease{v2.7.5} and pretend that we didn't mess
   up.
 
   Thanks.

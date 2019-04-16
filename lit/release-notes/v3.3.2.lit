@@ -7,7 +7,7 @@
 \note{fix,security}{
   Fixed a vulnerability affecting installations using untrusted multi-tenancy
   (i.e. multiple teams who may be jerks). This issue affects all versions
-  after and including \reference{v2.7.1}.
+  after and including \ghrelease{v2.7.1}.
 
   If you are running a single-tenant Concourse installation, or an
   installation where all team members are "trusted" (i.e. part of your small

@@ -299,7 +299,7 @@
 }
 
 \note{fix}{
-  With \reference{v5.0.0} we introduced a bit of a performance regression with
+  With \ghrelease{v5.0.0} we introduced a bit of a performance regression with
   loading the versions for a pipeline during scheduling. We've made an
   incremental change to make it a bit faster.
 

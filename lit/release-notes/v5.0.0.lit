@@ -183,7 +183,7 @@ delivering y'all a better and better CI system - hopefully, more continuously.
   }{
     Because it doesn't run Docker, it doesn't need a privileged container. The
     fewer privileged containers in your cluster, the better - especially in
-    light of \reference{v4.2.3}{recent CVE fixes}.
+    light of \ghrelease{v4.2.3}{recent CVE fixes}.
   }{
     By focusing solely on fetching and pushing, the resource is \italic{much}
     smaller and simpler. It also has test coverage!

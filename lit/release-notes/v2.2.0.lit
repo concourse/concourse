@@ -27,7 +27,7 @@
 
 \note{feature}{
   The pipeline view will now only redraw if the data has changed. We've also
-  fixed a regression in \reference{v2.0.0} that led to redrawing multiple
+  fixed a regression in \ghrelease{v2.0.0} that led to redrawing multiple
   times on an interval, likely leading to the tab crashing if left in the
   background.
 }
@@ -50,7 +50,7 @@
 }
 
 \note{feature}{
-  The \code{--auth-duration} flag introduced in \reference{v2.1.0} is now
+  The \code{--auth-duration} flag introduced in \ghrelease{v2.1.0} is now
   available as a BOSH property (\code{auth_duration}, surprise surprise).
   Thanks to \ghuser{JamesClonk} for the PR!
 }
@@ -100,5 +100,5 @@
 
 \note{fix}{
   The \resource{docker-image} \code{skip_download} parameter now works again.
-  This broke in \reference{v2.1.0}. Sorry about that.
+  This broke in \ghrelease{v2.1.0}. Sorry about that.
 }

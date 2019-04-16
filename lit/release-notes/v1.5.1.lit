@@ -5,7 +5,7 @@
 \release-garden-runc-version{0.4.0}
 
 \note{fix}{
-  A bug introduced by \reference{v1.5.0} as part of the resource fetching
+  A bug introduced by \ghrelease{v1.5.0} as part of the resource fetching
   synchronizing led to hanging \reference{get-step}s. It affected resources
   with large values in \reference{resource-source} or
   \reference{get-step-params}. It is now fixed.
