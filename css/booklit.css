@@ -867,4 +867,12 @@ h3 .anchor {
 .prev-next a:hover {
   text-decoration: underline;
 }
+a.github-user {
+  font-weight: 600;
+  color: #3d3c3c;
+  text-decoration: none;
+}
+a.github-user:hover {
+  text-decoration: underline;
+}
 @include "responsive.less";
