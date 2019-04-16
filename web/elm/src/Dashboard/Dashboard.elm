@@ -8,6 +8,7 @@ module Dashboard.Dashboard exposing
     , view
     )
 
+import Colors
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
@@ -40,7 +41,8 @@ import Html.Attributes
         )
 import Html.Events
     exposing
-        ( onMouseEnter
+        ( onClick
+        , onMouseEnter
         , onMouseLeave
         )
 import List.Extra
@@ -68,6 +70,7 @@ import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import UserState exposing (UserState)
+import Views.Icon as Icon
 import Views.Styles
 import Views.TopBar as TopBar
 
@@ -476,7 +479,33 @@ view userState model =
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
           <|
-            [ TopBar.concourseLogo ]
+            [ Html.div [ style "display" "flex" ]
+                [ if model.screenSize == Mobile then
+                    Html.text ""
+
+                  else
+                    Icon.icon
+                        { sizePx = 54, image = "baseline-menu-24px.svg" }
+                        [ style "cursor" "pointer"
+                        , style "opacity" <|
+                            if model.hovered == Just HamburgerMenu then
+                                "1"
+
+                            else
+                                "0.5"
+                        , onClick <| Click HamburgerMenu
+                        , onMouseEnter <| Hover <| Just HamburgerMenu
+                        , onMouseLeave <| Hover Nothing
+                        ]
+                , Html.a
+                    ([ href "/"
+                     , style "border-left" <| "1px solid " ++ Colors.background
+                     ]
+                        ++ Views.Styles.concourseLogo
+                    )
+                    []
+                ]
+            ]
                 ++ (let
                         isDropDownHidden =
                             model.dropdown == Hidden

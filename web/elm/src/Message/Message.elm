@@ -72,6 +72,7 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Concourse.Build
+    | HamburgerMenu
 
 
 type VersionToggleAction
