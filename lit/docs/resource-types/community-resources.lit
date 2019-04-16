@@ -13,7 +13,7 @@ there yet though, so a list will have to do.
 Be sure to read the \code{README} file for a resource to know what it does
 before using it!
 
-\build-resource-type-list{community-list}{name}
+\build-resource-type-list{community-list}
 
 \section{
   \title{Adding to this list}
