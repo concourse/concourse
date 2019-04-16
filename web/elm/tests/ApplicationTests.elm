@@ -156,6 +156,7 @@ all =
                                 Just "real-token"
                         )
                     |> Tuple.first
+                    |> .session
                     |> .csrfToken
                     |> Expect.equal "real-token"
         ]

@@ -10,6 +10,7 @@ module Application.Application exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Browser
 import Concourse
 import EffectTransformer exposing (ET)
@@ -40,13 +41,8 @@ type alias Flags =
 
 type alias Model =
     { subModel : SubPage.Model
-    , turbulenceImgSrc : String
-    , notFoundImgSrc : String
-    , csrfToken : String
-    , authToken : String
-    , pipelineRunningKeyframes : String
+    , session : Session
     , route : Routes.Route
-    , userState : UserState
     }
 
 
@@ -57,23 +53,22 @@ init flags url =
             Routes.parsePath url
                 |> Maybe.withDefault (Routes.Dashboard (Routes.Normal Nothing))
 
-        ( subModel, subEffects ) =
-            SubPage.init
-                { turbulencePath = flags.turbulenceImgSrc
-                , authToken = flags.authToken
-                , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-                }
-                route
-
-        model =
-            { subModel = subModel
-            , turbulenceImgSrc = flags.turbulenceImgSrc
+        session =
+            { turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
             , authToken = flags.authToken
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-            , route = route
             , userState = UserStateUnknown
+            }
+
+        ( subModel, subEffects ) =
+            SubPage.init session route
+
+        model =
+            { subModel = subModel
+            , session = session
+            , route = route
             }
 
         handleTokenEffect =
@@ -130,21 +125,59 @@ handleCallback callback model =
                 |> redirectToLoginIfNecessary err
 
         LoggedOut (Ok ()) ->
-            subpageHandleCallback { model | userState = UserStateLoggedOut } callback
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | userState = UserStateLoggedOut }
+            in
+            subpageHandleCallback { model | session = newSession } callback
 
         APIDataFetched (Ok ( _, data )) ->
-            subpageHandleCallback
-                { model | userState = data.user |> Maybe.map UserStateLoggedIn |> Maybe.withDefault UserStateLoggedOut }
-                callback
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session
+                        | userState =
+                            data.user
+                                |> Maybe.map UserStateLoggedIn
+                                |> Maybe.withDefault UserStateLoggedOut
+                    }
+            in
+            subpageHandleCallback { model | session = newSession } callback
 
         APIDataFetched (Err _) ->
-            subpageHandleCallback { model | userState = UserStateLoggedOut } callback
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | userState = UserStateLoggedOut }
+            in
+            subpageHandleCallback { model | session = newSession } callback
 
         UserFetched (Ok user) ->
-            subpageHandleCallback { model | userState = UserStateLoggedIn user } callback
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | userState = UserStateLoggedIn user }
+            in
+            subpageHandleCallback { model | session = newSession } callback
 
         UserFetched (Err _) ->
-            subpageHandleCallback { model | userState = UserStateLoggedOut } callback
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | userState = UserStateLoggedOut }
+            in
+            subpageHandleCallback { model | session = newSession } callback
 
         -- otherwise, pass down
         _ ->
@@ -157,7 +190,7 @@ subpageHandleCallback model callback =
         ( subModel, effects ) =
             ( model.subModel, [] )
                 |> SubPage.handleCallback callback
-                |> SubPage.handleNotFound model.notFoundImgSrc model.route
+                |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
     in
     ( { model | subModel = subModel }, effects )
 
@@ -170,7 +203,7 @@ update msg model =
                 ( subModel, subEffects ) =
                     ( model.subModel, [] )
                         |> SubPage.update m
-                        |> SubPage.handleNotFound model.notFoundImgSrc model.route
+                        |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
             in
             ( { model | subModel = subModel }, subEffects )
 
@@ -187,7 +220,7 @@ handleDelivery delivery model =
         ( newSubmodel, subPageEffects ) =
             ( model.subModel, [] )
                 |> SubPage.handleDelivery delivery
-                |> SubPage.handleNotFound model.notFoundImgSrc model.route
+                |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
 
         ( newModel, applicationEffects ) =
             handleDeliveryForApplication
@@ -204,7 +237,14 @@ handleDeliveryForApplication delivery model =
             ( model, [ LoadExternal route ] )
 
         TokenReceived (Just tokenValue) ->
-            ( { model | csrfToken = tokenValue }, [] )
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | csrfToken = tokenValue }
+            in
+            ( { model | session = newSession }, [] )
 
         RouteChanged route ->
             urlUpdate route model
@@ -251,12 +291,7 @@ urlUpdate route model =
                 SubPage.urlUpdate route ( model.subModel, [] )
 
             else
-                SubPage.init
-                    { turbulencePath = model.turbulenceImgSrc
-                    , authToken = model.authToken
-                    , pipelineRunningKeyframes = model.pipelineRunningKeyframes
-                    }
-                    route
+                SubPage.init model.session route
     in
     ( { model | subModel = newSubmodel, route = route }
     , subEffects ++ [ SetFavIcon Nothing ]
@@ -265,7 +300,7 @@ urlUpdate route model =
 
 view : Model -> Browser.Document TopLevelMessage
 view model =
-    SubPage.view model.userState model.subModel
+    SubPage.view model.session.userState model.subModel
 
 
 subscriptions : Model -> List Subscription

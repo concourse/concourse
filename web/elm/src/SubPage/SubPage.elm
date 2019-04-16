@@ -10,6 +10,7 @@ module SubPage.SubPage exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Browser
 import Build.Build as Build
 import Build.Models
@@ -46,15 +47,8 @@ type Model
     | FlySuccessModel FlySuccess.Models.Model
 
 
-type alias Flags =
-    { authToken : String
-    , turbulencePath : String
-    , pipelineRunningKeyframes : String
-    }
-
-
-init : Flags -> Routes.Route -> ( Model, List Effect )
-init flags route =
+init : Session -> Routes.Route -> ( Model, List Effect )
+init session route =
     case route of
         Routes.Build { id, highlight } ->
             Build.init
@@ -87,22 +81,22 @@ init flags route =
         Routes.Pipeline { id, groups } ->
             Pipeline.init
                 { pipelineLocator = id
-                , turbulenceImgSrc = flags.turbulencePath
+                , turbulenceImgSrc = session.turbulenceImgSrc
                 , selectedGroups = groups
                 }
                 |> Tuple.mapFirst PipelineModel
 
         Routes.Dashboard searchType ->
             Dashboard.init
-                { turbulencePath = flags.turbulencePath
+                { turbulencePath = session.turbulenceImgSrc
                 , searchType = searchType
-                , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 }
                 |> Tuple.mapFirst DashboardModel
 
         Routes.FlySuccess flyPort ->
             FlySuccess.init
-                { authToken = flags.authToken
+                { authToken = session.authToken
                 , flyPort = flyPort
                 }
                 |> Tuple.mapFirst FlySuccessModel
