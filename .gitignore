@@ -1,3 +1,5 @@
+.envrc
+
 .DS_Store
 *.html
 search_index.json
