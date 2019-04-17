@@ -964,6 +964,12 @@ jobs:
       - fly-linux/fly-*.tgz
       - fly-windows/fly-*.zip
       - fly-darwin/fly-*.tgz
+      - concourse-linux/*.sha1
+      - concourse-windows/*.sha1
+      - concourse-darwin/*.sha1
+      - fly-linux/*.sha1
+      - fly-windows/*.sha1
+      - fly-darwin/*.sha1
 
 - name: publish-bosh-release
   serial: true
