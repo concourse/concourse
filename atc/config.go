@@ -292,6 +292,41 @@ func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal("")
 }
 
+type InParallelConfig struct {
+	Steps    PlanSequence `yaml:"steps,omitempty" json:"steps" mapstructure:"steps"`
+	Limit    int          `yaml:"limit,omitempty" json:"limit,omitempty" mapstructure:"limit"`
+	FailFast bool         `yaml:"fail_fast,omitempty" json:"fail_fast,omitempty" mapstructure:"fail_fast"`
+}
+
+func (c *InParallelConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var data interface{}
+
+	err := unmarshal(&data)
+	if err != nil {
+		return err
+	}
+
+	switch actual := data.(type) {
+	case []interface{}:
+		if err := unmarshal(&c.Steps); err != nil {
+			return fmt.Errorf("failed to unmarshal parallel steps: %s", err)
+		}
+	case map[interface{}]interface{}:
+		// Used to avoid infinite recursion when unmarshalling this variant.
+		type target InParallelConfig
+
+		var t target
+		if err := unmarshal(&t); err != nil {
+			return fmt.Errorf("failed to unmarshal parallel config: %s", err)
+		}
+		c.Steps, c.Limit, c.FailFast = t.Steps, t.Limit, t.FailFast
+	default:
+		return fmt.Errorf("wrong type for parallel config: %v", actual)
+	}
+
+	return nil
+}
+
 // A PlanConfig is a flattened set of configuration corresponding to
 // a particular Plan, where Source and Version are populated lazily.
 type PlanConfig struct {
@@ -307,6 +342,9 @@ type PlanConfig struct {
 
 	// corresponds to an Aggregate plan, keyed by the name of each sub-plan
 	Aggregate *PlanSequence `yaml:"aggregate,omitempty" json:"aggregate,omitempty" mapstructure:"aggregate"`
+
+	// a nested chain of steps to run in parallel
+	InParallel *InParallelConfig `yaml:"in_parallel,omitempty" json:"in_parallel,omitempty" mapstructure:"in_parallel"`
 
 	// corresponds to Get and Put resource plans, respectively
 	// name of 'input', e.g. bosh-stemcell

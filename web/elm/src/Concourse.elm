@@ -338,6 +338,7 @@ type BuildStep
     | BuildStepArtifactOutput StepName
     | BuildStepPut StepName
     | BuildStepAggregate (Array BuildPlan)
+    | BuildStepInParallel (Array BuildPlan)
     | BuildStepDo (Array BuildPlan)
     | BuildStepOnSuccess HookedPlan
     | BuildStepOnFailure HookedPlan
@@ -382,6 +383,8 @@ decodeBuildPlan_ =
                     lazy (\_ -> decodeBuildStepGet)
                 , Json.Decode.field "aggregate" <|
                     lazy (\_ -> decodeBuildStepAggregate)
+                , Json.Decode.field "in_parallel" <|
+                    lazy (\_ -> decodeBuildStepInParallel)
                 , Json.Decode.field "do" <|
                     lazy (\_ -> decodeBuildStepDo)
                 , Json.Decode.field "on_success" <|
@@ -439,6 +442,12 @@ decodeBuildStepAggregate : Json.Decode.Decoder BuildStep
 decodeBuildStepAggregate =
     Json.Decode.succeed BuildStepAggregate
         |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
+
+
+decodeBuildStepInParallel : Json.Decode.Decoder BuildStep
+decodeBuildStepInParallel =
+    Json.Decode.succeed BuildStepInParallel
+        |> andMap (Json.Decode.field "steps" <| Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
 
 
 decodeBuildStepDo : Json.Decode.Decoder BuildStep
