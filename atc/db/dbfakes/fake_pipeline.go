@@ -3,32 +3,13 @@ package dbfakes
 
 import (
 	sync "sync"
-	time "time"
 
-	lager "code.cloudfoundry.org/lager"
 	atc "github.com/concourse/concourse/atc"
 	db "github.com/concourse/concourse/atc/db"
 	algorithm "github.com/concourse/concourse/atc/db/algorithm"
-	lock "github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakePipeline struct {
-	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (lock.Lock, bool, error)
-	acquireSchedulingLockMutex       sync.RWMutex
-	acquireSchedulingLockArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 time.Duration
-	}
-	acquireSchedulingLockReturns struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
-	acquireSchedulingLockReturnsOnCall map[int]struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
 	BuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
 	buildsMutex       sync.RWMutex
 	buildsArgsForCall []struct {
@@ -435,73 +416,6 @@ type FakePipeline struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakePipeline) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
-	fake.acquireSchedulingLockMutex.Lock()
-	ret, specificReturn := fake.acquireSchedulingLockReturnsOnCall[len(fake.acquireSchedulingLockArgsForCall)]
-	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 time.Duration
-	}{arg1, arg2})
-	fake.recordInvocation("AcquireSchedulingLock", []interface{}{arg1, arg2})
-	fake.acquireSchedulingLockMutex.Unlock()
-	if fake.AcquireSchedulingLockStub != nil {
-		return fake.AcquireSchedulingLockStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.acquireSchedulingLockReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakePipeline) AcquireSchedulingLockCallCount() int {
-	fake.acquireSchedulingLockMutex.RLock()
-	defer fake.acquireSchedulingLockMutex.RUnlock()
-	return len(fake.acquireSchedulingLockArgsForCall)
-}
-
-func (fake *FakePipeline) AcquireSchedulingLockCalls(stub func(lager.Logger, time.Duration) (lock.Lock, bool, error)) {
-	fake.acquireSchedulingLockMutex.Lock()
-	defer fake.acquireSchedulingLockMutex.Unlock()
-	fake.AcquireSchedulingLockStub = stub
-}
-
-func (fake *FakePipeline) AcquireSchedulingLockArgsForCall(i int) (lager.Logger, time.Duration) {
-	fake.acquireSchedulingLockMutex.RLock()
-	defer fake.acquireSchedulingLockMutex.RUnlock()
-	argsForCall := fake.acquireSchedulingLockArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakePipeline) AcquireSchedulingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireSchedulingLockMutex.Lock()
-	defer fake.acquireSchedulingLockMutex.Unlock()
-	fake.AcquireSchedulingLockStub = nil
-	fake.acquireSchedulingLockReturns = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipeline) AcquireSchedulingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireSchedulingLockMutex.Lock()
-	defer fake.acquireSchedulingLockMutex.Unlock()
-	fake.AcquireSchedulingLockStub = nil
-	if fake.acquireSchedulingLockReturnsOnCall == nil {
-		fake.acquireSchedulingLockReturnsOnCall = make(map[int]struct {
-			result1 lock.Lock
-			result2 bool
-			result3 error
-		})
-	}
-	fake.acquireSchedulingLockReturnsOnCall[i] = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakePipeline) Builds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
@@ -2453,8 +2367,6 @@ func (fake *FakePipeline) UnpauseReturnsOnCall(i int, result1 error) {
 func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.acquireSchedulingLockMutex.RLock()
-	defer fake.acquireSchedulingLockMutex.RUnlock()
 	fake.buildsMutex.RLock()
 	defer fake.buildsMutex.RUnlock()
 	fake.buildsWithTimeMutex.RLock()

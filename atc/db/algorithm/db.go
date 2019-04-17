@@ -2,6 +2,7 @@ package algorithm
 
 import (
 	"database/sql"
+	"sort"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -35,7 +36,7 @@ func (db VersionsDB) IsVersionFirstOccurrence(versionID int, jobID int, inputNam
 		return false, err
 	}
 
-	return exists, nil
+	return !exists, nil
 }
 
 func (db VersionsDB) LatestVersionOfResource(resourceID int) (int, error) {
@@ -161,7 +162,8 @@ func (db VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
 	err := psql.Select("b.id").
 		From("builds b").
 		Where(sq.Eq{
-			"b.job_id": jobID,
+			"b.job_id":    jobID,
+			"b.scheduled": true,
 		}).
 		OrderBy("b.id DESC").
 		Limit(1).
@@ -311,4 +313,85 @@ func (db VersionsDB) UnusedBuilds(buildID int, jobID int) ([]int, error) {
 	}
 
 	return buildIDs, nil
+}
+
+// Order passed jobs by whether or not the build pipes of the current job has a
+// fromBuildID of the passed job. If there are multiple passed jobs that have a
+// build pipe to the current job, then order them by the least number of
+// builds. If there are jobs with the same number of builds, order
+// alphabetically.
+func (db VersionsDB) OrderPassedJobs(currentJobID int, jobs JobSet) ([]int, error) {
+	latestBuildID, found, err := db.LatestBuildID(currentJobID)
+	if err != nil {
+		return nil, err
+	}
+
+	buildPipeJobs := make(map[int]bool)
+
+	if found {
+		rows, err := psql.Select("b.job_id").
+			From("builds b").
+			Join("build_pipes bp ON bp.from_build_id = b.id").
+			Where(sq.Eq{"bp.to_build_id": latestBuildID}).
+			RunWith(db.Runner).
+			Query()
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var jobID int
+
+			err = rows.Scan(&jobID)
+			if err != nil {
+				return nil, err
+			}
+
+			buildPipeJobs[jobID] = true
+		}
+	}
+
+	jobToBuilds := map[int]int{}
+	for job, _ := range jobs {
+		var buildNum int
+		err := psql.Select("COUNT(id)").
+			From("builds").
+			Where(sq.Eq{"job_id": job}).
+			RunWith(db.Runner).
+			QueryRow().
+			Scan(&buildNum)
+		if err != nil {
+			return nil, err
+		}
+
+		jobToBuilds[job] = buildNum
+	}
+
+	type jobBuilds struct {
+		jobID    int
+		buildNum int
+	}
+
+	var orderedJobBuilds []jobBuilds
+	for j, b := range jobToBuilds {
+		orderedJobBuilds = append(orderedJobBuilds, jobBuilds{j, b})
+	}
+
+	sort.Slice(orderedJobBuilds, func(i, j int) bool {
+		if buildPipeJobs[orderedJobBuilds[i].jobID] == buildPipeJobs[orderedJobBuilds[j].jobID] {
+			if orderedJobBuilds[i].buildNum == orderedJobBuilds[j].buildNum {
+				return orderedJobBuilds[i].jobID < orderedJobBuilds[j].jobID
+			}
+			return orderedJobBuilds[i].buildNum < orderedJobBuilds[j].buildNum
+		}
+
+		return buildPipeJobs[orderedJobBuilds[i].jobID]
+	})
+
+	orderedJobs := []int{}
+	for _, jobBuild := range orderedJobBuilds {
+		orderedJobs = append(orderedJobs, jobBuild.jobID)
+	}
+
+	return orderedJobs, nil
 }

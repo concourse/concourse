@@ -79,32 +79,18 @@ var _ = Describe("Runner", func() {
 		noop = false
 
 		someVersions = &algorithm.VersionsDB{
-			BuildOutputs: []algorithm.BuildOutput{
-				{
-					ResourceVersion: algorithm.ResourceVersion{
-						VersionID:  1,
-						ResourceID: 2,
-					},
-					BuildID: 3,
-					JobID:   4,
-				},
-				{
-					ResourceVersion: algorithm.ResourceVersion{
-						VersionID:  1,
-						ResourceID: 2,
-					},
-					BuildID: 7,
-					JobID:   8,
-				},
-			},
+			ResourceIDs: map[string]int{"resource": 2},
+			JobIDs:      map[string]int{"job-1": 4, "job-8": 8},
 		}
 
 		fakePipeline.LoadVersionsDBReturns(someVersions, nil)
 
 		fakeJob1 = new(dbfakes.FakeJob)
 		fakeJob1.NameReturns("some-job")
+		fakeJob1.ReloadReturns(true, nil)
 		fakeJob2 = new(dbfakes.FakeJob)
 		fakeJob2.NameReturns("some-other-job")
+		fakeJob2.ReloadReturns(true, nil)
 
 		fakeResource1 = new(dbfakes.FakeResource)
 		fakeResource1.NameReturns("some-resource")
@@ -120,7 +106,6 @@ var _ = Describe("Runner", func() {
 		fakePipeline.ReloadReturns(true, nil)
 
 		lock = new(lockfakes.FakeLock)
-		fakePipeline.AcquireSchedulingLockReturns(lock, true, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -137,45 +122,89 @@ var _ = Describe("Runner", func() {
 		ginkgomon.Interrupt(process)
 	})
 
-	It("signs the scheduling lock for the pipeline", func() {
-		Eventually(fakePipeline.AcquireSchedulingLockCallCount).Should(BeNumerically(">=", 1))
-
-		_, duration := fakePipeline.AcquireSchedulingLockArgsForCall(0)
-		Expect(duration).To(Equal(100 * time.Millisecond))
+	It("loads up the versionsDB and grabs all the pipeline jobs", func() {
+		Eventually(fakePipeline.LoadVersionsDBCallCount).Should(Equal(1))
+		Eventually(fakePipeline.JobsCallCount).Should(Equal(1))
 	})
 
-	Context("when it can't get the lock", func() {
-		BeforeEach(func() {
-			fakePipeline.AcquireSchedulingLockReturns(nil, false, nil)
+	Context("when there are multiple jobs", func() {
+		It("tries to acquire the scheduling lock for each job", func() {
+			Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(BeNumerically(">=", 1))
+			Eventually(fakeJob2.AcquireSchedulingLockCallCount).Should(BeNumerically(">=", 1))
+
+			_, duration := fakeJob1.AcquireSchedulingLockArgsForCall(0)
+			Expect(duration).To(Equal(100 * time.Millisecond))
+
+			_, duration = fakeJob2.AcquireSchedulingLockArgsForCall(0)
+			Expect(duration).To(Equal(100 * time.Millisecond))
 		})
 
-		It("does not do any scheduling", func() {
-			Eventually(fakePipeline.AcquireSchedulingLockCallCount).Should(Equal(2))
+		Context("when it can't get the lock", func() {
+			BeforeEach(func() {
+				fakeJob1.AcquireSchedulingLockReturns(nil, false, nil)
+			})
 
-			Expect(scheduler.ScheduleCallCount()).To(BeZero())
+			It("does not do any scheduling", func() {
+				Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(2))
+
+				Expect(scheduler.ScheduleCallCount()).To(BeZero())
+			})
 		})
-	})
 
-	Context("when getting the lock blows up", func() {
-		BeforeEach(func() {
-			fakePipeline.AcquireSchedulingLockReturns(nil, false, errors.New(":3"))
+		Context("when getting the lock blows up", func() {
+			BeforeEach(func() {
+				fakeJob1.AcquireSchedulingLockReturns(nil, false, errors.New(":3"))
+			})
+
+			It("does not do any scheduling", func() {
+				Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(2))
+
+				Expect(scheduler.ScheduleCallCount()).To(BeZero())
+			})
 		})
 
-		It("does not do any scheduling", func() {
-			Eventually(fakePipeline.AcquireSchedulingLockCallCount).Should(Equal(2))
+		Context("when getting both locks succeeds", func() {
+			BeforeEach(func() {
+				fakeJob1.AcquireSchedulingLockReturns(lock, true, nil)
+				fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
+			})
 
-			Expect(scheduler.ScheduleCallCount()).To(BeZero())
+			It("schedules pending builds", func() {
+				Eventually(scheduler.ScheduleCallCount).Should(Equal(2))
+
+				jobs := []string{}
+				_, versions, job, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
+				Expect(versions).To(Equal(someVersions))
+				Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
+				Expect(resourceTypes).To(Equal(versionedResourceTypes))
+				jobs = append(jobs, job.Name())
+
+				_, versions, job, resources, resourceTypes = scheduler.ScheduleArgsForCall(1)
+				Expect(versions).To(Equal(someVersions))
+				Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
+				Expect(resourceTypes).To(Equal(versionedResourceTypes))
+				jobs = append(jobs, job.Name())
+
+				Expect(jobs).To(ConsistOf([]string{"some-job", "some-other-job"}))
+			})
 		})
-	})
 
-	It("schedules pending builds", func() {
-		Eventually(scheduler.ScheduleCallCount).Should(Equal(2))
+		Context("when acquiring one job lock succeeds", func() {
+			BeforeEach(func() {
+				fakeJob1.AcquireSchedulingLockReturns(nil, false, nil)
+				fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
+			})
 
-		_, versions, jobs, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
-		Expect(versions).To(Equal(someVersions))
-		Expect(jobs).To(Equal([]db.Job{fakeJob1, fakeJob2}))
-		Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
-		Expect(resourceTypes).To(Equal(versionedResourceTypes))
+			It("schedules pending builds for one job", func() {
+				Eventually(scheduler.ScheduleCallCount).Should(Equal(1))
+
+				_, versions, job, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
+				Expect(versions).To(Equal(someVersions))
+				Expect(job).To(Equal(fakeJob2))
+				Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
+				Expect(resourceTypes).To(Equal(versionedResourceTypes))
+			})
+		})
 	})
 
 	Context("when in noop mode", func() {

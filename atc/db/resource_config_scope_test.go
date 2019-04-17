@@ -14,6 +14,8 @@ import (
 
 var _ = Describe("Resource Config Scope", func() {
 	var resourceScope db.ResourceConfigScope
+	var resource db.Resource
+	var pipeline db.Pipeline
 
 	BeforeEach(func() {
 		setupTx, err := dbConn.Begin()
@@ -27,7 +29,7 @@ var _ = Describe("Resource Config Scope", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(setupTx.Commit()).To(Succeed())
 
-		pipeline, _, err := defaultTeam.SavePipeline("scope-pipeline", atc.Config{
+		pipeline, _, err = defaultTeam.SavePipeline("scope-pipeline", atc.Config{
 			Resources: atc.ResourceConfigs{
 				{
 					Name: "some-resource",
@@ -40,7 +42,8 @@ var _ = Describe("Resource Config Scope", func() {
 		}, db.ConfigVersion(0), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		resource, found, err := pipeline.Resource("some-resource")
+		var found bool
+		resource, found, err = pipeline.Resource("some-resource")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
@@ -134,6 +137,44 @@ var _ = Describe("Resource Config Scope", func() {
 			It("gets latest version of resource", func() {
 				Expect(latestCV.Version()).To(Equal(db.Version{"ref": "v3"}))
 				Expect(latestCV.CheckOrder()).To(Equal(2))
+			})
+
+			It("disabled versions do not affect fetching the latest version", func() {
+				err := resourceScope.SaveVersions([]atc.Version{{"version": "1"}})
+				Expect(err).ToNot(HaveOccurred())
+
+				savedRCV, found, err := resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(savedRCV.Version()).To(Equal(db.Version{"version": "1"}))
+
+				err = resource.DisableVersion(savedRCV.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVR, found, err := resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(latestVR.Version()).To(Equal(db.Version{"version": "1"}))
+
+				err = resource.EnableVersion(savedRCV.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVR, found, err = resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(latestVR.Version()).To(Equal(db.Version{"version": "1"}))
+			})
+
+			It("saving versioned resources updates the latest versioned resource", func() {
+				err := resourceScope.SaveVersions([]atc.Version{{"ref": "4"}, {"ref": "5"}})
+				Expect(err).ToNot(HaveOccurred())
+
+				savedVR, found, err := resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(savedVR.Version()).To(Equal(db.Version{"ref": "5"}))
 			})
 		})
 	})

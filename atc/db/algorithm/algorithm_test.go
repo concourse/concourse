@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 )
 
-var _ = FDescribeTable("Input resolving",
+var _ = DescribeTable("Input resolving",
 	(Example).Run,
 
 	Entry("can fan-in", Example{

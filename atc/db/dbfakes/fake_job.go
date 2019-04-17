@@ -3,13 +3,32 @@ package dbfakes
 
 import (
 	sync "sync"
+	time "time"
 
+	lager "code.cloudfoundry.org/lager"
 	atc "github.com/concourse/concourse/atc"
 	db "github.com/concourse/concourse/atc/db"
 	algorithm "github.com/concourse/concourse/atc/db/algorithm"
+	lock "github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeJob struct {
+	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (lock.Lock, bool, error)
+	acquireSchedulingLockMutex       sync.RWMutex
+	acquireSchedulingLockArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 time.Duration
+	}
+	acquireSchedulingLockReturns struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
+	acquireSchedulingLockReturnsOnCall map[int]struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
 	BuildStub        func(string) (db.Build, bool, error)
 	buildMutex       sync.RWMutex
 	buildArgsForCall []struct {
@@ -90,6 +109,16 @@ type FakeJob struct {
 	createBuildReturnsOnCall map[int]struct {
 		result1 db.Build
 		result2 error
+	}
+	DeleteNextBuildPipesStub        func() error
+	deleteNextBuildPipesMutex       sync.RWMutex
+	deleteNextBuildPipesArgsForCall []struct {
+	}
+	deleteNextBuildPipesReturns struct {
+		result1 error
+	}
+	deleteNextBuildPipesReturnsOnCall map[int]struct {
+		result1 error
 	}
 	DeleteNextInputMappingStub        func() error
 	deleteNextInputMappingMutex       sync.RWMutex
@@ -284,6 +313,17 @@ type FakeJob struct {
 	saveIndependentInputMappingReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SaveNextBuildPipesStub        func(algorithm.InputMapping) error
+	saveNextBuildPipesMutex       sync.RWMutex
+	saveNextBuildPipesArgsForCall []struct {
+		arg1 algorithm.InputMapping
+	}
+	saveNextBuildPipesReturns struct {
+		result1 error
+	}
+	saveNextBuildPipesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	SaveNextInputMappingStub        func(algorithm.InputMapping) error
 	saveNextInputMappingMutex       sync.RWMutex
 	saveNextInputMappingArgsForCall []struct {
@@ -359,6 +399,73 @@ type FakeJob struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeJob) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
+	fake.acquireSchedulingLockMutex.Lock()
+	ret, specificReturn := fake.acquireSchedulingLockReturnsOnCall[len(fake.acquireSchedulingLockArgsForCall)]
+	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 time.Duration
+	}{arg1, arg2})
+	fake.recordInvocation("AcquireSchedulingLock", []interface{}{arg1, arg2})
+	fake.acquireSchedulingLockMutex.Unlock()
+	if fake.AcquireSchedulingLockStub != nil {
+		return fake.AcquireSchedulingLockStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.acquireSchedulingLockReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeJob) AcquireSchedulingLockCallCount() int {
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
+	return len(fake.acquireSchedulingLockArgsForCall)
+}
+
+func (fake *FakeJob) AcquireSchedulingLockCalls(stub func(lager.Logger, time.Duration) (lock.Lock, bool, error)) {
+	fake.acquireSchedulingLockMutex.Lock()
+	defer fake.acquireSchedulingLockMutex.Unlock()
+	fake.AcquireSchedulingLockStub = stub
+}
+
+func (fake *FakeJob) AcquireSchedulingLockArgsForCall(i int) (lager.Logger, time.Duration) {
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
+	argsForCall := fake.acquireSchedulingLockArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeJob) AcquireSchedulingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
+	fake.acquireSchedulingLockMutex.Lock()
+	defer fake.acquireSchedulingLockMutex.Unlock()
+	fake.AcquireSchedulingLockStub = nil
+	fake.acquireSchedulingLockReturns = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJob) AcquireSchedulingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.acquireSchedulingLockMutex.Lock()
+	defer fake.acquireSchedulingLockMutex.Unlock()
+	fake.AcquireSchedulingLockStub = nil
+	if fake.acquireSchedulingLockReturnsOnCall == nil {
+		fake.acquireSchedulingLockReturnsOnCall = make(map[int]struct {
+			result1 lock.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.acquireSchedulingLockReturnsOnCall[i] = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeJob) Build(arg1 string) (db.Build, bool, error) {
@@ -728,6 +835,58 @@ func (fake *FakeJob) CreateBuildReturnsOnCall(i int, result1 db.Build, result2 e
 		result1 db.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeJob) DeleteNextBuildPipes() error {
+	fake.deleteNextBuildPipesMutex.Lock()
+	ret, specificReturn := fake.deleteNextBuildPipesReturnsOnCall[len(fake.deleteNextBuildPipesArgsForCall)]
+	fake.deleteNextBuildPipesArgsForCall = append(fake.deleteNextBuildPipesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("DeleteNextBuildPipes", []interface{}{})
+	fake.deleteNextBuildPipesMutex.Unlock()
+	if fake.DeleteNextBuildPipesStub != nil {
+		return fake.DeleteNextBuildPipesStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteNextBuildPipesReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) DeleteNextBuildPipesCallCount() int {
+	fake.deleteNextBuildPipesMutex.RLock()
+	defer fake.deleteNextBuildPipesMutex.RUnlock()
+	return len(fake.deleteNextBuildPipesArgsForCall)
+}
+
+func (fake *FakeJob) DeleteNextBuildPipesCalls(stub func() error) {
+	fake.deleteNextBuildPipesMutex.Lock()
+	defer fake.deleteNextBuildPipesMutex.Unlock()
+	fake.DeleteNextBuildPipesStub = stub
+}
+
+func (fake *FakeJob) DeleteNextBuildPipesReturns(result1 error) {
+	fake.deleteNextBuildPipesMutex.Lock()
+	defer fake.deleteNextBuildPipesMutex.Unlock()
+	fake.DeleteNextBuildPipesStub = nil
+	fake.deleteNextBuildPipesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJob) DeleteNextBuildPipesReturnsOnCall(i int, result1 error) {
+	fake.deleteNextBuildPipesMutex.Lock()
+	defer fake.deleteNextBuildPipesMutex.Unlock()
+	fake.DeleteNextBuildPipesStub = nil
+	if fake.deleteNextBuildPipesReturnsOnCall == nil {
+		fake.deleteNextBuildPipesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteNextBuildPipesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeJob) DeleteNextInputMapping() error {
@@ -1678,6 +1837,66 @@ func (fake *FakeJob) SaveIndependentInputMappingReturnsOnCall(i int, result1 err
 	}{result1}
 }
 
+func (fake *FakeJob) SaveNextBuildPipes(arg1 algorithm.InputMapping) error {
+	fake.saveNextBuildPipesMutex.Lock()
+	ret, specificReturn := fake.saveNextBuildPipesReturnsOnCall[len(fake.saveNextBuildPipesArgsForCall)]
+	fake.saveNextBuildPipesArgsForCall = append(fake.saveNextBuildPipesArgsForCall, struct {
+		arg1 algorithm.InputMapping
+	}{arg1})
+	fake.recordInvocation("SaveNextBuildPipes", []interface{}{arg1})
+	fake.saveNextBuildPipesMutex.Unlock()
+	if fake.SaveNextBuildPipesStub != nil {
+		return fake.SaveNextBuildPipesStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.saveNextBuildPipesReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) SaveNextBuildPipesCallCount() int {
+	fake.saveNextBuildPipesMutex.RLock()
+	defer fake.saveNextBuildPipesMutex.RUnlock()
+	return len(fake.saveNextBuildPipesArgsForCall)
+}
+
+func (fake *FakeJob) SaveNextBuildPipesCalls(stub func(algorithm.InputMapping) error) {
+	fake.saveNextBuildPipesMutex.Lock()
+	defer fake.saveNextBuildPipesMutex.Unlock()
+	fake.SaveNextBuildPipesStub = stub
+}
+
+func (fake *FakeJob) SaveNextBuildPipesArgsForCall(i int) algorithm.InputMapping {
+	fake.saveNextBuildPipesMutex.RLock()
+	defer fake.saveNextBuildPipesMutex.RUnlock()
+	argsForCall := fake.saveNextBuildPipesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeJob) SaveNextBuildPipesReturns(result1 error) {
+	fake.saveNextBuildPipesMutex.Lock()
+	defer fake.saveNextBuildPipesMutex.Unlock()
+	fake.SaveNextBuildPipesStub = nil
+	fake.saveNextBuildPipesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJob) SaveNextBuildPipesReturnsOnCall(i int, result1 error) {
+	fake.saveNextBuildPipesMutex.Lock()
+	defer fake.saveNextBuildPipesMutex.Unlock()
+	fake.SaveNextBuildPipesStub = nil
+	if fake.saveNextBuildPipesReturnsOnCall == nil {
+		fake.saveNextBuildPipesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveNextBuildPipesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeJob) SaveNextInputMapping(arg1 algorithm.InputMapping) error {
 	fake.saveNextInputMappingMutex.Lock()
 	ret, specificReturn := fake.saveNextInputMappingReturnsOnCall[len(fake.saveNextInputMappingArgsForCall)]
@@ -2069,6 +2288,8 @@ func (fake *FakeJob) UpdateFirstLoggedBuildIDReturnsOnCall(i int, result1 error)
 func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
 	fake.buildsMutex.RLock()
@@ -2081,6 +2302,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.configMutex.RUnlock()
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
+	fake.deleteNextBuildPipesMutex.RLock()
+	defer fake.deleteNextBuildPipesMutex.RUnlock()
 	fake.deleteNextInputMappingMutex.RLock()
 	defer fake.deleteNextInputMappingMutex.RUnlock()
 	fake.ensurePendingBuildExistsMutex.RLock()
@@ -2115,6 +2338,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.reloadMutex.RUnlock()
 	fake.saveIndependentInputMappingMutex.RLock()
 	defer fake.saveIndependentInputMappingMutex.RUnlock()
+	fake.saveNextBuildPipesMutex.RLock()
+	defer fake.saveNextBuildPipesMutex.RUnlock()
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
 	fake.setMaxInFlightReachedMutex.RLock()

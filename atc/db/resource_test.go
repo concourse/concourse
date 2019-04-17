@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -121,7 +120,6 @@ var _ = Describe("Resource", func() {
 
 			Context("when the resource config id is set on the resource for the first time", func() {
 				var resourceScope db.ResourceConfigScope
-				var versionsDB *algorithm.VersionsDB
 
 				BeforeEach(func() {
 					setupTx, err := dbConn.Begin()
@@ -135,7 +133,7 @@ var _ = Describe("Resource", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
-					versionsDB, err = pipeline.LoadVersionsDB()
+					_, err = pipeline.LoadVersionsDB()
 					Expect(err).ToNot(HaveOccurred())
 
 					resourceScope, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
@@ -148,30 +146,10 @@ var _ = Describe("Resource", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("returns the resource config check error and bumps the pipeline cache index", func() {
+				It("returns the resource config check error", func() {
 					Expect(found).To(BeTrue())
 					Expect(resource.ResourceConfigID()).To(Equal(resourceScope.ResourceConfig().ID()))
 					Expect(resource.CheckError()).To(Equal(errors.New("oops")))
-
-					cachedVersionsDB, err := pipeline.LoadVersionsDB()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
-				})
-
-				Context("when the resource config id is already set on the resource", func() {
-					BeforeEach(func() {
-						versionsDB, err = pipeline.LoadVersionsDB()
-						Expect(err).ToNot(HaveOccurred())
-					})
-
-					It("does not bump the cache index", func() {
-						resourceScope, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
-						Expect(err).NotTo(HaveOccurred())
-
-						cachedVersionsDB, err := pipeline.LoadVersionsDB()
-						Expect(err).ToNot(HaveOccurred())
-						Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same")
-					})
 				})
 			})
 

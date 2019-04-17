@@ -208,7 +208,7 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 		return nil, err
 	}
 
-	results, err := psql.Update("resources").
+	_, err = psql.Update("resources").
 		Set("resource_config_scope_id", resourceConfigScope.ID()).
 		Where(sq.Eq{"id": r.id}).
 		Where(sq.Or{
@@ -221,21 +221,9 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 		return nil, err
 	}
 
-	rowsAffected, err := results.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	if rowsAffected > 0 {
-		err = bumpCacheIndexForPipelinesUsingResourceConfigScope(r.conn, resourceConfigScope.ID())
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return resourceConfigScope, nil
@@ -579,11 +567,6 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 
 	if rowsAffected != 1 {
 		return nonOneRowAffectedError{rowsAffected}
-	}
-
-	err = bumpCacheIndex(tx, r.pipelineID)
-	if err != nil {
-		return err
 	}
 
 	return tx.Commit()

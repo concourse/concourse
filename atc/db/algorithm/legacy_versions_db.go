@@ -23,7 +23,8 @@ type LegacyBuildOutput struct {
 
 type LegacyBuildInput struct {
 	LegacyResourceVersion
-	BuildID   int
-	JobID     int
-	InputName string
+	BuildID         int
+	JobID           int
+	InputName       string
+	FirstOccurrence bool
 }

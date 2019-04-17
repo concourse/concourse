@@ -199,11 +199,11 @@ func (example Example) Run() {
 		tx, err = dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
-		stmt, err = tx.Prepare(pq.CopyIn("build_resource_config_version_inputs", "build_id", "resource_id", "version_md5", "name"))
+		stmt, err = tx.Prepare(pq.CopyIn("build_resource_config_version_inputs", "build_id", "resource_id", "version_md5", "name", "first_occurrence"))
 		Expect(err).ToNot(HaveOccurred())
 
 		for i, row := range legacyDB.BuildInputs {
-			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i))
+			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i), row.FirstOccurrence)
 			Expect(err).ToNot(HaveOccurred())
 		}
 
@@ -251,8 +251,8 @@ func (example Example) Run() {
 			resourceID := setup.resourceIDs.ID(row.Resource)
 
 			_, err := setup.psql.Insert("build_resource_config_version_inputs").
-				Columns("build_id", "resource_id", "version_md5", "name").
-				Values(row.BuildID, resourceID, sq.Expr("md5(?)", row.Version), row.Resource).
+				Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
+				Values(row.BuildID, resourceID, sq.Expr("md5(?)", row.Version), row.Resource, false).
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 		}
@@ -427,8 +427,8 @@ func (s setupDB) insertRowBuild(row DBRow) {
 
 	var existingJobID int
 	err := s.psql.Insert("builds").
-		Columns("team_id", "id", "job_id", "name", "status").
-		Values(s.teamID, row.BuildID, jobID, "some-name", "succeeded").
+		Columns("team_id", "id", "job_id", "name", "status", "scheduled").
+		Values(s.teamID, row.BuildID, jobID, "some-name", "succeeded", true).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = excluded.name").
 		Suffix("RETURNING job_id").
 		QueryRow().

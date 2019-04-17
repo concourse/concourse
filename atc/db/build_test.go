@@ -448,6 +448,7 @@ var _ = Describe("Build", func() {
 			job                  db.Job
 			resourceConfigScope1 db.ResourceConfigScope
 			resource1            db.Resource
+			found                bool
 		)
 
 		BeforeEach(func() {
@@ -490,7 +491,6 @@ var _ = Describe("Build", func() {
 			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
 
-			var found bool
 			job, found, err = pipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -526,14 +526,16 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// save a normal 'get'
-			err = build.UseInputs([]db.BuildInput{
+			found, err = build.Schedule([]db.BuildInput{
 				db.BuildInput{
-					Name:       "some-input",
-					Version:    atc.Version{"ver": "1"},
-					ResourceID: resource1.ID(),
+					Name:            "some-input",
+					Version:         atc.Version{"ver": "1"},
+					ResourceID:      resource1.ID(),
+					FirstOccurrence: true,
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			// save explicit output from 'put'
 			err = build.SaveOutput(logger, "some-type", atc.Source{"some": "source-2"}, creds.VersionedResourceTypes{}, atc.Version{"ver": "2"}, nil, "some-output-name", "some-other-resource")
@@ -742,7 +744,10 @@ var _ = Describe("Build", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					err = job.SaveNextInputMapping(algorithm.InputMapping{
-						"some-input": {VersionID: rcv.ID(), ResourceID: resource.ID(), FirstOccurrence: true},
+						"some-input": algorithm.InputSource{
+							InputVersion:   algorithm.InputVersion{VersionID: rcv.ID(), ResourceID: resource.ID(), FirstOccurrence: true},
+							PassedBuildIDs: []int{},
+						},
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -935,7 +940,10 @@ var _ = Describe("Build", func() {
 					Expect(versions).To(HaveLen(1))
 
 					err = job.SaveIndependentInputMapping(algorithm.InputMapping{
-						"input1": {VersionID: versions[0].ID, ResourceID: resource1.ID(), FirstOccurrence: true},
+						"input1": algorithm.InputSource{
+							InputVersion:   algorithm.InputVersion{VersionID: versions[0].ID, ResourceID: resource1.ID(), FirstOccurrence: true},
+							PassedBuildIDs: []int{},
+						},
 					})
 					Expect(err).NotTo(HaveOccurred())
 
@@ -965,69 +973,14 @@ var _ = Describe("Build", func() {
 				})
 			})
 		})
-
-		Describe("Schedule", func() {
-			var (
-				build db.Build
-				found bool
-				f     bool
-			)
-
-			BeforeEach(func() {
-				pipeline, _, err := team.SavePipeline("some-pipeline", atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-						},
-					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)
-				Expect(err).ToNot(HaveOccurred())
-
-				job, found, err := pipeline.Job("some-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				build, err = job.CreateBuild()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(build.IsScheduled()).To(BeFalse())
-			})
-
-			JustBeforeEach(func() {
-				found, err = build.Schedule()
-				Expect(err).ToNot(HaveOccurred())
-
-				f, err = build.Reload()
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			Context("when build exists", func() {
-				It("sets the build to scheduled", func() {
-					Expect(f).To(BeTrue())
-					Expect(found).To(BeTrue())
-					Expect(build.IsScheduled()).To(BeTrue())
-				})
-			})
-
-			Context("when the build does not exist", func() {
-				var found2 bool
-				BeforeEach(func() {
-					var err error
-					found2, err = build.Delete()
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("returns false", func() {
-					Expect(f).To(BeFalse())
-					Expect(found2).To(BeTrue())
-					Expect(found).To(BeFalse())
-				})
-			})
-		})
 	})
 
-	Describe("UseInputs", func() {
+	Describe("Schedule", func() {
 		var build db.Build
 		var pipeline db.Pipeline
+		var resource db.Resource
+		var scheduleFound, reloadFound bool
+		var err error
 
 		BeforeEach(func() {
 			pipelineConfig := atc.Config{
@@ -1077,7 +1030,7 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resource, found, err := pipeline.Resource("some-resource")
+			resource, found, err = pipeline.Resource("some-resource")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -1086,8 +1039,10 @@ var _ = Describe("Build", func() {
 
 			err = resourceConfig.SaveVersions([]atc.Version{atc.Version{"some": "version"}})
 			Expect(err).ToNot(HaveOccurred())
+		})
 
-			err = build.UseInputs([]db.BuildInput{
+		JustBeforeEach(func() {
+			scheduleFound, err = build.Schedule([]db.BuildInput{
 				db.BuildInput{
 					Name:       "some-input",
 					ResourceID: resource.ID(),
@@ -1095,73 +1050,101 @@ var _ = Describe("Build", func() {
 				},
 			})
 			Expect(err).ToNot(HaveOccurred())
+
+			reloadFound, err = build.Reload()
+			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("uses provided build inputs", func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
+		Context("when build exists", func() {
+			It("uses provided build inputs", func() {
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
 
-			brt := db.BaseResourceType{
-				Name: "some-other-type",
-			}
+				brt := db.BaseResourceType{
+					Name: "some-other-type",
+				}
 
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
+				_, err = brt.FindOrCreate(setupTx, false)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
 
-			resource, found, err := pipeline.Resource("some-other-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+				resource, found, err := pipeline.Resource("some-other-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-			resourceConfig, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
+				resourceConfig, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfig.SaveVersions([]atc.Version{atc.Version{"some": "weird-version"}})
-			Expect(err).ToNot(HaveOccurred())
+				err = resourceConfig.SaveVersions([]atc.Version{atc.Version{"some": "weird-version"}})
+				Expect(err).ToNot(HaveOccurred())
 
-			setupTx2, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
+				setupTx2, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
 
-			brt2 := db.BaseResourceType{
-				Name: "type",
-			}
+				brt2 := db.BaseResourceType{
+					Name: "type",
+				}
 
-			_, err = brt2.FindOrCreate(setupTx2, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx2.Commit()).To(Succeed())
+				_, err = brt2.FindOrCreate(setupTx2, false)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx2.Commit()).To(Succeed())
 
-			weirdResource, found, err := pipeline.Resource("weird")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+				weirdResource, found, err := pipeline.Resource("weird")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-			weirdRC, err := weirdResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
+				weirdRC, err := weirdResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
 
-			err = weirdRC.SaveVersions([]atc.Version{atc.Version{"weird": "version"}})
-			Expect(err).ToNot(HaveOccurred())
+				err = weirdRC.SaveVersions([]atc.Version{atc.Version{"weird": "version"}})
+				Expect(err).ToNot(HaveOccurred())
 
-			err = build.UseInputs([]db.BuildInput{
-				{
-					Name:       "some-other-input",
-					ResourceID: resource.ID(),
-					Version:    atc.Version{"some": "weird-version"},
-				},
-				{
-					Name:       "some-weird-input",
-					ResourceID: weirdResource.ID(),
-					Version:    atc.Version{"weird": "version"},
-				},
+				found, err = build.Schedule([]db.BuildInput{
+					{
+						Name:       "some-other-input",
+						ResourceID: resource.ID(),
+						Version:    atc.Version{"some": "weird-version"},
+					},
+					{
+						Name:       "some-weird-input",
+						ResourceID: weirdResource.ID(),
+						Version:    atc.Version{"weird": "version"},
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				actualBuildInput, _, err := build.Resources()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(actualBuildInput)).To(Equal(2))
+				Expect(actualBuildInput[0].Name).To(Equal("some-other-input"))
+				Expect(actualBuildInput[0].Version).To(Equal(atc.Version{"some": "weird-version"}))
+				Expect(actualBuildInput[1].Name).To(Equal("some-weird-input"))
+				Expect(actualBuildInput[1].Version).To(Equal(atc.Version{"weird": "version"}))
 			})
-			Expect(err).ToNot(HaveOccurred())
 
-			actualBuildInput, _, err := build.Resources()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(actualBuildInput)).To(Equal(2))
-			Expect(actualBuildInput[0].Name).To(Equal("some-other-input"))
-			Expect(actualBuildInput[0].Version).To(Equal(atc.Version{"some": "weird-version"}))
-			Expect(actualBuildInput[1].Name).To(Equal("some-weird-input"))
-			Expect(actualBuildInput[1].Version).To(Equal(atc.Version{"weird": "version"}))
+			It("sets the build to scheduled", func() {
+				Expect(scheduleFound).To(BeTrue())
+				Expect(reloadFound).To(BeTrue())
+				Expect(build.IsScheduled()).To(BeTrue())
+			})
 		})
+
+		Context("when the build does not exist", func() {
+			var deleteFound bool
+			BeforeEach(func() {
+				var err error
+				deleteFound, err = build.Delete()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns false", func() {
+				Expect(scheduleFound).To(BeFalse())
+				Expect(reloadFound).To(BeFalse())
+				Expect(deleteFound).To(BeTrue())
+			})
+		})
+
 	})
 
 	Describe("FinishWithError", func() {

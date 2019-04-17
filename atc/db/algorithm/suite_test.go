@@ -1,6 +1,8 @@
 package algorithm_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -37,4 +39,14 @@ var _ = BeforeEach(func() {
 	postgresRunner.Truncate()
 
 	dbConn = postgresRunner.OpenConn()
+})
+
+var _ = AfterEach(func() {
+	err := dbConn.Close()
+	Expect(err).NotTo(HaveOccurred())
+})
+
+var _ = AfterSuite(func() {
+	dbProcess.Signal(os.Interrupt)
+	<-dbProcess.Wait()
 })

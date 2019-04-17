@@ -97,11 +97,6 @@ func (r *resourceConfigScope) SaveVersions(versions []atc.Version) error {
 		return err
 	}
 
-	err = bumpCacheIndexForPipelinesUsingResourceConfigScope(r.conn, r.id)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -302,44 +297,4 @@ func incrementCheckOrder(tx Tx, r ResourceConfigScope, version string) error {
 		AND version = $2
 		AND check_order <= mc.co;`, r.ID(), version)
 	return err
-}
-
-func bumpCacheIndexForPipelinesUsingResourceConfigScope(conn Conn, rcsID int) error {
-	rows, err := psql.Select("p.id").
-		From("pipelines p").
-		Join("resources r ON r.pipeline_id = p.id").
-		Where(sq.Eq{
-			"r.resource_config_scope_id": rcsID,
-		}).
-		RunWith(conn).
-		Query()
-	if err != nil {
-		return err
-	}
-
-	var pipelines []int
-	for rows.Next() {
-		var pid int
-		err = rows.Scan(&pid)
-		if err != nil {
-			return err
-		}
-
-		pipelines = append(pipelines, pid)
-	}
-
-	for _, p := range pipelines {
-		_, err := psql.Update("pipelines").
-			Set("cache_index", sq.Expr("cache_index + 1")).
-			Where(sq.Eq{
-				"id": p,
-			}).
-			RunWith(conn).
-			Exec()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

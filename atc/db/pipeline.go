@@ -89,7 +89,6 @@ type pipeline struct {
 	paused        bool
 	public        bool
 
-	cacheIndex int
 	versionsDB *algorithm.VersionsDB
 
 	conn        Conn
@@ -912,28 +911,6 @@ func (p *pipeline) getBuildsFrom(col string) (map[string]Build, error) {
 	}
 
 	return nextBuilds, nil
-}
-
-func bumpCacheIndex(tx Tx, pipelineID int) error {
-	res, err := psql.Update("pipelines").
-		Set("cache_index", sq.Expr("cache_index + 1")).
-		Where(sq.Eq{"id": pipelineID}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return nonOneRowAffectedError{rows}
-	}
-
-	return nil
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {

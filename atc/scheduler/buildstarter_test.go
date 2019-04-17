@@ -188,36 +188,7 @@ var _ = Describe("BuildStarter", func() {
 
 						BeforeEach(func() {
 							fakePipeline.LoadVersionsDBReturns(&algorithm.VersionsDB{
-								ResourceVersions: []algorithm.ResourceVersion{
-									{
-										VersionID:  73,
-										ResourceID: 127,
-										CheckOrder: 123,
-									},
-								},
-								BuildOutputs: []algorithm.BuildOutput{
-									{
-										ResourceVersion: algorithm.ResourceVersion{
-											VersionID:  73,
-											ResourceID: 127,
-											CheckOrder: 123,
-										},
-										BuildID: 66,
-										JobID:   13,
-									},
-								},
-								BuildInputs: []algorithm.BuildInput{
-									{
-										ResourceVersion: algorithm.ResourceVersion{
-											VersionID:  66,
-											ResourceID: 77,
-											CheckOrder: 88,
-										},
-										BuildID:   66,
-										JobID:     13,
-										InputName: "some-input-name",
-									},
-								},
+								DisabledVersionIDs: map[int]bool{73: true},
 								JobIDs: map[string]int{
 									"bad-luck-job": 13,
 								},
@@ -260,7 +231,6 @@ var _ = Describe("BuildStarter", func() {
 									job.GetNextBuildInputsReturns([]db.BuildInput{}, true, nil)
 									fakePipeline.CheckPausedReturns(false, nil)
 									createdBuild.ScheduleReturns(true, nil)
-									createdBuild.UseInputsReturns(nil)
 									fakeEngine.CreateBuildReturns(new(enginefakes.FakeBuild), nil)
 								})
 
@@ -399,166 +369,151 @@ var _ = Describe("BuildStarter", func() {
 							Expect(tryStartErr).NotTo(HaveOccurred())
 						})
 
-						It("doesn't try to use inputs for build", func() {
-							Expect(pendingBuild1.UseInputsCallCount()).To(BeZero())
+						It("doesn't try adopt build pipes", func() {
+							Expect(pendingBuild1.AdoptBuildPipesCallCount()).To(BeZero())
 						})
 					})
 
-					Context("when marking the build as scheduled succeeds", func() {
+					Context("when adopting the build pipes succeeds", func() {
 						BeforeEach(func() {
-							pendingBuild1.ScheduleReturns(true, nil)
+							pendingBuild1.AdoptBuildPipesReturns(nil)
 						})
 
-						Context("when using inputs for build fails", func() {
+						Context("when creating the build plan fails", func() {
 							BeforeEach(func() {
-								pendingBuild1.UseInputsReturns(disaster)
+								fakeFactory.CreateReturns(atc.Plan{}, disaster)
 							})
 
-							It("returns the error", func() {
-								Expect(tryStartErr).To(Equal(disaster))
-							})
-
-							It("used the right inputs for the right build", func() {
-								Expect(pendingBuild1.UseInputsCallCount()).To(Equal(1))
-								actualInputs := pendingBuild1.UseInputsArgsForCall(0)
+							It("tried to schedule the build with the correct inputs", func() {
+								actualInputs := pendingBuild1.ScheduleArgsForCall(0)
 								Expect(actualInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
+
+								Expect(pendingBuild1.AdoptBuildPipesCallCount()).To(Equal(1))
+							})
+
+							It("stops creating builds for job", func() {
+								Expect(fakeFactory.CreateCallCount()).To(Equal(1))
+								actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
+								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+								Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+								Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
+								Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
+							})
+
+							Context("when marking the build as errored fails", func() {
+								BeforeEach(func() {
+									pendingBuild1.FinishReturns(disaster)
+								})
+
+								It("doesn't return an error", func() {
+									Expect(tryStartErr).NotTo(HaveOccurred())
+								})
+
+								It("marked the right build as errored", func() {
+									Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
+									actualStatus := pendingBuild1.FinishArgsForCall(0)
+									Expect(actualStatus).To(Equal(db.BuildStatusErrored))
+								})
+							})
+
+							Context("when marking the build as errored succeeds", func() {
+								BeforeEach(func() {
+									pendingBuild1.FinishReturns(nil)
+								})
+
+								It("doesn't return an error", func() {
+									Expect(tryStartErr).NotTo(HaveOccurred())
+								})
 							})
 						})
 
-						Context("when using inputs for build succeeds", func() {
+						Context("when creating the build plan succeeds", func() {
 							BeforeEach(func() {
-								pendingBuild1.UseInputsReturns(nil)
+								fakeFactory.CreateReturns(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}, nil)
+								fakeEngine.CreateBuildReturns(new(enginefakes.FakeBuild), nil)
 							})
 
-							Context("when creating the build plan fails", func() {
+							It("creates build plans for all builds", func() {
+								Expect(fakeFactory.CreateCallCount()).To(Equal(3))
+								actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
+								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+								Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+								Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
+								Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
+
+								actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
+								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+								Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+								Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
+								Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
+
+								actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(2)
+								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+								Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+								Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
+								Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
+							})
+
+							Context("when creating the engine build fails", func() {
 								BeforeEach(func() {
-									fakeFactory.CreateReturns(atc.Plan{}, disaster)
+									fakeEngine.CreateBuildReturns(nil, disaster)
 								})
 
-								It("stops creating builds for job", func() {
-									Expect(fakeFactory.CreateCallCount()).To(Equal(1))
-									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
-									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
-									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
-								})
-
-								Context("when marking the build as errored fails", func() {
-									BeforeEach(func() {
-										pendingBuild1.FinishReturns(disaster)
-									})
-
-									It("doesn't return an error", func() {
-										Expect(tryStartErr).NotTo(HaveOccurred())
-									})
-
-									It("marked the right build as errored", func() {
-										Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
-										actualStatus := pendingBuild1.FinishArgsForCall(0)
-										Expect(actualStatus).To(Equal(db.BuildStatusErrored))
-									})
-								})
-
-								Context("when marking the build as errored succeeds", func() {
-									BeforeEach(func() {
-										pendingBuild1.FinishReturns(nil)
-									})
-
-									It("doesn't return an error", func() {
-										Expect(tryStartErr).NotTo(HaveOccurred())
-									})
+								It("doesn't return an error", func() {
+									Expect(tryStartErr).NotTo(HaveOccurred())
 								})
 							})
 
-							Context("when creating the build plan succeeds", func() {
+							Context("when creating the engine build succeeds", func() {
+								var engineBuild1 *enginefakes.FakeBuild
+								var engineBuild2 *enginefakes.FakeBuild
+								var engineBuild3 *enginefakes.FakeBuild
+
 								BeforeEach(func() {
-									fakeFactory.CreateReturns(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}, nil)
-									fakeEngine.CreateBuildReturns(new(enginefakes.FakeBuild), nil)
-								})
-
-								It("creates build plans for all builds", func() {
-									Expect(fakeFactory.CreateCallCount()).To(Equal(3))
-									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
-									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
-									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
-
-									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
-									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
-									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
-
-									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(2)
-									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
-									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
-								})
-
-								Context("when creating the engine build fails", func() {
-									BeforeEach(func() {
-										fakeEngine.CreateBuildReturns(nil, disaster)
-									})
-
-									It("doesn't return an error", func() {
-										Expect(tryStartErr).NotTo(HaveOccurred())
-									})
-								})
-
-								Context("when creating the engine build succeeds", func() {
-									var engineBuild1 *enginefakes.FakeBuild
-									var engineBuild2 *enginefakes.FakeBuild
-									var engineBuild3 *enginefakes.FakeBuild
-
-									BeforeEach(func() {
-										engineBuild1 = new(enginefakes.FakeBuild)
-										engineBuild2 = new(enginefakes.FakeBuild)
-										engineBuild3 = new(enginefakes.FakeBuild)
-										createBuildCallCount := 0
-										fakeEngine.CreateBuildStub = func(lager.Logger, db.Build, atc.Plan) (engine.Build, error) {
-											createBuildCallCount++
-											switch createBuildCallCount {
-											case 1:
-												return engineBuild1, nil
-											case 2:
-												return engineBuild2, nil
-											case 3:
-												return engineBuild3, nil
-											default:
-												panic("unexpected-call-count-for-create-build")
-											}
+									engineBuild1 = new(enginefakes.FakeBuild)
+									engineBuild2 = new(enginefakes.FakeBuild)
+									engineBuild3 = new(enginefakes.FakeBuild)
+									createBuildCallCount := 0
+									fakeEngine.CreateBuildStub = func(lager.Logger, db.Build, atc.Plan) (engine.Build, error) {
+										createBuildCallCount++
+										switch createBuildCallCount {
+										case 1:
+											return engineBuild1, nil
+										case 2:
+											return engineBuild2, nil
+										case 3:
+											return engineBuild3, nil
+										default:
+											panic("unexpected-call-count-for-create-build")
 										}
-									})
+									}
+								})
 
-									It("doesn't return an error", func() {
-										Expect(tryStartErr).NotTo(HaveOccurred())
-									})
+								It("doesn't return an error", func() {
+									Expect(tryStartErr).NotTo(HaveOccurred())
+								})
 
-									itUpdatedMaxInFlightForAllBuilds()
+								itUpdatedMaxInFlightForAllBuilds()
 
-									It("created the engine build with the right build and plan", func() {
-										Expect(fakeEngine.CreateBuildCallCount()).To(Equal(3))
-										_, actualBuild, actualPlan := fakeEngine.CreateBuildArgsForCall(0)
-										Expect(actualBuild).To(Equal(pendingBuild1))
-										Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+								It("created the engine build with the right build and plan", func() {
+									Expect(fakeEngine.CreateBuildCallCount()).To(Equal(3))
+									_, actualBuild, actualPlan := fakeEngine.CreateBuildArgsForCall(0)
+									Expect(actualBuild).To(Equal(pendingBuild1))
+									Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
 
-										_, actualBuild, actualPlan = fakeEngine.CreateBuildArgsForCall(1)
-										Expect(actualBuild).To(Equal(pendingBuild2))
-										Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+									_, actualBuild, actualPlan = fakeEngine.CreateBuildArgsForCall(1)
+									Expect(actualBuild).To(Equal(pendingBuild2))
+									Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
 
-										_, actualBuild, actualPlan = fakeEngine.CreateBuildArgsForCall(2)
-										Expect(actualBuild).To(Equal(pendingBuild3))
-										Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
-									})
+									_, actualBuild, actualPlan = fakeEngine.CreateBuildArgsForCall(2)
+									Expect(actualBuild).To(Equal(pendingBuild3))
+									Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+								})
 
-									It("starts the engine build (asynchronously)", func() {
-										Eventually(engineBuild1.ResumeCallCount).Should(Equal(1))
-										Eventually(engineBuild2.ResumeCallCount).Should(Equal(1))
-										Eventually(engineBuild3.ResumeCallCount).Should(Equal(1))
-									})
+								It("starts the engine build (asynchronously)", func() {
+									Eventually(engineBuild1.ResumeCallCount).Should(Equal(1))
+									Eventually(engineBuild2.ResumeCallCount).Should(Equal(1))
+									Eventually(engineBuild3.ResumeCallCount).Should(Equal(1))
 								})
 							})
 						})

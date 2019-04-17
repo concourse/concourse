@@ -1,5 +1,11 @@
 package algorithm
 
+import (
+	"fmt"
+	"log"
+	"strings"
+)
+
 // NOTE: we're effectively ignoring check_order here and relying on
 // build history - be careful when doing #413 that we don't go
 // 'back in time'
@@ -42,23 +48,21 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 	// with jobs that have the broadest output sets, so that we can pin the most
 	// at once
 	//
-	// NOTE 2: probably also makes sense to go over jobs with the fewest builds
-	// first, so that we give up more quickly
-	//
 	// NOTE 3: maybe also select distinct build outputs so we don't waste time on
 	// the same thing (i.e. constantly re-triggered build)
-	// TODO: add disabling versions
+	//
+	// NOTE : make sure everything is deterministically ordered
 
 	for i, inputConfig := range inputConfigs {
 		debug := func(messages ...interface{}) {
-			// log.Println(
-			// 	append(
-			// 		[]interface{}{
-			// 			strings.Repeat("-", depth) + fmt.Sprintf("[%s]", inputConfig.Name),
-			// 		},
-			// 		messages...,
-			// 	)...,
-			// )
+			log.Println(
+				append(
+					[]interface{}{
+						strings.Repeat("-", depth) + fmt.Sprintf("[%s]", inputConfig.Name),
+					},
+					messages...,
+				)...,
+			)
 		}
 
 		if len(inputConfig.Passed) == 0 {
@@ -115,7 +119,16 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 			continue
 		}
 
-		for jobID := range inputConfig.Passed {
+		orderedJobs := []int{}
+		if len(inputConfig.Passed) != 0 {
+			var err error
+			orderedJobs, err = db.OrderPassedJobs(inputConfig.JobID, inputConfig.Passed)
+			if err != nil {
+				return false, err
+			}
+		}
+
+		for _, jobID := range orderedJobs {
 			if candidates[i] != nil {
 				debug(i, "has a candidate")
 
@@ -130,14 +143,6 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 			} else {
 				debug(i, "has no candidate yet")
 			}
-
-			// if inputConfig.EveryVersion {
-			//		grab latest build for inputConfig.JobID
-			//    query to build pipes for the from_build_id that the to_build_id is the latest build for inputConfig.JobID and the from_build_id is for the jobID of our passed constraint
-			//    query for all builds after the from build id fromt he build pipe and do asc order
-			//    loop over those builds
-			//    if none of those builds match the criteria, then query for all builds before and equal to the build if from build pipe in desc order
-			//    loop over those builds
 
 			// loop over previous output sets, latest first
 			var builds []int
@@ -230,7 +235,7 @@ func resolve(depth int, db *VersionsDB, inputConfigs InputConfigs, candidates []
 				}
 
 				// we found a candidate for ourselves and the rest are OK too - recurse
-				if candidates[i] != nil && !mismatch {
+				if candidates[i] != nil && candidates[i].VouchedForBy[jobID] && !mismatch {
 					debug("recursing")
 
 					resolved, err := resolve(depth+1, db, inputConfigs, candidates)

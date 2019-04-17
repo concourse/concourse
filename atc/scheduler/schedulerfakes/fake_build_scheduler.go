@@ -13,12 +13,12 @@ import (
 )
 
 type FakeBuildScheduler struct {
-	ScheduleStub        func(lager.Logger, *algorithm.VersionsDB, []db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)
+	ScheduleStub        func(lager.Logger, *algorithm.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)
 	scheduleMutex       sync.RWMutex
 	scheduleArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 *algorithm.VersionsDB
-		arg3 []db.Job
+		arg3 db.Job
 		arg4 db.Resources
 		arg5 atc.VersionedResourceTypes
 	}
@@ -34,22 +34,17 @@ type FakeBuildScheduler struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 []db.Job, arg4 db.Resources, arg5 atc.VersionedResourceTypes) (map[string]time.Duration, error) {
-	var arg3Copy []db.Job
-	if arg3 != nil {
-		arg3Copy = make([]db.Job, len(arg3))
-		copy(arg3Copy, arg3)
-	}
+func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 db.Job, arg4 db.Resources, arg5 atc.VersionedResourceTypes) (map[string]time.Duration, error) {
 	fake.scheduleMutex.Lock()
 	ret, specificReturn := fake.scheduleReturnsOnCall[len(fake.scheduleArgsForCall)]
 	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 *algorithm.VersionsDB
-		arg3 []db.Job
+		arg3 db.Job
 		arg4 db.Resources
 		arg5 atc.VersionedResourceTypes
-	}{arg1, arg2, arg3Copy, arg4, arg5})
-	fake.recordInvocation("Schedule", []interface{}{arg1, arg2, arg3Copy, arg4, arg5})
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("Schedule", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.scheduleMutex.Unlock()
 	if fake.ScheduleStub != nil {
 		return fake.ScheduleStub(arg1, arg2, arg3, arg4, arg5)
@@ -67,13 +62,13 @@ func (fake *FakeBuildScheduler) ScheduleCallCount() int {
 	return len(fake.scheduleArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) ScheduleCalls(stub func(lager.Logger, *algorithm.VersionsDB, []db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)) {
+func (fake *FakeBuildScheduler) ScheduleCalls(stub func(lager.Logger, *algorithm.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)) {
 	fake.scheduleMutex.Lock()
 	defer fake.scheduleMutex.Unlock()
 	fake.ScheduleStub = stub
 }
 
-func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, []db.Job, db.Resources, atc.VersionedResourceTypes) {
+func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) {
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
 	argsForCall := fake.scheduleArgsForCall[i]

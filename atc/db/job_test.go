@@ -503,7 +503,7 @@ var _ = Describe("Job", func() {
 				scheduledBuild, err = job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				scheduled, err := scheduledBuild.Schedule()
+				scheduled, err := scheduledBuild.Schedule([]db.BuildInput{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(scheduled).To(BeTrue())
 
@@ -511,7 +511,7 @@ var _ = Describe("Job", func() {
 					finishedBuild, err := job.CreateBuild()
 					Expect(err).NotTo(HaveOccurred())
 
-					scheduled, err = finishedBuild.Schedule()
+					scheduled, err = finishedBuild.Schedule([]db.BuildInput{})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(scheduled).To(BeTrue())
 
@@ -555,7 +555,7 @@ var _ = Describe("Job", func() {
 				serialGroupBuild, err = otherSerialJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				scheduled, err := serialGroupBuild.Schedule()
+				scheduled, err := serialGroupBuild.Schedule([]db.BuildInput{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(scheduled).To(BeTrue())
 
@@ -566,7 +566,7 @@ var _ = Describe("Job", func() {
 				differentSerialGroupBuild, err := differentSerialJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				scheduled, err = differentSerialGroupBuild.Schedule()
+				scheduled, err = differentSerialGroupBuild.Schedule([]db.BuildInput{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(scheduled).To(BeTrue())
 			})
@@ -666,7 +666,7 @@ var _ = Describe("Job", func() {
 			Expect(found).To(BeTrue())
 			Expect(build.ID()).To(Equal(buildTwo.ID()))
 
-			scheduled, err := buildTwo.Schedule()
+			scheduled, err := buildTwo.Schedule([]db.BuildInput{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(scheduled).To(BeTrue())
 			Expect(buildTwo.Finish(db.BuildStatusSucceeded)).To(Succeed())
@@ -772,25 +772,35 @@ var _ = Describe("Job", func() {
 		Describe("independent build inputs", func() {
 			It("gets independent build inputs for the given job name", func() {
 				inputVersions := algorithm.InputMapping{
-					"some-input-1": algorithm.InputVersion{
-						VersionID:       versions[0].ID,
-						ResourceID:      resource.ID(),
-						FirstOccurrence: false,
+					"some-input-1": algorithm.InputSource{
+						InputVersion: algorithm.InputVersion{
+							VersionID:       versions[0].ID,
+							ResourceID:      resource.ID(),
+							FirstOccurrence: false,
+						},
+						PassedBuildIDs: []int{},
 					},
-					"some-input-2": algorithm.InputVersion{
-						VersionID:       versions[1].ID,
-						ResourceID:      resource.ID(),
-						FirstOccurrence: true,
+					"some-input-2": algorithm.InputSource{
+						InputVersion: algorithm.InputVersion{
+							VersionID:       versions[1].ID,
+							ResourceID:      resource.ID(),
+							FirstOccurrence: true,
+						},
+						PassedBuildIDs: []int{},
 					},
 				}
+
 				err := job.SaveIndependentInputMapping(inputVersions)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline2InputVersions := algorithm.InputMapping{
-					"some-input-3": algorithm.InputVersion{
-						VersionID:       versions[2].ID,
-						ResourceID:      resource2.ID(),
-						FirstOccurrence: false,
+					"some-input-3": algorithm.InputSource{
+						InputVersion: algorithm.InputVersion{
+							VersionID:       versions[2].ID,
+							ResourceID:      resource2.ID(),
+							FirstOccurrence: false,
+						},
+						PassedBuildIDs: []int{},
 					},
 				}
 				err = job2.SaveIndependentInputMapping(pipeline2InputVersions)
@@ -818,15 +828,21 @@ var _ = Describe("Job", func() {
 
 				By("updating the set of independent build inputs")
 				inputVersions2 := algorithm.InputMapping{
-					"some-input-2": algorithm.InputVersion{
-						VersionID:       versions[2].ID,
-						ResourceID:      resource.ID(),
-						FirstOccurrence: false,
+					"some-input-2": algorithm.InputSource{
+						InputVersion: algorithm.InputVersion{
+							VersionID:       versions[2].ID,
+							ResourceID:      resource.ID(),
+							FirstOccurrence: false,
+						},
+						PassedBuildIDs: []int{},
 					},
-					"some-input-3": algorithm.InputVersion{
-						VersionID:       versions[2].ID,
-						ResourceID:      resource.ID(),
-						FirstOccurrence: true,
+					"some-input-3": algorithm.InputSource{
+						InputVersion: algorithm.InputVersion{
+							VersionID:       versions[2].ID,
+							ResourceID:      resource.ID(),
+							FirstOccurrence: true,
+						},
+						PassedBuildIDs: []int{},
 					},
 				}
 				err = job.SaveIndependentInputMapping(inputVersions2)
@@ -951,25 +967,34 @@ var _ = Describe("Job", func() {
 
 		It("gets next build inputs for the given job name", func() {
 			inputVersions := algorithm.InputMapping{
-				"some-input-1": algorithm.InputVersion{
-					VersionID:       versions[0].ID,
-					ResourceID:      resource.ID(),
-					FirstOccurrence: false,
+				"some-input-1": algorithm.InputSource{
+					InputVersion: algorithm.InputVersion{
+						VersionID:       versions[0].ID,
+						ResourceID:      resource.ID(),
+						FirstOccurrence: false,
+					},
+					PassedBuildIDs: []int{},
 				},
-				"some-input-2": algorithm.InputVersion{
-					VersionID:       versions[1].ID,
-					ResourceID:      resource.ID(),
-					FirstOccurrence: true,
+				"some-input-2": algorithm.InputSource{
+					InputVersion: algorithm.InputVersion{
+						VersionID:       versions[1].ID,
+						ResourceID:      resource.ID(),
+						FirstOccurrence: true,
+					},
+					PassedBuildIDs: []int{},
 				},
 			}
 			err := job.SaveNextInputMapping(inputVersions)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline2InputVersions := algorithm.InputMapping{
-				"some-input-3": algorithm.InputVersion{
-					VersionID:       versions[2].ID,
-					ResourceID:      resource2.ID(),
-					FirstOccurrence: false,
+				"some-input-3": algorithm.InputSource{
+					InputVersion: algorithm.InputVersion{
+						VersionID:       versions[2].ID,
+						ResourceID:      resource2.ID(),
+						FirstOccurrence: false,
+					},
+					PassedBuildIDs: []int{},
 				},
 			}
 			err = job2.SaveNextInputMapping(pipeline2InputVersions)
@@ -998,15 +1023,21 @@ var _ = Describe("Job", func() {
 
 			By("updating the set of next build inputs")
 			inputVersions2 := algorithm.InputMapping{
-				"some-input-2": algorithm.InputVersion{
-					VersionID:       versions[2].ID,
-					ResourceID:      resource.ID(),
-					FirstOccurrence: false,
+				"some-input-2": algorithm.InputSource{
+					InputVersion: algorithm.InputVersion{
+						VersionID:       versions[2].ID,
+						ResourceID:      resource.ID(),
+						FirstOccurrence: false,
+					},
+					PassedBuildIDs: []int{},
 				},
-				"some-input-3": algorithm.InputVersion{
-					VersionID:       versions[2].ID,
-					ResourceID:      resource.ID(),
-					FirstOccurrence: true,
+				"some-input-3": algorithm.InputSource{
+					InputVersion: algorithm.InputVersion{
+						VersionID:       versions[2].ID,
+						ResourceID:      resource.ID(),
+						FirstOccurrence: true,
+					},
+					PassedBuildIDs: []int{},
 				},
 			}
 			err = job.SaveNextInputMapping(inputVersions2)
@@ -1153,7 +1184,7 @@ var _ = Describe("Job", func() {
 			BeforeEach(func() {
 				var err error
 				var found bool
-				found, err = build1DB.Schedule()
+				found, err = build1DB.Schedule([]db.BuildInput{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})

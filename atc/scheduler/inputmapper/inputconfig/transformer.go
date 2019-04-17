@@ -9,7 +9,11 @@ import (
 //go:generate counterfeiter . Transformer
 
 type Transformer interface {
-	TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error)
+	TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (InputConfigs, error)
+}
+
+type InputConfigs interface {
+	Resolve(db *algorithm.VersionsDB) (algorithm.InputMapping, bool, error)
 }
 
 func NewTransformer(pipeline db.Pipeline) Transformer {
@@ -20,7 +24,7 @@ type transformer struct {
 	pipeline db.Pipeline
 }
 
-func (i *transformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (algorithm.InputConfigs, error) {
+func (i *transformer) TransformInputConfigs(db *algorithm.VersionsDB, jobName string, inputs []atc.JobInput) (InputConfigs, error) {
 	inputConfigs := algorithm.InputConfigs{}
 
 	for _, input := range inputs {

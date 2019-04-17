@@ -3,7 +3,6 @@ package scheduler
 import (
 	"errors"
 	"os"
-	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -34,9 +33,6 @@ type Runner struct {
 	Scheduler BuildScheduler
 	Noop      bool
 	Interval  time.Duration
-
-	schedulingJobs map[int]struct{}
-	jobsLock       sync.Mutex
 }
 
 func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -82,6 +78,16 @@ func (runner *Runner) tick(logger lager.Logger) error {
 			Duration:     time.Since(start),
 		}.Emit(logger)
 	}()
+
+	found, err := runner.Pipeline.Reload()
+	if err != nil {
+		logger.Error("failed-to-update-pipeline-config", err)
+		return nil
+	}
+
+	if !found {
+		return errPipelineRemoved
+	}
 
 	versions, err := runner.Pipeline.LoadVersionsDB()
 	if err != nil {
@@ -162,8 +168,4 @@ func (runner *Runner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock,
 			Duration:     duration,
 		}.Emit(sLog)
 	}
-
-	runner.jobsLock.Lock()
-	delete(runner.schedulingJobs, job.ID())
-	runner.jobsLock.Unlock()
 }

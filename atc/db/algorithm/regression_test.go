@@ -179,8 +179,19 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			OK:     false,
-			Values: map[string]string{},
+			OK: true,
+			Values: map[string]string{
+				"cflinuxfs2-rootfs-release-tarball": "imported-r192v105139",
+				"bosh-lite-stemcell":                "imported-r85v43839",
+				"etcd-release-tarball":              "imported-r113v105882",
+				"garden-linux-release-tarball":      "imported-r111v105557",
+				"runtime-ci":                        "imported-r163v106472",
+				"cf-release":                        "imported-r33v106196",
+				"stemcell":                          "imported-r3v103933",
+				"diego-final-releases":              "imported-r102v105599",
+				"diego-release-master":              "imported-r168v105643",
+				"diego-cf-compatibility":            "imported-r190v105760",
+			},
 		},
 	}),
 
