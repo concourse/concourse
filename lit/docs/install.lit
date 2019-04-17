@@ -78,3 +78,4 @@ copy-paste.
 \include-section{install/db.lit}
 \include-section{install/web.lit}
 \include-section{install/worker.lit}
+\include-section{install/upgrading.lit}

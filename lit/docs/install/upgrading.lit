@@ -1,0 +1,29 @@
+\title{Upgrading Concourse}
+
+\use-plugin{concourse-docs}
+
+Concourse is upgraded by stopping the Concourse process, swapping out the
+\code{concourse} binary with the new one, and re-starting it. This should be
+done on each \reference{web-node} and \reference{worker-node}. Be careful to
+check the release notes for anything marked 'breaking' - in particular, you'll
+want to look for any flags that have changed.
+
+Each \reference{web-node} will automatically run migrations on start and lock
+via the database to ensure only one of them runs the migrations. We currently
+do not guarantee zero-downtime upgrades, as migrations may make changes that
+confuse the older \code{web} nodes. This should resolve as each node is
+upgraded, and shouldn't result in any inconsistent state.
+
+Typically, Concourse can be upgraded from any version to any other version,
+though around 3.x and 4.x we made some changes to how migrations are run, and
+as a result the following upgrade paths must be followed:
+
+\table{
+  \table-row{Current Version}{Upgrade Path}
+}{
+  \table-row{< \ghrelease{v3.6.0}}{\ghrelease{v3.6.0} -> \ghrelease{v4.0.0} -> latest}
+}{
+  \table-row{= \ghrelease{v3.6.0}}{\ghrelease{v4.0.0} -> latest}
+}
+
+We'll try to minimize this kind of thing in the future.
