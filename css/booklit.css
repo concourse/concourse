@@ -116,6 +116,19 @@ h3 {
 .top-nav {
   grid-area: primary-nav;
 }
+.top-nav .icon-link {
+  background-repeat: no-repeat;
+  background-size: 22px 22px;
+  background-position: 20px 30px;
+  padding-left: 54px;
+}
+/* shoutout to hashicorp who i've pretty much copied this from */
+.top-nav .download-link {
+  background-image: url("../images/arrow-down-box.svg");
+}
+.top-nav .github-link {
+  background-image: url("../images/github-box.svg");
+}
 .top-search {
   grid-area: search;
 }
