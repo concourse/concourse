@@ -673,8 +673,6 @@ func (cmd *RunCommand) constructBackendMembers(
 		syslogDrainConfigured = false
 	}
 
-	drain := make(chan struct{})
-
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 
 	resourceFactory := resource.NewResourceFactory()
@@ -754,16 +752,6 @@ func (cmd *RunCommand) constructBackendMembers(
 	bus := dbConn.Bus()
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	members := []grouper.Member{
-		{Name: "drainer", Runner: drainer{
-			logger: logger.Session("drain"),
-			drain:  drain,
-			tracker: builds.NewTracker(
-				logger.Session("build-tracker"),
-				dbBuildFactory,
-				engine,
-			),
-			bus: bus,
-		}},
 		{Name: "pipelines", Runner: pipelines.SyncRunner{
 			Syncer: cmd.constructPipelineSyncer(
 				logger.Session("pipelines"),
@@ -784,7 +772,6 @@ func (cmd *RunCommand) constructBackendMembers(
 			Notifications: bus,
 			Interval:      cmd.BuildTrackerInterval,
 			Clock:         clock.NewClock(),
-			DrainCh:       drain,
 			Logger:        logger.Session("tracker-runner"),
 		}},
 		{Name: "collector", Runner: lockrunner.NewRunner(
@@ -1419,7 +1406,4 @@ func (cmd *RunCommand) appendStaticWorker(
 
 func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
-}
-
-func init() {
 }
