@@ -958,8 +958,8 @@ jobs:
       commitish: concourse/.git/ref
       tag: version/version
       tag_prefix: v
-      name: release-notes/release-name
-      body: release-notes/notes.md
+      name: built-notes/release-name
+      body: built-notes/notes.md
       globs:
       - concourse-linux/concourse-*.tgz
       - concourse-windows/concourse-*.zip
