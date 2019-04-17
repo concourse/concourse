@@ -946,7 +946,7 @@ jobs:
       passed: [shipit]
     - get: release-notes
     - get: docs
-  - agregate:
+  - aggregate:
     - task: prep-release-assets
       file: release-notes/ci/prep-release-assets.yml
       image: unit-image
