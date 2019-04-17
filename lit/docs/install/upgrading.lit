@@ -8,7 +8,7 @@ done on each \reference{web-node} and \reference{worker-node}. Be careful to
 check the release notes for anything marked 'breaking' - in particular, you'll
 want to look for any flags that have changed.
 
-Each \reference{web-node} will automatically run migrations on start and lock
+Each \reference{web-node} will automatically run migrations on start and locks
 via the database to ensure only one of them runs the migrations. We currently
 do not guarantee zero-downtime upgrades, as migrations may make changes that
 confuse the older \code{web} nodes. This should resolve as each node is
