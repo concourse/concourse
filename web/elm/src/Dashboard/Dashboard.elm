@@ -72,7 +72,6 @@ import ScreenSize exposing (ScreenSize(..))
 import UserState exposing (UserState)
 import Views.Icon as Icon
 import Views.Styles
-import Views.TopBar as TopBar
 
 
 type alias Flags =
@@ -104,6 +103,7 @@ init flags =
       , isUserMenuExpanded = False
       , dropdown = Hidden
       , screenSize = Desktop
+      , sideBarOpen = False
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -127,9 +127,6 @@ handleCallback msg ( model, effects ) =
             let
                 groups =
                     Group.groups apiData
-
-                noPipelines =
-                    List.isEmpty <| List.concatMap .pipelines groups
 
                 newModel =
                     case model.state of
@@ -157,7 +154,7 @@ handleCallback msg ( model, effects ) =
                         Nothing ->
                             UserState.UserStateLoggedOut
             in
-            if model.highDensity && noPipelines then
+            if model.highDensity && noPipelines { groups = groups } then
                 ( { newModel
                     | groups = groups
                     , highDensity = False
@@ -452,6 +449,9 @@ updateBody msg ( model, effects ) =
                 Nothing ->
                     ( model, effects )
 
+        Click HamburgerMenu ->
+            ( { model | sideBarOpen = not model.sideBarOpen }, effects )
+
         _ ->
             ( model, effects )
 
@@ -480,30 +480,8 @@ view userState model =
             (id "top-bar-app" :: Views.Styles.topBar False)
           <|
             [ Html.div [ style "display" "flex" ]
-                [ if model.screenSize == Mobile then
-                    Html.text ""
-
-                  else
-                    Icon.icon
-                        { sizePx = 54, image = "baseline-menu-24px.svg" }
-                        [ style "cursor" "pointer"
-                        , style "opacity" <|
-                            if model.hovered == Just HamburgerMenu then
-                                "1"
-
-                            else
-                                "0.5"
-                        , onClick <| Click HamburgerMenu
-                        , onMouseEnter <| Hover <| Just HamburgerMenu
-                        , onMouseLeave <| Hover Nothing
-                        ]
-                , Html.a
-                    ([ href "/"
-                     , style "border-left" <| "1px solid " ++ Colors.background
-                     ]
-                        ++ Views.Styles.concourseLogo
-                    )
-                    []
+                [ hamburgerMenu model
+                , Html.a (href "/" :: Styles.concourseLogo) []
                 ]
             ]
                 ++ (let
@@ -529,8 +507,96 @@ view userState model =
                         [ Login.view userState model False ]
                    )
         , Html.div
-            (id "page-below-top-bar" :: (Views.Styles.pageBelowTopBar <| Routes.Dashboard (Routes.Normal Nothing)))
-            (dashboardView model)
+            (id "page-below-top-bar"
+                :: Styles.pageBelowTopBar model
+            )
+          <|
+            if model.sideBarOpen then
+                [ sideBar model
+                , Html.div
+                    [ style "box-sizing" "border-box"
+                    , style "display" "flex"
+                    , style "padding-bottom" "50px"
+                    , style "height" "100%"
+                    , style "width" "100%"
+                    , style "overflow-y" "auto"
+                    ]
+                    (dashboardView model)
+                ]
+
+            else
+                dashboardView model
+        ]
+
+
+hamburgerMenu : Model -> Html Message
+hamburgerMenu model =
+    if model.screenSize == Mobile || noPipelines model then
+        Html.text ""
+
+    else
+        Icon.icon
+            { sizePx = 54, image = "baseline-menu-24px.svg" }
+        <|
+            [ onClick <| Click HamburgerMenu
+            , onMouseEnter <| Hover <| Just HamburgerMenu
+            , onMouseLeave <| Hover Nothing
+            ]
+                ++ Styles.hamburgerMenu
+                    { clicked = model.sideBarOpen
+                    , hovered = model.hovered == Just HamburgerMenu
+                    }
+
+
+sideBar : Model -> Html Message
+sideBar model =
+    Html.div
+        [ style "border-top" <| "1px solid " ++ Colors.background
+        , style "background-color" Colors.frame
+        , style "max-width" "38%"
+        , style "overflow-y" "auto"
+        ]
+        (model.groups |> List.map sideBarPipelineGroup)
+
+
+sideBarPipelineGroup : Group -> Html Message
+sideBarPipelineGroup g =
+    Html.div
+        [ style "display" "flex" ]
+        [ Html.div
+            [ style "width" "54px"
+            , style "display" "flex"
+            , style "align-items" "center"
+            , style "justify-content" "space-between"
+            , style "padding" "5px"
+            , style "box-sizing" "border-box"
+            , style "flex-shrink" "0"
+            ]
+            [ Html.div
+                []
+                [ Icon.icon
+                    { sizePx = 20
+                    , image = "baseline-people-24px.svg"
+                    }
+                    []
+                ]
+            , Html.div
+                []
+                [ Icon.icon
+                    { sizePx = 20
+                    , image = "baseline-chevron-right-24px.svg"
+                    }
+                    []
+                ]
+            ]
+        , Html.div
+            [ style "font-size" "18px"
+            , style "padding" "5px"
+            , style "white-space" "nowrap"
+            , style "overflow" "hidden"
+            , style "text-overflow" "ellipsis"
+            ]
+            [ Html.text g.teamName ]
         ]
 
 
@@ -576,9 +642,6 @@ welcomeCard :
     -> Html Message
 welcomeCard { hovered, groups, userState } =
     let
-        noPipelines =
-            List.isEmpty (groups |> List.concatMap .pipelines)
-
         cliIcon : Maybe DomID -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
             Html.a
@@ -598,7 +661,7 @@ welcomeCard { hovered, groups, userState } =
                 )
                 []
     in
-    if noPipelines then
+    if noPipelines { groups = groups } then
         Html.div
             (id "welcome-card" :: Styles.welcomeCard)
             [ Html.div
@@ -629,6 +692,11 @@ welcomeCard { hovered, groups, userState } =
 
     else
         Html.text ""
+
+
+noPipelines : { a | groups : List Group } -> Bool
+noPipelines { groups } =
+    List.isEmpty (groups |> List.concatMap .pipelines)
 
 
 loginInstruction : UserState.UserState -> List (Html Message)

@@ -2,9 +2,11 @@ module Dashboard.Styles exposing
     ( asciiArt
     , cardBody
     , cardFooter
+    , concourseLogo
     , content
     , dropdownContainer
     , dropdownItem
+    , hamburgerMenu
     , highDensityIcon
     , highDensityToggle
     , info
@@ -18,6 +20,7 @@ module Dashboard.Styles exposing
     , noPipelineCardHeader
     , noPipelineCardTextHd
     , noResults
+    , pageBelowTopBar
     , pipelineCard
     , pipelineCardBanner
     , pipelineCardBannerHd
@@ -52,6 +55,7 @@ import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Html
 import Html.Attributes exposing (style)
 import ScreenSize exposing (ScreenSize(..))
+import Views.Styles
 
 
 content : Bool -> List (Html.Attribute msg)
@@ -688,4 +692,43 @@ visibilityTooltip =
     , style "padding" "2.5px"
     , style "margin-bottom" "5px"
     , style "right" "-150%"
+    ]
+
+
+hamburgerMenu : { hovered : Bool, clicked : Bool } -> List (Html.Attribute msg)
+hamburgerMenu { hovered, clicked } =
+    [ style "cursor" "pointer"
+    , style "opacity" <|
+        if hovered then
+            "1"
+
+        else
+            "0.5"
+    , style "background-color" <|
+        if clicked then
+            "#333333"
+
+        else
+            Colors.frame
+    ]
+
+
+concourseLogo : List (Html.Attribute msg)
+concourseLogo =
+    style "border-left" ("1px solid " ++ Colors.background)
+        :: Views.Styles.concourseLogo
+
+
+pageBelowTopBar : { a | sideBarOpen : Bool } -> List (Html.Attribute msg)
+pageBelowTopBar { sideBarOpen } =
+    [ style "box-sizing" "border-box"
+    , style "display" "flex"
+    , style "height" "100%"
+    , style "padding-top" "54px"
+    , style "padding-bottom" <|
+        if sideBarOpen then
+            "0"
+
+        else
+            "50px"
     ]
