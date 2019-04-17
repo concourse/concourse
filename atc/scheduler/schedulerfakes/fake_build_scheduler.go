@@ -8,16 +8,15 @@ import (
 	lager "code.cloudfoundry.org/lager"
 	atc "github.com/concourse/concourse/atc"
 	db "github.com/concourse/concourse/atc/db"
-	algorithm "github.com/concourse/concourse/atc/db/algorithm"
 	scheduler "github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeBuildScheduler struct {
-	ScheduleStub        func(lager.Logger, *algorithm.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)
+	ScheduleStub        func(lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)
 	scheduleMutex       sync.RWMutex
 	scheduleArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 *algorithm.VersionsDB
+		arg2 *db.VersionsDB
 		arg3 db.Job
 		arg4 db.Resources
 		arg5 atc.VersionedResourceTypes
@@ -34,12 +33,12 @@ type FakeBuildScheduler struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 db.Job, arg4 db.Resources, arg5 atc.VersionedResourceTypes) (map[string]time.Duration, error) {
+func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *db.VersionsDB, arg3 db.Job, arg4 db.Resources, arg5 atc.VersionedResourceTypes) (map[string]time.Duration, error) {
 	fake.scheduleMutex.Lock()
 	ret, specificReturn := fake.scheduleReturnsOnCall[len(fake.scheduleArgsForCall)]
 	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 *algorithm.VersionsDB
+		arg2 *db.VersionsDB
 		arg3 db.Job
 		arg4 db.Resources
 		arg5 atc.VersionedResourceTypes
@@ -62,13 +61,13 @@ func (fake *FakeBuildScheduler) ScheduleCallCount() int {
 	return len(fake.scheduleArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) ScheduleCalls(stub func(lager.Logger, *algorithm.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)) {
+func (fake *FakeBuildScheduler) ScheduleCalls(stub func(lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)) {
 	fake.scheduleMutex.Lock()
 	defer fake.scheduleMutex.Unlock()
 	fake.ScheduleStub = stub
 }
 
-func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) {
+func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) {
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
 	argsForCall := fake.scheduleArgsForCall[i]

@@ -1,8 +1,12 @@
 package algorithm_test
 
 import (
+	"encoding/json"
+
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc/db/algorithm"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -26,9 +30,8 @@ var _ = Describe("Resolve", func() {
 	}
 
 	var (
-		versionsDB   *algorithm.VersionsDB
-		inputConfigs algorithm.InputConfigs
-		inputMapping algorithm.InputMapping
+		versionsDB   *db.VersionsDB
+		inputMapping db.InputMapping
 		buildInputs  []buildInput
 		buildOutputs []buildOutput
 	)
@@ -44,20 +47,49 @@ var _ = Describe("Resolve", func() {
 		}
 
 		// setup team 1 and pipeline 1
-		setup.insertTeamsPipelines()
+		team, err := teamFactory.CreateTeam(atc.Team{Name: "algorithm"})
+		Expect(err).NotTo(HaveOccurred())
+
+		pipeline, _, err := team.SavePipeline("algorithm", atc.Config{
+			Jobs: atc.JobConfigs{
+				{
+					Name: "j1",
+					Plan: atc.PlanSequence{
+						{
+							Get:      "some-input",
+							Resource: "r1",
+						},
+					},
+				},
+			},
+		}, db.ConfigVersion(0), db.PipelineUnpaused)
+		Expect(err).NotTo(HaveOccurred())
+
+		setupTx, err := dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		brt := db.BaseResourceType{
+			Name: "some-base-type",
+		}
+
+		_, err = brt.FindOrCreate(setupTx, false)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(setupTx.Commit()).To(Succeed())
+
+		resources := map[string]atc.ResourceConfig{}
 
 		// insert two jobs
 		setup.insertJob("j1")
 		setup.insertJob("j2")
 
 		// insert resource and two resource versions
-		setup.insertRowVersion(DBRow{
+		setup.insertRowVersion(resources, DBRow{
 			Resource:   "r1",
 			Version:    "v1",
 			CheckOrder: 1,
 			Disabled:   false,
 		})
-		setup.insertRowVersion(DBRow{
+		setup.insertRowVersion(resources, DBRow{
 			Resource:   "r1",
 			Version:    "v2",
 			CheckOrder: 2,
@@ -71,17 +103,20 @@ var _ = Describe("Resolve", func() {
 				BuildID: buildInput.BuildID,
 			})
 
-			setup.insertRowVersion(DBRow{
+			setup.insertRowVersion(resources, DBRow{
 				Resource:   buildInput.ResourceName,
 				Version:    buildInput.Version,
 				CheckOrder: buildInput.CheckOrder,
 				Disabled:   false,
 			})
 
+			versionJSON, err := json.Marshal(atc.Version{"ver": buildInput.Version})
+			Expect(err).ToNot(HaveOccurred())
+
 			resourceID := setup.resourceIDs.ID(buildInput.ResourceName)
-			_, err := setup.psql.Insert("build_resource_config_version_inputs").
+			_, err = setup.psql.Insert("build_resource_config_version_inputs").
 				Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
-				Values(buildInput.BuildID, resourceID, sq.Expr("md5(?)", buildInput.Version), buildInput.InputName, false).
+				Values(buildInput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), buildInput.InputName, false).
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 		}
@@ -93,40 +128,71 @@ var _ = Describe("Resolve", func() {
 				BuildID: buildOutput.BuildID,
 			})
 
-			setup.insertRowVersion(DBRow{
+			setup.insertRowVersion(resources, DBRow{
 				Resource:   buildOutput.ResourceName,
 				Version:    buildOutput.Version,
 				CheckOrder: buildOutput.CheckOrder,
 				Disabled:   false,
 			})
 
+			versionJSON, err := json.Marshal(atc.Version{"ver": buildOutput.Version})
+			Expect(err).ToNot(HaveOccurred())
+
 			resourceID := setup.resourceIDs.ID(buildOutput.ResourceName)
-			_, err := setup.psql.Insert("build_resource_config_version_outputs").
+			_, err = setup.psql.Insert("build_resource_config_version_outputs").
 				Columns("build_id", "resource_id", "version_md5", "name").
-				Values(buildOutput.BuildID, resourceID, sq.Expr("md5(?)", buildOutput.Version), buildOutput.ResourceName).
+				Values(buildOutput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), buildOutput.ResourceName).
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 		}
 
-		versionsDB = &algorithm.VersionsDB{
-			Runner:      dbConn,
+		versionsDB = &db.VersionsDB{
+			Conn:        dbConn,
 			JobIDs:      setup.jobIDs,
 			ResourceIDs: setup.resourceIDs,
 		}
 
-		inputConfigs = algorithm.InputConfigs{
-			{
-				Name:       "some-input",
-				JobName:    "j1",
-				Passed:     algorithm.JobSet{},
-				ResourceID: 1,
-				JobID:      1,
-			},
+		resourceConfigs := atc.ResourceConfigs{}
+		for _, resource := range resources {
+			resourceConfigs = append(resourceConfigs, resource)
 		}
 
+		pipeline, _, err = team.SavePipeline("algorithm", atc.Config{
+			Jobs: atc.JobConfigs{
+				{
+					Name: "j1",
+					Plan: atc.PlanSequence{
+						{
+							Get:      "some-input",
+							Resource: "r1",
+						},
+					},
+				},
+			},
+			Resources: resourceConfigs,
+		}, db.ConfigVersion(1), db.PipelineUnpaused)
+		Expect(err).NotTo(HaveOccurred())
+
+		dbResources := db.Resources{}
+		for name, _ := range setup.resourceIDs {
+			resource, found, err := pipeline.Resource(name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			dbResources = append(dbResources, resource)
+		}
+
+		job, found, err := pipeline.Job("j1")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		versionsDB.JobIDs = setup.jobIDs
+		versionsDB.ResourceIDs = setup.resourceIDs
+
+		inputMapper := algorithm.NewInputMapper()
+
 		var ok bool
-		var err error
-		inputMapping, ok, err = inputConfigs.Resolve(versionsDB)
+		inputMapping, ok, err = inputMapper.MapInputs(versionsDB, job, dbResources)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ok).To(BeTrue())
 	})
@@ -162,9 +228,12 @@ var _ = Describe("Resolve", func() {
 		})
 
 		It("sets FirstOccurrence to false", func() {
-			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputSource{
-					InputVersion:   algorithm.InputVersion{VersionID: 2, ResourceID: 1, FirstOccurrence: false},
+			Expect(inputMapping).To(Equal(db.InputMapping{
+				"some-input": db.InputResult{
+					Input: db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						FirstOccurrence:  false,
+					},
 					PassedBuildIDs: []int{},
 				},
 			}))
@@ -186,9 +255,12 @@ var _ = Describe("Resolve", func() {
 		})
 
 		It("sets FirstOccurrence to true", func() {
-			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputSource{
-					InputVersion:   algorithm.InputVersion{VersionID: 2, ResourceID: 1, FirstOccurrence: true},
+			Expect(inputMapping).To(Equal(db.InputMapping{
+				"some-input": db.InputResult{
+					Input: db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						FirstOccurrence:  true,
+					},
 					PassedBuildIDs: []int{},
 				},
 			}))
@@ -210,9 +282,12 @@ var _ = Describe("Resolve", func() {
 		})
 
 		It("sets FirstOccurrence to true", func() {
-			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputSource{
-					InputVersion:   algorithm.InputVersion{VersionID: 2, ResourceID: 1, FirstOccurrence: true},
+			Expect(inputMapping).To(Equal(db.InputMapping{
+				"some-input": db.InputResult{
+					Input: db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						FirstOccurrence:  true,
+					},
 					PassedBuildIDs: []int{},
 				},
 			}))
@@ -234,9 +309,12 @@ var _ = Describe("Resolve", func() {
 		})
 
 		It("sets FirstOccurrence to true", func() {
-			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputSource{
-					InputVersion:   algorithm.InputVersion{VersionID: 2, ResourceID: 1, FirstOccurrence: true},
+			Expect(inputMapping).To(Equal(db.InputMapping{
+				"some-input": db.InputResult{
+					Input: db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						FirstOccurrence:  true,
+					},
 					PassedBuildIDs: []int{},
 				},
 			}))
@@ -257,9 +335,12 @@ var _ = Describe("Resolve", func() {
 		})
 
 		It("sets FirstOccurrence to true", func() {
-			Expect(inputMapping).To(Equal(algorithm.InputMapping{
-				"some-input": algorithm.InputSource{
-					InputVersion:   algorithm.InputVersion{VersionID: 2, ResourceID: 1, FirstOccurrence: true},
+			Expect(inputMapping).To(Equal(db.InputMapping{
+				"some-input": db.InputResult{
+					Input: db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						FirstOccurrence:  true,
+					},
 					PassedBuildIDs: []int{},
 				},
 			}))

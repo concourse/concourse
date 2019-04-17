@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -128,12 +127,16 @@ var _ = Describe("ResourceCacheCollector", func() {
 							RunWith(dbConn).QueryRow().Scan(&versionID)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(defaultJob.SaveNextInputMapping(algorithm.InputMapping{
-							"whatever": algorithm.InputVersion{
-								VersionID:  versionID,
-								ResourceID: resource.ID(),
+						Expect(defaultJob.SaveNextInputMapping(db.InputMapping{
+							"whatever": db.InputResult{
+								Input: db.AlgorithmInput{
+									AlgorithmVersion: db.AlgorithmVersion{
+										VersionID:  versionID,
+										ResourceID: resource.ID(),
+									},
+								},
 							},
-						})).To(Succeed())
+						}, true)).To(Succeed())
 					})
 
 					Context("when pipeline is paused", func() {

@@ -5,7 +5,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
-	"github.com/concourse/concourse/atc/scheduler/inputmapper"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 )
 
@@ -17,7 +17,6 @@ type BuildStarter interface {
 		job db.Job,
 		resources db.Resources,
 		resourceTypes atc.VersionedResourceTypes,
-		nextPendingBuilds []db.Build,
 	) error
 }
 
@@ -31,7 +30,7 @@ func NewBuildStarter(
 	pipeline db.Pipeline,
 	maxInFlightUpdater maxinflight.Updater,
 	factory BuildFactory,
-	inputMapper inputmapper.InputMapper,
+	inputMapper algorithm.InputMapper,
 	execEngine engine.Engine,
 ) BuildStarter {
 	return &buildStarter{
@@ -48,7 +47,7 @@ type buildStarter struct {
 	maxInFlightUpdater maxinflight.Updater
 	factory            BuildFactory
 	execEngine         engine.Engine
-	inputMapper        inputmapper.InputMapper
+	inputMapper        algorithm.InputMapper
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
@@ -56,9 +55,14 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	job db.Job,
 	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
-	nextPendingBuildsForJob []db.Build,
 ) error {
-	for _, nextPendingBuild := range nextPendingBuildsForJob {
+	nextPendingBuilds, err := job.GetPendingBuilds()
+	if err != nil {
+		logger.Error("failed-to-get-all-next-pending-builds", err)
+		return err
+	}
+
+	for _, nextPendingBuild := range nextPendingBuilds {
 		started, err := s.tryStartNextPendingBuild(logger, nextPendingBuild, job, resources, resourceTypes)
 		if err != nil {
 			return err
@@ -117,8 +121,14 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			return false, err
 		}
 
-		_, err = s.inputMapper.SaveNextInputMapping(logger, versions, job, resources)
+		inputMapping, resolved, err := s.inputMapper.MapInputs(versions, job, resources)
 		if err != nil {
+			return false, err
+		}
+
+		err = job.SaveNextInputMapping(inputMapping, resolved)
+		if err != nil {
+			logger.Error("failed-to-save-next-input-mapping", err)
 			return false, err
 		}
 
@@ -129,7 +139,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		resourceTypes = dbResourceTypes.Deserialize()
 	}
 
-	buildInputs, found, err := job.GetNextBuildInputs()
+	buildInputs, found, err := job.GetFullNextBuildInputs()
 	if err != nil {
 		logger.Error("failed-to-get-next-build-inputs", err)
 		return false, err

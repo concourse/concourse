@@ -9,7 +9,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 )
@@ -57,7 +56,7 @@ type Pipeline interface {
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
-	LoadVersionsDB() (*algorithm.VersionsDB, error)
+	LoadVersionsDB() (*VersionsDB, error)
 
 	Resource(name string) (Resource, bool, error)
 	Resources() (Resources, error)
@@ -89,7 +88,7 @@ type pipeline struct {
 	paused        bool
 	public        bool
 
-	versionsDB *algorithm.VersionsDB
+	versionsDB *VersionsDB
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -665,9 +664,9 @@ func (p *pipeline) Destroy() error {
 	return err
 }
 
-func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
-	db := &algorithm.VersionsDB{
-		Runner: p.conn,
+func (p *pipeline) LoadVersionsDB() (*VersionsDB, error) {
+	db := &VersionsDB{
+		Conn: p.conn,
 
 		JobIDs:             map[string]int{},
 		ResourceIDs:        map[string]int{},

@@ -11,9 +11,8 @@ import (
 	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/factory"
-	"github.com/concourse/concourse/atc/scheduler/inputmapper"
-	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
 	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -60,12 +59,8 @@ func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline,
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline) scheduler.BuildScheduler {
-	inputMapper := inputmapper.NewInputMapper(
-		pipeline,
-		inputconfig.NewTransformer(pipeline),
-	)
+	inputMapper := algorithm.NewInputMapper()
 	return &scheduler.Scheduler{
-		Pipeline:    pipeline,
 		InputMapper: inputMapper,
 		BuildStarter: scheduler.NewBuildStarter(
 			pipeline,

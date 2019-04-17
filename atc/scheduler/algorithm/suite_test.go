@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
 )
@@ -16,6 +18,9 @@ import (
 var (
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
+
+	lockFactory lock.LockFactory
+	teamFactory db.TeamFactory
 
 	dbConn db.Conn
 )
@@ -39,6 +44,9 @@ var _ = BeforeEach(func() {
 	postgresRunner.Truncate()
 
 	dbConn = postgresRunner.OpenConn()
+
+	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
+	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 })
 
 var _ = AfterEach(func() {

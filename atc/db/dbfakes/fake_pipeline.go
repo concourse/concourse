@@ -6,7 +6,6 @@ import (
 
 	atc "github.com/concourse/concourse/atc"
 	db "github.com/concourse/concourse/atc/db"
-	algorithm "github.com/concourse/concourse/atc/db/algorithm"
 )
 
 type FakePipeline struct {
@@ -240,16 +239,16 @@ type FakePipeline struct {
 		result1 db.Jobs
 		result2 error
 	}
-	LoadVersionsDBStub        func() (*algorithm.VersionsDB, error)
+	LoadVersionsDBStub        func() (*db.VersionsDB, error)
 	loadVersionsDBMutex       sync.RWMutex
 	loadVersionsDBArgsForCall []struct {
 	}
 	loadVersionsDBReturns struct {
-		result1 *algorithm.VersionsDB
+		result1 *db.VersionsDB
 		result2 error
 	}
 	loadVersionsDBReturnsOnCall map[int]struct {
-		result1 *algorithm.VersionsDB
+		result1 *db.VersionsDB
 		result2 error
 	}
 	NameStub        func() string
@@ -1522,7 +1521,7 @@ func (fake *FakePipeline) JobsReturnsOnCall(i int, result1 db.Jobs, result2 erro
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
+func (fake *FakePipeline) LoadVersionsDB() (*db.VersionsDB, error) {
 	fake.loadVersionsDBMutex.Lock()
 	ret, specificReturn := fake.loadVersionsDBReturnsOnCall[len(fake.loadVersionsDBArgsForCall)]
 	fake.loadVersionsDBArgsForCall = append(fake.loadVersionsDBArgsForCall, struct {
@@ -1545,34 +1544,34 @@ func (fake *FakePipeline) LoadVersionsDBCallCount() int {
 	return len(fake.loadVersionsDBArgsForCall)
 }
 
-func (fake *FakePipeline) LoadVersionsDBCalls(stub func() (*algorithm.VersionsDB, error)) {
+func (fake *FakePipeline) LoadVersionsDBCalls(stub func() (*db.VersionsDB, error)) {
 	fake.loadVersionsDBMutex.Lock()
 	defer fake.loadVersionsDBMutex.Unlock()
 	fake.LoadVersionsDBStub = stub
 }
 
-func (fake *FakePipeline) LoadVersionsDBReturns(result1 *algorithm.VersionsDB, result2 error) {
+func (fake *FakePipeline) LoadVersionsDBReturns(result1 *db.VersionsDB, result2 error) {
 	fake.loadVersionsDBMutex.Lock()
 	defer fake.loadVersionsDBMutex.Unlock()
 	fake.LoadVersionsDBStub = nil
 	fake.loadVersionsDBReturns = struct {
-		result1 *algorithm.VersionsDB
+		result1 *db.VersionsDB
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) LoadVersionsDBReturnsOnCall(i int, result1 *algorithm.VersionsDB, result2 error) {
+func (fake *FakePipeline) LoadVersionsDBReturnsOnCall(i int, result1 *db.VersionsDB, result2 error) {
 	fake.loadVersionsDBMutex.Lock()
 	defer fake.loadVersionsDBMutex.Unlock()
 	fake.LoadVersionsDBStub = nil
 	if fake.loadVersionsDBReturnsOnCall == nil {
 		fake.loadVersionsDBReturnsOnCall = make(map[int]struct {
-			result1 *algorithm.VersionsDB
+			result1 *db.VersionsDB
 			result2 error
 		})
 	}
 	fake.loadVersionsDBReturnsOnCall[i] = struct {
-		result1 *algorithm.VersionsDB
+		result1 *db.VersionsDB
 		result2 error
 	}{result1, result2}
 }

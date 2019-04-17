@@ -1644,7 +1644,7 @@ var _ = Describe("Jobs API", func() {
 
 						Context("when getting the input versions for the job fails", func() {
 							BeforeEach(func() {
-								fakeJob.GetNextBuildInputsReturns(nil, false, errors.New("oh no!"))
+								fakeJob.GetFullNextBuildInputsReturns(nil, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -1654,7 +1654,7 @@ var _ = Describe("Jobs API", func() {
 
 						Context("when the job has no input versions available", func() {
 							BeforeEach(func() {
-								fakeJob.GetNextBuildInputsReturns(nil, false, nil)
+								fakeJob.GetFullNextBuildInputsReturns(nil, false, nil)
 							})
 
 							It("returns 404", func() {
@@ -1677,7 +1677,7 @@ var _ = Describe("Jobs API", func() {
 									},
 								}
 
-								fakeJob.GetNextBuildInputsReturns(inputs, true, nil)
+								fakeJob.GetFullNextBuildInputsReturns(inputs, true, nil)
 							})
 
 							It("returns 200 OK", func() {

@@ -34,7 +34,7 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		buildInputs, found, err := job.GetNextBuildInputs()
+		buildInputs, found, err := job.GetFullNextBuildInputs()
 		if err != nil {
 			logger.Error("failed-to-get-next-build-inputs", err)
 			w.WriteHeader(http.StatusInternalServerError)

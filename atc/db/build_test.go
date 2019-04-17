@@ -3,12 +3,10 @@ package db_test
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -696,6 +694,11 @@ var _ = Describe("Build", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
+							Plan: atc.PlanSequence{
+								{
+									Get: "some-input",
+								},
+							},
 						},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
@@ -743,12 +746,17 @@ var _ = Describe("Build", func() {
 					Expect(found).To(BeTrue())
 					Expect(err).NotTo(HaveOccurred())
 
-					err = job.SaveNextInputMapping(algorithm.InputMapping{
-						"some-input": algorithm.InputSource{
-							InputVersion:   algorithm.InputVersion{VersionID: rcv.ID(), ResourceID: resource.ID(), FirstOccurrence: true},
+					err = job.SaveNextInputMapping(db.InputMapping{
+						"some-input": db.InputResult{
+							Input: db.AlgorithmInput{
+								AlgorithmVersion: db.AlgorithmVersion{
+									VersionID: rcv.ID(), ResourceID: resource.ID(),
+								},
+								FirstOccurrence: true,
+							},
 							PassedBuildIDs: []int{},
 						},
-					})
+					}, true)
 					Expect(err).NotTo(HaveOccurred())
 
 					expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
@@ -846,6 +854,8 @@ var _ = Describe("Build", func() {
 			Context("when inputs are not satisfied", func() {
 				BeforeEach(func() {
 					expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
+					expectedBuildPrep.MissingInputReasons = map[string]string{"some-input": db.MissingBuildInput}
+					expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{"some-input": db.BuildPreparationStatusBlocking}
 				})
 
 				It("returns blocking inputs satisfied", func() {
@@ -869,20 +879,6 @@ var _ = Describe("Build", func() {
 									},
 									{Get: "input2"},
 									{Get: "input3", Passed: []string{"some-upstream-job"}},
-									{ // version doesn't exist
-										Get:     "input4",
-										Version: &atc.VersionConfig{Pinned: atc.Version{"version": "v4"}},
-									},
-									{ // version doesn't exist so constraint is irrelevant
-										Get:     "input5",
-										Passed:  []string{"some-upstream-job"},
-										Version: &atc.VersionConfig{Pinned: atc.Version{"version": "v5"}},
-									},
-									{ // version exists but doesn't satisfy constraint
-										Get:     "input6",
-										Passed:  []string{"some-upstream-job"},
-										Version: &atc.VersionConfig{Pinned: atc.Version{"version": "v6"}},
-									},
 								},
 							},
 						},
@@ -890,9 +886,6 @@ var _ = Describe("Build", func() {
 							{Name: "input1", Type: "some-type", Source: atc.Source{"some": "source-1"}},
 							{Name: "input2", Type: "some-type", Source: atc.Source{"some": "source-2"}},
 							{Name: "input3", Type: "some-type", Source: atc.Source{"some": "source-3"}},
-							{Name: "input4", Type: "some-type", Source: atc.Source{"some": "source-4"}},
-							{Name: "input5", Type: "some-type", Source: atc.Source{"some": "source-5"}},
-							{Name: "input6", Type: "some-type", Source: atc.Source{"some": "source-6"}},
 						},
 					}
 
@@ -909,16 +902,6 @@ var _ = Describe("Build", func() {
 					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
-
-					resource6, found, err := pipeline.Resource("input6")
-					Expect(found).To(BeTrue())
-					Expect(err).NotTo(HaveOccurred())
-
-					resourceConfig6, err := resource6.SetResourceConfig(logger, atc.Source{"some": "source-6"}, creds.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceConfig6.SaveVersions([]atc.Version{{"version": "v6"}})
-					Expect(err).NotTo(HaveOccurred())
 
 					job, found, err := pipeline.Job("some-job")
 					Expect(err).NotTo(HaveOccurred())
@@ -939,29 +922,29 @@ var _ = Describe("Build", func() {
 					Expect(found).To(BeTrue())
 					Expect(versions).To(HaveLen(1))
 
-					err = job.SaveIndependentInputMapping(algorithm.InputMapping{
-						"input1": algorithm.InputSource{
-							InputVersion:   algorithm.InputVersion{VersionID: versions[0].ID, ResourceID: resource1.ID(), FirstOccurrence: true},
+					err = job.SaveNextInputMapping(db.InputMapping{
+						"input1": db.InputResult{
+							Input: db.AlgorithmInput{
+								AlgorithmVersion: db.AlgorithmVersion{VersionID: versions[0].ID, ResourceID: resource1.ID()},
+								FirstOccurrence:  true,
+							},
 							PassedBuildIDs: []int{},
 						},
-					})
+						"input2": db.InputResult{
+							ResolveError: errors.New("resolve error"),
+						},
+					}, false)
 					Expect(err).NotTo(HaveOccurred())
 
 					expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
 						"input1": db.BuildPreparationStatusNotBlocking,
 						"input2": db.BuildPreparationStatusBlocking,
 						"input3": db.BuildPreparationStatusBlocking,
-						"input4": db.BuildPreparationStatusBlocking,
-						"input5": db.BuildPreparationStatusBlocking,
-						"input6": db.BuildPreparationStatusBlocking,
 					}
 					expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
 					expectedBuildPrep.MissingInputReasons = db.MissingInputReasons{
-						"input2": db.NoVersionsAvailable,
-						"input3": db.NoVersionsSatisfiedPassedConstraints,
-						"input4": fmt.Sprintf(db.PinnedVersionUnavailable, `{"version":"v4"}`),
-						"input5": fmt.Sprintf(db.PinnedVersionUnavailable, `{"version":"v5"}`),
-						"input6": db.NoVersionsSatisfiedPassedConstraints,
+						"input2": "resolve error",
+						"input3": db.MissingBuildInput,
 					}
 				})
 

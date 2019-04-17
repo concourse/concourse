@@ -6,10 +6,9 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputmapperfakes"
+	"github.com/concourse/concourse/atc/scheduler/algorithm/algorithmfakes"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,8 +16,7 @@ import (
 
 var _ = Describe("Scheduler", func() {
 	var (
-		fakePipeline     *dbfakes.FakePipeline
-		fakeInputMapper  *inputmapperfakes.FakeInputMapper
+		fakeInputMapper  *algorithmfakes.FakeInputMapper
 		fakeBuildStarter *schedulerfakes.FakeBuildStarter
 
 		scheduler *Scheduler
@@ -27,12 +25,10 @@ var _ = Describe("Scheduler", func() {
 	)
 
 	BeforeEach(func() {
-		fakePipeline = new(dbfakes.FakePipeline)
-		fakeInputMapper = new(inputmapperfakes.FakeInputMapper)
+		fakeInputMapper = new(algorithmfakes.FakeInputMapper)
 		fakeBuildStarter = new(schedulerfakes.FakeBuildStarter)
 
 		scheduler = &Scheduler{
-			Pipeline:     fakePipeline,
 			InputMapper:  fakeInputMapper,
 			BuildStarter: fakeBuildStarter,
 		}
@@ -42,16 +38,14 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("Schedule", func() {
 		var (
-			versionsDB             *algorithm.VersionsDB
+			versionsDB             *db.VersionsDB
 			fakeJob                *dbfakes.FakeJob
 			fakeResource           *dbfakes.FakeResource
-			nextPendingBuilds      []db.Build
 			scheduleErr            error
 			versionedResourceTypes atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
-			nextPendingBuilds = []db.Build{new(dbfakes.FakeBuild)}
 			versionedResourceTypes = atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{Name: "some-resource-type"},
@@ -64,7 +58,7 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		JustBeforeEach(func() {
-			versionsDB = &algorithm.VersionsDB{JobIDs: map[string]int{"j1": 1}}
+			versionsDB = &db.VersionsDB{JobIDs: map[string]int{"j1": 1}}
 
 			var waiter interface{ Wait() }
 
@@ -84,12 +78,11 @@ var _ = Describe("Scheduler", func() {
 			BeforeEach(func() {
 				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job-1")
-				fakeJob.GetPendingBuildsReturns(nextPendingBuilds, nil)
 			})
 
-			Context("when saving the next input mapping fails", func() {
+			Context("when mapping the inputs fails", func() {
 				BeforeEach(func() {
-					fakeInputMapper.SaveNextInputMappingReturns(nil, disaster)
+					fakeInputMapper.MapInputsReturns(nil, false, disaster)
 				})
 
 				It("returns the error", func() {
@@ -97,49 +90,101 @@ var _ = Describe("Scheduler", func() {
 				})
 			})
 
-			Context("when saving the next input mapping succeeds", func() {
+			Context("when mapping the inputs succeeds", func() {
+				var expectedInputMapping db.InputMapping
+
 				BeforeEach(func() {
-					fakeInputMapper.SaveNextInputMappingReturns(algorithm.InputMapping{}, nil)
+					expectedInputMapping = map[string]db.InputResult{
+						"input-1": db.InputResult{
+							Input: db.AlgorithmInput{
+								AlgorithmVersion: db.AlgorithmVersion{
+									ResourceID: 1,
+									VersionID:  1,
+								},
+								FirstOccurrence: true,
+							},
+						},
+					}
+
+					fakeInputMapper.MapInputsReturns(expectedInputMapping, true, nil)
 				})
 
-				It("saved the next input mapping", func() {
-					Expect(fakeInputMapper.SaveNextInputMappingCallCount()).To(Equal(1))
-					_, actualVersionsDB, actualJob, _ := fakeInputMapper.SaveNextInputMappingArgsForCall(0)
+				It("mapped the inputs", func() {
+					Expect(fakeInputMapper.MapInputsCallCount()).To(Equal(1))
+					actualVersionsDB, actualJob, _ := fakeInputMapper.MapInputsArgsForCall(0)
 					Expect(actualVersionsDB).To(Equal(versionsDB))
 					Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
 				})
 
-				Context("when starting pending builds for job fails", func() {
+				Context("when saving the next input mapping fails", func() {
 					BeforeEach(func() {
-						fakeBuildStarter.TryStartPendingBuildsForJobReturns(disaster)
+						fakeJob.SaveNextInputMappingReturns(disaster)
 					})
 
 					It("returns the error", func() {
 						Expect(scheduleErr).To(Equal(disaster))
 					})
-
-					It("started all pending builds", func() {
-						Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
-						_, actualJob, actualResources, actualResourceTypes, actualPendingBuilds := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
-						Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
-						Expect(actualResources).To(Equal(db.Resources{fakeResource}))
-						Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-						Expect(actualPendingBuilds).To(Equal(nextPendingBuilds))
-					})
 				})
 
-				Context("when starting all pending builds succeeds", func() {
+				Context("when saving the next input mapping succeeds", func() {
 					BeforeEach(func() {
-						fakeBuildStarter.TryStartPendingBuildsForJobReturns(nil)
+						fakeJob.SaveNextInputMappingReturns(nil)
 					})
 
-					It("returns no error", func() {
-						Expect(scheduleErr).NotTo(HaveOccurred())
+					It("saved the next input mapping", func() {
+						Expect(fakeJob.SaveNextInputMappingCallCount()).To(Equal(1))
+						actualInputMapping, resolved := fakeJob.SaveNextInputMappingArgsForCall(0)
+						Expect(actualInputMapping).To(Equal(expectedInputMapping))
+						Expect(resolved).To(BeTrue())
 					})
 
-					It("didn't create a pending build", func() {
-						//TODO: create a positive test case for this
-						Expect(fakeJob.EnsurePendingBuildExistsCallCount()).To(BeZero())
+					Context("when getting the full next build inputs fails", func() {
+						BeforeEach(func() {
+							fakeJob.GetFullNextBuildInputsReturns(nil, false, disaster)
+						})
+
+						It("returns the error", func() {
+							Expect(scheduleErr).To(Equal(disaster))
+						})
+					})
+
+					Context("when getting the full next build inputs succeeds", func() {
+						BeforeEach(func() {
+							fakeJob.GetFullNextBuildInputsReturns([]db.BuildInput{}, true, nil)
+						})
+
+						Context("when starting pending builds for job fails", func() {
+							BeforeEach(func() {
+								fakeBuildStarter.TryStartPendingBuildsForJobReturns(disaster)
+							})
+
+							It("returns the error", func() {
+								Expect(scheduleErr).To(Equal(disaster))
+							})
+
+							It("started all pending builds", func() {
+								Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
+								_, actualJob, actualResources, actualResourceTypes := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
+								Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
+								Expect(actualResources).To(Equal(db.Resources{fakeResource}))
+								Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
+							})
+						})
+
+						Context("when starting all pending builds succeeds", func() {
+							BeforeEach(func() {
+								fakeBuildStarter.TryStartPendingBuildsForJobReturns(nil)
+							})
+
+							It("returns no error", func() {
+								Expect(scheduleErr).NotTo(HaveOccurred())
+							})
+
+							It("didn't create a pending build", func() {
+								//TODO: create a positive test case for this
+								Expect(fakeJob.EnsurePendingBuildExistsCallCount()).To(BeZero())
+							})
+						})
 					})
 				})
 			})
@@ -157,11 +202,12 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				fakeBuildStarter.TryStartPendingBuildsForJobReturns(nil)
+				fakeJob.SaveNextInputMappingReturns(nil)
 			})
 
 			Context("when no input mapping is found", func() {
 				BeforeEach(func() {
-					fakeInputMapper.SaveNextInputMappingReturns(algorithm.InputMapping{}, nil)
+					fakeInputMapper.MapInputsReturns(db.InputMapping{}, false, nil)
 				})
 
 				It("starts all pending builds and returns no error", func() {
@@ -176,16 +222,20 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when no first occurrence input has trigger: true", func() {
 				BeforeEach(func() {
-					fakeInputMapper.SaveNextInputMappingReturns(algorithm.InputMapping{
-						"a": algorithm.InputSource{
-							InputVersion:   algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: false},
-							PassedBuildIDs: []int{},
+					fakeJob.GetFullNextBuildInputsReturns([]db.BuildInput{
+						{
+							Name:            "a",
+							Version:         atc.Version{"ref": "v1"},
+							ResourceID:      11,
+							FirstOccurrence: false,
 						},
-						"b": algorithm.InputSource{
-							InputVersion:   algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: true},
-							PassedBuildIDs: []int{},
+						{
+							Name:            "b",
+							Version:         atc.Version{"ref": "v2"},
+							ResourceID:      12,
+							FirstOccurrence: true,
 						},
-					}, nil)
+					}, true, nil)
 				})
 
 				It("starts all pending builds and returns no error", func() {
@@ -200,16 +250,20 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when a first occurrence input has trigger: true", func() {
 				BeforeEach(func() {
-					fakeInputMapper.SaveNextInputMappingReturns(algorithm.InputMapping{
-						"a": algorithm.InputSource{
-							InputVersion:   algorithm.InputVersion{VersionID: 1, ResourceID: 11, FirstOccurrence: true},
-							PassedBuildIDs: []int{},
+					fakeJob.GetFullNextBuildInputsReturns([]db.BuildInput{
+						{
+							Name:            "a",
+							Version:         atc.Version{"ref": "v1"},
+							ResourceID:      11,
+							FirstOccurrence: true,
 						},
-						"b": algorithm.InputSource{
-							InputVersion:   algorithm.InputVersion{VersionID: 2, ResourceID: 12, FirstOccurrence: false},
-							PassedBuildIDs: []int{},
+						{
+							Name:            "b",
+							Version:         atc.Version{"ref": "v2"},
+							ResourceID:      12,
+							FirstOccurrence: false,
 						},
-					}, nil)
+					}, true, nil)
 				})
 
 				Context("when creating a pending build fails", func() {

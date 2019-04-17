@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 )
@@ -18,7 +17,7 @@ import (
 type BuildScheduler interface {
 	Schedule(
 		logger lager.Logger,
-		versions *algorithm.VersionsDB,
+		versions *db.VersionsDB,
 		job db.Job,
 		resources db.Resources,
 		resourceTypes atc.VersionedResourceTypes,
@@ -118,7 +117,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 	return err
 }
 
-func (runner *Runner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, versions *algorithm.VersionsDB, job db.Job) {
+func (runner *Runner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, versions *db.VersionsDB, job db.Job) {
 	defer schedulingLock.Release()
 
 	start := time.Now()

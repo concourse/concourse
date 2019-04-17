@@ -24,6 +24,7 @@ type BuildInput struct {
 	ResourceID int
 
 	FirstOccurrence bool
+	ResolveError    error
 }
 
 type BuildOutput struct {
@@ -613,80 +614,38 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 
 	configInputs := job.Config().Inputs()
 
-	nextBuildInputs, found, err := job.GetNextBuildInputs()
+	buildInputs, err := job.GetNextBuildInputs()
 	if err != nil {
 		return BuildPreparation{}, false, err
 	}
 
-	inputsSatisfiedStatus := BuildPreparationStatusBlocking
+	inputsSatisfiedStatus := BuildPreparationStatusNotBlocking
 	inputs := map[string]BuildPreparationStatus{}
 	missingInputReasons := MissingInputReasons{}
 
-	if found {
-		inputsSatisfiedStatus = BuildPreparationStatusNotBlocking
-		for _, buildInput := range nextBuildInputs {
-			inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
-		}
-	} else {
-		buildInputs, err := job.GetIndependentBuildInputs()
-		if err != nil {
-			return BuildPreparation{}, false, err
+	for _, configInput := range configInputs {
+		buildInput := BuildInput{}
+		found := false
+		for _, b := range buildInputs {
+			if b.Name == configInput.Name {
+				found = true
+				buildInput = b
+				break
+			}
 		}
 
-		for _, configInput := range configInputs {
-			found := false
-			for _, buildInput := range buildInputs {
-				if buildInput.Name == configInput.Name {
-					found = true
-					break
-				}
-			}
-			if found {
+		if found {
+			if buildInput.ResolveError == nil {
 				inputs[configInput.Name] = BuildPreparationStatusNotBlocking
 			} else {
 				inputs[configInput.Name] = BuildPreparationStatusBlocking
-				if len(configInput.Passed) > 0 {
-					if configInput.Version != nil && configInput.Version.Pinned != nil {
-						versionJSON, err := json.Marshal(configInput.Version.Pinned)
-						if err != nil {
-							return BuildPreparation{}, false, err
-						}
-
-						resource, found, err := pipeline.Resource(configInput.Resource)
-						if err != nil {
-							return BuildPreparation{}, false, err
-						}
-
-						if found {
-							_, found, err = resource.ResourceConfigVersionID(configInput.Version.Pinned)
-							if err != nil {
-								return BuildPreparation{}, false, err
-							}
-
-							if found {
-								missingInputReasons.RegisterPassedConstraint(configInput.Name)
-							} else {
-								missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
-							}
-						} else {
-							missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
-						}
-					} else {
-						missingInputReasons.RegisterPassedConstraint(configInput.Name)
-					}
-				} else {
-					if configInput.Version != nil && configInput.Version.Pinned != nil {
-						versionJSON, err := json.Marshal(configInput.Version.Pinned)
-						if err != nil {
-							return BuildPreparation{}, false, err
-						}
-
-						missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
-					} else {
-						missingInputReasons.RegisterNoVersions(configInput.Name)
-					}
-				}
+				missingInputReasons.RegisterResolveError(configInput.Name, buildInput.ResolveError)
+				inputsSatisfiedStatus = BuildPreparationStatusBlocking
 			}
+		} else {
+			inputs[configInput.Name] = BuildPreparationStatusBlocking
+			missingInputReasons.RegisterMissingInput(configInput.Name)
+			inputsSatisfiedStatus = BuildPreparationStatusBlocking
 		}
 	}
 

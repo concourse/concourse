@@ -1,12 +1,14 @@
 package algorithm
 
+import "github.com/concourse/concourse/atc/db"
+
 type InputCandidates []InputVersionCandidates
 
 type ResolvedInputs map[string]int
 
 type InputVersionCandidates struct {
 	Input           string
-	Passed          JobSet
+	Passed          db.JobSet
 	UseEveryVersion bool
 	PinnedVersionID int
 
@@ -15,7 +17,7 @@ type InputVersionCandidates struct {
 	hasUsedResource *bool
 }
 
-func (candidates InputCandidates) Reduce(depth int, jobs JobSet) (ResolvedInputs, bool, error) {
+func (candidates InputCandidates) Reduce(depth int, jobs db.JobSet) (ResolvedInputs, bool, error) {
 	newInputCandidates := candidates.pruneToCommonBuilds(jobs)
 
 	for i, inputVersionCandidates := range newInputCandidates {
@@ -93,7 +95,7 @@ func (candidates InputCandidates) Unpin(input int, inputCandidates InputVersionC
 	candidates[input] = inputCandidates
 }
 
-func (candidates InputCandidates) pruneToCommonBuilds(jobs JobSet) InputCandidates {
+func (candidates InputCandidates) pruneToCommonBuilds(jobs db.JobSet) InputCandidates {
 	newCandidates := make(InputCandidates, len(candidates))
 	copy(newCandidates, candidates)
 

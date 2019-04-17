@@ -6,7 +6,6 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
@@ -27,7 +26,7 @@ var _ = Describe("Runner", func() {
 
 		lock *lockfakes.FakeLock
 
-		someVersions *algorithm.VersionsDB
+		someVersions *db.VersionsDB
 
 		process ifrit.Process
 
@@ -78,7 +77,7 @@ var _ = Describe("Runner", func() {
 		scheduler = new(schedulerfakes.FakeBuildScheduler)
 		noop = false
 
-		someVersions = &algorithm.VersionsDB{
+		someVersions = &db.VersionsDB{
 			ResourceIDs: map[string]int{"resource": 2},
 			JobIDs:      map[string]int{"job-1": 4, "job-8": 8},
 		}

@@ -8,7 +8,6 @@ import (
 	lager "code.cloudfoundry.org/lager"
 	atc "github.com/concourse/concourse/atc"
 	db "github.com/concourse/concourse/atc/db"
-	algorithm "github.com/concourse/concourse/atc/db/algorithm"
 	lock "github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -110,26 +109,6 @@ type FakeJob struct {
 		result1 db.Build
 		result2 error
 	}
-	DeleteNextBuildPipesStub        func() error
-	deleteNextBuildPipesMutex       sync.RWMutex
-	deleteNextBuildPipesArgsForCall []struct {
-	}
-	deleteNextBuildPipesReturns struct {
-		result1 error
-	}
-	deleteNextBuildPipesReturnsOnCall map[int]struct {
-		result1 error
-	}
-	DeleteNextInputMappingStub        func() error
-	deleteNextInputMappingMutex       sync.RWMutex
-	deleteNextInputMappingArgsForCall []struct {
-	}
-	deleteNextInputMappingReturns struct {
-		result1 error
-	}
-	deleteNextInputMappingReturnsOnCall map[int]struct {
-		result1 error
-	}
 	EnsurePendingBuildExistsStub        func() error
 	ensurePendingBuildExistsMutex       sync.RWMutex
 	ensurePendingBuildExistsArgsForCall []struct {
@@ -164,31 +143,31 @@ type FakeJob struct {
 	firstLoggedBuildIDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	GetIndependentBuildInputsStub        func() ([]db.BuildInput, error)
-	getIndependentBuildInputsMutex       sync.RWMutex
-	getIndependentBuildInputsArgsForCall []struct {
+	GetFullNextBuildInputsStub        func() ([]db.BuildInput, bool, error)
+	getFullNextBuildInputsMutex       sync.RWMutex
+	getFullNextBuildInputsArgsForCall []struct {
 	}
-	getIndependentBuildInputsReturns struct {
+	getFullNextBuildInputsReturns struct {
 		result1 []db.BuildInput
-		result2 error
+		result2 bool
+		result3 error
 	}
-	getIndependentBuildInputsReturnsOnCall map[int]struct {
+	getFullNextBuildInputsReturnsOnCall map[int]struct {
 		result1 []db.BuildInput
-		result2 error
+		result2 bool
+		result3 error
 	}
-	GetNextBuildInputsStub        func() ([]db.BuildInput, bool, error)
+	GetNextBuildInputsStub        func() ([]db.BuildInput, error)
 	getNextBuildInputsMutex       sync.RWMutex
 	getNextBuildInputsArgsForCall []struct {
 	}
 	getNextBuildInputsReturns struct {
 		result1 []db.BuildInput
-		result2 bool
-		result3 error
+		result2 error
 	}
 	getNextBuildInputsReturnsOnCall map[int]struct {
 		result1 []db.BuildInput
-		result2 bool
-		result3 error
+		result2 error
 	}
 	GetNextPendingBuildBySerialGroupStub        func([]string) (db.Build, bool, error)
 	getNextPendingBuildBySerialGroupMutex       sync.RWMutex
@@ -302,32 +281,11 @@ type FakeJob struct {
 		result1 bool
 		result2 error
 	}
-	SaveIndependentInputMappingStub        func(algorithm.InputMapping) error
-	saveIndependentInputMappingMutex       sync.RWMutex
-	saveIndependentInputMappingArgsForCall []struct {
-		arg1 algorithm.InputMapping
-	}
-	saveIndependentInputMappingReturns struct {
-		result1 error
-	}
-	saveIndependentInputMappingReturnsOnCall map[int]struct {
-		result1 error
-	}
-	SaveNextBuildPipesStub        func(algorithm.InputMapping) error
-	saveNextBuildPipesMutex       sync.RWMutex
-	saveNextBuildPipesArgsForCall []struct {
-		arg1 algorithm.InputMapping
-	}
-	saveNextBuildPipesReturns struct {
-		result1 error
-	}
-	saveNextBuildPipesReturnsOnCall map[int]struct {
-		result1 error
-	}
-	SaveNextInputMappingStub        func(algorithm.InputMapping) error
+	SaveNextInputMappingStub        func(db.InputMapping, bool) error
 	saveNextInputMappingMutex       sync.RWMutex
 	saveNextInputMappingArgsForCall []struct {
-		arg1 algorithm.InputMapping
+		arg1 db.InputMapping
+		arg2 bool
 	}
 	saveNextInputMappingReturns struct {
 		result1 error
@@ -837,110 +795,6 @@ func (fake *FakeJob) CreateBuildReturnsOnCall(i int, result1 db.Build, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeJob) DeleteNextBuildPipes() error {
-	fake.deleteNextBuildPipesMutex.Lock()
-	ret, specificReturn := fake.deleteNextBuildPipesReturnsOnCall[len(fake.deleteNextBuildPipesArgsForCall)]
-	fake.deleteNextBuildPipesArgsForCall = append(fake.deleteNextBuildPipesArgsForCall, struct {
-	}{})
-	fake.recordInvocation("DeleteNextBuildPipes", []interface{}{})
-	fake.deleteNextBuildPipesMutex.Unlock()
-	if fake.DeleteNextBuildPipesStub != nil {
-		return fake.DeleteNextBuildPipesStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.deleteNextBuildPipesReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeJob) DeleteNextBuildPipesCallCount() int {
-	fake.deleteNextBuildPipesMutex.RLock()
-	defer fake.deleteNextBuildPipesMutex.RUnlock()
-	return len(fake.deleteNextBuildPipesArgsForCall)
-}
-
-func (fake *FakeJob) DeleteNextBuildPipesCalls(stub func() error) {
-	fake.deleteNextBuildPipesMutex.Lock()
-	defer fake.deleteNextBuildPipesMutex.Unlock()
-	fake.DeleteNextBuildPipesStub = stub
-}
-
-func (fake *FakeJob) DeleteNextBuildPipesReturns(result1 error) {
-	fake.deleteNextBuildPipesMutex.Lock()
-	defer fake.deleteNextBuildPipesMutex.Unlock()
-	fake.DeleteNextBuildPipesStub = nil
-	fake.deleteNextBuildPipesReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeJob) DeleteNextBuildPipesReturnsOnCall(i int, result1 error) {
-	fake.deleteNextBuildPipesMutex.Lock()
-	defer fake.deleteNextBuildPipesMutex.Unlock()
-	fake.DeleteNextBuildPipesStub = nil
-	if fake.deleteNextBuildPipesReturnsOnCall == nil {
-		fake.deleteNextBuildPipesReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.deleteNextBuildPipesReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeJob) DeleteNextInputMapping() error {
-	fake.deleteNextInputMappingMutex.Lock()
-	ret, specificReturn := fake.deleteNextInputMappingReturnsOnCall[len(fake.deleteNextInputMappingArgsForCall)]
-	fake.deleteNextInputMappingArgsForCall = append(fake.deleteNextInputMappingArgsForCall, struct {
-	}{})
-	fake.recordInvocation("DeleteNextInputMapping", []interface{}{})
-	fake.deleteNextInputMappingMutex.Unlock()
-	if fake.DeleteNextInputMappingStub != nil {
-		return fake.DeleteNextInputMappingStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.deleteNextInputMappingReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeJob) DeleteNextInputMappingCallCount() int {
-	fake.deleteNextInputMappingMutex.RLock()
-	defer fake.deleteNextInputMappingMutex.RUnlock()
-	return len(fake.deleteNextInputMappingArgsForCall)
-}
-
-func (fake *FakeJob) DeleteNextInputMappingCalls(stub func() error) {
-	fake.deleteNextInputMappingMutex.Lock()
-	defer fake.deleteNextInputMappingMutex.Unlock()
-	fake.DeleteNextInputMappingStub = stub
-}
-
-func (fake *FakeJob) DeleteNextInputMappingReturns(result1 error) {
-	fake.deleteNextInputMappingMutex.Lock()
-	defer fake.deleteNextInputMappingMutex.Unlock()
-	fake.DeleteNextInputMappingStub = nil
-	fake.deleteNextInputMappingReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeJob) DeleteNextInputMappingReturnsOnCall(i int, result1 error) {
-	fake.deleteNextInputMappingMutex.Lock()
-	defer fake.deleteNextInputMappingMutex.Unlock()
-	fake.DeleteNextInputMappingStub = nil
-	if fake.deleteNextInputMappingReturnsOnCall == nil {
-		fake.deleteNextInputMappingReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.deleteNextInputMappingReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeJob) EnsurePendingBuildExists() error {
 	fake.ensurePendingBuildExistsMutex.Lock()
 	ret, specificReturn := fake.ensurePendingBuildExistsReturnsOnCall[len(fake.ensurePendingBuildExistsArgsForCall)]
@@ -1103,62 +957,65 @@ func (fake *FakeJob) FirstLoggedBuildIDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeJob) GetIndependentBuildInputs() ([]db.BuildInput, error) {
-	fake.getIndependentBuildInputsMutex.Lock()
-	ret, specificReturn := fake.getIndependentBuildInputsReturnsOnCall[len(fake.getIndependentBuildInputsArgsForCall)]
-	fake.getIndependentBuildInputsArgsForCall = append(fake.getIndependentBuildInputsArgsForCall, struct {
+func (fake *FakeJob) GetFullNextBuildInputs() ([]db.BuildInput, bool, error) {
+	fake.getFullNextBuildInputsMutex.Lock()
+	ret, specificReturn := fake.getFullNextBuildInputsReturnsOnCall[len(fake.getFullNextBuildInputsArgsForCall)]
+	fake.getFullNextBuildInputsArgsForCall = append(fake.getFullNextBuildInputsArgsForCall, struct {
 	}{})
-	fake.recordInvocation("GetIndependentBuildInputs", []interface{}{})
-	fake.getIndependentBuildInputsMutex.Unlock()
-	if fake.GetIndependentBuildInputsStub != nil {
-		return fake.GetIndependentBuildInputsStub()
+	fake.recordInvocation("GetFullNextBuildInputs", []interface{}{})
+	fake.getFullNextBuildInputsMutex.Unlock()
+	if fake.GetFullNextBuildInputsStub != nil {
+		return fake.GetFullNextBuildInputsStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getIndependentBuildInputsReturns
-	return fakeReturns.result1, fakeReturns.result2
+	fakeReturns := fake.getFullNextBuildInputsReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
-func (fake *FakeJob) GetIndependentBuildInputsCallCount() int {
-	fake.getIndependentBuildInputsMutex.RLock()
-	defer fake.getIndependentBuildInputsMutex.RUnlock()
-	return len(fake.getIndependentBuildInputsArgsForCall)
+func (fake *FakeJob) GetFullNextBuildInputsCallCount() int {
+	fake.getFullNextBuildInputsMutex.RLock()
+	defer fake.getFullNextBuildInputsMutex.RUnlock()
+	return len(fake.getFullNextBuildInputsArgsForCall)
 }
 
-func (fake *FakeJob) GetIndependentBuildInputsCalls(stub func() ([]db.BuildInput, error)) {
-	fake.getIndependentBuildInputsMutex.Lock()
-	defer fake.getIndependentBuildInputsMutex.Unlock()
-	fake.GetIndependentBuildInputsStub = stub
+func (fake *FakeJob) GetFullNextBuildInputsCalls(stub func() ([]db.BuildInput, bool, error)) {
+	fake.getFullNextBuildInputsMutex.Lock()
+	defer fake.getFullNextBuildInputsMutex.Unlock()
+	fake.GetFullNextBuildInputsStub = stub
 }
 
-func (fake *FakeJob) GetIndependentBuildInputsReturns(result1 []db.BuildInput, result2 error) {
-	fake.getIndependentBuildInputsMutex.Lock()
-	defer fake.getIndependentBuildInputsMutex.Unlock()
-	fake.GetIndependentBuildInputsStub = nil
-	fake.getIndependentBuildInputsReturns = struct {
+func (fake *FakeJob) GetFullNextBuildInputsReturns(result1 []db.BuildInput, result2 bool, result3 error) {
+	fake.getFullNextBuildInputsMutex.Lock()
+	defer fake.getFullNextBuildInputsMutex.Unlock()
+	fake.GetFullNextBuildInputsStub = nil
+	fake.getFullNextBuildInputsReturns = struct {
 		result1 []db.BuildInput
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeJob) GetIndependentBuildInputsReturnsOnCall(i int, result1 []db.BuildInput, result2 error) {
-	fake.getIndependentBuildInputsMutex.Lock()
-	defer fake.getIndependentBuildInputsMutex.Unlock()
-	fake.GetIndependentBuildInputsStub = nil
-	if fake.getIndependentBuildInputsReturnsOnCall == nil {
-		fake.getIndependentBuildInputsReturnsOnCall = make(map[int]struct {
+func (fake *FakeJob) GetFullNextBuildInputsReturnsOnCall(i int, result1 []db.BuildInput, result2 bool, result3 error) {
+	fake.getFullNextBuildInputsMutex.Lock()
+	defer fake.getFullNextBuildInputsMutex.Unlock()
+	fake.GetFullNextBuildInputsStub = nil
+	if fake.getFullNextBuildInputsReturnsOnCall == nil {
+		fake.getFullNextBuildInputsReturnsOnCall = make(map[int]struct {
 			result1 []db.BuildInput
-			result2 error
+			result2 bool
+			result3 error
 		})
 	}
-	fake.getIndependentBuildInputsReturnsOnCall[i] = struct {
+	fake.getFullNextBuildInputsReturnsOnCall[i] = struct {
 		result1 []db.BuildInput
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeJob) GetNextBuildInputs() ([]db.BuildInput, bool, error) {
+func (fake *FakeJob) GetNextBuildInputs() ([]db.BuildInput, error) {
 	fake.getNextBuildInputsMutex.Lock()
 	ret, specificReturn := fake.getNextBuildInputsReturnsOnCall[len(fake.getNextBuildInputsArgsForCall)]
 	fake.getNextBuildInputsArgsForCall = append(fake.getNextBuildInputsArgsForCall, struct {
@@ -1169,10 +1026,10 @@ func (fake *FakeJob) GetNextBuildInputs() ([]db.BuildInput, bool, error) {
 		return fake.GetNextBuildInputsStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.getNextBuildInputsReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeJob) GetNextBuildInputsCallCount() int {
@@ -1181,39 +1038,36 @@ func (fake *FakeJob) GetNextBuildInputsCallCount() int {
 	return len(fake.getNextBuildInputsArgsForCall)
 }
 
-func (fake *FakeJob) GetNextBuildInputsCalls(stub func() ([]db.BuildInput, bool, error)) {
+func (fake *FakeJob) GetNextBuildInputsCalls(stub func() ([]db.BuildInput, error)) {
 	fake.getNextBuildInputsMutex.Lock()
 	defer fake.getNextBuildInputsMutex.Unlock()
 	fake.GetNextBuildInputsStub = stub
 }
 
-func (fake *FakeJob) GetNextBuildInputsReturns(result1 []db.BuildInput, result2 bool, result3 error) {
+func (fake *FakeJob) GetNextBuildInputsReturns(result1 []db.BuildInput, result2 error) {
 	fake.getNextBuildInputsMutex.Lock()
 	defer fake.getNextBuildInputsMutex.Unlock()
 	fake.GetNextBuildInputsStub = nil
 	fake.getNextBuildInputsReturns = struct {
 		result1 []db.BuildInput
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeJob) GetNextBuildInputsReturnsOnCall(i int, result1 []db.BuildInput, result2 bool, result3 error) {
+func (fake *FakeJob) GetNextBuildInputsReturnsOnCall(i int, result1 []db.BuildInput, result2 error) {
 	fake.getNextBuildInputsMutex.Lock()
 	defer fake.getNextBuildInputsMutex.Unlock()
 	fake.GetNextBuildInputsStub = nil
 	if fake.getNextBuildInputsReturnsOnCall == nil {
 		fake.getNextBuildInputsReturnsOnCall = make(map[int]struct {
 			result1 []db.BuildInput
-			result2 bool
-			result3 error
+			result2 error
 		})
 	}
 	fake.getNextBuildInputsReturnsOnCall[i] = struct {
 		result1 []db.BuildInput
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeJob) GetNextPendingBuildBySerialGroup(arg1 []string) (db.Build, bool, error) {
@@ -1777,136 +1631,17 @@ func (fake *FakeJob) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeJob) SaveIndependentInputMapping(arg1 algorithm.InputMapping) error {
-	fake.saveIndependentInputMappingMutex.Lock()
-	ret, specificReturn := fake.saveIndependentInputMappingReturnsOnCall[len(fake.saveIndependentInputMappingArgsForCall)]
-	fake.saveIndependentInputMappingArgsForCall = append(fake.saveIndependentInputMappingArgsForCall, struct {
-		arg1 algorithm.InputMapping
-	}{arg1})
-	fake.recordInvocation("SaveIndependentInputMapping", []interface{}{arg1})
-	fake.saveIndependentInputMappingMutex.Unlock()
-	if fake.SaveIndependentInputMappingStub != nil {
-		return fake.SaveIndependentInputMappingStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.saveIndependentInputMappingReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeJob) SaveIndependentInputMappingCallCount() int {
-	fake.saveIndependentInputMappingMutex.RLock()
-	defer fake.saveIndependentInputMappingMutex.RUnlock()
-	return len(fake.saveIndependentInputMappingArgsForCall)
-}
-
-func (fake *FakeJob) SaveIndependentInputMappingCalls(stub func(algorithm.InputMapping) error) {
-	fake.saveIndependentInputMappingMutex.Lock()
-	defer fake.saveIndependentInputMappingMutex.Unlock()
-	fake.SaveIndependentInputMappingStub = stub
-}
-
-func (fake *FakeJob) SaveIndependentInputMappingArgsForCall(i int) algorithm.InputMapping {
-	fake.saveIndependentInputMappingMutex.RLock()
-	defer fake.saveIndependentInputMappingMutex.RUnlock()
-	argsForCall := fake.saveIndependentInputMappingArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeJob) SaveIndependentInputMappingReturns(result1 error) {
-	fake.saveIndependentInputMappingMutex.Lock()
-	defer fake.saveIndependentInputMappingMutex.Unlock()
-	fake.SaveIndependentInputMappingStub = nil
-	fake.saveIndependentInputMappingReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeJob) SaveIndependentInputMappingReturnsOnCall(i int, result1 error) {
-	fake.saveIndependentInputMappingMutex.Lock()
-	defer fake.saveIndependentInputMappingMutex.Unlock()
-	fake.SaveIndependentInputMappingStub = nil
-	if fake.saveIndependentInputMappingReturnsOnCall == nil {
-		fake.saveIndependentInputMappingReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.saveIndependentInputMappingReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeJob) SaveNextBuildPipes(arg1 algorithm.InputMapping) error {
-	fake.saveNextBuildPipesMutex.Lock()
-	ret, specificReturn := fake.saveNextBuildPipesReturnsOnCall[len(fake.saveNextBuildPipesArgsForCall)]
-	fake.saveNextBuildPipesArgsForCall = append(fake.saveNextBuildPipesArgsForCall, struct {
-		arg1 algorithm.InputMapping
-	}{arg1})
-	fake.recordInvocation("SaveNextBuildPipes", []interface{}{arg1})
-	fake.saveNextBuildPipesMutex.Unlock()
-	if fake.SaveNextBuildPipesStub != nil {
-		return fake.SaveNextBuildPipesStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.saveNextBuildPipesReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeJob) SaveNextBuildPipesCallCount() int {
-	fake.saveNextBuildPipesMutex.RLock()
-	defer fake.saveNextBuildPipesMutex.RUnlock()
-	return len(fake.saveNextBuildPipesArgsForCall)
-}
-
-func (fake *FakeJob) SaveNextBuildPipesCalls(stub func(algorithm.InputMapping) error) {
-	fake.saveNextBuildPipesMutex.Lock()
-	defer fake.saveNextBuildPipesMutex.Unlock()
-	fake.SaveNextBuildPipesStub = stub
-}
-
-func (fake *FakeJob) SaveNextBuildPipesArgsForCall(i int) algorithm.InputMapping {
-	fake.saveNextBuildPipesMutex.RLock()
-	defer fake.saveNextBuildPipesMutex.RUnlock()
-	argsForCall := fake.saveNextBuildPipesArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeJob) SaveNextBuildPipesReturns(result1 error) {
-	fake.saveNextBuildPipesMutex.Lock()
-	defer fake.saveNextBuildPipesMutex.Unlock()
-	fake.SaveNextBuildPipesStub = nil
-	fake.saveNextBuildPipesReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeJob) SaveNextBuildPipesReturnsOnCall(i int, result1 error) {
-	fake.saveNextBuildPipesMutex.Lock()
-	defer fake.saveNextBuildPipesMutex.Unlock()
-	fake.SaveNextBuildPipesStub = nil
-	if fake.saveNextBuildPipesReturnsOnCall == nil {
-		fake.saveNextBuildPipesReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.saveNextBuildPipesReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeJob) SaveNextInputMapping(arg1 algorithm.InputMapping) error {
+func (fake *FakeJob) SaveNextInputMapping(arg1 db.InputMapping, arg2 bool) error {
 	fake.saveNextInputMappingMutex.Lock()
 	ret, specificReturn := fake.saveNextInputMappingReturnsOnCall[len(fake.saveNextInputMappingArgsForCall)]
 	fake.saveNextInputMappingArgsForCall = append(fake.saveNextInputMappingArgsForCall, struct {
-		arg1 algorithm.InputMapping
-	}{arg1})
-	fake.recordInvocation("SaveNextInputMapping", []interface{}{arg1})
+		arg1 db.InputMapping
+		arg2 bool
+	}{arg1, arg2})
+	fake.recordInvocation("SaveNextInputMapping", []interface{}{arg1, arg2})
 	fake.saveNextInputMappingMutex.Unlock()
 	if fake.SaveNextInputMappingStub != nil {
-		return fake.SaveNextInputMappingStub(arg1)
+		return fake.SaveNextInputMappingStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1921,17 +1656,17 @@ func (fake *FakeJob) SaveNextInputMappingCallCount() int {
 	return len(fake.saveNextInputMappingArgsForCall)
 }
 
-func (fake *FakeJob) SaveNextInputMappingCalls(stub func(algorithm.InputMapping) error) {
+func (fake *FakeJob) SaveNextInputMappingCalls(stub func(db.InputMapping, bool) error) {
 	fake.saveNextInputMappingMutex.Lock()
 	defer fake.saveNextInputMappingMutex.Unlock()
 	fake.SaveNextInputMappingStub = stub
 }
 
-func (fake *FakeJob) SaveNextInputMappingArgsForCall(i int) algorithm.InputMapping {
+func (fake *FakeJob) SaveNextInputMappingArgsForCall(i int) (db.InputMapping, bool) {
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
 	argsForCall := fake.saveNextInputMappingArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeJob) SaveNextInputMappingReturns(result1 error) {
@@ -2302,18 +2037,14 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.configMutex.RUnlock()
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
-	fake.deleteNextBuildPipesMutex.RLock()
-	defer fake.deleteNextBuildPipesMutex.RUnlock()
-	fake.deleteNextInputMappingMutex.RLock()
-	defer fake.deleteNextInputMappingMutex.RUnlock()
 	fake.ensurePendingBuildExistsMutex.RLock()
 	defer fake.ensurePendingBuildExistsMutex.RUnlock()
 	fake.finishedAndNextBuildMutex.RLock()
 	defer fake.finishedAndNextBuildMutex.RUnlock()
 	fake.firstLoggedBuildIDMutex.RLock()
 	defer fake.firstLoggedBuildIDMutex.RUnlock()
-	fake.getIndependentBuildInputsMutex.RLock()
-	defer fake.getIndependentBuildInputsMutex.RUnlock()
+	fake.getFullNextBuildInputsMutex.RLock()
+	defer fake.getFullNextBuildInputsMutex.RUnlock()
 	fake.getNextBuildInputsMutex.RLock()
 	defer fake.getNextBuildInputsMutex.RUnlock()
 	fake.getNextPendingBuildBySerialGroupMutex.RLock()
@@ -2336,10 +2067,6 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.pipelineNameMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
-	fake.saveIndependentInputMappingMutex.RLock()
-	defer fake.saveIndependentInputMappingMutex.RUnlock()
-	fake.saveNextBuildPipesMutex.RLock()
-	defer fake.saveNextBuildPipesMutex.RUnlock()
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
 	fake.setMaxInFlightReachedMutex.RLock()

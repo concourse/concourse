@@ -1,7 +1,5 @@
 package db
 
-import "fmt"
-
 type BuildPreparationStatus string
 
 const (
@@ -10,24 +8,16 @@ const (
 	BuildPreparationStatusNotBlocking BuildPreparationStatus = "not_blocking"
 )
 
+const MissingBuildInput string = "input has not yet attempted to be resolved"
+
 type MissingInputReasons map[string]string
 
-const (
-	NoVersionsSatisfiedPassedConstraints string = "no versions satisfy passed constraints"
-	NoVersionsAvailable                  string = "no versions available"
-	PinnedVersionUnavailable             string = "pinned version %s is not available"
-)
-
-func (mir MissingInputReasons) RegisterPassedConstraint(inputName string) {
-	mir[inputName] = NoVersionsSatisfiedPassedConstraints
+func (m MissingInputReasons) RegisterMissingInput(inputName string) {
+	m[inputName] = MissingBuildInput
 }
 
-func (mir MissingInputReasons) RegisterNoVersions(inputName string) {
-	mir[inputName] = NoVersionsAvailable
-}
-
-func (mir MissingInputReasons) RegisterPinnedVersionUnavailable(inputName string, version string) {
-	mir[inputName] = fmt.Sprintf(PinnedVersionUnavailable, version)
+func (m MissingInputReasons) RegisterResolveError(inputName string, resolveErr error) {
+	m[inputName] = resolveErr.Error()
 }
 
 type BuildPreparation struct {

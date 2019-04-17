@@ -6,19 +6,17 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
-	"github.com/concourse/concourse/atc/scheduler/inputmapper"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 type Scheduler struct {
-	Pipeline     db.Pipeline
-	InputMapper  inputmapper.InputMapper
+	InputMapper  algorithm.InputMapper
 	BuildStarter BuildStarter
 }
 
 func (s *Scheduler) Schedule(
 	logger lager.Logger,
-	versions *algorithm.VersionsDB,
+	versions *db.VersionsDB,
 	job db.Job,
 	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
@@ -26,20 +24,26 @@ func (s *Scheduler) Schedule(
 	jobSchedulingTime := map[string]time.Duration{}
 
 	jStart := time.Now()
-	err := s.ensurePendingBuildExists(logger, versions, job, resources)
+
+	inputMapping, resolved, err := s.InputMapper.MapInputs(versions, job, resources)
+	if err != nil {
+		return jobSchedulingTime, err
+	}
+
+	err = job.SaveNextInputMapping(inputMapping, resolved)
+	if err != nil {
+		logger.Error("failed-to-save-next-input-mapping", err)
+		return jobSchedulingTime, err
+	}
+
+	err = s.ensurePendingBuildExists(logger, job, resources)
 	jobSchedulingTime[job.Name()] = time.Since(jStart)
 
 	if err != nil {
 		return jobSchedulingTime, err
 	}
 
-	nextPendingBuilds, err := job.GetPendingBuilds()
-	if err != nil {
-		logger.Error("failed-to-get-all-next-pending-builds", err)
-		return jobSchedulingTime, err
-	}
-
-	err = s.BuildStarter.TryStartPendingBuildsForJob(logger, job, resources, resourceTypes, nextPendingBuilds)
+	err = s.BuildStarter.TryStartPendingBuildsForJob(logger, job, resources, resourceTypes)
 	jobSchedulingTime[job.Name()] = jobSchedulingTime[job.Name()] + time.Since(jStart)
 
 	if err != nil {
@@ -51,20 +55,31 @@ func (s *Scheduler) Schedule(
 
 func (s *Scheduler) ensurePendingBuildExists(
 	logger lager.Logger,
-	versions *algorithm.VersionsDB,
 	job db.Job,
 	resources db.Resources,
 ) error {
-	inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, job, resources)
+	buildInputs, found, err := job.GetFullNextBuildInputs()
 	if err != nil {
+		logger.Error("failed-to-fetch-next-build-inputs", err)
 		return err
+	}
+
+	if !found {
+		// XXX: better info log pls
+		logger.Info("next-build-inputs-not-found")
+		return nil
+	}
+
+	inputMapping := map[string]db.BuildInput{}
+	for _, input := range buildInputs {
+		inputMapping[input.Name] = input
 	}
 
 	for _, inputConfig := range job.Config().Inputs() {
 		inputSource, ok := inputMapping[inputConfig.Name]
 
 		//trigger: true, and the version has not been used
-		if ok && inputSource.InputVersion.FirstOccurrence && inputConfig.Trigger {
+		if ok && inputSource.FirstOccurrence && inputConfig.Trigger {
 			err := job.EnsurePendingBuildExists()
 			if err != nil {
 				logger.Error("failed-to-ensure-pending-build-exists", err)
