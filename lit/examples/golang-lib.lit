@@ -7,7 +7,7 @@
 
 	You can run the tests for a Golang library across any specified versions.
 
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/golang}
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/golang-lib}
 }
 
 \right-side{Why?}{
