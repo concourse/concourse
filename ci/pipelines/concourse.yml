@@ -1104,12 +1104,14 @@ jobs:
 resources:
 - name: concourse
   type: git
+  icon: &git-icon github-circle
   source:
     uri: https://github.com/concourse/concourse.git
     branch: master
 
 - name: unit-dockerfile
   type: git
+  icon: *git-icon
   source:
     uri: https://github.com/concourse/concourse.git
     branch: master
@@ -1117,6 +1119,7 @@ resources:
 
 - name: golang-builder-dockerfile
   type: git
+  icon: *git-icon
   source:
     uri: https://github.com/concourse/concourse.git
     branch: master
@@ -1124,6 +1127,7 @@ resources:
 
 - name: dev-image
   type: registry-image
+  icon: &image-icon docker
   source:
     repository: concourse/dev
     username: ((docker.username))
@@ -1131,6 +1135,7 @@ resources:
 
 - name: concourse-rc-image
   type: registry-image
+  icon: *image-icon
   source:
     repository: concourse/concourse-rc
     username: ((docker.username))
@@ -1138,6 +1143,7 @@ resources:
 
 - name: concourse-image
   type: registry-image
+  icon: *image-icon
   source:
     repository: concourse/concourse
     username: ((docker.username))
@@ -1145,6 +1151,7 @@ resources:
 
 - name: unit-image
   type: registry-image
+  icon: *image-icon
   source:
     repository: concourse/unit
     username: ((docker.username))
@@ -1152,6 +1159,7 @@ resources:
 
 - name: golang-builder-image
   type: registry-image
+  icon: *image-icon
   source:
     repository: concourse/golang-builder
     username: ((docker.username))
@@ -1159,10 +1167,12 @@ resources:
 
 - name: postgres-image
   type: registry-image
+  icon: *image-icon
   source: {repository: postgres}
 
 - name: dumb-init
   type: github-release
+  icon: &release-icon package-variant-closed
   source:
     owner: Yelp
     repository: dumb-init
@@ -1170,6 +1180,7 @@ resources:
 
 - name: bbr
   type: github-release
+  icon: *release-icon
   source:
     owner: cloudfoundry-incubator
     repository: bosh-backup-and-restore
@@ -1177,6 +1188,7 @@ resources:
 
 - name: gdn
   type: github-release
+  icon: *release-icon
   source:
     owner: cloudfoundry
     repository: garden-runc-release
@@ -1184,6 +1196,7 @@ resources:
 
 - name: mock-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: mock-resource
@@ -1191,6 +1204,7 @@ resources:
 
 - name: bosh-io-release-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: bosh-io-release-resource
@@ -1198,6 +1212,7 @@ resources:
 
 - name: bosh-io-stemcell-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: bosh-io-stemcell-resource
@@ -1205,6 +1220,7 @@ resources:
 
 - name: cf-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: cf-resource
@@ -1212,6 +1228,7 @@ resources:
 
 - name: docker-image-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: docker-image-resource
@@ -1219,6 +1236,7 @@ resources:
 
 - name: git-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: git-resource
@@ -1226,6 +1244,7 @@ resources:
 
 - name: github-release-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: github-release-resource
@@ -1233,6 +1252,7 @@ resources:
 
 - name: hg-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: hg-resource
@@ -1240,6 +1260,7 @@ resources:
 
 - name: pool-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: pool-resource
@@ -1247,6 +1268,7 @@ resources:
 
 - name: registry-image-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: registry-image-resource
@@ -1254,6 +1276,7 @@ resources:
 
 - name: s3-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: s3-resource
@@ -1261,6 +1284,7 @@ resources:
 
 - name: semver-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: semver-resource
@@ -1268,6 +1292,7 @@ resources:
 
 - name: time-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: time-resource
@@ -1275,6 +1300,7 @@ resources:
 
 - name: tracker-resource
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: tracker-resource
@@ -1282,10 +1308,12 @@ resources:
 
 - name: builder
   type: registry-image
+  icon: *image-icon
   source: {repository: concourse/builder}
 
 - name: version
   type: semver
+  icon: tag
   source:
     driver: gcs
     bucket: concourse-artifacts
@@ -1294,6 +1322,7 @@ resources:
 
 - name: linux-rc
   type: gcs
+  icon: linux
   source:
     bucket: concourse-artifacts
     json_key: ((concourse_artifacts_json_key))
@@ -1301,6 +1330,7 @@ resources:
 
 - name: windows-rc
   type: gcs
+  icon: windows
   source:
     bucket: concourse-artifacts
     json_key: ((concourse_artifacts_json_key))
@@ -1308,6 +1338,7 @@ resources:
 
 - name: darwin-rc
   type: gcs
+  icon: apple
   source:
     bucket: concourse-artifacts
     json_key: ((concourse_artifacts_json_key))
@@ -1315,12 +1346,14 @@ resources:
 
 - name: docs
   type: git
+  icon: *git-icon
   source:
     uri: https://github.com/concourse/docs
     branch: master
 
 - name: docs-gh-pages
   type: git
+  icon: *git-icon
   source:
     uri: git@github.com:concourse/docs
     branch: gh-pages
@@ -1328,6 +1361,7 @@ resources:
 
 - name: concourse-release
   type: bosh-release
+  icon: *release-icon
   source:
     uri: https://github.com/concourse/concourse-bosh-release
     branch: master
@@ -1341,6 +1375,7 @@ resources:
 
 - name: concourse-release-final
   type: bosh-release
+  icon: truck
   source:
     uri: git@github.com:concourse/concourse-bosh-release
     branch: master
@@ -1349,42 +1384,50 @@ resources:
 
 - name: postgres-release
   type: bosh-io-release
+  icon: *release-icon
   source:
     repository: cloudfoundry/postgres-release
 
 - name: postgres-bbr-compatible-release
   type: bosh-io-release
+  icon: *release-icon
   source:
     repository: cloudfoundry/postgres-release
     regexp: 31
 
 - name: bpm-release
   type: bosh-io-release
+  icon: *release-icon
   source:
     repository: cloudfoundry-incubator/bpm-release
 
 - name: bbr-sdk-release
   type: bosh-io-release
+  icon: *release-icon
   source:
     repository: cloudfoundry-incubator/backup-and-restore-sdk-release
 
 - name: vault-release
   type: bosh-io-release
+  icon: *release-icon
   source:
     repository: vito/vault-boshrelease
 
 - name: credhub-release
   type: bosh-io-release
+  icon: *release-icon
   source:
     repository: pivotal-cf/credhub-release
 
 - name: backup-and-restore-sdk-release
   type: bosh-io-release
+  icon: *release-icon
   source:
     repository: cloudfoundry-incubator/backup-and-restore-sdk-release
 
 - name: concourse-release-repo
   type: git
+  icon: *git-icon
   source:
     uri: git@github.com:concourse/concourse-bosh-release
     branch: master
@@ -1392,6 +1435,7 @@ resources:
 
 - name: smoke-deployment
   type: bosh-deployment
+  icon: fire
   source:
     target: ((bosh_target))
     client: ((bosh_client.id))
@@ -1400,6 +1444,7 @@ resources:
 
 - name: prod-deployment
   type: bosh-deployment
+  icon: sync
   source:
     target: ((bosh_target))
     client: ((bosh_client.id))
@@ -1408,6 +1453,7 @@ resources:
 
 - name: wings-deployment
   type: bosh-deployment
+  icon: airplane-takeoff
   source:
     target: ((bosh_target))
     client: ((bosh_client.id))
@@ -1416,16 +1462,19 @@ resources:
 
 - name: gcp-xenial-stemcell
   type: bosh-io-stemcell
+  icon: *release-icon
   source:
     name: bosh-google-kvm-ubuntu-xenial-go_agent
 
 - name: gcp-windows-stemcell
   type: bosh-io-stemcell
+  icon: *release-icon
   source:
     name: bosh-google-kvm-windows2016-go_agent
 
 - name: cbd
   type: git
+  icon: *git-icon
   source:
     uri: git@github.com:concourse/concourse-bosh-deployment.git
     branch: develop
@@ -1433,6 +1482,7 @@ resources:
 
 - name: cbd-master
   type: git
+  icon: *git-icon
   source:
     uri: git@github.com:concourse/concourse-bosh-deployment.git
     branch: master
@@ -1440,23 +1490,27 @@ resources:
 
 - name: concourse-docker
   type: git
+  icon: *git-icon
   source:
     uri: https://github.com/concourse/concourse-docker
 
 - name: charts
   type: git
+  icon: *git-icon
   source:
     uri: https://github.com/concourse/charts.git
     branch: merged
 
 - name: prod
   type: git
+  icon: *git-icon
   source:
     uri: https://github.com/concourse/prod.git
     branch: master
 
 - name: golang-windows
   type: s3
+  icon: language-go
   source:
     endpoint: storage.googleapis.com
     bucket: golang
@@ -1464,6 +1518,7 @@ resources:
 
 - name: golang-linux
   type: s3
+  icon: language-go
   source:
     endpoint: storage.googleapis.com
     bucket: golang
@@ -1471,6 +1526,7 @@ resources:
 
 - name: concourse-github-release
   type: github-release
+  icon: truck
   source:
     owner: concourse
     repository: concourse
@@ -1478,11 +1534,13 @@ resources:
 
 - name: concourse-boshio
   type: bosh-io-release
+  icon: *release-icon
   source:
     repository: concourse/concourse-bosh-release
 
 - name: latest-version
   type: github-release
+  icon: *release-icon
   source:
     owner: concourse
     repository: concourse
