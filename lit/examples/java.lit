@@ -17,6 +17,7 @@
 resources:
   - name: apache-dubbo-git
     type: git
+    icon: github-circle
     source:
       uri: https://github.com/apache/incubator-dubbo.git
 

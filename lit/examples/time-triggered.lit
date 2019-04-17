@@ -17,6 +17,7 @@
 resources:
   - name: every-30s
     type: time
+    icon: clock-outline
     source:
       interval: 30s
 

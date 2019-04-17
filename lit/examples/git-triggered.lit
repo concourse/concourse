@@ -17,6 +17,7 @@
 resources:
   - name: concourse-docs-git
     type: git
+    icon: github-circle
     source:
       uri: https://github.com/concourse/docs
 
