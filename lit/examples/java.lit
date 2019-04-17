@@ -15,32 +15,44 @@
 	\codeblock{yaml}{{{
 ---
 resources:
-  - name: apache-dubbo-git
+  - name: apache-kafka-git
     type: git
+    icon: github-circle
     source:
-      uri: https://github.com/apache/incubator-dubbo.git
+      uri: https://github.com/apache/kafka.git
 
 jobs:
   - name: test
     public: true
     plan:
-      - get: apache-dubbo-git
+      - get: apache-kafka-git
         trigger: true
       - task: run-tests
         config:
           platform: linux
           image_resource:
             type: registry-image
-            source: { repository: oracle/openjdk, tag: "8" }
+            source: { repository: gradle, tag: jdk8-slim }
           inputs:
-            - name: apache-dubbo-git
+            - name: apache-kafka-git
           run:
             path: /bin/sh
+            user: root
             args:
               - -c
               - |
-                cd apache-dubbo-git
-                ./mvnw clean install -DskipTests=false -Dcheckstyle.skip=false -Drat.skip=false -Dmaven.javadoc.skip=true
+                java -Xmx32m -version
+                javac -J-Xmx32m -version
+
+                cd apache-kafka-git
+
+                gradle wrapper
+                ./gradlew rat
+                ./gradlew systemTestLibs
+          caches:
+            - path: "$HOME/.m2/repository"
+            - path: "$HOME/.gradle/caches/"
+            - path: "$HOME/.gradle/wrapper/"
 	}}}
 }
 

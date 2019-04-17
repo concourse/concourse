@@ -17,6 +17,7 @@
 resources:
   - name: rails-contributors-git
     type: git
+    icon: github-circle
     source:
       uri: https://github.com/rails/rails-contributors.git
 

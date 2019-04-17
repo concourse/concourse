@@ -12,7 +12,7 @@ engine](https://vito.github.io/booklit/).
 # Examples Status
 
 - git-triggered [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/git-triggered/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/git-triggered)
-- golang [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/golang/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/golang)
+- golang-lib [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/golang-lib/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/golang-lib)
 - hooks [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/hooks/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/hooks)
 - java [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/java/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/java)
 - job [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/job/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/job)

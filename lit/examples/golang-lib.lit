@@ -7,7 +7,7 @@
 
 	You can run the tests for a Golang library across any specified versions.
 
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/golang}
+	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/golang-lib}
 }
 
 \right-side{Why?}{
@@ -23,23 +23,27 @@ For these Docker images, defining them as \reference{resources} has two advantag
 resources:
   - name: golang-mock-git
     type: git
+    icon: github-circle
     source:
       uri: https://github.com/golang/mock.git
 
   - name: golang-1.11.x-image
     type: registry-image
+    icon: docker
     source:
       repository: golang
       tag: 1.11-stretch
 
   - name: golang-1.10.x-image
     type: registry-image
+    icon: docker
     source:
       repository: golang
       tag: 1.10-stretch
 
   - name: golang-1.9.x-image
     type: registry-image
+    icon: docker
     source:
       repository: golang
       tag: 1.9-stretch

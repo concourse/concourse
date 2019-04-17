@@ -17,6 +17,7 @@
 resources:
   - name: larvel-websockets-git
     type: git
+    icon: github-circle
     source:
       uri: https://github.com/beyondcode/laravel-websockets.git
 
