@@ -944,11 +944,13 @@ jobs:
       passed: [shipit]
     - get: darwin-rc
       passed: [shipit]
+    - get: release-notes
+    - get: docs
   - task: prep-release-assets
     file: concourse/ci/tasks/prep-release-assets.yml
     image: unit-image
   - task: build-release-notes
-    file: concourse/ci/tasks/build-release-notes.yml
+    file: release-notes/ci/build.yml
     image: unit-image
   - put: concourse-github-release
     params:
@@ -1355,6 +1357,13 @@ resources:
   icon: *git-icon
   source:
     uri: https://github.com/concourse/docs
+    branch: master
+
+- name: release-notes
+  type: git
+  icon: *git-icon
+  source:
+    uri: https://github.com/concourse/release-notes
     branch: master
 
 - name: docs-gh-pages
