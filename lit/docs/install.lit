@@ -8,8 +8,9 @@ A Concourse installation is composed of a \reference{web-node}, a
 \reference{worker-node}, and a \reference{postgresql-node}.
 
 The \code{web} and \code{worker} nodes both run via a single \code{concourse}
-CLI. The \code{concourse} CLI is available from the \reference{downloads} page
-- be sure to grab the appropriate archive for your platform of choice.
+CLI, which can be downloaded from the \link{latest GitHub
+release}{https://github.com/concourse/concourse/releases/latest} - be sure to
+grab the appropriate archive for your platform of choice.
 
 Each archive contains the following:
 

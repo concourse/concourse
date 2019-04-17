@@ -6,6 +6,9 @@
   {{range .Top.Children}}
   <a href="{{.PrimaryTag | url}}"{{if .Contains $}} class="active"{{end}}>{{.Title | stripAux | render}}</a>
   {{end}}
+
+  <a class="icon-link download-link" href="https://github.com/concourse/concourse/releases/latest">download</a>
+  <a class="icon-link github-link" href="https://github.com/concourse/concourse">github</a>
 </nav>
 
 <div class="top-search">
