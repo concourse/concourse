@@ -551,7 +551,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		checkContainerStrategy,
 	)
 
-	drain := make(chan struct{})
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
@@ -575,7 +574,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbBuildFactory,
 		dbResourceConfigFactory,
 		workerClient,
-		drain,
 		radarScannerFactory,
 		variablesFactory,
 		credsManagers,
@@ -1269,7 +1267,6 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbBuildFactory db.BuildFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	workerClient worker.Client,
-	drain <-chan struct{},
 	radarScannerFactory radar.ScannerFactory,
 	variablesFactory creds.VariablesFactory,
 	credsManagers creds.Managers,
@@ -1310,7 +1307,6 @@ func (cmd *RunCommand) constructAPIHandler(
 		resourceConfigFactory,
 
 		buildserver.NewEventHandler,
-		drain,
 
 		workerClient,
 		radarScannerFactory,
