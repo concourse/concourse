@@ -146,6 +146,29 @@ local create_release = {
     ]
   }
 };
+local generate_dpkg_list = {
+  platform: "linux",
+  inputs: [
+    { name: "version" },
+  ],
+  outputs: [
+    { name: "dpkg-file" },
+  ],
+  run: {
+    path: "bash",
+    args: [
+      "-exc",
+      |||
+        VERSION="$(cat version/number)"
+        RESOURCE="%(resource)s"
+        DPKG_FILE="${RESOURCE}-dpkg-list-${VERSION}.txt"
+        dpkg -l > "dpkg-file/${DPKG_FILE}"
+      ||| % {
+        resource: resource,
+      },
+    ],
+  },
+};
 
 local publish_job(bump) = {
   name: bump,
@@ -177,6 +200,11 @@ local publish_job(bump) = {
       config: create_release
     },
     {
+      task: "generate-dpkg-list",
+      config: generate_dpkg_list,
+      image: "resource-image-dev-ubuntu",
+    },
+    {
       aggregate: [
         {
           put: "resource-image-alpine",
@@ -203,6 +231,12 @@ local publish_job(bump) = {
           }
         }
       ]
+    },
+    {
+      put: "dpkg-list-store",
+      params: {
+        file: "dpkg-file/" + resource + "-dpkg-list-*.txt",
+      },
     },
     {
       put: "version",
@@ -435,7 +469,16 @@ local build_image(distro) = {
         username: "((docker.username))",
         password: "((docker.password))"
       }
-    }
+    },
+    {
+      name: "dpkg-list-store",
+      type: "gcs",
+      source: {
+        bucket: "concourse-ubuntu-dpkg-list",
+        json_key: "((concourse_dpkg_list_json_key))",
+        regexp: resource + "-dpkg-list-(.*).txt",
+      },
+    },
   ] + extra_resources,
   jobs: [
     build_image("alpine"),
