@@ -148,7 +148,7 @@ local create_release = {
 };
 
 local publish_job(bump) = {
-  name: bump,
+  name: "publish-" + bump,
   plan: [
     {
       aggregate: [
