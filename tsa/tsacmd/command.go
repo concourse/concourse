@@ -168,6 +168,9 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authoriz
 	}
 
 	config := &ssh.ServerConfig{
+		Config: ssh.Config{
+			MACs: tsa.AllowedMACs,
+		},
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			return certChecker.Authenticate(conn, key)
 		},
