@@ -47,6 +47,7 @@ import (
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/concourse/web"
+	"github.com/concourse/concourse/web/indexhandler"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -130,6 +131,7 @@ type RunCommand struct {
 
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
+		ClusterName   string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 	} `group:"Web Server"`
 
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
@@ -584,6 +586,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
+	indexhandler.ClusterName = cmd.Server.ClusterName
 	webHandler, err := webHandler(logger)
 	if err != nil {
 		return nil, err

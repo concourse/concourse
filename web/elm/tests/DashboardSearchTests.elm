@@ -35,21 +35,7 @@ it desc expectationFunc model =
 all : Test
 all =
     describe "dashboard search"
-        (Application.init
-            { turbulenceImgSrc = ""
-            , notFoundImgSrc = ""
-            , csrfToken = ""
-            , authToken = ""
-            , pipelineRunningKeyframes = ""
-            }
-            { protocol = Url.Http
-            , host = ""
-            , port_ = Nothing
-            , path = "/"
-            , query = Nothing
-            , fragment = Nothing
-            }
-            |> Tuple.first
+        (Common.init "/"
             |> Application.handleCallback
                 (Callback.APIDataFetched
                     (Ok
