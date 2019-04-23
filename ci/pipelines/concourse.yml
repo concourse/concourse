@@ -800,6 +800,7 @@ jobs:
       - cbd/cluster/operations/worker-rebalancing.yml
       - cbd/cluster/operations/enable-global-resources.yml
       - cbd/cluster/operations/x-frame-options-unset.yml
+      - cbd/cluster/operations/worker-volume-sweeper-max-in-flight.yml
       - prod/prod/ops.yml
       vars_files:
       - cbd/versions.yml
@@ -831,6 +832,7 @@ jobs:
         default_task_cpu_limit: 1024
         container_placement_strategy: "fewest-build-containers"
         worker_rebalance_interval: 30m
+        volume_sweeper_max_in_flight: 1
 
 - name: bosh-wings-deploy
   serial: true
