@@ -26,6 +26,12 @@ var _ = Describe("Worker lifecycle", func() {
 		RerunJob                  bool
 	}
 
+	AfterEach(func() {
+		helmDestroy(releaseName)
+		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
+		Wait(proxySession.Interrupt())
+	})
+
 	DescribeTable("retiring a worker",
 		func(c Case) {
 			setReleaseNameAndNamespace("wl")
@@ -49,6 +55,8 @@ var _ = Describe("Worker lifecycle", func() {
 			}, 2*time.Minute, 10*time.Second).
 				ShouldNot(HaveLen(0))
 
+			time.Sleep(2 * time.Second)
+
 			fly.Run("set-pipeline", "-n", "-c", "../pipelines/"+c.PipelineYamlFile, "-p", "some-pipeline")
 			fly.Run("unpause-pipeline", "-p", "some-pipeline")
 			fly.Run("trigger-job", "-j", "some-pipeline/simple-job")
@@ -59,8 +67,10 @@ var _ = Describe("Worker lifecycle", func() {
 				return startSession.Out
 			}, 1*time.Minute, 1*time.Second).Should(gbytes.Say(".*started.*"))
 
+			time.Sleep(2 * time.Second)
+
 			By("deleting the worker pod")
-			Wait(Start(nil, "kubectl", "delete", "pod", "--namespace", namespace, releaseName+"-worker-0", "--wait=false"))
+			Run(nil, "kubectl", "delete", "pod", "--namespace", namespace, releaseName+"-worker-0", "--wait=false")
 
 			By("seeing that the worker state is retiring")
 			Eventually(func() string {
@@ -91,9 +101,6 @@ var _ = Describe("Worker lifecycle", func() {
 				By("running the same job again and watching it to completion")
 				fly.Run("trigger-job", "-j", "some-pipeline/simple-job", "-w")
 			}
-			helmDestroy(releaseName)
-			Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-			Wait(proxySession.Interrupt())
 		},
 		Entry("gracefully", Case{
 			TerminationGracePeriod:    "600",
