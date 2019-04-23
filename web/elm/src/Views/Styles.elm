@@ -47,8 +47,8 @@ pageBelowTopBar route =
                 Routes.Dashboard _ ->
                     [ style "box-sizing" "border-box"
                     , style "display" "flex"
-                    , style "padding-bottom" "50px"
                     , style "height" "100%"
+                    , style "padding-bottom" "50px"
                     ]
 
                 _ ->

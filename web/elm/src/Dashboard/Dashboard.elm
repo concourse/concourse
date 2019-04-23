@@ -8,7 +8,6 @@ module Dashboard.Dashboard exposing
     , view
     )
 
-import Colors
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
@@ -27,6 +26,7 @@ import Dashboard.Models as Models
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
 import Dashboard.Text as Text
+import Dict
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
@@ -69,6 +69,7 @@ import MonocleHelpers exposing (bind, modifyWithEffect)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
+import SideBar.SideBar as SideBar
 import UserState exposing (UserState)
 import Views.Icon as Icon
 import Views.Styles
@@ -104,6 +105,7 @@ init flags =
       , dropdown = Hidden
       , screenSize = Desktop
       , sideBarOpen = False
+      , groupToggleStates = Dict.empty
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -171,6 +173,14 @@ handleCallback msg ( model, effects ) =
             else
                 ( { newModel
                     | groups = groups
+                    , groupToggleStates =
+                        if Dict.isEmpty model.groupToggleStates then
+                            groups
+                                |> List.map (\g -> ( g.teamName, False ))
+                                |> Dict.fromList
+
+                        else
+                            model.groupToggleStates
                     , version = apiData.version
                     , userState = userState
                   }
@@ -284,7 +294,7 @@ handleDeliveryBody delivery ( model, effects ) =
 
 update : Message -> ET Model
 update msg =
-    SearchBar.update msg >> updateBody msg
+    SearchBar.update msg >> SideBar.update msg >> updateBody msg
 
 
 updateBody : Message -> ET Model
@@ -476,57 +486,64 @@ view : UserState -> Model -> Html Message
 view userState model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-        [ Html.div
-            (id "top-bar-app" :: Views.Styles.topBar False)
-          <|
-            [ Html.div [ style "display" "flex" ]
-                [ hamburgerMenu model
-                , Html.a (href "/" :: Styles.concourseLogo) []
-                ]
-            ]
-                ++ (let
-                        isDropDownHidden =
-                            model.dropdown == Hidden
-
-                        isMobile =
-                            model.screenSize == ScreenSize.Mobile
-                    in
-                    if
-                        not model.highDensity
-                            && isMobile
-                            && (not isDropDownHidden || model.query /= "")
-                    then
-                        [ SearchBar.view model ]
-
-                    else if not model.highDensity then
-                        [ SearchBar.view model
-                        , Login.view userState model False
-                        ]
-
-                    else
-                        [ Login.view userState model False ]
-                   )
+        [ topBar userState model
         , Html.div
-            (id "page-below-top-bar"
-                :: Styles.pageBelowTopBar model
-            )
+            [ id "page-below-top-bar"
+            , style "padding-top" "54px"
+            , style "box-sizing" "border-box"
+            , style "display" "flex"
+            , style "height" "100%"
+            , style "padding-bottom" <|
+                if model.showHelp || model.hideFooter then
+                    "0"
+
+                else
+                    "50px"
+            ]
           <|
             if model.sideBarOpen then
-                [ sideBar model
-                , Html.div
-                    [ style "box-sizing" "border-box"
-                    , style "display" "flex"
-                    , style "padding-bottom" "50px"
-                    , style "height" "100%"
-                    , style "width" "100%"
-                    , style "overflow-y" "auto"
-                    ]
-                    (dashboardView model)
+                [ SideBar.view model
+                , dashboardView model
                 ]
 
             else
-                dashboardView model
+                [ dashboardView model ]
+        , Footer.view model
         ]
+
+
+topBar : UserState -> Model -> Html Message
+topBar userState model =
+    Html.div
+        (id "top-bar-app" :: Views.Styles.topBar False)
+    <|
+        [ Html.div [ style "display" "flex" ]
+            [ hamburgerMenu model
+            , Html.a (href "/" :: Styles.concourseLogo) []
+            ]
+        ]
+            ++ (let
+                    isDropDownHidden =
+                        model.dropdown == Hidden
+
+                    isMobile =
+                        model.screenSize == ScreenSize.Mobile
+                in
+                if
+                    not model.highDensity
+                        && isMobile
+                        && (not isDropDownHidden || model.query /= "")
+                then
+                    [ SearchBar.view model ]
+
+                else if not model.highDensity then
+                    [ SearchBar.view model
+                    , Login.view userState model False
+                    ]
+
+                else
+                    [ Login.view userState model False ]
+               )
 
 
 hamburgerMenu : Model -> Html Message
@@ -548,76 +565,24 @@ hamburgerMenu model =
                     }
 
 
-sideBar : Model -> Html Message
-sideBar model =
-    Html.div
-        [ style "border-top" <| "1px solid " ++ Colors.background
-        , style "background-color" Colors.frame
-        , style "max-width" "38%"
-        , style "overflow-y" "auto"
-        ]
-        (model.groups |> List.map sideBarPipelineGroup)
-
-
-sideBarPipelineGroup : Group -> Html Message
-sideBarPipelineGroup g =
-    Html.div
-        [ style "display" "flex" ]
-        [ Html.div
-            [ style "width" "54px"
-            , style "display" "flex"
-            , style "align-items" "center"
-            , style "justify-content" "space-between"
-            , style "padding" "5px"
-            , style "box-sizing" "border-box"
-            , style "flex-shrink" "0"
-            ]
-            [ Html.div
-                []
-                [ Icon.icon
-                    { sizePx = 20
-                    , image = "baseline-people-24px.svg"
-                    }
-                    []
-                ]
-            , Html.div
-                []
-                [ Icon.icon
-                    { sizePx = 20
-                    , image = "baseline-chevron-right-24px.svg"
-                    }
-                    []
-                ]
-            ]
-        , Html.div
-            [ style "font-size" "18px"
-            , style "padding" "5px"
-            , style "white-space" "nowrap"
-            , style "overflow" "hidden"
-            , style "text-overflow" "ellipsis"
-            ]
-            [ Html.text g.teamName ]
-        ]
-
-
-dashboardView : Model -> List (Html Message)
+dashboardView : Model -> Html Message
 dashboardView model =
     case model.state of
         RemoteData.NotAsked ->
-            [ Html.text "" ]
+            Html.text ""
 
         RemoteData.Loading ->
-            [ Html.text "" ]
+            Html.text ""
 
         RemoteData.Failure (Turbulence path) ->
-            [ turbulenceView path ]
+            turbulenceView path
 
         RemoteData.Success substate ->
-            [ Html.div
+            Html.div
                 (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
                     :: Styles.content model.highDensity
                 )
-              <|
+            <|
                 welcomeCard model
                     :: pipelinesView
                         { groups = model.groups
@@ -629,8 +594,6 @@ dashboardView model =
                         , userState = model.userState
                         , highDensity = model.highDensity
                         }
-            , Footer.view model
-            ]
 
 
 welcomeCard :

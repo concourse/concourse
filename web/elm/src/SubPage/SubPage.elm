@@ -287,7 +287,14 @@ urlUpdate route =
             _ ->
                 identity
         )
-        identity
+        (case route of
+            Routes.Dashboard st ->
+                Tuple.mapFirst
+                    (\dm -> { dm | highDensity = st == Routes.HighDensity })
+
+            _ ->
+                identity
+        )
         identity
         identity
 

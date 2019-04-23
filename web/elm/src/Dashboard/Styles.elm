@@ -20,7 +20,6 @@ module Dashboard.Styles exposing
     , noPipelineCardHeader
     , noPipelineCardTextHd
     , noResults
-    , pageBelowTopBar
     , pipelineCard
     , pipelineCardBanner
     , pipelineCardBannerHd
@@ -75,6 +74,16 @@ content highDensity =
         else
             "0"
     , style "flex-grow" "1"
+    , style "overflow-y" "auto"
+    , style "height" "100%"
+    , style "width" "100%"
+    , style "box-sizing" "border-box"
+    , style "flex-direction" <|
+        if highDensity then
+            "column"
+
+        else
+            "row"
     ]
 
 
@@ -717,18 +726,3 @@ concourseLogo : List (Html.Attribute msg)
 concourseLogo =
     style "border-left" ("1px solid " ++ Colors.background)
         :: Views.Styles.concourseLogo
-
-
-pageBelowTopBar : { a | sideBarOpen : Bool } -> List (Html.Attribute msg)
-pageBelowTopBar { sideBarOpen } =
-    [ style "box-sizing" "border-box"
-    , style "display" "flex"
-    , style "height" "100%"
-    , style "padding-top" "54px"
-    , style "padding-bottom" <|
-        if sideBarOpen then
-            "0"
-
-        else
-            "50px"
-    ]

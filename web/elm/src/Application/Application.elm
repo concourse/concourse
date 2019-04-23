@@ -291,8 +291,8 @@ routeMatchesModel route model =
         ( Routes.Job _, SubPage.JobModel _ ) ->
             True
 
-        ( Routes.Dashboard searchType, SubPage.DashboardModel dashboardModel ) ->
-            dashboardModel.highDensity == (searchType == Routes.HighDensity)
+        ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->
+            True
 
         _ ->
             False

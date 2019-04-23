@@ -574,6 +574,17 @@ all =
                     |> queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has [ style "padding-bottom" "50px" ]
+        , test "no bottom padding when footer dismisses" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (userWithRoles [])
+                    |> Tuple.first
+                    |> afterSeconds 6
+                    |> Common.queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.hasNot [ style "padding-bottom" "50px" ]
         , test "top bar has bold font" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
