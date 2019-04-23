@@ -107,7 +107,7 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(true)
 				fakeaccess.IsAdminReturns(true)
 
-				ssmAccess := ssm.NewSsm(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", nil)
+				ssmAccess := ssm.NewSsm(lager.NewLogger("ssm_test"), &mockService, nil)
 				ssmManager := &ssm.SsmManager{
 					AwsAccessKeyID:         "",
 					AwsSecretAccessKey:     "",
@@ -193,8 +193,6 @@ var _ = Describe("Pipelines API", func() {
 				vaultManager := &vault.VaultManager{
 					URL:        credServer.URL(),
 					PathPrefix: "testpath",
-					Cache:      false,
-					MaxLease:   60,
 					TLS:        tls,
 					Auth:       authConfig,
 				}
@@ -264,8 +262,6 @@ var _ = Describe("Pipelines API", func() {
           "vault": {
             "url": "` + credServer.URL() + `",
             "path_prefix": "testpath",
-						"cache": false,
-						"max_lease": 60,
             "ca_cert": "",
             "server_name": "server-name",
 						"auth_backend": "backend-server",
@@ -401,7 +397,7 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthenticatedReturns(true)
 				fakeaccess.IsAdminReturns(true)
 
-				secretsManagerAccess := secretsmanager.NewSecretsManager(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", nil)
+				secretsManagerAccess := secretsmanager.NewSecretsManager(lager.NewLogger("ssm_test"), &mockService, nil)
 
 				secretsManager := &secretsmanager.Manager{
 					AwsAccessKeyID:         "",

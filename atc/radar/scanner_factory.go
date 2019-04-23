@@ -26,7 +26,7 @@ type scannerFactory struct {
 	resourceTypeCheckingInterval time.Duration
 	resourceCheckingInterval     time.Duration
 	externalURL                  string
-	variablesFactory             creds.VariablesFactory
+	secretManager                creds.Secrets
 	strategy                     worker.ContainerPlacementStrategy
 }
 
@@ -43,7 +43,7 @@ func NewScannerFactory(
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
 	externalURL string,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 	strategy worker.ContainerPlacementStrategy,
 ) ScannerFactory {
 	return &scannerFactory{
@@ -53,13 +53,13 @@ func NewScannerFactory(
 		resourceCheckingInterval:     resourceCheckingInterval,
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		externalURL:                  externalURL,
-		variablesFactory:             variablesFactory,
+		secretManager:                secretManager,
 		strategy:                     strategy,
 	}
 }
 
 func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
-	variables := f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name())
+	variables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name())
 
 	return NewResourceScanner(
 		clock.NewClock(),
@@ -75,7 +75,7 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 }
 
 func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner {
-	variables := f.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name())
+	variables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name())
 
 	return NewResourceTypeScanner(
 		clock.NewClock(),

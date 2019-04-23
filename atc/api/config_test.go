@@ -8,10 +8,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -737,9 +737,7 @@ jobs:
 
 								Context("when the credential exists in the credential manager", func() {
 									BeforeEach(func() {
-										fakeVariables := new(credsfakes.FakeVariables)
-										fakeVariablesFactory.NewVariablesReturns(fakeVariables)
-										fakeVariables.GetReturns("this-string-value-doesn't-matter", true, nil)
+										fakeSecretManager.GetReturns("this-string-value-doesn't-matter", nil, true, nil)
 									})
 
 									It("passes validation and saves it un-interpolated", func() {
@@ -760,9 +758,7 @@ jobs:
 
 								Context("when the credential does not exist in the credential manager", func() {
 									BeforeEach(func() {
-										fakeVariables := new(credsfakes.FakeVariables)
-										fakeVariablesFactory.NewVariablesReturns(fakeVariables)
-										fakeVariables.GetReturns(nil, false, nil) // nil value, not found, no error
+										fakeSecretManager.GetReturns(nil, nil, false, nil) // nil value, nil expiration, not found, no error
 									})
 
 									It("returns 400", func() {
@@ -776,8 +772,9 @@ jobs:
 
 								Context("when a credentials manager is not used", func() {
 									BeforeEach(func() {
-										fakeVariables := noop.Noop{}
-										fakeVariablesFactory.NewVariablesReturns(&fakeVariables)
+										fakeSecretManager.GetStub = func(secretPath string) (interface{}, *time.Time, bool, error) {
+											return noop.Noop{}.Get(secretPath)
+										}
 									})
 
 									It("returns 400", func() {

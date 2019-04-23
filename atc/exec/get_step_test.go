@@ -2,16 +2,12 @@ package exec_test
 
 import (
 	"archive/tar"
+	"code.cloudfoundry.org/lager/lagertest"
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
-
-	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
@@ -27,6 +23,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"io"
+	"io/ioutil"
 )
 
 var _ = Describe("GetStep", func() {
@@ -43,7 +41,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFetcher       *resourcefakes.FakeFetcher
 		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-		fakeVariablesFactory      *credsfakes.FakeVariablesFactory
+		fakeSecretManager         *credsfakes.FakeSecrets
 		variables                 creds.Variables
 		fakeBuild                 *dbfakes.FakeBuild
 		fakeDelegate              *execfakes.FakeGetDelegate
@@ -83,11 +81,9 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
-		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-		variables = template.StaticVariables{
-			"source-param": "super-secret-source",
-		}
-		fakeVariablesFactory.NewVariablesReturns(variables)
+		fakeSecretManager = new(credsfakes.FakeSecrets)
+		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
+		variables = creds.NewVariables(fakeSecretManager, "team", "pipeline")
 
 		artifactRepository = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -122,7 +118,7 @@ var _ = Describe("GetStep", func() {
 			VersionedResourceTypes: resourceTypes,
 		}
 
-		factory = exec.NewGardenFactory(fakePool, fakeClient, fakeResourceFetcher, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{}, fakeStrategy, fakeResourceFactory)
+		factory = exec.NewGardenFactory(fakePool, fakeClient, fakeResourceFetcher, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeSecretManager, atc.ContainerLimits{}, fakeStrategy, fakeResourceFactory)
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 	})

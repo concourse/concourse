@@ -51,8 +51,8 @@ import (
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
-	multierror "github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/hashicorp/go-multierror"
+	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -393,12 +393,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	variablesFactory, err := cmd.variablesFactory(logger)
+	secretManager, err := cmd.secretManager(logger)
 	if err != nil {
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, variablesFactory)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +440,7 @@ func (cmd *RunCommand) constructMembers(
 	backendConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 ) ([]grouper.Member, error) {
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
@@ -452,12 +452,12 @@ func (cmd *RunCommand) constructMembers(
 		}()
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, variablesFactory)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
 
-	backendMembers, err := cmd.constructBackendMembers(logger, backendConn, lockFactory, variablesFactory)
+	backendMembers, err := cmd.constructBackendMembers(logger, backendConn, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -471,7 +471,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 ) ([]grouper.Member, error) {
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 
@@ -549,7 +549,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
-		variablesFactory,
+		secretManager,
 		checkContainerStrategy,
 	)
 
@@ -577,7 +577,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbResourceConfigFactory,
 		workerClient,
 		radarScannerFactory,
-		variablesFactory,
+		secretManager,
 		credsManagers,
 		accessFactory,
 	)
@@ -664,7 +664,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	logger lager.Logger,
 	dbConn db.Conn,
 	lockFactory lock.LockFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 ) ([]grouper.Member, error) {
 
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
@@ -731,7 +731,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		resourceFetcher,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
-		variablesFactory,
+		secretManager,
 		defaultLimits,
 		buildContainerStrategy,
 		resourceFactory,
@@ -760,7 +760,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				logger.Session("pipelines"),
 				dbPipelineFactory,
 				radarSchedulerFactory,
-				variablesFactory,
+				secretManager,
 				bus,
 			),
 			Interval: 10 * time.Second,
@@ -857,8 +857,8 @@ func workerVersion() (version.Version, error) {
 	return version.NewVersionFromString(concourse.WorkerVersion)
 }
 
-func (cmd *RunCommand) variablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
-	var variablesFactory creds.VariablesFactory = noop.NewNoopFactory()
+func (cmd *RunCommand) secretManager(logger lager.Logger) (creds.Secrets, error) {
+	var secretsFactory creds.SecretsFactory = noop.NewNoopFactory()
 	for name, manager := range cmd.CredentialManagers {
 		if !manager.IsConfigured() {
 			continue
@@ -880,14 +880,20 @@ func (cmd *RunCommand) variablesFactory(logger lager.Logger) (creds.VariablesFac
 			return nil, fmt.Errorf("credential manager '%s' misconfigured: %s", name, err)
 		}
 
-		variablesFactory, err = manager.NewVariablesFactory(credsLogger)
+		secretsFactory, err = manager.NewSecretsFactory(credsLogger)
 		if err != nil {
 			return nil, err
 		}
 
 		break
 	}
-	return creds.NewRetryableVariablesFactory(variablesFactory, cmd.CredentialManagement.RetryConfig), nil
+
+	result := secretsFactory.NewSecrets()
+	result = creds.NewRetryableSecrets(result, cmd.CredentialManagement.RetryConfig)
+	if cmd.CredentialManagement.CacheConfig.Enabled {
+		result = creds.NewCachedSecrets(result, cmd.CredentialManagement.CacheConfig)
+	}
+	return result, nil
 }
 
 func (cmd *RunCommand) newKey() *encryption.Key {
@@ -1184,7 +1190,7 @@ func (cmd *RunCommand) constructEngine(
 	resourceFetcher resource.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
@@ -1195,7 +1201,7 @@ func (cmd *RunCommand) constructEngine(
 		resourceFetcher,
 		resourceCacheFactory,
 		resourceConfigFactory,
-		variablesFactory,
+		secretManager,
 		defaultLimits,
 		strategy,
 		resourceFactory,
@@ -1258,7 +1264,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	resourceConfigFactory db.ResourceConfigFactory,
 	workerClient worker.Client,
 	radarScannerFactory radar.ScannerFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
 ) (http.Handler, error) {
@@ -1308,7 +1314,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.CLIArtifactsDir.Path(),
 		concourse.Version,
 		concourse.WorkerVersion,
-		variablesFactory,
+		secretManager,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
 	)
@@ -1339,14 +1345,14 @@ func (cmd *RunCommand) constructPipelineSyncer(
 	logger lager.Logger,
 	pipelineFactory db.PipelineFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 	bus db.NotificationsBus,
 ) *pipelines.Syncer {
 	return pipelines.NewSyncer(
 		logger,
 		pipelineFactory,
 		func(pipeline db.Pipeline) ifrit.Runner {
-			variables := variablesFactory.NewVariables(pipeline.TeamName(), pipeline.Name())
+			variables := creds.NewVariables(secretManager, pipeline.TeamName(), pipeline.Name())
 			return grouper.NewParallel(os.Interrupt, grouper.Members{
 				{
 					Name: fmt.Sprintf("radar:%d", pipeline.ID()),
