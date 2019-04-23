@@ -130,7 +130,6 @@ type RunCommand struct {
 	} `group:"Metrics & Diagnostics"`
 
 	Server struct {
-		ClusterName  string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
 		ClusterName   string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 	} `group:"Web Server"`
