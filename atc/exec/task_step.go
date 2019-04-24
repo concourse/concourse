@@ -153,6 +153,10 @@ func NewTaskStep(
 // name of the task.
 func (action *TaskStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
+	logger = logger.Session("task-step", lager.Data{
+		"step-name": action.stepName,
+		"job-id":    action.jobID,
+	})
 
 	repository := state.Artifacts()
 
