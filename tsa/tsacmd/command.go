@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
@@ -168,9 +169,7 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authoriz
 	}
 
 	config := &ssh.ServerConfig{
-		Config: ssh.Config{
-			MACs: tsa.AllowedMACs,
-		},
+		Config: atc.DefaultSSHConfig(),
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			return certChecker.Authenticate(conn, key)
 		},
