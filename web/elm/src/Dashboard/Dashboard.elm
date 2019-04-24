@@ -26,7 +26,6 @@ import Dashboard.Models as Models
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
 import Dashboard.Text as Text
-import Dict
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
@@ -41,8 +40,7 @@ import Html.Attributes
         )
 import Html.Events
     exposing
-        ( onClick
-        , onMouseEnter
+        ( onMouseEnter
         , onMouseLeave
         )
 import List.Extra
@@ -69,9 +67,9 @@ import MonocleHelpers exposing (bind, modifyWithEffect)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
+import Set exposing (Set)
 import SideBar.SideBar as SideBar
 import UserState exposing (UserState)
-import Views.Icon as Icon
 import Views.Styles
 
 
@@ -104,12 +102,11 @@ init flags =
       , isUserMenuExpanded = False
       , dropdown = Hidden
       , screenSize = Desktop
-      , sideBarOpen = False
-      , groupToggleStates = Dict.empty
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
       , GetScreenSize
+      , FetchPipelines
       ]
     )
 
@@ -173,14 +170,6 @@ handleCallback msg ( model, effects ) =
             else
                 ( { newModel
                     | groups = groups
-                    , groupToggleStates =
-                        if Dict.isEmpty model.groupToggleStates then
-                            groups
-                                |> List.map (\g -> ( g.teamName, False ))
-                                |> Dict.fromList
-
-                        else
-                            model.groupToggleStates
                     , version = apiData.version
                     , userState = userState
                   }
@@ -286,7 +275,7 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData ] )
+            ( model, effects ++ [ FetchData, FetchPipelines ] )
 
         _ ->
             ( model, effects )
@@ -294,7 +283,7 @@ handleDeliveryBody delivery ( model, effects ) =
 
 update : Message -> ET Model
 update msg =
-    SearchBar.update msg >> SideBar.update msg >> updateBody msg
+    SearchBar.update msg >> updateBody msg
 
 
 updateBody : Message -> ET Model
@@ -479,11 +468,19 @@ documentTitle =
     "Dashboard"
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view :
+    { a
+        | userState : UserState
+        , pipelines : List Concourse.Pipeline
+        , isSideBarOpen : Bool
+        , expandedTeams : Set String
+    }
+    -> Model
+    -> Html Message
+view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-        [ topBar userState model
+        [ topBar session model
         , Html.div
             [ id "page-below-top-bar"
             , style "padding-top" "54px"
@@ -498,8 +495,14 @@ view userState model =
                     "50px"
             ]
           <|
-            if model.sideBarOpen then
-                [ SideBar.view model
+            if session.isSideBarOpen then
+                [ SideBar.view
+                    { expandedTeams = session.expandedTeams
+                    , pipelines = session.pipelines
+                    , hovered = model.hovered
+                    , isSideBarOpen = session.isSideBarOpen
+                    , currentPipeline = Nothing
+                    }
                 , dashboardView model
                 ]
 
@@ -509,14 +512,28 @@ view userState model =
         ]
 
 
-topBar : UserState -> Model -> Html Message
-topBar userState model =
+topBar :
+    { a
+        | userState : UserState
+        , pipelines : List Concourse.Pipeline
+        , isSideBarOpen : Bool
+        , expandedTeams : Set String
+    }
+    -> Model
+    -> Html Message
+topBar session model =
     Html.div
         (id "top-bar-app" :: Views.Styles.topBar False)
     <|
         [ Html.div [ style "display" "flex" ]
-            [ SideBar.hamburgerMenu model
-            , Html.a (href "/" :: Styles.concourseLogo) []
+            [ SideBar.hamburgerMenu
+                { pipelines = session.pipelines
+                , hovered = model.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , screenSize = model.screenSize
+                , isPaused = False
+                }
+            , Html.a (href "/" :: Views.Styles.concourseLogo) []
             ]
         ]
             ++ (let
@@ -535,11 +552,11 @@ topBar userState model =
 
                 else if not model.highDensity then
                     [ SearchBar.view model
-                    , Login.view userState model False
+                    , Login.view session.userState model False
                     ]
 
                 else
-                    [ Login.view userState model False ]
+                    [ Login.view session.userState model False ]
                )
 
 

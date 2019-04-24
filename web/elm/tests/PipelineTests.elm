@@ -246,8 +246,48 @@ all =
                             |> Tuple.second
                             |> Expect.equal [ Effects.ResetPipelineFocus ]
                 ]
+            , test "groups bar and pipeline view lay out vertically" <|
+                \_ ->
+                    setupGroupsBar sampleGroups
+                        |> Common.queryView
+                        |> Query.find [ id "pipeline-container" ]
+                        |> Query.has
+                            [ style "display" "flex"
+                            , style "flex-direction" "column"
+                            ]
             ]
-        , test "title should include the pipline name" <|
+        , test "pipeline view fills available space" <|
+            \_ ->
+                init "/teams/team/pipelines/pipeline"
+                    |> Common.queryView
+                    |> Query.find [ id "pipeline-container" ]
+                    |> Query.has [ style "flex-grow" "1" ]
+        , test "gets screen size on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "teams/team/pipelines/pipeline"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> List.member Effects.GetScreenSize
+                    |> Expect.true "should get screen size"
+        , test "subscribes to screen resizes" <|
+            \_ ->
+                init "/teams/team/pipelines/pipelineName"
+                    |> Application.subscriptions
+                    |> List.member Subscription.OnWindowResize
+                    |> Expect.true "should subscribe to window resizes"
+        , test "title should include the pipeline name" <|
             \_ ->
                 init "/teams/team/pipelines/pipelineName"
                     |> Application.view
@@ -324,12 +364,13 @@ all =
                                 )
                             )
                         |> Tuple.second
-                        |> Expect.equal
-                            [ Effects.FetchPipeline
+                        |> List.member
+                            (Effects.FetchPipeline
                                 { teamName = "team"
                                 , pipelineName = "pipeline"
                                 }
-                            ]
+                            )
+                        |> Expect.true "should refresh pipeline"
             , test "on one minute timer, refreshes version" <|
                 \_ ->
                     init "/teams/team/pipelines/pipeline"
@@ -420,7 +461,7 @@ all =
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
-                        >> Query.index 0
+                        >> Query.index 1
                         >> Query.has
                             [ style "background-image"
                                 "url(/public/images/concourse-logo-white.svg)"
@@ -433,8 +474,10 @@ all =
                 , it "concourse logo on the left is a link to homepage" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.children []
-                        >> Query.index 0
+                        >> Query.find
+                            [ style "background-image"
+                                "url(/public/images/concourse-logo-white.svg)"
+                            ]
                         >> Query.has [ tag "a", attribute <| Attr.href "/" ]
                 , it "pin icon has a pin background" <|
                     Common.queryView

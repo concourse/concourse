@@ -11,7 +11,6 @@ module Dashboard.Models exposing
 
 import Concourse
 import Dashboard.Group.Models
-import Dict exposing (Dict)
 import Login.Login as Login
 import Message.Message as Message
 import RemoteData
@@ -34,8 +33,6 @@ type alias Model =
             , userState : UserState.UserState
             , highDensity : Bool
             , query : String
-            , sideBarOpen : Bool
-            , groupToggleStates : Dict String Bool
             }
         )
 

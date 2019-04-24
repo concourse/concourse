@@ -13,6 +13,7 @@ module SubPage.SubPage exposing
 import Browser
 import Build.Build as Build
 import Build.Models
+import Concourse
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models
 import EffectTransformer exposing (ET)
@@ -32,6 +33,7 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
+import Set exposing (Set)
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 
@@ -299,14 +301,22 @@ urlUpdate route =
         identity
 
 
-view : UserState -> Model -> Browser.Document TopLevelMessage
-view userState mdl =
+view :
+    { a
+        | userState : UserState
+        , pipelines : List Concourse.Pipeline
+        , isSideBarOpen : Bool
+        , expandedTeams : Set String
+    }
+    -> Model
+    -> Browser.Document TopLevelMessage
+view ({ userState } as session) mdl =
     let
         ( title, body ) =
             case mdl of
                 BuildModel model ->
                     ( Build.documentTitle model
-                    , Build.view userState model
+                    , Build.view session model
                     )
 
                 JobModel model ->
@@ -316,7 +326,7 @@ view userState mdl =
 
                 PipelineModel model ->
                     ( Pipeline.documentTitle model
-                    , Pipeline.view userState model
+                    , Pipeline.view session model
                     )
 
                 ResourceModel model ->
@@ -326,7 +336,7 @@ view userState mdl =
 
                 DashboardModel model ->
                     ( Dashboard.documentTitle
-                    , Dashboard.view userState model
+                    , Dashboard.view session model
                     )
 
                 NotFoundModel model ->

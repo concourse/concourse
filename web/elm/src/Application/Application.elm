@@ -16,6 +16,7 @@ import EffectTransformer exposing (ET)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
+import Message.Message as Message
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -24,6 +25,7 @@ import Message.Subscription
         )
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
 import Routes
+import Set exposing (Set)
 import SubPage.SubPage as SubPage
 import Url
 import UserState exposing (UserState(..))
@@ -47,6 +49,9 @@ type alias Model =
     , pipelineRunningKeyframes : String
     , route : Routes.Route
     , userState : UserState
+    , pipelines : List Concourse.Pipeline
+    , expandedTeams : Set String
+    , isSideBarOpen : Bool
     }
 
 
@@ -74,6 +79,9 @@ init flags url =
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , route = route
             , userState = UserStateUnknown
+            , isSideBarOpen = False
+            , pipelines = []
+            , expandedTeams = Set.empty
             }
 
         handleTokenEffect =
@@ -146,6 +154,21 @@ handleCallback callback model =
         UserFetched (Err _) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 
+        PipelinesFetched (Ok pipelines) ->
+            ( { model
+                | pipelines = pipelines
+                , expandedTeams =
+
+                    case ( model.pipelines, model.route ) of
+                        ( [], Routes.Pipeline { id } ) ->
+                            Set.insert id.teamName model.expandedTeams
+
+                        _ ->
+                            model.expandedTeams
+              }
+            , []
+            )
+
         -- otherwise, pass down
         _ ->
             subpageHandleCallback model callback
@@ -165,6 +188,21 @@ subpageHandleCallback model callback =
 update : TopLevelMessage -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
+        Update (Message.Click Message.HamburgerMenu) ->
+            ( { model | isSideBarOpen = not model.isSideBarOpen }, [] )
+
+        Update (Message.Click (Message.SideBarTeam teamName)) ->
+            ( { model
+                | expandedTeams =
+                    if Set.member teamName model.expandedTeams then
+                        Set.remove teamName model.expandedTeams
+
+                    else
+                        Set.insert teamName model.expandedTeams
+              }
+            , []
+            )
+
         Update m ->
             let
                 ( subModel, subEffects ) =
@@ -265,7 +303,7 @@ urlUpdate route model =
 
 view : Model -> Browser.Document TopLevelMessage
 view model =
-    SubPage.view model.userState model.subModel
+    SubPage.view model model.subModel
 
 
 subscriptions : Model -> List Subscription

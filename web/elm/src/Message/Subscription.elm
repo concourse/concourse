@@ -14,6 +14,7 @@ import Json.Encode
 import Keyboard
 import Routes
 import Time
+import Url
 
 
 port newUrl : (String -> msg) -> Sub msg
@@ -102,7 +103,24 @@ runSubscription s =
                 )
 
         OnNonHrefLinkClicked ->
-            newUrl NonHrefLinkClicked
+            newUrl
+                (\path ->
+                    case
+                        Routes.parsePath
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = path
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                    of
+                        Just route ->
+                            RouteChanged route
+
+                        Nothing ->
+                            NonHrefLinkClicked path
+                )
 
         OnTokenReceived ->
             tokenReceived TokenReceived

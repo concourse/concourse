@@ -48,6 +48,9 @@ import Message.Subscription as Subscription exposing (Delivery(..), Interval(..)
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import Routes
+import ScreenSize
+import Set exposing (Set)
+import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick, onMouseWheel)
 import String
 import Time
@@ -60,6 +63,16 @@ import Views.NotAuthorized as NotAuthorized
 import Views.Spinner as Spinner
 import Views.Styles
 import Views.TopBar as TopBar
+
+
+bodyId : String
+bodyId =
+    "build-body"
+
+
+historyId : String
+historyId =
+    "builds"
 
 
 type alias Flags =
@@ -98,7 +111,7 @@ init flags =
           , isUserMenuExpanded = False
           , timeZone = Time.utc
           }
-        , [ GetCurrentTime, GetCurrentTimeZone ]
+        , [ GetCurrentTime, GetCurrentTimeZone, FetchPipelines ]
         )
 
 
@@ -346,7 +359,7 @@ handleDelivery delivery ( model, effects ) =
                 scrollEffects =
                     case getScrollBehavior model of
                         ScrollWindow ->
-                            effects ++ [ Effects.Scroll Effects.ToBottom ]
+                            effects ++ [ Effects.Scroll Effects.ToBottom bodyId ]
 
                         NoScroll ->
                             effects
@@ -433,7 +446,7 @@ handleDelivery delivery ( model, effects ) =
             ( { model | scrolledToCurrentBuild = True }
             , effects
                 ++ (if shouldScroll then
-                        [ Scroll <| ToId id ]
+                        [ Scroll (ToId id) historyId ]
 
                     else
                         []
@@ -502,10 +515,10 @@ update msg ( model, effects ) =
             let
                 scroll =
                     if event.deltaX == 0 then
-                        [ Scroll (Element "builds" event.deltaY) ]
+                        [ Scroll (Sideways event.deltaY) historyId ]
 
                     else
-                        [ Scroll (Element "builds" -event.deltaX) ]
+                        [ Scroll (Sideways -event.deltaX) historyId ]
 
                 checkVisibility =
                     case model.history |> List.Extra.last of
@@ -607,10 +620,10 @@ handleKeyPressed keyEvent ( model, effects ) =
                         ( newModel, [] )
 
             ( Keyboard.J, False ) ->
-                ( newModel, [ Scroll Down ] )
+                ( newModel, [ Scroll Down bodyId ] )
 
             ( Keyboard.K, False ) ->
-                ( newModel, [ Scroll Up ] )
+                ( newModel, [ Scroll Up bodyId ] )
 
             ( Keyboard.T, True ) ->
                 if not newModel.previousTriggerBuildByKey then
@@ -636,14 +649,14 @@ handleKeyPressed keyEvent ( model, effects ) =
                     ( newModel, [] )
 
             ( Keyboard.G, True ) ->
-                ( { newModel | autoScroll = True }, [ Scroll ToBottom ] )
+                ( { newModel | autoScroll = True }, [ Scroll ToBottom bodyId ] )
 
             ( Keyboard.G, False ) ->
                 if
                     (model.previousKeyPress |> Maybe.map .code)
                         == Just Keyboard.G
                 then
-                    ( { newModel | autoScroll = False }, [ Scroll ToTop ] )
+                    ( { newModel | autoScroll = False }, [ Scroll ToTop bodyId ] )
 
                 else
                     ( newModel, [] )
@@ -821,8 +834,16 @@ documentTitle =
     extractTitle
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view :
+    { a
+        | userState : UserState
+        , pipelines : List Concourse.Pipeline
+        , isSideBarOpen : Bool
+        , expandedTeams : Set String
+    }
+    -> Model
+    -> Html Message
+view { userState, pipelines, isSideBarOpen, expandedTeams } model =
     let
         route =
             case model.page of
@@ -842,13 +863,35 @@ view userState model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ TopBar.concourseLogo
+            [ SideBar.hamburgerMenu
+                { pipelines = pipelines
+                , hovered = model.hoveredElement
+                , isSideBarOpen = isSideBarOpen
+                , screenSize = ScreenSize.Desktop
+                , isPaused = False
+                }
+            , TopBar.concourseLogo
             , breadcrumbs model
             , Login.view userState model False
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ viewBuildPage model ]
+            [ SideBar.view
+                { expandedTeams = expandedTeams
+                , pipelines = pipelines
+                , hovered = model.hoveredElement
+                , isSideBarOpen = isSideBarOpen
+                , currentPipeline =
+                    currentJob model
+                        |> Maybe.map
+                            (\j ->
+                                { pipelineName = j.pipelineName
+                                , teamName = j.teamName
+                                }
+                            )
+                }
+            , viewBuildPage model
+            ]
         ]
 
 
@@ -904,7 +947,7 @@ body :
 body { currentBuild, authorized, showHelp, timeZone } =
     Html.div
         ([ class "scrollable-body build-body"
-         , id "build-body"
+         , id bodyId
          ]
             ++ Styles.body
         )
@@ -1324,7 +1367,7 @@ lazyViewHistory currentBuild builds =
 
 viewHistory : Concourse.Build -> List Concourse.Build -> Html Message
 viewHistory currentBuild builds =
-    Html.ul [ id "builds" ]
+    Html.ul [ id historyId ]
         (List.map (viewHistoryItem currentBuild) builds)
 
 

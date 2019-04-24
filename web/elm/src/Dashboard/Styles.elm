@@ -2,7 +2,6 @@ module Dashboard.Styles exposing
     ( asciiArt
     , cardBody
     , cardFooter
-    , concourseLogo
     , content
     , dropdownContainer
     , dropdownItem
@@ -701,9 +700,3 @@ visibilityTooltip =
     , style "margin-bottom" "5px"
     , style "right" "-150%"
     ]
-
-
-concourseLogo : List (Html.Attribute msg)
-concourseLogo =
-    style "border-left" ("1px solid " ++ Colors.background)
-        :: Views.Styles.concourseLogo

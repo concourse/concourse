@@ -7,6 +7,7 @@ import DashboardTests
 import Expect
 import Html.Attributes as Attr
 import Message.Callback as Callback
+import Message.Effects as Effects
 import Message.Message as Message
 import Message.Subscription as Subscription
 import Message.TopLevelMessage as TopLevelMessage
@@ -22,7 +23,10 @@ import Url
 all : Test
 all =
     describe "dashboard sidebar"
-        [ test "left hand section of top bar lays out horizontally" <|
+        [ test "fetches pipelines on page load" <|
+            when iVisitTheDashboard
+                >> then_ myBrowserFetchesPipelines
+        , test "left hand section of top bar lays out horizontally" <|
             given iAmViewingTheDashboardOnANonPhoneScreen
                 >> when iAmLookingAtTheLeftHandSectionOfTheTopBar
                 >> then_ iSeeItLaysOutHorizontally
@@ -40,179 +44,155 @@ all =
                 given iAmViewingTheDashboardOnAPhoneScreen
                     >> when iAmLookingAtTheLeftHandSectionOfTheTopBar
                     >> then_ iSeeNoHamburgerIcon
-            , test "does not appear if there are no pipelines" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given thereAreNoPipelines
-                    >> when iAmLookingAtTheLeftHandSectionOfTheTopBar
-                    >> then_ iSeeNoHamburgerIcon
-            , test "is separated from the concourse logo by a thin line" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> when iAmLookingAtTheConcourseLogo
-                    >> then_ iSeeADividingLineToTheLeft
             , test "is clickable" <|
                 given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> when iAmLookingAtTheHamburgerIcon
+                    >> when iAmLookingAtTheHamburgerMenu
                     >> then_ (itIsClickable Message.HamburgerMenu)
             , DashboardTests.defineHoverBehaviour
                 { name = "hamburger icon"
                 , setup = iAmViewingTheDashboardOnANonPhoneScreen ()
-                , query = iAmLookingAtTheHamburgerIcon
+                , query = iAmLookingAtTheHamburgerMenu
                 , unhoveredSelector =
                     { description = "grey"
-                    , selector = [ style "opacity" "0.5" ]
+                    , selector = [ containing [ style "opacity" "0.5" ] ]
                     }
                 , hoverable = Message.HamburgerMenu
                 , hoveredSelector =
                     { description = "white"
-                    , selector = [ style "opacity" "1" ]
+                    , selector = [ containing [ style "opacity" "1" ] ]
                     }
                 }
             , test "background becomes lighter on click" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
-                    >> when iAmLookingAtTheHamburgerIcon
+                given iHaveAnOpenSideBar
+                    >> when iAmLookingAtTheHamburgerMenu
                     >> then_ iSeeALighterBackground
             , test "background toggles back to dark" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
+                given iHaveAnOpenSideBar
                     >> given iClickedTheHamburgerIcon
-                    >> given iClickedTheHamburgerIcon
-                    >> when iAmLookingAtTheHamburgerIcon
+                    >> when iAmLookingAtTheHamburgerMenu
                     >> then_ iSeeADarkerBackground
             ]
         , describe "sidebar layout"
             [ test "page below top bar consists of side bar and page content" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtThePageBelowTheTopBar
                     >> then_ iSeeTwoChildren
             , test "sidebar and page contents are side by side" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtThePageBelowTheTopBar
                     >> then_ iSeeItLaysOutHorizontally
             , test "page contents are on the right" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtThePageContents
                     >> then_ iSeeTheUsualDashboardContentsScrollingIndependently
             , test "sidebar is separated from top bar by a thin line" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheSideBar
                     >> then_ iSeeADividingLineAbove
             , test "sidebar has frame background" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheSideBar
                     >> then_ iSeeADarkerBackground
             , test "sidebar fills height" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheSideBar
                     >> then_ iSeeItFillsHeight
             , test "sidebar does not shrink" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheSideBar
                     >> then_ iSeeItDoesNotShrink
-            , test "sidebar has right padding" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
-                    >> when iAmLookingAtTheSideBar
-                    >> then_ iSeeItHasRightPadding
             , test "sidebar scrolls independently" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheSideBar
                     >> then_ iSeeItScrollsIndependently
-            , test "sidebar is never more than 38% of screen width (golden ratio)" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+            , test "sidebar is 275px wide" <|
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheSideBar
-                    >> then_ iSeeItIsNeverMoreThan38PercentOfScreenWidth
+                    >> then_ iSeeItIs275PxWide
+            , test "sidebar has right padding" <|
+                given iHaveAnOpenSideBar
+                    >> when iAmLookingAtTheSideBar
+                    >> then_ iSeeItHasRightPadding
             ]
         , describe "teams list"
-            [ test "sidebar contains two pipeline groups" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
-                    >> when iAmLookingAtTheSideBar
-                    >> then_ iSeeTwoChildren
-            , test "pipeline group lays out horizontally" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
-                    >> when iAmLookingAtThePipelineGroup
+            [ test "team header lays out horizontally" <|
+                given iHaveAnOpenSideBar
+                    >> when iAmLookingAtTheTeamHeader
                     >> then_ iSeeItLaysOutHorizontally
-            , test "pipeline group contains an icon group and team name" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
-                    >> when iAmLookingAtThePipelineGroup
+            , test "team lays out vertically" <|
+                given iHaveAnOpenSideBar
+                    >> when iAmLookingAtTheTeam
+                    >> then_ iSeeItLaysOutVertically
+            , test "team has narrower lines" <|
+                given iHaveAnOpenSideBar
+                    >> when iAmLookingAtTheTeam
+                    >> then_ iSeeItHasNarrowerLines
+            , test "team has top padding" <|
+                given iHaveAnOpenSideBar
+                    >> when iAmLookingAtTheTeam
+                    >> then_ iSeeItHasTopPadding
+            , test "team header contains an icon group and team name" <|
+                given iHaveAnOpenSideBar
+                    >> when iAmLookingAtTheTeamHeader
                     >> then_ iSeeTwoChildren
             , test "icon group is the same width as the hamburger icon" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheIconGroup
                     >> then_ iSeeItIsAsWideAsTheHamburgerIcon
             , test "icon group lays out horizontally" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheIconGroup
                     >> then_ iSeeItLaysOutHorizontally
             , test "icon group spreads and centers contents" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheIconGroup
                     >> then_ iSeeItSpreadsAndCentersContents
             , test "icon group has 5px padding" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheIconGroup
                     >> then_ iSeeItHas5PxPadding
-            , test "icon group contains a team icon and a chevron" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+            , test "icon group contains a team icon and an arrow" <|
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheIconGroup
                     >> then_ iSeeTwoChildren
             , test "team icon is a picture of two people" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheTeamIcon
                     >> then_ iSeeAPictureOfTwoPeople
-            , test "chevron is pointing right" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+            , test "arrow is pointing right" <|
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheArrow
                     >> then_ iSeeARightPointingArrow
             , test "team name has text content of team's name" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheTeamName
                     >> then_ iSeeTheTeamName
             , test "team name has large font" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheTeamName
                     >> then_ iSeeLargeFont
-            , test "team name has 5px padding" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+            , test "team name has padding and margin" <|
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheTeamName
-                    >> then_ iSeeItHas5PxPadding
+                    >> then_ iSeeItHasPaddingAndMargin
+            , test "team name has invisble border" <|
+                given iHaveAnOpenSideBar
+                    >> when iAmLookingAtTheTeamName
+                    >> then_ iSeeItHasInvisibleBorder
             , test "team name will ellipsize if it is too long" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> when iAmLookingAtTheTeamName
                     >> then_ iSeeItEllipsizesLongText
-            , test "pipeline group is clickable" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
-                    >> when iAmLookingAtThePipelineGroup
+            , test "team header is clickable" <|
+                given iHaveAnOpenSideBar
+                    >> when iAmLookingAtTheTeamHeader
                     >> then_ (itIsClickable <| Message.SideBarTeam "one-team")
             , DashboardTests.defineHoverBehaviour
-                { name = "pipeline group"
+                { name = "team header"
                 , setup =
                     iAmViewingTheDashboardOnANonPhoneScreen ()
                         |> iClickedTheHamburgerIcon
-                , query = iAmLookingAtThePipelineGroup
+                , query = iAmLookingAtTheTeamHeader
                 , unhoveredSelector =
                     { description = "grey"
                     , selector = [ style "opacity" "0.5" ]
@@ -224,69 +204,98 @@ all =
                     }
                 }
             , test "chevron points down when group is clicked" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
-                    >> when iAmLookingAtTheExpandedArrow
+                    >> when iAmLookingAtTheArrow
                     >> then_ iSeeABrightDownPointingArrow
             , test "chevron still points down after data refreshes" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
                     >> given dataRefreshes
-                    >> when iAmLookingAtTheExpandedArrow
+                    >> when iAmLookingAtTheArrow
                     >> then_ iSeeABrightDownPointingArrow
             , test "team name is bright when group is clicked" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
-                    >> when iAmLookingAtTheExpandedTeamName
+                    >> when iAmLookingAtTheTeamName
                     >> then_ iSeeItIsBright
-            , test "pipeline list expands when group is clicked" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+            , test "pipeline list expands when header is clicked" <|
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
-                    >> when iAmLookingAtThePipelineGroup
+                    >> when iAmLookingAtTheTeam
                     >> then_ iSeeItLaysOutVertically
             , test "pipeline list has two children" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
                     >> when iAmLookingAtThePipelineList
                     >> then_ iSeeTwoChildren
             , test "pipeline list lays out vertically" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
                     >> when iAmLookingAtThePipelineList
                     >> then_ iSeeItLaysOutVertically
+            , test "pipeline has two children" <|
+                given iHaveAnOpenSideBar
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstPipeline
+                    >> then_ iSeeTwoChildren
+            , test "pipeline lays out horizontally" <|
+                given iHaveAnOpenSideBar
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstPipeline
+                    >> then_ iSeeItLaysOutHorizontally
+            , test "pipeline centers contents" <|
+                given iHaveAnOpenSideBar
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstPipeline
+                    >> then_ iSeeItCentersContents
+            , test "pipeline has 2.5px padding" <|
+                given iHaveAnOpenSideBar
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstPipeline
+                    >> then_ iSeeItHas2Point5PxPadding
+            , test "pipeline has icon on the left" <|
+                given iHaveAnOpenSideBar
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstPipelineIcon
+                    >> then_ iSeeAPipelineIcon
+            , test "pipeline icon has left margin" <|
+                given iHaveAnOpenSideBar
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstPipelineIcon
+                    >> then_ iSeeItHasLeftMargin
+            , test "pipeline icon does not shrink when pipeline name is long" <|
+                given iHaveAnOpenSideBar
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstPipelineIcon
+                    >> then_ iSeeItDoesNotShrink
+            , test "pipeline icon is dim" <|
+                given iHaveAnOpenSideBar
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstPipelineIcon
+                    >> then_ iSeeItIsDim
+            , test "pipeline link has 2.5px padding" <|
+                given iHaveAnOpenSideBar
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstPipelineLink
+                    >> then_ iSeeItHas2Point5PxPadding
             , test "first pipeline link contains text of pipeline name" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
                     >> when iAmLookingAtTheFirstPipelineLink
                     >> then_ iSeeItContainsThePipelineName
-            , test "pipeline link aligns with team name" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
-                    >> given iClickedThePipelineGroup
-                    >> when iAmLookingAtTheFirstPipelineLink
-                    >> then_ iSeeItAlignsWithTheTeamName
             , test "pipeline link is a link to the pipeline" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
                     >> when iAmLookingAtTheFirstPipelineLink
                     >> then_ iSeeItIsALinkToTheFirstPipeline
             , test "pipeline link has large font" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
                     >> when iAmLookingAtTheFirstPipelineLink
                     >> then_ iSeeLargeFont
             , test "pipeline link will ellipsize if it is too long" <|
-                given iAmViewingTheDashboardOnANonPhoneScreen
-                    >> given iClickedTheHamburgerIcon
+                given iHaveAnOpenSideBar
                     >> given iClickedThePipelineGroup
                     >> when iAmLookingAtTheFirstPipelineLink
                     >> then_ iSeeItEllipsizesLongText
@@ -320,11 +329,14 @@ all =
                 }
             ]
         , test "sidebar remains expanded when toggling high-density view" <|
-            given iAmViewingTheDashboardOnANonPhoneScreen
-                >> given iClickedTheHamburgerIcon
+            given iHaveAnOpenSideBar
                 >> given iToggledToHighDensity
                 >> when iAmLookingAtThePageBelowTheTopBar
                 >> then_ iSeeTwoChildren
+        , test "fetches pipelines every 5 seconds" <|
+            given iAmViewingTheDashboardOnANonPhoneScreen
+                >> when fiveSecondsPass
+                >> then_ myBrowserFetchesPipelines
         ]
 
 
@@ -417,7 +429,13 @@ iAmViewingTheDashboardOnAPhoneScreen =
         >> Tuple.first
 
 
-iAmViewingTheDashboard _ =
+iAmViewingTheDashboard =
+    iVisitTheDashboard
+        >> Tuple.first
+        >> dataRefreshes
+
+
+iVisitTheDashboard _ =
     Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = ""
@@ -432,8 +450,6 @@ iAmViewingTheDashboard _ =
         , query = Nothing
         , fragment = Nothing
         }
-        |> Tuple.first
-        |> dataRefreshes
 
 
 dataRefreshes =
@@ -470,6 +486,26 @@ dataRefreshes =
             )
         )
         >> Tuple.first
+        >> Application.handleCallback
+            (Callback.PipelinesFetched <|
+                Ok
+                    [ { id = 0
+                      , name = "pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "one-team"
+                      , groups = []
+                      }
+                    , { id = 1
+                      , name = "other-pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "one-team"
+                      , groups = []
+                      }
+                    ]
+            )
+        >> Tuple.first
 
 
 thereAreNoPipelines =
@@ -488,6 +524,8 @@ thereAreNoPipelines =
             )
         )
         >> Tuple.first
+        >> Application.handleCallback (Callback.PipelinesFetched <| Ok [])
+        >> Tuple.first
 
 
 iSeeNoHamburgerIcon =
@@ -499,12 +537,8 @@ iSeeNoHamburgerIcon =
         )
 
 
-iAmLookingAtTheHamburgerIcon =
+iAmLookingAtTheHamburgerMenu =
     iAmLookingAtTheLeftHandSectionOfTheTopBar >> iAmLookingAtTheFirstChild
-
-
-iSeeADividingLineToTheLeft =
-    Query.has [ style "border-left" <| "1px solid " ++ Colors.background ]
 
 
 itIsClickable domID =
@@ -516,12 +550,6 @@ itIsClickable domID =
                     Message.Click domID
                 )
         ]
-
-
-iAmLookingAtTheConcourseLogo =
-    iAmLookingAtTheLeftHandSectionOfTheTopBar
-        >> Query.children []
-        >> Query.index 1
 
 
 iClickedTheHamburgerIcon =
@@ -574,18 +602,18 @@ iSeeADividingLineAbove =
     Query.has [ style "border-top" <| "1px solid " ++ Colors.background ]
 
 
-iSeeItIsNeverMoreThan38PercentOfScreenWidth =
-    Query.has [ style "max-width" "38%" ]
+iSeeItIs275PxWide =
+    Query.has [ style "width" "275px", style "box-sizing" "border-box" ]
 
 
-iAmLookingAtThePipelineGroup =
+iAmLookingAtTheTeam =
     iAmLookingAtTheSideBar
         >> Query.children [ containing [ text "one-team" ] ]
         >> Query.first
 
 
 iAmLookingAtTheIconGroup =
-    iAmLookingAtThePipelineGroup >> Query.children [] >> Query.first
+    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.first
 
 
 iSeeItIsAsWideAsTheHamburgerIcon =
@@ -621,10 +649,6 @@ iSeeARightPointingArrow =
         )
 
 
-iAmLookingAtTheTeamName =
-    iAmLookingAtThePipelineGroup >> Query.children [] >> Query.index 1
-
-
 iSeeTheTeamName =
     Query.has [ text "one-team" ]
 
@@ -638,6 +662,10 @@ iSeeItSpreadsAndCentersContents =
 
 iSeeItHas5PxPadding =
     Query.has [ style "padding" "5px" ]
+
+
+iSeeItHasPaddingAndMargin =
+    Query.has [ style "padding" "2.5px", style "margin" "2.5px" ]
 
 
 iSeeLargeFont =
@@ -689,35 +717,27 @@ iSeeItIsBright =
 
 
 iAmLookingAtThePipelineList =
-    iAmLookingAtThePipelineGroup >> Query.children [] >> Query.index 1
+    iAmLookingAtTheTeam >> Query.children [] >> Query.index 1
+
+
+iAmLookingAtTheFirstPipeline =
+    iAmLookingAtThePipelineList >> Query.children [] >> Query.first
 
 
 iAmLookingAtTheFirstPipelineLink =
-    iAmLookingAtThePipelineList >> Query.children [] >> Query.first
+    iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.index 1
 
 
 iSeeItContainsThePipelineName =
     Query.has [ text "pipeline" ]
 
 
-iAmLookingAtTheExpandedArrow =
-    iAmLookingAtTheExpandedIconGroup >> Query.children [] >> Query.index 1
+iAmLookingAtTheTeamHeader =
+    iAmLookingAtTheTeam >> Query.children [] >> Query.first
 
 
-iAmLookingAtTheExpandedIconGroup =
-    iAmLookingAtThePipelineGroupHeader >> Query.children [] >> Query.first
-
-
-iAmLookingAtThePipelineGroupHeader =
-    iAmLookingAtThePipelineGroup >> Query.children [] >> Query.first
-
-
-iAmLookingAtTheExpandedTeamName =
-    iAmLookingAtThePipelineGroupHeader >> Query.children [] >> Query.index 1
-
-
-iSeeItAlignsWithTheTeamName =
-    Query.has [ style "margin-left" hamburgerIconWidth, style "padding" "5px" ]
+iAmLookingAtTheTeamName =
+    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.index 1
 
 
 iSeeItIsALinkToTheFirstPipeline =
@@ -731,3 +751,65 @@ iToggledToHighDensity =
                 Routes.Dashboard Routes.HighDensity
         )
         >> Tuple.first
+
+
+fiveSecondsPass =
+    Application.handleDelivery
+        (Subscription.ClockTicked
+            Subscription.FiveSeconds
+            (Time.millisToPosix 0)
+        )
+
+
+myBrowserFetchesPipelines =
+    Tuple.second
+        >> List.member Effects.FetchPipelines
+        >> Expect.true "should fetch pipelines"
+
+
+iHaveAnOpenSideBar =
+    iAmViewingTheDashboardOnANonPhoneScreen
+        >> iClickedTheHamburgerIcon
+
+
+iSeeItHasTopPadding =
+    Query.has [ style "padding-top" "5px" ]
+
+
+iSeeItHasInvisibleBorder =
+    Query.has [ style "border" <| "1px solid " ++ Colors.frame ]
+
+
+iSeeItHasNarrowerLines =
+    Query.has [ style "line-height" "1.2" ]
+
+
+iAmLookingAtTheFirstPipelineIcon =
+    iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.first
+
+
+iSeeAPipelineIcon =
+    Query.has
+        [ style "background-image"
+            "url(/public/images/ic-breadcrumb-pipeline.svg)"
+        , style "background-repeat" "no-repeat"
+        , style "height" "16px"
+        , style "width" "32px"
+        , style "background-size" "contain"
+        ]
+
+
+iSeeItCentersContents =
+    Query.has [ style "align-items" "center" ]
+
+
+iSeeItHasLeftMargin =
+    Query.has [ style "margin-left" "22px" ]
+
+
+iSeeItIsDim =
+    Query.has [ style "opacity" "0.4" ]
+
+
+iSeeItHas2Point5PxPadding =
+    Query.has [ style "padding" "2.5px" ]

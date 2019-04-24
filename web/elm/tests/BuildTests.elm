@@ -683,7 +683,7 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToBottom "build-body" ]
         , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 initFromApplication
@@ -728,7 +728,7 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToBottom "build-body" ]
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
                 initFromApplication
@@ -819,7 +819,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToTop ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToTop "build-body" ]
         , test "pressing 'G' scrolls to the bottom" <|
             \_ ->
                 initFromApplication
@@ -836,7 +836,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToBottom "build-body" ]
         , test "pressing 'g' once does nothing" <|
             \_ ->
                 initFromApplication
@@ -1536,7 +1536,7 @@ all =
                         >> Application.handleDelivery
                             (Subscription.ElementVisible ( "1", False ))
                         >> Tuple.second
-                        >> Expect.equal [ Effects.Scroll <| Effects.ToId "1" ]
+                        >> Expect.equal [ Effects.Scroll (Effects.ToId "1") "builds" ]
                 , test "does not scroll to current build more than once" <|
                     givenBuildFetched
                         >> Tuple.first

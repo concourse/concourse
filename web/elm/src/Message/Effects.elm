@@ -69,16 +69,16 @@ port scrollIntoView : String -> Cmd msg
 port scrollElement : ( String, Float ) -> Cmd msg
 
 
-port scrollToBottom : () -> Cmd msg
+port scrollToBottom : String -> Cmd msg
 
 
-port scrollToTop : () -> Cmd msg
+port scrollToTop : String -> Cmd msg
 
 
-port scrollUp : () -> Cmd msg
+port scrollUp : String -> Cmd msg
 
 
-port scrollDown : () -> Cmd msg
+port scrollDown : String -> Cmd msg
 
 
 port checkIsVisible : String -> Cmd msg
@@ -130,6 +130,7 @@ type Effect
     | FetchBuildPrep Float Int Int
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
+    | FetchPipelines
     | GetCurrentTime
     | GetCurrentTimeZone
     | DoTriggerBuild Concourse.JobIdentifier
@@ -155,7 +156,7 @@ type Effect
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames StickyHeaderConfig
-    | Scroll ScrollDirection
+    | Scroll ScrollDirection String
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
@@ -177,7 +178,7 @@ type ScrollDirection
     | Down
     | Up
     | ToBottom
-    | Element String Float
+    | Sideways Float
     | ToId String
 
 
@@ -236,6 +237,10 @@ runEffect effect key csrfToken =
             Network.DashboardAPIData.remoteData
                 |> Task.map2 (\a b -> ( a, b )) Time.now
                 |> Task.attempt APIDataFetched
+
+        FetchPipelines ->
+            Network.Pipeline.fetchPipelines
+                |> Task.attempt PipelinesFetched
 
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now
@@ -369,8 +374,8 @@ runEffect effect key csrfToken =
             Network.Build.abort buildId csrfToken
                 |> Task.attempt BuildAborted
 
-        Scroll dir ->
-            scrollInDirection dir
+        Scroll dir id ->
+            scrollInDirection dir id
 
         SaveToken tokenValue ->
             saveToken tokenValue
@@ -407,23 +412,23 @@ runEffect effect key csrfToken =
                 |> Task.attempt (VisibilityChanged action pipelineId)
 
 
-scrollInDirection : ScrollDirection -> Cmd Callback
-scrollInDirection dir =
+scrollInDirection : ScrollDirection -> String -> Cmd Callback
+scrollInDirection dir idOfThingToScroll =
     case dir of
         ToTop ->
-            scrollToTop ()
+            scrollToTop idOfThingToScroll
 
         Down ->
-            scrollDown ()
+            scrollDown idOfThingToScroll
 
         Up ->
-            scrollUp ()
+            scrollUp idOfThingToScroll
 
         ToBottom ->
-            scrollToBottom ()
+            scrollToBottom idOfThingToScroll
 
-        Element id delta ->
-            scrollElement ( id, delta )
+        Sideways delta ->
+            scrollElement ( idOfThingToScroll, delta )
 
         ToId id ->
             scrollIntoView id

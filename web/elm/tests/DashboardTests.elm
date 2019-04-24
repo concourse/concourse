@@ -3347,7 +3347,8 @@ all =
                                 Time.millisToPosix 0
                         )
                     |> Tuple.second
-                    |> Expect.equal [ Effects.FetchData ]
+                    |> List.member Effects.FetchData
+                    |> Expect.true "should refresh data"
         ]
 
 

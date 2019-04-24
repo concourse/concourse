@@ -33,6 +33,7 @@ import Http
 import Json.Decode
 import Json.Encode
 import Keyboard
+import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
@@ -47,11 +48,15 @@ import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
 import Routes
+import ScreenSize
+import Set exposing (Set)
+import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg
 import Svg.Attributes as SvgAttributes
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
+import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
 import Views.Styles
 import Views.TopBar as TopBar
@@ -73,6 +78,7 @@ type alias Model =
         , hideLegendCounter : Float
         , isToggleLoading : Bool
         , hovered : Maybe DomID
+        , isPhoneScreen : Bool
         }
 
 
@@ -102,10 +108,16 @@ init flags =
             , selectedGroups = flags.selectedGroups
             , isUserMenuExpanded = False
             , hovered = Nothing
+            , isPhoneScreen = False
             }
     in
     ( model
-    , [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ]
+    , [ FetchPipeline flags.pipelineLocator
+      , FetchVersion
+      , ResetPipelineFocus
+      , GetScreenSize
+      , FetchPipelines
+      ]
     )
 
 
@@ -263,6 +275,12 @@ handleCallback callback ( model, effects ) =
         VersionFetched (Err _) ->
             ( { model | experiencingTurbulence = True }, effects )
 
+        ScreenResized viewport ->
+            ( { model | isPhoneScreen = viewport.viewport.width < 812 }, effects )
+
+        PipelinesFetched (Err _) ->
+            ( { model | experiencingTurbulence = True }, effects )
+
         _ ->
             ( model, effects )
 
@@ -292,10 +310,18 @@ handleDelivery delivery ( model, effects ) =
                 )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchPipeline model.pipelineLocator ] )
+            ( model
+            , effects
+                ++ [ FetchPipeline model.pipelineLocator
+                   , FetchPipelines
+                   ]
+            )
 
         ClockTicked OneMinute _ ->
             ( model, effects ++ [ FetchVersion ] )
+
+        WindowResized width _ ->
+            ( { model | isPhoneScreen = width < 812 }, effects )
 
         _ ->
             ( model, effects )
@@ -361,6 +387,7 @@ subscriptions =
     , OnClockTick OneSecond
     , OnMouse
     , OnKeyDown
+    , OnWindowResize
     ]
 
 
@@ -369,8 +396,16 @@ documentTitle model =
     model.pipelineLocator.pipelineName
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view :
+    { a
+        | userState : UserState
+        , pipelines : List Concourse.Pipeline
+        , isSideBarOpen : Bool
+        , expandedTeams : Set String
+    }
+    -> Model
+    -> Html Message
+view { userState, pipelines, isSideBarOpen, expandedTeams } model =
     let
         route =
             Routes.Pipeline
@@ -378,7 +413,11 @@ view userState model =
                 , groups = model.selectedGroups
                 }
     in
-    Html.div [ Html.Attributes.style "height" "100%" ]
+    Html.div [ Html.Attributes.style "height" "100%" ] <|
+        let
+            isHamburgerClickable =
+                not <| List.isEmpty pipelines
+        in
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
@@ -387,7 +426,19 @@ view userState model =
                             isPaused model.pipeline
                        )
                 )
-                [ TopBar.concourseLogo
+                [ SideBar.hamburgerMenu
+                    { screenSize =
+                        if model.isPhoneScreen then
+                            ScreenSize.Mobile
+
+                        else
+                            ScreenSize.Desktop
+                    , pipelines = pipelines
+                    , isSideBarOpen = isSideBarOpen
+                    , hovered = model.hovered
+                    , isPaused = isPaused model.pipeline
+                    }
+                , TopBar.concourseLogo
                 , TopBar.breadcrumbs route
                 , viewPinMenu
                     { pinnedResources = getPinnedResources model
@@ -415,7 +466,24 @@ view userState model =
                 ]
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-                [ viewSubPage model ]
+              <|
+                [ case ( pipelines, isSideBarOpen ) of
+                    ( _, False ) ->
+                        Html.text ""
+
+                    ( [], _ ) ->
+                        Html.text ""
+
+                    ( pls, True ) ->
+                        SideBar.view
+                            { expandedTeams = expandedTeams
+                            , pipelines = pls
+                            , hovered = model.hovered
+                            , isSideBarOpen = isSideBarOpen
+                            , currentPipeline = Just model.pipelineLocator
+                            }
+                , viewSubPage model
+                ]
             ]
         ]
 
@@ -510,7 +578,13 @@ isPaused p =
 
 viewSubPage : Model -> Html Message
 viewSubPage model =
-    Html.div [ class "pipeline-view" ]
+    Html.div
+        [ class "pipeline-view"
+        , id "pipeline-container"
+        , style "display" "flex"
+        , style "flex-direction" "column"
+        , style "flex-grow" "1"
+        ]
         [ viewGroupsBar model
         , Html.div [ class "pipeline-content" ]
             [ Svg.svg

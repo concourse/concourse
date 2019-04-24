@@ -42,6 +42,7 @@ pageBelowTopBar route =
                 Routes.Pipeline _ ->
                     [ style "box-sizing" "border-box"
                     , style "height" "100%"
+                    , style "display" "flex"
                     ]
 
                 Routes.Dashboard _ ->
@@ -50,6 +51,9 @@ pageBelowTopBar route =
                     , style "height" "100%"
                     , style "padding-bottom" "50px"
                     ]
+
+                Routes.Build _ ->
+                    [ style "display" "flex" ]
 
                 _ ->
                     []
