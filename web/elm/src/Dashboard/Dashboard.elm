@@ -459,9 +459,6 @@ updateBody msg ( model, effects ) =
                 Nothing ->
                     ( model, effects )
 
-        Click HamburgerMenu ->
-            ( { model | sideBarOpen = not model.sideBarOpen }, effects )
-
         _ ->
             ( model, effects )
 
@@ -518,7 +515,7 @@ topBar userState model =
         (id "top-bar-app" :: Views.Styles.topBar False)
     <|
         [ Html.div [ style "display" "flex" ]
-            [ hamburgerMenu model
+            [ SideBar.hamburgerMenu model
             , Html.a (href "/" :: Styles.concourseLogo) []
             ]
         ]
@@ -544,25 +541,6 @@ topBar userState model =
                 else
                     [ Login.view userState model False ]
                )
-
-
-hamburgerMenu : Model -> Html Message
-hamburgerMenu model =
-    if model.screenSize == Mobile || noPipelines model then
-        Html.text ""
-
-    else
-        Icon.icon
-            { sizePx = 54, image = "baseline-menu-24px.svg" }
-        <|
-            [ onClick <| Click HamburgerMenu
-            , onMouseEnter <| Hover <| Just HamburgerMenu
-            , onMouseLeave <| Hover Nothing
-            ]
-                ++ Styles.hamburgerMenu
-                    { clicked = model.sideBarOpen
-                    , hovered = model.hovered == Just HamburgerMenu
-                    }
 
 
 dashboardView : Model -> Html Message

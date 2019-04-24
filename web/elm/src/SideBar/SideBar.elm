@@ -1,4 +1,4 @@
-module SideBar.SideBar exposing (update, view)
+module SideBar.SideBar exposing (hamburgerMenu, update, view)
 
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
@@ -7,7 +7,9 @@ import Html.Attributes exposing (href)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (DomID(..), Message(..))
 import Routes
+import ScreenSize exposing (ScreenSize(..))
 import SideBar.Styles as Styles
+import Views.Icon as Icon
 
 
 type alias Model m t p =
@@ -15,6 +17,7 @@ type alias Model m t p =
         | groupToggleStates : Dict String Bool
         , groups : List (Team t p)
         , hovered : Maybe DomID
+        , sideBarOpen : Bool
     }
 
 
@@ -40,6 +43,9 @@ update msg ( model, effects ) =
               }
             , effects
             )
+
+        Click HamburgerMenu ->
+            ( { model | sideBarOpen = not model.sideBarOpen }, effects )
 
         _ ->
             ( model, effects )
@@ -130,3 +136,29 @@ pipeline hovered teamName p =
                ]
         )
         [ Html.text p.name ]
+
+
+hamburgerMenu :
+    { a
+        | screenSize : ScreenSize
+        , groups : List (Team t p)
+        , sideBarOpen : Bool
+        , hovered : Maybe DomID
+    }
+    -> Html Message
+hamburgerMenu model =
+    if model.screenSize == Mobile || List.isEmpty (List.concatMap .pipelines model.groups) then
+        Html.text ""
+
+    else
+        Icon.icon
+            { sizePx = 54, image = "baseline-menu-24px.svg" }
+        <|
+            [ onClick <| Click HamburgerMenu
+            , onMouseEnter <| Hover <| Just HamburgerMenu
+            , onMouseLeave <| Hover Nothing
+            ]
+                ++ Styles.hamburgerMenu
+                    { clicked = model.sideBarOpen
+                    , hovered = model.hovered == Just HamburgerMenu
+                    }

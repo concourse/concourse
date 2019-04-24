@@ -6,7 +6,6 @@ module Dashboard.Styles exposing
     , content
     , dropdownContainer
     , dropdownItem
-    , hamburgerMenu
     , highDensityIcon
     , highDensityToggle
     , info
@@ -701,24 +700,6 @@ visibilityTooltip =
     , style "padding" "2.5px"
     , style "margin-bottom" "5px"
     , style "right" "-150%"
-    ]
-
-
-hamburgerMenu : { hovered : Bool, clicked : Bool } -> List (Html.Attribute msg)
-hamburgerMenu { hovered, clicked } =
-    [ style "cursor" "pointer"
-    , style "opacity" <|
-        if hovered then
-            "1"
-
-        else
-            "0.5"
-    , style "background-color" <|
-        if clicked then
-            "#333333"
-
-        else
-            Colors.frame
     ]
 
 
