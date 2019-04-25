@@ -788,9 +788,22 @@ func (cmd *RunCommand) constructBackendMembers(
 	dbArtifactLifecycle := db.NewArtifactLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	bus := dbConn.Bus()
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+
+	bus := dbConn.Bus()
+
 	members := []grouper.Member{
+		{Name: "lidar", Runner: lidar.NewRunner(
+			lidar.New(
+				logger.Session("lidar"),
+				dbPipelineFactory,
+				radarSchedulerFactory,
+				variablesFactory,
+				bus,
+			),
+			10*time.Second,
+			clock.NewClock(),
+		)},
 		{Name: "pipelines", Runner: pipelines.SyncRunner{
 			Syncer: cmd.constructPipelineSyncer(
 				logger.Session("pipelines"),
@@ -1427,35 +1440,19 @@ func (cmd *RunCommand) constructPipelineSyncer(
 		logger,
 		pipelineFactory,
 		func(pipeline db.Pipeline) ifrit.Runner {
-			variables := creds.NewVariables(secretManager, pipeline.TeamName(), pipeline.Name())
-			return grouper.NewParallel(os.Interrupt, grouper.Members{
-				{
-					Name: fmt.Sprintf("radar:%d", pipeline.ID()),
-					Runner: radar.NewRunner(
-						logger.Session("radar").WithData(lager.Data{
-							"team":     pipeline.TeamName(),
-							"pipeline": pipeline.Name(),
-						}),
-						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables, bus),
-						pipeline,
-						1*time.Minute,
-					),
+			return grouper.Member{
+				Name: fmt.Sprintf("scheduler:%d", pipeline.ID()),
+				Runner: &scheduler.Runner{
+					Logger: logger.Session("scheduler", lager.Data{
+						"team":     pipeline.TeamName(),
+						"pipeline": pipeline.Name(),
+					}),
+					Pipeline:  pipeline,
+					Scheduler: radarSchedulerFactory.BuildScheduler(pipeline),
+					Noop:      cmd.Developer.Noop,
+					Interval:  10 * time.Second,
 				},
-				{
-					Name: fmt.Sprintf("scheduler:%d", pipeline.ID()),
-					Runner: &scheduler.Runner{
-						Logger: logger.Session("scheduler", lager.Data{
-							"team":     pipeline.TeamName(),
-							"pipeline": pipeline.Name(),
-						}),
-						Pipeline:  pipeline,
-						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline),
-						Noop:      cmd.Developer.Noop,
-						Interval:  10 * time.Second,
-					},
-				},
-			})
+			}
 		},
 	)
 }
