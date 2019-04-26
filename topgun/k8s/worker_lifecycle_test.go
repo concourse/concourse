@@ -27,9 +27,7 @@ var _ = Describe("Worker lifecycle", func() {
 	}
 
 	AfterEach(func() {
-		helmDestroy(releaseName)
-		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-		Wait(proxySession.Interrupt())
+		cleanup(releaseName, namespace, proxySession)
 	})
 
 	DescribeTable("retiring a worker",
