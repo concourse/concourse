@@ -53,10 +53,10 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return errors.New("pipeline not found")
 	}
 
-	return dump(config, asJSON)
+	return dumpPipeline(config, asJSON)
 }
 
-func dump(config atc.Config, asJSON bool) error {
+func dumpPipeline(config atc.Config, asJSON bool) error {
 	var payload []byte
 	var err error
 	if asJSON {
