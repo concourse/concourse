@@ -193,6 +193,7 @@ var requiredRoles = map[string]string{
 	atc.ListDestroyingVolumes:         "viewer",
 	atc.ReportWorkerVolumes:           "member",
 	atc.ListTeams:                     "viewer",
+	atc.GetTeam:                       "viewer",
 	atc.SetTeam:                       "owner",
 	atc.RenameTeam:                    "owner",
 	atc.DestroyTeam:                   "owner",

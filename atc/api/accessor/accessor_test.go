@@ -634,6 +634,10 @@ var _ = Describe("Accessor", func() {
 		Entry("member :: "+atc.ListTeams, atc.ListTeams, "member", true),
 		Entry("viewer :: "+atc.ListTeams, atc.ListTeams, "viewer", true),
 
+		Entry("owner :: "+atc.GetTeam, atc.GetTeam, "owner", true),
+		Entry("member :: "+atc.GetTeam, atc.GetTeam, "member", true),
+		Entry("viewer :: "+atc.GetTeam, atc.GetTeam, "viewer", true),
+
 		Entry("owner :: "+atc.SetTeam, atc.SetTeam, "owner", true),
 		Entry("member :: "+atc.SetTeam, atc.SetTeam, "member", false),
 		Entry("viewer :: "+atc.SetTeam, atc.SetTeam, "viewer", false),
