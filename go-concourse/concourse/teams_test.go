@@ -12,6 +12,75 @@ import (
 )
 
 var _ = Describe("ATC Handler Teams", func() {
+	Describe("Config", func() {
+		var expectedTeam atc.Team
+		teamName := "myTeam"
+		expectedURL := "/api/v1/teams/myTeam"
+
+		BeforeEach(func() {
+			expectedTeam = atc.Team{
+				ID:   1,
+				Name: "myTeam",
+				Auth: atc.TeamAuth{
+					"owner": map[string][]string{
+						"groups": {}, "users": {"local:username"},
+					},
+				},
+			}
+		})
+
+		Context("when the team is found", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedTeam),
+					),
+				)
+			})
+
+			It("returns the requested team", func() {
+				team, found, err := team.Config(teamName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(team).To(Equal(expectedTeam))
+			})
+		})
+
+		Context("when the team is not found", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusNotFound, ""),
+					),
+				)
+			})
+
+			It("returns false", func() {
+				_, found, err := team.Config(teamName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when not belonging to the team", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusUnauthorized, ""),
+					),
+				)
+			})
+
+			It("returns false and error", func() {
+				_, found, err := team.Config(teamName)
+				Expect(found).To(BeFalse())
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
 	Describe("CreateOrUpdate", func() {
 		var expectedURL = "/api/v1/teams/team venture"
 		var expectedTeam, desiredTeam atc.Team
