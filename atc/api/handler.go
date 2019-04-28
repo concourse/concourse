@@ -184,6 +184,7 @@ func NewHandler(
 		atc.ReportWorkerVolumes:   http.HandlerFunc(volumesServer.ReportWorkerVolumes),
 
 		atc.ListTeams:      http.HandlerFunc(teamServer.ListTeams),
+		atc.GetTeam:        http.HandlerFunc(teamServer.GetTeam),
 		atc.SetTeam:        http.HandlerFunc(teamServer.SetTeam),
 		atc.RenameTeam:     http.HandlerFunc(teamServer.RenameTeam),
 		atc.DestroyTeam:    http.HandlerFunc(teamServer.DestroyTeam),
