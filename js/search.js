@@ -5786,120 +5786,48 @@ var author$project$Main$init = _Utils_Tuple2(
 				author$project$Main$DocumentsFetched,
 				A2(elm$http$Http$get, 'search_index.json', author$project$Main$decodeSearchIndex))
 			])));
-var author$project$Main$containsFuzzyChars = F2(
-	function (_n0, res) {
-		return res.score < 1000;
+var author$project$Query$largestMatchFirst = F2(
+	function (_n0, _n1) {
+		var xi = _n0.a;
+		var xl = _n0.b;
+		var yi = _n1.a;
+		var yl = _n1.b;
+		return _Utils_eq(xi, yi) ? A2(elm$core$Basics$compare, yl, xl) : A2(elm$core$Basics$compare, xi, yi);
 	});
-var elm$core$String$toLower = _String_toLower;
-var tripokey$elm_fuzzy$Fuzzy$InsertPenalty = function (a) {
-	return {$: 'InsertPenalty', a: a};
-};
-var tripokey$elm_fuzzy$Fuzzy$insertPenalty = function (penalty) {
-	return tripokey$elm_fuzzy$Fuzzy$InsertPenalty(penalty);
-};
-var elm$core$String$length = _String_length;
-var tripokey$elm_fuzzy$Fuzzy$Match = F4(
-	function (score, offset, length, keys) {
-		return {keys: keys, length: length, offset: offset, score: score};
+var author$project$Query$simplifyResult = F2(
+	function (_n0, _n1) {
+		var i = _n0.a;
+		var l = _n0.b;
+		var ms = _n1.a;
+		var o = _n1.b;
+		return (_Utils_cmp(i + l, o) < 1) ? _Utils_Tuple2(ms, o) : ((_Utils_cmp(i, o) < 0) ? _Utils_Tuple2(
+			_Utils_ap(
+				ms,
+				_List_fromArray(
+					[
+						_Utils_Tuple2(o, l - (o - i))
+					])),
+			o + (l - (o - i))) : _Utils_Tuple2(
+			_Utils_ap(
+				ms,
+				_List_fromArray(
+					[
+						_Utils_Tuple2(i, l)
+					])),
+			i + l));
 	});
-var tripokey$elm_fuzzy$Fuzzy$Result = F2(
-	function (score, matches) {
-		return {matches: matches, score: score};
-	});
-var tripokey$elm_fuzzy$Fuzzy$ConfigModel = F4(
-	function (addPenalty, movePenalty, removePenalty, insertPenalty) {
-		return {addPenalty: addPenalty, insertPenalty: insertPenalty, movePenalty: movePenalty, removePenalty: removePenalty};
-	});
-var tripokey$elm_fuzzy$Fuzzy$defaultConfig = A4(tripokey$elm_fuzzy$Fuzzy$ConfigModel, 10, 1000, 10000, 1);
 var elm$core$String$indexes = _String_indexes;
-var elm$core$String$slice = _String_slice;
-var elm$core$Tuple$second = function (_n0) {
-	var y = _n0.b;
-	return y;
-};
-var tripokey$elm_fuzzy$Fuzzy$dissect = F2(
-	function (separators, strings) {
-		dissect:
-		while (true) {
-			if (!separators.b) {
-				return strings;
-			} else {
-				var head = separators.a;
-				var tail = separators.b;
-				var dissectEntry = function (entry) {
-					var separatorLength = elm$core$String$length(head);
-					var slice = F2(
-						function (index, _n1) {
-							var prevIndex = _n1.a;
-							var sum = _n1.b;
-							var separatorSlice = _List_fromArray(
-								[
-									A3(elm$core$String$slice, index, index + separatorLength, entry)
-								]);
-							var precedingSlice = _Utils_eq(prevIndex, index) ? _List_Nil : _List_fromArray(
-								[
-									A3(elm$core$String$slice, prevIndex, index, entry)
-								]);
-							return _Utils_Tuple2(
-								index + separatorLength,
-								_Utils_ap(
-									sum,
-									_Utils_ap(precedingSlice, separatorSlice)));
-						});
-					var indexes = A2(elm$core$String$indexes, head, entry);
-					var result = A3(
-						elm$core$List$foldl,
-						slice,
-						_Utils_Tuple2(0, _List_Nil),
-						indexes);
-					var lastIndex = result.a;
-					var first = result.b;
-					var entryLength = elm$core$String$length(entry);
-					var last = _Utils_eq(lastIndex, entryLength) ? _List_Nil : _List_fromArray(
-						[
-							A3(elm$core$String$slice, lastIndex, entryLength, entry)
-						]);
-					return _Utils_ap(first, last);
-				};
-				var dissected = A3(
-					elm$core$List$foldl,
-					F2(
-						function (e, s) {
-							return _Utils_ap(
-								s,
-								dissectEntry(e));
-						}),
-					_List_Nil,
-					strings);
-				var $temp$separators = tail,
-					$temp$strings = dissected;
-				separators = $temp$separators;
-				strings = $temp$strings;
-				continue dissect;
-			}
-		}
+var elm$core$String$length = _String_length;
+var author$project$Query$wordMatches = F2(
+	function (lowerHaystack, lowerNeedle) {
+		var l = elm$core$String$length(lowerNeedle);
+		return A2(
+			elm$core$List$map,
+			function (i) {
+				return _Utils_Tuple2(i, l);
+			},
+			A2(elm$core$String$indexes, lowerNeedle, lowerHaystack));
 	});
-var elm$core$Basics$not = _Basics_not;
-var elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
-var elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return elm$core$Maybe$Just(x);
-	} else {
-		return elm$core$Maybe$Nothing;
-	}
-};
 var elm$core$List$any = F2(
 	function (isOkay, list) {
 		any:
@@ -5921,21 +5849,17 @@ var elm$core$List$any = F2(
 			}
 		}
 	});
-var elm$core$List$member = F2(
-	function (x, xs) {
-		return A2(
-			elm$core$List$any,
-			function (a) {
-				return _Utils_eq(a, x);
-			},
-			xs);
+var elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3(elm$core$List$foldr, elm$core$List$cons, ys, xs);
+		}
 	});
-var elm$core$String$foldl = _String_foldl;
-var elm$core$String$cons = _String_cons;
-var elm$core$String$fromChar = function (_char) {
-	return A2(elm$core$String$cons, _char, '');
+var elm$core$List$concat = function (lists) {
+	return A3(elm$core$List$foldr, elm$core$List$append, _List_Nil, lists);
 };
-var tripokey$elm_fuzzy$Fuzzy$initialModel = _List_Nil;
 var elm$core$List$isEmpty = function (xs) {
 	if (!xs.b) {
 		return true;
@@ -5943,428 +5867,31 @@ var elm$core$List$isEmpty = function (xs) {
 		return false;
 	}
 };
-var elm$core$List$partition = F2(
-	function (pred, list) {
-		var step = F2(
-			function (x, _n0) {
-				var trues = _n0.a;
-				var falses = _n0.b;
-				return pred(x) ? _Utils_Tuple2(
-					A2(elm$core$List$cons, x, trues),
-					falses) : _Utils_Tuple2(
-					trues,
-					A2(elm$core$List$cons, x, falses));
-			});
-		return A3(
-			elm$core$List$foldr,
-			step,
-			_Utils_Tuple2(_List_Nil, _List_Nil),
-			list);
-	});
-var tripokey$elm_fuzzy$Fuzzy$quickSort = function (entries) {
-	if (!entries.b) {
-		return _Utils_Tuple2(0, _List_Nil);
-	} else {
-		var head = entries.a;
-		var tail = entries.b;
-		var partition = A2(
-			elm$core$List$partition,
-			function (e) {
-				return _Utils_cmp(e, head) < 0;
-			},
-			tail);
-		var smaller = tripokey$elm_fuzzy$Fuzzy$quickSort(partition.a);
-		var penalty = elm$core$List$isEmpty(smaller.b) ? 0 : 1;
-		var larger = tripokey$elm_fuzzy$Fuzzy$quickSort(partition.b);
-		return _Utils_Tuple2(
-			(smaller.a + penalty) + larger.a,
-			_Utils_ap(
-				smaller.b,
-				_Utils_ap(
-					_List_fromArray(
-						[head]),
-					larger.b)));
-	}
-};
-var tripokey$elm_fuzzy$Fuzzy$distance = F3(
-	function (config, needle, hay) {
-		var accumulateInsertPenalty = F2(
-			function (elem, result) {
-				if (result.a.$ === 'Just') {
-					var prev = result.a.a;
-					var score = result.b;
-					return _Utils_Tuple2(
-						elm$core$Maybe$Just(elem),
-						((elem - 1) - prev) + score);
-				} else {
-					var _n2 = result.a;
-					var score = result.b;
-					return _Utils_Tuple2(
-						elm$core$Maybe$Just(elem),
-						score);
-				}
-			});
-		var accumulate = F2(
-			function (c, indexList) {
-				var indexes = A2(
-					elm$core$String$indexes,
-					elm$core$String$fromChar(c),
-					hay);
-				var hayIndex = elm$core$List$head(
-					A2(
-						elm$core$List$filter,
-						function (e) {
-							return !A2(elm$core$List$member, e, indexList);
-						},
-						indexes));
-				if (hayIndex.$ === 'Just') {
-					var v = hayIndex.a;
-					return _Utils_ap(
-						indexList,
-						_List_fromArray(
-							[v]));
-				} else {
-					return indexList;
-				}
-			});
-		var accumulated = A3(elm$core$String$foldl, accumulate, tripokey$elm_fuzzy$Fuzzy$initialModel, needle);
-		var hPenalty = (elm$core$String$length(hay) - elm$core$List$length(accumulated)) * config.addPenalty;
-		var nPenalty = (elm$core$String$length(needle) - elm$core$List$length(accumulated)) * config.removePenalty;
-		var sorted = tripokey$elm_fuzzy$Fuzzy$quickSort(accumulated);
-		var iPenalty = A3(
-			elm$core$List$foldl,
-			accumulateInsertPenalty,
-			_Utils_Tuple2(elm$core$Maybe$Nothing, 0),
-			sorted.b).b * config.insertPenalty;
-		var mPenalty = sorted.a * config.movePenalty;
-		return A4(
-			tripokey$elm_fuzzy$Fuzzy$Match,
-			((mPenalty + hPenalty) + nPenalty) + iPenalty,
-			0,
-			elm$core$String$length(hay),
-			sorted.b);
-	});
-var elm$core$List$repeatHelp = F3(
-	function (result, n, value) {
-		repeatHelp:
-		while (true) {
-			if (n <= 0) {
-				return result;
-			} else {
-				var $temp$result = A2(elm$core$List$cons, value, result),
-					$temp$n = n - 1,
-					$temp$value = value;
-				result = $temp$result;
-				n = $temp$n;
-				value = $temp$value;
-				continue repeatHelp;
-			}
-		}
-	});
-var elm$core$List$repeat = F2(
-	function (n, value) {
-		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
-	});
-var tripokey$elm_fuzzy$Fuzzy$padHays = F2(
-	function (ns, hs) {
-		return _Utils_ap(
-			hs,
-			A2(
-				elm$core$List$repeat,
-				ns - elm$core$List$length(hs),
-				''));
-	});
-var elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
-	});
-var elm$core$List$takeReverse = F3(
-	function (n, list, kept) {
-		takeReverse:
-		while (true) {
-			if (n <= 0) {
-				return kept;
-			} else {
-				if (!list.b) {
-					return kept;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs,
-						$temp$kept = A2(elm$core$List$cons, x, kept);
-					n = $temp$n;
-					list = $temp$list;
-					kept = $temp$kept;
-					continue takeReverse;
-				}
-			}
-		}
-	});
-var elm$core$List$takeTailRec = F2(
-	function (n, list) {
-		return elm$core$List$reverse(
-			A3(elm$core$List$takeReverse, n, list, _List_Nil));
-	});
-var elm$core$List$takeFast = F3(
-	function (ctr, n, list) {
-		if (n <= 0) {
-			return _List_Nil;
-		} else {
-			var _n0 = _Utils_Tuple2(n, list);
-			_n0$1:
-			while (true) {
-				_n0$5:
-				while (true) {
-					if (!_n0.b.b) {
-						return list;
-					} else {
-						if (_n0.b.b.b) {
-							switch (_n0.a) {
-								case 1:
-									break _n0$1;
-								case 2:
-									var _n2 = _n0.b;
-									var x = _n2.a;
-									var _n3 = _n2.b;
-									var y = _n3.a;
-									return _List_fromArray(
-										[x, y]);
-								case 3:
-									if (_n0.b.b.b.b) {
-										var _n4 = _n0.b;
-										var x = _n4.a;
-										var _n5 = _n4.b;
-										var y = _n5.a;
-										var _n6 = _n5.b;
-										var z = _n6.a;
-										return _List_fromArray(
-											[x, y, z]);
-									} else {
-										break _n0$5;
-									}
-								default:
-									if (_n0.b.b.b.b && _n0.b.b.b.b.b) {
-										var _n7 = _n0.b;
-										var x = _n7.a;
-										var _n8 = _n7.b;
-										var y = _n8.a;
-										var _n9 = _n8.b;
-										var z = _n9.a;
-										var _n10 = _n9.b;
-										var w = _n10.a;
-										var tl = _n10.b;
-										return (ctr > 1000) ? A2(
-											elm$core$List$cons,
-											x,
-											A2(
-												elm$core$List$cons,
-												y,
-												A2(
-													elm$core$List$cons,
-													z,
-													A2(
-														elm$core$List$cons,
-														w,
-														A2(elm$core$List$takeTailRec, n - 4, tl))))) : A2(
-											elm$core$List$cons,
-											x,
-											A2(
-												elm$core$List$cons,
-												y,
-												A2(
-													elm$core$List$cons,
-													z,
-													A2(
-														elm$core$List$cons,
-														w,
-														A3(elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
-									} else {
-										break _n0$5;
-									}
-							}
-						} else {
-							if (_n0.a === 1) {
-								break _n0$1;
-							} else {
-								break _n0$5;
-							}
-						}
-					}
-				}
-				return list;
-			}
-			var _n1 = _n0.b;
-			var x = _n1.a;
-			return _List_fromArray(
-				[x]);
-		}
-	});
-var elm$core$List$take = F2(
-	function (n, list) {
-		return A3(elm$core$List$takeFast, 0, n, list);
-	});
-var tripokey$elm_fuzzy$Fuzzy$reduceLeft = F3(
-	function (ns, c, hs) {
-		return _Utils_Tuple2(
+var elm$core$List$sortWith = _List_sortWith;
+var elm$core$String$toLower = _String_toLower;
+var elm$core$String$words = _String_words;
+var author$project$Query$matchWords = F2(
+	function (needle, haystack) {
+		var lns = elm$core$String$words(
+			elm$core$String$toLower(needle));
+		var lh = elm$core$String$toLower(haystack);
+		var matches = A2(
+			elm$core$List$map,
+			author$project$Query$wordMatches(lh),
+			lns);
+		return A2(elm$core$List$any, elm$core$List$isEmpty, matches) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(
 			A3(
 				elm$core$List$foldl,
-				F2(
-					function (e, sum) {
-						return elm$core$String$length(e) + sum;
-					}),
-				0,
-				A2(elm$core$List$take, c, hs)),
-			A2(elm$core$List$drop, c, hs));
+				author$project$Query$simplifyResult,
+				_Utils_Tuple2(_List_Nil, 0),
+				A2(
+					elm$core$List$sortWith,
+					author$project$Query$largestMatchFirst,
+					elm$core$List$concat(matches))).a);
 	});
-var tripokey$elm_fuzzy$Fuzzy$reduceRight = F3(
-	function (ns, c, hs) {
-		return A2(
-			elm$core$List$take,
-			elm$core$List$length(hs) - ((ns - c) - 1),
-			hs);
-	});
-var tripokey$elm_fuzzy$Fuzzy$match = F4(
-	function (configs, separators, needle, hay) {
-		var reduceHays = F3(
-			function (ns, c, hs) {
-				return A3(
-					tripokey$elm_fuzzy$Fuzzy$reduceLeft,
-					ns,
-					c,
-					A3(
-						tripokey$elm_fuzzy$Fuzzy$reduceRight,
-						ns,
-						c,
-						A2(tripokey$elm_fuzzy$Fuzzy$padHays, ns, hs)));
-			});
-		var needles = A2(
-			tripokey$elm_fuzzy$Fuzzy$dissect,
-			separators,
-			_List_fromArray(
-				[needle]));
-		var initialResult = A2(tripokey$elm_fuzzy$Fuzzy$Result, 0, _List_Nil);
-		var hays = A2(
-			tripokey$elm_fuzzy$Fuzzy$dissect,
-			separators,
-			_List_fromArray(
-				[hay]));
-		var accumulateConfig = F2(
-			function (c, sum) {
-				switch (c.$) {
-					case 'AddPenalty':
-						var val = c.a;
-						return _Utils_update(
-							sum,
-							{addPenalty: val});
-					case 'RemovePenalty':
-						var val = c.a;
-						return _Utils_update(
-							sum,
-							{removePenalty: val});
-					case 'MovePenalty':
-						var val = c.a;
-						return _Utils_update(
-							sum,
-							{movePenalty: val});
-					default:
-						var val = c.a;
-						return _Utils_update(
-							sum,
-							{insertPenalty: val});
-				}
-			});
-		var config = A3(elm$core$List$foldl, accumulateConfig, tripokey$elm_fuzzy$Fuzzy$defaultConfig, configs);
-		var minScore = F2(
-			function (n, _n2) {
-				var offset = _n2.a;
-				var hs = _n2.b;
-				var initialPenalty = (((elm$core$String$length(n) * config.removePenalty) + (elm$core$String$length(n) * config.movePenalty)) + (elm$core$String$length(hay) * config.addPenalty)) + ((elm$core$String$length(hay) * elm$core$String$length(n)) * config.insertPenalty);
-				var initialMatch = A4(tripokey$elm_fuzzy$Fuzzy$Match, initialPenalty, offset, 0, _List_Nil);
-				var accumulateMatch = F2(
-					function (e, _n1) {
-						var prev = _n1.a;
-						var prevOffset = _n1.b;
-						var newOffset = prevOffset + elm$core$String$length(e);
-						var eDistance = A3(tripokey$elm_fuzzy$Fuzzy$distance, config, n, e);
-						var newMatch = (_Utils_cmp(eDistance.score, prev.score) < 0) ? _Utils_update(
-							eDistance,
-							{offset: prevOffset}) : prev;
-						return _Utils_Tuple2(newMatch, newOffset);
-					});
-				return A3(
-					elm$core$List$foldl,
-					accumulateMatch,
-					_Utils_Tuple2(initialMatch, offset),
-					hs).a;
-			});
-		var accumulateResult = F2(
-			function (n, _n0) {
-				var prev = _n0.a;
-				var num = _n0.b;
-				var matchResult = A2(
-					minScore,
-					n,
-					A3(
-						reduceHays,
-						elm$core$List$length(needles),
-						num,
-						hays));
-				var newResult = _Utils_update(
-					prev,
-					{
-						matches: _Utils_ap(
-							prev.matches,
-							_List_fromArray(
-								[matchResult])),
-						score: matchResult.score + prev.score
-					});
-				return _Utils_Tuple2(newResult, num + 1);
-			});
-		return A3(
-			elm$core$List$foldl,
-			accumulateResult,
-			_Utils_Tuple2(initialResult, 0),
-			needles).a;
-	});
-var tripokey$elm_fuzzy$Fuzzy$MovePenalty = function (a) {
-	return {$: 'MovePenalty', a: a};
-};
-var tripokey$elm_fuzzy$Fuzzy$movePenalty = function (penalty) {
-	return tripokey$elm_fuzzy$Fuzzy$MovePenalty(penalty);
-};
 var author$project$Main$match = F3(
 	function (query, tag, doc) {
-		var result = A4(
-			tripokey$elm_fuzzy$Fuzzy$match,
-			_List_fromArray(
-				[
-					tripokey$elm_fuzzy$Fuzzy$insertPenalty(100),
-					tripokey$elm_fuzzy$Fuzzy$movePenalty(100)
-				]),
-			_List_Nil,
-			query,
-			elm$core$String$toLower(doc.title));
-		return _Utils_update(
-			result,
-			{score: result.score + (100 * doc.depth)});
+		return A2(author$project$Query$matchWords, query, doc.title);
 	});
 var elm$core$Dict$foldl = F3(
 	function (func, acc, dict) {
@@ -6391,35 +5918,22 @@ var elm$core$Dict$foldl = F3(
 			}
 		}
 	});
-var elm$core$Dict$filter = F2(
-	function (isGood, dict) {
+var elm_community$dict_extra$Dict$Extra$filterMap = F2(
+	function (f, dict) {
 		return A3(
 			elm$core$Dict$foldl,
 			F3(
-				function (k, v, d) {
-					return A2(isGood, k, v) ? A3(elm$core$Dict$insert, k, v, d) : d;
+				function (k, v, acc) {
+					var _n0 = A2(f, k, v);
+					if (_n0.$ === 'Just') {
+						var newVal = _n0.a;
+						return A3(elm$core$Dict$insert, k, newVal, acc);
+					} else {
+						return acc;
+					}
 				}),
 			elm$core$Dict$empty,
 			dict);
-	});
-var elm$core$Dict$map = F2(
-	function (func, dict) {
-		if (dict.$ === 'RBEmpty_elm_builtin') {
-			return elm$core$Dict$RBEmpty_elm_builtin;
-		} else {
-			var color = dict.a;
-			var key = dict.b;
-			var value = dict.c;
-			var left = dict.d;
-			var right = dict.e;
-			return A5(
-				elm$core$Dict$RBNode_elm_builtin,
-				color,
-				key,
-				A2(func, key, value),
-				A2(elm$core$Dict$map, func, left),
-				A2(elm$core$Dict$map, func, right));
-		}
 	});
 var author$project$Main$performSearch = function (model) {
 	var _n0 = _Utils_Tuple2(model.query, model.docs);
@@ -6434,12 +5948,9 @@ var author$project$Main$performSearch = function (model) {
 			model,
 			{
 				result: A2(
-					elm$core$Dict$filter,
-					author$project$Main$containsFuzzyChars,
-					A2(
-						elm$core$Dict$map,
-						author$project$Main$match(query),
-						docs))
+					elm_community$dict_extra$Dict$Extra$filterMap,
+					author$project$Main$match(query),
+					docs)
 			});
 	}
 };
@@ -6482,9 +5993,54 @@ var author$project$Main$update = F2(
 				elm$core$Platform$Cmd$none);
 		}
 	});
+var author$project$Main$DocumentResult = F3(
+	function (tag, result, doc) {
+		return {doc: doc, result: result, tag: tag};
+	});
 var author$project$Main$SetQuery = function (a) {
 	return {$: 'SetQuery', a: a};
 };
+var author$project$Main$suggestedOrder = F2(
+	function (a, b) {
+		var _n0 = A2(elm$core$Basics$compare, a.doc.depth, b.doc.depth);
+		if (_n0.$ === 'EQ') {
+			var _n1 = _Utils_Tuple2(
+				_Utils_eq(a.tag, a.doc.sectionTag),
+				_Utils_eq(b.tag, b.doc.sectionTag));
+			_n1$2:
+			while (true) {
+				if (_n1.a) {
+					if (!_n1.b) {
+						return elm$core$Basics$LT;
+					} else {
+						break _n1$2;
+					}
+				} else {
+					if (_n1.b) {
+						return elm$core$Basics$GT;
+					} else {
+						break _n1$2;
+					}
+				}
+			}
+			return A2(
+				elm$core$Basics$compare,
+				elm$core$String$length(a.doc.title),
+				elm$core$String$length(b.doc.title));
+		} else {
+			var x = _n0;
+			return x;
+		}
+	});
+var elm$core$String$slice = _String_slice;
+var elm$core$String$dropLeft = F2(
+	function (n, string) {
+		return (n < 1) ? string : A3(
+			elm$core$String$slice,
+			n,
+			elm$core$String$length(string),
+			string);
+	});
 var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
 		case 'Normal':
@@ -6502,39 +6058,43 @@ var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var author$project$Main$emphasize = F2(
 	function (matches, str) {
-		var isKey = function (index) {
-			return A3(
-				elm$core$List$foldl,
-				F2(
-					function (e, sum) {
-						return (!sum) ? A2(elm$core$List$member, index - e.offset, e.keys) : sum;
-					}),
-				false,
-				matches);
-		};
-		var hl = F2(
-			function (_char, _n0) {
-				var acc = _n0.a;
-				var idx = _n0.b;
-				var txt = elm$html$Html$text(
-					elm$core$String$fromChar(_char));
-				var ele = isKey(idx) ? A2(
-					elm$html$Html$mark,
-					_List_Nil,
-					_List_fromArray(
-						[txt])) : txt;
-				return _Utils_Tuple2(
-					_Utils_ap(
-						acc,
-						_List_fromArray(
-							[ele])),
-					idx + 1);
-			});
-		return A3(
-			elm$core$String$foldl,
-			hl,
+		var _n0 = A3(
+			elm$core$List$foldl,
+			F2(
+				function (_n1, _n2) {
+					var idx = _n1.a;
+					var len = _n1.b;
+					var acc = _n2.a;
+					var off = _n2.b;
+					return _Utils_Tuple2(
+						_Utils_ap(
+							acc,
+							_List_fromArray(
+								[
+									elm$html$Html$text(
+									A3(elm$core$String$slice, off, idx, str)),
+									A2(
+									elm$html$Html$mark,
+									_List_Nil,
+									_List_fromArray(
+										[
+											elm$html$Html$text(
+											A3(elm$core$String$slice, idx, idx + len, str))
+										]))
+								])),
+						idx + len);
+				}),
 			_Utils_Tuple2(_List_Nil, 0),
-			str).a;
+			matches);
+		var hs = _n0.a;
+		var lastOffset = _n0.b;
+		return _Utils_ap(
+			hs,
+			_List_fromArray(
+				[
+					elm$html$Html$text(
+					A2(elm$core$String$dropLeft, lastOffset, str))
+				]));
 	});
 var elm$core$String$isEmpty = function (string) {
 	return string === '';
@@ -6565,10 +6125,11 @@ var elm$html$Html$Attributes$href = function (url) {
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
-var author$project$Main$viewDocumentResult = F3(
-	function (model, _n0, doc) {
-		var tag = _n0.a;
-		var res = _n0.b;
+var author$project$Main$viewDocumentResult = F2(
+	function (model, _n0) {
+		var tag = _n0.tag;
+		var result = _n0.result;
+		var doc = _n0.doc;
 		return A2(
 			elm$html$Html$li,
 			_List_Nil,
@@ -6598,7 +6159,7 @@ var author$project$Main$viewDocumentResult = F3(
 											A2(
 											elm$html$Html$h3,
 											_List_Nil,
-											A2(author$project$Main$emphasize, res.matches, doc.title)),
+											A2(author$project$Main$emphasize, result, doc.title)),
 											function () {
 											if (_Utils_eq(doc.sectionTag, tag)) {
 												return elm$html$Html$text('');
@@ -6632,33 +6193,6 @@ var author$project$Main$viewDocumentResult = F3(
 						]))
 				]));
 	});
-var elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return elm$core$Maybe$Nothing;
-		}
-	});
-var author$project$Main$viewResult = F2(
-	function (model, _n0) {
-		var tag = _n0.a;
-		var res = _n0.b;
-		return A2(
-			elm$core$Maybe$map,
-			A2(
-				author$project$Main$viewDocumentResult,
-				model,
-				_Utils_Tuple2(tag, res)),
-			A2(elm$core$Dict$get, tag, model.docs));
-	});
-var elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
-	});
 var elm$core$List$maybeCons = F3(
 	function (f, mx, xs) {
 		var _n0 = f(mx);
@@ -6677,7 +6211,16 @@ var elm$core$List$filterMap = F2(
 			_List_Nil,
 			xs);
 	});
-var elm$core$List$sortBy = _List_sortBy;
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
 var elm$html$Html$input = _VirtualDom_node('input');
 var elm$html$Html$ul = _VirtualDom_node('ul');
 var elm$html$Html$Attributes$placeholder = elm$html$Html$Attributes$stringProperty('placeholder');
@@ -6747,17 +6290,22 @@ var author$project$Main$view = function (model) {
 						elm$html$Html$Attributes$class('search-results')
 					]),
 				A2(
-					elm$core$List$filterMap,
-					author$project$Main$viewResult(model),
+					elm$core$List$map,
+					author$project$Main$viewDocumentResult(model),
 					A2(
-						elm$core$List$sortBy,
+						elm$core$List$sortWith,
+						author$project$Main$suggestedOrder,
 						A2(
-							elm$core$Basics$composeR,
-							elm$core$Tuple$second,
-							function ($) {
-								return $.score;
-							}),
-						elm$core$Dict$toList(model.result))))
+							elm$core$List$filterMap,
+							function (_n0) {
+								var tag = _n0.a;
+								var res = _n0.b;
+								return A2(
+									elm$core$Maybe$map,
+									A2(author$project$Main$DocumentResult, tag, res),
+									A2(elm$core$Dict$get, tag, model.docs));
+							},
+							elm$core$Dict$toList(model.result)))))
 			]));
 };
 var elm$browser$Browser$External = function (a) {
@@ -6783,14 +6331,6 @@ var elm$core$Task$perform = F2(
 		return elm$core$Task$command(
 			elm$core$Task$Perform(
 				A2(elm$core$Task$map, toMessage, task)));
-	});
-var elm$core$String$dropLeft = F2(
-	function (n, string) {
-		return (n < 1) ? string : A3(
-			elm$core$String$slice,
-			n,
-			elm$core$String$length(string),
-			string);
 	});
 var elm$core$String$startsWith = _String_startsWith;
 var elm$url$Url$Http = {$: 'Http'};

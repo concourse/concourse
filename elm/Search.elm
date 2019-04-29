@@ -2,13 +2,14 @@ module Main exposing (main)
 
 import Browser
 import Dict exposing (Dict)
-import Fuzzy
+import Dict.Extra as DE
 import Html exposing (Html, div, text)
 import Html.Attributes as HA
 import Html.Events as HE
 import Http
 import Json.Decode as JD
 import Json.Decode.Extra as JDE exposing (andMap)
+import Query
 
 
 type alias Doc =
@@ -22,7 +23,7 @@ type alias Doc =
 type alias Model =
     { query : String
     , docs : BooklitIndex
-    , result : Dict String Fuzzy.Result
+    , result : Dict String Query.Result
     }
 
 
@@ -46,12 +47,13 @@ type Msg
 
 main : Program () Model Msg
 main =
-  Browser.element
+    Browser.element
         { init = always init
         , update = update
         , view = view
         , subscriptions = always Sub.none
         }
+
 
 init : ( Model, Cmd Msg )
 init =
@@ -87,22 +89,19 @@ performSearch model =
             { model | result = Dict.empty }
 
         ( query, docs ) ->
-            { model | result = Dict.map (match query) docs |> Dict.filter containsFuzzyChars }
+            { model | result = DE.filterMap (match query) docs }
 
 
-match : String -> String -> BooklitDocument -> Fuzzy.Result
+match : String -> String -> BooklitDocument -> Maybe Query.Result
 match query tag doc =
-    let
-        result =
-            Fuzzy.match
-              [ Fuzzy.insertPenalty 100
-              , Fuzzy.movePenalty 100
-              ]
-              []
-              query
-              (String.toLower doc.title)
-    in
-    { result | score = result.score + (100 * doc.depth) }
+    Query.matchWords query doc.title
+
+
+type alias DocumentResult =
+    { tag : String
+    , result : Query.Result
+    , doc : BooklitDocument
+    }
 
 
 view : Model -> Html Msg
@@ -116,30 +115,39 @@ view model =
             , HA.required True
             ]
             []
-        , Html.ul [ HA.class "search-results" ] <|
-            List.filterMap (viewResult model) <|
-                List.sortBy (Tuple.second >> .score) (Dict.toList model.result)
+        , Dict.toList model.result
+            |> List.filterMap (\( tag, res ) -> Maybe.map (DocumentResult tag res) (Dict.get tag model.docs))
+            |> List.sortWith suggestedOrder
+            |> List.map (viewDocumentResult model)
+            |> Html.ul [ HA.class "search-results" ]
         ]
 
 
-containsFuzzyChars : String -> Fuzzy.Result -> Bool
-containsFuzzyChars _ res =
-    res.score < 1000
+suggestedOrder : DocumentResult -> DocumentResult -> Order
+suggestedOrder a b =
+    case compare a.doc.depth b.doc.depth of
+        EQ ->
+            case ( a.tag == a.doc.sectionTag, b.tag == b.doc.sectionTag ) of
+                ( True, False ) ->
+                    LT
+
+                ( False, True ) ->
+                    GT
+
+                _ ->
+                    compare (String.length a.doc.title) (String.length b.doc.title)
+
+        x ->
+            x
 
 
-viewResult : Model -> ( String, Fuzzy.Result ) -> Maybe (Html Msg)
-viewResult model ( tag, res ) =
-    Dict.get tag model.docs
-        |> Maybe.map (viewDocumentResult model ( tag, res ))
-
-
-viewDocumentResult : Model -> ( String, Fuzzy.Result ) -> BooklitDocument -> Html Msg
-viewDocumentResult model ( tag, res ) doc =
+viewDocumentResult : Model -> DocumentResult -> Html Msg
+viewDocumentResult model { tag, result, doc } =
     Html.li []
         [ Html.a [ HA.href doc.location ]
             [ Html.article []
                 [ Html.div [ HA.class "result-header" ]
-                    [ Html.h3 [] (emphasize res.matches doc.title)
+                    [ Html.h3 [] (emphasize result doc.title)
                     , if doc.sectionTag == tag then
                         Html.text ""
 
@@ -168,37 +176,23 @@ viewDocumentResult model ( tag, res ) doc =
         ]
 
 
-emphasize : List Fuzzy.Match -> String -> List (Html Msg)
+emphasize : Query.Result -> String -> List (Html Msg)
 emphasize matches str =
     let
-        isKey index =
+        ( hs, lastOffset ) =
             List.foldl
-                (\e sum ->
-                    if not sum then
-                        List.member (index - e.offset) e.keys
-
-                    else
-                        sum
+                (\( idx, len ) ( acc, off ) ->
+                    ( acc
+                        ++ [ Html.text (String.slice off idx str)
+                           , Html.mark [] [ Html.text (String.slice idx (idx + len) str) ]
+                           ]
+                    , idx + len
+                    )
                 )
-                False
+                ( [], 0 )
                 matches
-
-        hl char ( acc, idx ) =
-            let
-                txt =
-                    Html.text (String.fromChar char)
-
-                ele =
-                    if isKey idx then
-                        Html.mark [] [ txt ]
-
-                    else
-                        txt
-            in
-            ( acc ++ [ ele ], idx + 1 )
     in
-    Tuple.first (String.foldl hl ( [], 0 ) str)
-
+    hs ++ [ Html.text (String.dropLeft lastOffset str) ]
 
 
 decodeSearchIndex : JD.Decoder BooklitIndex
@@ -209,8 +203,8 @@ decodeSearchIndex =
 decodeSearchDocument : JD.Decoder BooklitDocument
 decodeSearchDocument =
     JD.succeed BooklitDocument
-    |> andMap ( JD.field "title" JD.string)
-    |> andMap ( JD.field "text" JD.string)
-    |> andMap ( JD.field "location" JD.string)
-    |> andMap ( JD.field "depth" JD.int)
-    |> andMap ( JD.field "section_tag" JD.string)
+        |> andMap (JD.field "title" JD.string)
+        |> andMap (JD.field "text" JD.string)
+        |> andMap (JD.field "location" JD.string)
+        |> andMap (JD.field "depth" JD.int)
+        |> andMap (JD.field "section_tag" JD.string)

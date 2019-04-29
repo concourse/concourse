@@ -784,6 +784,9 @@ h3 .anchor {
   overflow-y: auto;
   line-height: 1.6;
 }
+.search-results li {
+  margin-bottom: 0;
+}
 .search-results:empty {
   display: none;
 }

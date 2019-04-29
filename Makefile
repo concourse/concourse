@@ -7,7 +7,7 @@ clean:
 	rm -f css/booklit.css
 	rm -f css/pipeline.css
 
-js/search.js: elm/Search.elm
+js/search.js: elm/Search.elm elm/Query.elm
 	yarn run elm make --output $@ $^
 
 css/booklit.css: less/booklit.less
