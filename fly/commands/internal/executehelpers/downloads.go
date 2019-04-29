@@ -1,18 +1,12 @@
 package executehelpers
 
 import (
-	"os"
-
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/go-archive/tgzfs"
+	"github.com/vbauerster/mpb/v4"
 )
 
-func Download(team concourse.Team, artifactID int, path string) error {
-	pb := progress("downloading to "+path+":", os.Stdout)
-
-	pb.Start()
-	defer pb.Finish()
-
+func Download(bar *mpb.Bar, team concourse.Team, artifactID int, path string) error {
 	out, err := team.GetArtifact(artifactID)
 	if err != nil {
 		return err
@@ -20,5 +14,5 @@ func Download(team concourse.Team, artifactID int, path string) error {
 
 	defer out.Close()
 
-	return tgzfs.Extract(pb.NewProxyReader(out), path)
+	return tgzfs.Extract(bar.ProxyReader(out), path)
 }

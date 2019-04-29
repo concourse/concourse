@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strconv"
 
 	"code.cloudfoundry.org/lager"
@@ -12,6 +13,14 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 )
+
+type BaseResourceTypeNotFoundError struct {
+	Name string
+}
+
+func (e BaseResourceTypeNotFoundError) Error() string {
+	return fmt.Sprintf("base resource type not found: %s", e.Name)
+}
 
 var ErrResourceConfigAlreadyExists = errors.New("resource config already exists")
 var ErrResourceConfigDisappeared = errors.New("resource config disappeared")
@@ -149,7 +158,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 		}
 
 		if !found {
-			return nil, ResourceTypeNotFoundError{Name: r.CreatedByBaseResourceType.Name}
+			return nil, BaseResourceTypeNotFoundError{Name: r.CreatedByBaseResourceType.Name}
 		}
 
 		parentID = rc.CreatedByBaseResourceType().ID

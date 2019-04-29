@@ -1,10 +1,13 @@
 package atc
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
+
+	"golang.org/x/crypto/ssh"
 )
 
 const ConfigVersionHeader = "X-Concourse-Config-Version"
@@ -48,6 +51,7 @@ type ResourceConfig struct {
 	CheckTimeout string  `yaml:"check_timeout,omitempty" json:"check_timeout" mapstructure:"check_timeout"`
 	Tags         Tags    `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
 	Version      Version `yaml:"version,omitempty" json:"version" mapstructure:"version"`
+	Icon         string  `yaml:"icon,omitempty" json:"icon,omitempty" mapstructure:"icon"`
 }
 
 type ResourceType struct {
@@ -88,6 +92,7 @@ func (types ResourceTypes) Without(name string) ResourceTypes {
 
 type Hooks struct {
 	Abort   *PlanConfig
+	Error   *PlanConfig
 	Failure *PlanConfig
 	Ensure  *PlanConfig
 	Success *PlanConfig
@@ -290,6 +295,41 @@ func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal("")
 }
 
+type InParallelConfig struct {
+	Steps    PlanSequence `yaml:"steps,omitempty" json:"steps" mapstructure:"steps"`
+	Limit    int          `yaml:"limit,omitempty" json:"limit,omitempty" mapstructure:"limit"`
+	FailFast bool         `yaml:"fail_fast,omitempty" json:"fail_fast,omitempty" mapstructure:"fail_fast"`
+}
+
+func (c *InParallelConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var data interface{}
+
+	err := unmarshal(&data)
+	if err != nil {
+		return err
+	}
+
+	switch actual := data.(type) {
+	case []interface{}:
+		if err := unmarshal(&c.Steps); err != nil {
+			return fmt.Errorf("failed to unmarshal parallel steps: %s", err)
+		}
+	case map[interface{}]interface{}:
+		// Used to avoid infinite recursion when unmarshalling this variant.
+		type target InParallelConfig
+
+		var t target
+		if err := unmarshal(&t); err != nil {
+			return fmt.Errorf("failed to unmarshal parallel config: %s", err)
+		}
+		c.Steps, c.Limit, c.FailFast = t.Steps, t.Limit, t.FailFast
+	default:
+		return fmt.Errorf("wrong type for parallel config: %v", actual)
+	}
+
+	return nil
+}
+
 // A PlanConfig is a flattened set of configuration corresponding to
 // a particular Plan, where Source and Version are populated lazily.
 type PlanConfig struct {
@@ -305,6 +345,9 @@ type PlanConfig struct {
 
 	// corresponds to an Aggregate plan, keyed by the name of each sub-plan
 	Aggregate *PlanSequence `yaml:"aggregate,omitempty" json:"aggregate,omitempty" mapstructure:"aggregate"`
+
+	// a nested chain of steps to run in parallel
+	InParallel *InParallelConfig `yaml:"in_parallel,omitempty" json:"in_parallel,omitempty" mapstructure:"in_parallel"`
 
 	// corresponds to Get and Put resource plans, respectively
 	// name of 'input', e.g. bosh-stemcell
@@ -353,6 +396,9 @@ type PlanConfig struct {
 
 	// used by any step to run something when the build is aborted during execution of the step
 	Abort *PlanConfig `yaml:"on_abort,omitempty" json:"on_abort,omitempty" mapstructure:"on_abort"`
+
+	// used by any step to run something when the build errors during execution of the step
+	Error *PlanConfig `yaml:"on_error,omitempty" json:"on_error,omitempty" mapstructure:"on_error"`
 
 	// used by any step to run something when the step reports a failure
 	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
@@ -418,7 +464,7 @@ func (config PlanConfig) ResourceName() string {
 }
 
 func (config PlanConfig) Hooks() Hooks {
-	return Hooks{Abort: config.Abort, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
+	return Hooks{Abort: config.Abort, Error: config.Error, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
 }
 
 type ResourceConfigs []ResourceConfig
@@ -452,4 +498,49 @@ func (config Config) JobIsPublic(jobName string) (bool, error) {
 	}
 
 	return job.Public, nil
+}
+
+func DefaultTLSConfig() *tls.Config {
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12,
+
+		// https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
+		CurvePreferences: []tls.CurveID{
+			tls.CurveP256,
+			tls.CurveP384,
+			tls.CurveP521,
+		},
+
+		// Security team recommends a very restricted set of cipher suites
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		},
+
+		PreferServerCipherSuites: true,
+		NextProtos:               []string{"h2"},
+	}
+}
+
+func DefaultSSHConfig() ssh.Config {
+	return ssh.Config{
+		// use the defaults prefered by go, see https://github.com/golang/crypto/blob/master/ssh/common.go
+		Ciphers: nil,
+
+		// CIS recommends a certain set of MAC algorithms to be used in SSH connections. This restricts the set from a more permissive set used by default by Go.
+		// See https://infosec.mozilla.org/guidelines/openssh.html and https://www.cisecurity.org/cis-benchmarks/
+		MACs: []string{
+			"hmac-sha2-256-etm@openssh.com",
+			"hmac-sha2-256",
+		},
+
+		//[KEX Recommendations for SSH IETF](https://tools.ietf.org/html/draft-ietf-curdle-ssh-kex-sha2-10#section-4)
+		//[Mozilla Openssh Reference](https://infosec.mozilla.org/guidelines/openssh.html)
+		KeyExchanges: []string{
+			"ecdh-sha2-nistp256",
+			"ecdh-sha2-nistp384",
+			"ecdh-sha2-nistp521",
+			"curve25519-sha256@libssh.org",
+		},
+	}
 }

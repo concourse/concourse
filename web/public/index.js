@@ -127,11 +127,20 @@ function redrawFunction(svg, jobs, resources, newUrl) {
         .attr("y", function(node) { return node.height() / 2 - pinIconHeight / 2 })
         .attr("x", function(node) { return node.padding() })
 
+    var iconSize = 12;
+    nodeLink.filter(function(node) { return node.has_icon() }).append("use")
+      .attr("xlink:href", function(node) { return "#" + node.id + "-svg-icon" })
+      .attr("width", iconSize)
+      .attr("height", iconSize)
+      .attr("fill", "white")
+      .attr("y", function(node) { return node.height() / 2 - iconSize / 2 })
+      .attr("x", function(node) { return node.padding() + (node.pinned() ? pinIconWidth + node.padding() : 0) })
+
     nodeLink.append("text")
       .text(function(node) { return node.name })
       .attr("dominant-baseline", "middle")
-      .attr("text-anchor", function(node) { return node.pinned() ? "end" : "middle" })
-      .attr("x", function(node) { return node.pinned() ? node.width() - node.padding() : node.width() / 2 })
+      .attr("text-anchor", function(node) { return node.pinned() || node.has_icon() ? "end" : "middle" })
+      .attr("x", function(node) { return node.pinned() || node.has_icon() ? node.width() - node.padding() : node.width() / 2 })
       .attr("y", function(node) { return node.height() / 2 })
 
     jobStatusBackground.attr("width", function(node) { return node.width() })
@@ -308,12 +317,14 @@ function createGraph(svg, jobs, resources) {
   var resourceURLs = {};
   var resourceFailing = {};
   var resourcePinned = {};
+  var resourceIcons = {};
 
   for (var i in resources) {
     var resource = resources[i];
     resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name);
     resourceFailing[resource.name] = resource.failing_to_check;
     resourcePinned[resource.name] = resource.pinned_version;
+    resourceIcons[resource.name] = resource.icon;
   }
 
   for (var i in jobs) {
@@ -381,9 +392,11 @@ function createGraph(svg, jobs, resources) {
 
       var jobOutputNode = graph.node(outputId);
       if (!jobOutputNode) {
+        addIcon(resourceIcons[output.resource], outputId);
         jobOutputNode = new GraphNode({
           id: outputId,
           name: output.resource,
+          icon: resourceIcons[output.resource],
           key: output.resource,
           class: "output" + resourceStatus(output.resource),
           repeatable: true,
@@ -420,9 +433,11 @@ function createGraph(svg, jobs, resources) {
             sourceNode = sourceOutputNode;
           } else {
             if (!graph.node(sourceInputNode)) {
+              addIcon(resourceIcons[input.resource], sourceInputNode);
               graph.setNode(sourceInputNode, new GraphNode({
                 id: sourceInputNode,
                 name: input.resource,
+                icon: resourceIcons[input.resource],
                 key: input.resource,
                 class: "constrained-input" + (resourcePinned[input.resource] ? " pinned" : ""),
                 repeatable: true,
@@ -461,9 +476,11 @@ function createGraph(svg, jobs, resources) {
         var inputId = inputNode(job.name, input.resource+"-unconstrained");
 
         if (!graph.node(inputId)) {
+          addIcon(resourceIcons[input.resource], inputId);
           graph.setNode(inputId, new GraphNode({
             id: inputId,
             name: input.resource,
+            icon: resourceIcons[input.resource],
             key: input.resource,
             class: "input" + resourceStatus(input.resource),
             status: status,
@@ -484,6 +501,17 @@ function createGraph(svg, jobs, resources) {
   graph.addSpacingNodes();
 
   return graph;
+}
+
+function addIcon(iconName, nodeId) {
+  var id = nodeId + "-svg-icon";
+  if (document.getElementById(id) === null) {
+    var svg = icons.svg(iconName, id);
+    var template = document.createElement('template');
+    template.innerHTML = svg;
+    var icon = template.content.firstChild;
+    document.getElementById("icon-store").appendChild(icon)
+  }
 }
 
 function objectIsEmpty(o) {

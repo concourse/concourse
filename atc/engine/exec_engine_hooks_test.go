@@ -437,5 +437,53 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				Expect(outputStep.RunCallCount()).To(Equal(0))
 			})
 		})
+
+		Context("when a step in the parallel fails the step fails", func() {
+			var planFactory atc.PlanFactory
+
+			BeforeEach(func() {
+				planFactory = atc.NewPlanFactory(123)
+				inputStep.SucceededReturns(false)
+			})
+
+			It("only run the failure hooks", func() {
+				plan := planFactory.NewPlan(atc.OnSuccessPlan{
+					Step: planFactory.NewPlan(atc.InParallelPlan{
+						Steps: []atc.Plan{
+							planFactory.NewPlan(atc.TaskPlan{
+								Name:   "some-resource",
+								Config: &atc.TaskConfig{},
+							}),
+							planFactory.NewPlan(atc.OnFailurePlan{
+								Step: planFactory.NewPlan(atc.GetPlan{
+									Name: "some-input",
+								}),
+								Next: planFactory.NewPlan(atc.TaskPlan{
+									Name:   "some-resource",
+									Config: &atc.TaskConfig{},
+								}),
+							}),
+						},
+						Limit:    1,
+						FailFast: true,
+					}),
+					Next: planFactory.NewPlan(atc.GetPlan{
+						Name: "some-unused-step",
+					}),
+				})
+
+				build, err := execEngine.CreateBuild(logger, build, plan)
+
+				Expect(err).NotTo(HaveOccurred())
+
+				build.Resume(logger)
+
+				Expect(inputStep.RunCallCount()).To(Equal(1))
+
+				Expect(taskStep.RunCallCount()).To(Equal(2))
+
+				Expect(outputStep.RunCallCount()).To(Equal(0))
+			})
+		})
 	})
 })

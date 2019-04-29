@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
@@ -28,8 +30,35 @@ func NewGetDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.G
 	}
 }
 
+func (d *getDelegate) Initializing(logger lager.Logger) {
+	err := d.build.SaveEvent(event.InitializeGet{
+		Origin: d.eventOrigin,
+		Time:   time.Now().Unix(),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-initialize-get-event", err)
+		return
+	}
+
+	logger.Debug("initializing")
+}
+
+func (d *getDelegate) Starting(logger lager.Logger) {
+	err := d.build.SaveEvent(event.StartGet{
+		Time:   time.Now().Unix(),
+		Origin: d.eventOrigin,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-start-get-event", err)
+		return
+	}
+
+	logger.Info("starting")
+}
+
 func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info exec.VersionInfo) {
 	err := d.build.SaveEvent(event.FinishGet{
+		Time:            time.Now().Unix(),
 		Origin:          d.eventOrigin,
 		ExitStatus:      int(exitStatus),
 		FetchedVersion:  info.Version,

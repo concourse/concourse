@@ -411,14 +411,6 @@ const (
 	SingleIncrementV30 OriginV40LocationIncrement = 1
 )
 
-type LogV50 struct {
-	Origin  Origin `json:"origin"`
-	Payload string `json:"payload"`
-}
-
-func (LogV50) EventType() atc.EventType  { return "log" }
-func (LogV50) Version() atc.EventVersion { return "5.0" }
-
 type FinishGetV30 struct {
 	Origin          OriginV40           `json:"origin"`
 	Plan            GetPlanV40          `json:"plan"`

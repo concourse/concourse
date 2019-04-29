@@ -58,37 +58,33 @@ test('can be switched between', async t => {
   t.regex(await t.context.web.text(), /passing #1/);
 });
 
-test('scrolls to the top with gg, and to the bottom with G', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/pipeline-with-long-output.yml');
+test('shows error log at the bottom of an erroring build', async t => {
+  await waitForErroringBuild(t);
+  let errorStep = await t.context.web.page.waitFor('[data-step-name="error"]');
+  t.regex(await t.context.web.text(errorStep), /banana/);
+});
+
+test('hovering erroring step header shows non-negative duration', async t => {
+  await waitForErroringBuild(t);
+
+  let triangleSelector = '[style*="exclamation-triangle"]';
+  let triangle = await t.context.web.page.hover(triangleSelector);
+  await t.context.web.page.waitFor(`${triangleSelector} table`);
+  t.notRegex(await t.context.web.text(triangle), /-\d+/);
+});
+
+async function waitForErroringBuild(t) {
+  let fixture = 'fixtures/states-pipeline.yml'
+  await t.context.fly.run(`set-pipeline -n -p some-pipeline -c ${fixture}`);
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
-  await t.context.fly.run('trigger-job -j some-pipeline/long-output');
+  await t.context.fly.run('trigger-job -j some-pipeline/erroring');
 
-  await t.context.web.page.goto(t.context.web.route(`/teams/${t.context.teamName}/pipelines/some-pipeline/jobs/long-output/builds/1`));
+  let pipelinePath = `/teams/${t.context.teamName}/pipelines/some-pipeline`;
+  let buildPath = `jobs/erroring/builds/1`;
+  let path = `${pipelinePath}/${buildPath}`
+  await t.context.web.page.goto(t.context.web.route(path));
 
-  await t.context.web.page.waitForFunction(() => {
-    return document.body.innerText.indexOf("Line 999") !== -1
-  }, {
-    polling: 100,
-    timeout: 90000
-  });
-
-  await t.context.web.page.keyboard.down('Shift');
-  await t.context.web.page.keyboard.press('G');
-  await t.context.web.page.keyboard.up('Shift');
-  let lastLine =
-    await t.context.web.page.$x("//span[contains(text(), 'Line 999')]");
-  t.true(await lastLine[0].isIntersectingViewport());
-
-  await t.context.web.page.type('body', 'gg');
-  let firstLine =
-    await t.context.web.page.$x("//span[contains(text(), 'Line 1')]");
-  t.true(await firstLine[0].isIntersectingViewport());
-
-  await t.context.web.page.keyboard.down('Shift');
-  await t.context.web.page.keyboard.press('G');
-  await t.context.web.page.keyboard.up('Shift');
-  let lastLine2 =
-    await t.context.web.page.$x("//span[contains(text(), 'Line 999')]");
-  t.true(await lastLine2[0].isIntersectingViewport());
-});
+  let amberHeader = '#build-header[style*="rgb(245, 166, 35)"]';
+  await t.context.web.page.waitFor(amberHeader);
+}

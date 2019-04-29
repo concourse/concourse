@@ -4,6 +4,8 @@ module StepTreeTests exposing
     , initAggregateNested
     , initEnsure
     , initGet
+    , initInParallel
+    , initInParallelNested
     , initOnFailure
     , initOnSuccess
     , initPut
@@ -31,6 +33,8 @@ all =
         , initPut
         , initAggregate
         , initAggregateNested
+        , initInParallel
+        , initInParallelNested
         , initOnSuccess
         , initOnFailure
         , initEnsure
@@ -56,6 +60,9 @@ someVersionedStep version id name state =
     , metadata = []
     , firstOccurrence = False
     , timestamps = Dict.empty
+    , initialize = Nothing
+    , start = Nothing
+    , finish = Nothing
     }
 
 
@@ -244,6 +251,115 @@ initAggregateNested =
                         [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
                         , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
                         , Models.Aggregate
+                            << Array.fromList
+                          <|
+                            [ Models.Task (someStep "task-c-id" "task-c" Models.StepStateSucceeded)
+                            , Models.Task (someStep "task-d-id" "task-d" Models.StepStatePending)
+                            ]
+                        ]
+                    )
+        ]
+
+
+initInParallel : Test
+initInParallel =
+    let
+        { tree, foci } =
+            StepTree.init Routes.HighlightNothing
+                emptyResources
+                { id = "parallel-id"
+                , step =
+                    BuildStepInParallel
+                        << Array.fromList
+                    <|
+                        [ { id = "task-a-id", step = BuildStepTask "task-a" }
+                        , { id = "task-b-id", step = BuildStepTask "task-b" }
+                        ]
+                }
+    in
+    describe "init with Parallel"
+        [ test "the tree" <|
+            \_ ->
+                Expect.equal
+                    (Models.InParallel
+                        << Array.fromList
+                     <|
+                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
+                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        ]
+                    )
+                    tree
+        , test "using the focus" <|
+            \_ ->
+                assertFocus "task-a-id"
+                    foci
+                    tree
+                    (\s -> { s | state = Models.StepStateSucceeded })
+                    (Models.InParallel
+                        << Array.fromList
+                     <|
+                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
+                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        ]
+                    )
+        ]
+
+
+initInParallelNested : Test
+initInParallelNested =
+    let
+        { tree, foci } =
+            StepTree.init Routes.HighlightNothing
+                emptyResources
+                { id = "parallel-id"
+                , step =
+                    BuildStepInParallel
+                        << Array.fromList
+                    <|
+                        [ { id = "task-a-id", step = BuildStepTask "task-a" }
+                        , { id = "task-b-id", step = BuildStepTask "task-b" }
+                        , { id = "nested-parallel-id"
+                          , step =
+                                BuildStepInParallel
+                                    << Array.fromList
+                                <|
+                                    [ { id = "task-c-id", step = BuildStepTask "task-c" }
+                                    , { id = "task-d-id", step = BuildStepTask "task-d" }
+                                    ]
+                          }
+                        ]
+                }
+    in
+    describe "init with Parallel nested"
+        [ test "the tree" <|
+            \_ ->
+                Expect.equal
+                    (Models.InParallel
+                        << Array.fromList
+                     <|
+                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
+                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        , Models.InParallel
+                            << Array.fromList
+                          <|
+                            [ Models.Task (someStep "task-c-id" "task-c" Models.StepStatePending)
+                            , Models.Task (someStep "task-d-id" "task-d" Models.StepStatePending)
+                            ]
+                        ]
+                    )
+                    tree
+        , test "using the focuses for nested elements" <|
+            \_ ->
+                assertFocus "task-c-id"
+                    foci
+                    tree
+                    (\s -> { s | state = Models.StepStateSucceeded })
+                    (Models.InParallel
+                        << Array.fromList
+                     <|
+                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
+                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        , Models.InParallel
                             << Array.fromList
                           <|
                             [ Models.Task (someStep "task-c-id" "task-c" Models.StepStateSucceeded)
@@ -494,7 +610,7 @@ assertFocus id foci tree update expected =
         Just focus ->
             Expect.equal
                 expected
-                (focus.update (updateStep update) tree)
+                (focus (updateStep update) tree)
 
 
 cookedLog : Ansi.Log.Model

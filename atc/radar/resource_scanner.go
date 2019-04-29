@@ -59,42 +59,42 @@ var ErrFailedToAcquireLock = errors.New("failed to acquire lock")
 var ErrResourceTypeNotFound = errors.New("resource type not found")
 var ErrResourceTypeCheckError = errors.New("resource type failed to check")
 
-func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (time.Duration, error) {
-	interval, err := scanner.scan(logger.Session("tick"), resourceName, nil, false, false)
+func (scanner *resourceScanner) Run(logger lager.Logger, resourceID int) (time.Duration, error) {
+	interval, err := scanner.scan(logger.Session("tick"), resourceID, nil, false, false)
 
 	err = swallowErrResourceScriptFailed(err)
 
 	return interval, err
 }
 
-func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceName string, fromVersion atc.Version) error {
-	_, err := scanner.scan(logger, resourceName, fromVersion, true, true)
+func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceID int, fromVersion atc.Version) error {
+	_, err := scanner.scan(logger, resourceID, fromVersion, true, true)
 
 	return err
 }
 
-func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) error {
-	_, err := scanner.scan(logger, resourceName, nil, true, false)
+func (scanner *resourceScanner) Scan(logger lager.Logger, resourceID int) error {
+	_, err := scanner.scan(logger, resourceID, nil, true, false)
 
 	err = swallowErrResourceScriptFailed(err)
 
 	return err
 }
 
-func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, fromVersion atc.Version, mustComplete bool, saveGiven bool) (time.Duration, error) {
-	lockLogger := logger.Session("lock", lager.Data{
-		"resource": resourceName,
-	})
-
-	savedResource, found, err := scanner.dbPipeline.Resource(resourceName)
+func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVersion atc.Version, mustComplete bool, saveGiven bool) (time.Duration, error) {
+	savedResource, found, err := scanner.dbPipeline.ResourceByID(resourceID)
 	if err != nil {
 		return 0, err
 	}
 
 	if !found {
 		logger.Debug("resource-not-found")
-		return 0, db.ResourceNotFoundError{Name: resourceName}
+		return 0, db.ResourceNotFoundError{ID: resourceID}
 	}
+
+	lockLogger := logger.Session("lock", lager.Data{
+		"resource": savedResource.Name(),
+	})
 
 	timeout, err := scanner.parseResourceCheckTimeoutOrDefault(savedResource.CheckTimeout())
 	if err != nil {
@@ -207,7 +207,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
-				"resource_name":   resourceName,
+				"resource_name":   savedResource.Name(),
 				"resource_config": resourceConfigScope.ResourceConfig().ID(),
 			})
 			return interval, ErrFailedToAcquireLock
@@ -221,7 +221,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceName string, f
 
 		defer lock.Release()
 
-		updated, err := resourceConfigScope.UpdateLastChecked(interval, mustComplete)
+		updated, err := resourceConfigScope.UpdateLastCheckStartTime(interval, mustComplete)
 		if err != nil {
 			return interval, err
 		}
@@ -398,7 +398,7 @@ func (scanner *resourceScanner) check(
 		}
 	}
 
-	updated, err := resourceConfigScope.UpdateLastCheckFinished()
+	updated, err := resourceConfigScope.UpdateLastCheckEndTime()
 	if err != nil {
 		return err
 	}

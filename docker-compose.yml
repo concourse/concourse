@@ -32,6 +32,7 @@ services:
       CONCOURSE_ENABLE_JOB_AUDITING: 'true'
       CONCOURSE_ENABLE_PIPELINE_AUDITING: 'true'
       CONCOURSE_ENABLE_TEAM_AUDITING: 'true'
+      CONCOURSE_CLUSTER_NAME: dev
 
   worker:
     build: .

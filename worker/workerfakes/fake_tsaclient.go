@@ -2,11 +2,11 @@
 package workerfakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	tsa "github.com/concourse/concourse/tsa"
-	worker "github.com/concourse/concourse/worker"
+	"github.com/concourse/concourse/tsa"
+	"github.com/concourse/concourse/worker"
 )
 
 type FakeTSAClient struct {

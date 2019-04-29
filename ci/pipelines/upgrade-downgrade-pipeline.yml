@@ -2,11 +2,13 @@
 resources:
 - name: test-resource
   type: time
+  icon: timer
   source:
     interval: 1m
 
 - name: test-image
   type: registry-image
+  icon: docker
   source:
     repository: ubuntu
 

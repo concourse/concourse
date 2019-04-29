@@ -1,42 +1,39 @@
 module FlySuccess.FlySuccess exposing
-    ( handleCallback
+    ( documentTitle
+    , handleCallback
     , init
     , update
     , view
     )
 
-import Callback exposing (Callback(..))
-import Effects exposing (Effect(..))
+import EffectTransformer exposing (ET)
 import FlySuccess.Models
     exposing
         ( ButtonState(..)
         , Model
-        , TokenTransfer
         , TransferFailure(..)
         , hover
-        , isClicked
-        , isPending
         )
-import FlySuccess.Msgs exposing (Msg(..))
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, id, style)
+import Html.Attributes exposing (attribute, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Login.Login as Login
+import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
+import Message.Message exposing (Hoverable(..), Message(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import Routes
-import TopBar.Model
-import TopBar.Styles
-import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
+import Views.Icon as Icon
+import Views.Styles
+import Views.TopBar as TopBar
 
 
 init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
 init { authToken, flyPort } =
-    let
-        ( topBar, topBarEffects ) =
-            TopBar.init { route = Routes.FlySuccess { flyPort = flyPort } }
-    in
     ( { buttonState = Unhovered
       , authToken = authToken
       , tokenTransfer =
@@ -46,26 +43,18 @@ init { authToken, flyPort } =
 
                 Nothing ->
                     RemoteData.Failure NoFlyPort
-      , isUserMenuExpanded = topBar.isUserMenuExpanded
-      , isPinMenuExpanded = topBar.isPinMenuExpanded
-      , route = topBar.route
-      , groups = topBar.groups
-      , dropdown = topBar.dropdown
-      , screenSize = topBar.screenSize
-      , shiftDown = topBar.shiftDown
+      , isUserMenuExpanded = False
       }
-    , topBarEffects
-        ++ (case flyPort of
-                Just fp ->
-                    [ SendTokenToFly authToken fp ]
+    , case flyPort of
+        Just fp ->
+            [ SendTokenToFly authToken fp ]
 
-                Nothing ->
-                    []
-           )
+        Nothing ->
+            []
     )
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
+handleCallback : Callback -> ET Model
 handleCallback msg ( model, effects ) =
     case msg of
         TokenSentToFly (Ok ()) ->
@@ -75,46 +64,57 @@ handleCallback msg ( model, effects ) =
             ( { model | tokenTransfer = RemoteData.Failure (NetworkTrouble err) }, effects )
 
         _ ->
-            TopBar.handleCallback msg ( model, effects )
+            ( model, effects )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
-        CopyTokenButtonHover hovered ->
-            ( { model | buttonState = hover hovered model.buttonState }
+        Hover (Just CopyTokenButton) ->
+            ( { model | buttonState = hover True model.buttonState }
+            , effects
+            )
+
+        Hover Nothing ->
+            ( { model | buttonState = hover False model.buttonState }
             , effects
             )
 
         CopyToken ->
             ( { model | buttonState = Clicked }, effects )
 
-        FromTopBar msg ->
-            TopBar.update msg ( model, effects )
+        _ ->
+            ( model, effects )
 
 
-view : UserState -> Model -> Html Msg
+documentTitle : String
+documentTitle =
+    "Fly Login"
+
+
+view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar
-            , id "page-including-top-bar"
-            ]
-            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
-            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
+            [ Html.div
+                (id "top-bar-app" :: Views.Styles.topBar False)
+                [ TopBar.concourseLogo
+                , Login.view userState model False
+                ]
+            , Html.div
+                (id "page-below-top-bar"
+                    :: (Views.Styles.pageBelowTopBar <|
+                            Routes.FlySuccess Nothing
+                       )
+                )
                 [ Html.div
-                    [ id "success-card"
-                    , style Styles.card
-                    ]
+                    (id "success-card" :: Styles.card)
                     [ Html.p
-                        [ id "success-card-title"
-                        , style Styles.title
-                        ]
+                        (id "success-card-title" :: Styles.title)
                         [ Html.text Text.title ]
                     , Html.div
-                        [ id "success-card-body"
-                        , style Styles.body
-                        ]
+                        (id "success-card-body" :: Styles.body)
                       <|
                         body model
                     ]
@@ -123,7 +123,7 @@ view userState model =
         ]
 
 
-body : Model -> List (Html Msg)
+body : Model -> List (Html Message)
 body model =
     let
         elemList =
@@ -171,31 +171,31 @@ body model =
                 ]
 
 
-paragraph : { identifier : String, lines : Text.Paragraph } -> Html Msg
+paragraph : { identifier : String, lines : Text.Paragraph } -> Html Message
 paragraph { identifier, lines } =
     lines
         |> List.map Html.text
         |> List.intersperse (Html.br [] [])
-        |> Html.p
-            [ id identifier
-            , style Styles.paragraph
-            ]
+        |> Html.p (id identifier :: Styles.paragraph)
 
 
-button : Model -> Html Msg
-button { tokenTransfer, authToken, buttonState } =
+button : Model -> Html Message
+button { authToken, buttonState } =
     Html.span
-        [ id "copy-token"
-        , style <| Styles.button buttonState
-        , onMouseEnter <| CopyTokenButtonHover True
-        , onMouseLeave <| CopyTokenButtonHover False
-        , onClick CopyToken
-        , attribute "data-clipboard-text" authToken
-        ]
-        [ Html.div
+        ([ id "copy-token"
+         , onMouseEnter <| Hover <| Just CopyTokenButton
+         , onMouseLeave <| Hover Nothing
+         , onClick CopyToken
+         , attribute "data-clipboard-text" authToken
+         ]
+            ++ Styles.button buttonState
+        )
+        [ Icon.icon
+            { sizePx = 20
+            , image = "clippy.svg"
+            }
             [ id "copy-icon"
-            , style Styles.buttonIcon
+            , style "margin-right" "5px"
             ]
-            []
         , Html.text <| Text.button buttonState
         ]

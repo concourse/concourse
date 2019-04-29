@@ -16,7 +16,7 @@ view jobs =
         jobDependencies job =
             job.inputs
                 |> List.concatMap .passed
-                |> List.map (findJob jobs)
+                |> List.filterMap (\name -> find (\j -> j.name == name) jobs)
 
         layers : List (List Concourse.Job)
         layers =
@@ -86,13 +86,3 @@ viewJob job =
         , attribute "data-tooltip" job.name
         ]
         [ Html.a [ href <| Routes.toString buildRoute ] [ Html.text "" ] ]
-
-
-findJob : List Concourse.Job -> Concourse.JobName -> Concourse.Job
-findJob jobs name =
-    case find (\j -> j.name == name) jobs of
-        Nothing ->
-            Debug.crash ("a job depends on nonexistant job " ++ name)
-
-        Just j ->
-            j

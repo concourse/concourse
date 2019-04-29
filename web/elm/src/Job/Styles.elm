@@ -1,102 +1,77 @@
 module Job.Styles exposing
-    ( pageBelowTopBar
-    , pauseToggleIcon
+    ( buildResourceHeader
+    , buildResourceIcon
+    , icon
     , triggerButton
-    , triggerIcon
     , triggerTooltip
     )
 
 import Colors
 import Concourse
+import Html
+import Html.Attributes exposing (style)
 
 
-pageBelowTopBar : List ( String, String )
-pageBelowTopBar =
-    [ ( "padding-top", "54px" )
-    , ( "height", "100%" )
-    ]
-
-
-triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List ( String, String )
+triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List (Html.Attribute msg)
 triggerButton buttonDisabled hovered status =
-    [ ( "cursor"
-      , if buttonDisabled then
+    [ style "cursor" <|
+        if buttonDisabled then
             "default"
 
         else
             "pointer"
-      )
-    , ( "position", "relative" )
-    , ( "background-color"
-      , Colors.buildStatusColor (hovered && not buttonDisabled) status
-      )
+    , style "position" "relative"
+    , style "background-color" <|
+        Colors.buildStatusColor (hovered && not buttonDisabled) status
     ]
         ++ button
 
 
-button : List ( String, String )
+button : List (Html.Attribute msg)
 button =
-    [ ( "padding", "10px" )
-    , ( "border", "none" )
-    , ( "outline", "none" )
-    , ( "margin", "0" )
+    [ style "padding" "10px"
+    , style "border" "none"
+    , style "outline" "none"
+    , style "margin" "0"
     ]
 
 
-triggerIcon : Bool -> List ( String, String )
-triggerIcon hovered =
-    [ ( "width", "40px" )
-    , ( "height", "40px" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-image"
-      , "url(/public/images/ic-add-circle-outline-white.svg)"
-      )
-    , ( "background-repeat", "no-repeat" )
-    , ( "opacity"
-      , if hovered then
+icon : Bool -> List (Html.Attribute msg)
+icon hovered =
+    [ style "opacity" <|
+        if hovered then
             "1"
 
         else
             "0.5"
-      )
     ]
 
 
-pauseToggleIcon : { paused : Bool, hovered : Bool } -> List ( String, String )
-pauseToggleIcon { paused, hovered } =
-    [ ( "background-image"
-      , "url(/public/images/"
-            ++ (if paused then
-                    "ic-play-circle-outline.svg)"
-
-                else
-                    "ic-pause-circle-outline-white.svg)"
-               )
-      )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "width", "40px" )
-    , ( "height", "40px" )
-    , ( "opacity"
-      , if hovered then
-            "1"
-
-        else
-            "0.5"
-      )
-    ]
-
-
-triggerTooltip : List ( String, String )
+triggerTooltip : List (Html.Attribute msg)
 triggerTooltip =
-    [ ( "position", "absolute" )
-    , ( "right", "100%" )
-    , ( "top", "15px" )
-    , ( "width", "300px" )
-    , ( "color", Colors.buildTooltipBackground )
-    , ( "font-size", "12px" )
-    , ( "font-family", "Inconsolata,monospace" )
-    , ( "padding", "10px" )
-    , ( "text-align", "right" )
-    , ( "pointer-events", "none" )
+    [ style "position" "absolute"
+    , style "right" "100%"
+    , style "top" "15px"
+    , style "width" "300px"
+    , style "color" Colors.buildTooltipBackground
+    , style "font-size" "12px"
+    , style "font-family" "Inconsolata,monospace"
+    , style "padding" "10px"
+    , style "text-align" "right"
+    , style "pointer-events" "none"
+    ]
+
+
+buildResourceHeader : List (Html.Attribute msg)
+buildResourceHeader =
+    [ style "display" "flex"
+    , style "align-items" "center"
+    , style "padding-bottom" "5px"
+    ]
+
+
+buildResourceIcon : List (Html.Attribute msg)
+buildResourceIcon =
+    [ style "background-size" "contain"
+    , style "margin-right" "5px"
     ]

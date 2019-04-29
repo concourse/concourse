@@ -2,11 +2,11 @@
 package maxinflightfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	db "github.com/concourse/concourse/atc/db"
-	maxinflight "github.com/concourse/concourse/atc/scheduler/maxinflight"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 )
 
 type FakeUpdater struct {

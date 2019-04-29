@@ -2,12 +2,12 @@
 package dbfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	creds "github.com/concourse/concourse/atc/creds"
-	db "github.com/concourse/concourse/atc/db"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeResourceCacheFactory struct {

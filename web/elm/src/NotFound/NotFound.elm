@@ -1,16 +1,16 @@
-module NotFound.NotFound exposing (handleCallback, init, update, view)
+module NotFound.NotFound exposing (documentTitle, init, view)
 
-import Callback exposing (Callback)
-import Effects exposing (Effect)
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, src, style)
+import Html.Attributes exposing (class, href, id, src)
+import Login.Login as Login
+import Message.Effects exposing (Effect)
+import Message.Message exposing (Message(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model exposing (Model)
-import NotFound.Msgs exposing (Msg(..))
 import Routes
-import TopBar.Model
-import TopBar.Styles
-import TopBar.TopBar as TopBar
 import UserState exposing (UserState)
+import Views.Styles
+import Views.TopBar as TopBar
 
 
 type alias Flags =
@@ -21,44 +21,32 @@ type alias Flags =
 
 init : Flags -> ( Model, List Effect )
 init flags =
-    let
-        ( topBar, topBarEffects ) =
-            TopBar.init { route = flags.route }
-    in
     ( { notFoundImgSrc = flags.notFoundImgSrc
-      , isUserMenuExpanded = topBar.isUserMenuExpanded
-      , isPinMenuExpanded = topBar.isPinMenuExpanded
-      , groups = topBar.groups
-      , route = topBar.route
-      , dropdown = topBar.dropdown
-      , screenSize = topBar.screenSize
-      , shiftDown = topBar.shiftDown
+      , route = flags.route
+      , isUserMenuExpanded = False
       }
-    , topBarEffects ++ [ Effects.SetTitle "Not Found " ]
+    , []
     )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
-update msg ( model, effects ) =
-    case msg of
-        FromTopBar m ->
-            TopBar.update m ( model, effects )
+documentTitle : String
+documentTitle =
+    "Not Found"
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallback msg ( model, effects ) =
-    TopBar.handleCallback msg ( model, effects )
-
-
-view : UserState -> Model -> Html Msg
+view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar
-            , id "page-including-top-bar"
-            ]
-            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
-            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pageBelowTopBar ]
+            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
+            [ Html.div
+                (id "top-bar-app" :: Views.Styles.topBar False)
+                [ TopBar.concourseLogo
+                , TopBar.breadcrumbs model.route
+                , Login.view userState model False
+                ]
+            , Html.div
+                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar model.route)
                 [ Html.div [ class "notfound" ]
                     [ Html.div [ class "title" ] [ Html.text "404" ]
                     , Html.div [ class "reason" ] [ Html.text "this page was not found" ]

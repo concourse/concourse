@@ -2,11 +2,11 @@
 package inputconfigfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	atc "github.com/concourse/concourse/atc"
-	algorithm "github.com/concourse/concourse/atc/db/algorithm"
-	inputconfig "github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/algorithm"
+	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
 )
 
 type FakeTransformer struct {

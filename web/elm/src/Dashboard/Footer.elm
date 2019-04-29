@@ -1,46 +1,33 @@
-module Dashboard.Footer exposing (Model, handleDelivery, view)
+module Dashboard.Footer exposing (handleDelivery, view)
 
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
-import Dashboard.Group exposing (Group)
-import Dashboard.Msgs exposing (Msg(..))
+import Dashboard.Group.Models exposing (Group)
+import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
-import Effects
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, href, id, style)
+import Html.Attributes exposing (attribute, class, download, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Keyboard
+import Message.Effects as Effects
+import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Subscription exposing (Delivery(..), Interval(..))
 import Routes
 import ScreenSize
-import Subscription exposing (Delivery(..), Interval(..))
-import TopBar.Model exposing (Dropdown(..))
-
-
-type alias Model r =
-    { r
-        | hideFooter : Bool
-        , hideFooterCounter : Int
-        , showHelp : Bool
-        , groups : List Group
-        , hoveredCliIcon : Maybe Cli.Cli
-        , screenSize : ScreenSize.ScreenSize
-        , version : String
-        , route : Routes.Route
-        , shiftDown : Bool
-        , dropdown : Dropdown
-    }
+import Views.Icon as Icon
 
 
 handleDelivery :
     Delivery
-    -> ( Model r, List Effects.Effect )
-    -> ( Model r, List Effects.Effect )
+    -> ( FooterModel r, List Effects.Effect )
+    -> ( FooterModel r, List Effects.Effect )
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keyCode ->
-            case keyCode of
+        KeyDown keyEvent ->
+            case keyEvent.code of
                 -- '/' key
-                191 ->
-                    if model.shiftDown && model.dropdown == Hidden then
+                Keyboard.Slash ->
+                    if keyEvent.shiftKey && model.dropdown == Hidden then
                         ( { model
                             | showHelp =
                                 if
@@ -67,7 +54,7 @@ handleDelivery delivery ( model, effects ) =
         Moused ->
             ( { model | hideFooter = False, hideFooterCounter = 0 }, effects )
 
-        ClockTicked OneSecond time ->
+        ClockTicked OneSecond _ ->
             ( if model.hideFooterCounter > 4 then
                 { model | hideFooter = True }
 
@@ -80,7 +67,7 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-view : Model r -> Html Msg
+view : FooterModel r -> Html Message
 view model =
     if model.showHelp then
         keyboardHelp
@@ -92,7 +79,7 @@ view model =
         Html.text ""
 
 
-keyboardHelp : Html Msg
+keyboardHelp : Html Message
 keyboardHelp =
     Html.div
         [ class "keyboard-help", id "keyboard-help" ]
@@ -124,22 +111,21 @@ keyboardHelp =
 
 infoBar :
     { a
-        | hoveredCliIcon : Maybe Cli.Cli
+        | hovered : Maybe Hoverable
         , screenSize : ScreenSize.ScreenSize
         , version : String
-        , route : Routes.Route
+        , highDensity : Bool
         , groups : List Group
     }
-    -> Html Msg
+    -> Html Message
 infoBar model =
     Html.div
-        [ id "dashboard-info"
-        , style <|
-            Styles.infoBar
+        (id "dashboard-info"
+            :: Styles.infoBar
                 { hideLegend = hideLegend model
                 , screenSize = model.screenSize
                 }
-        ]
+        )
         [ legend model
         , concourseInfo model
         ]
@@ -149,52 +135,55 @@ legend :
     { a
         | groups : List Group
         , screenSize : ScreenSize.ScreenSize
-        , route : Routes.Route
+        , highDensity : Bool
     }
-    -> Html Msg
+    -> Html Message
 legend model =
     if hideLegend model then
         Html.text ""
 
     else
         Html.div
-            [ id "legend"
-            , style Styles.legend
-            ]
+            (id "legend" :: Styles.legend)
         <|
             List.map legendItem
                 [ PipelineStatusPending False
                 , PipelineStatusPaused
                 ]
-                ++ [ Html.div [ style Styles.legendItem ]
-                        [ Html.div [ style Styles.runningLegendItem ] []
-                        , Html.div [ style [ ( "width", "10px" ) ] ] []
-                        , Html.text "running"
-                        ]
-                   ]
-                ++ List.map legendItem
+                ++ Html.div
+                    Styles.legendItem
+                    [ Icon.icon
+                        { sizePx = 20
+                        , image = "ic-running-legend.svg"
+                        }
+                        []
+                    , Html.div [ style "width" "10px" ] []
+                    , Html.text "running"
+                    ]
+                :: List.map legendItem
                     [ PipelineStatusFailed PipelineStatus.Running
                     , PipelineStatusErrored PipelineStatus.Running
                     , PipelineStatusAborted PipelineStatus.Running
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
                 ++ legendSeparator model.screenSize
-                ++ [ toggleView (model.route == Routes.Dashboard Routes.HighDensity) ]
+                ++ [ toggleView model.highDensity ]
 
 
 concourseInfo :
-    { a | version : String, hoveredCliIcon : Maybe Cli.Cli }
-    -> Html Msg
-concourseInfo { version, hoveredCliIcon } =
-    Html.div [ id "concourse-info", style Styles.info ]
-        [ Html.div [ style Styles.infoItem ]
+    { a | version : String, hovered : Maybe Hoverable }
+    -> Html Message
+concourseInfo { version, hovered } =
+    Html.div (id "concourse-info" :: Styles.info)
+        [ Html.div
+            Styles.infoItem
             [ Html.text <| "version: v" ++ version ]
-        , Html.div [ style Styles.infoItem ] <|
+        , Html.div Styles.infoItem <|
             [ Html.span
-                [ style [ ( "margin-right", "10px" ) ] ]
+                [ style "margin-right" "10px" ]
                 [ Html.text "cli: " ]
             ]
-                ++ List.map (cliIcon hoveredCliIcon) Cli.clis
+                ++ List.map (cliIcon hovered) Cli.clis
         ]
 
 
@@ -203,60 +192,55 @@ hideLegend { groups } =
     List.isEmpty (groups |> List.concatMap .pipelines)
 
 
-legendItem : PipelineStatus -> Html Msg
+legendItem : PipelineStatus -> Html Message
 legendItem status =
-    Html.div [ style Styles.legendItem ]
-        [ Html.div
-            [ style <| Styles.pipelineStatusIcon status ]
-            []
-        , Html.div [ style [ ( "width", "10px" ) ] ] []
+    Html.div
+        Styles.legendItem
+        [ PipelineStatus.icon status
+        , Html.div [ style "width" "10px" ] []
         , Html.text <| PipelineStatus.show status
         ]
 
 
-toggleView : Bool -> Html Msg
+toggleView : Bool -> Html Message
 toggleView highDensity =
     Html.a
-        [ style Styles.highDensityToggle
-        , href <| Routes.toString <| Routes.dashboardRoute (not highDensity)
-        , attribute "aria-label" "Toggle high-density view"
-        ]
-        [ Html.div [ style <| Styles.highDensityIcon highDensity ] []
+        ([ href <| Routes.toString <| Routes.dashboardRoute (not highDensity)
+         , attribute "aria-label" "Toggle high-density view"
+         ]
+            ++ Styles.highDensityToggle
+        )
+        [ Html.div (Styles.highDensityIcon highDensity) []
         , Html.text "high-density"
         ]
 
 
-legendSeparator : ScreenSize.ScreenSize -> List (Html Msg)
+legendSeparator : ScreenSize.ScreenSize -> List (Html Message)
 legendSeparator screenSize =
     case screenSize of
         ScreenSize.Mobile ->
             []
 
         ScreenSize.Desktop ->
-            [ Html.div
-                [ style Styles.legendSeparator ]
-                [ Html.text "|" ]
-            ]
+            [ Html.div Styles.legendSeparator [ Html.text "|" ] ]
 
         ScreenSize.BigDesktop ->
-            [ Html.div
-                [ style Styles.legendSeparator ]
-                [ Html.text "|" ]
-            ]
+            [ Html.div Styles.legendSeparator [ Html.text "|" ] ]
 
 
-cliIcon : Maybe Cli.Cli -> Cli.Cli -> Html Msg
-cliIcon hoveredCliIcon cli =
+cliIcon : Maybe Hoverable -> Cli.Cli -> Html Message
+cliIcon hovered cli =
     Html.a
-        [ href (Cli.downloadUrl cli)
-        , attribute "aria-label" <| Cli.label cli
-        , style <|
-            Styles.infoCliIcon
-                { hovered = hoveredCliIcon == Just cli
+        ([ href <| Cli.downloadUrl cli
+         , attribute "aria-label" <| Cli.label cli
+         , id <| "cli-" ++ Cli.id cli
+         , onMouseEnter <| Hover <| Just <| FooterCliIcon cli
+         , onMouseLeave <| Hover Nothing
+         , download ""
+         ]
+            ++ Styles.infoCliIcon
+                { hovered = hovered == (Just <| FooterCliIcon cli)
                 , cli = cli
                 }
-        , id <| "cli-" ++ Cli.id cli
-        , onMouseEnter <| CliHover <| Just cli
-        , onMouseLeave <| CliHover Nothing
-        ]
+        )
         []

@@ -277,6 +277,29 @@ func (factory *buildFactory) constructUnhookedPlan(
 		}
 
 		plan = factory.planFactory.NewPlan(aggregate)
+
+	case planConfig.InParallel != nil:
+		var steps []atc.Plan
+
+		for _, planConfig := range planConfig.InParallel.Steps {
+			step, err := factory.constructPlanFromConfig(
+				planConfig,
+				resources,
+				resourceTypes,
+				inputs,
+			)
+			if err != nil {
+				return atc.Plan{}, err
+			}
+
+			steps = append(steps, step)
+		}
+
+		plan = factory.planFactory.NewPlan(atc.InParallelPlan{
+			Steps:    steps,
+			Limit:    planConfig.InParallel.Limit,
+			FailFast: planConfig.InParallel.FailFast,
+		})
 	}
 
 	if planConfig.Timeout != "" {
@@ -301,6 +324,11 @@ func (factory *buildFactory) applyHooks(cp constructionParams) (atc.Plan, error)
 	var err error
 
 	cp, err = factory.abortIfPresent(cp)
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	cp, err = factory.errorIfPresent(cp)
 	if err != nil {
 		return atc.Plan{}, err
 	}
@@ -398,6 +426,27 @@ func (factory *buildFactory) abortIfPresent(cp constructionParams) (construction
 		}
 
 		cp.plan = factory.planFactory.NewPlan(atc.OnAbortPlan{
+			Step: cp.plan,
+			Next: nextPlan,
+		})
+	}
+
+	return cp, nil
+}
+
+func (factory *buildFactory) errorIfPresent(cp constructionParams) (constructionParams, error) {
+	if cp.hooks.Error != nil {
+		nextPlan, err := factory.constructPlanFromConfig(
+			*cp.hooks.Error,
+			cp.resources,
+			cp.resourceTypes,
+			cp.inputs,
+		)
+		if err != nil {
+			return constructionParams{}, err
+		}
+
+		cp.plan = factory.planFactory.NewPlan(atc.OnErrorPlan{
 			Step: cp.plan,
 			Next: nextPlan,
 		})

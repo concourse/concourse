@@ -1,15 +1,14 @@
 module FlySuccessTests exposing (all)
 
 import Application.Application as Application
-import Application.Msgs as Msgs
-import Callback exposing (Callback(..))
+import Common exposing (queryView)
 import DashboardTests exposing (defineHoverBehaviour, iconSelector)
-import Effects
 import Expect exposing (Expectation)
-import FlySuccess.Msgs
 import Html.Attributes as Attr
 import Http
-import SubPage.Msgs
+import Message.Callback exposing (Callback(..))
+import Message.Message
+import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -22,6 +21,7 @@ import Test.Html.Selector
         , tag
         , text
         )
+import Url
 
 
 
@@ -54,6 +54,17 @@ authToken =
     "some_auth_token"
 
 
+flags : Application.Flags
+flags =
+    { turbulenceImgSrc = ""
+    , notFoundImgSrc = ""
+    , csrfToken = ""
+    , authToken = authToken
+    , clusterName = ""
+    , pipelineRunningKeyframes = ""
+    }
+
+
 
 -- SETUPS (i dunno, maybe use fuzzers?)
 
@@ -76,33 +87,23 @@ steps =
     Tuple.second
 
 
-setup : String -> SetupSteps -> Setup
-setup =
-    (,)
+makeSetup : String -> SetupSteps -> Setup
+makeSetup =
+    \a b -> ( a, b )
 
 
 whenOnFlySuccessPage : Setup
 whenOnFlySuccessPage =
-    setup "when on fly success page"
+    makeSetup "when on fly success page"
         (\_ ->
             Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = authToken
-                , pipelineRunningKeyframes = ""
-                }
-                { href = ""
+                flags
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/fly_success"
-                , search = "?fly_port=1234"
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/fly_success"
+                , query = Just "fly_port=1234"
+                , fragment = Nothing
                 }
                 |> Tuple.first
         )
@@ -110,26 +111,16 @@ whenOnFlySuccessPage =
 
 invalidFlyPort : Setup
 invalidFlyPort =
-    setup "with invalid fly port"
+    makeSetup "with invalid fly port"
         (\_ ->
             Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = ""
-                , authToken = authToken
-                , pipelineRunningKeyframes = ""
-                }
-                { href = ""
+                flags
+                { protocol = Url.Http
                 , host = ""
-                , hostname = ""
-                , protocol = ""
-                , origin = ""
-                , port_ = ""
-                , pathname = "/fly_success"
-                , search = "?fly_port=banana"
-                , hash = ""
-                , username = ""
-                , password = ""
+                , port_ = Nothing
+                , path = "/fly_success"
+                , query = Just "fly_port=banana"
+                , fragment = Nothing
                 }
                 |> Tuple.first
         )
@@ -137,10 +128,9 @@ invalidFlyPort =
 
 tokenSendSuccess : Setup
 tokenSendSuccess =
-    setup "when token successfully sent to fly"
+    makeSetup "when token successfully sent to fly"
         (steps whenOnFlySuccessPage
             >> Application.handleCallback
-                (Effects.SubPage 1)
                 (TokenSentToFly (Ok ()))
             >> Tuple.first
         )
@@ -148,10 +138,9 @@ tokenSendSuccess =
 
 tokenSendFailed : Setup
 tokenSendFailed =
-    setup "when token failed to send to fly"
+    makeSetup "when token failed to send to fly"
         (steps whenOnFlySuccessPage
             >> Application.handleCallback
-                (Effects.SubPage 1)
                 (TokenSentToFly (Err Http.NetworkError))
             >> Tuple.first
         )
@@ -159,13 +148,10 @@ tokenSendFailed =
 
 tokenCopied : Setup
 tokenCopied =
-    setup "when token copied to clipboard"
+    makeSetup "when token copied to clipboard"
         (steps tokenSendFailed
             >> Application.update
-                (Msgs.SubMsg 1 <|
-                    SubPage.Msgs.FlySuccessMsg <|
-                        FlySuccess.Msgs.CopyToken
-                )
+                (Msgs.Update <| Message.Message.CopyToken)
             >> Tuple.first
         )
 
@@ -184,21 +170,17 @@ allCases =
 
 
 type alias Query =
-    Application.Model -> Query.Single Msgs.Msg
+    Application.Model -> Query.Single Msgs.TopLevelMessage
 
 
 topBar : Query
 topBar =
-    Application.view
-        >> Query.fromHtml
-        >> Query.find [ id "top-bar-app" ]
+    queryView >> Query.find [ id "top-bar-app" ]
 
 
 successCard : Query
 successCard =
-    Application.view
-        >> Query.fromHtml
-        >> Query.find [ id "success-card" ]
+    queryView >> Query.find [ id "success-card" ]
 
 
 title : Query
@@ -242,7 +224,7 @@ buttonIcon =
 
 
 type alias Assertion =
-    Query.Single Msgs.Msg -> Expectation
+    Query.Single Msgs.TopLevelMessage -> Expectation
 
 
 type alias Property =
@@ -264,7 +246,7 @@ property query description assertion setup =
 topBarProperty : Property
 topBarProperty =
     property topBar "has bold font" <|
-        Query.has [ style [ ( "font-weight", "700" ) ] ]
+        Query.has [ style "font-weight" "700" ]
 
 
 
@@ -284,36 +266,29 @@ cardProperties =
 cardBackground : Property
 cardBackground =
     property successCard "card has dark grey background" <|
-        Query.has [ style [ ( "background-color", darkGrey ) ] ]
+        Query.has [ style "background-color" darkGrey ]
 
 
 cardSize : Property
 cardSize =
     property successCard "is 330px wide with 30px padding" <|
-        Query.has
-            [ style
-                [ ( "padding", "30px" )
-                , ( "width", "330px" )
-                ]
-            ]
+        Query.has [ style "padding" "30px", style "width" "330px" ]
 
 
 cardPosition : Property
 cardPosition =
     property successCard "is centered 50px from the top of the document" <|
-        Query.has [ style [ ( "margin", "50px auto" ) ] ]
+        Query.has [ style "margin" "50px auto" ]
 
 
 cardLayout : Property
 cardLayout =
     property successCard "lays out contents vertically and center aligned" <|
         Query.has
-            [ style
-                [ ( "display", "flex" )
-                , ( "flex-direction", "column" )
-                , ( "align-items", "center" )
-                , ( "text-align", "center" )
-                ]
+            [ style "display" "flex"
+            , style "flex-direction" "column"
+            , style "align-items" "center"
+            , style "text-align" "center"
             ]
 
 
@@ -321,10 +296,8 @@ cardStyle : Property
 cardStyle =
     property successCard "has smooth, non-bold font" <|
         Query.has
-            [ style
-                [ ( "-webkit-font-smoothing", "antialiased" )
-                , ( "font-weight", "400" )
-                ]
+            [ style "-webkit-font-smoothing" "antialiased"
+            , style "font-weight" "400"
             ]
 
 
@@ -342,10 +315,8 @@ titleStyle : Property
 titleStyle =
     property title "has bold 18px font" <|
         Query.has
-            [ style
-                [ ( "font-size", "18px" )
-                , ( "font-weight", "700" )
-                ]
+            [ style "font-size" "18px"
+            , style "font-weight" "700"
             ]
 
 
@@ -375,24 +346,22 @@ bodyNoButton =
 bodyStyle : Property
 bodyStyle =
     property body "has 14px font" <|
-        Query.has [ style [ ( "font-size", "14px" ) ] ]
+        Query.has [ style "font-size" "14px" ]
 
 
 bodyPosition : Property
 bodyPosition =
     property body "has 10px margin above and below" <|
-        Query.has [ style [ ( "margin", "10px 0" ) ] ]
+        Query.has [ style "margin" "10px 0" ]
 
 
 bodyLayout : Property
 bodyLayout =
     property body "lays out contents vertically, centering horizontally" <|
         Query.has
-            [ style
-                [ ( "display", "flex" )
-                , ( "flex-direction", "column" )
-                , ( "align-items", "center" )
-                ]
+            [ style "display" "flex"
+            , style "flex-direction" "column"
+            , style "align-items" "center"
             ]
 
 
@@ -400,8 +369,7 @@ bodyParagraphPositions : Property
 bodyParagraphPositions =
     property body "paragraphs have 5px margin above and below" <|
         Query.findAll [ tag "p" ]
-            >> Query.each
-                (Query.has [ style [ ( "margin", "5px 0" ) ] ])
+            >> Query.each (Query.has [ style "margin" "5px 0" ])
 
 
 
@@ -486,7 +454,7 @@ buttonStyleUnclicked =
     property button "display inline and has almost-white border" <|
         Query.has
             [ tag "span"
-            , style [ ( "border", "1px solid " ++ almostWhite ) ]
+            , style "border" <| "1px solid " ++ almostWhite
             ]
 
 
@@ -494,10 +462,8 @@ buttonStyleClicked : Property
 buttonStyleClicked =
     property button "has blue border and background" <|
         Query.has
-            [ style
-                [ ( "background-color", blue )
-                , ( "border", "1px solid " ++ blue )
-                ]
+            [ style "background-color" blue
+            , style "border" <| "1px solid " ++ blue
             ]
 
 
@@ -505,28 +471,24 @@ buttonSize : Property
 buttonSize =
     property button "is 212px wide with 10px padding above and below" <|
         Query.has
-            [ style
-                [ ( "width", "212px" )
-                , ( "padding", "10px 0" )
-                ]
+            [ style "width" "212px"
+            , style "padding" "10px 0"
             ]
 
 
 buttonPosition : Property
 buttonPosition =
     property button "has 15px margin above and below" <|
-        Query.has [ style [ ( "margin", "15px 0" ) ] ]
+        Query.has [ style "margin" "15px 0" ]
 
 
 buttonLayout : Property
 buttonLayout =
     property button "lays out contents horizontally, centering" <|
         Query.has
-            [ style
-                [ ( "display", "flex" )
-                , ( "justify-content", "center" )
-                , ( "align-items", "center" )
-                ]
+            [ style "display" "flex"
+            , style "justify-content" "center"
+            , style "align-items" "center"
             ]
 
 
@@ -545,13 +507,13 @@ buttonTextClicked =
 buttonCursorUnclicked : Property
 buttonCursorUnclicked =
     property button "has pointer cursor" <|
-        Query.has [ style [ ( "cursor", "pointer" ) ] ]
+        Query.has [ style "cursor" "pointer" ]
 
 
 buttonCursorClicked : Property
 buttonCursorClicked =
     property button "has default cursor" <|
-        Query.has [ style [ ( "cursor", "default" ) ] ]
+        Query.has [ style "cursor" "default" ]
 
 
 buttonClipboardAttr : Property
@@ -570,10 +532,7 @@ buttonClickHandler =
     property button "sends CopyToken on click" <|
         Event.simulate Event.click
             >> Event.expect
-                (Msgs.SubMsg 1 <|
-                    SubPage.Msgs.FlySuccessMsg <|
-                        FlySuccess.Msgs.CopyToken
-                )
+                (Msgs.Update <| Message.Message.CopyToken)
 
 
 
@@ -590,7 +549,7 @@ iconStyle =
 iconPosition : Property
 iconPosition =
     property buttonIcon "has margin on the right" <|
-        Query.has [ style [ ( "margin-right", "5px" ) ] ]
+        Query.has [ style "margin-right" "5px" ]
 
 
 
@@ -670,22 +629,19 @@ all =
                 , unhoveredSelector =
                     { description =
                         "same background as card"
-                    , selector = [ style [ ( "background-color", darkGrey ) ] ]
+                    , selector = [ style "background-color" darkGrey ]
                     }
                 , mouseEnterMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.FlySuccessMsg <|
-                            FlySuccess.Msgs.CopyTokenButtonHover
-                                True
+                    Msgs.Update <|
+                        Message.Message.Hover <|
+                            Just Message.Message.CopyTokenButton
                 , mouseLeaveMsg =
-                    Msgs.SubMsg 1 <|
-                        SubPage.Msgs.FlySuccessMsg <|
-                            FlySuccess.Msgs.CopyTokenButtonHover
-                                False
+                    Msgs.Update <|
+                        Message.Message.Hover Nothing
                 , hoveredSelector =
                     { description = "darker background"
                     , selector =
-                        [ style [ ( "background-color", darkerGrey ) ] ]
+                        [ style "background-color" darkerGrey ]
                     }
                 }
             ]

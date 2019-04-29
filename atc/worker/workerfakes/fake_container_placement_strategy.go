@@ -2,10 +2,10 @@
 package workerfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeContainerPlacementStrategy struct {

@@ -2,15 +2,15 @@
 package imagefakes
 
 import (
-	context "context"
-	io "io"
-	sync "sync"
+	"context"
+	"io"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	db "github.com/concourse/concourse/atc/db"
-	worker "github.com/concourse/concourse/atc/worker"
-	image "github.com/concourse/concourse/atc/worker/image"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/image"
 )
 
 type FakeImageResourceFetcher struct {

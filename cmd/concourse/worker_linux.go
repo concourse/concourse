@@ -37,6 +37,7 @@ type GardenBackend struct {
 func (cmd WorkerCommand) lessenRequirements(prefix string, command *flags.Command) {
 	// configured as work-dir/volumes
 	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
+	command.FindOptionByLongName(prefix + "tsa-worker-private-key").Required = false
 }
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {

@@ -235,6 +235,13 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			errorMessages = append(errorMessages, planErrMessages...)
 		}
 
+		if job.Error != nil {
+			subIdentifier := fmt.Sprintf("%s.error", identifier)
+			planWarnings, planErrMessages := validatePlan(c, subIdentifier, *job.Error)
+			warnings = append(warnings, planWarnings...)
+			errorMessages = append(errorMessages, planErrMessages...)
+		}
+
 		if job.Failure != nil {
 			subIdentifier := fmt.Sprintf("%s.failure", identifier)
 			planWarnings, planErrMessages := validatePlan(c, subIdentifier, *job.Failure)
@@ -327,6 +334,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		foundTypes.Find("aggregate")
 	}
 
+	if plan.InParallel != nil {
+		foundTypes.Find("parallel")
+	}
+
 	if plan.Try != nil {
 		foundTypes.Find("try")
 	}
@@ -348,8 +359,20 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		}
 
 	case plan.Aggregate != nil:
+		warnings = append(warnings, ConfigWarning{
+			Type:    "pipeline",
+			Message: identifier + " : aggregate is deprecated and will be removed in a future version",
+		})
 		for i, plan := range *plan.Aggregate {
 			subIdentifier := fmt.Sprintf("%s.aggregate[%d]", identifier, i)
+			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
+			warnings = append(warnings, planWarnings...)
+			errorMessages = append(errorMessages, planErrMessages...)
+		}
+
+	case plan.InParallel != nil:
+		for i, plan := range plan.InParallel.Steps {
+			subIdentifier := fmt.Sprintf("%s.in_parallel[%d]", identifier, i)
 			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
 			warnings = append(warnings, planWarnings...)
 			errorMessages = append(errorMessages, planErrMessages...)
@@ -505,6 +528,13 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	if plan.Abort != nil {
 		subIdentifier := fmt.Sprintf("%s.abort", identifier)
 		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Abort)
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
+	}
+
+	if plan.Error != nil {
+		subIdentifier := fmt.Sprintf("%s.error", identifier)
+		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Error)
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)
 	}

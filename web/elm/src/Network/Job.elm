@@ -19,33 +19,25 @@ import Task exposing (Task)
 fetchJob : Concourse.JobIdentifier -> Task Http.Error Concourse.Job
 fetchJob job =
     Http.toTask <|
-        flip Http.get
-            (Concourse.decodeJob { teamName = job.teamName, pipelineName = job.pipelineName })
-            ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName)
+        Http.get ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName) (Concourse.decodeJob { teamName = job.teamName, pipelineName = job.pipelineName })
 
 
 fetchJobs : Concourse.PipelineIdentifier -> Task Http.Error (List Concourse.Job)
 fetchJobs pi =
     Http.toTask <|
-        flip Http.get
-            (Json.Decode.list (Concourse.decodeJob pi))
-            ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
+        Http.get ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs") (Json.Decode.list (Concourse.decodeJob pi))
 
 
 fetchAllJobs : Task Http.Error (Maybe (List Concourse.Job))
 fetchAllJobs =
     Http.toTask <|
-        flip Http.get
-            (Json.Decode.nullable <| Json.Decode.list (Concourse.decodeJob { teamName = "", pipelineName = "" }))
-            "/api/v1/jobs"
+        Http.get "/api/v1/jobs" (Json.Decode.nullable <| Json.Decode.list (Concourse.decodeJob { teamName = "", pipelineName = "" }))
 
 
 fetchJobsRaw : Concourse.PipelineIdentifier -> Task Http.Error Json.Decode.Value
 fetchJobsRaw pi =
     Http.toTask <|
-        flip Http.get
-            Json.Decode.value
-            ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
+        Http.get ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs") Json.Decode.value
 
 
 triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error Concourse.Build
@@ -67,10 +59,10 @@ unpause =
 
 
 pauseUnpause : Bool -> Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
-pauseUnpause pause { teamName, pipelineName, jobName } csrfToken =
+pauseUnpause shouldPause { teamName, pipelineName, jobName } csrfToken =
     let
         action =
-            if pause then
+            if shouldPause then
                 "pause"
 
             else

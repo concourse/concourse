@@ -2,10 +2,10 @@
 package gcfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	gc "github.com/concourse/concourse/atc/gc"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/gc"
 )
 
 type FakeWorkerJobRunner struct {

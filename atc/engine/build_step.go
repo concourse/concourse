@@ -21,6 +21,20 @@ func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) e
 	return agg
 }
 
+func (build *execBuild) buildParallelStep(logger lager.Logger, plan atc.Plan) exec.Step {
+	logger = logger.Session("parallel")
+
+	var steps []exec.Step
+
+	for _, innerPlan := range plan.InParallel.Steps {
+		innerPlan.Attempts = plan.Attempts
+		step := build.buildStep(logger, innerPlan)
+		steps = append(steps, step)
+	}
+
+	return exec.InParallel(steps, plan.InParallel.Limit, plan.InParallel.FailFast)
+}
+
 func (build *execBuild) buildDoStep(logger lager.Logger, plan atc.Plan) exec.Step {
 	logger = logger.Session("do")
 
@@ -56,6 +70,14 @@ func (build *execBuild) buildOnAbortStep(logger lager.Logger, plan atc.Plan) exe
 	plan.OnAbort.Next.Attempts = plan.Attempts
 	next := build.buildStep(logger, plan.OnAbort.Next)
 	return exec.OnAbort(step, next)
+}
+
+func (build *execBuild) buildOnErrorStep(logger lager.Logger, plan atc.Plan) exec.Step {
+	plan.OnError.Step.Attempts = plan.Attempts
+	step := build.buildStep(logger, plan.OnError.Step)
+	plan.OnError.Next.Attempts = plan.Attempts
+	next := build.buildStep(logger, plan.OnError.Next)
+	return exec.OnError(step, next)
 }
 
 func (build *execBuild) buildOnSuccessStep(logger lager.Logger, plan atc.Plan) exec.Step {

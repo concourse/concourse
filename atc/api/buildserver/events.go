@@ -18,7 +18,6 @@ func (s *Server) BuildEvents(build db.Build) http.Handler {
 
 		select {
 		case <-streamDone:
-		case <-s.drain:
 		}
 	})
 }

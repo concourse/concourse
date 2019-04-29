@@ -175,11 +175,97 @@ var _ = Describe("ExecEngine", func() {
 			})
 		})
 
+		Describe("with a putget in a parallel", func() {
+			var (
+				putPlan               atc.Plan
+				dependentGetPlan      atc.Plan
+				otherPutPlan          atc.Plan
+				otherDependentGetPlan atc.Plan
+			)
+
+			BeforeEach(func() {
+				putPlan = planFactory.NewPlan(atc.PutPlan{
+					Name:     "some-put",
+					Resource: "some-output-resource",
+					Type:     "put",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
+				})
+
+				otherPutPlan = planFactory.NewPlan(atc.PutPlan{
+					Name:     "some-put-2",
+					Resource: "some-output-resource-2",
+					Type:     "put",
+					Source:   atc.Source{"some": "source-2"},
+					Params:   atc.Params{"some": "params-2"},
+				})
+
+				outputPlan = planFactory.NewPlan(atc.InParallelPlan{
+					Steps: []atc.Plan{
+						planFactory.NewPlan(atc.OnSuccessPlan{
+							Step: putPlan,
+							Next: dependentGetPlan,
+						}),
+						planFactory.NewPlan(atc.OnSuccessPlan{
+							Step: otherPutPlan,
+							Next: otherDependentGetPlan,
+						}),
+					},
+					Limit:    1,
+					FailFast: true,
+				})
+			})
+
+			Context("constructing outputs", func() {
+				It("constructs the put correctly", func() {
+					var err error
+					build, err = execEngine.CreateBuild(logger, dbBuild, outputPlan)
+					Expect(err).NotTo(HaveOccurred())
+
+					build.Resume(logger)
+					Expect(fakeFactory.PutCallCount()).To(Equal(2))
+
+					logger, plan, build, stepMetadata, containerMetadata, _ := fakeFactory.PutArgsForCall(0)
+					Expect(logger).NotTo(BeNil())
+					Expect(build).To(Equal(dbBuild))
+					Expect(plan).To(Equal(putPlan))
+					Expect(stepMetadata).To(Equal(expectedMetadata))
+					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
+						Type:         db.ContainerTypePut,
+						StepName:     "some-put",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
+					}))
+
+					logger, plan, build, stepMetadata, containerMetadata, _ = fakeFactory.PutArgsForCall(1)
+					Expect(logger).NotTo(BeNil())
+					Expect(build).To(Equal(dbBuild))
+					Expect(plan).To(Equal(otherPutPlan))
+					Expect(stepMetadata).To(Equal(expectedMetadata))
+					Expect(containerMetadata).To(Equal(db.ContainerMetadata{
+						Type:         db.ContainerTypePut,
+						StepName:     "some-put-2",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
+					}))
+				})
+			})
+		})
+
 		Context("with a retry plan", func() {
 			var (
 				getPlan       atc.Plan
 				taskPlan      atc.Plan
 				aggregatePlan atc.Plan
+				parallelPlan  atc.Plan
 				doPlan        atc.Plan
 				timeoutPlan   atc.Plan
 				retryPlan     atc.Plan
@@ -209,7 +295,13 @@ var _ = Describe("ExecEngine", func() {
 
 				aggregatePlan = planFactory.NewPlan(atc.AggregatePlan{retryPlanTwo})
 
-				doPlan = planFactory.NewPlan(atc.DoPlan{aggregatePlan})
+				parallelPlan = planFactory.NewPlan(atc.InParallelPlan{
+					Steps:    []atc.Plan{aggregatePlan},
+					Limit:    1,
+					FailFast: true,
+				})
+
+				doPlan = planFactory.NewPlan(atc.DoPlan{parallelPlan})
 
 				timeoutPlan = planFactory.NewPlan(atc.TimeoutPlan{
 					Step:     doPlan,
@@ -322,6 +414,7 @@ var _ = Describe("ExecEngine", func() {
 			var (
 				retryPlan     atc.Plan
 				onAbortPlan   atc.Plan
+				onErrorPlan   atc.Plan
 				onSuccessPlan atc.Plan
 				onFailurePlan atc.Plan
 				ensurePlan    atc.Plan
@@ -341,8 +434,13 @@ var _ = Describe("ExecEngine", func() {
 					Next: leafPlan,
 				})
 
-				onSuccessPlan = planFactory.NewPlan(atc.OnSuccessPlan{
+				onErrorPlan = planFactory.NewPlan(atc.OnErrorPlan{
 					Step: onAbortPlan,
+					Next: leafPlan,
+				})
+
+				onSuccessPlan = planFactory.NewPlan(atc.OnSuccessPlan{
+					Step: onErrorPlan,
 					Next: leafPlan,
 				})
 
@@ -363,7 +461,7 @@ var _ = Describe("ExecEngine", func() {
 				build, err = execEngine.CreateBuild(logger, dbBuild, retryPlan)
 				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
-				Expect(fakeFactory.TaskCallCount()).To(Equal(5))
+				Expect(fakeFactory.TaskCallCount()).To(Equal(6))
 			})
 
 			It("constructs nested steps correctly", func() {

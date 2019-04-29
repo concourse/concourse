@@ -2,9 +2,9 @@
 package migrationfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	migration "github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/atc/db/migration"
 )
 
 type FakeBindata struct {

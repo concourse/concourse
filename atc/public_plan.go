@@ -7,11 +7,13 @@ func (plan Plan) Public() *json.RawMessage {
 		ID PlanID `json:"id"`
 
 		Aggregate      *json.RawMessage `json:"aggregate,omitempty"`
+		InParallel     *json.RawMessage `json:"in_parallel,omitempty"`
 		Do             *json.RawMessage `json:"do,omitempty"`
 		Get            *json.RawMessage `json:"get,omitempty"`
 		Put            *json.RawMessage `json:"put,omitempty"`
 		Task           *json.RawMessage `json:"task,omitempty"`
 		OnAbort        *json.RawMessage `json:"on_abort,omitempty"`
+		OnError        *json.RawMessage `json:"on_error,omitempty"`
 		Ensure         *json.RawMessage `json:"ensure,omitempty"`
 		OnSuccess      *json.RawMessage `json:"on_success,omitempty"`
 		OnFailure      *json.RawMessage `json:"on_failure,omitempty"`
@@ -27,6 +29,10 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.Aggregate != nil {
 		public.Aggregate = plan.Aggregate.Public()
+	}
+
+	if plan.InParallel != nil {
+		public.InParallel = plan.InParallel.Public()
 	}
 
 	if plan.Do != nil {
@@ -47,6 +53,10 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.OnAbort != nil {
 		public.OnAbort = plan.OnAbort.Public()
+	}
+
+	if plan.OnError != nil {
+		public.OnError = plan.OnError.Public()
 	}
 
 	if plan.Ensure != nil {
@@ -96,6 +106,24 @@ func (plan AggregatePlan) Public() *json.RawMessage {
 	}
 
 	return enc(public)
+}
+
+func (plan InParallelPlan) Public() *json.RawMessage {
+	steps := make([]*json.RawMessage, len(plan.Steps))
+
+	for i := 0; i < len(plan.Steps); i++ {
+		steps[i] = plan.Steps[i].Public()
+	}
+
+	return enc(struct {
+		Steps    []*json.RawMessage `json:"steps"`
+		Limit    int                `json:"limit,omitempty"`
+		FailFast bool               `json:"fail_fast,omitempty"`
+	}{
+		Steps:    steps,
+		Limit:    plan.Limit,
+		FailFast: plan.FailFast,
+	})
 }
 
 func (plan DoPlan) Public() *json.RawMessage {
@@ -148,6 +176,16 @@ func (plan OnAbortPlan) Public() *json.RawMessage {
 	return enc(struct {
 		Step *json.RawMessage `json:"step"`
 		Next *json.RawMessage `json:"on_abort"`
+	}{
+		Step: plan.Step.Public(),
+		Next: plan.Next.Public(),
+	})
+}
+
+func (plan OnErrorPlan) Public() *json.RawMessage {
+	return enc(struct {
+		Step *json.RawMessage `json:"step"`
+		Next *json.RawMessage `json:"on_error"`
 	}{
 		Step: plan.Step.Public(),
 		Next: plan.Next.Public(),

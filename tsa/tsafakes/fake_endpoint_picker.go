@@ -2,10 +2,10 @@
 package tsafakes
 
 import (
-	sync "sync"
+	"sync"
 
-	tsa "github.com/concourse/concourse/tsa"
-	rata "github.com/tedsuo/rata"
+	"github.com/concourse/concourse/tsa"
+	"github.com/tedsuo/rata"
 )
 
 type FakeEndpointPicker struct {

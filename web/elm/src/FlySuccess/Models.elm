@@ -9,12 +9,12 @@ module FlySuccess.Models exposing
     )
 
 import Http
+import Login.Login as Login
 import RemoteData
-import TopBar.Model
 
 
 type alias Model =
-    TopBar.Model.Model
+    Login.Model
         { buttonState : ButtonState
         , authToken : String
         , tokenTransfer : TokenTransfer

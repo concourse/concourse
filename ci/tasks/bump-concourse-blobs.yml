@@ -10,7 +10,7 @@ inputs:
 - name: concourse
 - name: version
 - name: concourse-release-repo
-- name: linux-rc
+- name: ubuntu-linux-rc
 - name: windows-rc
 
 outputs:

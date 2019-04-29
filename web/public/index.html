@@ -13,6 +13,7 @@
     <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
     <script src="{{asset "clipboard.min.js"}}"></script>
+    <script src="{{asset "mdi-svg.min.js"}}"></script>
     <style>
         @keyframes pipeline-running {
           0% { background-position-x: -53.5px; }
@@ -76,12 +77,16 @@
     <script type="text/javascript">
       var node = document.getElementById("elm-app-embed");
 
-      var app = Elm.Main.embed(node, {
-        turbulenceImgSrc: {{asset "images/buckleup.svg"}},
-        notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
-        csrfToken: {{ .CSRFToken }},
-        authToken: {{ .AuthToken }},
-        pipelineRunningKeyframes: "pipeline-running"
+      var app = Elm.Main.init({
+        node : node,
+        flags : {
+          turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+          notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
+          csrfToken: {{ .CSRFToken }},
+          authToken: {{ .AuthToken }},
+          clusterName: {{ .ClusterName }},
+          pipelineRunningKeyframes: "pipeline-running"
+        }
       });
       var resizeTimer;
 
@@ -148,11 +153,6 @@
         document.location.href = loginUrl;
       });
 
-      app.ports.setTitle.subscribe(function(title) {
-        setTimeout(function(){
-          document.title = title + "Concourse";
-        }, 0)
-      });
 
       app.ports.tooltip.subscribe(function (pipelineInfo) {
         var pipelineName = pipelineInfo[0];
@@ -267,9 +267,27 @@
       app.ports.scrollDown.subscribe(function() {
         window.scrollBy(0, 60);
       });
+
+      app.ports.setFavicon.subscribe(function(url) {
+        var oldIcon = document.getElementById("favicon");
+        var newIcon = document.createElement("link");
+        newIcon.id = "favicon";
+        newIcon.rel = "shortcut icon";
+        newIcon.href = url;
+        if (oldIcon) {
+          document.head.removeChild(oldIcon);
+        }
+
+        document.head.appendChild(newIcon);
+      });
+
+      app.ports.renderSvgIcon.subscribe(function(icon, id) {
+        addIcon(icon, (typeof id !== 'undefined') ? id : icon);
+      });
     </script>
     <script>
       var clipboard = new ClipboardJS('#copy-token');
     </script>
+    <div id="icon-store" style="display: none;"></div>
   </body>
 </html>

@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
@@ -28,8 +30,35 @@ func NewPutDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.P
 	}
 }
 
+func (d *putDelegate) Initializing(logger lager.Logger) {
+	err := d.build.SaveEvent(event.InitializePut{
+		Origin: d.eventOrigin,
+		Time:   time.Now().Unix(),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-initialize-put-event", err)
+		return
+	}
+
+	logger.Debug("initializing")
+}
+
+func (d *putDelegate) Starting(logger lager.Logger) {
+	err := d.build.SaveEvent(event.StartPut{
+		Time:   time.Now().Unix(),
+		Origin: d.eventOrigin,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-start-put-event", err)
+		return
+	}
+
+	logger.Info("starting")
+}
+
 func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info exec.VersionInfo) {
 	err := d.build.SaveEvent(event.FinishPut{
+		Time:            time.Now().Unix(),
 		Origin:          d.eventOrigin,
 		ExitStatus:      int(exitStatus),
 		CreatedVersion:  info.Version,

@@ -2,11 +2,11 @@
 package execfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	atc "github.com/concourse/concourse/atc"
-	exec "github.com/concourse/concourse/atc/exec"
-	artifact "github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
 )
 
 type FakeRunState struct {

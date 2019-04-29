@@ -2,10 +2,10 @@
 package radarfakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	radar "github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/radar"
 )
 
 type FakeIntervalRunner struct {

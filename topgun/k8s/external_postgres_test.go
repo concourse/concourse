@@ -3,13 +3,16 @@ package k8s_test
 import (
 	"path"
 
-	. "github.com/concourse/concourse/topgun"
+	"github.com/onsi/gomega/gexec"
+
 	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("External PostgreSQL", func() {
 	var (
 		pgReleaseName string
+		proxySession  *gexec.Session
+		atcEndpoint   string
 	)
 
 	BeforeEach(func() {
@@ -38,20 +41,19 @@ var _ = Describe("External PostgreSQL", func() {
 			"--set=secrets.postgresUser=pg-user",
 			"--set=worker.replicas=0",
 		)
-	})
-
-	AfterEach(func() {
-		helmDestroy(releaseName)
-		helmDestroy(pgReleaseName)
-		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-	})
-
-	It("can have pipelines set", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint := startPortForwarding(
+		proxySession, atcEndpoint = startPortForwarding(
 			namespace, "service/"+releaseName+"-web", "8080")
+	})
+
+	AfterEach(func() {
+		helmDestroy(pgReleaseName)
+		cleanup(releaseName, namespace, proxySession)
+	})
+
+	It("can have pipelines set", func() {
 		defer proxySession.Interrupt()
 
 		By("Logging in")

@@ -12,27 +12,32 @@ resource_types:
 resources:
 - name: concourse-master
   type: git
+  icon: github-circle
   source:
     uri: https://github.com/concourse/concourse
 
 - name: concourse-pr
   type: pull-request
+  icon: source-pull
   source:
     repository: concourse/concourse
     access_token: ((pull_requests_access_token))
 
 - name: baggageclaim-pr
   type: pull-request
+  icon: source-pull
   source:
     repository: concourse/baggageclaim
     access_token: ((pull_requests_access_token))
 
 - name: dev-image
   type: registry-image
+  icon: docker
   source: {repository: concourse/dev}
 
 - name: postgres-image
   type: registry-image
+  icon: docker
   source: {repository: postgres}
 
 jobs:
@@ -64,11 +69,18 @@ jobs:
     timeout: 5m
     file: concourse-pr/ci/tasks/check-migration-order.yml
     tags: [pr]
+  - task: yarn-analyse
+    attempts: 3
+    file: concourse-pr/ci/tasks/yarn-analyse.yml
+    input_mapping: {concourse: concourse-pr}
+    tags: [pr]
   - task: yarn-test
+    attempts: 3
     file: concourse-pr/ci/tasks/yarn-test.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]
   - task: unit
+    attempts: 3
     timeout: 1h
     file: concourse-pr/ci/tasks/unit.yml
     input_mapping: {concourse: built-concourse}
@@ -103,6 +115,7 @@ jobs:
     inputs: [concourse-pr]
     params: {path: concourse-pr, status: pending, context: testflight}
   - task: yarn-build
+    attempts: 3
     file: concourse-pr/ci/tasks/yarn-build.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]
@@ -144,6 +157,7 @@ jobs:
     params: {path: concourse-pr, status: pending, context: watsjs}
     tags: [pr]
   - task: yarn-build
+    attempts: 3
     file: concourse-pr/ci/tasks/yarn-build.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]

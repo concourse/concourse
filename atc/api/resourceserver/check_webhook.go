@@ -75,7 +75,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			}
 
 			scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
-			scanner.ScanFromVersion(logger, resourceName, fromVersion)
+			scanner.ScanFromVersion(logger, pipelineResource.ID(), fromVersion)
 		}()
 
 		w.WriteHeader(http.StatusOK)

@@ -1,5 +1,6 @@
 module Build.Build exposing
     ( changeToBuild
+    , documentTitle
     , getScrollBehavior
     , getUpdateMessage
     , handleCallback
@@ -10,71 +11,55 @@ module Build.Build exposing
     , view
     )
 
-import Build.Models as Models
-    exposing
-        ( BuildPageType(..)
-        , Hoverable(..)
-        , Model
-        )
-import Build.Msgs exposing (Msg(..))
+import Build.Models exposing (BuildPageType(..), CurrentBuild, Model)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
+import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
-import Callback exposing (Callback(..))
-import Char
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Paginated)
-import Date exposing (Date)
-import Date.Format
-import Debug
+import DateFormat
 import Dict exposing (Dict)
-import Effects exposing (Effect(..), ScrollDirection(..), runEffect)
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
-        ( action
-        , attribute
+        ( attribute
         , class
         , classList
-        , disabled
         , href
         , id
-        , method
         , style
-        , tabindex
         , title
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Http
 import Keyboard
-import Keycodes
 import List.Extra
+import Login.Login as Login
 import Maybe.Extra
-import RemoteData exposing (WebData)
+import Message.Callback exposing (Callback(..))
+import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
+import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import RemoteData
 import Routes
-import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
+import StrictEvents exposing (onLeftClick, onMouseWheel)
 import String
-import Subscription exposing (Delivery(..), Interval(..), Subscription(..))
-import Time exposing (Time)
-import TopBar.Model
-import TopBar.Styles
-import TopBar.TopBar as TopBar
+import Time
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
+import Views.NotAuthorized as NotAuthorized
 import Views.Spinner as Spinner
-
-
-type StepRenderingState
-    = StepsLoading
-    | StepsLiveUpdating
-    | StepsComplete
-    | NotAuthorized
+import Views.Styles
+import Views.TopBar as TopBar
 
 
 type alias Flags =
@@ -90,23 +75,8 @@ type ScrollBehavior
 
 init : Flags -> ( Model, List Effect )
 init flags =
-    let
-        route =
-            case flags.pageType of
-                OneOffBuildPage buildId ->
-                    Routes.OneOffBuild
-                        { id = buildId
-                        , highlight = flags.highlight
-                        }
-
-                JobBuildPage buildId ->
-                    Routes.Build { id = buildId, highlight = flags.highlight }
-
-        ( topBar, topBarEffects ) =
-            TopBar.init { route = route }
-    in
     changeToBuild
-        flags.pageType
+        flags
         ( { page = flags.pageType
           , now = Nothing
           , disableManualTrigger = False
@@ -121,17 +91,14 @@ init flags =
           , highlight = flags.highlight
           , hoveredElement = Nothing
           , hoveredCounter = 0
+          , authorized = True
           , fetchingHistory = False
           , scrolledToCurrentBuild = False
-          , isUserMenuExpanded = topBar.isUserMenuExpanded
-          , isPinMenuExpanded = topBar.isPinMenuExpanded
-          , route = topBar.route
-          , groups = topBar.groups
-          , dropdown = topBar.dropdown
-          , screenSize = topBar.screenSize
-          , shiftDown = topBar.shiftDown
+          , shiftDown = False
+          , isUserMenuExpanded = False
+          , timeZone = Time.utc
           }
-        , topBarEffects ++ [ GetCurrentTime ]
+        , [ GetCurrentTime, GetCurrentTimeZone ]
         )
 
 
@@ -159,10 +126,10 @@ subscriptions model =
            )
 
 
-changeToBuild : BuildPageType -> ( Model, List Effect ) -> ( Model, List Effect )
-changeToBuild page ( model, effects ) =
-    if model.browsingIndex > 0 && page == model.page then
-        ( model, effects )
+changeToBuild : Flags -> ET Model
+changeToBuild { highlight, pageType } ( model, effects ) =
+    if model.browsingIndex > 0 && pageType == model.page then
+        ( { model | highlight = highlight }, effects )
 
     else
         let
@@ -178,9 +145,10 @@ changeToBuild page ( model, effects ) =
             | browsingIndex = newIndex
             , currentBuild = newBuild
             , autoScroll = True
-            , page = page
+            , page = pageType
+            , highlight = highlight
           }
-        , case page of
+        , case pageType of
             OneOffBuildPage buildId ->
                 effects
                     ++ [ CloseBuildEventStream
@@ -197,15 +165,15 @@ changeToBuild page ( model, effects ) =
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model ) of
-        ( Just build, Just { jobName } ) ->
-            jobName ++ ((" #" ++ build.build.name) ++ " - ")
+    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model, model.page ) of
+        ( Just build, Just { jobName }, _ ) ->
+            jobName ++ " #" ++ build.build.name
 
-        ( Just build, Nothing ) ->
-            "#" ++ (toString build.build.id ++ " - ")
+        ( _, _, JobBuildPage { jobName, buildName } ) ->
+            jobName ++ " #" ++ buildName
 
-        _ ->
-            ""
+        ( _, _, OneOffBuildPage id ) ->
+            "#" ++ String.fromInt id
 
 
 currentJob : Model -> Maybe Concourse.JobIdentifier
@@ -226,17 +194,16 @@ getUpdateMessage model =
             UpdateMsg.AOK
 
 
-handleCallback : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallback msg =
-    TopBar.handleCallback msg >> handleCallbackBody msg
-
-
-handleCallbackBody : Callback -> ( Model, List Effect ) -> ( Model, List Effect )
-handleCallbackBody action ( model, effects ) =
+handleCallback : Callback -> ET Model
+handleCallback action ( model, effects ) =
     case action of
+        GotCurrentTimeZone zone ->
+            ( { model | timeZone = zone }, effects )
+
         BuildTriggered (Ok build) ->
             ( { model | history = build :: model.history }
-            , effects ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+            , effects
+                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
             )
 
         BuildFetched (Ok ( browsingIndex, build )) ->
@@ -266,56 +233,96 @@ handleCallbackBody action ( model, effects ) =
             handleBuildPrepFetched browsingIndex buildPrep ( model, effects )
 
         BuildPrepFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build preparation" err) <|
-                ( model, effects )
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        ( { model | authorized = False }, effects )
 
-        PlanAndResourcesFetched buildId result ->
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( model, effects )
+
+        PlanAndResourcesFetched buildId (Ok planAndResources) ->
             updateOutput
-                (Build.Output.Output.planAndResourcesFetched buildId result)
+                (Build.Output.Output.planAndResourcesFetched
+                    buildId
+                    planAndResources
+                )
                 ( model
                 , effects
                     ++ [ Effects.OpenBuildEventStream
-                            { url = "/api/v1/builds/" ++ toString buildId ++ "/events"
+                            { url =
+                                "/api/v1/builds/"
+                                    ++ String.fromInt buildId
+                                    ++ "/events"
                             , eventTypes = [ "end", "event" ]
                             }
                        ]
                 )
 
-        BuildHistoryFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build history" err) <|
-                ( { model | fetchingHistory = False }, effects )
+        PlanAndResourcesFetched buildId (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 404 then
+                        let
+                            url =
+                                "/api/v1/builds/"
+                                    ++ String.fromInt buildId
+                                    ++ "/events"
+                        in
+                        updateOutput
+                            (\m ->
+                                ( { m | eventStreamUrlPath = Just url }
+                                , []
+                                , Build.Output.Output.OutNoop
+                                )
+                            )
+                            ( model, effects )
+
+                    else if status.code == 401 then
+                        ( { model | authorized = False }, effects )
+
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( model, effects )
 
         BuildHistoryFetched (Ok history) ->
             handleHistoryFetched history ( model, effects )
 
-        BuildJobDetailsFetched (Ok job) ->
-            handleBuildJobFetched job ( model, effects )
+        BuildHistoryFetched (Err _) ->
+            -- https://github.com/concourse/concourse/issues/3201
+            ( { model | fetchingHistory = False }, effects )
 
-        BuildJobDetailsFetched (Err err) ->
-            flip always (Debug.log "failed to fetch build job details" err) <|
-                ( model, effects )
+        BuildJobDetailsFetched (Ok job) ->
+            ( { model | disableManualTrigger = job.disableManualTrigger }
+            , effects
+            )
+
+        BuildJobDetailsFetched (Err _) ->
+            -- https://github.com/concourse/concourse/issues/3201
+            ( model, effects )
 
         _ ->
             ( model, effects )
 
 
-handleDelivery : Delivery -> ( Model, List Effect ) -> ( Model, List Effect )
+handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keycode ->
-            handleKeyPressed keycode ( model, effects )
+        KeyDown keyEvent ->
+            handleKeyPressed keyEvent ( model, effects )
 
-        KeyUp keycode ->
-            if keycode == Keycodes.shift then
-                ( { model | shiftDown = False }, effects )
+        KeyUp keyEvent ->
+            case keyEvent.code of
+                Keyboard.T ->
+                    ( { model | previousTriggerBuildByKey = False }, effects )
 
-            else
-                case Char.fromCode keycode of
-                    'T' ->
-                        ( { model | previousTriggerBuildByKey = False }, effects )
-
-                    _ ->
-                        ( model, effects )
+                _ ->
+                    ( model, effects )
 
         ClockTicked OneSecond time ->
             let
@@ -334,17 +341,52 @@ handleDelivery delivery ( model, effects ) =
         ScrolledToBottom atBottom ->
             ( { model | autoScroll = atBottom }, effects )
 
-        EventsReceived envelopes ->
-            envelopes
-                |> Build.Output.Output.handleEnvelopes
-                |> flip updateOutput
-                    ( model
-                    , case getScrollBehavior model of
+        EventsReceived result ->
+            let
+                scrollEffects =
+                    case getScrollBehavior model of
                         ScrollWindow ->
                             effects ++ [ Effects.Scroll Effects.ToBottom ]
 
                         NoScroll ->
                             effects
+            in
+            case result of
+                Ok envelopes ->
+                    let
+                        newModel =
+                            if
+                                List.map .data envelopes
+                                    |> List.member STModels.NetworkError
+                            then
+                                { model | authorized = False }
+
+                            else
+                                model
+                    in
+                    updateOutput
+                        (Build.Output.Output.handleEnvelopes envelopes)
+                        ( newModel, scrollEffects )
+
+                Err _ ->
+                    let
+                        eventSourceOpened =
+                            model.currentBuild
+                                |> RemoteData.toMaybe
+                                |> Maybe.andThen .output
+                                |> Maybe.map .eventSourceOpened
+                                |> Maybe.withDefault True
+                    in
+                    ( if eventSourceOpened then
+                        -- connection could have dropped out of the blue;
+                        -- just let the browser handle reconnecting
+                        model
+
+                      else
+                        -- assume request was rejected because auth is required;
+                        -- no way to really tell
+                        { model | authorized = False }
+                    , scrollEffects
                     )
 
         ElementVisible ( id, True ) ->
@@ -353,7 +395,7 @@ handleDelivery delivery ( model, effects ) =
                     model.history
                         |> List.Extra.last
                         |> Maybe.map .id
-                        |> Maybe.map toString
+                        |> Maybe.map String.fromInt
                         |> Maybe.map ((==) id)
                         |> Maybe.withDefault False
 
@@ -381,7 +423,7 @@ handleDelivery delivery ( model, effects ) =
                 currentBuildInvisible =
                     model.currentBuild
                         |> RemoteData.toMaybe
-                        |> Maybe.map (.build >> .id >> toString)
+                        |> Maybe.map (.build >> .id >> String.fromInt)
                         |> Maybe.map ((==) id)
                         |> Maybe.withDefault False
 
@@ -402,7 +444,7 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Msg -> ( Model, List Effect ) -> ( Model, List Effect )
+update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
         SwitchToBuild build ->
@@ -463,18 +505,18 @@ update msg ( model, effects ) =
                 checkVisibility =
                     case model.history |> List.Extra.last of
                         Just build ->
-                            [ Effects.CheckIsVisible <| toString build.id ]
+                            [ Effects.CheckIsVisible <| String.fromInt build.id ]
 
                         Nothing ->
                             []
             in
             ( model, effects ++ scroll ++ checkVisibility )
 
-        NavTo route ->
-            ( model, effects ++ [ NavigateTo <| Routes.toString route ] )
+        GoToRoute route ->
+            ( model, effects ++ [ NavigateTo <| Routes.toString <| route ] )
 
-        FromTopBar m ->
-            TopBar.update m ( model, effects )
+        _ ->
+            ( model, effects )
 
 
 getScrollBehavior : Model -> ScrollBehavior
@@ -501,21 +543,20 @@ getScrollBehavior model =
 
 updateOutput :
     (OutputModel -> ( OutputModel, List Effect, Build.Output.Output.OutMsg ))
-    -> ( Model, List Effect )
-    -> ( Model, List Effect )
+    -> ET Model
 updateOutput updater ( model, effects ) =
     let
         currentBuild =
             model.currentBuild |> RemoteData.toMaybe
     in
     case ( currentBuild, currentBuild |> Maybe.andThen .output ) of
-        ( Just currentBuild, Just output ) ->
+        ( Just cb, Just output ) ->
             let
                 ( newOutput, outputEffects, outMsg ) =
                     updater output
             in
             handleOutMsg outMsg
-                ( { model | currentBuild = RemoteData.Success { currentBuild | output = Just newOutput } }
+                ( { model | currentBuild = RemoteData.Success { cb | output = Just newOutput } }
                 , effects ++ outputEffects
                 )
 
@@ -523,26 +564,26 @@ updateOutput updater ( model, effects ) =
             ( model, effects )
 
 
-handleKeyPressed : Keyboard.KeyCode -> ( Model, List Effect ) -> ( Model, List Effect )
-handleKeyPressed key ( model, effects ) =
+handleKeyPressed : Keyboard.KeyEvent -> ET Model
+handleKeyPressed keyEvent ( model, effects ) =
     let
         currentBuild =
             model.currentBuild |> RemoteData.toMaybe |> Maybe.map .build
 
         newModel =
-            case ( model.previousKeyPress, model.shiftDown, Char.fromCode key ) of
-                ( Nothing, False, 'G' ) ->
-                    { model | previousKeyPress = Just 'G' }
+            case ( model.previousKeyPress, keyEvent.shiftKey, keyEvent.code ) of
+                ( Nothing, False, Keyboard.G ) ->
+                    { model | previousKeyPress = Just keyEvent }
 
                 _ ->
                     { model | previousKeyPress = Nothing }
     in
-    if key == Keycodes.shift then
-        ( { newModel | shiftDown = True }, [] )
+    if Keyboard.hasControlModifier keyEvent then
+        ( newModel, [] )
 
     else
-        case ( Char.fromCode key, newModel.shiftDown ) of
-            ( 'H', False ) ->
+        case ( keyEvent.code, keyEvent.shiftKey ) of
+            ( Keyboard.H, False ) ->
                 case Maybe.andThen (nextBuild newModel.history) currentBuild of
                     Just build ->
                         update (SwitchToBuild build) ( newModel, effects )
@@ -550,21 +591,23 @@ handleKeyPressed key ( model, effects ) =
                     Nothing ->
                         ( newModel, [] )
 
-            ( 'L', False ) ->
-                case Maybe.andThen (prevBuild newModel.history) currentBuild of
+            ( Keyboard.L, False ) ->
+                case
+                    Maybe.andThen (prevBuild newModel.history) currentBuild
+                of
                     Just build ->
                         update (SwitchToBuild build) ( newModel, effects )
 
                     Nothing ->
                         ( newModel, [] )
 
-            ( 'J', False ) ->
+            ( Keyboard.J, False ) ->
                 ( newModel, [ Scroll Down ] )
 
-            ( 'K', False ) ->
+            ( Keyboard.K, False ) ->
                 ( newModel, [ Scroll Up ] )
 
-            ( 'T', True ) ->
+            ( Keyboard.T, True ) ->
                 if not newModel.previousTriggerBuildByKey then
                     update
                         (TriggerBuild (currentBuild |> Maybe.andThen .job))
@@ -573,7 +616,7 @@ handleKeyPressed key ( model, effects ) =
                 else
                     ( newModel, [] )
 
-            ( 'A', True ) ->
+            ( Keyboard.A, True ) ->
                 if currentBuild == List.head newModel.history then
                     case currentBuild of
                         Just build ->
@@ -585,17 +628,20 @@ handleKeyPressed key ( model, effects ) =
                 else
                     ( newModel, [] )
 
-            ( 'G', True ) ->
+            ( Keyboard.G, True ) ->
                 ( { newModel | autoScroll = True }, [ Scroll ToBottom ] )
 
-            ( 'G', False ) ->
-                if model.previousKeyPress == Just 'G' then
+            ( Keyboard.G, False ) ->
+                if
+                    (model.previousKeyPress |> Maybe.map .code)
+                        == Just Keyboard.G
+                then
                     ( { newModel | autoScroll = False }, [ Scroll ToTop ] )
 
                 else
                     ( newModel, [] )
 
-            ( '¿', True ) ->
+            ( Keyboard.Slash, True ) ->
                 ( { newModel | showHelp = not newModel.showHelp }, [] )
 
             _ ->
@@ -630,7 +676,7 @@ prevBuild builds build =
             Nothing
 
 
-handleBuildFetched : Int -> Concourse.Build -> ( Model, List Effect ) -> ( Model, List Effect )
+handleBuildFetched : Int -> Concourse.Build -> ET Model
 handleBuildFetched browsingIndex build ( model, effects ) =
     if browsingIndex == model.browsingIndex then
         let
@@ -642,8 +688,8 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                         , output = Nothing
                         }
 
-                    Just currentBuild ->
-                        { currentBuild | build = build }
+                    Just cb ->
+                        { cb | build = build }
 
             withBuild =
                 { model
@@ -676,13 +722,13 @@ handleBuildFetched browsingIndex build ( model, effects ) =
 
                         Just _ ->
                             let
-                                ( newModel, cmd ) =
+                                ( newNewModel, newEffects ) =
                                     initBuildOutput build ( withBuild, effects )
                             in
-                            ( newModel
-                            , cmd
+                            ( newNewModel
+                            , newEffects
                                 ++ [ FetchBuildPrep
-                                        Time.second
+                                        1000
                                         browsingIndex
                                         build.id
                                    ]
@@ -692,11 +738,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                     ( withBuild, effects )
         in
         ( { newModel | fetchingHistory = True }
-        , cmd
-            ++ [ SetFavIcon (Just build.status)
-               , SetTitle (extractTitle newModel)
-               ]
-            ++ fetchJobAndHistory
+        , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status) ]
         )
 
     else
@@ -705,16 +747,16 @@ handleBuildFetched browsingIndex build ( model, effects ) =
 
 pollUntilStarted : Int -> Int -> List Effect
 pollUntilStarted browsingIndex buildId =
-    [ FetchBuild Time.second browsingIndex buildId
-    , FetchBuildPrep Time.second browsingIndex buildId
+    [ FetchBuild 1000 browsingIndex buildId
+    , FetchBuildPrep 1000 browsingIndex buildId
     ]
 
 
-initBuildOutput : Concourse.Build -> ( Model, List Effect ) -> ( Model, List Effect )
+initBuildOutput : Concourse.Build -> ET Model
 initBuildOutput build ( model, effects ) =
     let
         ( output, outputCmd ) =
-            Build.Output.Output.init { highlight = model.highlight } build
+            Build.Output.Output.init model.highlight build
     in
     ( { model
         | currentBuild =
@@ -726,24 +768,7 @@ initBuildOutput build ( model, effects ) =
     )
 
 
-handleBuildJobFetched :
-    Concourse.Job
-    -> ( Model, List Effect )
-    -> ( Model, List Effect )
-handleBuildJobFetched job ( model, effects ) =
-    let
-        withJobDetails =
-            { model | disableManualTrigger = job.disableManualTrigger }
-    in
-    ( withJobDetails
-    , effects ++ [ SetTitle (extractTitle withJobDetails) ]
-    )
-
-
-handleHistoryFetched :
-    Paginated Concourse.Build
-    -> ( Model, List Effect )
-    -> ( Model, List Effect )
+handleHistoryFetched : Paginated Concourse.Build -> ET Model
 handleHistoryFetched history ( model, effects ) =
     let
         currentBuild =
@@ -759,7 +784,7 @@ handleHistoryFetched history ( model, effects ) =
     case ( currentBuild, currentJob model ) of
         ( RemoteData.Success build, Just job ) ->
             if List.member build newModel.history then
-                ( newModel, effects ++ [ CheckIsVisible <| toString build.id ] )
+                ( newModel, effects ++ [ CheckIsVisible <| String.fromInt build.id ] )
 
             else
                 ( { newModel | fetchingHistory = True }, effects ++ [ FetchBuildHistory job history.pagination.nextPage ] )
@@ -768,11 +793,7 @@ handleHistoryFetched history ( model, effects ) =
             ( newModel, effects )
 
 
-handleBuildPrepFetched :
-    Int
-    -> Concourse.BuildPrep
-    -> ( Model, List Effect )
-    -> ( Model, List Effect )
+handleBuildPrepFetched : Int -> Concourse.BuildPrep -> ET Model
 handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
     if browsingIndex == model.browsingIndex then
         ( { model
@@ -788,18 +809,64 @@ handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
         ( model, effects )
 
 
-view : UserState -> Model -> Html Msg
+documentTitle : Model -> String
+documentTitle =
+    extractTitle
+
+
+view : UserState -> Model -> Html Message
 view userState model =
-    Html.div []
+    let
+        route =
+            case model.page of
+                OneOffBuildPage buildId ->
+                    Routes.OneOffBuild
+                        { id = buildId
+                        , highlight = model.highlight
+                        }
+
+                JobBuildPage buildId ->
+                    Routes.Build
+                        { id = buildId
+                        , highlight = model.highlight
+                        }
+    in
+    Html.div
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
-            [ style TopBar.Styles.pageIncludingTopBar, id "page-including-top-bar" ]
-            [ TopBar.view userState TopBar.Model.None model |> Html.map FromTopBar
-            , Html.div [ id "page-below-top-bar", style TopBar.Styles.pipelinePageBelowTopBar ] [ viewBuildPage model ]
+            (id "top-bar-app" :: Views.Styles.topBar False)
+            [ TopBar.concourseLogo
+            , breadcrumbs model
+            , Login.view userState model False
             ]
+        , Html.div
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
+            [ viewBuildPage model ]
         ]
 
 
-viewBuildPage : Model -> Html Msg
+breadcrumbs : Model -> Html Message
+breadcrumbs model =
+    case ( currentJob model, model.page ) of
+        ( Just jobId, _ ) ->
+            TopBar.breadcrumbs <|
+                Routes.Job
+                    { id = jobId
+                    , page = Nothing
+                    }
+
+        ( _, JobBuildPage buildId ) ->
+            TopBar.breadcrumbs <|
+                Routes.Build
+                    { id = buildId
+                    , highlight = model.highlight
+                    }
+
+        _ ->
+            Html.text ""
+
+
+viewBuildPage : Model -> Html Message
 viewBuildPage model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
@@ -808,184 +875,221 @@ viewBuildPage model =
                 , attribute "data-build-name" currentBuild.build.name
                 ]
                 [ viewBuildHeader currentBuild.build model
-                , Html.div [ class "scrollable-body build-body" ] <|
-                    [ viewBuildPrep currentBuild.prep
-                    , Html.Lazy.lazy2 viewBuildOutput currentBuild.build <|
-                        currentBuild.output
-                    , Html.div
-                        [ classList
-                            [ ( "keyboard-help", True )
-                            , ( "hidden", not model.showHelp )
-                            ]
-                        ]
-                        [ Html.div
-                            [ class "help-title" ]
-                            [ Html.text "keyboard shortcuts" ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "h" ]
-                                , Html.span [ class "key" ] [ Html.text "l" ]
-                                ]
-                            , Html.text "previous/next build"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "j" ]
-                                , Html.span [ class "key" ] [ Html.text "k" ]
-                                ]
-                            , Html.text "scroll down/up"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "T" ] ]
-                            , Html.text "trigger a new build"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "A" ] ]
-                            , Html.text "abort build"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "gg" ] ]
-                            , Html.text "scroll to the top"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "G" ] ]
-                            , Html.text "scroll to the bottom"
-                            ]
-                        , Html.div
-                            [ class "help-line" ]
-                            [ Html.div
-                                [ class "keys" ]
-                                [ Html.span [ class "key" ] [ Html.text "?" ] ]
-                            , Html.text "hide/show help"
-                            ]
-                        ]
-                    ]
-                        ++ (let
-                                build =
-                                    currentBuild.build
-
-                                maybeBirthDate =
-                                    Maybe.Extra.or build.duration.startedAt build.duration.finishedAt
-                            in
-                            case ( maybeBirthDate, build.reapTime ) of
-                                ( Just birthDate, Just reapTime ) ->
-                                    [ Html.div
-                                        [ class "tombstone" ]
-                                        [ Html.div [ class "heading" ] [ Html.text "RIP" ]
-                                        , Html.div
-                                            [ class "job-name" ]
-                                            [ Html.text <|
-                                                Maybe.withDefault
-                                                    "one-off build"
-                                                <|
-                                                    Maybe.map .jobName build.job
-                                            ]
-                                        , Html.div
-                                            [ class "build-name" ]
-                                            [ Html.text <|
-                                                "build #"
-                                                    ++ (case build.job of
-                                                            Nothing ->
-                                                                toString build.id
-
-                                                            Just _ ->
-                                                                build.name
-                                                       )
-                                            ]
-                                        , Html.div
-                                            [ class "date" ]
-                                            [ Html.text <|
-                                                mmDDYY birthDate
-                                                    ++ "-"
-                                                    ++ mmDDYY reapTime
-                                            ]
-                                        , Html.div
-                                            [ class "epitaph" ]
-                                            [ Html.text <|
-                                                case build.status of
-                                                    Concourse.BuildStatusSucceeded ->
-                                                        "It passed, and now it has passed on."
-
-                                                    Concourse.BuildStatusFailed ->
-                                                        "It failed, and now has been forgotten."
-
-                                                    Concourse.BuildStatusErrored ->
-                                                        "It errored, but has found forgiveness."
-
-                                                    Concourse.BuildStatusAborted ->
-                                                        "It was never given a chance."
-
-                                                    _ ->
-                                                        "I'm not dead yet."
-                                            ]
-                                        ]
-                                    , Html.div
-                                        [ class "explanation" ]
-                                        [ Html.text "This log has been "
-                                        , Html.a
-                                            [ Html.Attributes.href "https://concourse-ci.org/jobs.html#job-build-logs-to-retain" ]
-                                            [ Html.text "reaped." ]
-                                        ]
-                                    ]
-
-                                _ ->
-                                    []
-                           )
+                , body
+                    { currentBuild = currentBuild
+                    , authorized = model.authorized
+                    , showHelp = model.showHelp
+                    , timeZone = model.timeZone
+                    }
                 ]
 
         _ ->
             LoadingIndicator.view
 
 
-mmDDYY : Date -> String
-mmDDYY d =
-    Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
+body :
+    { currentBuild : CurrentBuild
+    , authorized : Bool
+    , showHelp : Bool
+    , timeZone : Time.Zone
+    }
+    -> Html Message
+body { currentBuild, authorized, showHelp, timeZone } =
+    Html.div
+        ([ class "scrollable-body build-body"
+         , id "build-body"
+         ]
+            ++ Styles.body
+        )
+    <|
+        if authorized then
+            [ viewBuildPrep currentBuild.prep
+            , Html.Lazy.lazy2 viewBuildOutput timeZone currentBuild.output
+            , keyboardHelp showHelp
+            ]
+                ++ tombstone timeZone currentBuild
+
+        else
+            [ NotAuthorized.view ]
 
 
-viewBuildOutput : Concourse.Build -> Maybe OutputModel -> Html Msg
-viewBuildOutput build output =
+keyboardHelp : Bool -> Html Message
+keyboardHelp showHelp =
+    Html.div
+        [ classList
+            [ ( "keyboard-help", True )
+            , ( "hidden", not showHelp )
+            ]
+        ]
+        [ Html.div
+            [ class "help-title" ]
+            [ Html.text "keyboard shortcuts" ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "h" ]
+                , Html.span [ class "key" ] [ Html.text "l" ]
+                ]
+            , Html.text "previous/next build"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "j" ]
+                , Html.span [ class "key" ] [ Html.text "k" ]
+                ]
+            , Html.text "scroll down/up"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "T" ] ]
+            , Html.text "trigger a new build"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "A" ] ]
+            , Html.text "abort build"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "gg" ] ]
+            , Html.text "scroll to the top"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "G" ] ]
+            , Html.text "scroll to the bottom"
+            ]
+        , Html.div
+            [ class "help-line" ]
+            [ Html.div
+                [ class "keys" ]
+                [ Html.span [ class "key" ] [ Html.text "?" ] ]
+            , Html.text "hide/show help"
+            ]
+        ]
+
+
+tombstone : Time.Zone -> CurrentBuild -> List (Html Message)
+tombstone timeZone currentBuild =
+    let
+        build =
+            currentBuild.build
+
+        maybeBirthDate =
+            Maybe.Extra.or build.duration.startedAt build.duration.finishedAt
+    in
+    case ( maybeBirthDate, build.reapTime ) of
+        ( Just birthDate, Just reapTime ) ->
+            [ Html.div
+                [ class "tombstone" ]
+                [ Html.div [ class "heading" ] [ Html.text "RIP" ]
+                , Html.div
+                    [ class "job-name" ]
+                    [ Html.text <|
+                        Maybe.withDefault
+                            "one-off build"
+                        <|
+                            Maybe.map .jobName build.job
+                    ]
+                , Html.div
+                    [ class "build-name" ]
+                    [ Html.text <|
+                        "build #"
+                            ++ (case build.job of
+                                    Nothing ->
+                                        String.fromInt build.id
+
+                                    Just _ ->
+                                        build.name
+                               )
+                    ]
+                , Html.div
+                    [ class "date" ]
+                    [ Html.text <|
+                        mmDDYY timeZone birthDate
+                            ++ "-"
+                            ++ mmDDYY timeZone reapTime
+                    ]
+                , Html.div
+                    [ class "epitaph" ]
+                    [ Html.text <|
+                        case build.status of
+                            Concourse.BuildStatusSucceeded ->
+                                "It passed, and now it has passed on."
+
+                            Concourse.BuildStatusFailed ->
+                                "It failed, and now has been forgotten."
+
+                            Concourse.BuildStatusErrored ->
+                                "It errored, but has found forgiveness."
+
+                            Concourse.BuildStatusAborted ->
+                                "It was never given a chance."
+
+                            _ ->
+                                "I'm not dead yet."
+                    ]
+                ]
+            , Html.div
+                [ class "explanation" ]
+                [ Html.text "This log has been "
+                , Html.a
+                    [ Html.Attributes.href "https://concourse-ci.org/jobs.html#job-build-logs-to-retain" ]
+                    [ Html.text "reaped." ]
+                ]
+            ]
+
+        _ ->
+            []
+
+
+mmDDYY : Time.Zone -> Time.Posix -> String
+mmDDYY =
+    DateFormat.format
+        [ DateFormat.monthFixed
+        , DateFormat.text "/"
+        , DateFormat.dayOfMonthFixed
+        , DateFormat.text "/"
+        , DateFormat.yearNumberLastTwo
+        ]
+
+
+viewBuildOutput : Time.Zone -> Maybe OutputModel -> Html Message
+viewBuildOutput timeZone output =
     case output of
         Just o ->
-            Build.Output.Output.view build o
+            Build.Output.Output.view timeZone o
 
         Nothing ->
             Html.div [] []
 
 
-viewBuildPrep : Maybe Concourse.BuildPrep -> Html Msg
-viewBuildPrep prep =
-    case prep of
+viewBuildPrep : Maybe Concourse.BuildPrep -> Html Message
+viewBuildPrep buildPrep =
+    case buildPrep of
         Just prep ->
             Html.div [ class "build-step" ]
                 [ Html.div
                     [ class "header"
-                    , style
-                        [ ( "display", "flex" )
-                        , ( "align-items", "center" )
-                        ]
+                    , style "display" "flex"
+                    , style "align-items" "center"
                     ]
                     [ Icon.icon
                         { sizePx = 15, image = "ic-cogs.svg" }
-                        [ style
-                            [ ( "margin", "6.5px" )
-                            , ( "margin-right", "0.5px" )
-                            ]
+                        [ style "margin" "6.5px"
+                        , style "margin-right" "0.5px"
+                        , style "background-size" "contain"
                         ]
                     , Html.h3 [] [ Html.text "preparing build" ]
                     ]
@@ -1006,29 +1110,29 @@ viewBuildPrep prep =
             Html.div [] []
 
 
-viewBuildPrepInputs : Dict String Concourse.BuildPrepStatus -> List (Html Msg)
+viewBuildPrepInputs : Dict String Concourse.BuildPrepStatus -> List (Html Message)
 viewBuildPrepInputs inputs =
     List.map viewBuildPrepInput (Dict.toList inputs)
 
 
-viewBuildPrepInput : ( String, Concourse.BuildPrepStatus ) -> Html Msg
+viewBuildPrepInput : ( String, Concourse.BuildPrepStatus ) -> Html Message
 viewBuildPrepInput ( name, status ) =
     viewBuildPrepLi ("discovering any new versions of " ++ name) status Dict.empty
 
 
-viewBuildPrepDetails : Dict String String -> Html Msg
+viewBuildPrepDetails : Dict String String -> Html Message
 viewBuildPrepDetails details =
     Html.ul [ class "details" ]
         (List.map viewDetailItem (Dict.toList details))
 
 
-viewDetailItem : ( String, String ) -> Html Msg
+viewDetailItem : ( String, String ) -> Html Message
 viewDetailItem ( name, status ) =
     Html.li []
         [ Html.text (name ++ " - " ++ status) ]
 
 
-viewBuildPrepLi : String -> Concourse.BuildPrepStatus -> Dict String String -> Html Msg
+viewBuildPrepLi : String -> Concourse.BuildPrepStatus -> Dict String String -> Html Message
 viewBuildPrepLi text status details =
     Html.li
         [ classList
@@ -1037,10 +1141,8 @@ viewBuildPrepLi text status details =
             ]
         ]
         [ Html.div
-            [ style
-                [ ( "align-items", "center" )
-                , ( "display", "flex" )
-                ]
+            [ style "align-items" "center"
+            , style "display" "flex"
             ]
             [ viewBuildPrepStatus status
             , Html.span []
@@ -1050,7 +1152,7 @@ viewBuildPrepLi text status details =
         ]
 
 
-viewBuildPrepStatus : Concourse.BuildPrepStatus -> Html Msg
+viewBuildPrepStatus : Concourse.BuildPrepStatus -> Html Message
 viewBuildPrepStatus status =
     case status of
         Concourse.BuildPrepStatusUnknown ->
@@ -1064,68 +1166,55 @@ viewBuildPrepStatus status =
                 [ Spinner.spinner { size = "12px", margin = "0 5px 0 0" } ]
 
         Concourse.BuildPrepStatusNotBlocking ->
-            Html.div
-                [ style
-                    [ ( "background-image"
-                      , "url(/public/images/ic-not-blocking-check.svg)"
-                      )
-                    , ( "background-position", "50% 50%" )
-                    , ( "background-repeat", "no-repeat" )
-                    , ( "background-size", "contain" )
-                    , ( "width", "12px" )
-                    , ( "height", "12px" )
-                    , ( "margin-right", "5px" )
-                    ]
+            Icon.icon
+                { sizePx = 12
+                , image = "ic-not-blocking-check.svg"
+                }
+                [ style "margin-right" "5px"
+                , style "background-size" "contain"
                 , title "not blocking"
                 ]
-                []
 
 
-viewBuildHeader : Concourse.Build -> Model -> Html Msg
+viewBuildHeader : Concourse.Build -> Model -> Html Message
 viewBuildHeader build model =
     let
         triggerButton =
             case currentJob model of
-                Just { jobName, pipelineName, teamName } ->
+                Just _ ->
                     let
-                        actionUrl =
-                            "/teams/"
-                                ++ teamName
-                                ++ "/pipelines/"
-                                ++ pipelineName
-                                ++ "/jobs/"
-                                ++ jobName
-                                ++ "/builds"
-
                         buttonDisabled =
                             model.disableManualTrigger
 
                         buttonHovered =
-                            model.hoveredElement == Just Trigger
-
-                        buttonHighlight =
-                            buttonHovered && not buttonDisabled
+                            model.hoveredElement == Just TriggerBuildButton
                     in
                     Html.button
-                        [ attribute "role" "button"
-                        , attribute "tabindex" "0"
-                        , attribute "aria-label" "Trigger Build"
-                        , attribute "title" "Trigger Build"
-                        , onLeftClick <| TriggerBuild build.job
-                        , onMouseEnter <| Hover (Just Trigger)
-                        , onFocus <| Hover (Just Trigger)
-                        , onMouseLeave <| Hover Nothing
-                        , onBlur <| Hover Nothing
-                        , style <| Styles.triggerButton buttonDisabled buttonHovered build.status
-                        ]
+                        ([ attribute "role" "button"
+                         , attribute "tabindex" "0"
+                         , attribute "aria-label" "Trigger Build"
+                         , attribute "title" "Trigger Build"
+                         , onLeftClick <| TriggerBuild build.job
+                         , onMouseEnter <| Hover <| Just TriggerBuildButton
+                         , onFocus <| Hover <| Just TriggerBuildButton
+                         , onMouseLeave <| Hover Nothing
+                         , onBlur <| Hover Nothing
+                         ]
+                            ++ Styles.triggerButton
+                                buttonDisabled
+                                buttonHovered
+                                build.status
+                        )
                     <|
-                        [ Html.div
-                            [ style <| Styles.triggerIcon buttonHighlight ]
+                        [ Icon.icon
+                            { sizePx = 40
+                            , image = "ic-add-circle-outline-white.svg"
+                            }
                             []
                         ]
                             ++ (if buttonDisabled && buttonHovered then
                                     [ Html.div
-                                        [ style Styles.triggerTooltip ]
+                                        Styles.triggerTooltip
                                         [ Html.text <|
                                             "manual triggering disabled "
                                                 ++ "in job config"
@@ -1140,24 +1229,27 @@ viewBuildHeader build model =
                     Html.text ""
 
         abortHovered =
-            model.hoveredElement == Just Abort
+            model.hoveredElement == Just AbortBuildButton
 
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
                 Html.button
-                    [ onLeftClick (AbortBuild build.id)
-                    , attribute "role" "button"
-                    , attribute "tabindex" "0"
-                    , attribute "aria-label" "Abort Build"
-                    , attribute "title" "Abort Build"
-                    , onMouseEnter <| Hover (Just Abort)
-                    , onFocus <| Hover (Just Abort)
-                    , onMouseLeave <| Hover Nothing
-                    , onBlur <| Hover Nothing
-                    , style <| Styles.abortButton <| abortHovered
-                    ]
-                    [ Html.div
-                        [ style <| Styles.abortIcon <| abortHovered ]
+                    ([ onLeftClick (AbortBuild build.id)
+                     , attribute "role" "button"
+                     , attribute "tabindex" "0"
+                     , attribute "aria-label" "Abort Build"
+                     , attribute "title" "Abort Build"
+                     , onMouseEnter <| Hover <| Just AbortBuildButton
+                     , onFocus <| Hover <| Just AbortBuildButton
+                     , onMouseLeave <| Hover Nothing
+                     , onBlur <| Hover Nothing
+                     ]
+                        ++ Styles.abortButton abortHovered
+                    )
+                    [ Icon.icon
+                        { sizePx = 40
+                        , image = "ic-abort-circle-outline-white.svg"
+                        }
                         []
                     ]
 
@@ -1172,7 +1264,7 @@ viewBuildHeader build model =
                             Routes.Job { id = jobId, page = Nothing }
                     in
                     Html.a
-                        [ StrictEvents.onLeftClick <| NavTo jobRoute
+                        [ StrictEvents.onLeftClick <| GoToRoute jobRoute
                         , href <| Routes.toString jobRoute
                         ]
                         [ Html.span [ class "build-name" ] [ Html.text jobId.jobName ]
@@ -1180,25 +1272,26 @@ viewBuildHeader build model =
                         ]
 
                 _ ->
-                    Html.text ("build #" ++ toString build.id)
+                    Html.text ("build #" ++ String.fromInt build.id)
     in
     Html.div [ class "fixed-header" ]
         [ Html.div
-            [ id "build-header"
-            , class "build-header"
-            , style <| Styles.header build.status
-            ]
+            ([ id "build-header"
+             , class "build-header"
+             ]
+                ++ Styles.header build.status
+            )
             [ Html.div []
                 [ Html.h1 [] [ buildTitle ]
                 , case model.now of
                     Just n ->
-                        BuildDuration.view build.duration n
+                        BuildDuration.view model.timeZone build.duration n
 
                     Nothing ->
                         Html.text ""
                 ]
             , Html.div
-                [ style [ ( "display", "flex" ) ] ]
+                [ style "display" "flex" ]
                 [ abortButton, triggerButton ]
             ]
         , Html.div
@@ -1207,24 +1300,25 @@ viewBuildHeader build model =
         ]
 
 
-lazyViewHistory : Concourse.Build -> List Concourse.Build -> Html Msg
+lazyViewHistory : Concourse.Build -> List Concourse.Build -> Html Message
 lazyViewHistory currentBuild builds =
     Html.Lazy.lazy2 viewHistory currentBuild builds
 
 
-viewHistory : Concourse.Build -> List Concourse.Build -> Html Msg
+viewHistory : Concourse.Build -> List Concourse.Build -> Html Message
 viewHistory currentBuild builds =
     Html.ul [ id "builds" ]
         (List.map (viewHistoryItem currentBuild) builds)
 
 
-viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Msg
+viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Message
 viewHistoryItem currentBuild build =
     Html.li
-        [ classList [ ( "current", build.id == currentBuild.id ) ]
-        , style <| Styles.historyItem build.status
-        , id <| toString build.id
-        ]
+        ([ classList [ ( "current", build.id == currentBuild.id ) ]
+         , id <| String.fromInt build.id
+         ]
+            ++ Styles.historyItem build.status
+        )
         [ Html.a
             [ onLeftClick <| SwitchToBuild build
             , href <| Routes.toString <| Routes.buildRoute build
@@ -1233,12 +1327,7 @@ viewHistoryItem currentBuild build =
         ]
 
 
-durationTitle : Date -> List (Html Msg) -> Html Msg
-durationTitle date content =
-    Html.div [ title (Date.Format.format "%b" date) ] content
-
-
-handleOutMsg : Build.Output.Output.OutMsg -> ( Model, List Effect ) -> ( Model, List Effect )
+handleOutMsg : Build.Output.Output.OutMsg -> ET Model
 handleOutMsg outMsg ( model, effects ) =
     case outMsg of
         Build.Output.Output.OutNoop ->

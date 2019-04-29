@@ -10,7 +10,7 @@ view =
     Html.div [ class "build-step" ]
         [ Html.div
             [ class "header"
-            , style [ ( "display", "flex" ) ]
+            , style "display" "flex"
             ]
             [ Spinner.spinner { size = "14px", margin = "7px" }
             , Html.h3 [] [ Html.text "loading..." ]

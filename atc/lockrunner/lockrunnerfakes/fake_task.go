@@ -2,10 +2,10 @@
 package lockrunnerfakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	lockrunner "github.com/concourse/concourse/atc/lockrunner"
+	"github.com/concourse/concourse/atc/lockrunner"
 )
 
 type FakeTask struct {

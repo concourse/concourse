@@ -25,6 +25,7 @@ type Job interface {
 	TeamName() string
 	Config() atc.JobConfig
 	Tags() []string
+	Public() bool
 
 	Reload() (bool, error)
 
@@ -51,9 +52,12 @@ type Job interface {
 	GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bool, error)
 
 	ClearTaskCache(string, string) (int64, error)
+
+	SetHasNewInputs(bool) error
+	HasNewInputs() bool
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -79,9 +83,32 @@ type job struct {
 	teamName           string
 	config             atc.JobConfig
 	tags               []string
+	hasNewInputs       bool
 
 	conn        Conn
 	lockFactory lock.LockFactory
+}
+
+func (j *job) SetHasNewInputs(hasNewInputs bool) error {
+	result, err := psql.Update("jobs").
+		Set("has_new_inputs", hasNewInputs).
+		Where(sq.Eq{"id": j.id}).
+		RunWith(j.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected != 1 {
+		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	return nil
 }
 
 type Jobs []Job
@@ -106,6 +133,8 @@ func (j *job) TeamID() int             { return j.teamID }
 func (j *job) TeamName() string        { return j.teamName }
 func (j *job) Config() atc.JobConfig   { return j.config }
 func (j *job) Tags() []string          { return j.tags }
+func (j *job) Public() bool            { return j.Config().Public }
+func (j *job) HasNewInputs() bool      { return j.hasNewInputs }
 
 func (j *job) Reload() (bool, error) {
 	row := jobsQuery.Where(sq.Eq{"j.id": j.id}).
@@ -803,7 +832,7 @@ func scanJob(j *job, row scannable) error {
 		nonce      sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags))
+	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs)
 	if err != nil {
 		return err
 	}

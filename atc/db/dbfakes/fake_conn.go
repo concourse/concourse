@@ -2,13 +2,13 @@
 package dbfakes
 
 import (
-	sql "database/sql"
-	driver "database/sql/driver"
-	sync "sync"
+	"database/sql"
+	"database/sql/driver"
+	"sync"
 
-	squirrel "github.com/Masterminds/squirrel"
-	db "github.com/concourse/concourse/atc/db"
-	encryption "github.com/concourse/concourse/atc/db/encryption"
+	"github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/encryption"
 )
 
 type FakeConn struct {

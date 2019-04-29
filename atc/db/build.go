@@ -850,7 +850,7 @@ func (b *build) SaveOutput(
 	}
 
 	if !found {
-		return ResourceNotFoundInPipeline{resource.Name(), b.pipelineName}
+		return ResourceNotFoundInPipeline{resourceName, b.pipelineName}
 	}
 
 	tx, err := b.conn.Begin()
@@ -1186,6 +1186,10 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	}
 
 	return createBuildEventSeq(tx, buildID)
+}
+
+func buildStartedChannel() string {
+	return fmt.Sprintf("build_started")
 }
 
 func buildEventsChannel(buildID int) string {

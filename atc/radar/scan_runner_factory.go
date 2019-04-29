@@ -3,7 +3,6 @@ package radar
 import (
 	"time"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
@@ -13,25 +12,18 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-//go:generate counterfeiter . Scanner
-
-type Scanner interface {
-	Run(lager.Logger, string) (time.Duration, error)
-	Scan(lager.Logger, string) error
-	ScanFromVersion(lager.Logger, string, atc.Version) error
-}
-
 //go:generate counterfeiter . ScanRunnerFactory
 
 type ScanRunnerFactory interface {
-	ScanResourceRunner(lager.Logger, string) IntervalRunner
-	ScanResourceTypeRunner(lager.Logger, string) IntervalRunner
+	ScanResourceRunner(lager.Logger, db.Resource) IntervalRunner
+	ScanResourceTypeRunner(lager.Logger, db.ResourceType) IntervalRunner
 }
 
 type scanRunnerFactory struct {
 	clock               clock.Clock
 	resourceScanner     Scanner
 	resourceTypeScanner Scanner
+	notifications       Notifications
 }
 
 func NewScanRunnerFactory(
@@ -45,6 +37,7 @@ func NewScanRunnerFactory(
 	externalURL string,
 	variables creds.Variables,
 	strategy worker.ContainerPlacementStrategy,
+	notifications Notifications,
 ) ScanRunnerFactory {
 	resourceTypeScanner := NewResourceTypeScanner(
 		clock,
@@ -73,13 +66,26 @@ func NewScanRunnerFactory(
 		clock:               clock,
 		resourceScanner:     resourceScanner,
 		resourceTypeScanner: resourceTypeScanner,
+		notifications:       notifications,
 	}
 }
 
-func (sf *scanRunnerFactory) ScanResourceRunner(logger lager.Logger, name string) IntervalRunner {
-	return NewIntervalRunner(logger.Session("interval-runner"), sf.clock, name, sf.resourceScanner)
+func (sf *scanRunnerFactory) ScanResourceRunner(logger lager.Logger, resource db.Resource) IntervalRunner {
+	return NewIntervalRunner(
+		logger.Session("interval-runner"),
+		sf.clock,
+		resource.ID(),
+		sf.resourceScanner,
+		sf.notifications,
+	)
 }
 
-func (sf *scanRunnerFactory) ScanResourceTypeRunner(logger lager.Logger, name string) IntervalRunner {
-	return NewIntervalRunner(logger.Session("interval-runner"), sf.clock, name, sf.resourceTypeScanner)
+func (sf *scanRunnerFactory) ScanResourceTypeRunner(logger lager.Logger, resourceType db.ResourceType) IntervalRunner {
+	return NewIntervalRunner(
+		logger.Session("interval-runner"),
+		sf.clock,
+		resourceType.ID(),
+		sf.resourceTypeScanner,
+		sf.notifications,
+	)
 }

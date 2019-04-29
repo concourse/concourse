@@ -179,6 +179,10 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 		return build.buildAggregateStep(logger, plan)
 	}
 
+	if plan.InParallel != nil {
+		return build.buildParallelStep(logger, plan)
+	}
+
 	if plan.Do != nil {
 		return build.buildDoStep(logger, plan)
 	}
@@ -193,6 +197,10 @@ func (build *execBuild) buildStep(logger lager.Logger, plan atc.Plan) exec.Step 
 
 	if plan.OnAbort != nil {
 		return build.buildOnAbortStep(logger, plan)
+	}
+
+	if plan.OnError != nil {
+		return build.buildOnErrorStep(logger, plan)
 	}
 
 	if plan.OnSuccess != nil {

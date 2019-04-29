@@ -8,8 +8,7 @@ module Build.Output.Output exposing
     )
 
 import Ansi.Log
-import Array exposing (Array)
-import Build.Msgs exposing (Msg(..))
+import Array
 import Build.Output.Models exposing (OutputModel, OutputState(..))
 import Build.StepTree.Models as StepTree
     exposing
@@ -23,37 +22,24 @@ import Build.StepTree.StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
-import Date exposing (Date)
-import Dict exposing (Dict)
-import Effects exposing (Effect(..))
+import Dict
 import Html exposing (Html)
-import Html.Attributes
-    exposing
-        ( action
-        , class
-        , classList
-        , id
-        , method
-        , style
-        , title
-        )
-import Http
+import Html.Attributes exposing (class)
+import Message.Effects exposing (Effect(..))
+import Message.Message exposing (Message(..))
 import Routes exposing (StepID)
+import Time
+import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
-import Views.NotAuthorized as NotAuthorized
 
 
 type OutMsg
     = OutNoop
-    | OutBuildStatus Concourse.BuildStatus Date
+    | OutBuildStatus Concourse.BuildStatus Time.Posix
 
 
-type alias Flags =
-    { highlight : Routes.Highlight }
-
-
-init : Flags -> Concourse.Build -> ( OutputModel, List Effect )
-init { highlight } build =
+init : Routes.Highlight -> Concourse.Build -> ( OutputModel, List Effect )
+init highlight build =
     let
         outputState =
             if Concourse.BuildStatus.isRunning build.status then
@@ -100,52 +86,37 @@ handleStepTreeMsg action model =
 
 planAndResourcesFetched :
     Concourse.BuildId
-    -> Result Http.Error ( Concourse.BuildPlan, Concourse.BuildResources )
+    -> ( Concourse.BuildPlan, Concourse.BuildResources )
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-planAndResourcesFetched buildId result model =
+planAndResourcesFetched buildId ( plan, resources ) model =
     let
         url =
-            "/api/v1/builds/" ++ toString buildId ++ "/events"
+            "/api/v1/builds/" ++ String.fromInt buildId ++ "/events"
     in
-    ( case result of
-        Err err ->
-            case err of
-                Http.BadStatus { status } ->
-                    if status.code == 404 then
-                        { model | eventStreamUrlPath = Just url }
-
-                    else
-                        model
-
-                _ ->
-                    flip always (Debug.log "failed to fetch plan" err) <|
-                        model
-
-        Ok ( plan, resources ) ->
-            { model
-                | steps = Just (Build.StepTree.StepTree.init model.highlight resources plan)
-                , eventStreamUrlPath = Just url
-            }
+    ( { model
+        | steps =
+            Just
+                (Build.StepTree.StepTree.init
+                    model.highlight
+                    resources
+                    plan
+                )
+        , eventStreamUrlPath = Just url
+      }
     , []
     , OutNoop
     )
 
 
 handleEnvelopes :
-    Result String (List BuildEventEnvelope)
+    List BuildEventEnvelope
     -> OutputModel
     -> ( OutputModel, List Effect, OutMsg )
-handleEnvelopes action model =
-    case action of
-        Ok envelopes ->
-            envelopes
-                |> List.reverse
-                |> List.foldr handleEnvelope ( model, [], OutNoop )
-
-        Err err ->
-            flip always (Debug.log "failed to get event" err) <|
-                ( model, [], OutNoop )
+handleEnvelopes envelopes model =
+    envelopes
+        |> List.reverse
+        |> List.foldr handleEnvelope ( model, [], OutNoop )
 
 
 handleEnvelope :
@@ -182,58 +153,80 @@ handleEvent event ( model, effects, outmsg ) =
             , outmsg
             )
 
-        Error origin message ->
-            ( updateStep origin.id (setStepError message) model
+        Error origin message time ->
+            ( updateStep origin.id (setStepError message time) model
             , effects
             , outmsg
             )
 
-        Initialize origin ->
-            ( updateStep origin.id setRunning model
+        InitializeTask origin time ->
+            ( updateStep origin.id (setInitialize time) model
             , effects
             , outmsg
             )
 
-        StartTask origin ->
-            ( updateStep origin.id setRunning model
+        StartTask origin time ->
+            ( updateStep origin.id (setStart time) model
             , effects
             , outmsg
             )
 
-        FinishTask origin exitStatus ->
-            ( updateStep origin.id (finishStep exitStatus) model
+        FinishTask origin exitStatus time ->
+            ( updateStep origin.id (finishStep exitStatus (Just time)) model
             , effects
             , outmsg
             )
 
-        FinishGet origin exitStatus version metadata ->
-            ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
+        InitializeGet origin time ->
+            ( updateStep origin.id (setInitialize time) model
             , effects
             , outmsg
             )
 
-        FinishPut origin exitStatus version metadata ->
-            ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
+        StartGet origin time ->
+            ( updateStep origin.id (setStart time) model
+            , effects
+            , outmsg
+            )
+
+        FinishGet origin exitStatus version metadata time ->
+            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
+            , effects
+            , outmsg
+            )
+
+        InitializePut origin time ->
+            ( updateStep origin.id (setInitialize time) model
+            , effects
+            , outmsg
+            )
+
+        StartPut origin time ->
+            ( updateStep origin.id (setStart time) model
+            , effects
+            , outmsg
+            )
+
+        FinishPut origin exitStatus version metadata time ->
+            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
             , effects
             , outmsg
             )
 
         BuildStatus status date ->
             let
-                ( newSt, newEffects ) =
-                    case model.steps of
-                        Just st ->
-                            if not <| Concourse.BuildStatus.isRunning status then
-                                Build.StepTree.StepTree.finished st
-                                    |> Tuple.mapFirst Just
+                newSt =
+                    model.steps
+                        |> Maybe.map
+                            (\st ->
+                                if Concourse.BuildStatus.isRunning status then
+                                    st
 
-                            else
-                                ( Just st, [] )
-
-                        Nothing ->
-                            ( Nothing, [] )
+                                else
+                                    Build.StepTree.StepTree.finished st
+                            )
             in
-            ( { model | steps = newSt }, effects ++ newEffects, OutBuildStatus status date )
+            ( { model | steps = newSt }, effects, OutBuildStatus status date )
 
         BuildError message ->
             ( { model
@@ -253,15 +246,7 @@ handleEvent event ( model, effects, outmsg ) =
             )
 
         NetworkError ->
-            if model.eventSourceOpened then
-                -- connection could have dropped out of the blue;
-                -- just let the browser handle reconnecting
-                ( model, effects, outmsg )
-
-            else
-                -- assume request was rejected because auth is required;
-                -- no way to really tell
-                ( { model | state = NotAuthorized }, effects, outmsg )
+            ( model, effects, outmsg )
 
 
 updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel
@@ -274,9 +259,9 @@ setRunning =
     setStepState StepStateRunning
 
 
-appendStepLog : String -> Maybe Date -> StepTree -> StepTree
+appendStepLog : String -> Maybe Time.Posix -> StepTree -> StepTree
 appendStepLog output mtime tree =
-    flip StepTree.map tree <|
+    (\a -> StepTree.map a tree) <|
         \step ->
             let
                 outputLineCount =
@@ -286,7 +271,7 @@ appendStepLog output mtime tree =
                     max (Array.length step.log.lines - 1) 0
 
                 setLineTimestamp line timestamps =
-                    Dict.update line (\mval -> mtime) timestamps
+                    Dict.update line (always mtime) timestamps
 
                 newTimestamps =
                     List.foldl
@@ -300,20 +285,31 @@ appendStepLog output mtime tree =
             { step | log = newLog, timestamps = newTimestamps }
 
 
-setStepError : String -> StepTree -> StepTree
-setStepError message tree =
+setStepError : String -> Time.Posix -> StepTree -> StepTree
+setStepError message time tree =
     StepTree.map
         (\step ->
             { step
                 | state = StepStateErrored
                 , error = Just message
+                , finish = Just time
             }
         )
         tree
 
 
-finishStep : Int -> StepTree -> StepTree
-finishStep exitStatus tree =
+setStart : Time.Posix -> StepTree -> StepTree
+setStart time tree =
+    setStepStart time (setStepState StepStateRunning tree)
+
+
+setInitialize : Time.Posix -> StepTree -> StepTree
+setInitialize time tree =
+    setStepInitialize time (setStepState StepStateRunning tree)
+
+
+finishStep : Int -> Maybe Time.Posix -> StepTree -> StepTree
+finishStep exitStatus mtime tree =
     let
         stepState =
             if exitStatus == 0 then
@@ -322,7 +318,7 @@ finishStep exitStatus tree =
             else
                 StepStateFailed
     in
-    setStepState stepState tree
+    setStepFinish mtime (setStepState stepState tree)
 
 
 setResourceInfo : Concourse.Version -> Concourse.Metadata -> StepTree -> StepTree
@@ -335,38 +331,50 @@ setStepState state tree =
     StepTree.map (\step -> { step | state = state }) tree
 
 
-view : Concourse.Build -> OutputModel -> Html Msg
-view build { steps, errors, state } =
+setStepInitialize : Time.Posix -> StepTree -> StepTree
+setStepInitialize time tree =
+    StepTree.map (\step -> { step | initialize = Just time }) tree
+
+
+setStepStart : Time.Posix -> StepTree -> StepTree
+setStepStart time tree =
+    StepTree.map (\step -> { step | start = Just time }) tree
+
+
+setStepFinish : Maybe Time.Posix -> StepTree -> StepTree
+setStepFinish mtime tree =
+    StepTree.map (\step -> { step | finish = mtime }) tree
+
+
+view : Time.Zone -> OutputModel -> Html Message
+view timeZone { steps, errors, state } =
     Html.div [ class "steps" ]
         [ viewErrors errors
-        , viewStepTree build steps state
+        , viewStepTree timeZone steps state
         ]
 
 
 viewStepTree :
-    Concourse.Build
+    Time.Zone
     -> Maybe StepTreeModel
     -> OutputState
-    -> Html Msg
-viewStepTree build steps state =
+    -> Html Message
+viewStepTree timeZone steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
             LoadingIndicator.view
 
-        ( NotAuthorized, _ ) ->
-            NotAuthorized.view
-
         ( StepsLiveUpdating, Just root ) ->
-            Build.StepTree.StepTree.view root
+            Build.StepTree.StepTree.view timeZone root
 
         ( StepsComplete, Just root ) ->
-            Build.StepTree.StepTree.view root
+            Build.StepTree.StepTree.view timeZone root
 
         ( _, Nothing ) ->
             Html.div [] []
 
 
-viewErrors : Maybe Ansi.Log.Model -> Html msg
+viewErrors : Maybe Ansi.Log.Model -> Html Message
 viewErrors errors =
     case errors of
         Nothing ->
@@ -375,11 +383,11 @@ viewErrors errors =
         Just log ->
             Html.div [ class "build-step" ]
                 [ Html.div [ class "header" ]
-                    [ Html.div
-                        [ style <|
-                            Styles.stepStatusIcon "ic-exclamation-triangle"
-                        ]
-                        []
+                    [ Icon.icon
+                        { sizePx = 28
+                        , image = "ic-exclamation-triangle.svg"
+                        }
+                        Styles.stepStatusIcon
                     , Html.h3 [] [ Html.text "error" ]
                     ]
                 , Html.div [ class "step-body build-errors-body" ]
