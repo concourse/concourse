@@ -1,0 +1,128 @@
+\title{Kubernetes Credential Manager}{kubernetes-credential-manager}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+
+
+Concourse can be configured to pull credentials from \link{Kubernetes
+\code{secret}
+objects}{https://kubernetes.io/docs/concepts/configuration/secret}.
+
+To configure this, either enable the in-cluster client by setting the
+following env on the \reference{web-node}:
+
+\codeblock{bash}{{{
+CONCOURSE_KUBERNETES_IN_CLUSTER=true
+}}}
+
+or set the path to a \code{kubeconfig} file:
+
+\codeblock{bash}{{{
+CONCOURSE_KUBERNETES_CONFIG_PATH=~/.kube/config
+}}}
+
+\section{
+  \title{Credential lookup rules}{kubernetes-credential-lookup-rules}
+
+  When resolving a parameter such as \code{((foo))}, Concourse will resolve in the following order in the namespace configured for that team:
+
+  \list{
+    \codeblock{c}{{{
+    Name:         PIPELINE_NAME.foo
+    Namespace:    concourse-TEAM_NAME
+    Type:         Opaque
+
+    Data
+    ====
+    value:        32 bytes
+    }}}
+  }{
+    \codeblock{c}{{{
+    Name:         foo
+    Namespace:    concourse-TEAM_NAME
+    Type:         Opaque
+
+    Data
+    ====
+    value:        32 bytes
+    }}}
+  }
+
+  You can specify the field to grab via \code{.} syntax, e.g. \code{((foo.bar))}:
+
+  \list{
+    \codeblock{c}{{{
+    Name:         PIPELINE_NAME.foo
+    Namespace:    concourse-TEAM_NAME
+    Type:         Opaque
+
+    Data
+    ====
+    bar:          32 bytes
+    }}}
+  }{
+    \codeblock{c}{{{
+    Name:         foo
+    Namespace:    concourse-TEAM_NAME
+    Type:         Opaque
+
+    Data
+    ====
+    bar:          32 bytes
+    }}}
+  }
+
+  The leading \code{/concourse} can be changed by specifying the following:
+
+  \codeblock{bash}{{{
+  CONCOURSE_KUBERNETES_NAMESPACE_PREFIX=some-other-prefix-
+  }}}
+
+
+  If an action is being run in a one-off build, Concourse will not include the
+  pipeline name in the secret that it looks for.
+
+}
+
+
+\section{
+  \title{Configuring Kubernetes RBAC}
+
+  /* In cases where the Concourse Web node is run in a namespace that is different */
+  /* from the namespace where teams secrets live, additional authorization must */
+  /* be granted for the Web node to be able to access secrets in such separate */
+  /* namespace. */
+
+
+  As the Web nodes need to retrieve secrets from namespaces that are not its own,
+  it needs extra permissions to do so.
+
+
+
+
+
+  ```sketch
+
+  1. web and team namespaces are different
+
+    `web` needs permission to `get_secret` from such namespace
+
+  ```
+
+
+
+
+
+  As the Kubernetes credential manager needs to retrieve the secrets from the
+  team's namespace (which is not necessarily the same as the one that `web` is
+  deployed to), it needs to have at least permissions to retrieve them.
+
+  web --> kubernetes GET_SECRETS(namespace)
+
+  - permissions necessary for web
+
+
+
+}
+
