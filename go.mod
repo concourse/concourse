@@ -3,7 +3,7 @@ module github.com/concourse/concourse
 require (
 	cloud.google.com/go v0.28.0 // indirect
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
-	code.cloudfoundry.org/credhub-cli v0.0.0-20180814203433-814bc1b711fe
+	code.cloudfoundry.org/credhub-cli v0.0.0-20190415201820-e3951663d25c
 	code.cloudfoundry.org/garden v0.0.0-20181108172608-62470dc86365
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	code.cloudfoundry.org/localip v0.0.0-20170223024724-b88ad0dea95c
