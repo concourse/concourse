@@ -1,4 +1,5 @@
 \title{Dockerhub Flow}{dockerhub-flow-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
 

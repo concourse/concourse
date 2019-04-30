@@ -75,14 +75,4 @@ they are.
   (\code{0.0.0.0}) and register themselves directly. Otherwise they should bind
   on \code{127.0.0.1} and forward themselves through the
   \reference{component-tsa}{TSA}.
-
-  \section{
-    \title{Garden\aux{: container orchestration}}{component-garden}
-  }
-
-  \section{
-    \title{BaggageClaim\aux{: volume management}}{component-baggageclaim}
-  }
 }
-
-\include-section{./internals.lit}

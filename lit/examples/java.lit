@@ -1,14 +1,11 @@
 \title{Java Application}{java-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
 
-\section{
-  \title{}{pipeline}
+You can run the tests for a Java application.
 
-	You can run the tests for a Java application.
-
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/java}
-}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/java}
 
 \section{
   \title{Pipeline Configuration}{configuration}

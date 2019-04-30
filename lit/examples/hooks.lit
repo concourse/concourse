@@ -1,14 +1,13 @@
-\title{Job & Task Hooks}{hooks-example}
+\title{Job & task hooks example}{hooks-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
 
-\section{
-  \title{}{pipeline}
+\link{Job Hooks}{/steps.html} and \link{Step hooks}{on-success-step-hook} are
+available to perform actions based on the success, failure, or abortion of a
+job.
 
-	\link{Job Hooks}{/steps.html} and \link{Step hooks}{on-success-step-hook} are available to perform actions based on the success, failure, or abortion of a job.
-
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/job}
-}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/hooks}
 
 \section{
   \title{Pipeline Configuration}{configuration}

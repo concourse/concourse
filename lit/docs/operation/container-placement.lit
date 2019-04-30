@@ -21,7 +21,7 @@ on the configured strategy.
 
   The disadvantage of this approach is that it can sometimes result in builds
   "gravitating" to a particular worker and overloading it, at least until the
-  \reference{resource-retention}{resource caches} warm across the worker pool.
+  resource caches warm across the worker pool.
 
   If your builds tend to be light on artifacts and heavy on task execution, you
   may want to try the \reference{fewest-build-containers-strategy} instead.

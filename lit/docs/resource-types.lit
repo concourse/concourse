@@ -7,8 +7,10 @@ what versions are detected, the bits that are fetched when used for a
 \reference{get-step}, and the side effect that occurs when used for a
 \reference{put-step}.
 
-Out of the box, Concourse comes with a few resource types to cover common CI
-use cases like dealing with Git repositories and S3 buckets.
+Out of the box, Concourse comes with a few resource types to cover common CI use
+cases like dealing with Git repositories and S3 buckets. These are called the
+"core" resource types. These are packaged with the worker, and can be listed via
+\reference{fly-workers}{\code{fly workers -d}}.
 
 Beyond these core types, each pipeline can configure its own resource types by
 specifying \code{resource_types} at the top level. Each resource type is itself
@@ -16,12 +18,10 @@ defined as a resource that provides the container image for the pipeline
 resource type (see \reference{implementing-resource-types}). You will almost
 always be using the \resource{registry-image} when doing this.
 
-Pipeline-provided resource types can override the core resource types, and can
-be defined in terms of each other. Also, a pipeline resource type can use the
-core type that it's overriding. This is useful if you want to e.g. provide your
-own custom \code{docker-image} resource, by overriding the core one (and using
-it one last time for the override itself), and then using it for all other
-pipeline resource types.
+A somewhat exhaustive list of all available resource types - both from the
+Concourse core project and from external contributors - is available in the
+\link{Resource Types wiki
+page}{https://github.com/concourse/concourse/wiki/Resource-Types}.
 
 Similar to \reference{resources}, each configured resource type consists of the
 following attributes:
@@ -31,6 +31,9 @@ following attributes:
   and simple. This name will be referenced by \reference{pipeline-resources}
   defined within the same pipeline, and \reference{image_resource}s used by
   tasks running in the pipeline.
+
+  Pipeline-provided resource types can override the core resource types by
+  specifying the same name.
 }{resource-type-name}
 
 \define-attribute{type: string}{
@@ -39,6 +42,10 @@ following attributes:
   \code{docker-image}, as the resource type must result in a container image,
   though there may be other image formats (possibly themselves defined as
   pipeline resource types!).
+
+  A resource type's type can refer to other resource types, and can also use the
+  core type that it's overriding. This is useful for bringing in a newer or
+  forked \code{registry-image} resource.
 }{resource-type-type}
 
 \define-attribute{source: object}{
@@ -94,7 +101,6 @@ following attributes:
 
 \split-sections
 
-\include-section{./resource-types/included-resources.lit}
 \include-section{./resource-types/managing.lit}
 \include-section{./resource-types/implementing.lit}
 

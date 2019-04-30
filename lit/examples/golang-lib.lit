@@ -1,14 +1,11 @@
-\title{Golang Library}{golang-library-example}
+\title{Golang library testing example}{golang-library-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
 
-\section{
-  \title{}{pipeline}
+You can run the tests for a Golang library across any specified versions.
 
-	You can run the tests for a Golang library across any specified versions.
-
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/golang-lib}
-}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/golang-lib}
 
 \right-side{Why?}{
 This example shows how to have multiple versions of a language, environment, or dependency fetched and integrated in to a \reference{pipelines}{Pipeline}.

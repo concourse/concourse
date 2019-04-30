@@ -1,6 +1,0 @@
-\title{Learning}{learning}
-
-\use-plugin{concourse-docs}
-
-\include-section{./tutorials.lit}
-\include-section{./examples.lit}

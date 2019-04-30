@@ -116,19 +116,6 @@ h3 {
 .top-nav {
   grid-area: primary-nav;
 }
-.top-nav .icon-link {
-  background-repeat: no-repeat;
-  background-size: 22px 22px;
-  background-position: 20px 30px;
-  padding-left: 54px;
-}
-/* shoutout to hashicorp who i've pretty much copied this from */
-.top-nav .download-link {
-  background-image: url("../images/arrow-down-box.svg");
-}
-.top-nav .github-link {
-  background-image: url("../images/github-box.svg");
-}
 .top-search {
   grid-area: search;
 }
@@ -248,7 +235,7 @@ h3 {
 .top-logo a:visited {
   color: white;
 }
-.top-nav a {
+.top-link {
   color: white;
   font-size: 16px;
   text-transform: lowercase;
@@ -256,18 +243,31 @@ h3 {
   display: inline-block;
   padding: 0 25px;
 }
-.top-nav a,
-.top-nav a:visited {
+.top-link,
+.top-link:visited {
   color: white;
   text-decoration: none;
 }
-.top-nav a:hover {
+.top-link:hover {
   text-decoration: underline;
 }
-.top-nav a.active {
+.top-link.active {
   background: white;
   color: #2a2929;
   text-decoration: underline;
+}
+.icon-link {
+  background-repeat: no-repeat;
+  background-size: 22px 22px;
+  background-position: 20px 30px;
+  padding-left: 54px;
+}
+/* shoutout to hashicorp who i've pretty much copied this from */
+.download-link {
+  background-image: url("../images/icons/arrow-down-box.svg");
+}
+.github-link {
+  background-image: url("../images/icons/github-box.svg");
 }
 .page-content h1 {
   border-top: 4px solid #2a2929;
@@ -302,6 +302,10 @@ h3 {
   padding-left: 30px;
   margin-top: 1.6em;
   margin-bottom: 1.6em;
+}
+.page-content ol.toc {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 .page-content code {
   background: rgba(30, 29, 29, 0.07);
@@ -746,7 +750,7 @@ h3 .anchor {
   padding: 5px;
   transition: all 0.25s ease-out;
   position: absolute;
-  right: 30px;
+  right: 24px;
   top: 24px;
   width: 32px;
   height: 32px;
@@ -761,7 +765,7 @@ h3 .anchor {
 .search-input:valid {
   outline: none;
   position: absolute;
-  right: 30px;
+  right: 24px;
   background: white;
   border-color: #e6e5e5;
   width: 500px;
@@ -777,8 +781,8 @@ h3 .anchor {
   color: #2a2929;
   width: 500px;
   position: fixed;
-  top: 50px;
-  right: 30px;
+  top: 56px;
+  right: 24px;
   bottom: 0;
   margin: 0;
   overflow-y: auto;
@@ -952,6 +956,9 @@ a.github-user:hover {
   .page-content.index {
     grid-column-start: 1 / span 2;
     grid-column-end: 3;
+  }
+  .icon-link {
+    background-position-y: 20px;
   }
   .page-content.full {
     grid-column: 1;

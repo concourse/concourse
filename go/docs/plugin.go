@@ -122,12 +122,18 @@ func (p Plugin) Warn(content booklit.Content) booklit.Content {
 	}
 }
 
-func (p Plugin) Frame(src booklit.Content) booklit.Content {
+func (p Plugin) Frame(src booklit.Content, optionalHeight ...string) booklit.Content {
+	height := "300px"
+	if len(optionalHeight) > 0 {
+		height = optionalHeight[0]
+	}
+
 	return booklit.Styled{
 		Style:   "frame",
 		Content: booklit.Empty,
 		Partials: booklit.Partials{
-			"Src": src,
+			"URL":    src,
+			"Height": booklit.String(height),
 		},
 	}
 }

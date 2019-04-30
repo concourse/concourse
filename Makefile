@@ -10,7 +10,7 @@ clean:
 js/search.js: elm/Search.elm elm/Query.elm
 	yarn run elm make --output $@ $^
 
-css/booklit.css: less/booklit.less
+css/booklit.css: less/booklit.less less/responsive.less
 	yarn run lessc $< $@
 
 css/pipeline.css: less/pipeline.less

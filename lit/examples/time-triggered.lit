@@ -1,14 +1,11 @@
-\title{Time Triggered Job}{time-triggered-job-example}
+\title{\code{time}-triggered job example}{time-trigger-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
 
-\section{
-  \title{}{pipeline}
+The \resource{time} can be used to trigger a job.
 
-  The \link{time resource}{https://github.com/concourse/time-resource} can be used to trigger a job.
-
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/time-triggered}
-}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/time-triggered}
 
 \section{
   \title{Pipeline Configuration}{configuration}

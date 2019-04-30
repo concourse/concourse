@@ -1,14 +1,11 @@
-\title{Rails Application}{rails-example}
+\title{Rails application testing example}{rails-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
 
-\section{
-  \title{}{pipeline}
+You can run the tests for a Rails that requires a specific version of ruby and relies on a Postges database.
 
-	You can run the tests for a Rails that requires a specific version of ruby and relies on a Postges database.
-
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/rails}
-}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/rails}
 
 \section{
   \title{Pipeline Configuration}{configuration}

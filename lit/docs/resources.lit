@@ -16,20 +16,7 @@ configuration. Each configured resource consists of the following fields:
 }{resource-name}
 
 \define-attribute{type: string}{
-  \italic{Required.} The type of the resource.
-
-  Resource types are available from two sources:
-
-  \list{
-    \reference{resource-types} defined in the same pipeline. In this case the
-    string value refers to the \reference{resource-type-name}.
-  }{
-    Linux workers are pre-loaded with a set of
-    \reference{included-resource-types}{"base" resource types}, available to
-    all pipelines that run on them. This is visible in
-    \reference{fly-workers}{\code{fly workers -d}}.
-  }
-
+  \italic{Required.} The \reference{resource-types}{resource type}.
 }{resource-type}
 
 \define-attribute{icon: string}{
@@ -113,7 +100,6 @@ configuration. Each configured resource consists of the following fields:
 \split-sections
 
 \include-section{resources/managing.lit}
-\include-section{./resource-types.lit}
 
 \right-side{Examples}{
   \example{\code{git} resource}{
