@@ -9,6 +9,7 @@ import Html.Events as HE
 import Http
 import Json.Decode as JD
 import Json.Decode.Extra as JDE exposing (andMap)
+import Maybe.Extra as ME
 import Query
 
 
@@ -23,7 +24,7 @@ type alias Doc =
 type alias Model =
     { query : String
     , docs : BooklitIndex
-    , result : Dict String Query.Result
+    , result : Dict String DocumentResult
     }
 
 
@@ -92,15 +93,22 @@ performSearch model =
             { model | result = DE.filterMap (match query) docs }
 
 
-match : String -> String -> BooklitDocument -> Maybe Query.Result
+type DocumentMatch
+    = TitleMatch Query.Result
+    | TextMatch Query.Result
+
+
+match : String -> String -> BooklitDocument -> Maybe DocumentResult
 match query tag doc =
-    Query.matchWords query doc.title
+    Maybe.map TitleMatch (Query.matchWords query doc.title)
+        |> ME.orElseLazy (\() -> Maybe.map TextMatch (Query.matchWords query doc.text))
+        |> Maybe.map (DocumentResult tag doc)
 
 
 type alias DocumentResult =
     { tag : String
-    , result : Query.Result
     , doc : BooklitDocument
+    , result : DocumentMatch
     }
 
 
@@ -115,8 +123,7 @@ view model =
             , HA.required True
             ]
             []
-        , Dict.toList model.result
-            |> List.filterMap (\( tag, res ) -> Maybe.map (DocumentResult tag res) (Dict.get tag model.docs))
+        , Dict.values model.result
             |> List.sortWith suggestedOrder
             |> List.map (viewDocumentResult model)
             |> Html.ul [ HA.class "search-results" ]
@@ -125,20 +132,28 @@ view model =
 
 suggestedOrder : DocumentResult -> DocumentResult -> Order
 suggestedOrder a b =
-    case compare a.doc.depth b.doc.depth of
-        EQ ->
-            case ( a.tag == a.doc.sectionTag, b.tag == b.doc.sectionTag ) of
-                ( True, False ) ->
-                    LT
+    case ( a.result, b.result ) of
+        ( TitleMatch _, TextMatch _ ) ->
+            LT
 
-                ( False, True ) ->
-                    GT
+        ( TextMatch _, TitleMatch _ ) ->
+            GT
 
-                _ ->
-                    compare (String.length a.doc.title) (String.length b.doc.title)
+        _ ->
+            case compare a.doc.depth b.doc.depth of
+                EQ ->
+                    case ( a.tag == a.doc.sectionTag, b.tag == b.doc.sectionTag ) of
+                        ( True, False ) ->
+                            LT
 
-        x ->
-            x
+                        ( False, True ) ->
+                            GT
+
+                        _ ->
+                            compare (String.length a.doc.title) (String.length b.doc.title)
+
+                x ->
+                    x
 
 
 viewDocumentResult : Model -> DocumentResult -> Html Msg
@@ -147,7 +162,14 @@ viewDocumentResult model { tag, result, doc } =
         [ Html.a [ HA.href doc.location ]
             [ Html.article []
                 [ Html.div [ HA.class "result-header" ]
-                    [ Html.h3 [] (emphasize result doc.title)
+                    [ Html.h3 []
+                        [ case result of
+                            TitleMatch m ->
+                                emphasize m doc.title
+
+                            TextMatch _ ->
+                                Html.text doc.title
+                        ]
                     , if doc.sectionTag == tag then
                         Html.text ""
 
@@ -164,7 +186,12 @@ viewDocumentResult model { tag, result, doc } =
 
                   else
                     Html.p []
-                        [ Html.text (String.left 130 doc.text)
+                        [ case result of
+                            TitleMatch _ ->
+                                Html.text (String.left 130 doc.text)
+
+                            TextMatch m ->
+                                emphasize m (String.left 130 doc.text)
                         , if String.length doc.text > 130 then
                             Html.text "..."
 
@@ -176,7 +203,7 @@ viewDocumentResult model { tag, result, doc } =
         ]
 
 
-emphasize : Query.Result -> String -> List (Html Msg)
+emphasize : Query.Result -> String -> Html Msg
 emphasize matches str =
     let
         ( hs, lastOffset ) =
@@ -192,7 +219,7 @@ emphasize matches str =
                 ( [], 0 )
                 matches
     in
-    hs ++ [ Html.text (String.dropLeft lastOffset str) ]
+    Html.span [] (hs ++ [ Html.text (String.dropLeft lastOffset str) ])
 
 
 decodeSearchIndex : JD.Decoder BooklitIndex

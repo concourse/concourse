@@ -2,6 +2,7 @@ module Query exposing (Result, matchWords)
 
 import Dict exposing (Dict)
 import Maybe.Extra as ME
+import Regex
 
 
 type alias Result =
@@ -15,14 +16,11 @@ type alias Match =
 matchWords : String -> String -> Maybe Result
 matchWords needle haystack =
     let
-        lns =
-            String.words (String.toLower needle)
-
-        lh =
-            String.toLower haystack
-
         matches =
-            List.map (wordMatches lh) lns
+            needle
+                |> String.toLower
+                |> String.words
+                |> List.map (wordMatches (String.toLower haystack))
     in
     if List.any List.isEmpty matches then
         Nothing
@@ -39,11 +37,20 @@ matchWords needle haystack =
 wordMatches : String -> String -> Result
 wordMatches lowerHaystack lowerNeedle =
     let
-        l =
+        len =
             String.length lowerNeedle
+
+        indexes =
+            if len == 1 then
+                lowerHaystack
+                    |> Regex.find (Maybe.withDefault Regex.never (Regex.fromString ("\\b(" ++ lowerNeedle ++ ")\\b")))
+                    |> List.map .index
+
+            else
+                String.indexes lowerNeedle lowerHaystack
     in
-    String.indexes lowerNeedle lowerHaystack
-        |> List.map (\i -> ( i, l ))
+    indexes
+        |> List.map (\i -> ( i, len ))
 
 
 largestMatchFirst : Match -> Match -> Order

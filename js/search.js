@@ -2483,6 +2483,107 @@ function _Http_multipart(parts)
 }
 
 
+// CREATE
+
+var _Regex_never = /.^/;
+
+var _Regex_fromStringWith = F2(function(options, string)
+{
+	var flags = 'g';
+	if (options.multiline) { flags += 'm'; }
+	if (options.caseInsensitive) { flags += 'i'; }
+
+	try
+	{
+		return elm$core$Maybe$Just(new RegExp(string, flags));
+	}
+	catch(error)
+	{
+		return elm$core$Maybe$Nothing;
+	}
+});
+
+
+// USE
+
+var _Regex_contains = F2(function(re, string)
+{
+	return string.match(re) !== null;
+});
+
+
+var _Regex_findAtMost = F3(function(n, re, str)
+{
+	var out = [];
+	var number = 0;
+	var string = str;
+	var lastIndex = re.lastIndex;
+	var prevLastIndex = -1;
+	var result;
+	while (number++ < n && (result = re.exec(string)))
+	{
+		if (prevLastIndex == re.lastIndex) break;
+		var i = result.length - 1;
+		var subs = new Array(i);
+		while (i > 0)
+		{
+			var submatch = result[i];
+			subs[--i] = submatch
+				? elm$core$Maybe$Just(submatch)
+				: elm$core$Maybe$Nothing;
+		}
+		out.push(A4(elm$regex$Regex$Match, result[0], result.index, number, _List_fromArray(subs)));
+		prevLastIndex = re.lastIndex;
+	}
+	re.lastIndex = lastIndex;
+	return _List_fromArray(out);
+});
+
+
+var _Regex_replaceAtMost = F4(function(n, re, replacer, string)
+{
+	var count = 0;
+	function jsReplacer(match)
+	{
+		if (count++ >= n)
+		{
+			return match;
+		}
+		var i = arguments.length - 3;
+		var submatches = new Array(i);
+		while (i > 0)
+		{
+			var submatch = arguments[i];
+			submatches[--i] = submatch
+				? elm$core$Maybe$Just(submatch)
+				: elm$core$Maybe$Nothing;
+		}
+		return replacer(A4(elm$regex$Regex$Match, match, arguments[arguments.length - 2], count, _List_fromArray(submatches)));
+	}
+	return string.replace(re, jsReplacer);
+});
+
+var _Regex_splitAtMost = F3(function(n, re, str)
+{
+	var string = str;
+	var out = [];
+	var start = re.lastIndex;
+	var restoreLastIndex = re.lastIndex;
+	while (n--)
+	{
+		var result = re.exec(string);
+		if (!result) break;
+		out.push(string.slice(start, result.index));
+		start = re.lastIndex;
+	}
+	out.push(string.slice(start));
+	re.lastIndex = restoreLastIndex;
+	return _List_fromArray(out);
+});
+
+var _Regex_infinity = Infinity;
+
+
 
 
 // HELPERS
@@ -5786,6 +5887,16 @@ var author$project$Main$init = _Utils_Tuple2(
 				author$project$Main$DocumentsFetched,
 				A2(elm$http$Http$get, 'search_index.json', author$project$Main$decodeSearchIndex))
 			])));
+var author$project$Main$DocumentResult = F3(
+	function (tag, doc, result) {
+		return {doc: doc, result: result, tag: tag};
+	});
+var author$project$Main$TextMatch = function (a) {
+	return {$: 'TextMatch', a: a};
+};
+var author$project$Main$TitleMatch = function (a) {
+	return {$: 'TitleMatch', a: a};
+};
 var author$project$Query$largestMatchFirst = F2(
 	function (_n0, _n1) {
 		var xi = _n0.a;
@@ -5816,17 +5927,51 @@ var author$project$Query$simplifyResult = F2(
 					])),
 			i + l));
 	});
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
 var elm$core$String$indexes = _String_indexes;
 var elm$core$String$length = _String_length;
+var elm$regex$Regex$Match = F4(
+	function (match, index, number, submatches) {
+		return {index: index, match: match, number: number, submatches: submatches};
+	});
+var elm$regex$Regex$find = _Regex_findAtMost(_Regex_infinity);
+var elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
+var elm$regex$Regex$fromString = function (string) {
+	return A2(
+		elm$regex$Regex$fromStringWith,
+		{caseInsensitive: false, multiline: false},
+		string);
+};
+var elm$regex$Regex$never = _Regex_never;
 var author$project$Query$wordMatches = F2(
 	function (lowerHaystack, lowerNeedle) {
-		var l = elm$core$String$length(lowerNeedle);
+		var len = elm$core$String$length(lowerNeedle);
+		var indexes = (len === 1) ? A2(
+			elm$core$List$map,
+			function ($) {
+				return $.index;
+			},
+			A2(
+				elm$regex$Regex$find,
+				A2(
+					elm$core$Maybe$withDefault,
+					elm$regex$Regex$never,
+					elm$regex$Regex$fromString('\\b(' + (lowerNeedle + ')\\b'))),
+				lowerHaystack)) : A2(elm$core$String$indexes, lowerNeedle, lowerHaystack);
 		return A2(
 			elm$core$List$map,
 			function (i) {
-				return _Utils_Tuple2(i, l);
+				return _Utils_Tuple2(i, len);
 			},
-			A2(elm$core$String$indexes, lowerNeedle, lowerHaystack));
+			indexes);
 	});
 var elm$core$List$any = F2(
 	function (isOkay, list) {
@@ -5872,13 +6017,12 @@ var elm$core$String$toLower = _String_toLower;
 var elm$core$String$words = _String_words;
 var author$project$Query$matchWords = F2(
 	function (needle, haystack) {
-		var lns = elm$core$String$words(
-			elm$core$String$toLower(needle));
-		var lh = elm$core$String$toLower(haystack);
 		var matches = A2(
 			elm$core$List$map,
-			author$project$Query$wordMatches(lh),
-			lns);
+			author$project$Query$wordMatches(
+				elm$core$String$toLower(haystack)),
+			elm$core$String$words(
+				elm$core$String$toLower(needle)));
 		return A2(elm$core$List$any, elm$core$List$isEmpty, matches) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(
 			A3(
 				elm$core$List$foldl,
@@ -5889,9 +6033,41 @@ var author$project$Query$matchWords = F2(
 					author$project$Query$largestMatchFirst,
 					elm$core$List$concat(matches))).a);
 	});
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm_community$maybe_extra$Maybe$Extra$orElseLazy = F2(
+	function (fma, mb) {
+		if (mb.$ === 'Nothing') {
+			return fma(_Utils_Tuple0);
+		} else {
+			return mb;
+		}
+	});
 var author$project$Main$match = F3(
 	function (query, tag, doc) {
-		return A2(author$project$Query$matchWords, query, doc.title);
+		return A2(
+			elm$core$Maybe$map,
+			A2(author$project$Main$DocumentResult, tag, doc),
+			A2(
+				elm_community$maybe_extra$Maybe$Extra$orElseLazy,
+				function (_n0) {
+					return A2(
+						elm$core$Maybe$map,
+						author$project$Main$TextMatch,
+						A2(author$project$Query$matchWords, query, doc.text));
+				},
+				A2(
+					elm$core$Maybe$map,
+					author$project$Main$TitleMatch,
+					A2(author$project$Query$matchWords, query, doc.title))));
 	});
 var elm$core$Dict$foldl = F3(
 	function (func, acc, dict) {
@@ -5993,33 +6169,46 @@ var author$project$Main$update = F2(
 				elm$core$Platform$Cmd$none);
 		}
 	});
-var author$project$Main$DocumentResult = F3(
-	function (tag, result, doc) {
-		return {doc: doc, result: result, tag: tag};
-	});
 var author$project$Main$SetQuery = function (a) {
 	return {$: 'SetQuery', a: a};
 };
 var author$project$Main$suggestedOrder = F2(
 	function (a, b) {
-		var _n0 = A2(elm$core$Basics$compare, a.doc.depth, b.doc.depth);
-		if (_n0.$ === 'EQ') {
-			var _n1 = _Utils_Tuple2(
+		var _n0 = _Utils_Tuple2(a.result, b.result);
+		_n0$2:
+		while (true) {
+			if (_n0.a.$ === 'TitleMatch') {
+				if (_n0.b.$ === 'TextMatch') {
+					return elm$core$Basics$LT;
+				} else {
+					break _n0$2;
+				}
+			} else {
+				if (_n0.b.$ === 'TitleMatch') {
+					return elm$core$Basics$GT;
+				} else {
+					break _n0$2;
+				}
+			}
+		}
+		var _n1 = A2(elm$core$Basics$compare, a.doc.depth, b.doc.depth);
+		if (_n1.$ === 'EQ') {
+			var _n2 = _Utils_Tuple2(
 				_Utils_eq(a.tag, a.doc.sectionTag),
 				_Utils_eq(b.tag, b.doc.sectionTag));
-			_n1$2:
+			_n2$2:
 			while (true) {
-				if (_n1.a) {
-					if (!_n1.b) {
+				if (_n2.a) {
+					if (!_n2.b) {
 						return elm$core$Basics$LT;
 					} else {
-						break _n1$2;
+						break _n2$2;
 					}
 				} else {
-					if (_n1.b) {
+					if (_n2.b) {
 						return elm$core$Basics$GT;
 					} else {
-						break _n1$2;
+						break _n2$2;
 					}
 				}
 			}
@@ -6028,7 +6217,7 @@ var author$project$Main$suggestedOrder = F2(
 				elm$core$String$length(a.doc.title),
 				elm$core$String$length(b.doc.title));
 		} else {
-			var x = _n0;
+			var x = _n1;
 			return x;
 		}
 	});
@@ -6054,6 +6243,7 @@ var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	}
 };
 var elm$html$Html$mark = _VirtualDom_node('mark');
+var elm$html$Html$span = _VirtualDom_node('span');
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var author$project$Main$emphasize = F2(
@@ -6088,13 +6278,16 @@ var author$project$Main$emphasize = F2(
 			matches);
 		var hs = _n0.a;
 		var lastOffset = _n0.b;
-		return _Utils_ap(
-			hs,
-			_List_fromArray(
-				[
-					elm$html$Html$text(
-					A2(elm$core$String$dropLeft, lastOffset, str))
-				]));
+		return A2(
+			elm$html$Html$span,
+			_List_Nil,
+			_Utils_ap(
+				hs,
+				_List_fromArray(
+					[
+						elm$html$Html$text(
+						A2(elm$core$String$dropLeft, lastOffset, str))
+					])));
 	});
 var elm$core$String$isEmpty = function (string) {
 	return string === '';
@@ -6159,16 +6352,26 @@ var author$project$Main$viewDocumentResult = F2(
 											A2(
 											elm$html$Html$h3,
 											_List_Nil,
-											A2(author$project$Main$emphasize, result, doc.title)),
+											_List_fromArray(
+												[
+													function () {
+													if (result.$ === 'TitleMatch') {
+														var m = result.a;
+														return A2(author$project$Main$emphasize, m, doc.title);
+													} else {
+														return elm$html$Html$text(doc.title);
+													}
+												}()
+												])),
 											function () {
 											if (_Utils_eq(doc.sectionTag, tag)) {
 												return elm$html$Html$text('');
 											} else {
-												var _n1 = A2(elm$core$Dict$get, doc.sectionTag, model.docs);
-												if (_n1.$ === 'Nothing') {
+												var _n2 = A2(elm$core$Dict$get, doc.sectionTag, model.docs);
+												if (_n2.$ === 'Nothing') {
 													return elm$html$Html$text('');
 												} else {
-													var sectionDoc = _n1.a;
+													var sectionDoc = _n2.a;
 													return A2(
 														elm$html$Html$h4,
 														_List_Nil,
@@ -6185,42 +6388,34 @@ var author$project$Main$viewDocumentResult = F2(
 									_List_Nil,
 									_List_fromArray(
 										[
-											elm$html$Html$text(
-											A2(elm$core$String$left, 130, doc.text)),
+											function () {
+											if (result.$ === 'TitleMatch') {
+												return elm$html$Html$text(
+													A2(elm$core$String$left, 130, doc.text));
+											} else {
+												var m = result.a;
+												return A2(
+													author$project$Main$emphasize,
+													m,
+													A2(elm$core$String$left, 130, doc.text));
+											}
+										}(),
 											(elm$core$String$length(doc.text) > 130) ? elm$html$Html$text('...') : elm$html$Html$text('')
 										]))
 								]))
 						]))
 				]));
 	});
-var elm$core$List$maybeCons = F3(
-	function (f, mx, xs) {
-		var _n0 = f(mx);
-		if (_n0.$ === 'Just') {
-			var x = _n0.a;
-			return A2(elm$core$List$cons, x, xs);
-		} else {
-			return xs;
-		}
-	});
-var elm$core$List$filterMap = F2(
-	function (f, xs) {
-		return A3(
-			elm$core$List$foldr,
-			elm$core$List$maybeCons(f),
-			_List_Nil,
-			xs);
-	});
-var elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return elm$core$Maybe$Nothing;
-		}
-	});
+var elm$core$Dict$values = function (dict) {
+	return A3(
+		elm$core$Dict$foldr,
+		F3(
+			function (key, value, valueList) {
+				return A2(elm$core$List$cons, value, valueList);
+			}),
+		_List_Nil,
+		dict);
+};
 var elm$html$Html$input = _VirtualDom_node('input');
 var elm$html$Html$ul = _VirtualDom_node('ul');
 var elm$html$Html$Attributes$placeholder = elm$html$Html$Attributes$stringProperty('placeholder');
@@ -6295,17 +6490,7 @@ var author$project$Main$view = function (model) {
 					A2(
 						elm$core$List$sortWith,
 						author$project$Main$suggestedOrder,
-						A2(
-							elm$core$List$filterMap,
-							function (_n0) {
-								var tag = _n0.a;
-								var res = _n0.b;
-								return A2(
-									elm$core$Maybe$map,
-									A2(author$project$Main$DocumentResult, tag, res),
-									A2(elm$core$Dict$get, tag, model.docs));
-							},
-							elm$core$Dict$toList(model.result)))))
+						elm$core$Dict$values(model.result))))
 			]));
 };
 var elm$browser$Browser$External = function (a) {
