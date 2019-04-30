@@ -15,7 +15,12 @@ part-time contributors.
 \list{
   The \link{\code{concourse/concourse} GitHub
   repo}{https://github.com/concourse/concourse} is where the main code lives
-  and where project planning begins.
+  and where roadmap planning begins.
+}{
+  The \link{\code{concourse/concourse} GitHub
+  wiki}{https://github.com/concourse/concourse/wiki} is the main point of
+  discovery for all community-created resource types/tools/tutorials/etc., and
+  is also used as a contributor knowledge base.
 }{
   Our \link{Medium blog}{https://medium.com/concourse-ci} features (occasional)
   updates from the development side.
