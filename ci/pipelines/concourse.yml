@@ -833,7 +833,7 @@ jobs:
         default_task_cpu_limit: 1024
         container_placement_strategy: "fewest-build-containers"
         worker_rebalance_interval: 30m
-        volume_sweeper_max_in_flight: 1
+        volume_sweeper_max_in_flight: 3
         vault_shared_path: "shared"
 
 - name: bosh-wings-deploy
