@@ -743,9 +743,9 @@ func (cmd *RunCommand) constructBackendMembers(
 		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
-		engine,
 		checkContainerStrategy,
 	)
+
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)

@@ -10,8 +10,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine"
-	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputmapperfakes"
 	"github.com/concourse/concourse/atc/scheduler/maxinflight/maxinflightfakes"
@@ -26,7 +24,6 @@ var _ = Describe("BuildStarter", func() {
 		fakePipeline    *dbfakes.FakePipeline
 		fakeUpdater     *maxinflightfakes.FakeUpdater
 		fakeFactory     *schedulerfakes.FakeBuildFactory
-		fakeEngine      *enginefakes.FakeEngine
 		pendingBuilds   []db.Build
 		fakeInputMapper *inputmapperfakes.FakeInputMapper
 
@@ -39,10 +36,9 @@ var _ = Describe("BuildStarter", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeUpdater = new(maxinflightfakes.FakeUpdater)
 		fakeFactory = new(schedulerfakes.FakeBuildFactory)
-		fakeEngine = new(enginefakes.FakeEngine)
 		fakeInputMapper = new(inputmapperfakes.FakeInputMapper)
 
-		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeUpdater, fakeFactory, fakeInputMapper, fakeEngine)
+		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeUpdater, fakeFactory, fakeInputMapper)
 
 		disaster = errors.New("bad thing")
 	})
@@ -122,7 +118,7 @@ var _ = Describe("BuildStarter", func() {
 					})
 
 					It("does not start the build", func() {
-						Expect(fakeEngine.CreateBuildCallCount()).To(BeZero())
+						Expect(createdBuild.StartCallCount()).To(BeZero())
 					})
 
 					It("returns without error", func() {
@@ -261,7 +257,7 @@ var _ = Describe("BuildStarter", func() {
 									fakePipeline.CheckPausedReturns(false, nil)
 									createdBuild.ScheduleReturns(true, nil)
 									createdBuild.UseInputsReturns(nil)
-									fakeEngine.CreateBuildReturns(new(enginefakes.FakeBuild), nil)
+									createdBuild.StartReturns(true, nil)
 								})
 
 								It("uses the updated list of resource types", func() {
@@ -474,7 +470,9 @@ var _ = Describe("BuildStarter", func() {
 							Context("when creating the build plan succeeds", func() {
 								BeforeEach(func() {
 									fakeFactory.CreateReturns(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}, nil)
-									fakeEngine.CreateBuildReturns(new(enginefakes.FakeBuild), nil)
+									pendingBuild1.StartReturns(true, nil)
+									pendingBuild2.StartReturns(true, nil)
+									pendingBuild3.StartReturns(true, nil)
 								})
 
 								It("creates build plans for all builds", func() {
@@ -498,9 +496,9 @@ var _ = Describe("BuildStarter", func() {
 									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 								})
 
-								Context("when creating the engine build fails", func() {
+								Context("when starting the build fails", func() {
 									BeforeEach(func() {
-										fakeEngine.CreateBuildReturns(nil, disaster)
+										pendingBuild1.StartReturns(false, disaster)
 									})
 
 									It("doesn't return an error", func() {
@@ -508,29 +506,26 @@ var _ = Describe("BuildStarter", func() {
 									})
 								})
 
-								Context("when creating the engine build succeeds", func() {
-									var engineBuild1 *enginefakes.FakeBuild
-									var engineBuild2 *enginefakes.FakeBuild
-									var engineBuild3 *enginefakes.FakeBuild
-
+								Context("when starting the build returns false", func() {
 									BeforeEach(func() {
-										engineBuild1 = new(enginefakes.FakeBuild)
-										engineBuild2 = new(enginefakes.FakeBuild)
-										engineBuild3 = new(enginefakes.FakeBuild)
-										createBuildCallCount := 0
-										fakeEngine.CreateBuildStub = func(lager.Logger, db.Build, atc.Plan) (engine.Build, error) {
-											createBuildCallCount++
-											switch createBuildCallCount {
-											case 1:
-												return engineBuild1, nil
-											case 2:
-												return engineBuild2, nil
-											case 3:
-												return engineBuild3, nil
-											default:
-												panic("unexpected-call-count-for-create-build")
-											}
-										}
+										pendingBuild1.StartReturns(false, nil)
+									})
+
+									It("doesn't return an error", func() {
+										Expect(tryStartErr).NotTo(HaveOccurred())
+									})
+
+									It("finishes the build with aborted status", func() {
+										Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
+										Expect(pendingBuild1.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+									})
+								})
+
+								Context("when starting the builds returns true", func() {
+									BeforeEach(func() {
+										pendingBuild1.StartReturns(true, nil)
+										pendingBuild2.StartReturns(true, nil)
+										pendingBuild3.StartReturns(true, nil)
 									})
 
 									It("doesn't return an error", func() {
@@ -539,25 +534,15 @@ var _ = Describe("BuildStarter", func() {
 
 									itUpdatedMaxInFlightForAllBuilds()
 
-									It("created the engine build with the right build and plan", func() {
-										Expect(fakeEngine.CreateBuildCallCount()).To(Equal(3))
-										_, actualBuild, actualPlan := fakeEngine.CreateBuildArgsForCall(0)
-										Expect(actualBuild).To(Equal(pendingBuild1))
-										Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+									It("starts the build with the right plan", func() {
+										Expect(pendingBuild1.StartCallCount()).To(Equal(1))
+										Expect(pendingBuild1.StartArgsForCall(0)).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
 
-										_, actualBuild, actualPlan = fakeEngine.CreateBuildArgsForCall(1)
-										Expect(actualBuild).To(Equal(pendingBuild2))
-										Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+										Expect(pendingBuild2.StartCallCount()).To(Equal(1))
+										Expect(pendingBuild2.StartArgsForCall(0)).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
 
-										_, actualBuild, actualPlan = fakeEngine.CreateBuildArgsForCall(2)
-										Expect(actualBuild).To(Equal(pendingBuild3))
-										Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
-									})
-
-									It("starts the engine build (asynchronously)", func() {
-										Eventually(engineBuild1.ResumeCallCount).Should(Equal(1))
-										Eventually(engineBuild2.ResumeCallCount).Should(Equal(1))
-										Eventually(engineBuild3.ResumeCallCount).Should(Equal(1))
+										Expect(pendingBuild3.StartCallCount()).To(Equal(1))
+										Expect(pendingBuild3.StartArgsForCall(0)).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
 									})
 								})
 							})

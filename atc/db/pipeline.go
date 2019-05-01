@@ -1026,7 +1026,7 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		"team_id":      p.teamID,
 		"status":       BuildStatusStarted,
 		"start_time":   sq.Expr("now()"),
-		"schema":       "exec.v2",
+		"schema":       schema,
 		"private_plan": encryptedPlan,
 		"public_plan":  plan.Public(),
 		"nonce":        nonce,

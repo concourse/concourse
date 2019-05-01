@@ -708,7 +708,7 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		"team_id":      t.id,
 		"status":       BuildStatusStarted,
 		"start_time":   sq.Expr("now()"),
-		"schema":       "exec.v2",
+		"schema":       schema,
 		"private_plan": encryptedPlan,
 		"public_plan":  plan.Public(),
 		"nonce":        nonce,
