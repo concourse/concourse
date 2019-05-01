@@ -171,7 +171,7 @@ local generate_dpkg_list = {
 };
 
 local publish_job(bump) = {
-  name: bump,
+  name: "publish-" + bump,
   plan: [
     {
       aggregate: [
