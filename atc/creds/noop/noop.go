@@ -1,13 +1,16 @@
 package noop
 
-import "github.com/cloudfoundry/bosh-cli/director/template"
+import (
+	"github.com/concourse/concourse/atc/creds"
+	"time"
+)
 
 type Noop struct{}
 
-func (n Noop) Get(varDef template.VariableDefinition) (interface{}, bool, error) {
-	return nil, false, nil
+func (n Noop) NewSecretLookupPaths(string, string) []creds.SecretLookupPath {
+	return []creds.SecretLookupPath{}
 }
 
-func (n Noop) List() ([]template.VariableDefinition, error) {
-	return []template.VariableDefinition{}, nil
+func (n Noop) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+	return nil, nil, false, nil
 }

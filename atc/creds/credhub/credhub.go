@@ -1,50 +1,48 @@
 package credhub
 
 import (
+	"github.com/concourse/concourse/atc/creds"
 	"path"
+	"time"
 
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 )
 
 type CredHubAtc struct {
 	CredHub *LazyCredhub
 	logger  lager.Logger
-
-	PathPrefix   string
-	TeamName     string
-	PipelineName string
+	prefix  string
 }
 
-func (c CredHubAtc) Get(varDef template.VariableDefinition) (interface{}, bool, error) {
+// NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
+func (c CredHubAtc) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+	lookupPaths := []creds.SecretLookupPath{}
+	if len(pipelineName) > 0 {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, teamName, pipelineName)+"/"))
+	}
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, teamName)+"/"))
+	return lookupPaths
+}
+
+// Get retrieves the value and expiration of an individual secret
+func (c CredHubAtc) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	var cred credentials.Credential
 	var found bool
 	var err error
 
-	if c.PipelineName != "" {
-		path := c.path(c.TeamName, c.PipelineName, varDef.Name)
-		cred, found, err = c.findCred(path)
-		if err != nil {
-			c.logger.Error("could not find cred", err)
-			return nil, false, err
-		}
+	cred, found, err = c.findCred(secretPath)
+	if err != nil {
+		c.logger.Error("unable to retrieve credhub secret", err)
+		return nil, nil, false, err
 	}
 
 	if !found {
-		cred, found, err = c.findCred(c.path(c.TeamName, varDef.Name))
-		if err != nil {
-			c.logger.Error("could not find cred", err)
-			return nil, false, err
-		}
+		return nil, nil, false, nil
 	}
 
-	if !found {
-		return nil, false, nil
-	}
-
-	var result interface{} = cred.Value
+	var result = cred.Value
 
 	if standardMap, ok := cred.Value.(map[string]interface{}); ok {
 		// TODO - we should do this recursively since the cpp4life go-path library
@@ -59,7 +57,7 @@ func (c CredHubAtc) Get(varDef template.VariableDefinition) (interface{}, bool, 
 		result = evenLessTyped
 	}
 
-	return result, true, nil
+	return result, nil, true, nil
 }
 
 func (c CredHubAtc) findCred(path string) (credentials.Credential, bool, error) {
@@ -87,14 +85,3 @@ func (c CredHubAtc) findCred(path string) (credentials.Credential, bool, error) 
 
 	return cred, true, nil
 }
-
-func (c CredHubAtc) path(segments ...string) string {
-	return path.Join(append([]string{c.PathPrefix}, segments...)...)
-}
-
-func (c CredHubAtc) List() ([]template.VariableDefinition, error) {
-	// not implemented, see vault implementation
-	return []template.VariableDefinition{}, nil
-}
-
-var _ template.Variables = new(CredHubAtc)

@@ -93,7 +93,7 @@ func (manager *SsmManager) Health() (*creds.HealthResponse, error) {
 		Method: "GetParameter",
 	}
 
-	_, _, err := manager.Ssm.getParameterByName("__concourse-health-check")
+	_, _, _, err := manager.Ssm.getParameterByName("__concourse-health-check")
 	if err != nil {
 		if errObj, ok := err.(awserr.Error); ok && strings.Contains(errObj.Code(), "AccessDenied") {
 			health.Response = map[string]string{
@@ -153,7 +153,7 @@ func (manager *SsmManager) Validate() error {
 	return nil
 }
 
-func (manager *SsmManager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
+func (manager *SsmManager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactory, error) {
 
 	session, err := manager.getSession()
 	if err != nil {

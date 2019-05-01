@@ -7,19 +7,19 @@ import (
 )
 
 type Server struct {
-	logger           lager.Logger
-	teamFactory      db.TeamFactory
-	variablesFactory creds.VariablesFactory
+	logger        lager.Logger
+	teamFactory   db.TeamFactory
+	secretManager creds.Secrets
 }
 
 func NewServer(
 	logger lager.Logger,
 	teamFactory db.TeamFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 ) *Server {
 	return &Server{
-		logger:           logger,
-		teamFactory:      teamFactory,
-		variablesFactory: variablesFactory,
+		logger:        logger,
+		teamFactory:   teamFactory,
+		secretManager: secretManager,
 	}
 }

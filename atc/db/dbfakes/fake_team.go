@@ -110,13 +110,13 @@ type FakeTeam struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	FindCheckContainersStub        func(lager.Logger, string, string, creds.VariablesFactory) ([]db.Container, map[int]time.Time, error)
+	FindCheckContainersStub        func(lager.Logger, string, string, creds.Secrets) ([]db.Container, map[int]time.Time, error)
 	findCheckContainersMutex       sync.RWMutex
 	findCheckContainersArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
 		arg3 string
-		arg4 creds.VariablesFactory
+		arg4 creds.Secrets
 	}
 	findCheckContainersReturns struct {
 		result1 []db.Container
@@ -879,14 +879,14 @@ func (fake *FakeTeam) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) FindCheckContainers(arg1 lager.Logger, arg2 string, arg3 string, arg4 creds.VariablesFactory) ([]db.Container, map[int]time.Time, error) {
+func (fake *FakeTeam) FindCheckContainers(arg1 lager.Logger, arg2 string, arg3 string, arg4 creds.Secrets) ([]db.Container, map[int]time.Time, error) {
 	fake.findCheckContainersMutex.Lock()
 	ret, specificReturn := fake.findCheckContainersReturnsOnCall[len(fake.findCheckContainersArgsForCall)]
 	fake.findCheckContainersArgsForCall = append(fake.findCheckContainersArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
 		arg3 string
-		arg4 creds.VariablesFactory
+		arg4 creds.Secrets
 	}{arg1, arg2, arg3, arg4})
 	fake.recordInvocation("FindCheckContainers", []interface{}{arg1, arg2, arg3, arg4})
 	fake.findCheckContainersMutex.Unlock()
@@ -906,13 +906,13 @@ func (fake *FakeTeam) FindCheckContainersCallCount() int {
 	return len(fake.findCheckContainersArgsForCall)
 }
 
-func (fake *FakeTeam) FindCheckContainersCalls(stub func(lager.Logger, string, string, creds.VariablesFactory) ([]db.Container, map[int]time.Time, error)) {
+func (fake *FakeTeam) FindCheckContainersCalls(stub func(lager.Logger, string, string, creds.Secrets) ([]db.Container, map[int]time.Time, error)) {
 	fake.findCheckContainersMutex.Lock()
 	defer fake.findCheckContainersMutex.Unlock()
 	fake.FindCheckContainersStub = stub
 }
 
-func (fake *FakeTeam) FindCheckContainersArgsForCall(i int) (lager.Logger, string, string, creds.VariablesFactory) {
+func (fake *FakeTeam) FindCheckContainersArgsForCall(i int) (lager.Logger, string, string, creds.Secrets) {
 	fake.findCheckContainersMutex.RLock()
 	defer fake.findCheckContainersMutex.RUnlock()
 	argsForCall := fake.findCheckContainersArgsForCall[i]

@@ -20,7 +20,7 @@ type stepFactory struct {
 	resourceFetcher       resource.Fetcher
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
-	variablesFactory      creds.VariablesFactory
+	secretManager         creds.Secrets
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
 	resourceFactory       resource.ResourceFactory
@@ -32,7 +32,7 @@ func NewStepFactory(
 	resourceFetcher resource.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
@@ -43,7 +43,7 @@ func NewStepFactory(
 		resourceFetcher:       resourceFetcher,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
-		variablesFactory:      variablesFactory,
+		secretManager:         secretManager,
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		resourceFactory:       resourceFactory,
@@ -59,7 +59,7 @@ func (factory *stepFactory) GetStep(
 ) exec.Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
-	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
+	variables := creds.NewVariables(factory.secretManager, build.TeamName(), build.PipelineName())
 
 	getStep := exec.NewGetStep(
 		build,
@@ -99,7 +99,7 @@ func (factory *stepFactory) PutStep(
 ) exec.Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
-	variables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
+	variables := creds.NewVariables(factory.secretManager, build.TeamName(), build.PipelineName())
 
 	var putInputs exec.PutInputs
 	if plan.Put.Inputs == nil {
@@ -152,7 +152,7 @@ func (factory *stepFactory) TaskStep(
 
 	containerMetadata.WorkingDirectory = workingDirectory
 
-	credMgrVariables := factory.variablesFactory.NewVariables(build.TeamName(), build.PipelineName())
+	credMgrVariables := creds.NewVariables(factory.secretManager, build.TeamName(), build.PipelineName())
 
 	var taskConfigSource exec.TaskConfigSource
 	var taskVars []template.Variables

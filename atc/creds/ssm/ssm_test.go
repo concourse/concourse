@@ -2,6 +2,7 @@ package ssm_test
 
 import (
 	"errors"
+	"github.com/concourse/concourse/atc/creds"
 	"strconv"
 	"text/template"
 
@@ -84,6 +85,7 @@ func (mock *MockSsmService) GetParametersByPathPages(input *ssm.GetParametersByP
 
 var _ = Describe("Ssm", func() {
 	var ssmAccess *Ssm
+	var variables creds.Variables
 	var varDef varTemplate.VariableDefinition
 	var mockService MockSsmService
 
@@ -95,7 +97,8 @@ var _ = Describe("Ssm", func() {
 		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		ssmAccess = NewSsm(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", []*template.Template{t1, t2})
+		ssmAccess = NewSsm(lager.NewLogger("ssm_test"), &mockService, []*template.Template{t1, t2})
+		variables = creds.NewVariables(ssmAccess, "alpha", "bogus")
 		Expect(ssmAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (string, error) {
 			if input == "/concourse/alpha/bogus/cheery" {
@@ -110,7 +113,7 @@ var _ = Describe("Ssm", func() {
 
 	Describe("Get()", func() {
 		It("should get parameter if exists", func() {
-			value, found, err := ssmAccess.Get(varDef)
+			value, found, err := variables.Get(varDef)
 			Expect(value).To(BeEquivalentTo("ssm decrypted value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -128,7 +131,7 @@ var _ = Describe("Ssm", func() {
 					},
 				}
 			}
-			value, found, err := ssmAccess.Get(varTemplate.VariableDefinition{Name: "user"})
+			value, found, err := variables.Get(varTemplate.VariableDefinition{Name: "user"})
 			Expect(value).To(BeEquivalentTo(map[interface{}]interface{}{
 				"name": "yours",
 				"pass": "truely",
@@ -141,7 +144,7 @@ var _ = Describe("Ssm", func() {
 			mockService.stubGetParameter = func(input string) (string, error) {
 				return "101", nil
 			}
-			value, found, err := ssmAccess.Get(varDef)
+			value, found, err := variables.Get(varDef)
 			Expect(value).To(BeEquivalentTo("101"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -154,7 +157,7 @@ var _ = Describe("Ssm", func() {
 				}
 				return "team decrypted value", nil
 			}
-			value, found, err := ssmAccess.Get(varDef)
+			value, found, err := variables.Get(varDef)
 			Expect(value).To(BeEquivalentTo("team decrypted value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -162,19 +165,19 @@ var _ = Describe("Ssm", func() {
 
 		It("should return not found on error", func() {
 			mockService.stubGetParameter = nil
-			value, found, err := ssmAccess.Get(varDef)
+			value, found, err := variables.Get(varDef)
 			Expect(value).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("should allow empty pipeline name", func() {
-			ssmAccess.PipelineName = ""
+			variables := creds.NewVariables(ssmAccess, "alpha", "")
 			mockService.stubGetParameter = func(input string) (string, error) {
 				Expect(input).To(Equal("/concourse/alpha/cheery"))
 				return "team power", nil
 			}
-			value, found, err := ssmAccess.Get(varDef)
+			value, found, err := variables.Get(varDef)
 			Expect(value).To(BeEquivalentTo("team power"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())

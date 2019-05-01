@@ -2,7 +2,6 @@ package credhub
 
 import (
 	"code.cloudfoundry.org/lager"
-
 	"github.com/concourse/concourse/atc/creds"
 )
 
@@ -20,12 +19,10 @@ func NewCredHubFactory(logger lager.Logger, credhub *LazyCredhub, prefix string)
 	}
 }
 
-func (factory *credhubFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
+func (factory *credhubFactory) NewSecrets() creds.Secrets {
 	return &CredHubAtc{
-		CredHub:      factory.credhub,
-		PathPrefix:   factory.prefix,
-		TeamName:     teamName,
-		logger:       factory.logger,
-		PipelineName: pipelineName,
+		CredHub: factory.credhub,
+		logger:  factory.logger,
+		prefix:  factory.prefix,
 	}
 }
