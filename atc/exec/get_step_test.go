@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
@@ -40,7 +39,7 @@ var _ = Describe("GetStep", func() {
 		fakeStrategy             *workerfakes.FakeContainerPlacementStrategy
 		fakeResourceFetcher      *resourcefakes.FakeFetcher
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeVariablesFactory     *credsfakes.FakeVariablesFactory
+		fakeSecretManager        *credsfakes.FakeSecrets
 		variables                creds.Variables
 		fakeBuild                *dbfakes.FakeBuild
 		fakeDelegate             *execfakes.FakeGetDelegate
@@ -78,11 +77,9 @@ var _ = Describe("GetStep", func() {
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
-		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-		variables = template.StaticVariables{
-			"source-param": "super-secret-source",
-		}
-		fakeVariablesFactory.NewVariablesReturns(variables)
+		fakeSecretManager = new(credsfakes.FakeSecrets)
+		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
+		variables = creds.NewVariables(fakeSecretManager, "team", "pipeline")
 
 		artifactRepository = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -132,7 +129,7 @@ var _ = Describe("GetStep", func() {
 			Get: getPlan,
 		}
 
-		variables := fakeVariablesFactory.NewVariables(fakeBuild.TeamName(), fakeBuild.PipelineName())
+		variables := creds.NewVariables(fakeSecretManager, fakeBuild.TeamName(), fakeBuild.PipelineName())
 
 		getStep = exec.NewGetStep(
 			fakeBuild,

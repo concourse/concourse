@@ -19,9 +19,6 @@ type VaultManager struct {
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 	SharedPath string `long:"shared-path" description:"Path under which to lookup shared credentials."`
 
-	Cache    bool          `long:"cache" description:"Cache returned secrets for their lease duration in memory"`
-	MaxLease time.Duration `long:"max-lease" description:"If the cache is enabled, and this is set, override secrets lease duration with a maximum value"`
-
 	TLS    TLS
 	Auth   AuthConfig
 	Client *APIClient
@@ -77,8 +74,6 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&map[string]interface{}{
 		"url":                manager.URL,
 		"path_prefix":        manager.PathPrefix,
-		"cache":              manager.Cache,
-		"max_lease":          manager.MaxLease,
 		"ca_cert":            manager.TLS.CACert,
 		"server_name":        manager.TLS.ServerName,
 		"auth_backend":       manager.Auth.Backend,
@@ -125,12 +120,7 @@ func (manager VaultManager) Health() (*creds.HealthResponse, error) {
 	return health, nil
 }
 
-func (manager VaultManager) NewVariablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
+func (manager VaultManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
 	ra := NewReAuther(manager.Client, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
-	var sr SecretReader = manager.Client
-	if manager.Cache {
-		sr = NewCache(manager.Client, manager.MaxLease)
-	}
-
-	return NewVaultFactory(sr, ra.LoggedIn(), manager.PathPrefix, manager.SharedPath), nil
+	return NewVaultFactory(manager.Client, ra.LoggedIn(), manager.PathPrefix, manager.SharedPath), nil
 }

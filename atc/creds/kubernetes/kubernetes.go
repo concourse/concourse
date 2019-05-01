@@ -2,8 +2,12 @@ package kubernetes
 
 import (
 	"code.cloudfoundry.org/lager"
+	"fmt"
+	"github.com/concourse/concourse/atc/creds"
+	"path"
+	"strings"
+	"time"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	v1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,48 +16,56 @@ import (
 
 type Kubernetes struct {
 	Clientset       *kubernetes.Clientset
-	TeamName        string
-	PipelineName    string
-	NamespacePrefix string
 	logger          lager.Logger
+	namespacePrefix string
 }
 
-func (k Kubernetes) Get(varDef template.VariableDefinition) (interface{}, bool, error) {
-	var namespace = k.NamespacePrefix + k.TeamName
-	var pipelineSecretName = k.PipelineName + "." + varDef.Name
-	var secretName = varDef.Name
+// NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
+func (k Kubernetes) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+	lookupPaths := []creds.SecretLookupPath{}
+	if len(pipelineName) > 0 {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(k.namespacePrefix, teamName, pipelineName)+"/"))
+	}
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(k.namespacePrefix, teamName)+"/"))
+	return lookupPaths
+}
 
-	secret, found, err := k.findSecret(namespace, pipelineSecretName)
-
-	if !found && err == nil {
-		secret, found, err = k.findSecret(namespace, secretName)
+// Get retrieves the value and expiration of an individual secret
+func (k Kubernetes) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+	parts := strings.Split(secretPath, ":")
+	if len(parts) != 2 {
+		return nil, nil, false, fmt.Errorf("unable to split kubernetes secret path into [namespace]:[secret]: %s", secretPath)
 	}
 
+	var namespace = parts[0]
+	var secretName = parts[1]
+
+	secret, found, err := k.findSecret(namespace, secretName)
+
 	if err != nil {
-		k.logger.Error("k8s-secret-error", err, lager.Data{
-			"namespace":          namespace,
-			"pipelineSecretName": pipelineSecretName,
-			"secretName":         secretName,
+		k.logger.Error("unable to retrieve kubernetes secret", err, lager.Data{
+			"namespace":  namespace,
+			"secretName": secretName,
 		})
-		return nil, false, err
+		return nil, nil, false, err
 	}
 
 	if found {
 		return k.getValueFromSecret(secret)
 	}
 
-	k.logger.Info("k8s-secret-not-found", lager.Data{
-		"namespace":          namespace,
-		"pipelineSecretName": pipelineSecretName,
-		"secretName":         secretName,
+	k.logger.Info("kubernetes secret not found", lager.Data{
+		"namespace":  namespace,
+		"secretName": secretName,
 	})
-	return nil, false, nil
+
+	return nil, nil, false, nil
 }
 
-func (k Kubernetes) getValueFromSecret(secret *v1.Secret) (interface{}, bool, error) {
+func (k Kubernetes) getValueFromSecret(secret *v1.Secret) (interface{}, *time.Time, bool, error) {
 	val, found := secret.Data["value"]
 	if found {
-		return string(val), true, nil
+		return string(val), nil, true, nil
 	}
 
 	evenLessTyped := map[interface{}]interface{}{}
@@ -61,7 +73,7 @@ func (k Kubernetes) getValueFromSecret(secret *v1.Secret) (interface{}, bool, er
 		evenLessTyped[k] = string(v)
 	}
 
-	return evenLessTyped, true, nil
+	return evenLessTyped, nil, true, nil
 }
 
 func (k Kubernetes) findSecret(namespace, name string) (*v1.Secret, bool, error) {
@@ -77,10 +89,4 @@ func (k Kubernetes) findSecret(namespace, name string) (*v1.Secret, bool, error)
 	} else {
 		return secret, true, err
 	}
-}
-
-func (k Kubernetes) List() ([]template.VariableDefinition, error) {
-	// Unimplemented for Kubernetes secrets
-
-	return []template.VariableDefinition{}, nil
 }

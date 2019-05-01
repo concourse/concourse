@@ -8,26 +8,25 @@ import (
 
 // The vaultFactory will return a vault implementation of creds.Variables.
 type vaultFactory struct {
-	sr       SecretReader
-	prefix   string
+	sr         SecretReader
+	prefix     string
 	sharedPath string
-	loggedIn <-chan struct{}
+	loggedIn   <-chan struct{}
 }
 
 func NewVaultFactory(sr SecretReader, loggedIn <-chan struct{}, prefix string, sharedPath string) *vaultFactory {
 	factory := &vaultFactory{
-		sr:       sr,
-		prefix:   prefix,
+		sr:         sr,
+		prefix:     prefix,
 		sharedPath: sharedPath,
-		loggedIn: loggedIn,
+		loggedIn:   loggedIn,
 	}
 
 	return factory
 }
 
-// NewVariables will block until the loggedIn channel passed to the
-// constructor signals a successful login.
-func (factory *vaultFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
+// NewSecrets will block until the loggedIn channel passed to the constructor signals a successful login.
+func (factory *vaultFactory) NewSecrets() creds.Secrets {
 	select {
 	case <-factory.loggedIn:
 	case <-time.After(5 * time.Second):
@@ -35,9 +34,7 @@ func (factory *vaultFactory) NewVariables(teamName string, pipelineName string) 
 
 	return &Vault{
 		SecretReader: factory.sr,
-		PathPrefix:   factory.prefix,
+		Prefix:       factory.prefix,
 		SharedPath:   factory.sharedPath,
-		TeamName:     teamName,
-		PipelineName: pipelineName,
 	}
 }

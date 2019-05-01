@@ -23,12 +23,20 @@ func NewKubernetesFactory(logger lager.Logger, clientset *kubernetes.Clientset, 
 	return factory
 }
 
-func (factory *kubernetesFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
+func (factory *kubernetesFactory) NewSecrets() creds.Secrets {
 	return &Kubernetes{
 		Clientset:       factory.clientset,
-		TeamName:        teamName,
-		PipelineName:    pipelineName,
-		NamespacePrefix: factory.namespacePrefix,
 		logger:          factory.logger,
+		namespacePrefix: factory.namespacePrefix,
 	}
+}
+
+// NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
+func (factory *kubernetesFactory) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+	lookupPaths := []creds.SecretLookupPath{}
+	if len(pipelineName) > 0 {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(factory.namespacePrefix+teamName+":"+pipelineName+"."))
+	}
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(factory.namespacePrefix+teamName+":"))
+	return lookupPaths
 }

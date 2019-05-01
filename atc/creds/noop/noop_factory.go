@@ -8,6 +8,6 @@ func NewNoopFactory() *noopFactory {
 	return &noopFactory{}
 }
 
-func (*noopFactory) NewVariables(string, string) creds.Variables {
+func (*noopFactory) NewSecrets() creds.Secrets {
 	return &Noop{}
 }

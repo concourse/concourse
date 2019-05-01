@@ -49,7 +49,7 @@ var (
 	dbBuildFactory          *dbfakes.FakeBuildFactory
 	dbTeam                  *dbfakes.FakeTeam
 	fakeScannerFactory      *resourceserverfakes.FakeScannerFactory
-	fakeVariablesFactory    *credsfakes.FakeVariablesFactory
+	fakeSecretManager       *credsfakes.FakeSecrets
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
@@ -116,7 +116,7 @@ var _ = BeforeEach(func() {
 	fakeContainerRepository = new(dbfakes.FakeContainerRepository)
 	fakeDestroyer = new(gcfakes.FakeDestroyer)
 
-	fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
+	fakeSecretManager = new(credsfakes.FakeSecrets)
 	credsManagers = make(creds.Managers)
 	var err error
 
@@ -179,7 +179,7 @@ var _ = BeforeEach(func() {
 		cliDownloadsDir,
 		"1.2.3",
 		"4.5.6",
-		fakeVariablesFactory,
+		fakeSecretManager,
 		credsManagers,
 		interceptTimeoutFactory,
 	)
