@@ -15,7 +15,7 @@ metrics pipeline.
 \section{
   \title{Configuring Metrics}
 
-  The \reference{component-atc} can be configured to emit metrics on start.
+  The \reference{web-node} can be configured to emit metrics on start.
 
   Currently supported metrics emitters are InfluxDB, NewRelic, Prometheus, Datadog, and
   Riemann. There is also a dummy emitter that will just spit the metrics out in

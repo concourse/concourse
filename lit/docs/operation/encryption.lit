@@ -83,9 +83,9 @@ management} as well.
   \code{web} command. For BOSH, this is the \boshprop{web}{encryption_key}
   property.
 
-  On startup, the \reference{component-atc} will encrypt all existing
-  plaintext data, and any new data being written will be encrypted before it's
-  sent over the network to the database.
+  On startup, the \reference{web-node} will encrypt all existing plaintext
+  data, and any new data being written will be encrypted before it's sent over
+  the network to the database.
 
   The initial bulk encryption shouldn't take too long, but it will scale
   linearly with the amount of data that you have, and if another ATC is running
@@ -100,11 +100,11 @@ management} as well.
   \code{--old-encryption-key} (or \boshprop{web}{old_encryption_key}), and the
   new key as \code{--encryption-key} (or \boshprop{web}{encryption_key}).
 
-  On startup, the \reference{component-atc} will decrypt all existing data
-  and re-encrypt it with the new key, in one go. If it encounters a row which
-  is already encrypted with the new key, it will continue on (as may be the
-  case when restarting with the flags again, or if the ATC died in the middle
-  of rotating).
+  On startup, the \reference{web-node} will decrypt all existing data and
+  re-encrypt it with the new key, in one go. If it encounters a row which is
+  already encrypted with the new key, it will continue on (as may be the case
+  when restarting with the flags again, or if the ATC died in the middle of
+  rotating).
 
   If the ATC encounters a row which cannot be decrypted with neither the old
   key nor the new one, it will log loudly and fail to start, telling you which
@@ -119,6 +119,6 @@ management} as well.
 
   To opt out of encryption entirely (I'm sure you have your reasons), simply
   pass \code{--old-encryption-key} (or \boshprop{web}{old_encryption_key})
-  alone. With no new encryption key, the \reference{component-atc} will decrypt
-  all existing data on start.
+  alone. With no new encryption key, the \reference{web-node} will decrypt all
+  existing data on start.
 }

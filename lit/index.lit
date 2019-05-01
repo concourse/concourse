@@ -184,6 +184,5 @@
 \split-sections
 
 \include-section{./docs.lit}
+\include-section{./examples.lit}
 \include-section{./project.lit}
-\include-section{./community.lit}
-\include-section{./learning.lit}

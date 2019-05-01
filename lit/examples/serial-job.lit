@@ -1,19 +1,16 @@
-\title{Serial Job}{serial-job-example}
+\title{Serial job example}{serial-job-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
+
+Setting the \reference{job-serial} flag restricts a job to run one build at a time.
+
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/serial-job}
 
 \right-side{Why?}{
 By default, jobs can run in parrallel. For some use cases this might be ideal (ex. testing all incoming commits from a repository). For other use cases this might be less ideal (ex. deploying an application).
 
 You can also provided a value by specifying the \reference{job-max-in-flight} value.
-}
-
-\section{
-  \title{}{pipeline}
-
-	Setting the \reference{job-serial} flag restricts a job to run one build at a time.
-
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/serial-job}
 }
 
 \section{

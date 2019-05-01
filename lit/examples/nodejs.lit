@@ -1,14 +1,11 @@
-\title{Nodejs Application}{nodejs-example}
+\title{Nodejs application testing example}{nodejs-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
 
-\section{
-  \title{}{pipeline}
+You can run the tests for a Nodejs application.
 
-	You can run the tests for a Nodejs application.
-
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/nodejs}
-}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/nodejs}
 
 \section{
   \title{Pipeline Configuration}{configuration}

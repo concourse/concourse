@@ -157,24 +157,6 @@ h2, h3 {
   grid-area: primary-nav;
 }
 
-
-.top-nav .icon-link {
-  background-repeat: no-repeat;
-  background-size: 22px 22px;
-  background-position: 20px 30px;
-  padding-left: 20px + 24px + 10px;
-}
-
-/* shoutout to hashicorp who i've pretty much copied this from */
-
-.top-nav .download-link {
-  background-image: url("../images/arrow-down-box.svg");
-}
-
-.top-nav .github-link {
-  background-image: url("../images/github-box.svg");
-}
-
 .top-search {
   grid-area: search;
 }
@@ -316,7 +298,7 @@ h2, h3 {
   color: white;
 }
 
-.top-nav a {
+.top-link {
   color: white;
   font-size: 16px;
   text-transform: lowercase;
@@ -325,19 +307,36 @@ h2, h3 {
   padding: 0 25px;
 }
 
-.top-nav a, .top-nav a:visited {
+.top-link, .top-link:visited {
   color: white;
   text-decoration: none;
 }
 
-.top-nav a:hover {
+.top-link:hover {
   text-decoration: underline;
 }
 
-.top-nav a.active {
+.top-link.active {
   background: white;
   color: @darker-grey;
   text-decoration: underline;
+}
+
+.icon-link {
+  background-repeat: no-repeat;
+  background-size: 22px 22px;
+  background-position: 20px 30px;
+  padding-left: 20px + 24px + 10px;
+}
+
+/* shoutout to hashicorp who i've pretty much copied this from */
+
+.download-link {
+  background-image: url("../images/icons/arrow-down-box.svg");
+}
+
+.github-link {
+  background-image: url("../images/icons/github-box.svg");
 }
 
 .page-content h1 {
@@ -379,6 +378,11 @@ h2, h3 {
   padding-left: 30px;
   margin-top: 1.6em;
   margin-bottom: 1.6em;
+}
+
+.page-content ol.toc {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .page-content code {
@@ -925,7 +929,7 @@ h3 .anchor {
   padding: 5px;
   transition: all 0.25s ease-out;
   position: absolute;
-  right: 30px;
+  right: 24px;
   top: 24px;
   width: 32px;
   height: 32px;
@@ -942,7 +946,7 @@ h3 .anchor {
 .search-input:focus, .search-input:valid {
   outline: none;
   position: absolute;
-  right: 30px;
+  right: 24px;
   background: white;
   border-color: @offest-white;
   width: 500px;
@@ -959,8 +963,8 @@ h3 .anchor {
   color: @darker-grey;
   width: 500px;
   position: fixed;
-  top: 50px;
-  right: 30px;
+  top: 56px;
+  right: 24px;
   bottom: 0;
   margin: 0;
   overflow-y: auto;

@@ -1,10 +1,23 @@
 \title{Examples}{examples}
 
+\use-plugin{concourse-docs}
+
+Configuring self-contained Concourse \reference{pipelines}{pipelines} is a great
+way to try things out before diving into the deeper content.
+
+Each example contains a pipeline YAML snippet which can be copy-pasted to a
+local file and configured on your instance via \reference{fly-set-pipeline}.
+From there you may want to poke around and try changing parts of the
+configuration to learn how things work. All the available knobs to turn are
+covered in the \reference{docs}.
+
 \include-section{./examples/job.lit}
 \include-section{./examples/serial-job.lit}
+\include-section{./examples/pipeline-vars.lit}
 \include-section{./examples/task-passing-artifact.lit}
 \include-section{./examples/time-triggered.lit}
-\include-section{./examples/trigger-then-continue.lit}
+\include-section{./examples/git-triggered.lit}
+\include-section{./examples/manual-trigger.lit}
 \include-section{./examples/hooks.lit}
 \include-section{./examples/golang-lib.lit}
 \include-section{./examples/rails.lit}
@@ -13,3 +26,8 @@
 
 \split-sections
 \table-of-contents
+
+For a real-world example, check out \link{Concourse's own
+pipeline}{https://ci.concourse-ci.org/teams/main/pipelines/concourse}:
+
+\frame{https://ci.concourse-ci.org/teams/main/pipelines/concourse}{600px}

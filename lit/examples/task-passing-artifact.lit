@@ -1,14 +1,11 @@
-\title{Tasks Passing Artifact}{task-passing-artifact-example}
+\title{Task inputs and outputs example}{task-inputs-outputs-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
 
-\section{
-  \title{}{pipeline}
+A task can pass an artifacts to another task in the same job.
 
-	A task can pass an artifacts to another task in the same job.
-
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/task-passing-artifact/jobs/create-and-consume/builds/latest}
-}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/task-passing-artifact/jobs/create-and-consume/builds/latest}
 
 \right-side{Why?}{
   Tasks within a job have the ability to pass artifacts directly inbetween them to allow you to process artifacts in many ways.

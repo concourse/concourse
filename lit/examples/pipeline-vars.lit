@@ -1,14 +1,11 @@
-\title{Pipeline Parameters}{pipeline-parameters-example}
+\title{Pipeline \code{((vars))} example}{pipeline-vars-example}
+\omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
 
-\section{
-  \title{}{pipeline}
+You can use params in a pipelines configuration file.
 
-  You can use params in a pipelines configuration file.
-
-	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/pipeline-parameters}
-}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/parameters}
 
 \section{
   \title{Pipeline Configuration}{configuration}

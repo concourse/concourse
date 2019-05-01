@@ -10,6 +10,28 @@ part-time contributors.
 
 \split-sections
 
+\inline-header{Where does the magic happen?}
+
+\list{
+  The \link{\code{concourse/concourse} GitHub
+  repo}{https://github.com/concourse/concourse} is where the main code lives
+  and where roadmap planning begins.
+}{
+  The \link{\code{concourse/concourse} GitHub
+  wiki}{https://github.com/concourse/concourse/wiki} is the main point of
+  discovery for all community-created resource types/tools/tutorials/etc., and
+  is also used as a contributor knowledge base.
+}{
+  Our \link{Medium blog}{https://medium.com/concourse-ci} features (occasional)
+  updates from the development side.
+}{
+  The \link{Concourse forums}{https://discuss.concourse-ci.org} for support,
+  announcements, and general discussion.
+}{
+  Our \link{Discord server}{https://discord.gg/MeRxXKW} is a great place to
+  chat with other contributors.
+}
+
 \inline-header{Why make Concourse?}
 
 When working on a sizable project, having a pipeline to reliably test,
@@ -53,42 +75,18 @@ writing documentation, coming up with new designs, and of course contributing co
 As a contributor, you can jump on over to \link{Contribute}{contribute.html} for
 a more complete list of resources for contributors
 
-\include-section{./contribute.lit}
-\include-section{./architecture/architecture.lit}
+\include-section{./project/contribute.lit}
+\include-section{./project/architecture.lit}
+\include-section{./project/internals.lit}
+\include-section{./project/trademarks.lit}
 
 \section{
-  \title{Thanks!}{thanks}
+  \title{Security Contact}{security-contact}
 
-  It's been a long journey and we've got a lot of people to thank for our
-  continued success. We are deeply indebted to any and all who help keep this
-  project going, but the heroic effort of the following organizations is worth
-  giving special props.
-
-  \section{
-    \title{Pivotal}
-
-    Concourse wouldn't be what it is today without
-    \link{Pivotal}{https://pivotal.io}. This goes beyond the sponsorship, which
-    began in early 2015 - without the experiences we had and the practices we
-    learned while working on \link{Cloud Foundry}{https://cloudfoundry.org} and
-    \link{BOSH}{https://bosh.io}, we would have neither the technical
-    experience nor the strong opinions that led to Concourse being born.
-
-    Pivotal's sponsorship continues strong into 2019, where we have a team of
-    full-time engineers, PMs, and designers dedicated to pushing Concourse
-    forward.
-  }
-
-  \section{
-    \title{Stark & Wayne}
-
-    The \link{Concourse Tutorial}{https://concoursetutorial.com/} by \link{Stark
-    & Wayne}{https://www.starkandwayne.com/}  is probably the only reason a lot
-    of people were able to learn Concourse. It's a great asset and does its job
-    so well that we've decided to basically just kill our tutorials and delegate
-    to theirs. Thanks to Dr. Nic for writing and maintaining it, and everyone
-    else that has helped out!
-  }
+  To be notified of any security issues or vulnerabilities, join the
+  \link{Concourse Security mailing
+  list}{https://groups.google.com/group/concourse-security}. To report a
+  security issue, send an email to
+  \link{concourseteam+security@gmail.com}{mailto:concourseteam+security@gmail.com}.
 }
 
-\include-section{./trademarks.lit}
