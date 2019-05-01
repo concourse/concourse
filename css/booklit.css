@@ -249,6 +249,7 @@ h3 {
   text-decoration: none;
 }
 .top-link:hover {
+  color: white;
   text-decoration: underline;
 }
 .top-link.active {
