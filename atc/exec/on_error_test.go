@@ -46,7 +46,6 @@ var _ = Describe("On Error Step", func() {
 
 		disaster = multierror.Append(disaster, errors.New("disaster"))
 	})
-	
 
 	AfterEach(func() {
 		cancel()

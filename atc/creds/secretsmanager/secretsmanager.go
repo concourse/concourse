@@ -3,10 +3,11 @@ package secretsmanager
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/concourse/concourse/atc/creds"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/concourse/concourse/atc/creds"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -48,8 +49,8 @@ func (s *SecretsManager) NewSecretLookupPaths(teamName string, pipelineName stri
 func (s *SecretsManager) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	value, expiration, found, err := s.getSecretById(secretPath)
 	if err != nil {
-		s.log.Error("unable to retrieve aws secret", err, lager.Data{
-			"secretPath": secretPath,
+		s.log.Error("failed-to-fetch-aws-secret", err, lager.Data{
+			"secret-path": secretPath,
 		})
 		return nil, nil, false, err
 	}
