@@ -1218,7 +1218,7 @@ var _ = Describe("Job", func() {
 				Expect(found).To(BeTrue())
 				Expect(build1DB.Status()).To(Equal(db.BuildStatusStarted))
 				Expect(build1DB.Schema()).To(Equal("exec.v2"))
-				Expect(build1DB.PrivatePlan()).To(Equal(`{"id":"some-id"}`))
+				Expect(build1DB.PrivatePlan()).To(Equal(atc.Plan{ID: "some-id"}))
 			})
 
 			It("saves the build's start time", func() {

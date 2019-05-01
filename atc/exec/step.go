@@ -4,7 +4,9 @@ import (
 	"context"
 	"io"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
 )
 
@@ -29,10 +31,18 @@ type Step interface {
 	Succeeded() bool
 }
 
-//go:generate counterfeiter . RunState
+//go:generate counterfeiter . BuildStepDelegate
 
-type InputHandler func(io.ReadCloser) error
-type OutputHandler func(io.Writer) error
+type BuildStepDelegate interface {
+	ImageVersionDetermined(db.UsedResourceCache) error
+
+	Stdout() io.Writer
+	Stderr() io.Writer
+
+	Errored(lager.Logger, string)
+}
+
+//go:generate counterfeiter . RunState
 
 type RunState interface {
 	Artifacts() *artifact.Repository
@@ -41,13 +51,26 @@ type RunState interface {
 	StoreResult(atc.PlanID, interface{})
 }
 
-// ExitStatus is the resulting exit code from the process that the step ran.
-// Typically if the ExitStatus result is 0, the Success result is true.
-type ExitStatus int
-
 // VersionInfo is the version and metadata of a resource that was fetched or
 // produced. It is used by Put and Get.
 type VersionInfo struct {
 	Version  atc.Version
 	Metadata []atc.MetadataField
 }
+
+// ExitStatus is the resulting exit code from the process that the step ran.
+// Typically if the ExitStatus result is 0, the Success result is true.
+type ExitStatus int
+
+// Privileged is used to indicate whether the given step should run with
+// special privileges (i.e. as an administrator user).
+type Privileged bool
+
+// StepMetadata is used to inject metadata to make available to the step when
+// it's running.
+type StepMetadata interface {
+	Env() []string
+}
+
+type InputHandler func(io.ReadCloser) error
+type OutputHandler func(io.Writer) error

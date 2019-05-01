@@ -31,7 +31,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/engine"
-	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lockrunner"
 	"github.com/concourse/concourse/atc/metric"
@@ -1177,7 +1177,8 @@ func (cmd *RunCommand) constructEngine(
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
 ) engine.Engine {
-	gardenFactory := exec.NewGardenFactory(
+
+	stepFactory := builder.NewStepFactory(
 		workerPool,
 		workerClient,
 		resourceFetcher,
@@ -1189,15 +1190,13 @@ func (cmd *RunCommand) constructEngine(
 		resourceFactory,
 	)
 
-	execV2Engine := engine.NewExecEngine(
-		gardenFactory,
-		engine.NewBuildDelegateFactory(),
+	stepBuilder := builder.NewStepBuilder(
+		stepFactory,
+		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
 	)
 
-	execV1Engine := engine.NewExecV1DummyEngine()
-
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine})
+	return engine.NewEngine(stepBuilder)
 }
 
 func (cmd *RunCommand) constructHTTPHandler(

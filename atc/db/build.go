@@ -65,7 +65,7 @@ type Build interface {
 	TeamID() int
 	TeamName() string
 	Schema() string
-	PrivatePlan() string
+	PrivatePlan() atc.Plan
 	PublicPlan() *json.RawMessage
 	Status() BuildStatus
 	StartTime() time.Time
@@ -131,7 +131,7 @@ type build struct {
 	isManuallyTriggered bool
 
 	schema      string
-	privatePlan string
+	privatePlan atc.Plan
 	publicPlan  *json.RawMessage
 
 	createTime time.Time
@@ -169,7 +169,7 @@ func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
 func (b *build) Schema() string               { return b.schema }
-func (b *build) PrivatePlan() string          { return b.privatePlan }
+func (b *build) PrivatePlan() atc.Plan        { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
 func (b *build) CreateTime() time.Time        { return b.createTime }
 func (b *build) StartTime() time.Time         { return b.startTime }
@@ -1127,15 +1127,22 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		noncense      *string
 		decryptedPlan []byte
 	)
+
 	if nonce.Valid {
 		noncense = &nonce.String
 		decryptedPlan, err = encryptionStrategy.Decrypt(string(privatePlan.String), noncense)
 		if err != nil {
 			return err
 		}
-		b.privatePlan = string(decryptedPlan)
 	} else {
-		b.privatePlan = privatePlan.String
+		decryptedPlan = []byte(privatePlan.String)
+	}
+
+	if len(decryptedPlan) > 0 {
+		err = json.Unmarshal(decryptedPlan, &b.privatePlan)
+		if err != nil {
+			return err
+		}
 	}
 
 	if publicPlan.Valid {
