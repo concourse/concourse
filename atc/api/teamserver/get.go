@@ -3,9 +3,7 @@ package teamserver
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -33,7 +31,6 @@ func (s *Server) GetTeam(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
 	var presentedTeam atc.Team
 
-	fmt.Fprintf(os.Stderr, "ADMIN: %#v\n", acc.IsAdmin())
 	if acc.IsAdmin() || acc.IsAuthorized(team.Name()) {
 		presentedTeam = present.Team(team)
 	} else {
