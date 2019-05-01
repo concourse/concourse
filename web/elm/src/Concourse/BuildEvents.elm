@@ -43,12 +43,17 @@ decodeBuildEventEnvelope =
                                 Json.Decode.field "data" Json.Decode.string
                                     |> Json.Decode.andThen
                                         (\rawEvent ->
-                                            case Json.Decode.decodeString decodeBuildEvent rawEvent of
+                                            case
+                                                Json.Decode.decodeString
+                                                    decodeBuildEvent
+                                                    rawEvent
+                                            of
                                                 Ok event ->
                                                     Json.Decode.succeed event
 
                                                 Err err ->
-                                                    Json.Decode.fail <| Debug.toString err
+                                                    Json.Decode.fail <|
+                                                        Json.Decode.errorToString err
                                         )
                     )
     in

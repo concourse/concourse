@@ -869,6 +869,6 @@ customDecoder decoder toResult =
                     Json.Decode.succeed b
 
                 Err err ->
-                    Json.Decode.fail <| Debug.toString err
+                    Json.Decode.fail <| Json.Decode.errorToString err
         )
         decoder
