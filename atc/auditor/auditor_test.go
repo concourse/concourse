@@ -91,7 +91,7 @@ var _ = Describe("Audit", func() {
 			It("Create a log including the action", func() {
 				aud.Audit(dummyAction, userName, req)
 				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+				Expect(logs[0].Data["action"]).To(Equal(dummyAction))
 			})
 		})
 
@@ -148,7 +148,7 @@ var _ = Describe("Audit", func() {
 			It("Create a log including the action", func() {
 				aud.Audit(dummyAction, userName, req)
 				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+				Expect(logs[0].Data["action"]).To(Equal(dummyAction))
 			})
 		})
 
@@ -204,7 +204,7 @@ var _ = Describe("Audit", func() {
 			It("Create a log including the action", func() {
 				aud.Audit(dummyAction, userName, req)
 				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+				Expect(logs[0].Data["action"]).To(Equal(dummyAction))
 			})
 		})
 
@@ -261,7 +261,7 @@ var _ = Describe("Audit", func() {
 			It("Create a log including the action", func() {
 				aud.Audit(dummyAction, userName, req)
 				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+				Expect(logs[0].Data["action"]).To(Equal(dummyAction))
 			})
 		})
 
@@ -319,7 +319,7 @@ var _ = Describe("Audit", func() {
 			It("Create a log including the action", func() {
 				aud.Audit(dummyAction, userName, req)
 				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+				Expect(logs[0].Data["action"]).To(Equal(dummyAction))
 			})
 		})
 
@@ -377,7 +377,7 @@ var _ = Describe("Audit", func() {
 			It("Create a log including the action", func() {
 				aud.Audit(dummyAction, userName, req)
 				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+				Expect(logs[0].Data["action"]).To(Equal(dummyAction))
 			})
 		})
 
@@ -434,7 +434,7 @@ var _ = Describe("Audit", func() {
 			It("Create a log including the action", func() {
 				aud.Audit(dummyAction, userName, req)
 				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+				Expect(logs[0].Data["action"]).To(Equal(dummyAction))
 			})
 		})
 
@@ -490,7 +490,7 @@ var _ = Describe("Audit", func() {
 			It("Create a log including the action", func() {
 				aud.Audit(dummyAction, userName, req)
 				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+				Expect(logs[0].Data["action"]).To(Equal(dummyAction))
 			})
 		})
 
@@ -546,7 +546,7 @@ var _ = Describe("Audit", func() {
 			It("Create a log including the action", func() {
 				aud.Audit(dummyAction, userName, req)
 				logs := logger.Logs()
-				Expect(logs[0].Data["command"]).To(Equal(dummyAction))
+				Expect(logs[0].Data["action"]).To(Equal(dummyAction))
 			})
 		})
 
