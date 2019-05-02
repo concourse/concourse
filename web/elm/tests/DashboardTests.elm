@@ -876,6 +876,14 @@ all =
                             (userWithRoles [ ( "team", [ "member" ] ) ])
                         |> Common.queryView
                         |> teamHeaderHasPill "team" "MEMBER"
+            , test "shows PIPELINE_OPERATOR pill on team header for team on which user has member role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "pipeline-operator" ] ) ])
+                        |> Common.queryView
+                        |> teamHeaderHasPill "team" "PIPELINE_OPERATOR"
             , test "shows VIEWER pill on team header for team on which user has viewer role" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }

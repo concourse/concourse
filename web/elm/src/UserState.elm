@@ -26,7 +26,8 @@ isMember { teamName, userState } =
         UserStateLoggedIn user ->
             case Dict.get teamName user.teams of
                 Just roles ->
-                    List.member "member" roles
+                    List.member "pipeline-operator" roles
+                        || List.member "member" roles
                         || List.member "owner" roles
 
                 Nothing ->
