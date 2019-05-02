@@ -1,24 +1,24 @@
 package commands
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"sort"
+	"strings"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
-	yaml "gopkg.in/yaml.v2"
+	"github.com/concourse/concourse/fly/ui"
+	"github.com/fatih/color"
 )
 
 type GetTeamCommand struct {
 	Team string `short:"n" long:"team" required:"true" description:"Get configuration of this team"`
-	JSON bool   `short:"j" long:"json" description:"Print config as json instead of yaml"`
+	Json bool   `short:"j" long:"json" description:"Print config as json instead of yaml"`
 }
 
 func (command *GetTeamCommand) Execute(args []string) error {
-	asJSON := command.JSON
-	teamName := command.Team
-
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -28,7 +28,7 @@ func (command *GetTeamCommand) Execute(args []string) error {
 		return err
 	}
 
-	config, found, err := target.Team().Team(teamName)
+	team, found, err := target.Team().Team(command.Team)
 	if err != nil {
 		return err
 	}
@@ -37,22 +37,48 @@ func (command *GetTeamCommand) Execute(args []string) error {
 		return errors.New("team not found")
 	}
 
-	return dumpTeam(config, asJSON)
-}
-
-func dumpTeam(config atc.Team, asJSON bool) error {
-	var payload []byte
-	var err error
-	if asJSON {
-		payload, err = json.Marshal(config)
-	} else {
-		payload, err = yaml.Marshal(config)
-	}
-	if err != nil {
-		return err
+	if command.Json {
+		if err := displayhelpers.JsonPrint(team); err != nil {
+			return err
+		}
+		return nil
 	}
 
-	_, err = fmt.Printf("%s", payload)
+	headers := ui.TableRow{
+		{Contents: "name/role", Color: color.New(color.Bold)},
+		{Contents: "users", Color: color.New(color.Bold)},
+		{Contents: "groups", Color: color.New(color.Bold)},
+	}
+	table := ui.Table{Headers: headers}
+	for role, auth := range team.Auth {
+		row := ui.TableRow{
+			{Contents: fmt.Sprintf("%s/%s", team.Name, role)},
+		}
+		var usersCell, groupsCell ui.TableCell
+		hasUsers := len(auth["users"]) != 0
+		hasGroups := len(auth["groups"]) != 0
 
-	return err
+		if !hasUsers && !hasGroups {
+			usersCell.Contents = "all"
+			usersCell.Color = color.New(color.Faint)
+		} else if !hasUsers {
+			usersCell.Contents = "none"
+			usersCell.Color = color.New(color.Faint)
+		} else {
+			usersCell.Contents = strings.Join(auth["users"], ",")
+		}
+
+		if hasGroups {
+			groupsCell.Contents = strings.Join(auth["groups"], ",")
+		} else {
+			groupsCell.Contents = "none"
+			groupsCell.Color = color.New(color.Faint)
+		}
+
+		row = append(row, usersCell)
+		row = append(row, groupsCell)
+		table.Data = append(table.Data, row)
+	}
+	sort.Sort(table.Data)
+	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
