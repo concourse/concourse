@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
@@ -18,15 +17,7 @@ import (
 )
 
 var _ = Describe("Builds API", func() {
-	var fakeaccess *accessorfakes.FakeAccess
 
-	BeforeEach(func() {
-		fakeaccess = new(accessorfakes.FakeAccess)
-	})
-
-	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
-	})
 
 	Describe("POST /api/v1/builds", func() {
 		var plan atc.Plan
@@ -45,8 +36,6 @@ var _ = Describe("Builds API", func() {
 		})
 
 		JustBeforeEach(func() {
-			fakeAccessor.CreateReturns(fakeaccess)
-
 			reqPayload, err := json.Marshal(plan)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -61,7 +50,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -75,12 +64,12 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthorizedReturns(false)
 				})
 
 				It("returns 403", func() {
@@ -90,7 +79,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				Context("when creating a started build fails", func() {
@@ -183,7 +172,7 @@ var _ = Describe("Builds API", func() {
 			build2.ReapTimeReturns(time.Unix(400, 0))
 
 			returnedBuilds = []db.Build{build1, build2}
-			fakeaccess.TeamNamesReturns([]string{"some-team"})
+			fakeAccess.TeamNamesReturns([]string{"some-team"})
 		})
 
 		JustBeforeEach(func() {
@@ -195,7 +184,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			Context("when no params are passed", func() {
@@ -308,7 +297,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when no params are passed", func() {
@@ -430,6 +419,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when parsing the build_id fails", func() {
 			BeforeEach(func() {
+				fakeAccessor.CreateReturns(fakeAccess)
 				var err error
 
 				response, err = client.Get(server.URL + "/api/v1/builds/nope")
@@ -487,8 +477,8 @@ var _ = Describe("Builds API", func() {
 
 				Context("when not authenticated", func() {
 					BeforeEach(func() {
-						fakeaccess.IsAuthenticatedReturns(false)
-						fakeaccess.IsAuthorizedReturns(false)
+						fakeAccess.IsAuthenticatedReturns(false)
+						fakeAccess.IsAuthorizedReturns(false)
 					})
 
 					Context("and build is one off", func() {
@@ -526,12 +516,12 @@ var _ = Describe("Builds API", func() {
 
 				Context("when authenticated", func() {
 					BeforeEach(func() {
-						fakeaccess.IsAuthenticatedReturns(true)
+						fakeAccess.IsAuthenticatedReturns(true)
 					})
 
 					Context("when user is not authorized", func() {
 						BeforeEach(func() {
-							fakeaccess.IsAuthorizedReturns(false)
+							fakeAccess.IsAuthorizedReturns(false)
 
 						})
 						It("returns 200 OK", func() {
@@ -541,7 +531,7 @@ var _ = Describe("Builds API", func() {
 
 					Context("when user is authorized", func() {
 						BeforeEach(func() {
-							fakeaccess.IsAuthorizedReturns(true)
+							fakeAccess.IsAuthorizedReturns(true)
 						})
 
 						It("returns 200 OK", func() {
@@ -600,7 +590,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(false)
 				})
 
 				Context("and build is one off", func() {
@@ -638,8 +628,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(false)
 				})
 
 				It("returns 403", func() {
@@ -649,8 +639,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated and authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				It("returns 200 OK", func() {
@@ -800,8 +790,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(false)
 				})
 
 				It("returns 403", func() {
@@ -811,8 +801,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				It("returns 200", func() {
@@ -834,7 +824,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(false)
 				})
 
 				Context("and the pipeline is private", func() {
@@ -966,7 +956,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -976,7 +966,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when looking up the build fails", func() {
@@ -1007,7 +997,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when not authorized", func() {
 					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(false)
+						fakeAccess.IsAuthorizedReturns(false)
 					})
 
 					It("returns 403", func() {
@@ -1017,7 +1007,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when authorized", func() {
 					BeforeEach(func() {
-						fakeaccess.IsAuthorizedReturns(true)
+						fakeAccess.IsAuthorizedReturns(true)
 					})
 
 					Context("when aborting the build fails", func() {
@@ -1077,8 +1067,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(false)
 					build.PipelineReturns(fakePipeline, true, nil)
 				})
 
@@ -1089,7 +1079,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(false)
 				})
 
 				Context("and build is one off", func() {
@@ -1171,8 +1161,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				It("fetches data from the db", func() {
@@ -1277,8 +1267,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(false)
 
 					build.PipelineReturns(fakePipeline, true, nil)
 				})
@@ -1290,7 +1280,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(false)
 				})
 
 				Context("and build is one off", func() {
@@ -1369,8 +1359,8 @@ var _ = Describe("Builds API", func() {
 
 			Context("when authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				Context("when the build returns a plan", func() {

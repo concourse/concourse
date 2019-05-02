@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
 	"github.com/concourse/concourse/atc/api/resourceserver/resourceserverfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
@@ -42,6 +43,7 @@ var (
 	dbResourceFactory       *dbfakes.FakeResourceFactory
 	dbResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 	fakePipeline            *dbfakes.FakePipeline
+	fakeAccess              *accessorfakes.FakeAccess
 	fakeAccessor            *accessorfakes.FakeAccessFactory
 	dbWorkerFactory         *dbfakes.FakeWorkerFactory
 	dbWorkerLifecycle       *dbfakes.FakeWorkerLifecycle
@@ -101,6 +103,7 @@ var _ = BeforeEach(func() {
 	dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 	dbTeamFactory.GetByIDReturns(dbTeam)
 
+	fakeAccess = new(accessorfakes.FakeAccess)
 	fakeAccessor = new(accessorfakes.FakeAccessFactory)
 	fakePipeline = new(dbfakes.FakePipeline)
 	dbTeam.PipelineReturns(fakePipeline, true, nil)
@@ -185,7 +188,7 @@ var _ = BeforeEach(func() {
 	)
 
 	Expect(err).NotTo(HaveOccurred())
-	accessorHandler := accessor.NewHandler(handler, fakeAccessor, "some-action")
+	accessorHandler := accessor.NewHandler(handler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
 	handler = wrappa.LoggerHandler{
 		Logger:  logger,
 		Handler: accessorHandler,
@@ -196,6 +199,10 @@ var _ = BeforeEach(func() {
 	client = &http.Client{
 		Transport: &http.Transport{},
 	}
+})
+
+var _ = JustBeforeEach(func() {
+	fakeAccessor.CreateReturns(fakeAccess)
 })
 
 var _ = AfterEach(func() {

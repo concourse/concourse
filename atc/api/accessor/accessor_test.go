@@ -323,6 +323,67 @@ var _ = Describe("Accessor", func() {
 		})
 	})
 
+	Describe("Get User Name", func() {
+		JustBeforeEach(func() {
+			token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+			tokenString, err := token.SignedString(key)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Add("Authorization", fmt.Sprintf("BEARER %s", tokenString))
+			access = accessorFactory.Create(req, "some-action")
+		})
+
+		Context("when request has user_name claim set", func() {
+			BeforeEach(func() {
+				claims = &jwt.MapClaims{"user_name": "fake-user-name"}
+			})
+			It("returns the user_name value", func() {
+
+				Expect(access.UserName()).To(Equal("fake-user-name"))
+			})
+		})
+		Context("when request has user_name claim set to empty", func() {
+			BeforeEach(func() {
+				claims = &jwt.MapClaims{"user_name": ""}
+			})
+			It("returns an empty string", func() {
+				Expect(access.UserName()).To(BeEmpty())
+			})
+		})
+		Context("when request has user_name claim set to nil", func() {
+			BeforeEach(func() {
+				claims = &jwt.MapClaims{"user_name": nil}
+			})
+			It("returns an empty string", func() {
+				Expect(access.UserName()).To(BeEmpty())
+			})
+		})
+
+		Context("when request does not have user_name claim set as true", func() {
+			BeforeEach(func() {
+				claims = &jwt.MapClaims{}
+			})
+			It("returns an empty string", func() {
+				Expect(access.UserName()).To(BeEmpty())
+			})
+		})
+		Context("when request has the system claim set", func() {
+			BeforeEach(func() {
+				claims = &jwt.MapClaims{"system": true}
+			})
+			It("returns as a system call", func() {
+				Expect(access.UserName()).To(Equal("system"))
+			})
+		})
+		Context("when request has the system claim set as false", func() {
+			BeforeEach(func() {
+				claims = &jwt.MapClaims{"system": false}
+			})
+			It("returns as a system call", func() {
+				Expect(access.UserName()).To(BeEmpty())
+			})
+		})
+	})
+
 	DescribeTable("role actions",
 		func(action, role string, authorized bool) {
 			claims := &jwt.MapClaims{"teams": map[string][]string{"some-team": {role}}}
