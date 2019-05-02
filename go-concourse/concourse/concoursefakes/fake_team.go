@@ -121,21 +121,6 @@ type FakeTeam struct {
 		result1 int64
 		result2 error
 	}
-	ConfigStub        func(string) (atc.Team, bool, error)
-	configMutex       sync.RWMutex
-	configArgsForCall []struct {
-		arg1 string
-	}
-	configReturns struct {
-		result1 atc.Team
-		result2 bool
-		result3 error
-	}
-	configReturnsOnCall map[int]struct {
-		result1 atc.Team
-		result2 bool
-		result3 error
-	}
 	CreateArtifactStub        func(io.Reader) (atc.WorkerArtifact, error)
 	createArtifactMutex       sync.RWMutex
 	createArtifactArgsForCall []struct {
@@ -608,6 +593,21 @@ type FakeTeam struct {
 		result2 concourse.Pagination
 		result3 bool
 		result4 error
+	}
+	TeamStub        func(string) (atc.Team, bool, error)
+	teamMutex       sync.RWMutex
+	teamArgsForCall []struct {
+		arg1 string
+	}
+	teamReturns struct {
+		result1 atc.Team
+		result2 bool
+		result3 error
+	}
+	teamReturnsOnCall map[int]struct {
+		result1 atc.Team
+		result2 bool
+		result3 error
 	}
 	UnpauseJobStub        func(string, string) (bool, error)
 	unpauseJobMutex       sync.RWMutex
@@ -1118,72 +1118,6 @@ func (fake *FakeTeam) ClearTaskCacheReturnsOnCall(i int, result1 int64, result2 
 		result1 int64
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeTeam) Config(arg1 string) (atc.Team, bool, error) {
-	fake.configMutex.Lock()
-	ret, specificReturn := fake.configReturnsOnCall[len(fake.configArgsForCall)]
-	fake.configArgsForCall = append(fake.configArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("Config", []interface{}{arg1})
-	fake.configMutex.Unlock()
-	if fake.ConfigStub != nil {
-		return fake.ConfigStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.configReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeTeam) ConfigCallCount() int {
-	fake.configMutex.RLock()
-	defer fake.configMutex.RUnlock()
-	return len(fake.configArgsForCall)
-}
-
-func (fake *FakeTeam) ConfigCalls(stub func(string) (atc.Team, bool, error)) {
-	fake.configMutex.Lock()
-	defer fake.configMutex.Unlock()
-	fake.ConfigStub = stub
-}
-
-func (fake *FakeTeam) ConfigArgsForCall(i int) string {
-	fake.configMutex.RLock()
-	defer fake.configMutex.RUnlock()
-	argsForCall := fake.configArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeTeam) ConfigReturns(result1 atc.Team, result2 bool, result3 error) {
-	fake.configMutex.Lock()
-	defer fake.configMutex.Unlock()
-	fake.ConfigStub = nil
-	fake.configReturns = struct {
-		result1 atc.Team
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeTeam) ConfigReturnsOnCall(i int, result1 atc.Team, result2 bool, result3 error) {
-	fake.configMutex.Lock()
-	defer fake.configMutex.Unlock()
-	fake.ConfigStub = nil
-	if fake.configReturnsOnCall == nil {
-		fake.configReturnsOnCall = make(map[int]struct {
-			result1 atc.Team
-			result2 bool
-			result3 error
-		})
-	}
-	fake.configReturnsOnCall[i] = struct {
-		result1 atc.Team
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakeTeam) CreateArtifact(arg1 io.Reader) (atc.WorkerArtifact, error) {
@@ -3311,6 +3245,72 @@ func (fake *FakeTeam) ResourceVersionsReturnsOnCall(i int, result1 []atc.Resourc
 	}{result1, result2, result3, result4}
 }
 
+func (fake *FakeTeam) Team(arg1 string) (atc.Team, bool, error) {
+	fake.teamMutex.Lock()
+	ret, specificReturn := fake.teamReturnsOnCall[len(fake.teamArgsForCall)]
+	fake.teamArgsForCall = append(fake.teamArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Team", []interface{}{arg1})
+	fake.teamMutex.Unlock()
+	if fake.TeamStub != nil {
+		return fake.TeamStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.teamReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeTeam) TeamCallCount() int {
+	fake.teamMutex.RLock()
+	defer fake.teamMutex.RUnlock()
+	return len(fake.teamArgsForCall)
+}
+
+func (fake *FakeTeam) TeamCalls(stub func(string) (atc.Team, bool, error)) {
+	fake.teamMutex.Lock()
+	defer fake.teamMutex.Unlock()
+	fake.TeamStub = stub
+}
+
+func (fake *FakeTeam) TeamArgsForCall(i int) string {
+	fake.teamMutex.RLock()
+	defer fake.teamMutex.RUnlock()
+	argsForCall := fake.teamArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) TeamReturns(result1 atc.Team, result2 bool, result3 error) {
+	fake.teamMutex.Lock()
+	defer fake.teamMutex.Unlock()
+	fake.TeamStub = nil
+	fake.teamReturns = struct {
+		result1 atc.Team
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) TeamReturnsOnCall(i int, result1 atc.Team, result2 bool, result3 error) {
+	fake.teamMutex.Lock()
+	defer fake.teamMutex.Unlock()
+	fake.TeamStub = nil
+	if fake.teamReturnsOnCall == nil {
+		fake.teamReturnsOnCall = make(map[int]struct {
+			result1 atc.Team
+			result2 bool
+			result3 error
+		})
+	}
+	fake.teamReturnsOnCall[i] = struct {
+		result1 atc.Team
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) UnpauseJob(arg1 string, arg2 string) (bool, error) {
 	fake.unpauseJobMutex.Lock()
 	ret, specificReturn := fake.unpauseJobReturnsOnCall[len(fake.unpauseJobArgsForCall)]
@@ -3521,8 +3521,6 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.checkResourceTypeMutex.RUnlock()
 	fake.clearTaskCacheMutex.RLock()
 	defer fake.clearTaskCacheMutex.RUnlock()
-	fake.configMutex.RLock()
-	defer fake.configMutex.RUnlock()
 	fake.createArtifactMutex.RLock()
 	defer fake.createArtifactMutex.RUnlock()
 	fake.createBuildMutex.RLock()
@@ -3589,6 +3587,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.resourceMutex.RUnlock()
 	fake.resourceVersionsMutex.RLock()
 	defer fake.resourceVersionsMutex.RUnlock()
+	fake.teamMutex.RLock()
+	defer fake.teamMutex.RUnlock()
 	fake.unpauseJobMutex.RLock()
 	defer fake.unpauseJobMutex.RUnlock()
 	fake.unpausePipelineMutex.RLock()

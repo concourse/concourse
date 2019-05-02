@@ -12,7 +12,7 @@ import (
 )
 
 var _ = Describe("ATC Handler Teams", func() {
-	Describe("Config", func() {
+	Describe("Team", func() {
 		var expectedTeam atc.Team
 		teamName := "myTeam"
 		expectedURL := "/api/v1/teams/myTeam"
@@ -40,7 +40,7 @@ var _ = Describe("ATC Handler Teams", func() {
 			})
 
 			It("returns the requested team", func() {
-				team, found, err := team.Config(teamName)
+				team, found, err := team.Team(teamName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(team).To(Equal(expectedTeam))
@@ -58,7 +58,7 @@ var _ = Describe("ATC Handler Teams", func() {
 			})
 
 			It("returns false", func() {
-				_, found, err := team.Config(teamName)
+				_, found, err := team.Team(teamName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -75,7 +75,7 @@ var _ = Describe("ATC Handler Teams", func() {
 			})
 
 			It("returns false and error", func() {
-				_, found, err := team.Config(teamName)
+				_, found, err := team.Team(teamName)
 				Expect(found).To(BeFalse())
 				Expect(err).To(HaveOccurred())
 			})

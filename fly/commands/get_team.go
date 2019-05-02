@@ -28,7 +28,7 @@ func (command *GetTeamCommand) Execute(args []string) error {
 		return err
 	}
 
-	config, found, err := target.Team().Config(teamName)
+	config, found, err := target.Team().Team(teamName)
 	if err != nil {
 		return err
 	}

@@ -14,8 +14,8 @@ import (
 
 var ErrDestroyRefused = errors.New("not-permitted-to-destroy-as-requested")
 
-// Config get team configuration with the name given as argument.
-func (team *team) Config(teamName string) (atc.Team, bool, error) {
+// Team get team with the name given as argument.
+func (team *team) Team(teamName string) (atc.Team, bool, error) {
 	var t atc.Team
 	params := rata.Params{"team_name": teamName}
 	err := team.connection.Send(internal.Request{
