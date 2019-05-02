@@ -61,7 +61,7 @@ func (d *getDelegate) Initializing(logger lager.Logger) {
 		return
 	}
 
-	logger.Debug("initializing")
+	logger.Info("initializing")
 }
 
 func (d *getDelegate) Starting(logger lager.Logger) {
@@ -118,7 +118,7 @@ func (d *putDelegate) Initializing(logger lager.Logger) {
 		return
 	}
 
-	logger.Debug("initializing")
+	logger.Info("initializing")
 }
 
 func (d *putDelegate) Starting(logger lager.Logger) {
@@ -176,7 +176,7 @@ func (d *taskDelegate) Initializing(logger lager.Logger, taskConfig atc.TaskConf
 		return
 	}
 
-	logger.Debug("initializing")
+	logger.Info("initializing")
 }
 
 func (d *taskDelegate) Starting(logger lager.Logger, taskConfig atc.TaskConfig) {
