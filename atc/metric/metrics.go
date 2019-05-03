@@ -140,7 +140,8 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 			Value: event.BuildContainers,
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"worker": event.WorkerName,
+				"worker":   event.WorkerName,
+				"platform": event.Platform,
 			},
 		},
 	)
@@ -152,7 +153,8 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 			Value: event.CheckContainers,
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"worker": event.WorkerName,
+				"worker":   event.WorkerName,
+				"platform": event.Platform,
 			},
 		},
 	)
