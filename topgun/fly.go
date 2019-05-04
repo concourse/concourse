@@ -20,6 +20,12 @@ type Fly struct {
 	Home   string
 }
 
+type Container struct {
+	Type  string `json:"type"`
+	State string `json:"state"`
+	Id    string `json:"id"`
+}
+
 type Worker struct {
 	Name            string `json:"name"`
 	State           string `json:"state"`
@@ -71,6 +77,19 @@ func (f *Fly) StartWithEnv(env []string, argv ...string) *gexec.Session {
 
 func (f *Fly) SpawnInteractive(stdin io.Reader, argv ...string) *gexec.Session {
 	return SpawnInteractive(stdin, []string{"HOME=" + f.Home}, f.Bin, append([]string{"-t", f.Target}, argv...)...)
+}
+
+func (f *Fly) GetContainers() []Container {
+	var containers = []Container{}
+
+	sess := f.Start("containers", "--json")
+	<-sess.Exited
+	Expect(sess.ExitCode()).To(BeZero())
+
+	err := json.Unmarshal(sess.Out.Contents(), &containers)
+	Expect(err).ToNot(HaveOccurred())
+
+	return containers
 }
 
 func (f *Fly) GetWorkers() []Worker {
