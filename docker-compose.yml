@@ -2,9 +2,9 @@ version: '3'
 
 services:
   db:
-    image: postgres
+    image: cirocosta/postgres:0.0.1
     ports:
-    - 6543:5432
+      - 5432:5432
     environment:
       POSTGRES_DB: concourse
       POSTGRES_USER: dev

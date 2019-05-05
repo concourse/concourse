@@ -121,6 +121,7 @@ github.com/concourse/go-archive v1.0.1/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv
 github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545/go.mod h1:4+V9YCkKuoV7rg+/No+ZM9FsO3BK4tIJNUiYMI7nki0=
 github.com/concourse/retryhttp v1.0.2 h1:Qlag8vPBvXN79XyuM+XSf0/+jIYWnnivPwaa3ijbgdk=
 github.com/concourse/retryhttp v1.0.2/go.mod h1:t/8nUqzPriXrWczdqI7tHoEvFe+tJplQHS/fO3BzdlA=
+github.com/concourse/worker v0.0.0-20190409200115-46633bd648d5 h1:aS0PcfB48qNCN5owWRlGrktZhjZB9Cq4W2yrNm8sSPM=
 github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2 h1:oiQ0OCfHdE7YXG94mc3HpKhbaZ8Nk17lw4E+ycI8Zgs=
 github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/coreos/bbolt v1.3.2 h1:wZwiHHUieZCquLkDL0B8UhzreNWsPHooDAG3q34zk0s=

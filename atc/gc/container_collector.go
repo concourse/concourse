@@ -9,9 +9,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/concourse/concourse/metrics"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -90,9 +90,9 @@ func (c *containerCollector) cleanupFailedContainers(logger lager.Logger) error 
 		})
 	}
 
-	metric.FailedContainersToBeGarbageCollected{
-		Containers: failedContainersLen,
-	}.Emit(logger)
+	metrics.
+		ContainersToBeGCed.WithLabelValues("failed").
+		Add(float64(failedContainersLen))
 
 	return nil
 }
@@ -113,17 +113,17 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 		})
 	}
 
-	metric.CreatingContainersToBeGarbageCollected{
-		Containers: len(creatingContainers),
-	}.Emit(logger)
+	metrics.
+		ContainersToBeGCed.WithLabelValues("creating").
+		Add(float64(len(creatingContainers)))
 
-	metric.CreatedContainersToBeGarbageCollected{
-		Containers: len(createdContainers),
-	}.Emit(logger)
+	metrics.
+		ContainersToBeGCed.WithLabelValues("created").
+		Add(float64(len(createdContainers)))
 
-	metric.DestroyingContainersToBeGarbageCollected{
-		Containers: len(destroyingContainers),
-	}.Emit(logger)
+	metrics.
+		ContainersToBeGCed.WithLabelValues("destroying").
+		Add(float64(len(destroyingContainers)))
 
 	var workerCreatedContainers = make(map[string][]db.CreatedContainer)
 
@@ -138,10 +138,6 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 			workerCreatedContainers[createdContainer.WorkerName()] = []db.CreatedContainer{createdContainer}
 		}
 	}
-
-	logger.Debug("found-created-containers-for-deletion", lager.Data{
-		"num-containers": len(createdContainers),
-	})
 
 	for worker, createdContainers := range workerCreatedContainers {
 		go destroyNonHijackedCreatedContainers(logger, createdContainers)

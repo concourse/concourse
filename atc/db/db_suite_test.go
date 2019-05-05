@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/metrics"
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
 )

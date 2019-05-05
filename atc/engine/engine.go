@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/metrics"
 )
 
 //go:generate counterfeiter . Engine
@@ -181,7 +181,6 @@ func (b *engineBuild) Run(logger lager.Logger) {
 		return
 	}
 
-	b.trackStarted(logger)
 	defer b.trackFinished(logger)
 
 	logger.Info("running")
@@ -241,16 +240,6 @@ func (b *engineBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
 	}
 }
 
-func (b *engineBuild) trackStarted(logger lager.Logger) {
-	metric.BuildStarted{
-		PipelineName: b.build.PipelineName(),
-		JobName:      b.build.JobName(),
-		BuildName:    b.build.Name(),
-		BuildID:      b.build.ID(),
-		TeamName:     b.build.TeamName(),
-	}.Emit(logger)
-}
-
 func (b *engineBuild) trackFinished(logger lager.Logger) {
 	found, err := b.build.Reload()
 	if err != nil {
@@ -264,15 +253,15 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 	}
 
 	if !b.build.IsRunning() {
-		metric.BuildFinished{
-			PipelineName:  b.build.PipelineName(),
-			JobName:       b.build.JobName(),
-			BuildName:     b.build.Name(),
-			BuildID:       b.build.ID(),
-			BuildStatus:   b.build.Status(),
-			BuildDuration: b.build.EndTime().Sub(b.build.StartTime()),
-			TeamName:      b.build.TeamName(),
-		}.Emit(logger)
+		metrics.
+			BuildsDuration.
+			WithLabelValues(
+				string(b.build.Status()),
+				b.build.TeamName(),
+				b.build.PipelineName(),
+				b.build.JobName(),
+			).
+			Observe(b.build.EndTime().Sub(b.build.StartTime()).Seconds())
 	}
 }
 

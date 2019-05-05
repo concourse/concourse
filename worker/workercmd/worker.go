@@ -14,6 +14,7 @@ import (
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/concourse/concourse/metrics"
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
@@ -44,6 +45,11 @@ type WorkerCommand struct {
 	SweepInterval               time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
 	VolumeSweeperMaxInFlight    uint16        `long:"volume-sweeper-max-in-flight" default:"3" description:"Maximum number of volumes which can be swept in parallel."`
 	ContainerSweeperMaxInFlight uint16        `long:"container-sweeper-max-in-flight" default:"5" description:"Maximum number of containers which can be swept in parallel."`
+
+	Prometheus struct {
+		BindIP   flag.IP `long:"prometheus-bind-ip"   default:"0.0.0.0" description:"IP to listen on to expose Prometheus metrics."`
+		BindPort uint16  `long:"prometheus-bind-port" default:"9001"    description:"Port to listen on to expose Prometheus metrics."`
+	} `group:"Prometheus configuration"`
 
 	RebalanceInterval time.Duration `long:"rebalance-interval" description:"Duration after which the registration should be swapped to another random SSH gateway."`
 
@@ -159,6 +165,13 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		{
 			Name:   "baggageclaim",
 			Runner: concourseCmd.NewLoggingRunner(logger.Session("baggageclaim-runner"), baggageclaimRunner),
+		},
+		{
+			Name: "metrics-handler",
+			Runner: http_server.New(
+				fmt.Sprintf("%s:%d", cmd.Prometheus.BindIP, cmd.Prometheus.BindPort),
+				metrics.NewWorkerMetricsHandler(),
+			),
 		},
 		{
 			Name: "debug",

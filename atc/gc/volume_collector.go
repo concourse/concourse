@@ -7,7 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/metrics"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
@@ -46,7 +46,7 @@ func (vc *volumeCollector) Run(ctx context.Context) error {
 		logger.Error("failed-to-transition-created-volumes-to-destroying", err)
 	}
 
-	_, err = vc.volumeRepository.RemoveMissingVolumes(vc.missingVolumeGracePeriod)
+	err = vc.removeMissingVolumes(logger.Session("remove-missing-volumes"))
 	if err != nil {
 		errs = multierror.Append(errs, err)
 		logger.Error("failed-to-clean-up-missing-volumes", err)
@@ -66,11 +66,12 @@ func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {
 		logger.Debug("found-failed-volumes", lager.Data{
 			"failed": failedVolumesLen,
 		})
-	}
 
-	metric.FailedVolumesToBeGarbageCollected{
-		Volumes: failedVolumesLen,
-	}.Emit(logger)
+		metrics.
+			VolumesGCed.
+			WithLabelValues("failed").
+			Add(float64(failedVolumesLen))
+	}
 
 	return nil
 }
@@ -86,14 +87,14 @@ func (vc *volumeCollector) markOrphanedVolumesAsDestroying(logger lager.Logger) 
 		logger.Debug("found-orphaned-volumes", lager.Data{
 			"destroying": len(orphanedVolumesHandles),
 		})
+
+		metrics.
+			VolumesToBeGCed.
+			WithLabelValues("orphan").
+			Add(float64(len(orphanedVolumesHandles)))
 	}
 
-	metric.CreatedVolumesToBeGarbageCollected{
-		Volumes: len(orphanedVolumesHandles),
-	}.Emit(logger)
-
 	for _, orphanedVolume := range orphanedVolumesHandles {
-		// queue
 		vLog := logger.Session("mark-created-as-destroying", lager.Data{
 			"volume": orphanedVolume.Handle(),
 			"worker": orphanedVolume.WorkerName(),
@@ -104,7 +105,26 @@ func (vc *volumeCollector) markOrphanedVolumesAsDestroying(logger lager.Logger) 
 			vLog.Error("failed-to-transition", err)
 			continue
 		}
+	}
 
+	return nil
+}
+
+func (vc *volumeCollector) removeMissingVolumes(logger lager.Logger) error {
+	affected, err := vc.volumeRepository.RemoveMissingVolumes(vc.missingVolumeGracePeriod)
+	if err != nil {
+		return err
+	}
+
+	if affected > 0 {
+		logger.Debug("removed-missing-volumes", lager.Data{
+			"affected": affected,
+		})
+
+		metrics.
+			VolumesGCed.
+			WithLabelValues("missing").
+			Add(float64(affected))
 	}
 
 	return nil

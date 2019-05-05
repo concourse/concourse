@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/metrics"
 )
 
 const creatingVolumeRetryDelay = 1 * time.Second
@@ -459,6 +459,8 @@ func (c *volumeClient) findOrCreateVolume(
 	} else {
 		logger.Debug("creating-real-volume")
 
+		volumeCreationStartTime := time.Now()
+
 		bcVolume, err = c.baggageclaimClient.CreateVolume(
 			logger.Session("create-volume"),
 			creatingVolume.Handle(),
@@ -472,12 +474,16 @@ func (c *volumeClient) findOrCreateVolume(
 				logger.Error("failed-to-mark-volume-as-failed", failedErr)
 			}
 
-			metric.FailedVolumes.Inc()
+			metrics.VolumesCreationDuration.
+				WithLabelValues(metrics.StatusErrored).
+				Observe(time.Now().Sub(volumeCreationStartTime).Seconds())
 
 			return nil, err
 		}
 
-		metric.VolumesCreated.Inc()
+		metrics.VolumesCreationDuration.
+			WithLabelValues(metrics.StatusSucceeded).
+			Observe(time.Now().Sub(volumeCreationStartTime).Seconds())
 	}
 
 	createdVolume, err = creatingVolume.Created()

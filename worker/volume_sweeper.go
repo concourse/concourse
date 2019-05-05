@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/metrics"
 )
 
 // volumeSweeper is an ifrit.Runner that periodically reports and
@@ -61,6 +62,8 @@ func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 	if err != nil {
 		logger.Error("failed-to-list-volumes", err)
 	} else {
+		metrics.Volumes.Set(float64(len(volumes)))
+
 		handles := []string{}
 		for _, volume := range volumes {
 			handles = append(handles, volume.Handle())
@@ -84,10 +87,16 @@ func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 			wg.Add(1)
 
 			go func(handle string) {
+				start := time.Now()
 				err := sweeper.baggageclaimClient.DestroyVolume(logger.Session("destroy-volumes"), handle)
 				if err != nil {
 					logger.WithData(lager.Data{"handle": handle}).Error("failed-to-destroy-volume", err)
 				}
+
+				metrics.
+					VolumesSweepingDuration.
+					WithLabelValues(metrics.StatusFromError(err)).
+					Observe(time.Since(start).Seconds())
 
 				<-maxInFlight
 				wg.Done()

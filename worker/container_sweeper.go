@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/metrics"
 )
 
 // containerSweeper is an ifrit.Runner that periodically reports and
@@ -61,6 +62,8 @@ func (sweeper *containerSweeper) sweep(logger lager.Logger) {
 	if err != nil {
 		logger.Error("failed-to-list-containers", err)
 	} else {
+		metrics.Containers.Set(float64(len(containers)))
+
 		handles := []string{}
 		for _, container := range containers {
 			handles = append(handles, container.Handle())
@@ -84,10 +87,17 @@ func (sweeper *containerSweeper) sweep(logger lager.Logger) {
 			wg.Add(1)
 
 			go func(handle string) {
+				start := time.Now()
 				err := sweeper.gardenClient.Destroy(handle)
 				if err != nil {
 					logger.WithData(lager.Data{"handle": handle}).Error("failed-to-destroy-container", err)
 				}
+
+				metrics.
+					ContainersSweepingDuration.
+					WithLabelValues(metrics.StatusFromError(err)).
+					Observe(time.Since(start).Seconds())
+
 				<-maxInFlight
 				wg.Done()
 			}(handle)

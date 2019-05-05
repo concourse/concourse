@@ -9,16 +9,23 @@ import (
 	concourseCmd "github.com/concourse/concourse/cmd"
 
 	"github.com/concourse/concourse/atc/atccmd"
+	"github.com/concourse/concourse/metrics"
 	"github.com/concourse/concourse/tsa/tsacmd"
 	"github.com/concourse/flag"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
 type WebCommand struct {
 	PeerAddress string `long:"peer-address" default:"127.0.0.1" description:"Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses."`
+
+	Prometheus struct {
+		BindIP   flag.IP `long:"prometheus-bind-ip"   default:"0.0.0.0" description:"IP to listen on to expose Prometheus metrics."`
+		BindPort uint16  `long:"prometheus-bind-port" default:"9001"    description:"Port to listen on to expose Prometheus metrics."`
+	} `group:"Prometheus configuration"`
 
 	*atccmd.RunCommand
 	*tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
@@ -60,6 +67,13 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	logger, _ := cmd.RunCommand.Logger.Logger("web")
 	return grouper.NewParallel(os.Interrupt, grouper.Members{
+		{
+			Name: "metrics-handler",
+			Runner: http_server.New(
+				fmt.Sprintf("%s:%d", cmd.Prometheus.BindIP, cmd.Prometheus.BindPort),
+				metrics.NewWebMetricsHandler(),
+			),
+		},
 		{
 			Name:   "atc",
 			Runner: concourseCmd.NewLoggingRunner(logger.Session("atc-runner"), atcRunner),

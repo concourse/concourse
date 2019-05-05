@@ -6,7 +6,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
 )
 
 type workerCollector struct {
@@ -19,6 +18,7 @@ func NewWorkerCollector(workerLifecycle db.WorkerLifecycle) Collector {
 	}
 }
 
+// TODO - gc duration?
 func (wc *workerCollector) Run(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx).Session("worker-collector")
 
@@ -33,6 +33,9 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 
 	if len(affected) > 0 {
 		logger.Info("ephemeral-workers-removed", lager.Data{"count": len(affected), "workers": affected})
+
+		// workers_ephemeral_removed
+
 	}
 
 	affected, err = wc.workerLifecycle.StallUnresponsiveWorkers()
@@ -43,6 +46,9 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 
 	if len(affected) > 0 {
 		logger.Info("marked-workers-as-stalled", lager.Data{"count": len(affected), "workers": affected})
+
+		// workers_stalled
+
 	}
 
 	affected, err = wc.workerLifecycle.DeleteFinishedRetiringWorkers()
@@ -52,6 +58,9 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	}
 
 	if len(affected) > 0 {
+
+		// workers_retired
+
 		logger.Info("marked-workers-as-retired", lager.Data{"count": len(affected), "workers": affected})
 	}
 
@@ -62,17 +71,10 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	}
 
 	if len(affected) > 0 {
+
+		// workers_landed
+
 		logger.Info("marked-workers-as-landed", lager.Data{"count": len(affected), "workers": affected})
-	}
-
-	workerStateByName, err := wc.workerLifecycle.GetWorkerStateByName()
-
-	if err != nil {
-		logger.Error("failed-to-get-workers-states-for-metrics", err)
-	} else {
-		metric.WorkersState{
-			WorkerStateByName: workerStateByName,
-		}.Emit(logger)
 	}
 
 	return nil

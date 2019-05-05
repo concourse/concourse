@@ -3,7 +3,7 @@ package wrappa
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/metrics"
 	"github.com/tedsuo/rata"
 )
 
@@ -25,7 +25,7 @@ func (wrappa APIMetricsWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case atc.BuildEvents, atc.DownloadCLI, atc.HijackContainer:
 			wrapped[name] = handler
 		default:
-			wrapped[name] = metric.WrapHandler(wrappa.logger, name, handler)
+			wrapped[name] = metrics.WrapHandler(handler)
 		}
 	}
 

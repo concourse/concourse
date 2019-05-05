@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/metrics"
 )
 
 //go:generate counterfeiter . Destroyer
@@ -58,7 +58,10 @@ func (d *destroyer) DestroyContainers(workerName string, currentHandles []string
 		return err
 	}
 
-	metric.ContainersDeleted.IncDelta(deleted)
+	metrics.
+		ContainersGCed.
+		Add(float64(deleted))
+
 	return nil
 }
 
@@ -80,7 +83,11 @@ func (d *destroyer) DestroyVolumes(workerName string, currentHandles []string) e
 		return err
 	}
 
-	metric.VolumesDeleted.IncDelta(deleted)
+	metrics.
+		VolumesGCed.
+		WithLabelValues("destroying").
+		Add(float64(deleted))
+
 	return nil
 }
 
@@ -97,11 +104,12 @@ func (d *destroyer) FindDestroyingVolumesForGc(workerName string) ([]string, err
 		d.logger.Debug("found-orphaned-volumes", lager.Data{
 			"destroying": len(destroyingVolumesHandles),
 		})
-	}
 
-	metric.DestroyingVolumesToBeGarbageCollected{
-		Volumes: len(destroyingVolumesHandles),
-	}.Emit(d.logger)
+		metrics.
+			VolumesToBeGCed.
+			WithLabelValues("destroying").
+			Add(float64(len(destroyingVolumesHandles)))
+	}
 
 	return destroyingVolumesHandles, nil
 }

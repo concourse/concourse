@@ -3,11 +3,13 @@ package worker
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/concourse/concourse/metrics"
 )
 
 type workerHelper struct {
@@ -24,7 +26,7 @@ func (w workerHelper) createGardenContainer(
 	handleToCreate string,
 	bindMounts []garden.BindMount,
 ) (gclient.Container, error) {
-
+	start := time.Now()
 	gardenProperties := garden.Properties{}
 
 	if containerSpec.User != "" {
@@ -47,7 +49,7 @@ func (w workerHelper) createGardenContainer(
 		env = append(env, fmt.Sprintf("no_proxy=%s", w.dbWorker.NoProxy()))
 	}
 
-	return w.gardenClient.Create(
+	container, err := w.gardenClient.Create(
 		garden.ContainerSpec{
 			Handle:     handleToCreate,
 			RootFSPath: fetchedImage.URL,
@@ -57,6 +59,13 @@ func (w workerHelper) createGardenContainer(
 			Env:        env,
 			Properties: gardenProperties,
 		})
+
+	metrics.
+		ContainersCreationDuration.
+		WithLabelValues(metrics.StatusFromError(err)).
+		Observe(time.Since(start).Seconds())
+
+	return container, err
 }
 
 func (w workerHelper) constructGardenWorkerContainer(

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/metric"
+	_ "github.com/concourse/concourse/metrics"
 )
 
 func (s *Server) ListDestroyingVolumes(w http.ResponseWriter, r *http.Request) {
@@ -27,10 +27,6 @@ func (s *Server) ListDestroyingVolumes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Debug("volumes-to-destroy", lager.Data{"count": len(volumeHandles)})
-
-	metric.VolumesToBeGarbageCollected{
-		Volumes: len(volumeHandles),
-	}.Emit(logger)
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(volumeHandles)

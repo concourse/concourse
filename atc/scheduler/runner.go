@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/metrics"
 )
 
 //go:generate counterfeiter . BuildScheduler
@@ -49,7 +49,14 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 dance:
 	for {
+		start := time.Now()
 		err := runner.tick(runner.Logger.Session("tick"))
+
+		metrics.
+			SchedulingDuration.
+			WithLabelValues(metrics.StatusFromError(err)).
+			Observe(time.Since(start).Seconds())
+
 		if err != nil {
 			return err
 		}
@@ -81,25 +88,11 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 	defer schedulingLock.Release()
 
-	start := time.Now()
-
-	defer func() {
-		metric.SchedulingFullDuration{
-			PipelineName: runner.Pipeline.Name(),
-			Duration:     time.Since(start),
-		}.Emit(logger)
-	}()
-
 	versions, err := runner.Pipeline.LoadVersionsDB()
 	if err != nil {
 		logger.Error("failed-to-load-versions-db", err)
 		return err
 	}
-
-	metric.SchedulingLoadVersionsDuration{
-		PipelineName: runner.Pipeline.Name(),
-		Duration:     time.Since(start),
-	}.Emit(logger)
 
 	found, err := runner.Pipeline.Reload()
 	if err != nil {
@@ -130,22 +123,13 @@ func (runner *Runner) tick(logger lager.Logger) error {
 	}
 
 	sLog := logger.Session("scheduling")
-
-	schedulingTimes, err := runner.Scheduler.Schedule(
+	_, err = runner.Scheduler.Schedule(
 		sLog,
 		versions,
 		jobs,
 		resources,
 		resourceTypes.Deserialize(),
 	)
-
-	for jobName, duration := range schedulingTimes {
-		metric.SchedulingJobDuration{
-			PipelineName: runner.Pipeline.Name(),
-			JobName:      jobName,
-			Duration:     duration,
-		}.Emit(sLog)
-	}
 
 	return err
 }
