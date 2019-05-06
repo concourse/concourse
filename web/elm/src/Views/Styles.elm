@@ -37,7 +37,10 @@ pageBelowTopBar route =
                     [ style "height" "100%" ]
 
                 Routes.Resource _ ->
-                    [ style "height" "100%" ]
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
 
                 Routes.Pipeline _ ->
                     [ style "box-sizing" "border-box"
@@ -53,10 +56,22 @@ pageBelowTopBar route =
                     ]
 
                 Routes.Build _ ->
-                    [ style "display" "flex" ]
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
 
-                _ ->
-                    []
+                Routes.OneOffBuild _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
+
+                Routes.Job _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
            )
 
 

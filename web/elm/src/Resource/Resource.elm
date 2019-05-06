@@ -74,6 +74,9 @@ import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
+import ScreenSize
+import Set exposing (Set)
+import SideBar.SideBar as SideBar
 import StrictEvents
 import Svg
 import Svg.Attributes as SvgAttributes
@@ -102,7 +105,6 @@ init flags =
             , checkStatus = Models.CheckingSuccessfully
             , checkError = ""
             , checkSetupError = ""
-            , hovered = Nothing
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
             , currentPage = flags.paging
@@ -122,6 +124,7 @@ init flags =
     , [ FetchResource flags.resourceId
       , FetchVersionedResources flags.resourceId flags.paging
       , GetCurrentTimeZone
+      , FetchPipelines
       ]
     )
 
@@ -472,6 +475,7 @@ handleDelivery delivery ( model, effects ) =
             , effects
                 ++ [ FetchResource model.resourceIdentifier
                    , FetchVersionedResources model.resourceIdentifier model.currentPage
+                   , FetchPipelines
                    ]
                 ++ fetchDataForExpandedVersions model
             )
@@ -605,9 +609,6 @@ update msg ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        Hover hovered ->
-            ( { model | hovered = hovered }, effects )
-
         Click (CheckButton isAuthorized) ->
             if isAuthorized then
                 ( { model | checkStatus = Models.CurrentlyChecking }
@@ -695,8 +696,18 @@ documentTitle model =
     model.resourceIdentifier.resourceName
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view :
+    { a
+        | expandedTeams : Set String
+        , screenSize : ScreenSize.ScreenSize
+        , pipelines : List Concourse.Pipeline
+        , isSideBarOpen : Bool
+        , userState : UserState
+        , hovered : Maybe DomID
+    }
+    -> Model
+    -> Html Message
+view session model =
     let
         route =
             Routes.Resource
@@ -704,38 +715,54 @@ view userState model =
                 , page = Nothing
                 }
     in
-    Html.div []
+    Html.div
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
-            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-            [ Html.div
-                (id "top-bar-app" :: Views.Styles.topBar False)
-                [ TopBar.concourseLogo
-                , TopBar.breadcrumbs route
-                , Login.view userState model False
-                ]
-            , Html.div
-                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-                [ subpageView userState model
-                , commentBar userState model
-                ]
+            (id "top-bar-app" :: Views.Styles.topBar False)
+            [ SideBar.hamburgerMenu
+                { screenSize = session.screenSize
+                , pipelines = session.pipelines
+                , isSideBarOpen = session.isSideBarOpen
+                , hovered = session.hovered
+                , isPaused = False
+                }
+            , TopBar.concourseLogo
+            , TopBar.breadcrumbs route
+            , Login.view session.userState model False
+            ]
+        , Html.div
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
+            [ SideBar.view
+                { expandedTeams = session.expandedTeams
+                , pipelines = session.pipelines
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , currentPipeline =
+                    Just
+                        { pipelineName = model.resourceIdentifier.pipelineName
+                        , teamName = model.resourceIdentifier.teamName
+                        }
+                , screenSize = session.screenSize
+                }
+            , if model.pageStatus == Err Models.Empty then
+                Html.text ""
+
+              else
+                Html.div
+                    [ style "flex-grow" "1"
+                    , style "display" "flex"
+                    , style "flex-direction" "column"
+                    ]
+                    [ header session model
+                    , body session model
+                    , commentBar session model
+                    ]
             ]
         ]
 
 
-subpageView : UserState -> Model -> Html Message
-subpageView userState model =
-    if model.pageStatus == Err Models.Empty then
-        Html.text ""
-
-    else
-        Html.div []
-            [ header model
-            , body userState model
-            ]
-
-
-header : Model -> Html Message
-header model =
+header : { a | hovered : Maybe DomID } -> Model -> Html Message
+header session model =
     let
         lastCheckedView =
             case ( model.now, model.lastChecked ) of
@@ -771,20 +798,23 @@ header model =
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]
-        , pinBar model
-        , paginationMenu model
+        , pinBar session model
+        , paginationMenu session model
         ]
 
 
-body : UserState -> Model -> Html Message
-body userState model =
+body :
+    { a | userState : UserState, hovered : Maybe DomID }
+    -> Model
+    -> Html Message
+body session model =
     let
         sectionModel =
             { checkStatus = model.checkStatus
             , checkSetupError = model.checkSetupError
             , checkError = model.checkError
-            , hovered = model.hovered
-            , userState = userState
+            , hovered = session.hovered
+            , userState = session.userState
             , teamName = model.resourceIdentifier.teamName
             }
 
@@ -797,20 +827,21 @@ body userState model =
                     False
     in
     Html.div
-        (id "body" :: Resource.Styles.body hasCommentBar)
+        (id "body" :: Resource.Styles.body)
         [ checkSection sectionModel
-        , viewVersionedResources model
+        , viewVersionedResources session model
         ]
 
 
 paginationMenu :
-    { a
-        | versions : Paginated Models.Version
-        , resourceIdentifier : Concourse.ResourceIdentifier
-        , hovered : Maybe DomID
-    }
+    { a | hovered : Maybe DomID }
+    ->
+        { b
+            | versions : Paginated Models.Version
+            , resourceIdentifier : Concourse.ResourceIdentifier
+        }
     -> Html Message
-paginationMenu { versions, resourceIdentifier, hovered } =
+paginationMenu { hovered } { versions, resourceIdentifier } =
     let
         previousButtonEventHandler =
             case versions.pagination.previousPage of
@@ -1039,16 +1070,15 @@ checkButton ({ hovered, userState, checkStatus } as params) =
 
 
 commentBar :
-    UserState
+    { a | userState : UserState, hovered : Maybe DomID }
     ->
-        { a
+        { b
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
-            , hovered : Maybe DomID
             , pinCommentLoading : Bool
         }
     -> Html Message
-commentBar userState { resourceIdentifier, pinnedVersion, hovered, pinCommentLoading } =
+commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommentLoading } =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
@@ -1142,12 +1172,10 @@ commentBar userState { resourceIdentifier, pinnedVersion, hovered, pinCommentLoa
 
 
 pinBar :
-    { a
-        | pinnedVersion : Models.PinnedVersion
-        , hovered : Maybe DomID
-    }
+    { a | hovered : Maybe DomID }
+    -> { b | pinnedVersion : Models.PinnedVersion }
     -> Html Message
-pinBar { pinnedVersion, hovered } =
+pinBar { hovered } { pinnedVersion } =
     let
         pinBarVersion =
             Pinned.stable pinnedVersion
@@ -1224,13 +1252,14 @@ pinBar { pinnedVersion, hovered } =
 
 
 viewVersionedResources :
-    { a
-        | versions : Paginated Models.Version
-        , pinnedVersion : Models.PinnedVersion
-        , hovered : Maybe DomID
-    }
+    { a | hovered : Maybe DomID }
+    ->
+        { b
+            | versions : Paginated Models.Version
+            , pinnedVersion : Models.PinnedVersion
+        }
     -> Html Message
-viewVersionedResources { versions, pinnedVersion, hovered } =
+viewVersionedResources { hovered } { versions, pinnedVersion } =
     versions.content
         |> List.map
             (\v ->

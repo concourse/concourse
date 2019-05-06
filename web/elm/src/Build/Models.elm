@@ -35,7 +35,6 @@ type alias Model =
         , previousTriggerBuildByKey : Bool
         , showHelp : Bool
         , highlight : Highlight
-        , hoveredElement : Maybe DomID
         , hoveredCounter : Int
         , fetchingHistory : Bool
         , scrolledToCurrentBuild : Bool

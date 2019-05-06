@@ -956,6 +956,16 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has [ style "padding-top" "54px" ]
+        , test "page below top bar fills vertically without scrolling" <|
+            \_ ->
+                pageLoadJobBuild
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style "height" "100%"
+                        , style "box-sizing" "border-box"
+                        ]
         , describe "after build is fetched" <|
             let
                 givenBuildFetched _ =
@@ -966,12 +976,12 @@ all =
                     >> Tuple.first
                     >> Common.queryView
                     >> Query.has [ id "build-header" ]
-            , test "page body has padding to accomodate header" <|
+            , test "build body scrolls independently of page frame" <|
                 givenBuildFetched
                     >> Tuple.first
                     >> Common.queryView
                     >> Query.find [ id "build-body" ]
-                    >> Query.has [ style "padding-top" "104px" ]
+                    >> Query.has [ style "overflow-y" "auto" ]
             , test "fetches build history and job details after build is fetched" <|
                 givenBuildFetched
                     >> Tuple.second
@@ -1195,6 +1205,20 @@ all =
                         >> Query.has
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
+                            ]
+                , test """page contents lay out vertically, filling available 
+                          space without scrolling horizontally""" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "page-below-top-bar" ]
+                        >> Query.children []
+                        >> Query.index 1
+                        >> Query.has
+                            [ style "flex-grow" "1"
+                            , style "display" "flex"
+                            , style "flex-direction" "column"
+                            , style "overflow" "hidden"
                             ]
                 , test "pressing 'L' switches to the next build" <|
                     givenBuildFetched

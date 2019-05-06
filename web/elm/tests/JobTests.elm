@@ -189,6 +189,25 @@ all =
                             |> Tuple.second
                             |> List.member Effects.GetCurrentTimeZone
                             |> Expect.true "should get current timezone"
+                , test "fetches pipelines" <|
+                    \_ ->
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = ""
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                            |> Tuple.second
+                            |> List.member Effects.FetchPipelines
+                            |> Expect.true "should fetch pipelines"
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
                         Application.init
@@ -467,6 +486,63 @@ all =
                     }
                 , hoverable = Message.Message.TriggerBuildButton
                 }
+            , test "page below top bar fills height without scrolling" <|
+                init { disabled = False, paused = False }
+                    >> queryView
+                    >> Query.find [ id "page-below-top-bar" ]
+                    >> Query.has
+                        [ style "box-sizing" "border-box"
+                        , style "height" "100%"
+                        , style "display" "flex"
+                        ]
+            , test "page contents fill available space and align vertically" <|
+                init { disabled = False, paused = False }
+                    >> queryView
+                    >> Query.find [ id "page-below-top-bar" ]
+                    >> Query.has
+                        [ style "flex-grow" "1"
+                        , style "display" "flex"
+                        , style "flex-direction" "column"
+                        ]
+            , test "body scrolls independently" <|
+                init { disabled = False, paused = False }
+                    >> Application.handleCallback
+                        (JobBuildsFetched <|
+                            let
+                                jobId =
+                                    { jobName = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    }
+
+                                status =
+                                    BuildStatusSucceeded
+
+                                builds =
+                                    [ { id = 0
+                                      , name = "0"
+                                      , job = Just jobId
+                                      , status = status
+                                      , duration =
+                                            { startedAt = Nothing
+                                            , finishedAt = Nothing
+                                            }
+                                      , reapTime = Nothing
+                                      }
+                                    ]
+                            in
+                            Ok
+                                { pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                , content = builds
+                                }
+                        )
+                    >> Tuple.first
+                    >> queryView
+                    >> Query.find [ class "job-body" ]
+                    >> Query.has [ style "overflow-y" "auto" ]
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
@@ -962,9 +1038,11 @@ all =
                                 Time.millisToPosix 0
                         )
                     >> Tuple.second
-                    >> Expect.equal
-                        [ Effects.FetchJobBuilds jobInfo Nothing
-                        , Effects.FetchJob jobInfo
+                    >> Expect.all
+                        [ List.member (Effects.FetchJobBuilds jobInfo Nothing)
+                            >> Expect.true "should refresh builds"
+                        , List.member (Effects.FetchJob jobInfo)
+                            >> Expect.true "should refresh job"
                         ]
             , test "on one-second timer, updates build timestamps" <|
                 init { disabled = False, paused = False }

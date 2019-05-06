@@ -102,7 +102,6 @@ init flags =
           , previousTriggerBuildByKey = False
           , showHelp = False
           , highlight = flags.highlight
-          , hoveredElement = Nothing
           , hoveredCounter = 0
           , authorized = True
           , fetchingHistory = False
@@ -125,6 +124,7 @@ subscriptions model =
                 |> Maybe.andThen .eventStreamUrlPath
     in
     [ OnClockTick OneSecond
+    , OnClockTick FiveSeconds
     , OnScrollToBottom
     , OnKeyDown
     , OnKeyUp
@@ -323,8 +323,8 @@ handleCallback action ( model, effects ) =
             ( model, effects )
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery ( model, effects ) =
+handleDelivery : { a | hovered : Maybe DomID } -> Delivery -> ET Model
+handleDelivery session delivery ( model, effects ) =
     case delivery of
         KeyDown keyEvent ->
             handleKeyPressed keyEvent ( model, effects )
@@ -347,9 +347,12 @@ handleDelivery delivery ( model, effects ) =
             in
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <|
-                    StepTree.updateTooltip newModel
+                    StepTree.updateTooltip session newModel
                 )
                 ( newModel, effects )
+
+        ClockTicked FiveSeconds _ ->
+            ( model, effects ++ [ Effects.FetchPipelines ] )
 
         ScrolledToBottom atBottom ->
             ( { model | autoScroll = atBottom }, effects )
@@ -457,8 +460,8 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Message -> ET Model
-update msg ( model, effects ) =
+update : { a | hovered : Maybe DomID } -> Message -> ET Model
+update session msg ( model, effects ) =
     case msg of
         Click (BuildTab build) ->
             ( model
@@ -469,10 +472,10 @@ update msg ( model, effects ) =
         Hover state ->
             let
                 newModel =
-                    { model | hoveredElement = state, hoveredCounter = 0 }
+                    { model | hoveredCounter = 0 }
             in
             updateOutput
-                (Build.Output.Output.handleStepTreeMsg <| StepTree.updateTooltip newModel)
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.updateTooltip session newModel)
                 ( newModel, effects )
 
         Click TriggerBuildButton ->
@@ -604,7 +607,10 @@ handleKeyPressed keyEvent ( model, effects ) =
             ( Keyboard.H, False ) ->
                 case Maybe.andThen (nextBuild newModel.history) currentBuild of
                     Just build ->
-                        update (Click <| BuildTab build) ( newModel, effects )
+                        ( newModel
+                        , effects
+                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                        )
 
                     Nothing ->
                         ( newModel, [] )
@@ -614,7 +620,10 @@ handleKeyPressed keyEvent ( model, effects ) =
                     Maybe.andThen (prevBuild newModel.history) currentBuild
                 of
                     Just build ->
-                        update (Click <| BuildTab build) ( newModel, effects )
+                        ( newModel
+                        , effects
+                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                        )
 
                     Nothing ->
                         ( newModel, [] )
@@ -627,8 +636,10 @@ handleKeyPressed keyEvent ( model, effects ) =
 
             ( Keyboard.T, True ) ->
                 if not newModel.previousTriggerBuildByKey then
-                    update
-                        (Click TriggerBuildButton)
+                    (currentJob model
+                        |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
+                        |> Maybe.withDefault identity
+                    )
                         ( { newModel | previousTriggerBuildByKey = True }, effects )
 
                 else
@@ -638,8 +649,12 @@ handleKeyPressed keyEvent ( model, effects ) =
                 if currentBuild == List.head newModel.history then
                     case currentBuild of
                         Just _ ->
-                            update
-                                (Click <| AbortBuildButton)
+                            (model.currentBuild
+                                |> RemoteData.toMaybe
+                                |> Maybe.map
+                                    (.build >> .id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
+                                |> Maybe.withDefault identity
+                            )
                                 ( newModel, effects )
 
                         Nothing ->
@@ -840,10 +855,12 @@ view :
         , pipelines : List Concourse.Pipeline
         , isSideBarOpen : Bool
         , expandedTeams : Set String
+        , screenSize : ScreenSize.ScreenSize
+        , hovered : Maybe DomID
     }
     -> Model
     -> Html Message
-view { userState, pipelines, isSideBarOpen, expandedTeams } model =
+view session model =
     let
         route =
             case model.page of
@@ -864,23 +881,23 @@ view { userState, pipelines, isSideBarOpen, expandedTeams } model =
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu
-                { pipelines = pipelines
-                , hovered = model.hoveredElement
-                , isSideBarOpen = isSideBarOpen
-                , screenSize = ScreenSize.Desktop
+                { pipelines = session.pipelines
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , screenSize = session.screenSize
                 , isPaused = False
                 }
             , TopBar.concourseLogo
             , breadcrumbs model
-            , Login.view userState model False
+            , Login.view session.userState model False
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
             [ SideBar.view
-                { expandedTeams = expandedTeams
-                , pipelines = pipelines
-                , hovered = model.hoveredElement
-                , isSideBarOpen = isSideBarOpen
+                { expandedTeams = session.expandedTeams
+                , pipelines = session.pipelines
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
                 , currentPipeline =
                     currentJob model
                         |> Maybe.map
@@ -889,8 +906,9 @@ view { userState, pipelines, isSideBarOpen, expandedTeams } model =
                                 , teamName = j.teamName
                                 }
                             )
+                , screenSize = session.screenSize
                 }
-            , viewBuildPage model
+            , viewBuildPage session model
             ]
         ]
 
@@ -916,15 +934,19 @@ breadcrumbs model =
             Html.text ""
 
 
-viewBuildPage : Model -> Html Message
-viewBuildPage model =
+viewBuildPage : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewBuildPage session model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
             Html.div
                 [ class "with-fixed-header"
                 , attribute "data-build-name" currentBuild.build.name
+                , style "flex-grow" "1"
+                , style "display" "flex"
+                , style "flex-direction" "column"
+                , style "overflow" "hidden"
                 ]
-                [ viewBuildHeader currentBuild.build model
+                [ viewBuildHeader session model currentBuild.build
                 , body
                     { currentBuild = currentBuild
                     , authorized = model.authorized
@@ -1238,8 +1260,12 @@ viewBuildPrepStatus status =
                 ]
 
 
-viewBuildHeader : Concourse.Build -> Model -> Html Message
-viewBuildHeader build model =
+viewBuildHeader :
+    { a | hovered : Maybe DomID }
+    -> Model
+    -> Concourse.Build
+    -> Html Message
+viewBuildHeader session model build =
     let
         triggerButton =
             case currentJob model of
@@ -1249,7 +1275,7 @@ viewBuildHeader build model =
                             model.disableManualTrigger
 
                         buttonHovered =
-                            model.hoveredElement == Just TriggerBuildButton
+                            session.hovered == Just TriggerBuildButton
                     in
                     Html.button
                         ([ attribute "role" "button"
@@ -1291,7 +1317,7 @@ viewBuildHeader build model =
                     Html.text ""
 
         abortHovered =
-            model.hoveredElement == Just AbortBuildButton
+            session.hovered == Just AbortBuildButton
 
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then

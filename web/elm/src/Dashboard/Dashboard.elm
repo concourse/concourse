@@ -92,7 +92,6 @@ init flags =
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
       , groups = []
       , version = ""
-      , hovered = Nothing
       , userState = UserState.UserStateUnknown
       , hideFooter = False
       , hideFooterCounter = 0
@@ -101,7 +100,6 @@ init flags =
       , query = Routes.extractQuery flags.searchType
       , isUserMenuExpanded = False
       , dropdown = Hidden
-      , screenSize = Desktop
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -186,14 +184,6 @@ handleCallback msg ( model, effects ) =
                    , FetchData
                    ]
             )
-
-        ScreenResized viewport ->
-            let
-                newSize =
-                    ScreenSize.fromWindowSize
-                        viewport.viewport.width
-            in
-            ( { model | screenSize = newSize }, effects )
 
         PipelineToggled _ (Ok ()) ->
             ( model, effects ++ [ FetchData ] )
@@ -281,9 +271,9 @@ handleDeliveryBody delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Message -> ET Model
-update msg =
-    SearchBar.update msg >> updateBody msg
+update : { a | screenSize : ScreenSize } -> Message -> ET Model
+update session msg =
+    SearchBar.update session msg >> updateBody msg
 
 
 updateBody : Message -> ET Model
@@ -382,9 +372,6 @@ updateBody msg ( model, effects ) =
             in
             ( newModel, effects ++ unAccumulatedEffects )
 
-        Hover hovered ->
-            ( { model | hovered = hovered }, effects )
-
         Click LogoutButton ->
             ( { model | state = RemoteData.NotAsked }, effects )
 
@@ -474,6 +461,8 @@ view :
         , pipelines : List Concourse.Pipeline
         , isSideBarOpen : Bool
         , expandedTeams : Set String
+        , screenSize : ScreenSize.ScreenSize
+        , hovered : Maybe DomID
     }
     -> Model
     -> Html Message
@@ -499,16 +488,17 @@ view session model =
                 [ SideBar.view
                     { expandedTeams = session.expandedTeams
                     , pipelines = session.pipelines
-                    , hovered = model.hovered
+                    , hovered = session.hovered
                     , isSideBarOpen = session.isSideBarOpen
                     , currentPipeline = Nothing
+                    , screenSize = session.screenSize
                     }
-                , dashboardView model
+                , dashboardView session model
                 ]
 
             else
-                [ dashboardView model ]
-        , Footer.view model
+                [ dashboardView session model ]
+        , Footer.view session model
         ]
 
 
@@ -518,6 +508,8 @@ topBar :
         , pipelines : List Concourse.Pipeline
         , isSideBarOpen : Bool
         , expandedTeams : Set String
+        , hovered : Maybe DomID
+        , screenSize : ScreenSize
     }
     -> Model
     -> Html Message
@@ -528,9 +520,9 @@ topBar session model =
         [ Html.div [ style "display" "flex" ]
             [ SideBar.hamburgerMenu
                 { pipelines = session.pipelines
-                , hovered = model.hovered
+                , hovered = session.hovered
                 , isSideBarOpen = session.isSideBarOpen
-                , screenSize = model.screenSize
+                , screenSize = session.screenSize
                 , isPaused = False
                 }
             , Html.a (href "/" :: Views.Styles.concourseLogo) []
@@ -541,17 +533,17 @@ topBar session model =
                         model.dropdown == Hidden
 
                     isMobile =
-                        model.screenSize == ScreenSize.Mobile
+                        session.screenSize == ScreenSize.Mobile
                 in
                 if
                     not model.highDensity
                         && isMobile
                         && (not isDropDownHidden || model.query /= "")
                 then
-                    [ SearchBar.view model ]
+                    [ SearchBar.view session model ]
 
                 else if not model.highDensity then
-                    [ SearchBar.view model
+                    [ SearchBar.view session model
                     , Login.view session.userState model False
                     ]
 
@@ -560,8 +552,8 @@ topBar session model =
                )
 
 
-dashboardView : Model -> Html Message
-dashboardView model =
+dashboardView : { a | hovered : Maybe DomID } -> Model -> Html Message
+dashboardView session model =
     case model.state of
         RemoteData.NotAsked ->
             Html.text ""
@@ -578,12 +570,12 @@ dashboardView model =
                     :: Styles.content model.highDensity
                 )
             <|
-                welcomeCard model
+                welcomeCard session model
                     :: pipelinesView
                         { groups = model.groups
                         , substate = substate
                         , query = model.query
-                        , hovered = model.hovered
+                        , hovered = session.hovered
                         , pipelineRunningKeyframes =
                             model.pipelineRunningKeyframes
                         , userState = model.userState
@@ -592,13 +584,14 @@ dashboardView model =
 
 
 welcomeCard :
-    { a
-        | hovered : Maybe DomID
-        , groups : List Group
-        , userState : UserState.UserState
-    }
+    { a | hovered : Maybe DomID }
+    ->
+        { b
+            | groups : List Group
+            , userState : UserState.UserState
+        }
     -> Html Message
-welcomeCard { hovered, groups, userState } =
+welcomeCard { hovered } { groups, userState } =
     let
         cliIcon : Maybe DomID -> Cli.Cli -> Html Message
         cliIcon hoverable cli =

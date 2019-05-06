@@ -77,8 +77,6 @@ type alias Model =
         , hideLegend : Bool
         , hideLegendCounter : Float
         , isToggleLoading : Bool
-        , hovered : Maybe DomID
-        , isPhoneScreen : Bool
         }
 
 
@@ -107,15 +105,12 @@ init flags =
             , isToggleLoading = False
             , selectedGroups = flags.selectedGroups
             , isUserMenuExpanded = False
-            , hovered = Nothing
-            , isPhoneScreen = False
             }
     in
     ( model
     , [ FetchPipeline flags.pipelineLocator
       , FetchVersion
       , ResetPipelineFocus
-      , GetScreenSize
       , FetchPipelines
       ]
     )
@@ -275,9 +270,6 @@ handleCallback callback ( model, effects ) =
         VersionFetched (Err _) ->
             ( { model | experiencingTurbulence = True }, effects )
 
-        ScreenResized viewport ->
-            ( { model | isPhoneScreen = viewport.viewport.width < 812 }, effects )
-
         PipelinesFetched (Err _) ->
             ( { model | experiencingTurbulence = True }, effects )
 
@@ -320,9 +312,6 @@ handleDelivery delivery ( model, effects ) =
         ClockTicked OneMinute _ ->
             ( model, effects ++ [ FetchVersion ] )
 
-        WindowResized width _ ->
-            ( { model | isPhoneScreen = width < 812 }, effects )
-
         _ ->
             ( model, effects )
 
@@ -360,9 +349,6 @@ update msg ( model, effects ) =
 
                 _ ->
                     ( model, effects )
-
-        Hover hoverable ->
-            ( { model | hovered = hoverable }, effects )
 
         _ ->
             ( model, effects )
@@ -402,10 +388,12 @@ view :
         , pipelines : List Concourse.Pipeline
         , isSideBarOpen : Bool
         , expandedTeams : Set String
+        , screenSize : ScreenSize.ScreenSize
+        , hovered : Maybe DomID
     }
     -> Model
     -> Html Message
-view { userState, pipelines, isSideBarOpen, expandedTeams } model =
+view session model =
     let
         route =
             Routes.Pipeline
@@ -416,7 +404,7 @@ view { userState, pipelines, isSideBarOpen, expandedTeams } model =
     Html.div [ Html.Attributes.style "height" "100%" ] <|
         let
             isHamburgerClickable =
-                not <| List.isEmpty pipelines
+                not <| List.isEmpty session.pipelines
         in
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
@@ -427,15 +415,10 @@ view { userState, pipelines, isSideBarOpen, expandedTeams } model =
                        )
                 )
                 [ SideBar.hamburgerMenu
-                    { screenSize =
-                        if model.isPhoneScreen then
-                            ScreenSize.Mobile
-
-                        else
-                            ScreenSize.Desktop
-                    , pipelines = pipelines
-                    , isSideBarOpen = isSideBarOpen
-                    , hovered = model.hovered
+                    { screenSize = session.screenSize
+                    , pipelines = session.pipelines
+                    , isSideBarOpen = session.isSideBarOpen
+                    , hovered = session.hovered
                     , isPaused = isPaused model.pipeline
                     }
                 , TopBar.concourseLogo
@@ -444,45 +427,38 @@ view { userState, pipelines, isSideBarOpen, expandedTeams } model =
                     { pinnedResources = getPinnedResources model
                     , pipeline = model.pipelineLocator
                     , isPinMenuExpanded =
-                        model.hovered == Just PinIcon
+                        session.hovered == Just PinIcon
                     }
                 , Html.div
                     (id "top-bar-pause-toggle"
                         :: (Styles.pauseToggle <| isPaused model.pipeline)
                     )
                     [ PauseToggle.view "17px"
-                        userState
+                        session.userState
                         { pipeline = model.pipelineLocator
                         , isPaused = isPaused model.pipeline
                         , isToggleHovered =
-                            model.hovered
+                            session.hovered
                                 == (Just <|
                                         PipelineButton model.pipelineLocator
                                    )
                         , isToggleLoading = model.isToggleLoading
                         }
                     ]
-                , Login.view userState model <| isPaused model.pipeline
+                , Login.view session.userState model <| isPaused model.pipeline
                 ]
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
               <|
-                [ case ( pipelines, isSideBarOpen ) of
-                    ( _, False ) ->
-                        Html.text ""
-
-                    ( [], _ ) ->
-                        Html.text ""
-
-                    ( pls, True ) ->
-                        SideBar.view
-                            { expandedTeams = expandedTeams
-                            , pipelines = pls
-                            , hovered = model.hovered
-                            , isSideBarOpen = isSideBarOpen
-                            , currentPipeline = Just model.pipelineLocator
-                            }
-                , viewSubPage model
+                [ SideBar.view
+                    { expandedTeams = session.expandedTeams
+                    , pipelines = session.pipelines
+                    , hovered = session.hovered
+                    , isSideBarOpen = session.isSideBarOpen
+                    , currentPipeline = Just model.pipelineLocator
+                    , screenSize = session.screenSize
+                    }
+                , viewSubPage session model
                 ]
             ]
         ]
@@ -576,8 +552,8 @@ isPaused p =
     RemoteData.withDefault False (RemoteData.map .paused p)
 
 
-viewSubPage : Model -> Html Message
-viewSubPage model =
+viewSubPage : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewSubPage session model =
     Html.div
         [ class "pipeline-view"
         , id "pipeline-container"
@@ -585,7 +561,7 @@ viewSubPage model =
         , style "flex-direction" "column"
         , style "flex-grow" "1"
         ]
-        [ viewGroupsBar model
+        [ viewGroupsBar session model
         , Html.div [ class "pipeline-content" ]
             [ Svg.svg
                 [ SvgAttributes.class "pipeline-graph test" ]
@@ -670,8 +646,8 @@ viewSubPage model =
         ]
 
 
-viewGroupsBar : Model -> Html Message
-viewGroupsBar model =
+viewGroupsBar : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewGroupsBar session model =
     let
         groupList =
             case model.pipeline of
@@ -680,7 +656,7 @@ viewGroupsBar model =
                         (viewGroup
                             { selectedGroups = selectedGroupsOrDefault model
                             , pipelineLocator = model.pipelineLocator
-                            , hovered = model.hovered
+                            , hovered = session.hovered
                             }
                         )
                         pipeline.groups

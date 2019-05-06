@@ -105,21 +105,22 @@ runSubscription s =
         OnNonHrefLinkClicked ->
             newUrl
                 (\path ->
-                    case
-                        Routes.parsePath
-                            { protocol = Url.Http
-                            , host = ""
-                            , port_ = Nothing
-                            , path = path
-                            , query = Nothing
-                            , fragment = Nothing
-                            }
-                    of
+                    let
+                        url =
+                                { protocol = Url.Http
+                                , host = ""
+                                , port_ = Nothing
+                                , path = path
+                                , query = Nothing
+                                , fragment = Nothing
+                                }
+                    in
+                    case Routes.parsePath url of
                         Just route ->
-                            RouteChanged route
+                            UrlRequest <| Browser.Internal url
 
                         Nothing ->
-                            NonHrefLinkClicked path
+                            UrlRequest <| Browser.External path
                 )
 
         OnTokenReceived ->

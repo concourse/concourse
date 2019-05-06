@@ -38,7 +38,6 @@ type alias Model =
         , now : Maybe Time.Posix
         , resourceIdentifier : Concourse.ResourceIdentifier
         , currentPage : Maybe Page
-        , hovered : Maybe DomID
         , versions : Paginated Version
         , pinCommentLoading : Bool
         , textAreaFocused : Bool

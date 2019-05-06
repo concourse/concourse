@@ -29,7 +29,6 @@ type alias Model =
             { state : RemoteData.RemoteData DashboardError SubState
             , turbulencePath : String
             , pipelineRunningKeyframes : String
-            , hovered : Maybe Message.DomID
             , userState : UserState.UserState
             , highDensity : Bool
             , query : String
@@ -69,8 +68,6 @@ type alias FooterModel r =
         , hideFooterCounter : Int
         , showHelp : Bool
         , groups : List Dashboard.Group.Models.Group
-        , hovered : Maybe Message.DomID
-        , screenSize : ScreenSize.ScreenSize
         , version : String
         , dropdown : Dropdown
         , highDensity : Bool

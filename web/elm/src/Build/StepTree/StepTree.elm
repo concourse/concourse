@@ -372,26 +372,24 @@ toggleExpanded { expanded, state } =
 
 
 updateTooltip :
-    { a
-        | hoveredElement : Maybe DomID
-        , hoveredCounter : Int
-    }
+    { a | hovered : Maybe DomID }
+    -> { b | hoveredCounter : Int }
     -> StepTreeModel
     -> ( StepTreeModel, List Effect )
-updateTooltip { hoveredElement, hoveredCounter } model =
+updateTooltip { hovered } { hoveredCounter } model =
     let
         newTooltip =
-            case hoveredElement of
+            case hovered of
                 Just (FirstOccurrenceIcon _) ->
                     if hoveredCounter > 0 then
-                        hoveredElement
+                        hovered
 
                     else
                         Nothing
 
                 Just (StepState _) ->
                     if hoveredCounter > 0 then
-                        hoveredElement
+                        hovered
 
                     else
                         Nothing

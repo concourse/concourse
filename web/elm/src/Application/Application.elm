@@ -25,6 +25,7 @@ import Message.Subscription
         )
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
 import Routes
+import ScreenSize
 import Set exposing (Set)
 import SubPage.SubPage as SubPage
 import Url
@@ -52,6 +53,8 @@ type alias Model =
     , pipelines : List Concourse.Pipeline
     , expandedTeams : Set String
     , isSideBarOpen : Bool
+    , screenSize : ScreenSize.ScreenSize
+    , hovered : Maybe Message.DomID
     }
 
 
@@ -82,6 +85,8 @@ init flags url =
             , isSideBarOpen = False
             , pipelines = []
             , expandedTeams = Set.empty
+            , screenSize = ScreenSize.Desktop
+            , hovered = Nothing
             }
 
         handleTokenEffect =
@@ -95,7 +100,7 @@ init flags url =
                 , Effects.ModifyUrl <| Routes.toString route
                 ]
     in
-    ( model, FetchUser :: handleTokenEffect ++ subEffects )
+    ( model, [ FetchUser, GetScreenSize ] ++ handleTokenEffect ++ subEffects )
 
 
 locationMsg : Url.Url -> TopLevelMessage
@@ -158,9 +163,14 @@ handleCallback callback model =
             ( { model
                 | pipelines = pipelines
                 , expandedTeams =
-
                     case ( model.pipelines, model.route ) of
                         ( [], Routes.Pipeline { id } ) ->
+                            Set.insert id.teamName model.expandedTeams
+
+                        ( [], Routes.Job { id } ) ->
+                            Set.insert id.teamName model.expandedTeams
+
+                        ( [], Routes.Resource { id } ) ->
                             Set.insert id.teamName model.expandedTeams
 
                         _ ->
@@ -168,6 +178,14 @@ handleCallback callback model =
               }
             , []
             )
+
+        ScreenResized viewport ->
+            subpageHandleCallback
+                { model
+                    | screenSize =
+                        ScreenSize.fromWindowSize viewport.viewport.width
+                }
+                callback
 
         -- otherwise, pass down
         _ ->
@@ -191,6 +209,14 @@ update msg model =
         Update (Message.Click Message.HamburgerMenu) ->
             ( { model | isSideBarOpen = not model.isSideBarOpen }, [] )
 
+        Update (Message.Hover hovered) ->
+            let
+                ( subModel, subEffects ) =
+                    ( model.subModel, [] )
+                        |> SubPage.update model (Message.Hover hovered)
+            in
+            ( { model | subModel = subModel, hovered = hovered }, subEffects )
+
         Update (Message.Click (Message.SideBarTeam teamName)) ->
             ( { model
                 | expandedTeams =
@@ -207,7 +233,7 @@ update msg model =
             let
                 ( subModel, subEffects ) =
                     ( model.subModel, [] )
-                        |> SubPage.update m
+                        |> SubPage.update model m
                         |> SubPage.handleNotFound model.notFoundImgSrc model.route
             in
             ( { model | subModel = subModel }, subEffects )
@@ -224,7 +250,7 @@ handleDelivery delivery model =
     let
         ( newSubmodel, subPageEffects ) =
             ( model.subModel, [] )
-                |> SubPage.handleDelivery delivery
+                |> SubPage.handleDelivery model delivery
                 |> SubPage.handleNotFound model.notFoundImgSrc model.route
 
         ( newModel, applicationEffects ) =
@@ -246,6 +272,9 @@ handleDeliveryForApplication delivery model =
 
         RouteChanged route ->
             urlUpdate route model
+
+        WindowResized width _ ->
+            ( { model | screenSize = ScreenSize.fromWindowSize width }, [] )
 
         UrlRequest request ->
             case request of
@@ -310,6 +339,7 @@ subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnNonHrefLinkClicked
     , OnTokenReceived
+    , OnWindowResize
     ]
         ++ SubPage.subscriptions model.subModel
 

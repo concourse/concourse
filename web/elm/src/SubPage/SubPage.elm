@@ -24,7 +24,7 @@ import Job.Job as Job
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID, Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model
@@ -33,6 +33,7 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
+import ScreenSize
 import Set exposing (Set)
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
@@ -216,26 +217,29 @@ handleLoggedOut ( m, effs ) =
     )
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery =
+handleDelivery : { a | hovered : Maybe DomID } -> Delivery -> ET Model
+handleDelivery session delivery =
     genericUpdate
-        (Build.handleDelivery delivery)
+        (Build.handleDelivery session delivery)
         (Job.handleDelivery delivery)
         (Resource.handleDelivery delivery)
         (Pipeline.handleDelivery delivery)
         (Dashboard.handleDelivery delivery)
-        identity
+        (NotFound.handleDelivery delivery)
         identity
 
 
-update : Message -> ET Model
-update msg =
+update :
+    { a | hovered : Maybe DomID, screenSize : ScreenSize.ScreenSize }
+    -> Message
+    -> ET Model
+update session msg =
     genericUpdate
-        (Login.update msg >> Build.update msg)
+        (Login.update msg >> Build.update session msg)
         (Login.update msg >> Job.update msg)
         (Login.update msg >> Resource.update msg)
         (Login.update msg >> Pipeline.update msg)
-        (Login.update msg >> Dashboard.update msg)
+        (Login.update msg >> Dashboard.update session msg)
         (Login.update msg)
         (Login.update msg >> FlySuccess.update msg)
         >> (case msg of
@@ -307,6 +311,8 @@ view :
         , pipelines : List Concourse.Pipeline
         , isSideBarOpen : Bool
         , expandedTeams : Set String
+        , screenSize : ScreenSize.ScreenSize
+        , hovered : Maybe DomID
     }
     -> Model
     -> Browser.Document TopLevelMessage
@@ -321,7 +327,7 @@ view ({ userState } as session) mdl =
 
                 JobModel model ->
                     ( Job.documentTitle model
-                    , Job.view userState model
+                    , Job.view session model
                     )
 
                 PipelineModel model ->
@@ -331,7 +337,7 @@ view ({ userState } as session) mdl =
 
                 ResourceModel model ->
                     ( Resource.documentTitle model
-                    , Resource.view userState model
+                    , Resource.view session model
                     )
 
                 DashboardModel model ->
@@ -341,7 +347,7 @@ view ({ userState } as session) mdl =
 
                 NotFoundModel model ->
                     ( NotFound.documentTitle
-                    , NotFound.view userState model
+                    , NotFound.view session model
                     )
 
                 FlySuccessModel model ->
@@ -371,7 +377,7 @@ subscriptions mdl =
             Dashboard.subscriptions
 
         NotFoundModel _ ->
-            []
+            NotFound.subscriptions
 
         FlySuccessModel _ ->
             []

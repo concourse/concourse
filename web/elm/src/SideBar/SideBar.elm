@@ -2,7 +2,7 @@ module SideBar.SideBar exposing (hamburgerMenu, view)
 
 import Concourse
 import Html exposing (Html)
-import Html.Attributes exposing (href, id)
+import Html.Attributes exposing (href, id, title)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Message exposing (DomID(..), Message(..))
@@ -20,12 +20,17 @@ type alias Model m =
         , hovered : Maybe DomID
         , isSideBarOpen : Bool
         , currentPipeline : Maybe Concourse.PipelineIdentifier
+        , screenSize : ScreenSize.ScreenSize
     }
 
 
 view : Model m -> Html Message
 view model =
-    if model.isSideBarOpen then
+    if
+        model.isSideBarOpen
+            && not (List.isEmpty model.pipelines)
+            && (model.screenSize /= ScreenSize.Mobile)
+    then
         Html.div
             (id "side-bar" :: Styles.sideBar)
             (model.pipelines
@@ -60,8 +65,7 @@ team ({ hovered, isExpanded, teamName, pipelines } as session) =
         Styles.team
         [ teamHeader session
         , if isExpanded then
-            Html.div Styles.column <|
-                List.map (pipeline session) pipelines
+            Html.div Styles.column <| List.map (pipeline session) pipelines
 
           else
             Html.text ""
@@ -97,15 +101,16 @@ teamHeader { hovered, isExpanded, teamName, currentPipeline } =
                 }
             ]
         , Html.div
-            (Styles.teamName
-                { isHovered = isHovered
-                , isExpanded = isExpanded
-                , isCurrent =
-                    (currentPipeline
-                        |> Maybe.map .teamName
-                    )
-                        == Just teamName
-                }
+            (title teamName
+                :: Styles.teamName
+                    { isHovered = isHovered
+                    , isExpanded = isExpanded
+                    , isCurrent =
+                        (currentPipeline
+                            |> Maybe.map .teamName
+                        )
+                            == Just teamName
+                    }
             )
             [ Html.text teamName ]
         ]
@@ -136,6 +141,7 @@ pipeline { hovered, teamName, currentPipeline } p =
                 ++ [ href <|
                         Routes.toString <|
                             Routes.Pipeline { id = pipelineId, groups = [] }
+                   , title p.name
                    , onMouseEnter <| Hover <| Just <| SideBarPipeline pipelineId
                    , onMouseLeave <| Hover Nothing
                    ]
@@ -163,11 +169,12 @@ hamburgerMenu model =
                 not <| List.isEmpty model.pipelines
         in
         Html.div
-            (Styles.hamburgerMenu
-                { isSideBarOpen = model.isSideBarOpen
-                , isPaused = model.isPaused
-                , isClickable = isHamburgerClickable
-                }
+            (id "hamburger-menu"
+                :: Styles.hamburgerMenu
+                    { isSideBarOpen = model.isSideBarOpen
+                    , isPaused = model.isPaused
+                    , isClickable = isHamburgerClickable
+                    }
                 ++ [ onMouseEnter <| Hover <| Just HamburgerMenu
                    , onMouseLeave <| Hover Nothing
                    ]
