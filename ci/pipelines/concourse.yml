@@ -560,6 +560,7 @@ jobs:
       passed: [bin-smoke]
       trigger: true
     - get: concourse-release-repo
+      trigger: true
   - task: check-props
     file: concourse/ci/tasks/check-distribution-env.yml
     image: unit-image
