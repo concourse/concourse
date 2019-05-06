@@ -616,8 +616,6 @@ jobs:
       trigger: true
     - get: postgres-release
       trigger: true
-    - get: postgres-bbr-compatible-release
-      trigger: true
     - get: bpm-release
       trigger: true
     - get: backup-and-restore-sdk-release
@@ -1071,13 +1069,6 @@ resources:
   type: bosh-io-release
   icon: *release-icon
   source: {repository: cloudfoundry/postgres-release}
-
-- name: postgres-bbr-compatible-release
-  type: bosh-io-release
-  icon: *release-icon
-  source:
-    repository: cloudfoundry/postgres-release
-    regexp: 31
 
 - name: bpm-release
   type: bosh-io-release

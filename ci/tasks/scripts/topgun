@@ -20,7 +20,6 @@ export STEMCELL_VERSION="$(cat stemcell/version)"
 bosh upload-release concourse-release/*.tgz
 bosh upload-release bpm-release/*.tgz
 bosh upload-release postgres-release/*.tgz
-bosh upload-release postgres-bbr-compatible-release/*.tgz
 bosh upload-release vault-release/*.tgz
 bosh upload-release credhub-release/*.tgz
 bosh upload-release backup-and-restore-sdk-release/*.tgz
