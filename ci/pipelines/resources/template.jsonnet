@@ -174,7 +174,7 @@ local publish_job(bump) = {
   name: "publish-" + bump,
   plan: [
     {
-      aggregate: [
+      in_parallel: [
         {
           get: "resource-repo",
           passed: ["build-alpine", "build-ubuntu"]
@@ -205,7 +205,7 @@ local publish_job(bump) = {
       image: "resource-image-dev-ubuntu",
     },
     {
-      aggregate: [
+      in_parallel: [
         {
           put: "resource-image-alpine",
           params: {
@@ -257,7 +257,7 @@ local validate_pr(distro) = {
   public: true,
   plan: [
     {
-      aggregate: [
+      in_parallel: [
         {
           get: "resource-pr",
           trigger: true,
@@ -312,7 +312,7 @@ local build_image(distro) = {
   name: "build-" + distro,
   plan: [
     {
-      aggregate: [
+      in_parallel: [
         {
           get: resource+"-resource",
           resource: "resource-repo",

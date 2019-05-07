@@ -100,7 +100,7 @@ jobs:
     params: {path: concourse-pr, status: success, context: testflight}
     tags: [pr]
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse-pr
       trigger: true
       version: every
@@ -141,7 +141,7 @@ jobs:
     params: {path: concourse-pr, status: success, context: watsjs}
     tags: [pr]
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse-pr
       trigger: true
       version: every
