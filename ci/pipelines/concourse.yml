@@ -803,6 +803,7 @@ jobs:
       - cbd/cluster/operations/x-frame-options-unset.yml
       - cbd/cluster/operations/worker-volume-sweeper-max-in-flight.yml
       - cbd/cluster/operations/vault-shared-path.yml
+      - cbd/cluster/operations/bbr.yml
       - prod/prod/ops.yml
       vars_files:
       - cbd/versions.yml
