@@ -799,7 +799,6 @@ iVisitTheDashboard _ =
         }
 
 
-
 apiDataLoads =
     Tuple.first
         >> Application.handleCallback

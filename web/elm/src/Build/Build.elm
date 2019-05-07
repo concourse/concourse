@@ -469,7 +469,7 @@ update session msg ( model, effects ) =
                 ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
             )
 
-        Hover state ->
+        Hover _ ->
             let
                 newModel =
                     { model | hoveredCounter = 0 }

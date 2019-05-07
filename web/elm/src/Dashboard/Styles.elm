@@ -53,7 +53,6 @@ import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Html
 import Html.Attributes exposing (style)
 import ScreenSize exposing (ScreenSize(..))
-import Views.Styles
 
 
 content : Bool -> List (Html.Attribute msg)

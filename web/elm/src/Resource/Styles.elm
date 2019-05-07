@@ -32,22 +32,11 @@ import Html
 import Html.Attributes exposing (style)
 import Pinned
 import Resource.Models as Models
-import Views.Styles
 
 
 headerHeight : Int
 headerHeight =
     60
-
-
-commentBarHeight : Int
-commentBarHeight =
-    300
-
-
-bodyPadding : Int
-bodyPadding =
-    10
 
 
 pinBar : Bool -> List (Html.Attribute msg)

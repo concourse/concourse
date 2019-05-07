@@ -10,7 +10,6 @@ import Concourse
 import Concourse.Pagination exposing (Page)
 import Keyboard
 import Login.Login as Login
-import Message.Message exposing (DomID)
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight)
 import Time

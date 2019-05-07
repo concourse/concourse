@@ -817,14 +817,6 @@ body session model =
             , userState = session.userState
             , teamName = model.resourceIdentifier.teamName
             }
-
-        hasCommentBar =
-            case model.pinnedVersion of
-                PinnedDynamicallyTo _ _ ->
-                    True
-
-                _ ->
-                    False
     in
     Html.div
         (id "body" :: Resource.Styles.body)

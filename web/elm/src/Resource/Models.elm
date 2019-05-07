@@ -11,7 +11,6 @@ module Resource.Models exposing
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Login.Login as Login
-import Message.Message exposing (DomID)
 import Pinned exposing (CommentState, ResourcePinState)
 import Time
 

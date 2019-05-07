@@ -60,7 +60,7 @@ team :
         , currentPipeline : Maybe Concourse.PipelineIdentifier
     }
     -> Html Message
-team ({ hovered, isExpanded, teamName, pipelines } as session) =
+team ({ isExpanded, pipelines } as session) =
     Html.div
         Styles.team
         [ teamHeader session

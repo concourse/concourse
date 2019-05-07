@@ -12,9 +12,7 @@ module Dashboard.Models exposing
 import Concourse
 import Dashboard.Group.Models
 import Login.Login as Login
-import Message.Message as Message
 import RemoteData
-import ScreenSize
 import Time
 import UserState
 

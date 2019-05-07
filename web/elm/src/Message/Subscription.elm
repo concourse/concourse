@@ -107,16 +107,16 @@ runSubscription s =
                 (\path ->
                     let
                         url =
-                                { protocol = Url.Http
-                                , host = ""
-                                , port_ = Nothing
-                                , path = path
-                                , query = Nothing
-                                , fragment = Nothing
-                                }
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = path
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
                     in
                     case Routes.parsePath url of
-                        Just route ->
+                        Just _ ->
                             UrlRequest <| Browser.Internal url
 
                         Nothing ->

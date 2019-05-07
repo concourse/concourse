@@ -33,7 +33,6 @@ import Http
 import Json.Decode
 import Json.Encode
 import Keyboard
-import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
@@ -56,7 +55,6 @@ import Svg
 import Svg.Attributes as SvgAttributes
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState)
-import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
 import Views.Styles
 import Views.TopBar as TopBar
@@ -401,11 +399,7 @@ view session model =
                 , groups = model.selectedGroups
                 }
     in
-    Html.div [ Html.Attributes.style "height" "100%" ] <|
-        let
-            isHamburgerClickable =
-                not <| List.isEmpty session.pipelines
-        in
+    Html.div [ Html.Attributes.style "height" "100%" ]
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
