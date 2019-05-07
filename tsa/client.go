@@ -342,6 +342,8 @@ func (client *Client) dial(ctx context.Context, idleTimeout time.Duration) (*ssh
 	}
 
 	clientConfig := &ssh.ClientConfig{
+		Config: atc.DefaultSSHConfig(),
+
 		User: "beacon", // doesn't matter
 
 		HostKeyCallback: client.checkHostKey,

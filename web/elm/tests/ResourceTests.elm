@@ -207,10 +207,11 @@ all =
             \_ ->
                 Application.init
                     { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
                     , authToken = ""
-                    , pipelineRunningKeyframes = ""
+                    , clusterName = ""
+                    , pipelineRunningKeyframes = "pipeline-running"
                     }
                     { protocol = Url.Http
                     , host = ""
@@ -3097,29 +3098,27 @@ csrfToken =
     "csrf_token"
 
 
+flags : Application.Flags
+flags =
+    { turbulenceImgSrc = ""
+    , notFoundImgSrc = ""
+    , csrfToken = csrfToken
+    , authToken = ""
+    , clusterName = ""
+    , pipelineRunningKeyframes = ""
+    }
+
+
 init : Application.Model
 init =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = csrfToken
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
-        { protocol = Url.Http
-        , host = ""
-        , port_ = Nothing
-        , path =
-            "/teams/"
-                ++ teamName
-                ++ "/pipelines/"
-                ++ pipelineName
-                ++ "/resources/"
-                ++ resourceName
-        , query = Nothing
-        , fragment = Nothing
-        }
-        |> Tuple.first
+    Common.init
+        ("/teams/"
+            ++ teamName
+            ++ "/pipelines/"
+            ++ pipelineName
+            ++ "/resources/"
+            ++ resourceName
+        )
 
 
 update :

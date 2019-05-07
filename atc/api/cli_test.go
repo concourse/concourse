@@ -62,6 +62,7 @@ var _ = Describe("CLI Downloads API", func() {
 
 		err = windowsArchive.WriteZip(zipFile)
 		Expect(err).NotTo(HaveOccurred())
+
 	})
 
 	AfterEach(func() {

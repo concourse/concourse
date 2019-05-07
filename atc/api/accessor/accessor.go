@@ -15,6 +15,7 @@ type Access interface {
 	IsSystem() bool
 	TeamNames() []string
 	CSRFToken() string
+	UserName() string
 }
 
 type access struct {
@@ -45,8 +46,10 @@ func (a *access) HasPermission(role string) bool {
 		return role == "owner"
 	case "member":
 		return role == "owner" || role == "member"
+	case "pipeline-operator":
+		return role == "owner" || role == "member" || role == "pipeline-operator"
 	case "viewer":
-		return role == "owner" || role == "member" || role == "viewer"
+		return role == "owner" || role == "member" || role == "pipeline-operator" || role == "viewer"
 	default:
 		return false
 	}
@@ -115,6 +118,21 @@ func (a *access) CSRFToken() string {
 	return ""
 }
 
+func (a *access) UserName() string {
+	if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
+		if userName, ok := claims["user_name"]; ok {
+			if userName, ok := userName.(string); ok {
+				return userName
+			}
+		} else if systemName, ok := claims["system"]; ok {
+			if systemName == true {
+				return "system"
+			}
+		}
+	}
+	return ""
+}
+
 var requiredRoles = map[string]string{
 	atc.SaveConfig:                    "member",
 	atc.GetConfig:                     "viewer",
@@ -125,37 +143,37 @@ var requiredRoles = map[string]string{
 	atc.ListBuilds:                    "viewer",
 	atc.BuildEvents:                   "viewer",
 	atc.BuildResources:                "viewer",
-	atc.AbortBuild:                    "member",
+	atc.AbortBuild:                    "pipeline-operator",
 	atc.GetBuildPreparation:           "viewer",
 	atc.GetJob:                        "viewer",
-	atc.CreateJobBuild:                "member",
+	atc.CreateJobBuild:                "pipeline-operator",
 	atc.ListAllJobs:                   "viewer",
 	atc.ListJobs:                      "viewer",
 	atc.ListJobBuilds:                 "viewer",
 	atc.ListJobInputs:                 "viewer",
 	atc.GetJobBuild:                   "viewer",
-	atc.PauseJob:                      "member",
-	atc.UnpauseJob:                    "member",
+	atc.PauseJob:                      "pipeline-operator",
+	atc.UnpauseJob:                    "pipeline-operator",
 	atc.GetVersionsDB:                 "viewer",
 	atc.JobBadge:                      "viewer",
 	atc.MainJobBadge:                  "viewer",
-	atc.ClearTaskCache:                "member",
+	atc.ClearTaskCache:                "pipeline-operator",
 	atc.ListAllResources:              "viewer",
 	atc.ListResources:                 "viewer",
 	atc.ListResourceTypes:             "viewer",
 	atc.GetResource:                   "viewer",
-	atc.PauseResource:                 "member",
-	atc.UnpauseResource:               "member",
-	atc.UnpinResource:                 "member",
-	atc.SetPinCommentOnResource:       "member",
-	atc.CheckResource:                 "member",
-	atc.CheckResourceWebHook:          "member",
-	atc.CheckResourceType:             "member",
+	atc.PauseResource:                 "pipeline-operator",
+	atc.UnpauseResource:               "pipeline-operator",
+	atc.UnpinResource:                 "pipeline-operator",
+	atc.SetPinCommentOnResource:       "pipeline-operator",
+	atc.CheckResource:                 "pipeline-operator",
+	atc.CheckResourceWebHook:          "pipeline-operator",
+	atc.CheckResourceType:             "pipeline-operator",
 	atc.ListResourceVersions:          "viewer",
 	atc.GetResourceVersion:            "viewer",
-	atc.EnableResourceVersion:         "member",
-	atc.DisableResourceVersion:        "member",
-	atc.PinResourceVersion:            "member",
+	atc.EnableResourceVersion:         "pipeline-operator",
+	atc.DisableResourceVersion:        "pipeline-operator",
+	atc.PinResourceVersion:            "pipeline-operator",
 	atc.ListBuildsWithVersionAsInput:  "viewer",
 	atc.ListBuildsWithVersionAsOutput: "viewer",
 	atc.GetResourceCausality:          "viewer",
@@ -164,8 +182,8 @@ var requiredRoles = map[string]string{
 	atc.GetPipeline:                   "viewer",
 	atc.DeletePipeline:                "member",
 	atc.OrderPipelines:                "member",
-	atc.PausePipeline:                 "member",
-	atc.UnpausePipeline:               "member",
+	atc.PausePipeline:                 "pipeline-operator",
+	atc.UnpausePipeline:               "pipeline-operator",
 	atc.ExposePipeline:                "member",
 	atc.HidePipeline:                  "member",
 	atc.RenamePipeline:                "member",

@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,6 +27,7 @@ var _ = Describe("Handler", func() {
 
 		dummyHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			innerHandlerCalled = true
+
 			access = r.Context().Value("accessor").(accessor.Access)
 		})
 
@@ -35,32 +37,22 @@ var _ = Describe("Handler", func() {
 	})
 
 	JustBeforeEach(func() {
-		accessorFactory.CreateReturns(fakeAccess)
 		accessorHandler.ServeHTTP(nil, req)
 	})
 
 	Describe("Accessor Handler", func() {
 		BeforeEach(func() {
-			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action")
+			accessorHandler = accessor.NewHandler(dummyHandler, accessorFactory, "some-action", new(auditorfakes.FakeAuditor))
 		})
 
 		Context("when access factory return valid access object", func() {
 			BeforeEach(func() {
 				fakeAccess = new(accessorfakes.FakeAccess)
+				accessorFactory.CreateReturns(fakeAccess)
 			})
 			It("calls the innder handler", func() {
 				Expect(innerHandlerCalled).To(BeTrue())
 				Expect(access).To(Equal(fakeAccess))
-			})
-		})
-
-		Context("when access factory does not return valid access object", func() {
-			BeforeEach(func() {
-				fakeAccess = nil
-			})
-			It("request context is set to Nil", func() {
-				Expect(innerHandlerCalled).To(BeTrue())
-				Expect(access).To(BeNil())
 			})
 		})
 	})

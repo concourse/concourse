@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	awsssm "github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/creds/credhub"
 	"github.com/concourse/concourse/atc/creds/secretsmanager"
 	"github.com/concourse/concourse/atc/creds/ssm"
@@ -72,18 +71,9 @@ var _ = Describe("Pipelines API", func() {
 	Describe("GET /api/v1/info/creds", func() {
 		var (
 			response   *http.Response
-			fakeaccess *accessorfakes.FakeAccess
 			credServer *ghttp.Server
 			body       []byte
 		)
-
-		BeforeEach(func() {
-			fakeaccess = new(accessorfakes.FakeAccess)
-		})
-
-		JustBeforeEach(func() {
-			fakeAccessor.CreateReturns(fakeaccess)
-		})
 
 		JustBeforeEach(func() {
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/info/creds", nil)
@@ -104,10 +94,10 @@ var _ = Describe("Pipelines API", func() {
 			var mockService MockSsmService
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAdminReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(true)
 
-				ssmAccess := ssm.NewSsm(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", nil)
+				ssmAccess := ssm.NewSsm(lager.NewLogger("ssm_test"), &mockService, nil)
 				ssmManager := &ssm.SsmManager{
 					AwsAccessKeyID:         "",
 					AwsSecretAccessKey:     "",
@@ -174,8 +164,8 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("vault", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAdminReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(true)
 
 				authConfig := vault.AuthConfig{
 					Backend:       "backend-server",
@@ -193,8 +183,6 @@ var _ = Describe("Pipelines API", func() {
 				vaultManager := &vault.VaultManager{
 					URL:        credServer.URL(),
 					PathPrefix: "testpath",
-					Cache:      false,
-					MaxLease:   60,
 					TLS:        tls,
 					Auth:       authConfig,
 				}
@@ -264,8 +252,6 @@ var _ = Describe("Pipelines API", func() {
           "vault": {
             "url": "` + credServer.URL() + `",
             "path_prefix": "testpath",
-						"cache": false,
-						"max_lease": 60,
             "ca_cert": "",
             "server_name": "server-name",
 						"auth_backend": "backend-server",
@@ -297,8 +283,8 @@ var _ = Describe("Pipelines API", func() {
 			)
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAdminReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(true)
 
 				tls = credhub.TLS{
 					CACerts: []string{},
@@ -398,10 +384,10 @@ var _ = Describe("Pipelines API", func() {
 			var mockService MockSecretsManagerService
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAdminReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(true)
 
-				secretsManagerAccess := secretsmanager.NewSecretsManager(lager.NewLogger("ssm_test"), &mockService, "alpha", "bogus", nil)
+				secretsManagerAccess := secretsmanager.NewSecretsManager(lager.NewLogger("ssm_test"), &mockService, nil)
 
 				secretsManager := &secretsmanager.Manager{
 					AwsAccessKeyID:         "",

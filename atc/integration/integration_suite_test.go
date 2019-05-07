@@ -30,10 +30,11 @@ var _ = BeforeEach(func() {
 	cmd.Postgres.SSLMode = "disable"
 	cmd.Auth.MainTeamFlags.LocalUsers = []string{"test"}
 	cmd.Auth.AuthFlags.LocalUsers = map[string]string{
-		"test":   "test",
-		"v-user": "v-user",
-		"m-user": "m-user",
-		"o-user": "o-user",
+		"test":    "test",
+		"v-user":  "v-user",
+		"po-user": "po-user",
+		"m-user":  "m-user",
+		"o-user":  "o-user",
 	}
 	cmd.Logger.LogLevel = "debug"
 	cmd.Logger.SetWriterSink(GinkgoWriter)

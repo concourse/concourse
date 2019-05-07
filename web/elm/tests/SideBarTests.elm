@@ -788,6 +788,7 @@ iVisitTheDashboard _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
+        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -796,6 +797,7 @@ iVisitTheDashboard _ =
         , query = Nothing
         , fragment = Nothing
         }
+
 
 
 apiDataLoads =
@@ -1228,6 +1230,7 @@ iOpenedThePipelinePage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
+        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -1597,6 +1600,7 @@ iOpenTheBuildPage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
+        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -1685,6 +1689,7 @@ iOpenTheJobPage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
+        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -1702,6 +1707,7 @@ iOpenTheResourcePage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
+        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""

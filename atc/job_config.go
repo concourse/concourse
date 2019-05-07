@@ -100,6 +100,12 @@ func collectPlans(plan PlanConfig) []PlanConfig {
 		}
 	}
 
+	if plan.InParallel != nil {
+		for _, p := range plan.InParallel.Steps {
+			plans = append(plans, collectPlans(p)...)
+		}
+	}
+
 	return append(plans, plan)
 }
 

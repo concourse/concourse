@@ -35,10 +35,22 @@ abort buildId csrfToken =
             }
 
 
-fetchJobBuilds : Concourse.JobIdentifier -> Maybe Page -> Task Http.Error (Paginated Concourse.Build)
+fetchJobBuilds :
+    Concourse.JobIdentifier
+    -> Maybe Page
+    -> Task Http.Error (Paginated Concourse.Build)
 fetchJobBuilds job page =
     let
-        url =
-            "/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds"
+        segments =
+            [ "api"
+            , "v1"
+            , "teams"
+            , job.teamName
+            , "pipelines"
+            , job.pipelineName
+            , "jobs"
+            , job.jobName
+            , "builds"
+            ]
     in
-    Network.Pagination.fetch Concourse.decodeBuild url page
+    Network.Pagination.fetch Concourse.decodeBuild segments page

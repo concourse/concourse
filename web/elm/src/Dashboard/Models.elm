@@ -32,6 +32,7 @@ type alias Model =
             , userState : UserState.UserState
             , highDensity : Bool
             , query : String
+            , clusterName : String
             }
         )
 

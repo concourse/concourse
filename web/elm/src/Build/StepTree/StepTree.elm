@@ -83,6 +83,9 @@ init hl resources buildPlan =
         Concourse.BuildStepAggregate plans ->
             initMultiStep hl resources buildPlan.id Aggregate plans
 
+        Concourse.BuildStepInParallel plans ->
+            initMultiStep hl resources buildPlan.id InParallel plans
+
         Concourse.BuildStepDo plans ->
             initMultiStep hl resources buildPlan.id Do plans
 
@@ -232,6 +235,9 @@ treeIsActive : StepTree -> Bool
 treeIsActive stepTree =
     case stepTree of
         Aggregate trees ->
+            List.any treeIsActive (Array.toList trees)
+
+        InParallel trees ->
             List.any treeIsActive (Array.toList trees)
 
         Do trees ->
@@ -444,6 +450,10 @@ viewTree timeZone model tree =
 
         Aggregate steps ->
             Html.div [ class "aggregate" ]
+                (Array.toList <| Array.map (viewSeq timeZone model) steps)
+
+        InParallel steps ->
+            Html.div [ class "parallel" ]
                 (Array.toList <| Array.map (viewSeq timeZone model) steps)
 
         Do steps ->

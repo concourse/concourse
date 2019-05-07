@@ -37,6 +37,7 @@ type alias Flags =
     , notFoundImgSrc : String
     , csrfToken : Concourse.CSRFToken
     , authToken : String
+    , clusterName : String
     , pipelineRunningKeyframes : String
     }
 
@@ -55,6 +56,7 @@ type alias Model =
     , isSideBarOpen : Bool
     , screenSize : ScreenSize.ScreenSize
     , hovered : Maybe Message.DomID
+    , clusterName : String
     }
 
 
@@ -70,6 +72,7 @@ init flags url =
                 { turbulencePath = flags.turbulenceImgSrc
                 , authToken = flags.authToken
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                , clusterName = flags.clusterName
                 }
                 route
 
@@ -87,6 +90,7 @@ init flags url =
             , expandedTeams = Set.empty
             , screenSize = ScreenSize.Desktop
             , hovered = Nothing
+            , clusterName = flags.clusterName
             }
 
         handleTokenEffect =
@@ -322,6 +326,7 @@ urlUpdate route model =
                     { turbulencePath = model.turbulenceImgSrc
                     , authToken = model.authToken
                     , pipelineRunningKeyframes = model.pipelineRunningKeyframes
+                    , clusterName = model.clusterName
                     }
                     route
     in

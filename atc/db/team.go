@@ -59,7 +59,7 @@ type Team interface {
 	IsContainerWithinTeam(string, bool) (bool, error)
 
 	FindContainerByHandle(string) (Container, bool, error)
-	FindCheckContainers(lager.Logger, string, string, creds.VariablesFactory) ([]Container, map[int]time.Time, error)
+	FindCheckContainers(lager.Logger, string, string, creds.Secrets) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
@@ -708,7 +708,7 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		"team_id":      t.id,
 		"status":       BuildStatusStarted,
 		"start_time":   sq.Expr("now()"),
-		"schema":       "exec.v2",
+		"schema":       schema,
 		"private_plan": encryptedPlan,
 		"public_plan":  plan.Public(),
 		"nonce":        nonce,
@@ -803,7 +803,7 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 	return tx.Commit()
 }
 
-func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, variablesFactory creds.VariablesFactory) ([]Container, map[int]time.Time, error) {
+func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets) ([]Container, map[int]time.Time, error) {
 	pipeline, found, err := t.Pipeline(pipelineName)
 	if err != nil {
 		return nil, nil, err
@@ -825,7 +825,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		return nil, nil, err
 	}
 
-	variables := variablesFactory.NewVariables(t.name, pipeline.Name())
+	variables := creds.NewVariables(secretManager, t.name, pipeline.Name())
 
 	versionedResourceTypes := pipelineResourceTypes.Deserialize()
 

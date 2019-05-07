@@ -14,7 +14,6 @@
             "elm/http": "1.0.0",
             "elm/json": "1.1.3",
             "elm/parser": "1.1.0",
-            "elm/regex": "1.0.0",
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
@@ -34,6 +33,7 @@
             "avh4/elm-fifo": "1.0.4",
             "elm/virtual-dom": "1.0.2",
             "rtfeldman/elm-hex": "1.0.0",
+            "elm/regex": "1.0.0",
             "rtfeldman/elm-iso8601-date-strings": "1.1.2"
         }
     },

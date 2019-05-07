@@ -4,19 +4,20 @@ type Plan struct {
 	ID       PlanID `json:"id"`
 	Attempts []int  `json:"attempts,omitempty"`
 
-	Aggregate *AggregatePlan `json:"aggregate,omitempty"`
-	Do        *DoPlan        `json:"do,omitempty"`
-	Get       *GetPlan       `json:"get,omitempty"`
-	Put       *PutPlan       `json:"put,omitempty"`
-	Task      *TaskPlan      `json:"task,omitempty"`
-	OnAbort   *OnAbortPlan   `json:"on_abort,omitempty"`
-	OnError   *OnErrorPlan   `json:"on_error,omitempty"`
-	Ensure    *EnsurePlan    `json:"ensure,omitempty"`
-	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
-	OnFailure *OnFailurePlan `json:"on_failure,omitempty"`
-	Try       *TryPlan       `json:"try,omitempty"`
-	Timeout   *TimeoutPlan   `json:"timeout,omitempty"`
-	Retry     *RetryPlan     `json:"retry,omitempty"`
+	Aggregate  *AggregatePlan  `json:"aggregate,omitempty"`
+	InParallel *InParallelPlan `json:"in_parallel,omitempty"`
+	Do         *DoPlan         `json:"do,omitempty"`
+	Get        *GetPlan        `json:"get,omitempty"`
+	Put        *PutPlan        `json:"put,omitempty"`
+	Task       *TaskPlan       `json:"task,omitempty"`
+	OnAbort    *OnAbortPlan    `json:"on_abort,omitempty"`
+	OnError    *OnErrorPlan    `json:"on_error,omitempty"`
+	Ensure     *EnsurePlan     `json:"ensure,omitempty"`
+	OnSuccess  *OnSuccessPlan  `json:"on_success,omitempty"`
+	OnFailure  *OnFailurePlan  `json:"on_failure,omitempty"`
+	Try        *TryPlan        `json:"try,omitempty"`
+	Timeout    *TimeoutPlan    `json:"timeout,omitempty"`
+	Retry      *RetryPlan      `json:"retry,omitempty"`
 
 	// used for 'fly execute'
 	ArtifactInput  *ArtifactInputPlan  `json:"artifact_input,omitempty"`
@@ -72,6 +73,12 @@ type TryPlan struct {
 }
 
 type AggregatePlan []Plan
+
+type InParallelPlan struct {
+	Steps    []Plan `json:"steps"`
+	Limit    int    `json:"limit,omitempty"`
+	FailFast bool   `json:"fail_fast,omitempty"`
+}
 
 type DoPlan []Plan
 

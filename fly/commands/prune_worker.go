@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/ui"
 )
 
 type PruneWorkerCommand struct {
@@ -44,7 +45,7 @@ func (command *PruneWorkerCommand) Execute(args []string) error {
 			}
 		}
 		if workersNames == nil {
-			displayhelpers.Failf("No stalled worker found.")
+			fmt.Printf(ui.WarningColor("WARNING: No stalled workers found.\n"))
 		}
 	}
 

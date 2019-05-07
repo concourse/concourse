@@ -23,6 +23,6 @@ func NewSsmFactory(log lager.Logger, session *session.Session, secretTemplates [
 	}
 }
 
-func (factory *ssmFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
-	return NewSsm(factory.log, factory.api, teamName, pipelineName, factory.secretTemplates)
+func (factory *ssmFactory) NewSecrets() creds.Secrets {
+	return NewSsm(factory.log, factory.api, factory.secretTemplates)
 }

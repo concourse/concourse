@@ -77,6 +77,7 @@ type alias Flags =
     { turbulencePath : String
     , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
+    , clusterName : String
     }
 
 
@@ -100,6 +101,7 @@ init flags =
       , query = Routes.extractQuery flags.searchType
       , isUserMenuExpanded = False
       , dropdown = Hidden
+      , clusterName = flags.clusterName
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -484,20 +486,16 @@ view session model =
                     "50px"
             ]
           <|
-            if session.isSideBarOpen then
-                [ SideBar.view
-                    { expandedTeams = session.expandedTeams
-                    , pipelines = session.pipelines
-                    , hovered = session.hovered
-                    , isSideBarOpen = session.isSideBarOpen
-                    , currentPipeline = Nothing
-                    , screenSize = session.screenSize
-                    }
-                , dashboardView session model
-                ]
-
-            else
-                [ dashboardView session model ]
+            [ SideBar.view
+                { expandedTeams = session.expandedTeams
+                , pipelines = session.pipelines
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , currentPipeline = Nothing
+                , screenSize = session.screenSize
+                }
+            , dashboardView session model
+            ]
         , Footer.view session model
         ]
 
@@ -517,7 +515,7 @@ topBar session model =
     Html.div
         (id "top-bar-app" :: Views.Styles.topBar False)
     <|
-        [ Html.div [ style "display" "flex" ]
+        [ Html.div [ style "display" "flex", style "align-items" "center" ]
             [ SideBar.hamburgerMenu
                 { pipelines = session.pipelines
                 , hovered = session.hovered
@@ -526,6 +524,7 @@ topBar session model =
                 , isPaused = False
                 }
             , Html.a (href "/" :: Views.Styles.concourseLogo) []
+            , clusterName model
             ]
         ]
             ++ (let
@@ -552,7 +551,17 @@ topBar session model =
                )
 
 
-dashboardView : { a | hovered : Maybe DomID } -> Model -> Html Message
+clusterName : Model -> Html Message
+clusterName model =
+    Html.div
+        Styles.clusterName
+        [ Html.text model.clusterName ]
+
+
+dashboardView :
+    { a | hovered : Maybe DomID, screenSize : ScreenSize }
+    -> Model
+    -> Html Message
 dashboardView session model =
     case model.state of
         RemoteData.NotAsked ->

@@ -49,7 +49,6 @@ func NewHandler(
 	dbResourceConfigFactory db.ResourceConfigFactory,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
-	drain <-chan struct{},
 
 	workerClient worker.Client,
 
@@ -62,7 +61,7 @@ func NewHandler(
 	cliDownloadsDir string,
 	version string,
 	workerVersion string,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
 ) (http.Handler, error) {
@@ -76,17 +75,18 @@ func NewHandler(
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
-	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory, drain)
-	jobServer := jobserver.NewServer(logger, externalURL, variablesFactory, dbJobFactory)
-	resourceServer := resourceserver.NewServer(logger, scannerFactory, variablesFactory, dbResourceFactory, dbResourceConfigFactory)
+	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory)
+	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory)
+	resourceServer := resourceserver.NewServer(logger, scannerFactory, secretManager, dbResourceFactory, dbResourceConfigFactory)
+
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)
-	configServer := configserver.NewServer(logger, dbTeamFactory, variablesFactory)
+	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager)
 	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-	containerServer := containerserver.NewServer(logger, workerClient, variablesFactory, interceptTimeoutFactory, containerRepository, destroyer)
+	containerServer := containerserver.NewServer(logger, workerClient, secretManager, interceptTimeoutFactory, containerRepository, destroyer)
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, credsManagers)

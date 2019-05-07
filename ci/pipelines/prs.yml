@@ -12,27 +12,32 @@ resource_types:
 resources:
 - name: concourse-master
   type: git
+  icon: github-circle
   source:
     uri: https://github.com/concourse/concourse
 
 - name: concourse-pr
   type: pull-request
+  icon: source-pull
   source:
     repository: concourse/concourse
     access_token: ((pull_requests_access_token))
 
 - name: baggageclaim-pr
   type: pull-request
+  icon: source-pull
   source:
     repository: concourse/baggageclaim
     access_token: ((pull_requests_access_token))
 
 - name: dev-image
   type: registry-image
+  icon: docker
   source: {repository: concourse/dev}
 
 - name: postgres-image
   type: registry-image
+  icon: docker
   source: {repository: postgres}
 
 jobs:
@@ -95,7 +100,7 @@ jobs:
     params: {path: concourse-pr, status: success, context: testflight}
     tags: [pr]
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse-pr
       trigger: true
       version: every
@@ -136,7 +141,7 @@ jobs:
     params: {path: concourse-pr, status: success, context: watsjs}
     tags: [pr]
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse-pr
       trigger: true
       version: every

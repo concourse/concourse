@@ -118,7 +118,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	teamName := rata.Param(r, "team_name")
 
 	if checkCredentials {
-		variables := s.variablesFactory.NewVariables(teamName, pipelineName)
+		variables := creds.NewVariables(s.secretManager, teamName, pipelineName)
 
 		errs := validateCredParams(variables, config, session)
 		if errs != nil {
@@ -339,6 +339,7 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 			atc.SanitizeDecodeHook,
 			atc.VersionConfigDecodeHook,
 			atc.InputsConfigDecodeHook,
+			atc.InParallelConfigDecodeHook,
 			atc.ContainerLimitsDecodeHook,
 		),
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
 	"github.com/concourse/concourse/atc/api/resourceserver/resourceserverfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
@@ -42,6 +43,7 @@ var (
 	dbResourceFactory       *dbfakes.FakeResourceFactory
 	dbResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 	fakePipeline            *dbfakes.FakePipeline
+	fakeAccess              *accessorfakes.FakeAccess
 	fakeAccessor            *accessorfakes.FakeAccessFactory
 	dbWorkerFactory         *dbfakes.FakeWorkerFactory
 	dbWorkerLifecycle       *dbfakes.FakeWorkerLifecycle
@@ -49,11 +51,10 @@ var (
 	dbBuildFactory          *dbfakes.FakeBuildFactory
 	dbTeam                  *dbfakes.FakeTeam
 	fakeScannerFactory      *resourceserverfakes.FakeScannerFactory
-	fakeVariablesFactory    *credsfakes.FakeVariablesFactory
+	fakeSecretManager       *credsfakes.FakeSecrets
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
-	drain                   chan struct{}
 	expire                  time.Duration
 	isTLSEnabled            bool
 	cliDownloadsDir         string
@@ -102,14 +103,13 @@ var _ = BeforeEach(func() {
 	dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 	dbTeamFactory.GetByIDReturns(dbTeam)
 
+	fakeAccess = new(accessorfakes.FakeAccess)
 	fakeAccessor = new(accessorfakes.FakeAccessFactory)
 	fakePipeline = new(dbfakes.FakePipeline)
 	dbTeam.PipelineReturns(fakePipeline, true, nil)
 
 	dbWorkerFactory = new(dbfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
-
-	drain = make(chan struct{})
 
 	fakeWorkerClient = new(workerfakes.FakeClient)
 
@@ -119,7 +119,7 @@ var _ = BeforeEach(func() {
 	fakeContainerRepository = new(dbfakes.FakeContainerRepository)
 	fakeDestroyer = new(gcfakes.FakeDestroyer)
 
-	fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
+	fakeSecretManager = new(credsfakes.FakeSecrets)
 	credsManagers = make(creds.Managers)
 	var err error
 
@@ -170,7 +170,6 @@ var _ = BeforeEach(func() {
 		dbResourceConfigFactory,
 
 		constructedEventHandler.Construct,
-		drain,
 
 		fakeWorkerClient,
 
@@ -183,13 +182,13 @@ var _ = BeforeEach(func() {
 		cliDownloadsDir,
 		"1.2.3",
 		"4.5.6",
-		fakeVariablesFactory,
+		fakeSecretManager,
 		credsManagers,
 		interceptTimeoutFactory,
 	)
 
 	Expect(err).NotTo(HaveOccurred())
-	accessorHandler := accessor.NewHandler(handler, fakeAccessor, "some-action")
+	accessorHandler := accessor.NewHandler(handler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
 	handler = wrappa.LoggerHandler{
 		Logger:  logger,
 		Handler: accessorHandler,
@@ -200,6 +199,10 @@ var _ = BeforeEach(func() {
 	client = &http.Client{
 		Transport: &http.Transport{},
 	}
+})
+
+var _ = JustBeforeEach(func() {
+	fakeAccessor.CreateReturns(fakeAccess)
 })
 
 var _ = AfterEach(func() {

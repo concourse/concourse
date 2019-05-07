@@ -1,9 +1,10 @@
 package vault
 
 import (
+	"github.com/concourse/concourse/atc/creds"
 	"path"
+	"time"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
@@ -17,46 +18,34 @@ type SecretReader interface {
 // data.
 type Vault struct {
 	SecretReader SecretReader
-
-	PathPrefix   string
+	Prefix       string
 	SharedPath   string
-	TeamName     string
-	PipelineName string
 }
 
-func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error) {
-	var secret *vaultapi.Secret
-	var found bool
-	var err error
-
-	if v.PipelineName != "" {
-		secret, found, err = v.findSecret(v.path(v.TeamName, v.PipelineName, varDef.Name))
-		if err != nil {
-			return nil, false, err
-		}
+// NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
+func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+	lookupPaths := []creds.SecretLookupPath{}
+	if len(pipelineName) > 0 {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, teamName, pipelineName)+"/"))
 	}
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, teamName)+"/"))
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, v.SharedPath)+"/"))
+	return lookupPaths
+}
 
+// Get retrieves the value and expiration of an individual secret
+func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+	secret, expiration, found, err := v.findSecret(secretPath)
+	if err != nil {
+		return nil, nil, false, err
+	}
 	if !found {
-		secret, found, err = v.findSecret(v.path(v.TeamName, varDef.Name))
-		if err != nil {
-			return nil, false, err
-		}
-	}
-
-	if !found && v.SharedPath != "" {
-		secret, found, err = v.findSecret(v.path(v.SharedPath, varDef.Name))
-		if err != nil {
-			return nil, false, err
-		}
-	}
-
-	if !found {
-		return nil, false, nil
+		return nil, nil, false, nil
 	}
 
 	val, found := secret.Data["value"]
 	if found {
-		return val, true, nil
+		return val, expiration, true, nil
 	}
 
 	evenLessTyped := map[interface{}]interface{}{}
@@ -64,41 +53,22 @@ func (v Vault) Get(varDef template.VariableDefinition) (interface{}, bool, error
 		evenLessTyped[k] = v
 	}
 
-	return evenLessTyped, true, nil
+	return evenLessTyped, expiration, true, nil
 }
 
-func (v Vault) findSecret(path string) (*vaultapi.Secret, bool, error) {
+func (v Vault) findSecret(path string) (*vaultapi.Secret, *time.Time, bool, error) {
 	secret, err := v.SecretReader.Read(path)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 
 	if secret != nil {
-		return secret, true, nil
+		// The lease duration is TTL: the time in seconds for which the lease is valid
+		// A consumer of this secret must renew the lease within that time.
+		duration := time.Duration(secret.LeaseDuration) * time.Second / 2
+		expiration := time.Now().Add(duration)
+		return secret, &expiration, true, nil
 	}
 
-	return nil, false, nil
-}
-
-func (v Vault) path(segments ...string) string {
-	return path.Join(append([]string{v.PathPrefix}, segments...)...)
-}
-
-func (v Vault) List() ([]template.VariableDefinition, error) {
-	// Don't think this works with vault.. if we need it to we'll figure it out
-	// var defs []template.VariableDefinition
-
-	// secret, err := v.vaultClient.List(v.PathPrefix)
-	// if err != nil {
-	// 	return defs, err
-	// }
-
-	// var def template.VariableDefinition
-	// for name, _ := range secret.Data {
-	// 	defs := append(defs, template.VariableDefinition{
-	// 		Name: name,
-	// 	})
-	// }
-
-	return []template.VariableDefinition{}, nil
+	return nil, nil, false, nil
 }

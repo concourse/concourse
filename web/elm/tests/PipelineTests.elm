@@ -44,6 +44,17 @@ it desc expectationFunc model =
         \_ -> expectationFunc model
 
 
+flags : Application.Flags
+flags =
+    { turbulenceImgSrc = ""
+    , notFoundImgSrc = ""
+    , csrfToken = csrfToken
+    , authToken = ""
+    , clusterName = ""
+    , pipelineRunningKeyframes = ""
+    }
+
+
 all : Test
 all =
     describe "Pipeline"
@@ -62,12 +73,7 @@ all =
 
                 setupGroupsBar groups =
                     Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = csrfToken
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
+                        flags
                         { protocol = Url.Http
                         , host = ""
                         , port_ = Nothing
@@ -258,7 +264,7 @@ all =
             ]
         , test "pipeline view fills available space" <|
             \_ ->
-                init "/teams/team/pipelines/pipeline"
+                Common.init "/teams/team/pipelines/pipeline"
                     |> Common.queryView
                     |> Query.find [ id "pipeline-container" ]
                     |> Query.has [ style "flex-grow" "1" ]
@@ -270,6 +276,7 @@ all =
                     , csrfToken = csrfToken
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
+                    , clusterName = ""
                     }
                     { protocol = Url.Http
                     , host = ""
@@ -283,13 +290,13 @@ all =
                     |> Expect.true "should get screen size"
         , test "subscribes to screen resizes" <|
             \_ ->
-                init "/teams/team/pipelines/pipelineName"
+                Common.init "/teams/team/pipelines/pipelineName"
                     |> Application.subscriptions
                     |> List.member Subscription.OnWindowResize
                     |> Expect.true "should subscribe to window resizes"
         , test "title should include the pipeline name" <|
             \_ ->
-                init "/teams/team/pipelines/pipelineName"
+                Common.init "/teams/team/pipelines/pipelineName"
                     |> Application.view
                     |> .title
                     |> Expect.equal "pipelineName - Concourse"
@@ -309,7 +316,7 @@ all =
             in
             [ test "CLI icons at bottom right" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
                         |> Query.find [ class "cli-downloads" ]
                         |> Query.children []
@@ -347,7 +354,7 @@ all =
                             ]
             , test "pipeline subscribes to 1s, 5s, and 1m timers" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Application.subscriptions
                         |> Expect.all
                             [ List.member (Subscription.OnClockTick OneSecond) >> Expect.true "not on one second?"
@@ -356,7 +363,7 @@ all =
                             ]
             , test "on five second timer, refreshes pipeline" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Application.update
                             (Msgs.DeliveryReceived
                                 (ClockTicked FiveSeconds <|
@@ -373,7 +380,7 @@ all =
                         |> Expect.true "should refresh pipeline"
             , test "on one minute timer, refreshes version" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Application.update
                             (Msgs.DeliveryReceived
                                 (ClockTicked OneMinute <|
@@ -398,7 +405,7 @@ all =
                 in
                 [ test "Legend has definition for pinned resource color" <|
                     \_ ->
-                        init "/teams/team/pipelines/pipeline"
+                        Common.init "/teams/team/pipelines/pipeline"
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
@@ -418,7 +425,7 @@ all =
                                 ]
                 , test "HideLegendTimerTicked" <|
                     \_ ->
-                        init "/teams/team/pipelines/pipeline"
+                        Common.init "/teams/team/pipelines/pipeline"
                             |> clockTick
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
@@ -426,13 +433,13 @@ all =
                             |> Query.count (Expect.equal 20)
                 , test "HideLegendTimeTicked reaches timeout" <|
                     \_ ->
-                        init "/teams/team/pipelines/pipeline"
+                        Common.init "/teams/team/pipelines/pipeline"
                             |> clockTickALot 11
                             |> Common.queryView
                             |> Query.hasNot [ id "legend" ]
                 , test "Mouse action after legend hidden reshows legend" <|
                     \_ ->
-                        init "/teams/team/pipelines/pipeline"
+                        Common.init "/teams/team/pipelines/pipeline"
                             |> clockTickALot 11
                             |> Application.update (Msgs.DeliveryReceived Moused)
                             |> Tuple.first
@@ -440,7 +447,7 @@ all =
                             |> Query.has [ id "legend" ]
                 ]
             , rspecStyleDescribe "when on pipeline page"
-                (init "/teams/team/pipelines/pipeline")
+                (Common.init "/teams/team/pipelines/pipeline")
                 [ it "shows a pin icon on top bar" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -893,13 +900,13 @@ all =
                 ]
             , test "top bar lays out contents horizontally" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has [ style "display" "inline-block" ]
             , test "top bar maximizes spacing between the left and right navs" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
@@ -908,7 +915,7 @@ all =
                             ]
             , test "top bar is sticky" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
@@ -917,7 +924,7 @@ all =
                             ]
             , test "breadcrumb items are laid out horizontally" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumbs" ]
@@ -933,7 +940,7 @@ all =
                 , testTopBarPositioning "FlySuccess" "/fly_success"
                 ]
             , rspecStyleDescribe "when on job page"
-                (init "/teams/team/pipeline/pipeline/jobs/job/builds/1")
+                (Common.init "/teams/team/pipeline/pipeline/jobs/job/builds/1")
                 [ it "shows no pin icon on top bar when viewing build page" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -941,7 +948,7 @@ all =
                 ]
             , test "top nav bar is blue when pipeline is paused" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Application.handleCallback
                             (Callback.PipelineFetched
                                 (Ok
@@ -960,7 +967,7 @@ all =
                         |> Query.has [ style "background-color" "#3498db" ]
             , test "breadcrumb list is laid out horizontally" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumbs" ]
@@ -970,14 +977,14 @@ all =
                             ]
             , test "pipeline breadcrumb is laid out horizontally" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.has [ style "display" "inline-block" ]
             , test "top bar has pipeline breadcrumb with icon rendered first" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
@@ -986,7 +993,7 @@ all =
                         |> Query.has pipelineBreadcrumbSelector
             , test "top bar has pipeline name after pipeline icon" <|
                 \_ ->
-                    init "/teams/team/pipelines/pipeline"
+                    Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
@@ -1024,25 +1031,6 @@ resourceBreadcrumbSelector =
 csrfToken : String
 csrfToken =
     "csrf_token"
-
-
-init : String -> Application.Model
-init path =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = csrfToken
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
-        { protocol = Url.Http
-        , host = ""
-        , port_ = Nothing
-        , path = path
-        , query = Nothing
-        , fragment = Nothing
-        }
-        |> Tuple.first
 
 
 givenPinnedResource : Application.Model -> Application.Model
@@ -1090,7 +1078,7 @@ testTopBarPositioning pageName url =
     describe pageName
         [ test "whole page fills the whole screen" <|
             \_ ->
-                init url
+                Common.init url
                     |> Common.queryView
                     |> Query.has
                         [ id "page-including-top-bar"
@@ -1098,7 +1086,7 @@ testTopBarPositioning pageName url =
                         ]
         , test "lower section fills the whole screen as well" <|
             \_ ->
-                init url
+                Common.init url
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has

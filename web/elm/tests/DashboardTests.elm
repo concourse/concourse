@@ -118,6 +118,17 @@ pipelineRunningKeyframes =
     "pipeline-running"
 
 
+flags : Application.Flags
+flags =
+    { turbulenceImgSrc = ""
+    , notFoundImgSrc = ""
+    , csrfToken = csrfToken
+    , authToken = ""
+    , clusterName = ""
+    , pipelineRunningKeyframes = pipelineRunningKeyframes
+    }
+
+
 all : Test
 all =
     describe "Dashboard"
@@ -125,10 +136,11 @@ all =
             \_ ->
                 Application.init
                     { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
                     , authToken = ""
-                    , pipelineRunningKeyframes = ""
+                    , clusterName = ""
+                    , pipelineRunningKeyframes = "pipeline-running"
                     }
                     { protocol = Url.Http
                     , host = ""
@@ -142,11 +154,18 @@ all =
                     |> Expect.true "should request screen size"
         , test "title says 'Dashboard - Concourse'" <|
             \_ ->
+                Common.init "/"
+                    |> Application.view
+                    |> .title
+                    |> Expect.equal "Dashboard - Concourse"
+        , test "renders cluster name at top left" <|
+            \_ ->
                 Application.init
                     { turbulenceImgSrc = ""
                     , notFoundImgSrc = ""
                     , csrfToken = csrfToken
                     , authToken = ""
+                    , clusterName = "foobar"
                     , pipelineRunningKeyframes = ""
                     }
                     { protocol = Url.Http
@@ -157,9 +176,27 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.first
-                    |> Application.view
-                    |> .title
-                    |> Expect.equal "Dashboard - Concourse"
+                    |> Common.queryView
+                    |> Query.find [ id "top-bar-app" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has
+                        [ style "display" "flex"
+                        , style "align-items" "center"
+                        , containing
+                            [ style "font-size" "21px"
+                            , style "color" "#ffffff"
+                            , style "letter-spacing" "0.1em"
+                            , style "margin-left" "10px"
+                            , containing [ text "foobar" ]
+                            ]
+                        ]
+        , test "top bar is 54px tall" <|
+            \_ ->
+                Common.init "/"
+                    |> Common.queryView
+                    |> Query.find [ id "top-bar-app" ]
+                    |> Query.has [ style "height" "54px" ]
         , describe "welcome card" <|
             let
                 hasWelcomeCard : (() -> ( Application.Model, List Effects.Effect )) -> List Test
@@ -168,12 +205,14 @@ all =
                         subject : () -> Query.Single ApplicationMsgs.TopLevelMessage
                         subject =
                             setup
-                                >> queryView
+                                >> Tuple.first
+                                >> Common.queryView
                                 >> Query.find [ id "welcome-card" ]
                     in
                     [ test "exists" <|
                         setup
-                            >> queryView
+                            >> Tuple.first
+                            >> Common.queryView
                             >> Query.has [ id "welcome-card" ]
                     , test "with correct antialiasing in WebKit" <|
                         subject
@@ -422,12 +461,13 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated (apiData [])
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                                     |> Query.find [ id "page-below-top-bar" ]
                                     |> Query.children []
                                     |> Query.first
                                     |> Query.children []
-                                    |> Query.count (Expect.equal 1)
+                                    |> Query.count (Expect.equal 0)
                        ]
             , describe "when unauthenticated with a team but no pipelines" <|
                 hasWelcomeCard
@@ -453,13 +493,15 @@ all =
                         |> givenDataAndUser
                             (apiData [ ( "team", [] ) ])
                             (userWithRoles [])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.hasNot [ id "login-instruction" ]
             , test "has login instruction when unauthenticated" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.find [ id "welcome-card" ]
                         |> Query.find [ id "login-instruction" ]
                         |> Expect.all
@@ -480,7 +522,8 @@ all =
                     |> givenDataAndUser
                         (apiData [ ( "team", [ "pipeline" ] ) ])
                         (userWithRoles [])
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has
                         [ style "height" "100%"
@@ -492,7 +535,8 @@ all =
                     |> givenDataAndUser
                         (apiData [ ( "team", [ "pipeline" ] ) ])
                         (userWithRoles [])
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has
                         [ style "display" "flex"
@@ -504,10 +548,10 @@ all =
                     |> givenDataAndUser
                         (apiData [ ( "team", [ "pipeline" ] ) ])
                         (userWithRoles [])
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
-                    |> Query.children []
-                    |> Query.first
+                    |> Query.find [ class "dashboard" ]
                     |> Query.has [ style "flex-grow" "1" ]
         , test "high density pipelines view has padding" <|
             \_ ->
@@ -515,10 +559,10 @@ all =
                     |> givenDataAndUser
                         (apiData [ ( "team", [ "pipeline" ] ) ])
                         (userWithRoles [])
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
-                    |> Query.children []
-                    |> Query.first
+                    |> Query.find [ class "dashboard" ]
                     |> Query.has [ style "padding" "60px" ]
         , test "high density pipelines view wraps columns" <|
             \_ ->
@@ -526,10 +570,10 @@ all =
                     |> givenDataAndUser
                         (apiData [ ( "team", [ "pipeline" ] ) ])
                         (userWithRoles [])
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
-                    |> Query.children []
-                    |> Query.first
+                    |> Query.find [ class "dashboard" ]
                     |> Query.has
                         [ style "display" "flex"
                         , style "flex-flow" "column wrap"
@@ -540,29 +584,29 @@ all =
                     |> givenDataAndUser
                         (apiData [ ( "team", [ "pipeline" ] ) ])
                         (userWithRoles [])
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
-                    |> Query.children []
-                    |> Query.first
+                    |> Query.find [ class "dashboard" ]
                     |> Query.has
                         [ style "display" "initial"
                         , style "padding" "0"
                         ]
         , test "high density view left-aligns contents" <|
             \_ ->
-                whenOnDashboard { highDensity = False }
+                whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
                         (apiData [ ( "team", [ "pipeline" ] ) ])
                         (userWithRoles [])
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
-                    |> Query.children []
-                    |> Query.first
+                    |> Query.find [ class "dashboard" ]
                     |> Query.has [ style "align-content" "flex-start" ]
         , test "high density view has no overlapping top bar" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
-                    |> queryView
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has [ style "padding-top" "54px" ]
         , test "high density view has no overlapping bottom bar" <|
@@ -571,7 +615,8 @@ all =
                     |> givenDataAndUser
                         (apiData [ ( "team", [ "pipeline" ] ) ])
                         (userWithRoles [])
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has [ style "padding-bottom" "50px" ]
         , test "no bottom padding when footer dismisses" <|
@@ -588,14 +633,14 @@ all =
         , test "top bar has bold font" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> queryView
+                    |> Common.queryView
                     |> Query.find [ id "top-bar-app" ]
                     |> Query.has [ style "font-weight" "700" ]
         , test "logging out causes pipeline list to reload" <|
             let
-                showsLoadingState : ( Application.Model, List Effects.Effect ) -> Expectation
+                showsLoadingState : Application.Model -> Expectation
                 showsLoadingState =
-                    queryView
+                    Common.queryView
                         >> Query.findAll [ class "dashboard-team-group" ]
                         >> Query.count (Expect.equal 0)
             in
@@ -609,12 +654,14 @@ all =
                         (ApplicationMsgs.Update <|
                             Msgs.Click Msgs.LogoutButton
                         )
+                    |> Tuple.first
                     |> showsLoadingState
         , test "links to specific builds" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated givenPipelineWithJob
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find
                         [ class "dashboard-team-group"
                         , attribute <| Attr.attribute "data-team-name" "team"
@@ -632,7 +679,6 @@ all =
         , test "HD view redirects to normal view when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
-                    |> Tuple.first
                     |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
@@ -653,7 +699,8 @@ all =
                                             Nothing
                                         )
                                 )
-                            >> queryView
+                            >> Tuple.first
+                            >> Common.queryView
                             >> Query.find [ class "card-footer" ]
                             >> Query.children []
                             >> Query.first
@@ -664,7 +711,6 @@ all =
         , test "HD view redirects to no pipelines view when pipelines disappear" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
-                    |> Tuple.first
                     |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
@@ -683,13 +729,13 @@ all =
                     |> Expect.all
                         [ Tuple.second
                             >> Expect.equal [ Effects.ModifyUrl "/" ]
-                        , queryView
+                        , Tuple.first
+                            >> Common.queryView
                             >> Query.has [ text "welcome to concourse!" ]
                         ]
         , test "no search bar when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Tuple.first
                     |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
@@ -697,12 +743,12 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.hasNot [ tag "input" ]
         , test "typing '?' in search bar does not toggle help" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Tuple.first
                     |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
@@ -723,12 +769,12 @@ all =
                             , code = Keyboard.Slash
                             }
                         )
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.hasNot [ id "keyboard-help" ]
         , test "bottom bar appears when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Tuple.first
                     |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
@@ -736,12 +782,12 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.has [ id "dashboard-info" ]
         , test "bottom bar has no legend when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Tuple.first
                     |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
@@ -749,12 +795,12 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.hasNot [ id "legend" ]
         , test "concourse info is right-justified when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Tuple.first
                     |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
@@ -762,13 +808,13 @@ all =
                                 , apiData [ ( "team", [] ) ] Nothing
                                 )
                         )
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ id "dashboard-info" ]
                     |> Query.has [ style "justify-content" "flex-end" ]
         , test "pressing '?' does nothing when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Tuple.first
                     |> Application.handleCallback
                         (Callback.APIDataFetched <|
                             Ok
@@ -785,7 +831,8 @@ all =
                             , code = Keyboard.Slash
                             }
                         )
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.has [ id "dashboard-info" ]
         , test "on HD view, team names have increased letter spacing" <|
             \_ ->
@@ -793,7 +840,8 @@ all =
                     |> givenDataAndUser
                         (apiData [ ( "team", [ "pipeline" ] ) ])
                         (userWithRoles [])
-                    |> queryView
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.find [ class "dashboard-team-name-wrapper" ]
                     |> Query.has [ style "letter-spacing" ".2em" ]
         , describe "team pills"
@@ -805,7 +853,8 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> teamHeaderHasNoPill "team"
             , test "shows OWNER pill on team header for team on which user has owner role" <|
                 \_ ->
@@ -813,7 +862,8 @@ all =
                         |> givenDataAndUser
                             (oneTeamOnePipeline "team")
                             (userWithRoles [ ( "team", [ "owner" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> teamHeaderHasPill "team" "OWNER"
             , test "shows MEMBER pill on team header for team on which user has member role" <|
                 \_ ->
@@ -821,15 +871,26 @@ all =
                         |> givenDataAndUser
                             (oneTeamOnePipeline "team")
                             (userWithRoles [ ( "team", [ "member" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> teamHeaderHasPill "team" "MEMBER"
+            , test "shows PIPELINE_OPERATOR pill on team header for team on which user has member role" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "team")
+                            (userWithRoles [ ( "team", [ "pipeline-operator" ] ) ])
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> teamHeaderHasPill "team" "PIPELINE_OPERATOR"
             , test "shows VIEWER pill on team header for team on which user has viewer role" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
                             (oneTeamOnePipeline "team")
                             (userWithRoles [ ( "team", [ "viewer" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> teamHeaderHasPill "team" "VIEWER"
             , test "shows no pill on team header for team on which user has no role" <|
                 \_ ->
@@ -837,7 +898,8 @@ all =
                         |> givenDataAndUser
                             (oneTeamOnePipeline "team")
                             (userWithRoles [])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> teamHeaderHasNoPill "team"
             , test "shows pill for first role on team header for team on which user has multiple roles" <|
                 \_ ->
@@ -845,7 +907,8 @@ all =
                         |> givenDataAndUser
                             (oneTeamOnePipeline "team")
                             (userWithRoles [ ( "team", [ "member", "viewer" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> teamHeaderHasPill "team" "MEMBER"
             , test "sorts teams according to user role" <|
                 \_ ->
@@ -865,7 +928,8 @@ all =
                                 , ( "nonmember-team", [] )
                                 ]
                             )
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.findAll teamHeaderSelector
                         |> Expect.all
                             [ Query.count (Expect.equal 4)
@@ -878,7 +942,8 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (oneTeamOnePipeline "team")
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.findAll teamHeaderSelector
                         |> Query.each
                             (Query.has
@@ -892,7 +957,8 @@ all =
                         |> givenDataAndUser
                             (oneTeamOnePipeline "team")
                             (userWithRoles [ ( "team", [ "owner" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.find [ class "dashboard-team-name-wrapper" ]
                         |> Query.find [ containing [ text "OWNER" ] ]
                         |> Query.has [ style "margin-bottom" "1em" ]
@@ -902,7 +968,8 @@ all =
                         |> givenDataAndUser
                             (oneTeamOnePipeline "team")
                             (userWithRoles [ ( "team", [ "owner" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.find teamHeaderSelector
                         |> Query.find [ containing [ text "OWNER" ] ]
                         |> Query.has [ style "margin-bottom" "" ]
@@ -924,7 +991,7 @@ all =
                 pipelineWithStatus :
                     Concourse.BuildStatus
                     -> Bool
-                    -> ( Application.Model, List Effects.Effect )
+                    -> Application.Model
                     -> Query.Single ApplicationMsgs.TopLevelMessage
                 pipelineWithStatus status isRunning =
                     let
@@ -949,7 +1016,8 @@ all =
                             , user = u
                             }
                         )
-                        >> queryView
+                        >> Tuple.first
+                        >> Common.queryView
             in
             [ describe "when team has no visible pipelines" <|
                 let
@@ -962,7 +1030,8 @@ all =
                                     , ( "other-team", [ "pipeline" ] )
                                     ]
                                 )
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find
                                 [ class "dashboard-team-group"
                                 , attribute <|
@@ -1048,7 +1117,8 @@ all =
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated
                             (oneTeamOnePipeline "team")
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.find
                             [ class "card"
                             , containing [ text "pipeline" ]
@@ -1059,7 +1129,8 @@ all =
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated
                             (oneTeamOnePipeline "team")
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.find
                             [ class "card"
                             , containing [ text "pipeline" ]
@@ -1072,7 +1143,8 @@ all =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
                                 (oneTeamOnePipeline "team")
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find
                                 [ class "card"
                                 , containing [ text "pipeline" ]
@@ -1124,7 +1196,8 @@ all =
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
                                     (oneTeamOnePipeline "team")
-                                |> queryView
+                                |> Tuple.first
+                                |> Common.queryView
                                 |> findBanner
                                 |> Query.has [ style "height" "7px" ]
                     , test "is blue when pipeline is paused" <|
@@ -1142,7 +1215,8 @@ all =
                                         , user = u
                                         }
                                     )
-                                |> queryView
+                                |> Tuple.first
+                                |> Common.queryView
                                 |> findBanner
                                 |> isSolid blue
                     , test "is green when pipeline is succeeding" <|
@@ -1166,7 +1240,8 @@ all =
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
                                     (oneTeamOnePipeline "team")
-                                |> queryView
+                                |> Tuple.first
+                                |> Common.queryView
                                 |> findBanner
                                 |> isSolid lightGrey
                     , test "is grey with black stripes when pipeline is pending and running" <|
@@ -1248,7 +1323,8 @@ all =
                                             , user = u
                                             }
                                         )
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                         in
                         [ test "failed is more important than errored" <|
                             \_ ->
@@ -1292,7 +1368,8 @@ all =
                                         , user = u
                                         }
                                     )
-                                |> queryView
+                                |> Tuple.first
+                                |> Common.queryView
                                 |> findBanner
                                 |> isSolid green
                     , describe "HD view"
@@ -1301,7 +1378,8 @@ all =
                                 whenOnDashboard { highDensity = True }
                                     |> givenDataUnauthenticated
                                         (oneTeamOnePipeline "team")
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                                     |> findBanner
                                     |> Query.has [ style "width" "8px" ]
                         , test "is blue when pipeline is paused" <|
@@ -1319,7 +1397,8 @@ all =
                                             , user = u
                                             }
                                         )
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                                     |> findBanner
                                     |> isSolid blue
                         , test "is green when pipeline is succeeding" <|
@@ -1343,7 +1422,8 @@ all =
                                 whenOnDashboard { highDensity = True }
                                     |> givenDataUnauthenticated
                                         (oneTeamOnePipeline "team")
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                                     |> findBanner
                                     |> isSolid lightGrey
                         , test "is grey with black stripes when pipeline is pending and running" <|
@@ -1425,7 +1505,8 @@ all =
                                                 , user = u
                                                 }
                                             )
-                                        |> queryView
+                                        |> Tuple.first
+                                        |> Common.queryView
                             in
                             [ test "failed is more important than errored" <|
                                 \_ ->
@@ -1466,7 +1547,8 @@ all =
                         whenOnDashboard { highDensity = True }
                             |> givenDataUnauthenticated
                                 (oneTeamOnePipeline "team")
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
 
                     noPipelines : () -> Query.Single ApplicationMsgs.TopLevelMessage
                     noPipelines _ =
@@ -1477,7 +1559,8 @@ all =
                                     , ( "other-team", [ "pipeline" ] )
                                     ]
                                 )
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
 
                     card : Query.Single ApplicationMsgs.TopLevelMessage -> Query.Single ApplicationMsgs.TopLevelMessage
                     card =
@@ -1618,7 +1701,8 @@ all =
                                         , user = user
                                         }
                                     )
-                                |> queryView
+                                |> Tuple.first
+                                |> Common.queryView
 
                         resourceErrorTriangle =
                             Query.children []
@@ -1692,7 +1776,8 @@ all =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
                                 (oneTeamOnePipeline "team")
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find
                                 [ class "card"
                                 , containing [ text "pipeline" ]
@@ -1704,7 +1789,8 @@ all =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
                                 (oneTeamOnePipeline "team")
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find
                                 [ class "card"
                                 , containing [ text "pipeline" ]
@@ -1720,7 +1806,8 @@ all =
                             |> givenDataAndUser
                                 (oneTeamOnePipeline "team")
                                 (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ class "card-footer" ]
                             |> Query.has [ style property value ]
                 in
@@ -1739,7 +1826,8 @@ all =
                             |> givenDataAndUser
                                 (oneTeamOnePipeline "team")
                                 (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ class "card-footer" ]
                             |> Expect.all
                                 [ Query.children []
@@ -1753,7 +1841,8 @@ all =
                             |> givenDataAndUser
                                 (oneTeamOnePipeline "team")
                                 (userWithRoles [ ( "team", [ "owner" ] ) ])
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ class "card-footer" ]
                             |> Query.children []
                             |> Query.each (Query.has [ style "display" "flex" ])
@@ -1789,7 +1878,8 @@ all =
                                             , user = u
                                             }
                                         )
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                         in
                         [ test "status icon is blue pause" <|
                             \_ ->
@@ -1903,7 +1993,7 @@ all =
                                         [ text "running" ]
                         , test "when not running, status text shows age" <|
                             \_ ->
-                                initFromApplication
+                                Common.init "/"
                                     |> givenDataUnauthenticatedFromApplication
                                         (\u ->
                                             { teams =
@@ -2485,7 +2575,8 @@ all =
                                 |> givenDataAndUser
                                     (oneTeamOnePipeline "team")
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                |> queryView
+                                |> Tuple.first
+                                |> Common.queryView
                                 |> Query.find [ class "card-footer" ]
                                 |> Query.children []
                                 |> Query.index -1
@@ -2501,7 +2592,8 @@ all =
                                     |> givenDataAndUser
                                         (oneTeamOnePipeline "team")
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
                                     |> Query.children []
                                     |> Query.index -1
@@ -2519,7 +2611,8 @@ all =
                                     |> givenDataAndUser
                                         (oneTeamOnePipeline "team")
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
                                     |> Query.find
                                         (iconSelector
@@ -2534,7 +2627,8 @@ all =
                                     |> givenDataAndUser
                                         (oneTeamOnePipeline "team")
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
                                     |> Query.find
                                         (iconSelector
@@ -2635,7 +2729,8 @@ all =
                                     |> givenDataAndUser
                                         (oneTeamOnePipeline "team")
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
                                     |> Query.find
                                         (iconSelector
@@ -2671,7 +2766,8 @@ all =
                                                     , teamName = "team"
                                                     }
                                         )
-                                    |> queryView
+                                    |> Tuple.first
+                                    |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
                                     |> Query.has [ style "animation" animation ]
                         , test "clicking pause button sends toggle api call" <|
@@ -2765,13 +2861,15 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.has [ id "dashboard-info" ]
             , test "is 50px tall, almost black, fixed to the bottom of the viewport and covers entire width" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has
                             [ style "line-height" "35px"
@@ -2786,7 +2884,8 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has
                             [ style "display" "flex"
@@ -2796,7 +2895,8 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.children []
                         |> Expect.all
@@ -2806,13 +2906,15 @@ all =
                             ]
             , test "lays out children on two lines when view width is below 1230px" <|
                 \_ ->
-                    initFromApplication
-                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                    Common.init "/"
+                        |> givenDataUnauthenticatedFromApplication
+                            (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived <|
                                 WindowResized 1229 300
                             )
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.find [ id "dashboard-info" ]
                         |> Query.has [ style "flex-direction" "column" ]
             , describe "legend"
@@ -2820,14 +2922,16 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.has [ style "display" "flex" ]
                 , test "shows pipeline statuses" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Expect.all
@@ -2867,7 +2971,8 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.index -2
@@ -2875,21 +2980,25 @@ all =
                 , test "the legend separator centers contents vertically" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> queryView
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.index -2
                             |> Query.has [ style "display" "flex", style "align-items" "center" ]
                 , test "the legend separator is gone when the window width is below 812px" <|
                     \_ ->
-                        initFromApplication
-                            |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                        Common.init "/"
+                            |> givenDataUnauthenticatedFromApplication
+                                (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
                                 (ApplicationMsgs.DeliveryReceived <|
                                     WindowResized 800 300
                                 )
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Expect.all
                                 [ Query.hasNot [ text "|" ]
@@ -2897,20 +3006,23 @@ all =
                                 ]
                 , test "legend items wrap when window width is below 812px" <|
                     \_ ->
-                        initFromApplication
-                            |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                        Common.init "/"
+                            |> givenDataUnauthenticatedFromApplication
+                                (apiData [ ( "team", [ "pipeline" ] ) ])
                             |> Application.update
                                 (ApplicationMsgs.DeliveryReceived <|
                                     WindowResized 800 300
                                 )
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.has [ style "flex-wrap" "wrap" ]
                 , test "legend items lay out contents horizontally, centered vertically in grey caps" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.index 0
@@ -2923,8 +3035,10 @@ all =
                 , test "legend items have 20px space between them" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> queryView
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.each
@@ -2932,8 +3046,10 @@ all =
                 , test "third legend item shows running indicator" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> queryView
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.index 2
@@ -2968,8 +3084,10 @@ all =
 
                     hdToggle =
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> queryView
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Tuple.first
+                            |> Common.queryView
                             |> findHDToggle
                 in
                 [ describe "on non-hd view"
@@ -3025,10 +3143,9 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
-                                    (apiData
-                                        [ ( "team", [ "pipeline" ] ) ]
-                                    )
-                                |> queryView
+                                    (apiData [ ( "team", [ "pipeline" ] ) ])
+                                |> Tuple.first
+                                |> Common.queryView
                                 |> findHDToggle
                                 |> Query.children []
                                 |> Query.index 0
@@ -3043,10 +3160,9 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
-                                    (apiData
-                                        [ ( "team", [ "pipeline" ] ) ]
-                                    )
-                                |> queryView
+                                    (apiData [ ( "team", [ "pipeline" ] ) ])
+                                |> Tuple.first
+                                |> Common.queryView
                                 |> findHDToggle
                                 |> Query.has [ attribute <| Attr.href "/" ]
                     , test "will not shrink on resizing" <|
@@ -3056,7 +3172,8 @@ all =
                                     (apiData
                                         [ ( "team", [ "pipeline" ] ) ]
                                     )
-                                |> queryView
+                                |> Tuple.first
+                                |> Common.queryView
                                 |> findHDToggle
                                 |> Query.children []
                                 |> Query.index 0
@@ -3069,7 +3186,8 @@ all =
                     info =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "concourse-info" ]
                 in
                 [ test "lays out contents horizontally" <|
@@ -3280,29 +3398,31 @@ all =
                                     , user = u
                                     }
                                 )
-                            |> queryView
+                            |> Tuple.first
+                            |> Common.queryView
                             |> Query.find [ id "concourse-info" ]
                             |> Query.has [ text "v1.2.3" ]
                 ]
             , test "hides after 6 seconds" <|
                 \_ ->
-                    initFromApplication
+                    Common.init "/"
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Common.queryView
                         |> Query.hasNot [ id "dashboard-info" ]
             , test "reappears on mouse action" <|
                 \_ ->
-                    initFromApplication
+                    Common.init "/"
                         |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> afterSeconds 6
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived Moused)
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Query.has [ id "dashboard-info" ]
             , test "is replaced by keyboard help when pressing '?'" <|
                 \_ ->
-                    initFromApplication
+                    Common.init "/"
                         |> givenDataUnauthenticatedFromApplication
                             (apiData [ ( "team", [ "pipeline" ] ) ])
                         |> Application.update
@@ -3314,7 +3434,8 @@ all =
                                     , code = Keyboard.Slash
                                     }
                             )
-                        |> queryView
+                        |> Tuple.first
+                        |> Common.queryView
                         |> Expect.all
                             [ Query.hasNot [ id "dashboard-info" ]
                             , Query.has [ id "keyboard-help" ]
@@ -3323,7 +3444,6 @@ all =
         , test "subscribes to one and five second timers" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Tuple.first
                     |> Application.subscriptions
                     |> Expect.all
                         [ List.member (Subscription.OnClockTick OneSecond)
@@ -3334,13 +3454,12 @@ all =
         , test "subscribes to keyups" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Tuple.first
                     |> Application.subscriptions
                     |> List.member Subscription.OnKeyUp
                     |> Expect.true "doesn't subscribe to keyups?"
         , test "auto refreshes data every five seconds" <|
             \_ ->
-                initFromApplication
+                Common.init "/"
                     |> Application.update
                         (ApplicationMsgs.DeliveryReceived <|
                             ClockTicked FiveSeconds <|
@@ -3350,13 +3469,6 @@ all =
                     |> List.member Effects.FetchData
                     |> Expect.true "should refresh data"
         ]
-
-
-queryView :
-    ( Application.Model, List Effects.Effect )
-    -> Query.Single ApplicationMsgs.TopLevelMessage
-queryView =
-    Tuple.first >> Common.queryView
 
 
 afterSeconds : Int -> Application.Model -> Application.Model
@@ -3375,25 +3487,6 @@ afterSeconds n =
 csrfToken : String
 csrfToken =
     "csrf_token"
-
-
-initFromApplication : Application.Model
-initFromApplication =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = csrfToken
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
-        { protocol = Url.Http
-        , host = ""
-        , port_ = Nothing
-        , path = "/"
-        , query = Nothing
-        , fragment = Nothing
-        }
-        |> Tuple.first
 
 
 defineHoverBehaviour :
@@ -3486,40 +3579,26 @@ iconSelector { size, image } =
     ]
 
 
-whenOnDashboard : { highDensity : Bool } -> ( Application.Model, List Effects.Effect )
+whenOnDashboard : { highDensity : Bool } -> Application.Model
 whenOnDashboard { highDensity } =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = csrfToken
-        , authToken = ""
-        , pipelineRunningKeyframes = pipelineRunningKeyframes
-        }
-        { protocol = Url.Http
-        , host = ""
-        , port_ = Nothing
-        , path =
-            if highDensity then
-                "/hd"
+    Common.init <|
+        if highDensity then
+            "/hd"
 
-            else
-                "/"
-        , query = Nothing
-        , fragment = Nothing
-        }
+        else
+            "/"
 
 
 givenDataAndUser :
     (Maybe Concourse.User -> Concourse.APIData)
     -> Concourse.User
-    -> ( Application.Model, List Effects.Effect )
+    -> Application.Model
     -> ( Application.Model, List Effects.Effect )
 givenDataAndUser data user =
-    Tuple.first
-        >> Application.handleCallback
-            (Callback.APIDataFetched <|
-                Ok ( Time.millisToPosix 0, data <| Just user )
-            )
+    Application.handleCallback
+        (Callback.APIDataFetched <|
+            Ok ( Time.millisToPosix 0, data <| Just user )
+        )
 
 
 userWithRoles : List ( String, List String ) -> Concourse.User
@@ -3545,12 +3624,13 @@ givenDataUnauthenticatedFromApplication data =
 
 givenDataUnauthenticated :
     (Maybe Concourse.User -> Concourse.APIData)
-    -> ( Application.Model, List Effects.Effect )
+    -> Application.Model
     -> ( Application.Model, List Effects.Effect )
 givenDataUnauthenticated data =
-    Tuple.first
-        >> Application.handleCallback
-            (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data Nothing ))
+    Application.handleCallback
+        (Callback.APIDataFetched <|
+            Ok ( Time.millisToPosix 0, data Nothing )
+        )
 
 
 givenPipelineWithJob : Maybe Concourse.User -> Concourse.APIData

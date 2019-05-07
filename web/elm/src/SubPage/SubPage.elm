@@ -53,6 +53,7 @@ type alias Flags =
     { authToken : String
     , turbulencePath : String
     , pipelineRunningKeyframes : String
+    , clusterName : String
     }
 
 
@@ -100,6 +101,7 @@ init flags route =
                 { turbulencePath = flags.turbulencePath
                 , searchType = searchType
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                , clusterName = flags.clusterName
                 }
                 |> Tuple.mapFirst DashboardModel
 

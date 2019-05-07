@@ -321,6 +321,25 @@ var _ = Describe("Plan", func() {
 							},
 						},
 					},
+					atc.Plan{
+						ID: "36",
+						InParallel: &atc.InParallelPlan{
+							Limit:    1,
+							FailFast: true,
+							Steps: []atc.Plan{
+								atc.Plan{
+									ID: "37",
+									Task: &atc.TaskPlan{
+										Name:       "name",
+										ConfigPath: "some/config/path.yml",
+										Config: &atc.TaskConfig{
+											Params: map[string]string{"some": "secret"},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			}
 
@@ -556,6 +575,22 @@ var _ = Describe("Plan", func() {
           }
         }
       }
+		},
+		{
+			"id": "36",
+			"in_parallel": {
+				"steps": [
+					{
+						"id": "37",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				],
+				"limit": 1,
+				"fail_fast": true
+			}
 		}
   ]
 }

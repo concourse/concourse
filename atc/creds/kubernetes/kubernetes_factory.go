@@ -23,12 +23,10 @@ func NewKubernetesFactory(logger lager.Logger, clientset *kubernetes.Clientset, 
 	return factory
 }
 
-func (factory *kubernetesFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
+func (factory *kubernetesFactory) NewSecrets() creds.Secrets {
 	return &Kubernetes{
 		Clientset:       factory.clientset,
-		TeamName:        teamName,
-		PipelineName:    pipelineName,
-		NamespacePrefix: factory.namespacePrefix,
 		logger:          factory.logger,
+		namespacePrefix: factory.namespacePrefix,
 	}
 }
