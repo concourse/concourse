@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"fmt"
 	"github.com/concourse/concourse/atc/creds"
-	"path"
 	"strings"
 	"time"
 
@@ -24,9 +23,9 @@ type Kubernetes struct {
 func (k Kubernetes) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	if len(pipelineName) > 0 {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(k.namespacePrefix, teamName, pipelineName)+"/"))
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(k.namespacePrefix+teamName+":"+pipelineName+"."))
 	}
-	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(k.namespacePrefix, teamName)+"/"))
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(k.namespacePrefix+teamName+":"))
 	return lookupPaths
 }
 
