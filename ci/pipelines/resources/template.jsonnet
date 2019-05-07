@@ -362,6 +362,11 @@ local build_image(distro) = {
       name: "s3",
       type: "registry-image",
       source: {repository: "concourse/s3-resource"}
+    },
+    {
+      name: "gcs",
+      type: "registry-image",
+      source: {repository: "frodenas/gcs-resource"}
     }
   ],
   resources: [
