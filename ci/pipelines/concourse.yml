@@ -229,6 +229,7 @@ jobs:
       trigger: true
     - get: dev-image
       passed: [dev-image]
+      trigger: true
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
@@ -251,6 +252,7 @@ jobs:
       trigger: true
     - get: dev-image
       passed: [dev-image]
+      trigger: true
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
