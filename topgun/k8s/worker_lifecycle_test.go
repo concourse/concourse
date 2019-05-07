@@ -65,6 +65,10 @@ var _ = Describe("Worker lifecycle", func() {
 			return false
 		}, 2*time.Minute, 10*time.Second).
 			Should(BeTrue())
+
+		Run(nil, "kubectl", "scale", "--namespace", namespace,
+			"statefulset", releaseName+"-worker", "--replicas=0",
+		)
 	})
 
 	AfterEach(func() {
@@ -72,18 +76,13 @@ var _ = Describe("Worker lifecycle", func() {
 	})
 
 	Context("terminating the worker", func() {
-		JustBeforeEach(func() {
-			Run(nil, "kubectl", "scale", "--namespace", namespace,
-				"statefulset", releaseName+"-worker", "--replicas=0",
-			)
-		})
 
 		Context("gracefully", func() {
 			BeforeEach(func() {
 				gracePeriod = "600"
 			})
 
-			JustBeforeEach(func() {
+			It("finishes tasks gracefully with termination", func() {
 				By("seeing that the worker state is retiring")
 				Eventually(func() string {
 					workers := fly.GetWorkers()
@@ -97,9 +96,7 @@ var _ = Describe("Worker lifecycle", func() {
 					"--", "/bin/sh", "-ce",
 					`touch /tmp/stop-waiting`,
 				)
-			})
 
-			It("finishes tasks gracefully with termination", func() {
 				By("seeing that there are no workers")
 				Eventually(func() []Worker {
 					return getRunningWorkers(fly.GetWorkers())
