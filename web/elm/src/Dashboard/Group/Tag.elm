@@ -12,6 +12,7 @@ import Ordering exposing (Ordering)
 type Tag
     = Owner
     | Member
+    | PipelineOperator
     | Viewer
 
 
@@ -20,6 +21,7 @@ ordering =
     Ordering.explicit
         [ Just Owner
         , Just Member
+        , Just PipelineOperator
         , Just Viewer
         , Nothing
         ]
@@ -55,6 +57,9 @@ toString t =
         Member ->
             "MEMBER"
 
+        PipelineOperator ->
+            "PIPELINE_OPERATOR"
+
         Viewer ->
             "VIEWER"
 
@@ -84,6 +89,9 @@ parseRole role =
 
         "member" ->
             Just Member
+
+        "pipeline-operator" ->
+            Just PipelineOperator
 
         "viewer" ->
             Just Viewer
