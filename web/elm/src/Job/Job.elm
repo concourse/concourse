@@ -44,11 +44,14 @@ import Job.Styles as Styles
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
+import ScreenSize
+import Set exposing (Set)
+import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick)
 import Time
 import UpdateMsg exposing (UpdateMsg)
@@ -69,7 +72,6 @@ type alias Model =
         , buildsWithResources : Paginated BuildWithResources
         , currentPage : Maybe Page
         , now : Time.Posix
-        , hovered : Maybe Hoverable
         , timeZone : Time.Zone
         }
 
@@ -107,7 +109,6 @@ init flags =
                 }
             , now = Time.millisToPosix 0
             , currentPage = flags.paging
-            , hovered = Nothing
             , isUserMenuExpanded = False
             , timeZone = Time.utc
             }
@@ -117,6 +118,7 @@ init flags =
       , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
       , GetCurrentTimeZone
+      , FetchPipelines
       ]
     )
 
@@ -252,6 +254,7 @@ handleDelivery delivery ( model, effects ) =
             , effects
                 ++ [ FetchJobBuilds model.jobIdentifier model.currentPage
                    , FetchJob model.jobIdentifier
+                   , FetchPipelines
                    ]
             )
 
@@ -262,10 +265,10 @@ handleDelivery delivery ( model, effects ) =
 update : Message -> ET Model
 update action ( model, effects ) =
     case action of
-        TriggerBuildJob ->
+        Click TriggerBuildButton ->
             ( model, effects ++ [ DoTriggerBuild model.jobIdentifier ] )
 
-        TogglePaused ->
+        Click ToggleJobButton ->
             case model.job |> RemoteData.toMaybe of
                 Nothing ->
                     ( model, effects )
@@ -281,9 +284,6 @@ update action ( model, effects ) =
                       else
                         effects ++ [ PauseJob model.jobIdentifier ]
                     )
-
-        Hover hoverable ->
-            ( { model | hovered = hoverable }, effects )
 
         _ ->
             ( model, effects )
@@ -399,8 +399,18 @@ documentTitle model =
     model.jobIdentifier.jobName
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view :
+    { a
+        | expandedTeams : Set String
+        , pipelines : List Concourse.Pipeline
+        , isSideBarOpen : Bool
+        , userState : UserState
+        , screenSize : ScreenSize.ScreenSize
+        , hovered : Maybe DomID
+    }
+    -> Model
+    -> Html Message
+view session model =
     let
         route =
             Routes.Job
@@ -408,25 +418,48 @@ view userState model =
                 , page = model.currentPage
                 }
     in
-    Html.div []
+    Html.div
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
-            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-            [ Html.div
-                (id "top-bar-app" :: Views.Styles.topBar False)
-                [ TopBar.concourseLogo
-                , TopBar.breadcrumbs route
-                , Login.view userState model False
-                ]
-            , Html.div
-                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-                [ viewMainJobsSection model ]
+            (id "top-bar-app" :: Views.Styles.topBar False)
+            [ SideBar.hamburgerMenu
+                { screenSize = session.screenSize
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , pipelines = session.pipelines
+                , isPaused = False
+                }
+            , TopBar.concourseLogo
+            , TopBar.breadcrumbs route
+            , Login.view session.userState model False
+            ]
+        , Html.div
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
+            [ SideBar.view
+                { expandedTeams = session.expandedTeams
+                , pipelines = session.pipelines
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , currentPipeline =
+                    Just
+                        { pipelineName = model.jobIdentifier.pipelineName
+                        , teamName = model.jobIdentifier.teamName
+                        }
+                , screenSize = session.screenSize
+                }
+            , viewMainJobsSection session model
             ]
         ]
 
 
-viewMainJobsSection : Model -> Html Message
-viewMainJobsSection model =
-    Html.div [ class "with-fixed-header" ]
+viewMainJobsSection : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewMainJobsSection session model =
+    Html.div
+        [ class "with-fixed-header"
+        , style "flex-grow" "1"
+        , style "display" "flex"
+        , style "flex-direction" "column"
+        ]
         [ case model.job |> RemoteData.toMaybe of
             Nothing ->
                 LoadingIndicator.view
@@ -434,10 +467,10 @@ viewMainJobsSection model =
             Just job ->
                 let
                     toggleHovered =
-                        model.hovered == Just ToggleJobButton
+                        session.hovered == Just ToggleJobButton
 
                     triggerHovered =
-                        model.hovered == Just TriggerBuildButton
+                        session.hovered == Just TriggerBuildButton
                 in
                 Html.div [ class "fixed-header" ]
                     [ Html.div
@@ -454,7 +487,7 @@ viewMainJobsSection model =
                                 ([ id "pause-toggle"
                                  , onMouseEnter <| Hover <| Just ToggleJobButton
                                  , onMouseLeave <| Hover Nothing
-                                 , onClick TogglePaused
+                                 , onClick <| Click ToggleJobButton
                                  ]
                                     ++ (Styles.triggerButton False toggleHovered <|
                                             headerBuildStatus job.finishedBuild
@@ -479,7 +512,7 @@ viewMainJobsSection model =
                             ]
                         , Html.button
                             ([ class "trigger-build"
-                             , onLeftClick TriggerBuildJob
+                             , onLeftClick <| Click TriggerBuildButton
                              , attribute "aria-label" "Trigger Build"
                              , attribute "title" "Trigger Build"
                              , onMouseEnter <| Hover <| Just TriggerBuildButton
@@ -525,7 +558,7 @@ viewMainJobsSection model =
                             , style "font-weight" "700"
                             ]
                             [ Html.text "builds" ]
-                        , viewPaginationBar model
+                        , viewPaginationBar session model
                         ]
                     ]
         , case model.buildsWithResources.content of
@@ -533,7 +566,10 @@ viewMainJobsSection model =
                 LoadingIndicator.view
 
             anyList ->
-                Html.div [ class "scrollable-body job-body" ]
+                Html.div
+                    [ class "scrollable-body job-body"
+                    , style "overflow-y" "auto"
+                    ]
                     [ Html.ul [ class "jobs-builds-list builds-list" ] <|
                         List.map (viewBuildWithResources model) anyList
                     ]
@@ -550,8 +586,8 @@ headerBuildStatus finishedBuild =
             build.status
 
 
-viewPaginationBar : Model -> Html Message
-viewPaginationBar model =
+viewPaginationBar : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewPaginationBar session model =
     Html.div
         [ id "pagination"
         , style "display" "flex"
@@ -590,7 +626,7 @@ viewPaginationBar model =
                             ++ chevron
                                 { direction = "left"
                                 , enabled = True
-                                , hovered = model.hovered == Just PreviousPageButton
+                                , hovered = session.hovered == Just PreviousPageButton
                                 }
                         )
                         []
@@ -628,7 +664,7 @@ viewPaginationBar model =
                             ++ chevron
                                 { direction = "right"
                                 , enabled = True
-                                , hovered = model.hovered == Just NextPageButton
+                                , hovered = session.hovered == Just NextPageButton
                                 }
                         )
                         []

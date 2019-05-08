@@ -18,7 +18,7 @@ import Http
 import Job.Job as Job exposing (update)
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as Msgs
 import RemoteData
@@ -172,6 +172,26 @@ all =
                             |> Tuple.second
                             |> List.member Effects.GetCurrentTimeZone
                             |> Expect.true "should get current timezone"
+                , test "fetches pipelines" <|
+                    \_ ->
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = ""
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            , clusterName = ""
+                            }
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                            |> Tuple.second
+                            |> List.member Effects.FetchPipelines
+                            |> Expect.true "should fetch pipelines"
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
                         Common.init "/teams/team/pipelines/pipeline/jobs/job"
@@ -267,7 +287,6 @@ all =
                     init { disabled = False, paused = False } ()
                 , query =
                     queryView >> Query.find [ id "pause-toggle" ]
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey pause icon"
                     , selector =
@@ -286,13 +305,7 @@ all =
                                 , image = "ic-pause-circle-outline-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.ToggleJobButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.ToggleJobButton
                 }
             , defineHoverBehaviour
                 { name = "play/pause button when job is paused"
@@ -300,7 +313,6 @@ all =
                     init { disabled = False, paused = True } ()
                 , query =
                     queryView >> Query.find [ id "pause-toggle" ]
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey play icon"
                     , selector =
@@ -319,13 +331,7 @@ all =
                                 , image = "ic-play-circle-outline.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.ToggleJobButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.ToggleJobButton
                 }
             , test "trigger build button has background of the header color, faded" <|
                 init { disabled = False, paused = False }
@@ -384,7 +390,6 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey plus icon"
                     , selector =
@@ -403,13 +408,7 @@ all =
                                 , image = "ic-add-circle-outline-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.TriggerBuildButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.TriggerBuildButton
                 }
             , defineHoverBehaviour
                 { name = "disabled trigger build button"
@@ -421,7 +420,6 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "grey plus icon"
                     , selector =
@@ -456,14 +454,65 @@ all =
                                     }
                         ]
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.TriggerBuildButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.TriggerBuildButton
                 }
+            , test "page below top bar fills height without scrolling" <|
+                init { disabled = False, paused = False }
+                    >> queryView
+                    >> Query.find [ id "page-below-top-bar" ]
+                    >> Query.has
+                        [ style "box-sizing" "border-box"
+                        , style "height" "100%"
+                        , style "display" "flex"
+                        ]
+            , test "page contents fill available space and align vertically" <|
+                init { disabled = False, paused = False }
+                    >> queryView
+                    >> Query.find [ id "page-below-top-bar" ]
+                    >> Query.has
+                        [ style "flex-grow" "1"
+                        , style "display" "flex"
+                        , style "flex-direction" "column"
+                        ]
+            , test "body scrolls independently" <|
+                init { disabled = False, paused = False }
+                    >> Application.handleCallback
+                        (JobBuildsFetched <|
+                            let
+                                jobId =
+                                    { jobName = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
+                                    }
+
+                                status =
+                                    BuildStatusSucceeded
+
+                                builds =
+                                    [ { id = 0
+                                      , name = "0"
+                                      , job = Just jobId
+                                      , status = status
+                                      , duration =
+                                            { startedAt = Nothing
+                                            , finishedAt = Nothing
+                                            }
+                                      , reapTime = Nothing
+                                      }
+                                    ]
+                            in
+                            Ok
+                                { pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                , content = builds
+                                }
+                        )
+                    >> Tuple.first
+                    >> queryView
+                    >> Query.find [ class "job-body" ]
+                    >> Query.has [ style "overflow-y" "auto" ]
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
@@ -742,7 +791,6 @@ all =
                         >> Query.find [ id "pagination" ]
                         >> Query.children []
                         >> Query.index 0
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description = "white left chevron"
                     , selector =
@@ -791,13 +839,7 @@ all =
                             )
                         ]
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.PreviousPageButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable = Message.Message.PreviousPageButton
                 }
             , test "JobBuildsFetched" <|
                 \_ ->
@@ -906,7 +948,7 @@ all =
                     <|
                         Tuple.first <|
                             update
-                                TogglePaused
+                                (Click ToggleJobButton)
                                 ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "PausedToggled" <|
                 \_ ->
@@ -966,9 +1008,11 @@ all =
                                 Time.millisToPosix 0
                         )
                     >> Tuple.second
-                    >> Expect.equal
-                        [ Effects.FetchJobBuilds jobInfo Nothing
-                        , Effects.FetchJob jobInfo
+                    >> Expect.all
+                        [ List.member (Effects.FetchJobBuilds jobInfo Nothing)
+                            >> Expect.true "should refresh builds"
+                        , List.member (Effects.FetchJob jobInfo)
+                            >> Expect.true "should refresh job"
                         ]
             , test "on one-second timer, updates build timestamps" <|
                 init { disabled = False, paused = False }

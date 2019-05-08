@@ -41,7 +41,7 @@ import Json.Decode
 import List.Extra
 import Maybe.Extra
 import Message.Effects as Effects
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Monocle.Optional
 import Ordering exposing (Ordering)
 import Set
@@ -177,6 +177,7 @@ allPipelines data =
                             )
                 , status = pipelineStatus p jobs
                 , isToggleLoading = False
+                , isVisibilityLoading = False
                 }
             )
 
@@ -352,7 +353,7 @@ view :
     { dragState : DragState
     , dropState : DropState
     , now : Time.Posix
-    , hovered : Maybe Hoverable
+    , hovered : Maybe DomID
     , pipelineRunningKeyframes : String
     , userState : UserState
     }
@@ -368,12 +369,6 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
                 List.append
                     (List.indexedMap
                         (\i pipeline ->
-                            let
-                                pipelineId =
-                                    { pipelineName = pipeline.name
-                                    , teamName = pipeline.teamName
-                                    }
-                            in
                             Html.div [ class "pipeline-wrapper" ]
                                 [ pipelineDropAreaView dragState dropState g.teamName i
                                 , Html.div
@@ -395,9 +390,7 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
                                     [ Pipeline.pipelineView
                                         { now = now
                                         , pipeline = pipeline
-                                        , hovered =
-                                            hovered
-                                                == (Just <| PipelineButton pipelineId)
+                                        , hovered = hovered
                                         , pipelineRunningKeyframes = pipelineRunningKeyframes
                                         , userState = userState
                                         }

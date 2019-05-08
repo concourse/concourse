@@ -10,7 +10,7 @@ import Html.Attributes exposing (attribute, class, download, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Keyboard
 import Message.Effects as Effects
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Routes
 import ScreenSize
@@ -67,13 +67,16 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-view : FooterModel r -> Html Message
-view model =
+view :
+    { a | hovered : Maybe DomID, screenSize : ScreenSize.ScreenSize }
+    -> FooterModel r
+    -> Html Message
+view session model =
     if model.showHelp then
         keyboardHelp
 
     else if not model.hideFooter then
-        infoBar model
+        infoBar session model
 
     else
         Html.text ""
@@ -110,35 +113,36 @@ keyboardHelp =
 
 
 infoBar :
-    { a
-        | hovered : Maybe Hoverable
-        , screenSize : ScreenSize.ScreenSize
-        , version : String
-        , highDensity : Bool
-        , groups : List Group
-    }
+    { a | hovered : Maybe DomID, screenSize : ScreenSize.ScreenSize }
+    ->
+        { b
+            | version : String
+            , highDensity : Bool
+            , groups : List Group
+        }
     -> Html Message
-infoBar model =
+infoBar session model =
     Html.div
         (id "dashboard-info"
             :: Styles.infoBar
                 { hideLegend = hideLegend model
-                , screenSize = model.screenSize
+                , screenSize = session.screenSize
                 }
         )
-        [ legend model
-        , concourseInfo model
+        [ legend session model
+        , concourseInfo session model
         ]
 
 
 legend :
-    { a
-        | groups : List Group
-        , screenSize : ScreenSize.ScreenSize
-        , highDensity : Bool
-    }
+    { a | screenSize : ScreenSize.ScreenSize }
+    ->
+        { b
+            | groups : List Group
+            , highDensity : Bool
+        }
     -> Html Message
-legend model =
+legend session model =
     if hideLegend model then
         Html.text ""
 
@@ -166,14 +170,15 @@ legend model =
                     , PipelineStatusAborted PipelineStatus.Running
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
-                ++ legendSeparator model.screenSize
+                ++ legendSeparator session.screenSize
                 ++ [ toggleView model.highDensity ]
 
 
 concourseInfo :
-    { a | version : String, hovered : Maybe Hoverable }
+    { a | hovered : Maybe DomID }
+    -> { b | version : String }
     -> Html Message
-concourseInfo { version, hovered } =
+concourseInfo { hovered } { version } =
     Html.div (id "concourse-info" :: Styles.info)
         [ Html.div
             Styles.infoItem
@@ -228,7 +233,7 @@ legendSeparator screenSize =
             [ Html.div Styles.legendSeparator [ Html.text "|" ] ]
 
 
-cliIcon : Maybe Hoverable -> Cli.Cli -> Html Message
+cliIcon : Maybe DomID -> Cli.Cli -> Html Message
 cliIcon hovered cli =
     Html.a
         ([ href <| Cli.downloadUrl cli

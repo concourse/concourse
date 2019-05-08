@@ -10,7 +10,6 @@ import Concourse
 import Concourse.Pagination exposing (Page)
 import Keyboard
 import Login.Login as Login
-import Message.Message exposing (Hoverable)
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight)
 import Time
@@ -35,7 +34,6 @@ type alias Model =
         , previousTriggerBuildByKey : Bool
         , showHelp : Bool
         , highlight : Highlight
-        , hoveredElement : Maybe Hoverable
         , hoveredCounter : Int
         , fetchingHistory : Bool
         , scrolledToCurrentBuild : Bool

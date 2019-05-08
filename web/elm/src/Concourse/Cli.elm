@@ -1,4 +1,4 @@
-module Concourse.Cli exposing (Cli, clis, downloadUrl, iconUrl, id, label)
+module Concourse.Cli exposing (Cli(..), clis, downloadUrl, iconUrl, id, label)
 
 
 clis : List Cli

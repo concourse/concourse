@@ -40,7 +40,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
 import Time
@@ -378,26 +378,24 @@ toggleExpanded { expanded, state } =
 
 
 updateTooltip :
-    { a
-        | hoveredElement : Maybe Hoverable
-        , hoveredCounter : Int
-    }
+    { a | hovered : Maybe DomID }
+    -> { b | hoveredCounter : Int }
     -> StepTreeModel
     -> ( StepTreeModel, List Effect )
-updateTooltip { hoveredElement, hoveredCounter } model =
+updateTooltip { hovered } { hoveredCounter } model =
     let
         newTooltip =
-            case hoveredElement of
+            case hovered of
                 Just (FirstOccurrenceIcon _) ->
                     if hoveredCounter > 0 then
-                        hoveredElement
+                        hovered
 
                     else
                         Nothing
 
                 Just (StepState _) ->
                     if hoveredCounter > 0 then
-                        hoveredElement
+                        hovered
 
                     else
                         Nothing
@@ -485,8 +483,15 @@ viewTab id currentTab idx step =
             idx + 1
     in
     Html.li
-        [ classList [ ( "current", currentTab == tab ), ( "inactive", not <| treeIsActive step ) ] ]
-        [ Html.a [ onClick (SwitchTab id tab) ] [ Html.text (String.fromInt tab) ] ]
+        [ classList
+            [ ( "current", currentTab == tab )
+            , ( "inactive", not <| treeIsActive step )
+            ]
+        ]
+        [ Html.a
+            [ onClick <| Click <| StepTab id tab ]
+            [ Html.text (String.fromInt tab) ]
+        ]
 
 
 viewSeq : Time.Zone -> StepTreeModel -> StepTree -> Html Message
@@ -525,7 +530,7 @@ viewStep model timeZone { id, name, log, state, error, expanded, version, metada
         ]
         [ Html.div
             ([ class "header"
-             , onClick (ToggleStep id)
+             , onClick <| Click <| StepHeader id
              ]
                 ++ Styles.stepHeader
             )
@@ -713,7 +718,10 @@ viewStepState state id tooltip =
     in
     case state of
         StepStateRunning ->
-            Spinner.spinner { size = "14px", margin = "7px" }
+            Spinner.spinner
+                { sizePx = 14
+                , margin = "7px"
+                }
 
         StepStatePending ->
             Icon.iconWithTooltip

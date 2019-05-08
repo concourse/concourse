@@ -12,12 +12,21 @@ module Application.Application exposing
 
 import Browser
 import Concourse
+import EffectTransformer exposing (ET)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
-import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.Message as Message
+import Message.Subscription
+    exposing
+        ( Delivery(..)
+        , Interval(..)
+        , Subscription(..)
+        )
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
 import Routes
+import ScreenSize
+import Set exposing (Set)
 import SubPage.SubPage as SubPage
 import Url
 import UserState exposing (UserState(..))
@@ -42,6 +51,11 @@ type alias Model =
     , pipelineRunningKeyframes : String
     , route : Routes.Route
     , userState : UserState
+    , pipelines : List Concourse.Pipeline
+    , expandedTeams : Set String
+    , isSideBarOpen : Bool
+    , screenSize : ScreenSize.ScreenSize
+    , hovered : Maybe Message.DomID
     , clusterName : String
     }
 
@@ -71,6 +85,11 @@ init flags url =
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , route = route
             , userState = UserStateUnknown
+            , isSideBarOpen = False
+            , pipelines = []
+            , expandedTeams = Set.empty
+            , screenSize = ScreenSize.Desktop
+            , hovered = Nothing
             , clusterName = flags.clusterName
             }
 
@@ -85,7 +104,7 @@ init flags url =
                 , Effects.ModifyUrl <| Routes.toString route
                 ]
     in
-    ( model, FetchUser :: handleTokenEffect ++ subEffects )
+    ( model, [ FetchUser, GetScreenSize ] ++ handleTokenEffect ++ subEffects )
 
 
 locationMsg : Url.Url -> TopLevelMessage
@@ -102,22 +121,30 @@ handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback callback model =
     case callback of
         BuildTriggered (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         BuildAborted (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         PausedToggled (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         JobBuildsFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         InputToFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
 
         OutputOfFetched (Err err) ->
-            ( model, redirectToLoginIfNecessary err )
+            redirectToLoginIfNecessary err ( model, [] )
+
+        PipelineToggled _ (Err err) ->
+            subpageHandleCallback model callback
+                |> redirectToLoginIfNecessary err
+
+        VisibilityChanged _ _ (Err err) ->
+            subpageHandleCallback model callback
+                |> redirectToLoginIfNecessary err
 
         LoggedOut (Ok ()) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
@@ -135,6 +162,34 @@ handleCallback callback model =
 
         UserFetched (Err _) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
+
+        PipelinesFetched (Ok pipelines) ->
+            ( { model
+                | pipelines = pipelines
+                , expandedTeams =
+                    case ( model.pipelines, model.route ) of
+                        ( [], Routes.Pipeline { id } ) ->
+                            Set.insert id.teamName model.expandedTeams
+
+                        ( [], Routes.Job { id } ) ->
+                            Set.insert id.teamName model.expandedTeams
+
+                        ( [], Routes.Resource { id } ) ->
+                            Set.insert id.teamName model.expandedTeams
+
+                        _ ->
+                            model.expandedTeams
+              }
+            , []
+            )
+
+        ScreenResized viewport ->
+            subpageHandleCallback
+                { model
+                    | screenSize =
+                        ScreenSize.fromWindowSize viewport.viewport.width
+                }
+                callback
 
         -- otherwise, pass down
         _ ->
@@ -155,11 +210,34 @@ subpageHandleCallback model callback =
 update : TopLevelMessage -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
+        Update (Message.Click Message.HamburgerMenu) ->
+            ( { model | isSideBarOpen = not model.isSideBarOpen }, [] )
+
+        Update (Message.Hover hovered) ->
+            let
+                ( subModel, subEffects ) =
+                    ( model.subModel, [] )
+                        |> SubPage.update model (Message.Hover hovered)
+            in
+            ( { model | subModel = subModel, hovered = hovered }, subEffects )
+
+        Update (Message.Click (Message.SideBarTeam teamName)) ->
+            ( { model
+                | expandedTeams =
+                    if Set.member teamName model.expandedTeams then
+                        Set.remove teamName model.expandedTeams
+
+                    else
+                        Set.insert teamName model.expandedTeams
+              }
+            , []
+            )
+
         Update m ->
             let
                 ( subModel, subEffects ) =
                     ( model.subModel, [] )
-                        |> SubPage.update m
+                        |> SubPage.update model m
                         |> SubPage.handleNotFound model.notFoundImgSrc model.route
             in
             ( { model | subModel = subModel }, subEffects )
@@ -176,7 +254,7 @@ handleDelivery delivery model =
     let
         ( newSubmodel, subPageEffects ) =
             ( model.subModel, [] )
-                |> SubPage.handleDelivery delivery
+                |> SubPage.handleDelivery model delivery
                 |> SubPage.handleNotFound model.notFoundImgSrc model.route
 
         ( newModel, applicationEffects ) =
@@ -199,6 +277,9 @@ handleDeliveryForApplication delivery model =
         RouteChanged route ->
             urlUpdate route model
 
+        WindowResized width _ ->
+            ( { model | screenSize = ScreenSize.fromWindowSize width }, [] )
+
         UrlRequest request ->
             case request of
                 Browser.Internal url ->
@@ -216,18 +297,18 @@ handleDeliveryForApplication delivery model =
             ( model, [] )
 
 
-redirectToLoginIfNecessary : Http.Error -> List Effect
-redirectToLoginIfNecessary err =
+redirectToLoginIfNecessary : Http.Error -> ET Model
+redirectToLoginIfNecessary err ( model, effects ) =
     case err of
         Http.BadStatus { status } ->
             if status.code == 401 then
-                [ RedirectToLogin ]
+                ( model, effects ++ [ RedirectToLogin ] )
 
             else
-                []
+                ( model, effects )
 
         _ ->
-            []
+            ( model, effects )
 
 
 urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
@@ -256,13 +337,14 @@ urlUpdate route model =
 
 view : Model -> Browser.Document TopLevelMessage
 view model =
-    SubPage.view model.userState model.subModel
+    SubPage.view model model.subModel
 
 
 subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnNonHrefLinkClicked
     , OnTokenReceived
+    , OnWindowResize
     ]
         ++ SubPage.subscriptions model.subModel
 
@@ -282,8 +364,8 @@ routeMatchesModel route model =
         ( Routes.Job _, SubPage.JobModel _ ) ->
             True
 
-        ( Routes.Dashboard searchType, SubPage.DashboardModel dashboardModel ) ->
-            dashboardModel.highDensity == (searchType == Routes.HighDensity)
+        ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->
+            True
 
         _ ->
             False

@@ -21,7 +21,7 @@ import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseDown)
 import Keyboard
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
@@ -32,11 +32,21 @@ searchInputId =
     "search-input-field"
 
 
-update : Message -> ET Model
-update msg ( model, effects ) =
+update : { a | screenSize : ScreenSize } -> Message -> ET Model
+update session msg ( model, effects ) =
     case msg of
-        ShowSearchInput ->
-            showSearchInput ( model, effects )
+        Click ShowSearchButton ->
+            showSearchInput session ( model, effects )
+
+        Click ClearSearchButton ->
+            ( { model | query = "" }
+            , effects
+                ++ [ Focus searchInputId
+                   , ModifyUrl <|
+                        Routes.toString <|
+                            Routes.Dashboard (Routes.Normal Nothing)
+                   ]
+            )
 
         FilterMsg query ->
             ( { model | query = query }
@@ -58,8 +68,8 @@ update msg ( model, effects ) =
             ( model, effects )
 
 
-showSearchInput : ET Model
-showSearchInput ( model, effects ) =
+showSearchInput : { a | screenSize : ScreenSize } -> ET Model
+showSearchInput session ( model, effects ) =
     if model.highDensity then
         ( model, effects )
 
@@ -69,7 +79,7 @@ showSearchInput ( model, effects ) =
                 model.dropdown == Hidden
 
             isMobile =
-                model.screenSize == ScreenSize.Mobile
+                session.screenSize == ScreenSize.Mobile
         in
         if isDropDownHidden && isMobile && model.query == "" then
             ( { model | dropdown = Shown Nothing }
@@ -85,19 +95,16 @@ screenResize width model =
     let
         newSize =
             ScreenSize.fromWindowSize width
-
-        newModel =
-            { model | screenSize = newSize }
     in
     case newSize of
         ScreenSize.Desktop ->
-            { newModel | dropdown = Hidden }
+            { model | dropdown = Hidden }
 
         ScreenSize.BigDesktop ->
-            { newModel | dropdown = Hidden }
+            { model | dropdown = Hidden }
 
         ScreenSize.Mobile ->
-            newModel
+            model
 
 
 handleDelivery : Delivery -> ET Model
@@ -215,21 +222,22 @@ arrowDown options dropdown =
 
 
 view :
-    { a
-        | screenSize : ScreenSize
-        , query : String
-        , dropdown : Dropdown
-        , groups : List Group
-        , highDensity : Bool
-    }
+    { a | screenSize : ScreenSize }
+    ->
+        { b
+            | query : String
+            , dropdown : Dropdown
+            , groups : List Group
+            , highDensity : Bool
+        }
     -> Html Message
-view ({ screenSize, query, dropdown, groups } as params) =
+view session ({ query, dropdown, groups } as params) =
     let
         isDropDownHidden =
             dropdown == Hidden
 
         isMobile =
-            screenSize == ScreenSize.Mobile
+            session.screenSize == ScreenSize.Mobile
 
         noPipelines =
             groups
@@ -241,10 +249,14 @@ view ({ screenSize, query, dropdown, groups } as params) =
 
     else if isDropDownHidden && isMobile && query == "" then
         Html.div
-            (Styles.showSearchContainer params)
+            (Styles.showSearchContainer
+                { screenSize = session.screenSize
+                , highDensity = params.highDensity
+                }
+            )
             [ Html.div
                 ([ id "show-search-button"
-                 , onClick ShowSearchInput
+                 , onClick <| Click ShowSearchButton
                  ]
                     ++ Styles.searchButton
                 )
@@ -253,7 +265,7 @@ view ({ screenSize, query, dropdown, groups } as params) =
 
     else
         Html.div
-            (id "search-container" :: Styles.searchContainer screenSize)
+            (id "search-container" :: Styles.searchContainer session.screenSize)
             ([ Html.input
                 ([ id searchInputId
                  , placeholder "search"
@@ -263,30 +275,33 @@ view ({ screenSize, query, dropdown, groups } as params) =
                  , onBlur BlurMsg
                  , onInput FilterMsg
                  ]
-                    ++ Styles.searchInput screenSize
+                    ++ Styles.searchInput session.screenSize
                 )
                 []
              , Html.div
                 ([ id "search-clear"
-                 , onClick (FilterMsg "")
+                 , onClick <| Click ClearSearchButton
                  ]
                     ++ Styles.searchClearButton (String.length query > 0)
                 )
                 []
              ]
-                ++ viewDropdownItems params
+                ++ viewDropdownItems session params
             )
 
 
 viewDropdownItems :
     { a
-        | query : String
-        , dropdown : Dropdown
-        , groups : List Group
-        , screenSize : ScreenSize
+        | screenSize : ScreenSize
     }
+    ->
+        { b
+            | query : String
+            , dropdown : Dropdown
+            , groups : List Group
+        }
     -> List (Html Message)
-viewDropdownItems ({ dropdown, screenSize } as model) =
+viewDropdownItems { screenSize } ({ dropdown } as model) =
     case dropdown of
         Hidden ->
             []

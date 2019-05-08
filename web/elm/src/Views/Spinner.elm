@@ -6,22 +6,41 @@
 --  subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 
 
-module Views.Spinner exposing (spinner)
+module Views.Spinner exposing (hoverableSpinner, spinner)
 
 import Html exposing (Html)
 import Html.Attributes exposing (style)
+import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Message.Message exposing (DomID, Message(..))
 
 
-spinner : { size : String, margin : String } -> Html msg
-spinner { size, margin } =
+spinner : { sizePx : Float, margin : String } -> Html Message
+spinner { sizePx, margin } =
+    hoverableSpinner { sizePx = sizePx, margin = margin, hoverable = Nothing }
+
+
+hoverableSpinner :
+    { sizePx : Float, margin : String, hoverable : Maybe DomID }
+    -> Html Message
+hoverableSpinner { sizePx, margin, hoverable } =
     Html.div
         -- preloader-wrapper active
-        [ style "width" size
-        , style "height" size
-        , style "box-sizing" "border-box"
-        , style "animation" "container-rotate 1568ms linear infinite"
-        , style "margin" margin
-        ]
+        ([ style "width" <| String.fromFloat sizePx ++ "px"
+         , style "height" <| String.fromFloat sizePx ++ "px"
+         , style "box-sizing" "border-box"
+         , style "animation" "container-rotate 1568ms linear infinite"
+         , style "margin" margin
+         ]
+            ++ (case hoverable of
+                    Just h ->
+                        [ onMouseEnter <| Hover <| Just h
+                        , onMouseLeave <| Hover Nothing
+                        ]
+
+                    Nothing ->
+                        []
+               )
+        )
         [ Html.div
             -- spinner-layer spinner-blue-only
             [ style "height" "100%"

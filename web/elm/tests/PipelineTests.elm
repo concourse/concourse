@@ -156,21 +156,12 @@ all =
                                 { name = "group"
                                 , setup = setupGroupsBar sampleGroups
                                 , query = findGroups >> Query.index 0
-                                , updateFunc =
-                                    \msg ->
-                                        Application.update msg
-                                            >> Tuple.first
                                 , unhoveredSelector =
                                     { description = "dark outline"
                                     , selector =
                                         [ style "border" "1px solid #2b2a2a" ]
                                     }
-                                , mouseEnterMsg =
-                                    Msgs.Update <|
-                                        Hover <|
-                                            Just <|
-                                                Message.Message.JobGroup 0
-                                , mouseLeaveMsg = Msgs.Update <| Hover Nothing
+                                , hoverable = Message.Message.JobGroup 0
                                 , hoveredSelector =
                                     { description = "light grey outline"
                                     , selector =
@@ -261,8 +252,49 @@ all =
                             |> Tuple.second
                             |> Expect.equal [ Effects.ResetPipelineFocus ]
                 ]
+            , test "groups bar and pipeline view lay out vertically" <|
+                \_ ->
+                    setupGroupsBar sampleGroups
+                        |> Common.queryView
+                        |> Query.find [ id "pipeline-container" ]
+                        |> Query.has
+                            [ style "display" "flex"
+                            , style "flex-direction" "column"
+                            ]
             ]
-        , test "title should include the pipline name" <|
+        , test "pipeline view fills available space" <|
+            \_ ->
+                Common.init "/teams/team/pipelines/pipeline"
+                    |> Common.queryView
+                    |> Query.find [ id "pipeline-container" ]
+                    |> Query.has [ style "flex-grow" "1" ]
+        , test "gets screen size on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    , clusterName = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "teams/team/pipelines/pipeline"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> List.member Effects.GetScreenSize
+                    |> Expect.true "should get screen size"
+        , test "subscribes to screen resizes" <|
+            \_ ->
+                Common.init "/teams/team/pipelines/pipelineName"
+                    |> Application.subscriptions
+                    |> List.member Subscription.OnWindowResize
+                    |> Expect.true "should subscribe to window resizes"
+        , test "title should include the pipeline name" <|
             \_ ->
                 Common.init "/teams/team/pipelines/pipelineName"
                     |> Application.view
@@ -339,12 +371,13 @@ all =
                                 )
                             )
                         |> Tuple.second
-                        |> Expect.equal
-                            [ Effects.FetchPipeline
+                        |> List.member
+                            (Effects.FetchPipeline
                                 { teamName = "team"
                                 , pipelineName = "pipeline"
                                 }
-                            ]
+                            )
+                        |> Expect.true "should refresh pipeline"
             , test "on one minute timer, refreshes version" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
@@ -435,7 +468,7 @@ all =
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.children []
-                        >> Query.index 0
+                        >> Query.index 1
                         >> Query.has
                             [ style "background-image"
                                 "url(/public/images/concourse-logo-white.svg)"
@@ -448,8 +481,10 @@ all =
                 , it "concourse logo on the left is a link to homepage" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.children []
-                        >> Query.index 0
+                        >> Query.find
+                            [ style "background-image"
+                                "url(/public/images/concourse-logo-white.svg)"
+                            ]
                         >> Query.has [ tag "a", attribute <| Attr.href "/" ]
                 , it "pin icon has a pin background" <|
                     Common.queryView
@@ -573,10 +608,18 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Event.simulate Event.mouseEnter
-                        >> Event.expect (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Event.expect
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                 , it "Hover msg causes pin icon to have light grey circular background" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "pin-icon" ]
@@ -586,7 +629,11 @@ all =
                             ]
                 , it "Hover msg causes dropdown list of pinned resources to appear" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "pin-icon" ]
@@ -594,7 +641,11 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "on Hover, pin badge has no other children" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -604,7 +655,11 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources contains resource name" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -613,7 +668,11 @@ all =
                         >> Query.has [ tag "li", containing [ text "resource" ] ]
                 , it "dropdown list of pinned resources shows resource names in bold" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -624,7 +683,11 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources shows pinned version of each resource" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -634,7 +697,11 @@ all =
                         >> Query.has [ tag "table", containing [ text "v1" ] ]
                 , it "dropdown list of pinned resources has white background" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -643,7 +710,11 @@ all =
                         >> Query.has [ style "background-color" "#ffffff" ]
                 , it "dropdown list of pinned resources is drawn over other elements on the page" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -652,7 +723,11 @@ all =
                         >> Query.has [ style "z-index" "1" ]
                 , it "dropdown list of pinned resources has dark grey text" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -661,7 +736,11 @@ all =
                         >> Query.has [ style "color" "#1e1d1d" ]
                 , it "dropdown list has upward-pointing arrow" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -674,7 +753,11 @@ all =
                         >> Query.count (Expect.equal 1)
                 , it "dropdown list of pinned resources is offset below and left of the pin icon" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -688,7 +771,11 @@ all =
                             ]
                 , it "dropdown list of pinned resources stretches horizontally to fit content" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -697,7 +784,11 @@ all =
                         >> Query.has [ style "white-space" "nowrap" ]
                 , it "dropdown list of pinned resources has no bullet points" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -706,7 +797,11 @@ all =
                         >> Query.has [ style "list-style-type" "none" ]
                 , it "dropdown list has comfortable padding" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -715,7 +810,11 @@ all =
                         >> Query.has [ style "padding" "10px" ]
                 , it "dropdown list arrow is centered below the pin icon above the list" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -745,7 +844,11 @@ all =
                         >> Event.expect (Msgs.Update <| Message.Message.Hover Nothing)
                 , it "clicking a pinned resource sends a Navigation TopLevelMessage" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "pin-icon" ]
@@ -765,7 +868,11 @@ all =
                             )
                 , it "Hover msg causes dropdown list of pinned resources to disappear" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Application.update (Msgs.Update <| Message.Message.Hover Nothing)
                         >> Tuple.first
@@ -775,7 +882,11 @@ all =
                         >> Query.hasNot [ tag "ul" ]
                 , it "pinned resources in the dropdown should have a pointer cursor" <|
                     givenPinnedResource
-                        >> Application.update (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinIcon)
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                            )
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "pin-icon" ]
