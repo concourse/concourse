@@ -1450,7 +1450,7 @@ all =
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
-                        [ style "opacity" "0.5"
+                        [ style "opacity" "0.2"
                         , style "margin" "17px"
                         , style "cursor" "default"
                         ]
@@ -1460,16 +1460,24 @@ all =
                                 }
                     }
                 , hoveredSelector =
-                    { description = "faded play button with light border"
+                    { description = "faded play button with tooltip below"
                     , selector =
-                        [ style "margin" "17px"
-                        , style "cursor" "default"
-                        , style "opacity" "0.5"
+                        [ containing
+                            ([ style "cursor" "default"
+                             , style "opacity" "0.2"
+                             ]
+                                ++ iconSelector
+                                    { size = "20px"
+                                    , image = "ic-play-white.svg"
+                                    }
+                            )
+                        , containing
+                            [ style "position" "absolute"
+                            , style "top" "100%"
+                            ]
+                        , style "position" "relative"
+                        , style "margin" "17px"
                         ]
-                            ++ iconSelector
-                                { size = "20px"
-                                , image = "ic-play-white.svg"
-                                }
                     }
                 , hoverable =
                     Msgs.PipelineButton { pipelineName = "p", teamName = "t" }

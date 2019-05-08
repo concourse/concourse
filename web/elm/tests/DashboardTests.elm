@@ -2732,12 +2732,7 @@ all =
                                     |> Tuple.first
                                     |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
-                                    |> Query.find
-                                        (iconSelector
-                                            { size = "20px"
-                                            , image = "ic-pause-white.svg"
-                                            }
-                                        )
+                                    |> Query.find [ class "pause-toggle" ]
                                     |> Event.simulate Event.click
                                     |> Event.expect
                                         (ApplicationMsgs.Update <|
