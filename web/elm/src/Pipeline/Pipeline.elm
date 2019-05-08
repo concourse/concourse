@@ -427,8 +427,7 @@ view session model =
                     (id "top-bar-pause-toggle"
                         :: (Styles.pauseToggle <| isPaused model.pipeline)
                     )
-                    [ PauseToggle.view "17px"
-                        session.userState
+                    [ PauseToggle.view
                         { pipeline = model.pipelineLocator
                         , isPaused = isPaused model.pipeline
                         , isToggleHovered =
@@ -437,6 +436,9 @@ view session model =
                                         PipelineButton model.pipelineLocator
                                    )
                         , isToggleLoading = model.isToggleLoading
+                        , tooltipPosition = Views.Styles.Below
+                        , margin = "17px"
+                        , userState = session.userState
                         }
                     ]
                 , Login.view session.userState model <| isPaused model.pipeline
