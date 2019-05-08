@@ -153,7 +153,7 @@ type CreatedVolume interface {
 
 	InitializeResourceCache(UsedResourceCache) error
 	InitializeArtifact(name string, buildID int) (WorkerArtifact, error)
-	InitializeTaskCache(int, string, string) error
+	InitializeTaskCache(jobID int, stepName string, path string) error
 
 	ContainerHandle() string
 	ParentHandle() string
@@ -219,9 +219,10 @@ func (volume *createdVolume) TaskIdentifier() (string, string, string, error) {
 	var jobName string
 	var stepName string
 
-	err := psql.Select("p.name, j.name, wtc.step_name").
+	err := psql.Select("p.name, j.name, tc.step_name").
 		From("worker_task_caches wtc").
-		LeftJoin("jobs j ON j.id = wtc.job_id").
+		LeftJoin("task_caches tc on tc.id = wtc.task_cache_id").
+		LeftJoin("jobs j ON j.id = tc.job_id").
 		LeftJoin("pipelines p ON p.id = j.pipeline_id").
 		Where(sq.Eq{
 			"wtc.id": volume.workerTaskCacheID,
@@ -445,10 +446,12 @@ func (volume *createdVolume) InitializeTaskCache(jobID int, stepName string, pat
 	defer Rollback(tx)
 
 	usedWorkerTaskCache, err := WorkerTaskCache{
-		JobID:      jobID,
-		StepName:   stepName,
 		WorkerName: volume.WorkerName(),
-		Path:       path,
+		TaskCache: &usedTaskCache{
+			jobID:    jobID,
+			stepName: stepName,
+			path:     path,
+		},
 	}.FindOrCreate(tx)
 	if err != nil {
 		return err

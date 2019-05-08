@@ -60,10 +60,16 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		It("returns task cache volumes", func() {
-			taskCache, err := workerTaskCacheFactory.FindOrCreate(defaultJob.ID(), "some-step", "some-path", defaultWorker.Name())
+			taskCache, err := taskCacheFactory.FindOrCreate(defaultJob.ID(), "some-step", "some-path")
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingVolume, err := volumeRepository.CreateTaskCacheVolume(defaultTeam.ID(), taskCache)
+			usedWorkerTaskCache, err := workerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{
+				TaskCache:  taskCache,
+				WorkerName: defaultWorker.Name(),
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			creatingVolume, err := volumeRepository.CreateTaskCacheVolume(defaultTeam.ID(), usedWorkerTaskCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			createdVolume, err := creatingVolume.Created()

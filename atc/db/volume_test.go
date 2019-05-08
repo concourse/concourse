@@ -327,21 +327,20 @@ var _ = Describe("Volume", func() {
 			})
 
 			It("sets current volume as worker task cache volume", func() {
-				uwtc, err := workerTaskCacheFactory.FindOrCreate(defaultJob.ID(), "some-step", "some-cache-path", defaultWorker.Name())
+				taskCache, err := taskCacheFactory.FindOrCreate(defaultJob.ID(), "some-step", "some-cache-path")
 				Expect(err).ToNot(HaveOccurred())
 
-				creatingVolume, createdVolume, err := volumeRepository.FindTaskCacheVolume(defaultTeam.ID(), uwtc)
+				createdVolume, found, err := volumeRepository.FindTaskCacheVolume(defaultTeam.ID(), defaultWorker.Name(), taskCache)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(creatingVolume).To(BeNil())
+				Expect(found).To(BeTrue())
 				Expect(createdVolume).ToNot(BeNil())
 				Expect(createdVolume.Handle()).To(Equal(existingTaskCacheVolume.Handle()))
 
 				err = volume.InitializeTaskCache(defaultJob.ID(), "some-step", "some-cache-path")
 				Expect(err).ToNot(HaveOccurred())
 
-				creatingVolume, createdVolume, err = volumeRepository.FindTaskCacheVolume(defaultTeam.ID(), uwtc)
+				createdVolume, found, err = volumeRepository.FindTaskCacheVolume(defaultTeam.ID(), defaultWorker.Name(), taskCache)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(creatingVolume).To(BeNil())
 				Expect(createdVolume).ToNot(BeNil())
 				Expect(createdVolume.Handle()).To(Equal(volume.Handle()))
 
@@ -504,7 +503,13 @@ var _ = Describe("Volume", func() {
 
 	Describe("Task cache volumes", func() {
 		It("returns volume type and task identifier", func() {
-			uwtc, err := workerTaskCacheFactory.FindOrCreate(defaultJob.ID(), "some-task", "some-path", defaultWorker.Name())
+			taskCache, err := taskCacheFactory.FindOrCreate(defaultJob.ID(), "some-task", "some-path")
+			Expect(err).ToNot(HaveOccurred())
+
+			uwtc, err := workerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{
+				WorkerName: defaultWorker.Name(),
+				TaskCache:  taskCache,
+			})
 			Expect(err).ToNot(HaveOccurred())
 
 			creatingVolume, err := volumeRepository.CreateTaskCacheVolume(defaultTeam.ID(), uwtc)
