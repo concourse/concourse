@@ -127,8 +127,9 @@ handleCallback callback model =
                 { model | userState = data.user |> Maybe.map UserStateLoggedIn |> Maybe.withDefault UserStateLoggedOut }
                 callback
 
-        APIDataFetched (Err _) ->
+        APIDataFetched (Err err) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
+                |> Tuple.mapSecond ((++) (redirectToLoginIfNecessary err))
 
         UserFetched (Ok user) ->
             subpageHandleCallback { model | userState = UserStateLoggedIn user } callback
