@@ -343,7 +343,8 @@ func (repository *volumeRepository) FindTaskCacheVolume(teamID int, workerName s
 	usedWorkerTaskCache, found, err := WorkerTaskCache{
 		WorkerName: workerName,
 		TaskCache:  taskCache,
-	}.Find(repository.conn)
+	}.find(repository.conn)
+
 	if err != nil {
 		return nil, false, err
 	}

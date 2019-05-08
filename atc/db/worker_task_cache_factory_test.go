@@ -23,11 +23,7 @@ var _ = Describe("WorkerTaskCache", func() {
 	Describe("FindOrCreate", func() {
 		Context("when there is no existing worker task cache", func() {
 			It("creates worker task cache", func() {
-				tx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-				defer db.Rollback(tx)
-
-				usedWorkerTaskCache, err := workerTaskCache.FindOrCreate(tx)
+				usedWorkerTaskCache, err := workerTaskCacheFactory.FindOrCreate(workerTaskCache)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(usedWorkerTaskCache.ID).To(Equal(1))
@@ -37,21 +33,12 @@ var _ = Describe("WorkerTaskCache", func() {
 		Context("when there is existing worker task caches", func() {
 			BeforeEach(func() {
 				var err error
-				tx, err := dbConn.Begin()
+				_, err = workerTaskCacheFactory.FindOrCreate(workerTaskCache)
 				Expect(err).ToNot(HaveOccurred())
-
-				_, err = workerTaskCache.FindOrCreate(tx)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(tx.Commit()).To(Succeed())
 			})
 
 			It("finds worker task cache", func() {
-				tx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-				defer db.Rollback(tx)
-
-				usedWorkerTaskCache, err := workerTaskCache.FindOrCreate(tx)
+				usedWorkerTaskCache, err := workerTaskCacheFactory.FindOrCreate(workerTaskCache)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(usedWorkerTaskCache.ID).To(Equal(1))
@@ -65,11 +52,7 @@ var _ = Describe("WorkerTaskCache", func() {
 		var findErr error
 
 		JustBeforeEach(func() {
-			tx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-			defer db.Rollback(tx)
-
-			uwtc, found, findErr = workerTaskCache.Find(tx)
+			uwtc, found, findErr = workerTaskCacheFactory.Find(workerTaskCache)
 		})
 
 		Context("when there are no existing worker task caches", func() {
@@ -85,13 +68,8 @@ var _ = Describe("WorkerTaskCache", func() {
 
 			BeforeEach(func() {
 				var err error
-				tx, err := dbConn.Begin()
+				createdWorkerTaskCache, err = workerTaskCacheFactory.FindOrCreate(workerTaskCache)
 				Expect(err).ToNot(HaveOccurred())
-
-				createdWorkerTaskCache, err = workerTaskCache.FindOrCreate(tx)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(tx.Commit()).To(Succeed())
 			})
 
 			It("finds worker task cache", func() {

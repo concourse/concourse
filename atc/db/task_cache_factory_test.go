@@ -10,7 +10,7 @@ import (
 var _ = Describe("TaskCacheFactory", func() {
 
 	Describe("FindOrCreate", func() {
-		Context("when there is no existing tash cache", func() {
+		Context("when there is no existing task cache", func() {
 			It("creates resource cache in database", func() {
 				usedTaskCache, err := taskCacheFactory.FindOrCreate(
 					defaultJob.ID(),
@@ -50,7 +50,7 @@ var _ = Describe("TaskCacheFactory", func() {
 	})
 
 	Describe("Find", func() {
-		Context("when there is no existing tash cache", func() {
+		Context("when there is no existing task cache", func() {
 			It("returns no found", func() {
 				usedTaskCache, found, err := taskCacheFactory.Find(
 					defaultJob.ID(),
@@ -78,7 +78,7 @@ var _ = Describe("TaskCacheFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("finds resource cache in database", func() {
+			It("finds task cache in database", func() {
 				utc, found, err := taskCacheFactory.Find(defaultJob.ID(), "some-step", "some-path")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())

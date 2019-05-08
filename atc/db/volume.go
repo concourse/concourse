@@ -445,14 +445,19 @@ func (volume *createdVolume) InitializeTaskCache(jobID int, stepName string, pat
 
 	defer Rollback(tx)
 
+	usedTaskCache, err := usedTaskCache{
+		jobID:    jobID,
+		stepName: stepName,
+		path:     path,
+	}.findOrCreate(tx)
+	if err != nil {
+		return err
+	}
+
 	usedWorkerTaskCache, err := WorkerTaskCache{
 		WorkerName: volume.WorkerName(),
-		TaskCache: &usedTaskCache{
-			jobID:    jobID,
-			stepName: stepName,
-			path:     path,
-		},
-	}.FindOrCreate(tx)
+		TaskCache:  usedTaskCache,
+	}.findOrCreate(tx)
 	if err != nil {
 		return err
 	}
