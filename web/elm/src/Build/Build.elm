@@ -359,51 +359,42 @@ handleDelivery session delivery ( model, effects ) =
 
         EventsReceived result ->
             let
-                scrollEffects =
-                    case getScrollBehavior model of
-                        ScrollWindow ->
-                            effects ++ [ Effects.Scroll Effects.ToBottom bodyId ]
+                eventSourceClosed =
+                    model.currentBuild
+                        |> RemoteData.toMaybe
+                        |> Maybe.andThen .output
+                        |> Maybe.map (.eventSourceOpened >> not)
+                        |> Maybe.withDefault False
 
-                        NoScroll ->
-                            effects
+                batchContainsNetworkError =
+                    result
+                        |> Result.map (List.map .data)
+                        |> Result.map (List.member STModels.NetworkError)
+                        |> Result.withDefault False
             in
             case result of
                 Ok envelopes ->
-                    let
-                        newModel =
-                            if
-                                List.map .data envelopes
-                                    |> List.member STModels.NetworkError
-                            then
-                                { model | authorized = False }
-
-                            else
-                                model
-                    in
                     updateOutput
                         (Build.Output.Output.handleEnvelopes envelopes)
-                        ( newModel, scrollEffects )
+                        ( if eventSourceClosed && batchContainsNetworkError then
+                            { model | authorized = False }
 
-                Err _ ->
-                    let
-                        eventSourceOpened =
-                            model.currentBuild
-                                |> RemoteData.toMaybe
-                                |> Maybe.andThen .output
-                                |> Maybe.map .eventSourceOpened
-                                |> Maybe.withDefault True
-                    in
-                    ( if eventSourceOpened then
-                        -- connection could have dropped out of the blue;
-                        -- just let the browser handle reconnecting
-                        model
+                          else
+                            model
+                        , case getScrollBehavior model of
+                            ScrollWindow ->
+                                effects
+                                    ++ [ Effects.Scroll
+                                            Effects.ToBottom
+                                            bodyId
+                                       ]
 
-                      else
-                        -- assume request was rejected because auth is required;
-                        -- no way to really tell
-                        { model | authorized = False }
-                    , scrollEffects
-                    )
+                            NoScroll ->
+                                effects
+                        )
+
+                _ ->
+                    ( model, effects )
 
         ElementVisible ( id, True ) ->
             let

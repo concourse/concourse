@@ -237,6 +237,10 @@ all =
             csrfToken =
                 "csrf_token"
 
+            eventsUrl : String
+            eventsUrl =
+                "http://localhost:8080/api/v1/builds/307/events"
+
             initFromApplication : Application.Model
             initFromApplication =
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -291,7 +295,7 @@ all =
                         (Msgs.DeliveryReceived <|
                             EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.StartTask
                                                 { source = "stdout"
@@ -299,7 +303,7 @@ all =
                                                 }
                                                 (Time.millisToPosix 0)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.Log
                                                 { source = "stdout"
@@ -2461,7 +2465,7 @@ all =
                             (EventsReceived <|
                                 Ok <|
                                     [ { url =
-                                            "http://localhost:8080/api/v1/builds/307/events"
+                                            eventsUrl
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusFailed
@@ -2488,7 +2492,7 @@ all =
                             (EventsReceived <|
                                 Ok <|
                                     [ { url =
-                                            "http://localhost:8080/api/v1/builds/307/events"
+                                            eventsUrl
                                       , data =
                                             STModels.FinishGet
                                                 { source = "stdout"
@@ -2518,7 +2522,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
@@ -2540,19 +2544,19 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.InitializeTask
                                                 { source = "stdout", id = "plan" }
                                                 (Time.millisToPosix 0)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.StartTask
                                                 { source = "stdout", id = "plan" }
                                                 (Time.millisToPosix 10000)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.FinishTask
                                                 { source = "stdout", id = "plan" }
@@ -2587,19 +2591,19 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.InitializeTask
                                                 { source = "stdout", id = "plan" }
                                                 (Time.millisToPosix 0)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.StartTask
                                                 { source = "stdout", id = "plan" }
                                                 (Time.millisToPosix 10000)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.FinishTask
                                                 { source = "stdout", id = "plan" }
@@ -2634,7 +2638,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.StartTask
                                                 { source = "stdout"
@@ -2671,7 +2675,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.InitializeTask
                                                 { source = "stdout"
@@ -2679,7 +2683,7 @@ all =
                                                 }
                                                 (Time.millisToPosix 0)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusAborted
@@ -2704,7 +2708,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusAborted
@@ -2729,7 +2733,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
@@ -2757,7 +2761,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.Error
                                                 { source = "stderr", id = "plan" }
@@ -2778,64 +2782,83 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
-                , describe "erroring build" <|
-                    [ test "has orange exclamation triangle at left" <|
-                        fetchPlanWithGetStep
-                            >> Application.handleDelivery
-                                (EventsReceived <|
-                                    Ok <|
-                                        [ { url = "http://localhost:8080/api/v1/builds/307/events"
-                                          , data = STModels.Opened
-                                          }
-                                        ]
-                                )
-                            >> Tuple.first
-                            >> Application.handleDelivery
-                                (EventsReceived <|
-                                    Ok <|
-                                        [ { url = "http://localhost:8080/api/v1/builds/307/events"
-                                          , data =
-                                                STModels.BuildError
-                                                    "error message"
-                                          }
-                                        ]
-                                )
-                            >> Tuple.first
-                            >> Common.queryView
-                            >> Query.findAll [ class "header" ]
-                            >> Query.first
-                            >> Query.children []
-                            >> Query.first
-                            >> Query.has
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = "ic-exclamation-triangle.svg"
-                                    }
-                                    ++ [ style "background-size" "14px 14px" ]
-                                )
-                    , test "has passport officer icon" <|
-                        let
-                            imgUrl =
-                                "/public/images/passport-officer-ic.svg"
-
-                            eventsUrl =
-                                "http://localhost:8080/api/v1/builds/307/events"
-                        in
-                        fetchPlanWithGetStep
-                            >> Application.handleDelivery
-                                (EventsReceived <|
-                                    Ok
-                                        [ { data = STModels.NetworkError
-                                          , url = eventsUrl
-                                          }
-                                        ]
-                                )
-                            >> Tuple.first
-                            >> Common.queryView
-                            >> Query.find [ class "not-authorized" ]
-                            >> Query.find [ tag "img" ]
-                            >> Query.has [ attribute <| Attr.src imgUrl ]
-                    ]
+                , test "erroring build has orange exclamation triangle" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data = STModels.Opened
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.BuildError
+                                                "error message"
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.findAll [ class "header" ]
+                        >> Query.first
+                        >> Query.children []
+                        >> Query.first
+                        >> Query.has
+                            (iconSelector
+                                { size = "28px"
+                                , image = "ic-exclamation-triangle.svg"
+                                }
+                                ++ [ style "background-size" "14px 14px" ]
+                            )
+                , test "network error on first event shows passport officer" <|
+                    let
+                        imgUrl =
+                            "/public/images/passport-officer-ic.svg"
+                    in
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok
+                                    [ { data = STModels.NetworkError
+                                      , url = eventsUrl
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ class "not-authorized" ]
+                        >> Query.find [ tag "img" ]
+                        >> Query.has [ attribute <| Attr.src imgUrl ]
+                , test """network error after first event fails silently
+                          (EventSource browser API will retry connection)""" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok
+                                    [ { url = eventsUrl
+                                      , data = STModels.Opened
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok
+                                    [ { data = STModels.NetworkError
+                                      , url = eventsUrl
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.findAll [ class "not-authorized" ]
+                        >> Query.count (Expect.equal 0)
                 ]
             , describe "get step with metadata" <|
                 let
@@ -2901,7 +2924,7 @@ all =
                                 (Msgs.DeliveryReceived <|
                                     EventsReceived <|
                                         Ok <|
-                                            [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                            [ { url = eventsUrl
                                               , data =
                                                     STModels.FinishGet
                                                         { source = "stdout"
