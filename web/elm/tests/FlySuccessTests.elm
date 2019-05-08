@@ -151,7 +151,9 @@ tokenCopied =
     makeSetup "when token copied to clipboard"
         (steps tokenSendFailed
             >> Application.update
-                (Msgs.Update <| Message.Message.CopyToken)
+                (Msgs.Update <|
+                    Message.Message.Click Message.Message.CopyTokenButton
+                )
             >> Tuple.first
         )
 
@@ -532,7 +534,9 @@ buttonClickHandler =
     property button "sends CopyToken on click" <|
         Event.simulate Event.click
             >> Event.expect
-                (Msgs.Update <| Message.Message.CopyToken)
+                (Msgs.Update <|
+                    Message.Message.Click Message.Message.CopyTokenButton
+                )
 
 
 
@@ -625,19 +629,13 @@ all =
                 { name = "copy token button"
                 , setup = steps tokenSendFailed ()
                 , query = button
-                , updateFunc = \msg -> Application.update msg >> Tuple.first
                 , unhoveredSelector =
                     { description =
                         "same background as card"
                     , selector = [ style "background-color" darkGrey ]
                     }
-                , mouseEnterMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover <|
-                            Just Message.Message.CopyTokenButton
-                , mouseLeaveMsg =
-                    Msgs.Update <|
-                        Message.Message.Hover Nothing
+                , hoverable =
+                    Message.Message.CopyTokenButton
                 , hoveredSelector =
                     { description = "darker background"
                     , selector =

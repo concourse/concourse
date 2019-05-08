@@ -92,7 +92,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       resource: unit-dockerfile
       trigger: true
@@ -116,7 +116,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       resource: golang-builder-dockerfile
       trigger: true
@@ -134,7 +134,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       trigger: true
     - get: unit-image
@@ -142,7 +142,7 @@ jobs:
   - task: yarn-test
     image: unit-image
     file: concourse/ci/tasks/yarn-test.yml
-  - aggregate:
+  - in_parallel:
     - task: unit
       image: unit-image
       file: concourse/ci/tasks/unit.yml
@@ -159,7 +159,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       trigger: true
     - get: unit-image
@@ -200,7 +200,7 @@ jobs:
   - task: yarn-build
     image: unit-image
     file: concourse/ci/tasks/yarn-build.yml
-  - aggregate:
+  - in_parallel:
     - task: fly-linux
       file: concourse/ci/tasks/fly-build-linux.yml
     - task: fly-windows
@@ -220,7 +220,7 @@ jobs:
   public: true
   max_in_flight: 2
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [unit, dev-image]
       trigger: true
@@ -229,6 +229,7 @@ jobs:
       trigger: true
     - get: dev-image
       passed: [dev-image]
+      trigger: true
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
@@ -242,7 +243,7 @@ jobs:
   public: true
   max_in_flight: 2
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [unit, dev-image]
       trigger: true
@@ -251,6 +252,7 @@ jobs:
       trigger: true
     - get: dev-image
       passed: [dev-image]
+      trigger: true
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
@@ -264,7 +266,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [unit, dev-image]
       trigger: true
@@ -287,7 +289,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [unit, dev-image]
       trigger: true
@@ -311,7 +313,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [build-rc-image]
       trigger: true
@@ -361,7 +363,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [k8s-smoke]
       trigger: true
@@ -389,7 +391,7 @@ jobs:
   public: true
   max_in_flight: 1
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [build-rc-image]
       trigger: true
@@ -416,7 +418,7 @@ jobs:
   public: true
   serial_groups: [version]
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [testflight, watsjs, upgrade, downgrade]
       trigger: true
@@ -433,7 +435,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [rc]
       trigger: true
@@ -450,7 +452,7 @@ jobs:
       resource: version
       passed: [rc]
       params: {bump: final}
-  - aggregate:
+  - in_parallel:
     - task: fly-linux
       file: concourse/ci/tasks/fly-build-linux.yml
     - task: fly-windows
@@ -463,7 +465,7 @@ jobs:
   - task: yarn-build
     image: unit-image
     file: concourse/ci/tasks/yarn-build.yml
-  - aggregate:
+  - in_parallel:
     - task: concourse-linux
       image: unit-image
       file: concourse/ci/tasks/concourse-build-linux.yml
@@ -474,7 +476,7 @@ jobs:
     - task: concourse-darwin
       file: concourse/ci/tasks/concourse-build-darwin.yml
       input_mapping: {concourse: built-concourse}
-  - aggregate:
+  - in_parallel:
     - put: linux-rc
       params: {file: concourse-linux/concourse-*.tgz}
       inputs: [concourse-linux]
@@ -489,7 +491,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [build-rc]
       trigger: true
@@ -517,7 +519,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [build-rc]
       trigger: true
@@ -546,7 +548,7 @@ jobs:
   public: true
   max_in_flight: 1
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [bin-smoke]
       trigger: true
@@ -560,6 +562,7 @@ jobs:
       passed: [bin-smoke]
       trigger: true
     - get: concourse-release-repo
+      trigger: true
   - task: check-props
     file: concourse/ci/tasks/check-distribution-env.yml
     image: unit-image
@@ -570,7 +573,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [bosh-check-props]
       trigger: true
@@ -642,7 +645,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     # these don't trigger, to ensure that the job gets triggered by
     # concourse-release, which is unfortunately decoupled from the resource
     # that we 'put' to.
@@ -689,7 +692,7 @@ jobs:
   serial: true
   interruptible: true
   plan:
-  - aggregate:
+  - in_parallel:
     # these don't trigger, to ensure that the job gets triggered by
     # concourse-release, which is unfortunately decoupled from the resource
     # that we 'put' to.
@@ -735,7 +738,7 @@ jobs:
   serial: true
   interruptible: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [bosh-smoke, bosh-topgun]
       trigger: true
@@ -837,7 +840,7 @@ jobs:
 - name: bosh-wings-deploy
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       passed: [bosh-prod-deploy]
     - get: version
@@ -932,7 +935,7 @@ jobs:
 - name: publish-binaries
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: version
       passed: [shipit]
       trigger: true
@@ -948,7 +951,7 @@ jobs:
       passed: [shipit]
     - get: release-notes
     - get: docs
-  - aggregate:
+  - in_parallel:
     - task: prep-release-assets
       file: release-notes/ci/prep-release-assets.yml
       image: unit-image
@@ -979,7 +982,7 @@ jobs:
 - name: publish-bosh-release
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: version
       passed: [shipit]
       trigger: true
@@ -993,7 +996,7 @@ jobs:
 - name: bump-cbd-versions
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse-boshio
       trigger: true
     - get: unit-image
@@ -1017,7 +1020,7 @@ jobs:
 - name: promote-cbd
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: version
       passed: [shipit]
       trigger: true
@@ -1036,7 +1039,7 @@ jobs:
 - name: publish-image
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: version
       passed: [shipit]
       trigger: true
@@ -1059,7 +1062,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: version
       passed: [shipit]
       trigger: true
@@ -1085,7 +1088,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse
       params: {submodules: none}
     - get: golang-windows

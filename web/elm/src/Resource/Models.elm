@@ -11,7 +11,6 @@ module Resource.Models exposing
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Login.Login as Login
-import Message.Message exposing (Hoverable)
 import Pinned exposing (CommentState, ResourcePinState)
 import Time
 
@@ -38,7 +37,6 @@ type alias Model =
         , now : Maybe Time.Posix
         , resourceIdentifier : Concourse.ResourceIdentifier
         , currentPage : Maybe Page
-        , hovered : Maybe Hoverable
         , versions : Paginated Version
         , pinCommentLoading : Bool
         , textAreaFocused : Bool

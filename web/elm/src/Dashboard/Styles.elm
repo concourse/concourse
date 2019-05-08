@@ -2,6 +2,7 @@ module Dashboard.Styles exposing
     ( asciiArt
     , cardBody
     , cardFooter
+    , clusterName
     , content
     , dropdownContainer
     , dropdownItem
@@ -11,7 +12,6 @@ module Dashboard.Styles exposing
     , infoBar
     , infoCliIcon
     , infoItem
-    , clusterName
     , legend
     , legendItem
     , legendSeparator
@@ -39,6 +39,8 @@ module Dashboard.Styles exposing
     , striped
     , teamNameHd
     , topCliIcon
+    , visibilityToggle
+    , visibilityTooltip
     , welcomeCard
     , welcomeCardBody
     , welcomeCardTitle
@@ -70,6 +72,16 @@ content highDensity =
         else
             "0"
     , style "flex-grow" "1"
+    , style "overflow-y" "auto"
+    , style "height" "100%"
+    , style "width" "100%"
+    , style "box-sizing" "border-box"
+    , style "flex-direction" <|
+        if highDensity then
+            "column"
+
+        else
+            "row"
     ]
 
 
@@ -638,6 +650,55 @@ searchButton =
     , style "width" "32px"
     , style "display" "inline-block"
     , style "float" "left"
+    ]
+
+
+visibilityToggle :
+    { public : Bool
+    , isClickable : Bool
+    , isHovered : Bool
+    }
+    -> List (Html.Attribute msg)
+visibilityToggle { public, isClickable, isHovered } =
+    let
+        image =
+            if public then
+                "baseline-visibility-24px.svg"
+
+            else
+                "baseline-visibility-off-24px.svg"
+    in
+    [ style "background-image" ("url(/public/images/" ++ image ++ ")")
+    , style "height" "20px"
+    , style "width" "20px"
+    , style "background-position" "50% 50%"
+    , style "background-repeat" "no-repeat"
+    , style "position" "relative"
+    , style "background-size" "contain"
+    , style "cursor" <|
+        if isClickable then
+            "pointer"
+
+        else
+            "default"
+    , style "opacity" <|
+        if isClickable && isHovered then
+            "1"
+
+        else
+            "0.5"
+    ]
+
+
+visibilityTooltip : List (Html.Attribute msg)
+visibilityTooltip =
+    [ style "position" "absolute"
+    , style "background-color" Colors.tooltipBackground
+    , style "bottom" "100%"
+    , style "white-space" "nowrap"
+    , style "padding" "2.5px"
+    , style "margin-bottom" "5px"
+    , style "right" "-150%"
     ]
 
 

@@ -58,7 +58,11 @@ import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message as Message exposing (Hoverable(..), Message(..))
+import Message.Message as Message
+    exposing
+        ( DomID(..)
+        , Message(..)
+        )
 import Message.Subscription as Subscription
     exposing
         ( Delivery(..)
@@ -70,6 +74,9 @@ import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
+import ScreenSize
+import Set exposing (Set)
+import SideBar.SideBar as SideBar
 import StrictEvents
 import Svg
 import Svg.Attributes as SvgAttributes
@@ -98,7 +105,6 @@ init flags =
             , checkStatus = Models.CheckingSuccessfully
             , checkError = ""
             , checkSetupError = ""
-            , hovered = Nothing
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
             , currentPage = flags.paging
@@ -118,6 +124,7 @@ init flags =
     , [ FetchResource flags.resourceId
       , FetchVersionedResources flags.resourceId flags.paging
       , GetCurrentTimeZone
+      , FetchPipelines
       ]
     )
 
@@ -468,6 +475,7 @@ handleDelivery delivery ( model, effects ) =
             , effects
                 ++ [ FetchResource model.resourceIdentifier
                    , FetchVersionedResources model.resourceIdentifier model.currentPage
+                   , FetchPipelines
                    ]
                 ++ fetchDataForExpandedVersions model
             )
@@ -479,7 +487,7 @@ handleDelivery delivery ( model, effects ) =
 update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
-        LoadPage page ->
+        Click (PaginationButton page) ->
             ( { model
                 | currentPage = Just page
               }
@@ -494,7 +502,7 @@ update msg ( model, effects ) =
                    ]
             )
 
-        ExpandVersionedResource versionID ->
+        Click (VersionHeader versionID) ->
             let
                 version : Maybe Models.Version
                 version =
@@ -526,45 +534,82 @@ update msg ( model, effects ) =
                 effects
             )
 
-        PinVersion versionID ->
+        Click (PinButton versionID) ->
             let
                 version : Maybe Models.Version
                 version =
                     model.versions.content
                         |> List.Extra.find (\v -> v.id == versionID)
             in
-            ( { model
-                | pinnedVersion =
-                    Pinned.startPinningTo
-                        versionID
-                        model.pinnedVersion
-              }
-            , case version of
-                Just _ ->
-                    effects ++ [ DoPinVersion versionID ]
+            case model.pinnedVersion of
+                PinnedDynamicallyTo _ _ ->
+                    ( { model
+                        | pinnedVersion =
+                            Pinned.startUnpinning model.pinnedVersion
+                      }
+                    , effects ++ [ DoUnpinVersion model.resourceIdentifier ]
+                    )
 
-                Nothing ->
-                    effects
-            )
+                NotPinned ->
+                    ( { model
+                        | pinnedVersion =
+                            Pinned.startPinningTo versionID model.pinnedVersion
+                      }
+                    , case version of
+                        Just _ ->
+                            effects ++ [ DoPinVersion versionID ]
 
-        UnpinVersion ->
-            ( { model | pinnedVersion = Pinned.startUnpinning model.pinnedVersion }
-            , effects ++ [ DoUnpinVersion model.resourceIdentifier ]
-            )
+                        Nothing ->
+                            effects
+                    )
 
-        ToggleVersion action versionID ->
-            ( updateVersion versionID
-                (\v ->
-                    { v | enabled = Models.Changing }
-                )
-                model
-            , effects ++ [ DoToggleVersion action versionID ]
-            )
+                _ ->
+                    ( model, effects )
 
-        Hover hovered ->
-            ( { model | hovered = hovered }, effects )
+        Click PinIcon ->
+            case model.pinnedVersion of
+                PinnedDynamicallyTo _ _ ->
+                    ( { model
+                        | pinnedVersion =
+                            Pinned.startUnpinning model.pinnedVersion
+                      }
+                    , effects ++ [ DoUnpinVersion model.resourceIdentifier ]
+                    )
 
-        CheckRequested isAuthorized ->
+                _ ->
+                    ( model, effects )
+
+        Click (VersionToggle versionID) ->
+            let
+                enabledState : Maybe Models.VersionEnabledState
+                enabledState =
+                    model.versions.content
+                        |> List.Extra.find (.id >> (==) versionID)
+                        |> Maybe.map .enabled
+            in
+            case enabledState of
+                Just Models.Enabled ->
+                    ( updateVersion versionID
+                        (\v ->
+                            { v | enabled = Models.Changing }
+                        )
+                        model
+                    , effects ++ [ DoToggleVersion Message.Disable versionID ]
+                    )
+
+                Just Models.Disabled ->
+                    ( updateVersion versionID
+                        (\v ->
+                            { v | enabled = Models.Changing }
+                        )
+                        model
+                    , effects ++ [ DoToggleVersion Message.Enable versionID ]
+                    )
+
+                _ ->
+                    ( model, effects )
+
+        Click (CheckButton isAuthorized) ->
             if isAuthorized then
                 ( { model | checkStatus = Models.CurrentlyChecking }
                 , effects ++ [ DoCheck model.resourceIdentifier ]
@@ -589,10 +634,19 @@ update msg ( model, effects ) =
             in
             ( { model | pinnedVersion = newPinnedVersion }, effects )
 
-        SaveComment comment ->
-            ( { model | pinCommentLoading = True }
-            , effects ++ [ SetPinComment model.resourceIdentifier comment ]
-            )
+        Click SaveCommentButton ->
+            case model.pinnedVersion of
+                PinnedDynamicallyTo commentState _ ->
+                    ( { model | pinCommentLoading = True }
+                    , effects
+                        ++ [ SetPinComment
+                                model.resourceIdentifier
+                                commentState.comment
+                           ]
+                    )
+
+                _ ->
+                    ( model, effects )
 
         FocusTextArea ->
             ( { model | textAreaFocused = True }, effects )
@@ -642,8 +696,18 @@ documentTitle model =
     model.resourceIdentifier.resourceName
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view :
+    { a
+        | expandedTeams : Set String
+        , screenSize : ScreenSize.ScreenSize
+        , pipelines : List Concourse.Pipeline
+        , isSideBarOpen : Bool
+        , userState : UserState
+        , hovered : Maybe DomID
+    }
+    -> Model
+    -> Html Message
+view session model =
     let
         route =
             Routes.Resource
@@ -651,38 +715,54 @@ view userState model =
                 , page = Nothing
                 }
     in
-    Html.div []
+    Html.div
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
-            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-            [ Html.div
-                (id "top-bar-app" :: Views.Styles.topBar False)
-                [ TopBar.concourseLogo
-                , TopBar.breadcrumbs route
-                , Login.view userState model False
-                ]
-            , Html.div
-                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-                [ subpageView userState model
-                , commentBar userState model
-                ]
+            (id "top-bar-app" :: Views.Styles.topBar False)
+            [ SideBar.hamburgerMenu
+                { screenSize = session.screenSize
+                , pipelines = session.pipelines
+                , isSideBarOpen = session.isSideBarOpen
+                , hovered = session.hovered
+                , isPaused = False
+                }
+            , TopBar.concourseLogo
+            , TopBar.breadcrumbs route
+            , Login.view session.userState model False
+            ]
+        , Html.div
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
+            [ SideBar.view
+                { expandedTeams = session.expandedTeams
+                , pipelines = session.pipelines
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , currentPipeline =
+                    Just
+                        { pipelineName = model.resourceIdentifier.pipelineName
+                        , teamName = model.resourceIdentifier.teamName
+                        }
+                , screenSize = session.screenSize
+                }
+            , if model.pageStatus == Err Models.Empty then
+                Html.text ""
+
+              else
+                Html.div
+                    [ style "flex-grow" "1"
+                    , style "display" "flex"
+                    , style "flex-direction" "column"
+                    ]
+                    [ header session model
+                    , body session model
+                    , commentBar session model
+                    ]
             ]
         ]
 
 
-subpageView : UserState -> Model -> Html Message
-subpageView userState model =
-    if model.pageStatus == Err Models.Empty then
-        Html.text ""
-
-    else
-        Html.div []
-            [ header model
-            , body userState model
-            ]
-
-
-header : Model -> Html Message
-header model =
+header : { a | hovered : Maybe DomID } -> Model -> Html Message
+header session model =
     let
         lastCheckedView =
             case ( model.now, model.lastChecked ) of
@@ -718,46 +798,42 @@ header model =
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]
-        , pinBar model
-        , paginationMenu model
+        , pinBar session model
+        , paginationMenu session model
         ]
 
 
-body : UserState -> Model -> Html Message
-body userState model =
+body :
+    { a | userState : UserState, hovered : Maybe DomID }
+    -> Model
+    -> Html Message
+body session model =
     let
         sectionModel =
             { checkStatus = model.checkStatus
             , checkSetupError = model.checkSetupError
             , checkError = model.checkError
-            , hovered = model.hovered
-            , userState = userState
+            , hovered = session.hovered
+            , userState = session.userState
             , teamName = model.resourceIdentifier.teamName
             }
-
-        hasCommentBar =
-            case model.pinnedVersion of
-                PinnedDynamicallyTo _ _ ->
-                    True
-
-                _ ->
-                    False
     in
     Html.div
-        (id "body" :: Resource.Styles.body hasCommentBar)
+        (id "body" :: Resource.Styles.body)
         [ checkSection sectionModel
-        , viewVersionedResources model
+        , viewVersionedResources session model
         ]
 
 
 paginationMenu :
-    { a
-        | versions : Paginated Models.Version
-        , resourceIdentifier : Concourse.ResourceIdentifier
-        , hovered : Maybe Message.Hoverable
-    }
+    { a | hovered : Maybe DomID }
+    ->
+        { b
+            | versions : Paginated Models.Version
+            , resourceIdentifier : Concourse.ResourceIdentifier
+        }
     -> Html Message
-paginationMenu { versions, resourceIdentifier, hovered } =
+paginationMenu { hovered } { versions, resourceIdentifier } =
     let
         previousButtonEventHandler =
             case versions.pagination.previousPage of
@@ -765,7 +841,7 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                     []
 
                 Just pp ->
-                    [ onClick <| LoadPage pp ]
+                    [ onClick <| Click <| PaginationButton pp ]
 
         nextButtonEventHandler =
             case versions.pagination.nextPage of
@@ -777,7 +853,7 @@ paginationMenu { versions, resourceIdentifier, hovered } =
                         updatedPage =
                             { np | limit = 100 }
                     in
-                    [ onClick <| LoadPage updatedPage ]
+                    [ onClick <| Click <| PaginationButton updatedPage ]
     in
     Html.div
         (id "pagination" :: Resource.Styles.pagination)
@@ -861,7 +937,7 @@ checkSection :
         | checkStatus : Models.CheckStatus
         , checkSetupError : String
         , checkError : String
-        , hovered : Maybe Message.Hoverable
+        , hovered : Maybe DomID
         , userState : UserState
         , teamName : String
     }
@@ -902,7 +978,10 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         statusIcon =
             case checkStatus of
                 Models.CurrentlyChecking ->
-                    Spinner.spinner { size = "14px", margin = "7px" }
+                    Spinner.spinner
+                        { sizePx = 14
+                        , margin = "7px"
+                        }
 
                 _ ->
                     Icon.icon
@@ -935,7 +1014,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
 
 checkButton :
     { a
-        | hovered : Maybe Message.Hoverable
+        | hovered : Maybe DomID
         , userState : UserState
         , teamName : String
         , checkStatus : Models.CheckStatus
@@ -943,17 +1022,17 @@ checkButton :
     -> Html Message
 checkButton ({ hovered, userState, checkStatus } as params) =
     let
+        isMember =
+            UserState.isMember params
+
         isHovered =
-            hovered == Just Message.CheckButton
+            hovered == Just (CheckButton isMember)
 
         isCurrentlyChecking =
             checkStatus == Models.CurrentlyChecking
 
         isAnonymous =
             UserState.isAnonymous userState
-
-        isMember =
-            UserState.isMember params
 
         isClickable =
             (isAnonymous || isMember)
@@ -963,12 +1042,12 @@ checkButton ({ hovered, userState, checkStatus } as params) =
             (isClickable && isHovered) || isCurrentlyChecking
     in
     Html.div
-        ([ onMouseEnter <| Hover <| Just Message.CheckButton
+        ([ onMouseEnter <| Hover <| Just <| CheckButton isMember
          , onMouseLeave <| Hover Nothing
          ]
             ++ Resource.Styles.checkButton isClickable
             ++ (if isClickable then
-                    [ onClick (CheckRequested isMember) ]
+                    [ onClick <| Click <| CheckButton isMember ]
 
                 else
                     []
@@ -983,16 +1062,15 @@ checkButton ({ hovered, userState, checkStatus } as params) =
 
 
 commentBar :
-    UserState
+    { a | userState : UserState, hovered : Maybe DomID }
     ->
-        { a
+        { b
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
-            , hovered : Maybe Message.Hoverable
             , pinCommentLoading : Bool
         }
     -> Html Message
-commentBar userState { resourceIdentifier, pinnedVersion, hovered, pinCommentLoading } =
+commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommentLoading } =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
@@ -1047,21 +1125,25 @@ commentBar userState { resourceIdentifier, pinnedVersion, hovered, pinCommentLoa
                                     commentState.comment
                                         /= commentState.pristineComment
                              in
-                             [ onMouseEnter <| Hover <| Just Message.SaveCommentButton
+                             [ onMouseEnter <| Hover <| Just SaveCommentButton
                              , onMouseLeave <| Hover Nothing
-                             , onClick <| SaveComment commentState.comment
+                             , onClick <| Click SaveCommentButton
                              ]
                                 ++ Resource.Styles.commentSaveButton
                                     { isHovered =
                                         not pinCommentLoading
                                             && commentChanged
                                             && hovered
-                                            == Just Message.SaveCommentButton
+                                            == Just SaveCommentButton
                                     , commentChanged = commentChanged
                                     }
                             )
                             (if pinCommentLoading then
-                                [ Spinner.spinner { size = "12px", margin = "0px" } ]
+                                [ Spinner.spinner
+                                    { sizePx = 12
+                                    , margin = "0"
+                                    }
+                                ]
 
                              else
                                 [ Html.text "save" ]
@@ -1082,12 +1164,10 @@ commentBar userState { resourceIdentifier, pinnedVersion, hovered, pinCommentLoa
 
 
 pinBar :
-    { a
-        | pinnedVersion : Models.PinnedVersion
-        , hovered : Maybe Message.Hoverable
-    }
+    { a | hovered : Maybe DomID }
+    -> { b | pinnedVersion : Models.PinnedVersion }
     -> Html Message
-pinBar { pinnedVersion, hovered } =
+pinBar { hovered } { pinnedVersion } =
     let
         pinBarVersion =
             Pinned.stable pinnedVersion
@@ -1131,8 +1211,12 @@ pinBar { pinnedVersion, hovered } =
             }
             (attrList
                 [ ( id "pin-icon", True )
-                , ( onClick UnpinVersion, isPinnedDynamically )
-                , ( onMouseEnter <| Hover <| Just PinIcon, isPinnedDynamically )
+                , ( onClick <| Click PinIcon
+                  , isPinnedDynamically
+                  )
+                , ( onMouseEnter <| Hover <| Just PinIcon
+                  , isPinnedDynamically
+                  )
                 , ( onMouseLeave <| Hover Nothing, True )
                 ]
                 ++ Resource.Styles.pinIcon
@@ -1160,13 +1244,14 @@ pinBar { pinnedVersion, hovered } =
 
 
 viewVersionedResources :
-    { a
-        | versions : Paginated Models.Version
-        , pinnedVersion : Models.PinnedVersion
-        , hovered : Maybe Message.Hoverable
-    }
+    { a | hovered : Maybe DomID }
+    ->
+        { b
+            | versions : Paginated Models.Version
+            , pinnedVersion : Models.PinnedVersion
+        }
     -> Html Message
-viewVersionedResources { versions, pinnedVersion, hovered } =
+viewVersionedResources { hovered } { versions, pinnedVersion } =
     versions.content
         |> List.map
             (\v ->
@@ -1182,7 +1267,7 @@ viewVersionedResources { versions, pinnedVersion, hovered } =
 viewVersionedResource :
     { version : Models.Version
     , pinnedVersion : Models.PinnedVersion
-    , hovered : Maybe Message.Hoverable
+    , hovered : Maybe DomID
     }
     -> Html Message
 viewVersionedResource { version, pinnedVersion, hovered } =
@@ -1281,13 +1366,13 @@ viewEnabledCheckbox ({ enabled, id } as params) =
         clickHandler =
             case enabled of
                 Models.Enabled ->
-                    [ onClick <| ToggleVersion Message.Disable id ]
+                    [ onClick <| Click <| VersionToggle id ]
 
                 Models.Changing ->
                     []
 
                 Models.Disabled ->
-                    [ onClick <| ToggleVersion Message.Enable id ]
+                    [ onClick <| Click <| VersionToggle id ]
     in
     Html.div
         (Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
@@ -1299,7 +1384,11 @@ viewEnabledCheckbox ({ enabled, id } as params) =
                 []
 
             Models.Changing ->
-                [ Spinner.spinner { size = "12.5px", margin = "6.25px" } ]
+                [ Spinner.spinner
+                    { sizePx = 12.5
+                    , margin = "6.25px"
+                    }
+                ]
 
             Models.Disabled ->
                 []
@@ -1309,7 +1398,7 @@ viewEnabledCheckbox ({ enabled, id } as params) =
 viewPinButton :
     { versionID : Models.VersionId
     , pinState : VersionPinState
-    , hovered : Maybe Message.Hoverable
+    , hovered : Maybe DomID
     }
     -> Html Message
 viewPinButton { versionID, pinState, hovered } =
@@ -1317,13 +1406,13 @@ viewPinButton { versionID, pinState, hovered } =
         eventHandlers =
             case pinState of
                 Enabled ->
-                    [ onClick <| PinVersion versionID ]
+                    [ onClick <| Click <| PinButton versionID ]
 
                 PinnedDynamically ->
-                    [ onClick UnpinVersion ]
+                    [ onClick <| Click <| PinButton versionID ]
 
                 PinnedStatically _ ->
-                    [ onMouseOver <| Hover <| Just PinButton
+                    [ onMouseOver <| Hover <| Just <| PinButton versionID
                     , onMouseOut <| Hover Nothing
                     ]
 
@@ -1340,7 +1429,7 @@ viewPinButton { versionID, pinState, hovered } =
         )
         (case pinState of
             PinnedStatically _ ->
-                if hovered == Just PinButton then
+                if hovered == Just (PinButton versionID) then
                     [ Html.div
                         Resource.Styles.pinButtonTooltip
                         [ Html.text "enable via pipeline config" ]
@@ -1350,7 +1439,11 @@ viewPinButton { versionID, pinState, hovered } =
                     []
 
             InTransition ->
-                [ Spinner.spinner { size = "12.5px", margin = "6.25px" } ]
+                [ Spinner.spinner
+                    { sizePx = 12.5
+                    , margin = "6.25px"
+                    }
+                ]
 
             _ ->
                 []
@@ -1366,7 +1459,7 @@ viewVersionHeader :
     -> Html Message
 viewVersionHeader { id, version, pinnedState } =
     Html.div
-        (onClick (ExpandVersionedResource id)
+        ((onClick <| Click <| VersionHeader id)
             :: Resource.Styles.versionHeader pinnedState
         )
         [ viewVersion [] version ]

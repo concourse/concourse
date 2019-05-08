@@ -11,7 +11,7 @@ import Html.Attributes
         , href
         , id
         )
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Routes
 import Url
 import Views.Styles as Styles

@@ -279,7 +279,7 @@ func getRunningWorkers(workers []Worker) (running []Worker) {
 
 func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
 	helmDestroy(releaseName)
-	Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
+	Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
 
 	if proxySession != nil {
 		Wait(proxySession.Interrupt())

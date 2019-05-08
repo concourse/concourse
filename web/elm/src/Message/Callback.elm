@@ -5,7 +5,12 @@ import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Json.Encode
-import Message.Message exposing (VersionId, VersionToggleAction)
+import Message.Message
+    exposing
+        ( VersionId
+        , VersionToggleAction
+        , VisibilityAction
+        )
 import Time
 
 
@@ -47,3 +52,5 @@ type Callback
     | BuildHistoryFetched (Fetched (Paginated Concourse.Build))
     | PlanAndResourcesFetched Int (Fetched ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Fetched ())
+    | VisibilityChanged VisibilityAction Concourse.PipelineIdentifier (Fetched ())
+    | PipelinesFetched (Fetched (List Concourse.Pipeline))

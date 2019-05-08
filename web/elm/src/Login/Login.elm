@@ -7,7 +7,7 @@ import Html.Attributes exposing (attribute, href, id)
 import Html.Events exposing (onClick)
 import Login.Styles as Styles
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import UserState exposing (UserState(..))
 
 
@@ -18,13 +18,13 @@ type alias Model r =
 update : Message -> ET (Model r)
 update msg ( model, effects ) =
     case msg of
-        LogIn ->
+        Click LoginButton ->
             ( model, effects ++ [ RedirectToLogin ] )
 
-        LogOut ->
+        Click LogoutButton ->
             ( model, effects ++ [ SendLogOutRequest ] )
 
-        ToggleUserMenu ->
+        Click UserMenu ->
             ( { model | isUserMenuExpanded = not model.isUserMenuExpanded }
             , effects
             )
@@ -55,7 +55,7 @@ viewLoginState userState isUserMenuExpanded isPaused =
                 ([ href "/sky/login"
                  , attribute "aria-label" "Log In"
                  , id "login-container"
-                 , onClick LogIn
+                 , onClick <| Click LoginButton
                  ]
                     ++ Styles.loginContainer isPaused
                 )
@@ -71,7 +71,7 @@ viewLoginState userState isUserMenuExpanded isPaused =
         UserStateLoggedIn user ->
             [ Html.div
                 ([ id "login-container"
-                 , onClick ToggleUserMenu
+                 , onClick <| Click UserMenu
                  ]
                     ++ Styles.loginContainer isPaused
                 )
@@ -82,7 +82,7 @@ viewLoginState userState isUserMenuExpanded isPaused =
                         :: (if isUserMenuExpanded then
                                 [ Html.div
                                     ([ id "logout-button"
-                                     , onClick LogOut
+                                     , onClick <| Click LogoutButton
                                      ]
                                         ++ Styles.logoutButton
                                     )

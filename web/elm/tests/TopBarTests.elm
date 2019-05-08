@@ -273,11 +273,11 @@ all =
                         >> Query.index -1
                         >> Query.find [ id "user-id" ]
                         >> Query.has [ text "test" ]
-                , it "ToggleUserMenu message is received when login menu is clicked" <|
+                , it "Click UserMenu message is received when login menu is clicked" <|
                     Query.find [ id "login-container" ]
                         >> Event.simulate Event.click
                         >> Event.expect
-                            (ApplicationMsgs.Update Msgs.ToggleUserMenu)
+                            (ApplicationMsgs.Update <| Msgs.Click Msgs.UserMenu)
                 , it "does not render the logout button" <|
                     Query.children []
                         >> Query.index -1
@@ -356,16 +356,16 @@ all =
                     (Callback.UserFetched <| Ok sampleUser)
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.Update Msgs.ToggleUserMenu)
+                        (ApplicationMsgs.Update <| Msgs.Click Msgs.UserMenu)
                     >> Tuple.first
                     >> queryView
                     >> Query.has [ id "logout-button" ]
-            , it "renders user menu content when ToggleUserMenu msg is received and logged in" <|
+            , it "renders user menu content when click UserMenu msg is received and logged in" <|
                 Application.handleCallback
                     (Callback.UserFetched <| Ok sampleUser)
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.Update Msgs.ToggleUserMenu)
+                        (ApplicationMsgs.Update <| Msgs.Click Msgs.UserMenu)
                     >> Tuple.first
                     >> queryView
                     >> Expect.all
@@ -387,18 +387,18 @@ all =
                                 , style "flex-grow" "1"
                                 ]
                         ]
-            , it "when logout is clicked, a LogOut TopLevelMessage is sent" <|
+            , it "when logout is clicked, a Click LogoutButton msg is sent" <|
                 Application.handleCallback
                     (Callback.UserFetched <| Ok sampleUser)
                     >> Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.Update Msgs.ToggleUserMenu)
+                        (ApplicationMsgs.Update <| Msgs.Click Msgs.UserMenu)
                     >> Tuple.first
                     >> queryView
                     >> Query.find [ id "logout-button" ]
                     >> Event.simulate Event.click
                     >> Event.expect
-                        (ApplicationMsgs.Update Msgs.LogOut)
+                        (ApplicationMsgs.Update <| Msgs.Click Msgs.LogoutButton)
             , it "shows 'login' when LoggedOut TopLevelMessage is successful" <|
                 Application.handleCallback
                     (Callback.LoggedOut <| Ok ())
@@ -451,7 +451,7 @@ all =
             [ it "redirects to login page when you click login" <|
                 Tuple.first
                     >> Application.update
-                        (ApplicationMsgs.Update Msgs.LogIn)
+                        (ApplicationMsgs.Update <| Msgs.Click Msgs.LoginButton)
                     >> Tuple.second
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
@@ -589,13 +589,24 @@ all =
                 queryView
                     >> Query.find [ id SearchBar.searchInputId ]
                     >> Query.has [ tag "input", attribute <| Attr.value "test" ]
-            , it "sends a FilterMsg when the clear search button is clicked" <|
+            , it "sends a click msg when the clear search button is clicked" <|
                 queryView
                     >> Query.find [ id "search-container" ]
                     >> Query.find [ id "search-clear" ]
                     >> Event.simulate Event.click
                     >> Event.expect
-                        (ApplicationMsgs.Update <| Msgs.FilterMsg "")
+                        (ApplicationMsgs.Update <|
+                            Msgs.Click Msgs.ClearSearchButton
+                        )
+            , it "click msg clears the search input" <|
+                Application.update
+                    (ApplicationMsgs.Update <|
+                        Msgs.Click Msgs.ClearSearchButton
+                    )
+                    >> Tuple.first
+                    >> queryView
+                    >> Query.find [ id "search-input-field" ]
+                    >> Query.has [ attribute <| Attr.value "" ]
             , it "clear search button has full opacity when there is a query" <|
                 queryView
                     >> Query.find [ id "search-clear" ]
@@ -750,7 +761,9 @@ all =
                         >> Query.has [ id "login-component" ]
                 , context "after clicking the search icon"
                     (Application.update
-                        (ApplicationMsgs.Update Msgs.ShowSearchInput)
+                        (ApplicationMsgs.Update <|
+                            Msgs.Click Msgs.ShowSearchButton
+                        )
                     )
                     [ it "tells the ui to focus on the search bar" <|
                         Tuple.second
@@ -1352,9 +1365,9 @@ all =
 
                 toggleMsg =
                     ApplicationMsgs.Update <|
-                        Msgs.TogglePipelinePaused
-                            pipelineIdentifier
-                            True
+                        Msgs.Click <|
+                            Msgs.PipelineButton
+                                pipelineIdentifier
             in
             [ defineHoverBehaviour
                 { name = "play pipeline icon when authorized"
@@ -1364,10 +1377,6 @@ all =
                         >> Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.children []
                         >> Query.first
-                , updateFunc =
-                    \msg ->
-                        Application.update msg
-                            >> Tuple.first
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
@@ -1392,17 +1401,8 @@ all =
                                 , image = "ic-play-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover <|
-                            Just <|
-                                Msgs.PipelineButton
-                                    { pipelineName = "p"
-                                    , teamName = "t"
-                                    }
-                , mouseLeaveMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover Nothing
+                , hoverable =
+                    Msgs.PipelineButton { pipelineName = "p", teamName = "t" }
                 }
             , defineHoverBehaviour
                 { name = "play pipeline icon when unauthenticated"
@@ -1412,10 +1412,6 @@ all =
                         >> Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.children []
                         >> Query.first
-                , updateFunc =
-                    \msg ->
-                        Application.update msg
-                            >> Tuple.first
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
@@ -1440,17 +1436,8 @@ all =
                                 , image = "ic-play-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover <|
-                            Just <|
-                                Msgs.PipelineButton
-                                    { pipelineName = "p"
-                                    , teamName = "t"
-                                    }
-                , mouseLeaveMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover Nothing
+                , hoverable =
+                    Msgs.PipelineButton { pipelineName = "p", teamName = "t" }
                 }
             , defineHoverBehaviour
                 { name = "play pipeline icon when unauthorized"
@@ -1460,10 +1447,6 @@ all =
                         >> Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.children []
                         >> Query.first
-                , updateFunc =
-                    \msg ->
-                        Application.update msg
-                            >> Tuple.first
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
@@ -1488,17 +1471,8 @@ all =
                                 , image = "ic-play-white.svg"
                                 }
                     }
-                , mouseEnterMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover <|
-                            Just <|
-                                Msgs.PipelineButton
-                                    { pipelineName = "p"
-                                    , teamName = "t"
-                                    }
-                , mouseLeaveMsg =
-                    ApplicationMsgs.Update <|
-                        Msgs.Hover Nothing
+                , hoverable =
+                    Msgs.PipelineButton { pipelineName = "p", teamName = "t" }
                 }
             , test "clicking play button sends TogglePipelinePaused msg" <|
                 \_ ->

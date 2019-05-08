@@ -36,12 +36,20 @@ import Keyboard
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
-import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.Message exposing (DomID(..), Message(..))
+import Message.Subscription
+    exposing
+        ( Delivery(..)
+        , Interval(..)
+        , Subscription(..)
+        )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
 import Routes
+import ScreenSize
+import Set exposing (Set)
+import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg
 import Svg.Attributes as SvgAttributes
@@ -67,7 +75,6 @@ type alias Model =
         , hideLegend : Bool
         , hideLegendCounter : Float
         , isToggleLoading : Bool
-        , hovered : Maybe Hoverable
         }
 
 
@@ -96,11 +103,14 @@ init flags =
             , isToggleLoading = False
             , selectedGroups = flags.selectedGroups
             , isUserMenuExpanded = False
-            , hovered = Nothing
             }
     in
     ( model
-    , [ FetchPipeline flags.pipelineLocator, FetchVersion, ResetPipelineFocus ]
+    , [ FetchPipeline flags.pipelineLocator
+      , FetchVersion
+      , ResetPipelineFocus
+      , FetchPipelines
+      ]
     )
 
 
@@ -198,19 +208,8 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        PipelineToggled _ (Err err) ->
-            let
-                newModel =
-                    { model | isToggleLoading = False }
-            in
-            case err of
-                Http.BadStatus { status } ->
-                    ( newModel
-                    , effects ++ redirectToLoginIfUnauthenticated status
-                    )
-
-                _ ->
-                    ( newModel, effects )
+        PipelineToggled _ (Err _) ->
+            ( { model | isToggleLoading = False }, effects )
 
         JobsFetched (Ok fetchedJobs) ->
             renderIfNeeded
@@ -269,6 +268,9 @@ handleCallback callback ( model, effects ) =
         VersionFetched (Err _) ->
             ( { model | experiencingTurbulence = True }, effects )
 
+        PipelinesFetched (Err _) ->
+            ( { model | experiencingTurbulence = True }, effects )
+
         _ ->
             ( model, effects )
 
@@ -298,7 +300,12 @@ handleDelivery delivery ( model, effects ) =
                 )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchPipeline model.pipelineLocator ] )
+            ( model
+            , effects
+                ++ [ FetchPipeline model.pipelineLocator
+                   , FetchPipelines
+                   ]
+            )
 
         ClockTicked OneMinute _ ->
             ( model, effects ++ [ FetchVersion ] )
@@ -323,17 +330,23 @@ update msg ( model, effects ) =
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
-        TogglePipelinePaused pipelineIdentifier paused ->
-            ( { model | isToggleLoading = True }
-            , effects
-                ++ [ SendTogglePipelineRequest
-                        pipelineIdentifier
-                        paused
-                   ]
-            )
+        Click (PipelineButton pipelineIdentifier) ->
+            let
+                paused =
+                    model.pipeline |> RemoteData.map .paused
+            in
+            case paused of
+                RemoteData.Success p ->
+                    ( { model | isToggleLoading = True }
+                    , effects
+                        ++ [ SendTogglePipelineRequest
+                                pipelineIdentifier
+                                p
+                           ]
+                    )
 
-        Hover hoverable ->
-            ( { model | hovered = hoverable }, effects )
+                _ ->
+                    ( model, effects )
 
         _ ->
             ( model, effects )
@@ -358,6 +371,7 @@ subscriptions =
     , OnClockTick OneSecond
     , OnMouse
     , OnKeyDown
+    , OnWindowResize
     ]
 
 
@@ -366,8 +380,18 @@ documentTitle model =
     model.pipelineLocator.pipelineName
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view :
+    { a
+        | userState : UserState
+        , pipelines : List Concourse.Pipeline
+        , isSideBarOpen : Bool
+        , expandedTeams : Set String
+        , screenSize : ScreenSize.ScreenSize
+        , hovered : Maybe DomID
+    }
+    -> Model
+    -> Html Message
+view session model =
     let
         route =
             Routes.Pipeline
@@ -384,35 +408,52 @@ view userState model =
                             isPaused model.pipeline
                        )
                 )
-                [ TopBar.concourseLogo
+                [ SideBar.hamburgerMenu
+                    { screenSize = session.screenSize
+                    , pipelines = session.pipelines
+                    , isSideBarOpen = session.isSideBarOpen
+                    , hovered = session.hovered
+                    , isPaused = isPaused model.pipeline
+                    }
+                , TopBar.concourseLogo
                 , TopBar.breadcrumbs route
                 , viewPinMenu
                     { pinnedResources = getPinnedResources model
                     , pipeline = model.pipelineLocator
                     , isPinMenuExpanded =
-                        model.hovered == Just PinIcon
+                        session.hovered == Just PinIcon
                     }
                 , Html.div
                     (id "top-bar-pause-toggle"
                         :: (Styles.pauseToggle <| isPaused model.pipeline)
                     )
                     [ PauseToggle.view "17px"
-                        userState
+                        session.userState
                         { pipeline = model.pipelineLocator
                         , isPaused = isPaused model.pipeline
                         , isToggleHovered =
-                            model.hovered
+                            session.hovered
                                 == (Just <|
                                         PipelineButton model.pipelineLocator
                                    )
                         , isToggleLoading = model.isToggleLoading
                         }
                     ]
-                , Login.view userState model <| isPaused model.pipeline
+                , Login.view session.userState model <| isPaused model.pipeline
                 ]
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-                [ viewSubPage model ]
+              <|
+                [ SideBar.view
+                    { expandedTeams = session.expandedTeams
+                    , pipelines = session.pipelines
+                    , hovered = session.hovered
+                    , isSideBarOpen = session.isSideBarOpen
+                    , currentPipeline = Just model.pipelineLocator
+                    , screenSize = session.screenSize
+                    }
+                , viewSubPage session model
+                ]
             ]
         ]
 
@@ -505,10 +546,16 @@ isPaused p =
     RemoteData.withDefault False (RemoteData.map .paused p)
 
 
-viewSubPage : Model -> Html Message
-viewSubPage model =
-    Html.div [ class "pipeline-view" ]
-        [ viewGroupsBar model
+viewSubPage : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewSubPage session model =
+    Html.div
+        [ class "pipeline-view"
+        , id "pipeline-container"
+        , style "display" "flex"
+        , style "flex-direction" "column"
+        , style "flex-grow" "1"
+        ]
+        [ viewGroupsBar session model
         , Html.div [ class "pipeline-content" ]
             [ Svg.svg
                 [ SvgAttributes.class "pipeline-graph test" ]
@@ -593,8 +640,8 @@ viewSubPage model =
         ]
 
 
-viewGroupsBar : Model -> Html Message
-viewGroupsBar model =
+viewGroupsBar : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewGroupsBar session model =
     let
         groupList =
             case model.pipeline of
@@ -603,7 +650,7 @@ viewGroupsBar model =
                         (viewGroup
                             { selectedGroups = selectedGroupsOrDefault model
                             , pipelineLocator = model.pipelineLocator
-                            , hovered = model.hovered
+                            , hovered = session.hovered
                             }
                         )
                         pipeline.groups
@@ -624,7 +671,7 @@ viewGroup :
     { a
         | selectedGroups : List String
         , pipelineLocator : Concourse.PipelineIdentifier
-        , hovered : Maybe Hoverable
+        , hovered : Maybe DomID
     }
     -> Int
     -> Concourse.PipelineGroup

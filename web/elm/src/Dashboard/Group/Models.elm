@@ -21,4 +21,5 @@ type alias Pipeline =
     , resourceError : Bool
     , status : PipelineStatus.PipelineStatus
     , isToggleLoading : Bool
+    , isVisibilityLoading : Bool
     }
