@@ -316,6 +316,47 @@ A task's configuration specifies the following:
     }
 
     \section{
+      \title{Using an image from a job in your pipeline with \code{--image}}
+
+      When using \code{--inputs-from} as above, you can additionally specify
+      which input to use as the task's image by passing \code{--image
+      input-name}.
+
+      For example, the following pipeline fetches an image via a
+      \reference{get-step} and uses it for \reference{task-step-image}:
+
+      \codeblock{yaml}{{{
+      resources:
+      - name: my-repo
+        type: git
+        source: {uri: https://example.com}
+
+      - name: some-image
+        type: registry-image
+        source: {repository: ubuntu}
+
+      jobs:
+      - name: integration
+        plan:
+        - get: my-repo
+        - get: some-image
+        - task: my-task
+          file: my-repo/task.yml
+          image: some-image
+      }}}
+
+      ...so to run the same task with the same image in a one-off build, you
+      would run:
+
+      \codeblock{bash}{{
+      $ fly -t example execute \\
+          --config task.yml \\
+          --inputs-from main/integration \\
+          --image some-image
+      }}
+    }
+
+    \section{
       \title{Taking artifacts from the build with \code{--output}}
 
       If a task specifies outputs then you're able to extract these back out of
