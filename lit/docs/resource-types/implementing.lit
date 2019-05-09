@@ -89,7 +89,7 @@ UI, so you should make your output pretty.
   the given version is already the latest, an array with that version as the
   sole entry should be listed.
 
-  If your resource is unable to determine which versions are newer then the
+  If your resource is unable to determine which versions are newer than the
   given version (e.g. if it's a git commit that was \code{push -f}ed over),
   then the current version of your resource should be returned (i.e. the new
   \code{HEAD}).
