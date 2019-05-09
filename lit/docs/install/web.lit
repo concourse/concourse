@@ -233,3 +233,17 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     \code{concourse} binary and you should be good to go.
   }
 }
+
+\section{
+  \title{Configuration}{web-configuration}
+
+  If you've got many Concourse clusters that you switch between, you can make
+  it slightly easier to notice which one you're on by giving each cluster a
+  name:
+
+  \codeblock{bash}{{{
+  CONCOURSE_CLUSTER_NAME=production
+  }}}
+
+  When set, this name will be shown in the top bar when viewing the dashboard.
+}
