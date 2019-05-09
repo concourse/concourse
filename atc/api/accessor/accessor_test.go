@@ -22,6 +22,7 @@ var _ = Describe("Accessor", func() {
 		claims          *jwt.MapClaims
 		access          accessor.Access
 	)
+
 	BeforeEach(func() {
 		var err error
 		reader := rand.Reader
@@ -37,6 +38,7 @@ var _ = Describe("Accessor", func() {
 		accessorFactory = accessor.NewAccessFactory(publicKey)
 
 	})
+
 	Describe("Is Admin", func() {
 		JustBeforeEach(func() {
 			token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
@@ -140,6 +142,56 @@ var _ = Describe("Accessor", func() {
 			})
 			It("returns false", func() {
 				Expect(access.IsSystem()).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("has token", func() {
+
+		JustBeforeEach(func() {
+			access = accessorFactory.Create(req, "some-action")
+		})
+
+		Context("when request has token", func() {
+			BeforeEach(func() {
+				token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+				tokenString, err := token.SignedString(key)
+				Expect(err).NotTo(HaveOccurred())
+				req.Header.Add("Authorization", fmt.Sprintf("BEARER %s", tokenString))
+			})
+
+			It("returns true", func() {
+				Expect(access.HasToken()).To(BeTrue())
+			})
+		})
+
+		Context("when request has garbage token", func() {
+			BeforeEach(func() {
+				req.Header.Add("Authorization", fmt.Sprintf("BEARER %s", "29384q29jdhkwjdhs"))
+			})
+
+			It("returns true", func() {
+				Expect(access.HasToken()).To(BeTrue())
+			})
+		})
+
+		Context("when request has empty token", func() {
+			BeforeEach(func() {
+				req.Header.Add("Authorization", fmt.Sprintf("BEARER %s", ""))
+			})
+
+			It("returns true", func() {
+				Expect(access.HasToken()).To(BeTrue())
+			})
+		})
+
+		Context("when request has no token", func() {
+			BeforeEach(func() {
+				req.Header.Del("Authorization")
+			})
+
+			It("returns false", func() {
+				Expect(access.HasToken()).To(BeFalse())
 			})
 		})
 	})

@@ -152,6 +152,24 @@ all =
                     |> Tuple.second
                     |> List.member Effects.GetScreenSize
                     |> Expect.true "should request screen size"
+        , test "redirects to login if any data call gives a 401" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.APIDataFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 401
+                                        , message = "unauthorized"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.second
+                    |> Expect.equal [ Effects.RedirectToLogin ]
         , test "title says 'Dashboard - Concourse'" <|
             \_ ->
                 Common.init "/"
