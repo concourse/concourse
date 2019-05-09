@@ -540,16 +540,6 @@ var _ = Describe("Accessor", func() {
 		Entry("pipeline-operator :: "+atc.GetResource, atc.GetResource, "pipeline-operator", true),
 		Entry("viewer :: "+atc.GetResource, atc.GetResource, "viewer", true),
 
-		Entry("owner :: "+atc.PauseResource, atc.PauseResource, "owner", true),
-		Entry("member :: "+atc.PauseResource, atc.PauseResource, "member", true),
-		Entry("pipeline-operator :: "+atc.PauseResource, atc.PauseResource, "pipeline-operator", true),
-		Entry("viewer :: "+atc.PauseResource, atc.PauseResource, "viewer", false),
-
-		Entry("owner :: "+atc.UnpauseResource, atc.UnpauseResource, "owner", true),
-		Entry("member :: "+atc.UnpauseResource, atc.UnpauseResource, "member", true),
-		Entry("pipeline-operator :: "+atc.UnpauseResource, atc.UnpauseResource, "pipeline-operator", true),
-		Entry("viewer :: "+atc.UnpauseResource, atc.UnpauseResource, "viewer", false),
-
 		Entry("owner :: "+atc.CheckResource, atc.CheckResource, "owner", true),
 		Entry("member :: "+atc.CheckResource, atc.CheckResource, "member", true),
 		Entry("pipeline-operator :: "+atc.CheckResource, atc.CheckResource, "pipeline-operator", true),
