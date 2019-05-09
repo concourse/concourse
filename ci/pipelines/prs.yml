@@ -30,6 +30,13 @@ resources:
     repository: concourse/baggageclaim
     access_token: ((pull_requests_access_token))
 
+- name: docs-pr
+  type: pull-request
+  icon: source-pull
+  source:
+    repository: concourse/docs
+    access_token: ((pull_requests_access_token))
+
 - name: dev-image
   type: registry-image
   icon: docker
@@ -173,11 +180,11 @@ jobs:
   public: true
   on_failure:
     put: baggageclaim-pr
-    params: {path: baggageclaim-pr, status: failure, context: baggageclaim}
+    params: {path: baggageclaim-pr, status: failure, context: unit}
     tags: [pr]
   on_success:
     put: baggageclaim-pr
-    params: {path: baggageclaim-pr, status: success, context: baggageclaim}
+    params: {path: baggageclaim-pr, status: success, context: unit}
     tags: [pr]
   plan:
   - get: baggageclaim-pr
@@ -185,11 +192,36 @@ jobs:
     version: every
     tags: [pr]
   - put: baggageclaim-pr
-    params: {path: baggageclaim-pr, status: pending, context: baggageclaim}
+    params: {path: baggageclaim-pr, status: pending, context: unit}
     tags: [pr]
   - task: unit-linux
     privileged: true
     timeout: 1h
     file: baggageclaim-pr/ci/unit-linux.yml
     input_mapping: {baggageclaim: baggageclaim-pr}
+    tags: [pr]
+
+- name: docs
+  public: true
+  on_failure:
+    put: docs-pr
+    inputs: [docs-pr]
+    params: {path: docs-pr, status: failure, context: build}
+    tags: [pr]
+  on_success:
+    put: docs-pr
+    inputs: [docs-pr]
+    params: {path: docs-pr, status: success, context: build}
+    tags: [pr]
+  plan:
+  - get: docs-pr
+    trigger: true
+    version: every
+    tags: [pr]
+  - put: docs-pr
+    params: {path: docs-pr, status: pending, context: build}
+    tags: [pr]
+  - task: build
+    file: docs-pr/ci/build.yml
+    input_mapping: {docs: docs-pr}
     tags: [pr]
