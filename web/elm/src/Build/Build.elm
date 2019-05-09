@@ -1,5 +1,7 @@
 module Build.Build exposing
-    ( changeToBuild
+    ( bodyId
+    , changeToBuild
+    , currentJob
     , documentTitle
     , getScrollBehavior
     , getUpdateMessage
@@ -32,6 +34,7 @@ import Html.Attributes
         , href
         , id
         , style
+        , tabindex
         , title
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
@@ -48,14 +51,12 @@ import Message.Subscription as Subscription exposing (Delivery(..), Interval(..)
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import Routes
-import ScreenSize
-import Set exposing (Set)
+import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick, onMouseWheel)
 import String
 import Time
 import UpdateMsg exposing (UpdateMsg)
-import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
@@ -83,6 +84,7 @@ type alias Flags =
 
 type ScrollBehavior
     = ScrollWindow
+    | ScrollToID String
     | NoScroll
 
 
@@ -389,6 +391,13 @@ handleDelivery session delivery ( model, effects ) =
                                             bodyId
                                        ]
 
+                            ScrollToID id ->
+                                effects
+                                    ++ [ Effects.Scroll
+                                            (Effects.ToId id)
+                                            bodyId
+                                       ]
+
                             NoScroll ->
                                 effects
                         )
@@ -533,24 +542,36 @@ update session msg ( model, effects ) =
 
 getScrollBehavior : Model -> ScrollBehavior
 getScrollBehavior model =
-    if model.autoScroll then
-        case model.currentBuild |> RemoteData.toMaybe of
-            Nothing ->
+    case model.highlight of
+        Routes.HighlightLine stepID lineNumber ->
+            ScrollToID <| stepID ++ ":" ++ String.fromInt lineNumber
+
+        Routes.HighlightRange stepID beginning end ->
+            if beginning <= end then
+                ScrollToID <| stepID ++ ":" ++ String.fromInt beginning
+
+            else
                 NoScroll
 
-            Just cb ->
-                case cb.build.status of
-                    Concourse.BuildStatusSucceeded ->
+        Routes.HighlightNothing ->
+            if model.autoScroll then
+                case model.currentBuild |> RemoteData.toMaybe of
+                    Nothing ->
                         NoScroll
 
-                    Concourse.BuildStatusPending ->
-                        NoScroll
+                    Just cb ->
+                        case cb.build.status of
+                            Concourse.BuildStatusSucceeded ->
+                                NoScroll
 
-                    _ ->
-                        ScrollWindow
+                            Concourse.BuildStatusPending ->
+                                NoScroll
 
-    else
-        NoScroll
+                            _ ->
+                                ScrollWindow
+
+            else
+                NoScroll
 
 
 updateOutput :
@@ -764,7 +785,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                     ( withBuild, effects )
         in
         ( { newModel | fetchingHistory = True }
-        , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status) ]
+        , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status), Focus bodyId ]
         )
 
     else
@@ -840,17 +861,7 @@ documentTitle =
     extractTitle
 
 
-view :
-    { a
-        | userState : UserState
-        , pipelines : List Concourse.Pipeline
-        , isSideBarOpen : Bool
-        , expandedTeams : Set String
-        , screenSize : ScreenSize.ScreenSize
-        , hovered : Maybe DomID
-    }
-    -> Model
-    -> Html Message
+view : Session a -> Model -> Html Message
 view session model =
     let
         route =
@@ -871,13 +882,7 @@ view session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu
-                { pipelines = session.pipelines
-                , hovered = session.hovered
-                , isSideBarOpen = session.isSideBarOpen
-                , screenSize = session.screenSize
-                , isPaused = False
-                }
+            [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
             , breadcrumbs model
             , Login.view session.userState model False
@@ -889,16 +894,16 @@ view session model =
                 , pipelines = session.pipelines
                 , hovered = session.hovered
                 , isSideBarOpen = session.isSideBarOpen
-                , currentPipeline =
-                    currentJob model
-                        |> Maybe.map
-                            (\j ->
-                                { pipelineName = j.pipelineName
-                                , teamName = j.teamName
-                                }
-                            )
                 , screenSize = session.screenSize
                 }
+                (currentJob model
+                    |> Maybe.map
+                        (\j ->
+                            { pipelineName = j.pipelineName
+                            , teamName = j.teamName
+                            }
+                        )
+                )
             , viewBuildPage session model
             ]
         ]
@@ -961,6 +966,7 @@ body { currentBuild, authorized, showHelp, timeZone } =
     Html.div
         ([ class "scrollable-body build-body"
          , id bodyId
+         , tabindex 0
          ]
             ++ Styles.body
         )

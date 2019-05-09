@@ -1,11 +1,21 @@
-module SideBar.SideBar exposing (hamburgerMenu, view)
+module SideBar.SideBar exposing
+    ( Model
+    , hamburgerMenu
+    , handleCallback
+    , handleDelivery
+    , view
+    )
 
 import Concourse
+import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (href, id, title)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
+import Message.Callback exposing (Callback(..))
 import Message.Message exposing (DomID(..), Message(..))
+import Message.Subscription exposing (Delivery(..))
+import RemoteData exposing (RemoteData(..), WebData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
@@ -16,24 +26,78 @@ import Views.Icon as Icon
 type alias Model m =
     { m
         | expandedTeams : Set String
-        , pipelines : List Concourse.Pipeline
+        , pipelines : WebData (List Concourse.Pipeline)
         , hovered : Maybe DomID
         , isSideBarOpen : Bool
-        , currentPipeline : Maybe Concourse.PipelineIdentifier
         , screenSize : ScreenSize.ScreenSize
     }
 
 
-view : Model m -> Html Message
-view model =
+type alias PipelineScoped a =
+    { a
+        | teamName : String
+        , pipelineName : String
+    }
+
+
+handleCallback : Callback -> WebData (PipelineScoped a) -> ET (Model m)
+handleCallback callback currentPipeline ( model, effects ) =
+    case callback of
+        PipelinesFetched (Ok pipelines) ->
+            ( { model
+                | pipelines = Success pipelines
+                , expandedTeams =
+                    case ( model.pipelines, currentPipeline ) of
+                        ( NotAsked, Success { teamName } ) ->
+                            Set.insert teamName model.expandedTeams
+
+                        _ ->
+                            model.expandedTeams
+              }
+            , effects
+            )
+
+        BuildFetched (Ok ( _, build )) ->
+            ( { model
+                | expandedTeams =
+                    case ( currentPipeline, build.job ) of
+                        ( NotAsked, Just { teamName } ) ->
+                            Set.insert teamName model.expandedTeams
+
+                        _ ->
+                            model.expandedTeams
+              }
+            , effects
+            )
+
+        _ ->
+            ( model, effects )
+
+
+handleDelivery : Delivery -> ET (Model m)
+handleDelivery delivery ( model, effects ) =
+    case delivery of
+        SideBarStateReceived (Just "true") ->
+            ( { model | isSideBarOpen = True }, effects )
+
+        _ ->
+            ( model, effects )
+
+
+view : Model m -> Maybe (PipelineScoped a) -> Html Message
+view model currentPipeline =
     if
         model.isSideBarOpen
-            && not (List.isEmpty model.pipelines)
+            && not
+                (RemoteData.map List.isEmpty model.pipelines
+                    |> RemoteData.withDefault True
+                )
             && (model.screenSize /= ScreenSize.Mobile)
     then
         Html.div
             (id "side-bar" :: Styles.sideBar)
             (model.pipelines
+                |> RemoteData.withDefault []
                 |> List.Extra.gatherEqualsBy .teamName
                 |> List.map
                     (\( p, ps ) ->
@@ -42,7 +106,7 @@ view model =
                             , isExpanded = Set.member p.teamName model.expandedTeams
                             , teamName = p.teamName
                             , pipelines = p :: ps
-                            , currentPipeline = model.currentPipeline
+                            , currentPipeline = currentPipeline
                             }
                     )
             )
@@ -57,7 +121,7 @@ team :
         , isExpanded : Bool
         , teamName : String
         , pipelines : List Concourse.Pipeline
-        , currentPipeline : Maybe Concourse.PipelineIdentifier
+        , currentPipeline : Maybe (PipelineScoped b)
     }
     -> Html Message
 team ({ isExpanded, pipelines } as session) =
@@ -77,13 +141,19 @@ teamHeader :
         | hovered : Maybe DomID
         , isExpanded : Bool
         , teamName : String
-        , currentPipeline : Maybe Concourse.PipelineIdentifier
+        , currentPipeline : Maybe (PipelineScoped b)
     }
     -> Html Message
 teamHeader { hovered, isExpanded, teamName, currentPipeline } =
     let
         isHovered =
             hovered == Just (SideBarTeam teamName)
+
+        isCurrent =
+            (currentPipeline
+                |> Maybe.map .teamName
+            )
+                == Just teamName
     in
     Html.div
         (Styles.teamHeader
@@ -92,24 +162,16 @@ teamHeader { hovered, isExpanded, teamName, currentPipeline } =
                , onMouseLeave <| Hover Nothing
                ]
         )
-        [ Html.div
-            Styles.iconGroup
-            [ Styles.teamIcon isHovered
-            , Styles.arrow
-                { isHovered = isHovered
-                , isExpanded = isExpanded
-                }
-            ]
+        [ Styles.teamIcon { isCurrent = isCurrent, isHovered = isHovered }
+        , Styles.arrow
+            { isHovered = isHovered
+            , isExpanded = isExpanded
+            }
         , Html.div
             (title teamName
                 :: Styles.teamName
                     { isHovered = isHovered
-                    , isExpanded = isExpanded
-                    , isCurrent =
-                        (currentPipeline
-                            |> Maybe.map .teamName
-                        )
-                            == Just teamName
+                    , isCurrent = isCurrent
                     }
             )
             [ Html.text teamName ]
@@ -120,7 +182,7 @@ pipeline :
     { a
         | hovered : Maybe DomID
         , teamName : String
-        , currentPipeline : Maybe Concourse.PipelineIdentifier
+        , currentPipeline : Maybe (PipelineScoped b)
     }
     -> Concourse.Pipeline
     -> Html Message
@@ -130,13 +192,30 @@ pipeline { hovered, teamName, currentPipeline } p =
             { pipelineName = p.name
             , teamName = teamName
             }
+
+        isCurrent =
+            case currentPipeline of
+                Just cp ->
+                    cp.pipelineName == p.name && cp.teamName == teamName
+
+                Nothing ->
+                    False
+
+        isHovered =
+            hovered == Just (SideBarPipeline pipelineId)
     in
     Html.div Styles.pipeline
-        [ Html.div Styles.pipelineIcon []
+        [ Html.div
+            (Styles.pipelineIcon
+                { isCurrent = isCurrent
+                , isHovered = isHovered
+                }
+            )
+            []
         , Html.a
             (Styles.pipelineLink
-                { isHovered = hovered == Just (SideBarPipeline pipelineId)
-                , isCurrent = currentPipeline == Just pipelineId
+                { isHovered = isHovered
+                , isCurrent = isCurrent
                 }
                 ++ [ href <|
                         Routes.toString <|
@@ -153,10 +232,9 @@ pipeline { hovered, teamName, currentPipeline } p =
 hamburgerMenu :
     { a
         | screenSize : ScreenSize
-        , pipelines : List Concourse.Pipeline
+        , pipelines : WebData (List Concourse.Pipeline)
         , isSideBarOpen : Bool
         , hovered : Maybe DomID
-        , isPaused : Bool
     }
     -> Html Message
 hamburgerMenu model =
@@ -166,13 +244,13 @@ hamburgerMenu model =
     else
         let
             isHamburgerClickable =
-                not <| List.isEmpty model.pipelines
+                RemoteData.map (not << List.isEmpty) model.pipelines
+                    |> RemoteData.withDefault False
         in
         Html.div
             (id "hamburger-menu"
                 :: Styles.hamburgerMenu
                     { isSideBarOpen = model.isSideBarOpen
-                    , isPaused = model.isPaused
                     , isClickable = isHamburgerClickable
                     }
                 ++ [ onMouseEnter <| Hover <| Just HamburgerMenu
@@ -189,7 +267,10 @@ hamburgerMenu model =
                 { sizePx = 54, image = "baseline-menu-24px.svg" }
               <|
                 (Styles.hamburgerIcon <|
-                    isHamburgerClickable
-                        && (model.hovered == Just HamburgerMenu)
+                    { isHovered =
+                        isHamburgerClickable
+                            && (model.hovered == Just HamburgerMenu)
+                    , isActive = model.isSideBarOpen
+                    }
                 )
             ]

@@ -24,9 +24,12 @@ import Message.Subscription
         , Subscription(..)
         )
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
+import RemoteData
 import Routes
 import ScreenSize
-import Set exposing (Set)
+import Session exposing (Session)
+import Set
+import SideBar.SideBar as SideBar
 import SubPage.SubPage as SubPage
 import Url
 import UserState exposing (UserState(..))
@@ -43,21 +46,16 @@ type alias Flags =
 
 
 type alias Model =
-    { subModel : SubPage.Model
-    , turbulenceImgSrc : String
-    , notFoundImgSrc : String
-    , csrfToken : String
-    , authToken : String
-    , pipelineRunningKeyframes : String
-    , route : Routes.Route
-    , userState : UserState
-    , pipelines : List Concourse.Pipeline
-    , expandedTeams : Set String
-    , isSideBarOpen : Bool
-    , screenSize : ScreenSize.ScreenSize
-    , hovered : Maybe Message.DomID
-    , clusterName : String
-    }
+    Session
+        { subModel : SubPage.Model
+        , turbulenceImgSrc : String
+        , notFoundImgSrc : String
+        , csrfToken : String
+        , authToken : String
+        , pipelineRunningKeyframes : String
+        , route : Routes.Route
+        , clusterName : String
+        }
 
 
 init : Flags -> Url.Url -> ( Model, List Effect )
@@ -86,7 +84,7 @@ init flags url =
             , route = route
             , userState = UserStateUnknown
             , isSideBarOpen = False
-            , pipelines = []
+            , pipelines = RemoteData.NotAsked
             , expandedTeams = Set.empty
             , screenSize = ScreenSize.Desktop
             , hovered = Nothing
@@ -104,7 +102,11 @@ init flags url =
                 , Effects.ModifyUrl <| Routes.toString route
                 ]
     in
-    ( model, [ FetchUser, GetScreenSize ] ++ handleTokenEffect ++ subEffects )
+    ( model
+    , [ FetchUser, GetScreenSize, LoadSideBarState ]
+        ++ handleTokenEffect
+        ++ subEffects
+    )
 
 
 locationMsg : Url.Url -> TopLevelMessage
@@ -163,26 +165,6 @@ handleCallback callback model =
         UserFetched (Err _) ->
             subpageHandleCallback { model | userState = UserStateLoggedOut } callback
 
-        PipelinesFetched (Ok pipelines) ->
-            ( { model
-                | pipelines = pipelines
-                , expandedTeams =
-                    case ( model.pipelines, model.route ) of
-                        ( [], Routes.Pipeline { id } ) ->
-                            Set.insert id.teamName model.expandedTeams
-
-                        ( [], Routes.Job { id } ) ->
-                            Set.insert id.teamName model.expandedTeams
-
-                        ( [], Routes.Resource { id } ) ->
-                            Set.insert id.teamName model.expandedTeams
-
-                        _ ->
-                            model.expandedTeams
-              }
-            , []
-            )
-
         ScreenResized viewport ->
             subpageHandleCallback
                 { model
@@ -194,6 +176,38 @@ handleCallback callback model =
         -- otherwise, pass down
         _ ->
             subpageHandleCallback model callback
+                |> (case model.subModel of
+                        SubPage.ResourceModel { resourceIdentifier } ->
+                            SideBar.handleCallback callback <|
+                                RemoteData.Success resourceIdentifier
+
+                        SubPage.PipelineModel { pipelineLocator } ->
+                            SideBar.handleCallback callback <|
+                                RemoteData.Success pipelineLocator
+
+                        SubPage.JobModel { jobIdentifier } ->
+                            SideBar.handleCallback callback <|
+                                RemoteData.Success jobIdentifier
+
+                        SubPage.BuildModel buildModel ->
+                            SideBar.handleCallback callback
+                                (buildModel.currentBuild
+                                    |> RemoteData.map .build
+                                    |> RemoteData.andThen
+                                        (\b ->
+                                            case b.job of
+                                                Just j ->
+                                                    RemoteData.Success j
+
+                                                Nothing ->
+                                                    RemoteData.NotAsked
+                                        )
+                                )
+
+                        _ ->
+                            SideBar.handleCallback callback <|
+                                RemoteData.NotAsked
+                   )
 
 
 subpageHandleCallback : Model -> Callback -> ( Model, List Effect )
@@ -211,7 +225,9 @@ update : TopLevelMessage -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
         Update (Message.Click Message.HamburgerMenu) ->
-            ( { model | isSideBarOpen = not model.isSideBarOpen }, [] )
+            ( { model | isSideBarOpen = not model.isSideBarOpen }
+            , [ SaveSideBarState <| not model.isSideBarOpen ]
+            )
 
         Update (Message.Hover hovered) ->
             let
@@ -261,6 +277,7 @@ handleDelivery delivery model =
             handleDeliveryForApplication
                 delivery
                 { model | subModel = newSubmodel }
+                |> SideBar.handleDelivery delivery
     in
     ( newModel, subPageEffects ++ applicationEffects )
 
@@ -344,6 +361,7 @@ subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnNonHrefLinkClicked
     , OnTokenReceived
+    , OnSideBarStateReceived
     , OnWindowResize
     ]
         ++ SubPage.subscriptions model.subModel

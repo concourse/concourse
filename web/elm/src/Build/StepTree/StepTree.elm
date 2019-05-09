@@ -623,6 +623,7 @@ viewTimestampedLine { timestamps, highlight, id, lineNo, line, timeZone } =
             [ ( "timestamped-line", True )
             , ( "highlighted-line", highlighted )
             ]
+        , Html.Attributes.id <| id ++ ":" ++ String.fromInt lineNo
         ]
         [ viewTimestamp
             { id = id

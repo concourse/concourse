@@ -67,9 +67,9 @@ import MonocleHelpers exposing (bind, modifyWithEffect)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Set exposing (Set)
+import Session exposing (Session)
 import SideBar.SideBar as SideBar
-import UserState exposing (UserState)
+import UserState
 import Views.Styles
 
 
@@ -273,7 +273,7 @@ handleDeliveryBody delivery ( model, effects ) =
             ( model, effects )
 
 
-update : { a | screenSize : ScreenSize } -> Message -> ET Model
+update : Session a -> Message -> ET Model
 update session msg =
     SearchBar.update session msg >> updateBody msg
 
@@ -457,17 +457,7 @@ documentTitle =
     "Dashboard"
 
 
-view :
-    { a
-        | userState : UserState
-        , pipelines : List Concourse.Pipeline
-        , isSideBarOpen : Bool
-        , expandedTeams : Set String
-        , screenSize : ScreenSize.ScreenSize
-        , hovered : Maybe DomID
-    }
-    -> Model
-    -> Html Message
+view : Session a -> Model -> Html Message
 view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
@@ -486,43 +476,20 @@ view session model =
                     "50px"
             ]
           <|
-            [ SideBar.view
-                { expandedTeams = session.expandedTeams
-                , pipelines = session.pipelines
-                , hovered = session.hovered
-                , isSideBarOpen = session.isSideBarOpen
-                , currentPipeline = Nothing
-                , screenSize = session.screenSize
-                }
+            [ SideBar.view session Nothing
             , dashboardView session model
             ]
         , Footer.view session model
         ]
 
 
-topBar :
-    { a
-        | userState : UserState
-        , pipelines : List Concourse.Pipeline
-        , isSideBarOpen : Bool
-        , expandedTeams : Set String
-        , hovered : Maybe DomID
-        , screenSize : ScreenSize
-    }
-    -> Model
-    -> Html Message
+topBar : Session a -> Model -> Html Message
 topBar session model =
     Html.div
         (id "top-bar-app" :: Views.Styles.topBar False)
     <|
         [ Html.div [ style "display" "flex", style "align-items" "center" ]
-            [ SideBar.hamburgerMenu
-                { pipelines = session.pipelines
-                , hovered = session.hovered
-                , isSideBarOpen = session.isSideBarOpen
-                , screenSize = session.screenSize
-                , isPaused = False
-                }
+            [ SideBar.hamburgerMenu session
             , Html.a (href "/" :: Views.Styles.concourseLogo) []
             , clusterName model
             ]

@@ -32,6 +32,9 @@ port scrolledToBottom : (Bool -> msg) -> Sub msg
 port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
 
 
+port sideBarStateReceived : (Maybe String -> msg) -> Sub msg
+
+
 type Subscription
     = OnClockTick Interval
     | OnMouse
@@ -43,6 +46,7 @@ type Subscription
     | OnNonHrefLinkClicked
     | OnTokenReceived
     | OnElementVisible
+    | OnSideBarStateReceived
 
 
 type Delivery
@@ -58,6 +62,7 @@ type Delivery
     | RouteChanged Routes.Route
     | UrlRequest Browser.UrlRequest
     | ElementVisible ( String, Bool )
+    | SideBarStateReceived (Maybe String)
 
 
 type Interval
@@ -128,6 +133,9 @@ runSubscription s =
 
         OnElementVisible ->
             reportIsVisible ElementVisible
+
+        OnSideBarStateReceived ->
+            sideBarStateReceived SideBarStateReceived
 
 
 intervalToTime : Interval -> Float

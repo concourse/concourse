@@ -22,8 +22,9 @@ import Views.Icon as Icon
 
 sideBar : List (Html.Attribute msg)
 sideBar =
-    [ style "border-top" <| "1px solid " ++ Colors.background
-    , style "background-color" Colors.frame
+    [ style "border-top" <| "1px solid " ++ Colors.frame
+    , style "border-right" <| "1px solid " ++ Colors.frame
+    , style "background-color" Colors.sideBar
     , style "width" "275px"
     , style "overflow-y" "auto"
     , style "height" "100%"
@@ -44,6 +45,7 @@ teamHeader : List (Html.Attribute msg)
 teamHeader =
     [ style "display" "flex"
     , style "cursor" "pointer"
+    , style "align-items" "center"
     ]
 
 
@@ -59,28 +61,31 @@ iconGroup =
     ]
 
 
-teamIcon : Bool -> Html.Html msg
-teamIcon isHovered =
-    Html.div
-        []
-        [ Icon.icon
-            { sizePx = 20
-            , image = "baseline-people-24px.svg"
-            }
-            [ style "opacity" <|
-                if isHovered then
-                    "1"
+teamIcon : { isCurrent : Bool, isHovered : Bool } -> Html.Html msg
+teamIcon { isCurrent, isHovered } =
+    Icon.icon
+        { sizePx = 20
+        , image = "baseline-people-24px.svg"
+        }
+        [ style "margin-left" "10px"
+        , style "background-size" "contain"
+        , style "flex-shrink" "0"
+        , style "opacity" <|
+            if isCurrent then
+                "1"
 
-                else
-                    "0.5"
-            ]
+            else if isHovered then
+                "0.5"
+
+            else
+                "0.2"
         ]
 
 
 arrow : { isExpanded : Bool, isHovered : Bool } -> Html.Html msg
 arrow { isExpanded, isHovered } =
     Icon.icon
-        { sizePx = 20
+        { sizePx = 12
         , image =
             "baseline-keyboard-arrow-"
                 ++ (if isExpanded then
@@ -91,61 +96,38 @@ arrow { isExpanded, isHovered } =
                    )
                 ++ "-24px.svg"
         }
-        [ style "opacity" <|
-            if isExpanded || isHovered then
+        [ style "margin-left" "10px"
+        , style "flex-shrink" "0"
+        , style "opacity" <|
+            if isExpanded then
                 "1"
 
-            else
+            else if isHovered then
                 "0.5"
+
+            else
+                "0.2"
         ]
 
 
 teamName :
-    { isExpanded : Bool, isHovered : Bool, isCurrent : Bool }
-    -> List (Html.Attribute msg)
-teamName { isExpanded, isHovered, isCurrent } =
-    [ style "font-size" "18px"
-    , style "padding" "2.5px"
-    , style "margin" "2.5px"
-    , style "white-space" "nowrap"
-    , style "overflow" "hidden"
-    , style "text-overflow" "ellipsis"
-    , style "border" <|
-        "1px solid "
-            ++ (if isCurrent then
-                    Colors.groupBorderSelected
-
-                else
-                    Colors.frame
-               )
-    , style "opacity" <|
-        if isCurrent || isExpanded || isHovered then
-            "1"
-
-        else
-            "0.5"
-    ]
-
-
-pipelineLink :
     { isHovered : Bool, isCurrent : Bool }
     -> List (Html.Attribute msg)
-pipelineLink { isHovered, isCurrent } =
-    [ style "font-size" "18px"
+teamName { isHovered, isCurrent } =
+    [ style "font-size" "14px"
+    , style "padding" "2.5px"
+    , style "margin-left" "7.5px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
-    , style "padding" "2.5px"
+    , style "flex-grow" "1"
     , style "border" <|
         "1px solid "
-            ++ (if isCurrent then
-                    Colors.groupBorderSelected
-
-                else if isHovered then
+            ++ (if isHovered then
                     "#525151"
 
                 else
-                    Colors.frame
+                    Colors.sideBar
                )
     , style "opacity" <|
         if isCurrent || isHovered then
@@ -155,7 +137,47 @@ pipelineLink { isHovered, isCurrent } =
             "0.5"
     ]
         ++ (if isHovered then
-                [ style "background-color" "#2f2e2e" ]
+                [ style "background-color" "#302F2F"
+                ]
+
+            else
+                []
+           )
+
+
+pipelineLink :
+    { isHovered : Bool, isCurrent : Bool }
+    -> List (Html.Attribute msg)
+pipelineLink { isHovered, isCurrent } =
+    [ style "font-size" "14px"
+    , style "white-space" "nowrap"
+    , style "overflow" "hidden"
+    , style "text-overflow" "ellipsis"
+    , style "padding" "2.5px"
+    , style "flex-grow" "1"
+    , style "border" <|
+        "1px solid "
+            ++ (if isCurrent then
+                    Colors.groupBorderSelected
+
+                else if isHovered then
+                    "#525151"
+
+                else
+                    Colors.sideBar
+               )
+    , style "opacity" <|
+        if isCurrent || isHovered then
+            "1"
+
+        else
+            "0.5"
+    ]
+        ++ (if isCurrent then
+                [ style "background-color" "#353434" ]
+
+            else if isHovered then
+                [ style "background-color" "#302F2F" ]
 
             else
                 []
@@ -163,17 +185,10 @@ pipelineLink { isHovered, isCurrent } =
 
 
 hamburgerMenu :
-    { isSideBarOpen : Bool, isPaused : Bool, isClickable : Bool }
+    { isSideBarOpen : Bool, isClickable : Bool }
     -> List (Html.Attribute msg)
-hamburgerMenu { isSideBarOpen, isPaused, isClickable } =
-    [ style "border-right" <|
-        "1px solid "
-            ++ (if isPaused then
-                    Colors.pausedTopbarSeparator
-
-                else
-                    Colors.background
-               )
+hamburgerMenu { isSideBarOpen, isClickable } =
+    [ style "border-right" <| "1px solid " ++ Colors.frame
     , style "opacity" "1"
     , style "cursor" <|
         if isClickable then
@@ -182,21 +197,18 @@ hamburgerMenu { isSideBarOpen, isPaused, isClickable } =
         else
             "default"
     , style "background-color" <|
-        if isPaused then
-            Colors.paused
-
-        else if isSideBarOpen then
-            "#333333"
+        if isSideBarOpen then
+            Colors.sideBar
 
         else
             Colors.frame
     ]
 
 
-hamburgerIcon : Bool -> List (Html.Attribute msg)
-hamburgerIcon hovered =
+hamburgerIcon : { isHovered : Bool, isActive : Bool } -> List (Html.Attribute msg)
+hamburgerIcon { isHovered, isActive } =
     [ style "opacity" <|
-        if hovered then
+        if isActive || isHovered then
             "1"
 
         else
@@ -213,19 +225,26 @@ pipeline : List (Html.Attribute msg)
 pipeline =
     [ style "display" "flex"
     , style "align-items" "center"
-    , style "padding" "2.5px"
     ]
 
 
-pipelineIcon : List (Html.Attribute msg)
-pipelineIcon =
+pipelineIcon : { isCurrent : Bool, isHovered : Bool } -> List (Html.Attribute msg)
+pipelineIcon { isCurrent, isHovered } =
     [ style "background-image"
         "url(/public/images/ic-breadcrumb-pipeline.svg)"
     , style "background-repeat" "no-repeat"
     , style "height" "16px"
     , style "width" "32px"
     , style "background-size" "contain"
-    , style "margin-left" "22px"
+    , style "margin-left" "28px"
     , style "flex-shrink" "0"
-    , style "opacity" "0.4"
+    , style "opacity" <|
+        if isCurrent then
+            "1"
+
+        else if isHovered then
+            "0.5"
+
+        else
+            "0.2"
     ]

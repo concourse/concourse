@@ -47,14 +47,12 @@ import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
 import Routes
-import ScreenSize
-import Set exposing (Set)
+import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg
 import Svg.Attributes as SvgAttributes
 import UpdateMsg exposing (UpdateMsg)
-import UserState exposing (UserState)
 import Views.PauseToggle as PauseToggle
 import Views.Styles
 import Views.TopBar as TopBar
@@ -380,17 +378,7 @@ documentTitle model =
     model.pipelineLocator.pipelineName
 
 
-view :
-    { a
-        | userState : UserState
-        , pipelines : List Concourse.Pipeline
-        , isSideBarOpen : Bool
-        , expandedTeams : Set String
-        , screenSize : ScreenSize.ScreenSize
-        , hovered : Maybe DomID
-    }
-    -> Model
-    -> Html Message
+view : Session a -> Model -> Html Message
 view session model =
     let
         route =
@@ -408,13 +396,7 @@ view session model =
                             isPaused model.pipeline
                        )
                 )
-                [ SideBar.hamburgerMenu
-                    { screenSize = session.screenSize
-                    , pipelines = session.pipelines
-                    , isSideBarOpen = session.isSideBarOpen
-                    , hovered = session.hovered
-                    , isPaused = isPaused model.pipeline
-                    }
+                [ SideBar.hamburgerMenu session
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs route
                 , viewPinMenu
@@ -451,9 +433,9 @@ view session model =
                     , pipelines = session.pipelines
                     , hovered = session.hovered
                     , isSideBarOpen = session.isSideBarOpen
-                    , currentPipeline = Just model.pipelineLocator
                     , screenSize = session.screenSize
                     }
+                    (Just model.pipelineLocator)
                 , viewSubPage session model
                 ]
             ]
