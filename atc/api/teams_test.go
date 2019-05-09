@@ -166,6 +166,125 @@ var _ = Describe("Teams API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/teams/:team_name", func() {
+		var response *http.Response
+		var fakeTeam *dbfakes.FakeTeam
+
+		BeforeEach(func() {
+			fakeTeam = new(dbfakes.FakeTeam)
+			fakeTeam.IDReturns(1)
+			fakeTeam.NameReturns("a-team")
+			fakeTeam.AuthReturns(atc.TeamAuth{
+				"owner": map[string][]string{
+					"groups": {}, "users": {"local:username"},
+				},
+			})
+		})
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/teams/a-team", server.URL), nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			req.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authenticated and not admin", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthorizedReturns(false)
+				fakeaccess.IsAdminReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when not authenticated to specified team, but have admin authority", func() {
+			BeforeEach(func() {
+				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAdminReturns(true)
+				fakeaccess.IsAuthorizedReturns(false)
+			})
+
+			It("returns 200 ok", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns application/json", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
+
+			It("returns a team JSON", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`
+				{
+					"id": 1,
+					"name": "a-team",
+					"auth": {
+						"owner": {
+							"groups": [],
+							"users": [
+								"local:username"
+							]
+						}
+					}
+				}`))
+			})
+		})
+
+		Context("when authenticated to specified team", func() {
+			BeforeEach(func() {
+				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAdminReturns(false)
+				fakeaccess.IsAuthorizedReturns(true)
+			})
+
+			It("returns 200 ok", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns application/json", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
+
+			It("returns a team JSON", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`
+				{
+					"id": 1,
+					"name": "a-team",
+					"auth": {
+						"owner": {
+							"groups": [],
+							"users": [
+								"local:username"
+							]
+						}
+					}
+				}`))
+			})
+		})
+
+		Context("when authenticated as another team", func() {
+			BeforeEach(func() {
+				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				fakeaccess.IsAuthenticatedReturns(true)
+			})
+
+			It("return 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
 	Describe("PUT /api/v1/teams/:team_name", func() {
 		var (
 			response *http.Response
