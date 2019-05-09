@@ -2,6 +2,8 @@
 
 \title{\code{aggregate} step}{aggregate-step}
 
+\italic{aggregate} is deprecated and will be removed in a future version. Please see \reference{in-parallel-step}{\code{in_parallel}} instead.
+
 \define-attribute{aggregate: [step]}{
   Performs the given steps in parallel.
 
