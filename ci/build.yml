@@ -13,6 +13,7 @@ caches:
 
 outputs:
 - name: built-docs
+  path: docs
 
 params:
   ANALYTICS_ID:
