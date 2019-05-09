@@ -102,6 +102,10 @@ func NewPutStep(
 // script will be interrupted.
 func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
+	logger = logger.Session("put-step", lager.Data{
+		"step-name": step.name,
+		"job-id":    step.build.JobID(),
+	})
 
 	step.delegate.Initializing(logger)
 
