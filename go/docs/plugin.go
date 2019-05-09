@@ -122,6 +122,26 @@ func (p Plugin) Warn(content booklit.Content) booklit.Content {
 	}
 }
 
+func (p Plugin) BetterTable(content booklit.Content) (booklit.Content, error) {
+	switch v := content.(type) {
+	case booklit.Paragraph:
+		table := booklit.Table{}
+
+		for _, row := range v {
+			list, ok := row.(booklit.List)
+			if !ok {
+				return nil, fmt.Errorf("table row is not a list: %s", row)
+			}
+
+			table.Rows = append(table.Rows, list.Items)
+		}
+
+		return table, nil
+	default:
+		return nil, fmt.Errorf("invalid table content: %T", content)
+	}
+}
+
 func (p Plugin) Frame(src booklit.Content, optionalHeight ...string) booklit.Content {
 	height := "300px"
 	if len(optionalHeight) > 0 {
