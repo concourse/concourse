@@ -34,8 +34,6 @@ const (
 	ListResources        = "ListResources"
 	ListResourceTypes    = "ListResourceTypes"
 	GetResource          = "GetResource"
-	PauseResource        = "PauseResource"
-	UnpauseResource      = "UnpauseResource"
 	CheckResource        = "CheckResource"
 	CheckResourceWebHook = "CheckResourceWebHook"
 	CheckResourceType    = "CheckResourceType"

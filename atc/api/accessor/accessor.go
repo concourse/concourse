@@ -162,8 +162,6 @@ var requiredRoles = map[string]string{
 	atc.ListResources:                 "viewer",
 	atc.ListResourceTypes:             "viewer",
 	atc.GetResource:                   "viewer",
-	atc.PauseResource:                 "pipeline-operator",
-	atc.UnpauseResource:               "pipeline-operator",
 	atc.UnpinResource:                 "pipeline-operator",
 	atc.SetPinCommentOnResource:       "pipeline-operator",
 	atc.CheckResource:                 "pipeline-operator",

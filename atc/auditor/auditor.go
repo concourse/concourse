@@ -115,8 +115,6 @@ var loggingLevels = map[string]string{
 	atc.ListResources:                 "EnableResourceAuditLog",
 	atc.ListResourceTypes:             "EnableResourceAuditLog",
 	atc.GetResource:                   "EnableResourceAuditLog",
-	atc.PauseResource:                 "EnableResourceAuditLog",
-	atc.UnpauseResource:               "EnableResourceAuditLog",
 	atc.UnpinResource:                 "EnableResourceAuditLog",
 	atc.SetPinCommentOnResource:       "EnableResourceAuditLog",
 	atc.CheckResource:                 "EnableResourceAuditLog",
