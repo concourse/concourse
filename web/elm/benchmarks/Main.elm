@@ -21,97 +21,36 @@ main =
             (\_ -> view sampleJobs)
 
 
+sampleJob : String -> List String -> Concourse.Job
+sampleJob name passed =
+    { pipeline = pipelineId
+    , name = name
+    , pipelineName = "pipeline"
+    , teamName = "team"
+    , nextBuild = Nothing
+    , finishedBuild = Nothing
+    , transitionBuild = Nothing
+    , paused = False
+    , disableManualTrigger = False
+    , inputs =
+        [ { name = "input"
+          , resource = "resource"
+          , passed = passed
+          , trigger = True
+          }
+        ]
+    , outputs = []
+    , groups = []
+    }
+
+
 sampleJobs : List Concourse.Job
 sampleJobs =
-    [ { pipeline = pipelineId
-      , name = "job1"
-      , pipelineName = "pipeline"
-      , teamName = "team"
-      , nextBuild = Nothing
-      , finishedBuild = Nothing
-      , transitionBuild = Nothing
-      , paused = False
-      , disableManualTrigger = False
-      , inputs = []
-      , outputs = []
-      , groups = []
-      }
-    , { pipeline = pipelineId
-      , name = "job2a"
-      , pipelineName = "pipeline"
-      , teamName = "team"
-      , nextBuild = Nothing
-      , finishedBuild = Nothing
-      , transitionBuild = Nothing
-      , paused = False
-      , disableManualTrigger = False
-      , inputs =
-            [ { name = "input"
-              , resource = "resource"
-              , passed = [ "job1" ]
-              , trigger = True
-              }
-            ]
-      , outputs = []
-      , groups = []
-      }
-    , { pipeline = pipelineId
-      , name = "job2b"
-      , pipelineName = "pipeline"
-      , teamName = "team"
-      , nextBuild = Nothing
-      , finishedBuild = Nothing
-      , transitionBuild = Nothing
-      , paused = False
-      , disableManualTrigger = False
-      , inputs =
-            [ { name = "input"
-              , resource = "resource"
-              , passed = [ "job1" ]
-              , trigger = True
-              }
-            ]
-      , outputs = []
-      , groups = []
-      }
-    , { pipeline = pipelineId
-      , name = "job3"
-      , pipelineName = "pipeline"
-      , teamName = "team"
-      , nextBuild = Nothing
-      , finishedBuild = Nothing
-      , transitionBuild = Nothing
-      , paused = False
-      , disableManualTrigger = False
-      , inputs =
-            [ { name = "input"
-              , resource = "resource"
-              , passed = [ "job2a" ]
-              , trigger = True
-              }
-            ]
-      , outputs = []
-      , groups = []
-      }
-    , { pipeline = pipelineId
-      , name = "job4"
-      , pipelineName = "pipeline"
-      , teamName = "team"
-      , nextBuild = Nothing
-      , finishedBuild = Nothing
-      , transitionBuild = Nothing
-      , paused = False
-      , disableManualTrigger = False
-      , inputs =
-            [ { name = "input"
-              , resource = "resource"
-              , passed = [ "job3" ]
-              , trigger = True
-              }
-            ]
-      , outputs = []
-      , groups = []
-      }
+    [ sampleJob "job1" []
+    , sampleJob "job2a" [ "job1" ]
+    , sampleJob "job2b" [ "job1" ]
+    , sampleJob "job3" [ "job2a" ]
+    , sampleJob "job4" [ "job3" ]
     ]
 
 
