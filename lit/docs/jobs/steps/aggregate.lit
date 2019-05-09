@@ -2,6 +2,11 @@
 
 \title{\code{aggregate} step}{aggregate-step}
 
+\warn{
+  \code{aggregate} is deprecated and will be removed in a future version.
+  Please use the \reference{in-parallel-step} instead.
+}
+
 \define-attribute{aggregate: [step]}{
   Performs the given steps in parallel.
 

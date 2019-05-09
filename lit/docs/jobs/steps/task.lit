@@ -31,15 +31,15 @@ of a task.
     }}
   }
 
-  \example{Build Matrix with \code{aggregate}}{
+  \example{Build Matrix with \code{in_parallel}}{
     The following plan fetches a single repository and executes multiple tasks,
-    using the \reference{aggregate-step}{\code{aggregate}} step, in a build matrix
+    using the \reference{in-parallel-step}{\code{in_parallel}} step, in a build matrix
     style configuration:
 
     \codeblock{yaml}{{
     plan:
     - get: my-repo
-    - aggregate:
+    - in_parallel:
       - task: go-1.3
         file: my-repo/go-1.3.yml
       - task: go-1.4
@@ -47,7 +47,7 @@ of a task.
     }}
 
     Only if both tasks succeed will the build go green. See also
-    \reference{aggregate-step}.
+    \reference{in-parallel-step}.
   }
 }
 

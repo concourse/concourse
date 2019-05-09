@@ -22,6 +22,7 @@ appear as outputs.
 \include-section{./steps/put.lit}
 \include-section{./steps/task.lit}
 \include-section{./steps/aggregate.lit}
+\include-section{./steps/in_parallel.lit}
 \include-section{./steps/do.lit}
 \include-section{./steps/try.lit}
 \include-section{./steps/on_success.lit}

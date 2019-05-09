@@ -1,0 +1,106 @@
+\use-plugin{concourse-docs}
+
+\title{\code{in_parallel} step}{in-parallel-step}
+
+\define-attribute{in_parallel: ([step] | {config})}{
+  Performs the given steps in parallel.
+
+  If any sub-steps (or \reference{task-step}{\code{task}}) in a \code{parallel}
+  result in a failure or error, the parallel step as a whole is considered to have
+  failed or errored.
+
+  Two forms of configuration are supported. The simplest form is a simple array
+  of other steps, like so:
+
+  \codeblock{yaml}{{{
+  in_parallel:
+  - get: a
+  - get: b
+  }}}
+
+  This is shorthand for the following configuration:
+
+  \codeblock{yaml}{{{
+  in_parallel:
+    steps:
+    - get: a
+    - get: b
+  }}}
+
+  Further configuration can be specified as follows:
+
+  \define-attribute{steps: [step]}{
+    \italic{Optional.} The steps to perform in parallel.
+  }{in-parallel-steps}
+
+  \define-attribute{limit: integer}{
+    \italic{Optional. Default is no limit.} A sempahore which limits the
+    parallelism when executing the steps in a \code{in_parallel} step. When set,
+    the number of running steps will not exceed the limit.
+
+    When not specified \code{in_parallel} will execute all steps immediately,
+    making the default behavior identical to \reference{aggregate-step}{\code{aggregate}}.
+  }{in-parallel-limit}
+
+  \define-attribute{fail_fast: bool}{
+    \italic{Optional. Default is \code{false}.} When enabled the parallel step will
+    fail fast by returning as soon as any sub-step fails. This means that running steps
+    will be interrupted and pending steps will no longer be scheduled.
+  }{in-parallel-fail-fast}
+}
+
+\right-side{Examples}{
+  \example{Build Matrix}{
+    If any step in the \code{in_parallel} fails, the build will fail, making it
+    useful for build matrices:
+
+    \codeblock{yaml}{{
+    plan:
+    - get: some-repo
+    - in_parallel:
+      - task: unit-windows
+        file: some-repo/ci/windows.yml
+      - task: unit-linux
+        file: some-repo/ci/linux.yml
+      - task: unit-darwin
+        file: some-repo/ci/darwin.yml
+    }}
+  }
+
+  \example{Parallel Fetching}{
+    The \code{in_parallel} step is useful for speeding up builds, and is often used to fetch
+    all dependent resources together:
+
+    \codeblock{yaml}{{
+    plan:
+    - in_parallel:
+      - get: component-a
+      - get: component-b
+      - get: integration-suite
+    - task: integration
+      file: integration-suite/task.yml
+    }}
+  }
+
+  \example{Limited Parallelism}{
+    Using \code{limit} is useful for performing parallel execution of
+    a growing number of tasks without overloading your workers. In the example
+    below, two tasks will be run in parallel and in order until all steps have
+    been executed:
+
+    \codeblock{yaml}{{
+    plan:
+    - get: some-repo
+    - in_parallel:
+      limit: 2
+      fail_fast: false
+      steps:
+        - task: unit-windows
+          file: some-repo/ci/windows.yml
+        - task: unit-linux
+          file: some-repo/ci/linux.yml
+        - task: unit-darwin
+          file: some-repo/ci/darwin.yml
+    }}
+  }
+}
