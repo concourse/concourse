@@ -2,7 +2,10 @@
 
 \title{\code{aggregate} step}{aggregate-step}
 
-\italic{aggregate} is deprecated and will be removed in a future version. Please see \reference{in-parallel-step}{\code{in_parallel}} instead.
+\warn{
+  \code{aggregate} is deprecated and will be removed in a future version.
+  Please use the \reference{in-parallel-step} instead.
+}
 
 \define-attribute{aggregate: [step]}{
   Performs the given steps in parallel.
