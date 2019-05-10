@@ -202,7 +202,6 @@ func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.
 	})
 
 	err := d.build.SaveOutput(
-		logger,
 		plan.Type,
 		source,
 		resourceTypes,

@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 
-	"code.cloudfoundry.org/lager"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -43,12 +41,11 @@ func (cache *ResourceCacheDescriptor) find(tx Tx, lockFactory lock.LockFactory, 
 }
 
 func (cache *ResourceCacheDescriptor) findOrCreate(
-	logger lager.Logger,
 	tx Tx,
 	lockFactory lock.LockFactory,
 	conn Conn,
 ) (UsedResourceCache, error) {
-	resourceConfig, err := cache.ResourceConfigDescriptor.findOrCreate(logger, tx, lockFactory, conn)
+	resourceConfig, err := cache.ResourceConfigDescriptor.findOrCreate(tx, lockFactory, conn)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +95,6 @@ func (cache *ResourceCacheDescriptor) findOrCreate(
 }
 
 func (cache *ResourceCacheDescriptor) use(
-	logger lager.Logger,
 	tx Tx,
 	rc UsedResourceCache,
 	user ResourceCacheUser,

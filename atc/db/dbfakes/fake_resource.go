@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -299,12 +298,11 @@ type FakeResource struct {
 	setPinCommentReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetResourceConfigStub        func(lager.Logger, atc.Source, atc.VersionedResourceTypes) (db.ResourceConfigScope, error)
+	SetResourceConfigStub        func(atc.Source, atc.VersionedResourceTypes) (db.ResourceConfigScope, error)
 	setResourceConfigMutex       sync.RWMutex
 	setResourceConfigArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 atc.Source
-		arg3 atc.VersionedResourceTypes
+		arg1 atc.Source
+		arg2 atc.VersionedResourceTypes
 	}
 	setResourceConfigReturns struct {
 		result1 db.ResourceConfigScope
@@ -1884,18 +1882,17 @@ func (fake *FakeResource) SetPinCommentReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeResource) SetResourceConfig(arg1 lager.Logger, arg2 atc.Source, arg3 atc.VersionedResourceTypes) (db.ResourceConfigScope, error) {
+func (fake *FakeResource) SetResourceConfig(arg1 atc.Source, arg2 atc.VersionedResourceTypes) (db.ResourceConfigScope, error) {
 	fake.setResourceConfigMutex.Lock()
 	ret, specificReturn := fake.setResourceConfigReturnsOnCall[len(fake.setResourceConfigArgsForCall)]
 	fake.setResourceConfigArgsForCall = append(fake.setResourceConfigArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 atc.Source
-		arg3 atc.VersionedResourceTypes
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("SetResourceConfig", []interface{}{arg1, arg2, arg3})
+		arg1 atc.Source
+		arg2 atc.VersionedResourceTypes
+	}{arg1, arg2})
+	fake.recordInvocation("SetResourceConfig", []interface{}{arg1, arg2})
 	fake.setResourceConfigMutex.Unlock()
 	if fake.SetResourceConfigStub != nil {
-		return fake.SetResourceConfigStub(arg1, arg2, arg3)
+		return fake.SetResourceConfigStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1910,17 +1907,17 @@ func (fake *FakeResource) SetResourceConfigCallCount() int {
 	return len(fake.setResourceConfigArgsForCall)
 }
 
-func (fake *FakeResource) SetResourceConfigCalls(stub func(lager.Logger, atc.Source, atc.VersionedResourceTypes) (db.ResourceConfigScope, error)) {
+func (fake *FakeResource) SetResourceConfigCalls(stub func(atc.Source, atc.VersionedResourceTypes) (db.ResourceConfigScope, error)) {
 	fake.setResourceConfigMutex.Lock()
 	defer fake.setResourceConfigMutex.Unlock()
 	fake.SetResourceConfigStub = stub
 }
 
-func (fake *FakeResource) SetResourceConfigArgsForCall(i int) (lager.Logger, atc.Source, atc.VersionedResourceTypes) {
+func (fake *FakeResource) SetResourceConfigArgsForCall(i int) (atc.Source, atc.VersionedResourceTypes) {
 	fake.setResourceConfigMutex.RLock()
 	defer fake.setResourceConfigMutex.RUnlock()
 	argsForCall := fake.setResourceConfigArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResource) SetResourceConfigReturns(result1 db.ResourceConfigScope, result2 error) {

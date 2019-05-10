@@ -435,7 +435,7 @@ var _ = Describe("Team", func() {
 				pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), pipelineResourceTypes.Deserialize())
+				resourceConfigScope, err = defaultResource.SetResourceConfig(defaultResource.Source(), pipelineResourceTypes.Deserialize())
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceContainer, err = defaultWorker.CreateContainer(
@@ -446,7 +446,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("finds all the containers", func() {
-				containers, err := defaultTeam.Containers(logger)
+				containers, err := defaultTeam.Containers()
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(containers).To(HaveLen(2))
@@ -454,7 +454,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("does not find containers for other teams", func() {
-				containers, err := otherTeam.Containers(logger)
+				containers, err := otherTeam.Containers()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(containers).To(BeEmpty())
 			})
@@ -481,7 +481,7 @@ var _ = Describe("Team", func() {
 					Max: 1 * time.Hour,
 				}
 
-				resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), atc.VersionedResourceTypes{})
+				resourceConfigScope, err = defaultResource.SetResourceConfig(defaultResource.Source(), atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceContainer, err = worker.CreateContainer(
@@ -494,7 +494,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("finds the container", func() {
-				containers, err := defaultTeam.Containers(logger)
+				containers, err := defaultTeam.Containers()
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(containers).To(HaveLen(1))
@@ -559,7 +559,7 @@ var _ = Describe("Team", func() {
 						Max: 1 * time.Hour,
 					}
 
-					resourceConfigScope, err = otherResource.SetResourceConfig(logger, otherResource.Source(), atc.VersionedResourceTypes{})
+					resourceConfigScope, err = otherResource.SetResourceConfig(otherResource.Source(), atc.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 
 					resource2Container, err = worker.CreateContainer(
@@ -572,7 +572,7 @@ var _ = Describe("Team", func() {
 				})
 
 				It("returns the container only from the team", func() {
-					containers, err := otherTeam.Containers(logger)
+					containers, err := otherTeam.Containers()
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(containers).To(HaveLen(1))
@@ -591,7 +591,7 @@ var _ = Describe("Team", func() {
 						Max: 1 * time.Hour,
 					}
 
-					resourceConfigScope, err := defaultResource.SetResourceConfig(logger, defaultResource.Source(), atc.VersionedResourceTypes{})
+					resourceConfigScope, err := defaultResource.SetResourceConfig(defaultResource.Source(), atc.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 
 					globalResourceContainer, err = defaultWorker.CreateContainer(
@@ -604,7 +604,7 @@ var _ = Describe("Team", func() {
 				})
 
 				It("returns the container only from the team worker and global worker", func() {
-					containers, err := defaultTeam.Containers(logger)
+					containers, err := defaultTeam.Containers()
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(containers).To(HaveLen(2))
@@ -622,7 +622,7 @@ var _ = Describe("Team", func() {
 					Max: 1 * time.Hour,
 				}
 
-				resourceConfigScope, err := defaultResourceType.SetResourceConfig(logger, defaultResourceType.Source(), atc.VersionedResourceTypes{})
+				resourceConfigScope, err := defaultResourceType.SetResourceConfig(defaultResourceType.Source(), atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceContainer, err = defaultWorker.CreateContainer(
@@ -635,7 +635,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("finds the container", func() {
-				containers, err := defaultTeam.Containers(logger)
+				containers, err := defaultTeam.Containers()
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(containers).To(HaveLen(1))
@@ -1771,7 +1771,7 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			rc, err := resource.SetResourceConfig(logger, atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{})
+			rc, err := resource.SetResourceConfig(atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = rc.SaveVersions([]atc.Version{
@@ -1825,7 +1825,7 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			rc, err := resource.SetResourceConfig(logger, atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{})
+			rc, err := resource.SetResourceConfig(atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = rc.SaveVersions([]atc.Version{
@@ -2600,7 +2600,6 @@ var _ = Describe("Team", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
-							logger,
 							defaultResource.Type(),
 							defaultResource.Source(),
 							pipelineResourceTypes.Deserialize(),
@@ -2615,7 +2614,7 @@ var _ = Describe("Team", func() {
 					})
 
 					It("returns check container for resource", func() {
-						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource", fakeSecretManager)
+						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers("default-pipeline", "some-resource", fakeSecretManager)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(containers).To(HaveLen(1))
 						Expect(containers[0].ID()).To(Equal(resourceContainer.ID()))
@@ -2651,7 +2650,6 @@ var _ = Describe("Team", func() {
 							Expect(found).To(BeTrue())
 
 							resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
-								logger,
 								otherResource.Type(),
 								otherResource.Source(),
 								atc.VersionedResourceTypes{},
@@ -2665,7 +2663,7 @@ var _ = Describe("Team", func() {
 						})
 
 						It("returns the same check container", func() {
-							containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "other-pipeline", "some-resource", fakeSecretManager)
+							containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers("other-pipeline", "some-resource", fakeSecretManager)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(containers).To(HaveLen(1))
 							Expect(containers[0].ID()).To(Equal(otherResourceContainer.ID()))
@@ -2678,7 +2676,7 @@ var _ = Describe("Team", func() {
 
 				Context("when check container does not exist", func() {
 					It("returns empty list", func() {
-						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource", fakeSecretManager)
+						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers("default-pipeline", "some-resource", fakeSecretManager)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(containers).To(BeEmpty())
 						Expect(checkContainersExpiresAt).To(BeEmpty())
@@ -2688,7 +2686,7 @@ var _ = Describe("Team", func() {
 
 			Context("when resource does not exist", func() {
 				It("returns empty list", func() {
-					containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "non-existent-resource", fakeSecretManager)
+					containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers("default-pipeline", "non-existent-resource", fakeSecretManager)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(containers).To(BeEmpty())
 					Expect(checkContainersExpiresAt).To(BeEmpty())
@@ -2698,7 +2696,7 @@ var _ = Describe("Team", func() {
 
 		Context("when pipeline does not exist", func() {
 			It("returns empty list", func() {
-				containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "non-existent-pipeline", "some-resource", fakeSecretManager)
+				containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers("non-existent-pipeline", "some-resource", fakeSecretManager)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(containers).To(BeEmpty())
 				Expect(checkContainersExpiresAt).To(BeEmpty())
@@ -2716,7 +2714,6 @@ var _ = Describe("Team", func() {
 
 			BeforeEach(func() {
 				resourceConfigScope, err := defaultResource.SetResourceConfig(
-					logger,
 					defaultResource.Source(),
 					atc.VersionedResourceTypes{},
 				)

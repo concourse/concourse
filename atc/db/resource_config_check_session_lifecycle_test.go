@@ -28,7 +28,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 		Context("for resources", func() {
 			findOrCreateSessionForDefaultResource := func() int {
-				resourceConfigScope, err := defaultResource.SetResourceConfig(logger, defaultResource.Source(), atc.VersionedResourceTypes{})
+				resourceConfigScope, err := defaultResource.SetResourceConfig(defaultResource.Source(), atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiry)
@@ -122,7 +122,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 		Context("for resource types", func() {
 			findOrCreateSessionForDefaultResourceType := func() int {
-				resourceConfigScope, err := defaultResourceType.SetResourceConfig(logger,
+				resourceConfigScope, err := defaultResourceType.SetResourceConfig(
 					defaultResourceType.Source(),
 					atc.VersionedResourceTypes{},
 				)

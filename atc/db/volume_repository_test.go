@@ -24,7 +24,6 @@ var _ = Describe("VolumeFactory", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		usedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
-			logger,
 			db.ForBuild(build.ID()),
 			"some-type",
 			atc.Version{"some": "version"},
@@ -488,7 +487,6 @@ var _ = Describe("VolumeFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			usedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
-				logger,
 				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},

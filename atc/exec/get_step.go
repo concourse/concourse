@@ -156,7 +156,6 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
-		logger,
 		db.ForBuild(step.metadata.BuildID),
 		step.plan.Type,
 		version,

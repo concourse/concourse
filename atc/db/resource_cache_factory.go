@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -14,7 +13,6 @@ import (
 
 type ResourceCacheFactory interface {
 	FindOrCreateResourceCache(
-		logger lager.Logger,
 		resourceCacheUser ResourceCacheUser,
 		resourceTypeName string,
 		version atc.Version,
@@ -44,7 +42,6 @@ func NewResourceCacheFactory(conn Conn, lockFactory lock.LockFactory) ResourceCa
 }
 
 func (f *resourceCacheFactory) FindOrCreateResourceCache(
-	logger lager.Logger,
 	resourceCacheUser ResourceCacheUser,
 	resourceTypeName string,
 	version atc.Version,
@@ -70,12 +67,12 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 
 	defer Rollback(tx)
 
-	usedResourceCache, err := resourceCache.findOrCreate(logger, tx, f.lockFactory, f.conn)
+	usedResourceCache, err := resourceCache.findOrCreate(tx, f.lockFactory, f.conn)
 	if err != nil {
 		return nil, err
 	}
 
-	err = resourceCache.use(logger, tx, usedResourceCache, resourceCacheUser)
+	err = resourceCache.use(tx, usedResourceCache, resourceCacheUser)
 	if err != nil {
 		return nil, err
 	}

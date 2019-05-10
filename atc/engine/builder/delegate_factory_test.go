@@ -199,7 +199,7 @@ var _ = Describe("DelegateFactory", func() {
 
 			It("saves the build output", func() {
 				Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
-				_, resourceType, sourceArg, resourceTypesArg, version, metadata, name, resource := fakeBuild.SaveOutputArgsForCall(0)
+				resourceType, sourceArg, resourceTypesArg, version, metadata, name, resource := fakeBuild.SaveOutputArgsForCall(0)
 				Expect(resourceType).To(Equal(plan.Type))
 				Expect(sourceArg).To(Equal(source))
 				Expect(resourceTypesArg).To(Equal(resourceTypes))

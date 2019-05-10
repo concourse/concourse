@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -62,10 +61,9 @@ type FakeTeam struct {
 		result2 db.Pagination
 		result3 error
 	}
-	ContainersStub        func(lager.Logger) ([]db.Container, error)
+	ContainersStub        func() ([]db.Container, error)
 	containersMutex       sync.RWMutex
 	containersArgsForCall []struct {
-		arg1 lager.Logger
 	}
 	containersReturns struct {
 		result1 []db.Container
@@ -110,13 +108,12 @@ type FakeTeam struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	FindCheckContainersStub        func(lager.Logger, string, string, creds.Secrets) ([]db.Container, map[int]time.Time, error)
+	FindCheckContainersStub        func(string, string, creds.Secrets) ([]db.Container, map[int]time.Time, error)
 	findCheckContainersMutex       sync.RWMutex
 	findCheckContainersArgsForCall []struct {
-		arg1 lager.Logger
+		arg1 string
 		arg2 string
-		arg3 string
-		arg4 creds.Secrets
+		arg3 creds.Secrets
 	}
 	findCheckContainersReturns struct {
 		result1 []db.Container
@@ -646,16 +643,15 @@ func (fake *FakeTeam) BuildsWithTimeReturnsOnCall(i int, result1 []db.Build, res
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) Containers(arg1 lager.Logger) ([]db.Container, error) {
+func (fake *FakeTeam) Containers() ([]db.Container, error) {
 	fake.containersMutex.Lock()
 	ret, specificReturn := fake.containersReturnsOnCall[len(fake.containersArgsForCall)]
 	fake.containersArgsForCall = append(fake.containersArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("Containers", []interface{}{arg1})
+	}{})
+	fake.recordInvocation("Containers", []interface{}{})
 	fake.containersMutex.Unlock()
 	if fake.ContainersStub != nil {
-		return fake.ContainersStub(arg1)
+		return fake.ContainersStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -670,17 +666,10 @@ func (fake *FakeTeam) ContainersCallCount() int {
 	return len(fake.containersArgsForCall)
 }
 
-func (fake *FakeTeam) ContainersCalls(stub func(lager.Logger) ([]db.Container, error)) {
+func (fake *FakeTeam) ContainersCalls(stub func() ([]db.Container, error)) {
 	fake.containersMutex.Lock()
 	defer fake.containersMutex.Unlock()
 	fake.ContainersStub = stub
-}
-
-func (fake *FakeTeam) ContainersArgsForCall(i int) lager.Logger {
-	fake.containersMutex.RLock()
-	defer fake.containersMutex.RUnlock()
-	argsForCall := fake.containersArgsForCall[i]
-	return argsForCall.arg1
 }
 
 func (fake *FakeTeam) ContainersReturns(result1 []db.Container, result2 error) {
@@ -879,19 +868,18 @@ func (fake *FakeTeam) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) FindCheckContainers(arg1 lager.Logger, arg2 string, arg3 string, arg4 creds.Secrets) ([]db.Container, map[int]time.Time, error) {
+func (fake *FakeTeam) FindCheckContainers(arg1 string, arg2 string, arg3 creds.Secrets) ([]db.Container, map[int]time.Time, error) {
 	fake.findCheckContainersMutex.Lock()
 	ret, specificReturn := fake.findCheckContainersReturnsOnCall[len(fake.findCheckContainersArgsForCall)]
 	fake.findCheckContainersArgsForCall = append(fake.findCheckContainersArgsForCall, struct {
-		arg1 lager.Logger
+		arg1 string
 		arg2 string
-		arg3 string
-		arg4 creds.Secrets
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("FindCheckContainers", []interface{}{arg1, arg2, arg3, arg4})
+		arg3 creds.Secrets
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("FindCheckContainers", []interface{}{arg1, arg2, arg3})
 	fake.findCheckContainersMutex.Unlock()
 	if fake.FindCheckContainersStub != nil {
-		return fake.FindCheckContainersStub(arg1, arg2, arg3, arg4)
+		return fake.FindCheckContainersStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -906,17 +894,17 @@ func (fake *FakeTeam) FindCheckContainersCallCount() int {
 	return len(fake.findCheckContainersArgsForCall)
 }
 
-func (fake *FakeTeam) FindCheckContainersCalls(stub func(lager.Logger, string, string, creds.Secrets) ([]db.Container, map[int]time.Time, error)) {
+func (fake *FakeTeam) FindCheckContainersCalls(stub func(string, string, creds.Secrets) ([]db.Container, map[int]time.Time, error)) {
 	fake.findCheckContainersMutex.Lock()
 	defer fake.findCheckContainersMutex.Unlock()
 	fake.FindCheckContainersStub = stub
 }
 
-func (fake *FakeTeam) FindCheckContainersArgsForCall(i int) (lager.Logger, string, string, creds.Secrets) {
+func (fake *FakeTeam) FindCheckContainersArgsForCall(i int) (string, string, creds.Secrets) {
 	fake.findCheckContainersMutex.RLock()
 	defer fake.findCheckContainersMutex.RUnlock()
 	argsForCall := fake.findCheckContainersArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeTeam) FindCheckContainersReturns(result1 []db.Container, result2 map[int]time.Time, result3 error) {

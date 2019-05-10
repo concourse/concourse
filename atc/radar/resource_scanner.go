@@ -172,7 +172,6 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 	}
 
 	resourceConfigScope, err := savedResource.SetResourceConfig(
-		logger,
 		source,
 		versionedResourceTypes,
 	)

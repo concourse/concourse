@@ -127,7 +127,6 @@ func (i *imageResourceFetcher) Fetch(
 	}
 
 	resourceCache, err := i.dbResourceCacheFactory.FindOrCreateResourceCache(
-		logger,
 		db.ForContainer(container.ID()),
 		i.imageResource.Type,
 		version,

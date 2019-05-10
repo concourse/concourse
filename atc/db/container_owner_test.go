@@ -40,7 +40,7 @@ var _ = Describe("ContainerOwner", func() {
 			worker, err = workerFactory.SaveWorker(workerPayload, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger,
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				defaultWorkerResourceType.Type,
 				atc.Source{
 					"some-type": "source",
