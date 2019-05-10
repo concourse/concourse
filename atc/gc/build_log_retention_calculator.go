@@ -9,23 +9,23 @@ type BuildLogRetentionCalculator interface {
 }
 
 type buildLogRetentionCalculator struct {
-	defaultBuildLogsToRetain uint64
-	maxBuildLogsToRetain uint64
-	defaultBuildLogsDaysToRetain uint64
-	maxBuildLogsDaysToRetain uint64
+	defaultBuildLogsToRetain     uint64
+	maxBuildLogsToRetain         uint64
+	defaultDaysToRetainBuildLogs uint64
+	maxDaysToRetainBuildLogs     uint64
 }
 
 func NewBuildLogRetentionCalculator(
 	defaultBuildLogsToRetain uint64,
 	maxBuildLogsToRetain uint64,
-	defaultBuildLogsDaysToRetain uint64,
-	maxBuildLogsDaysToRetain uint64,
+	defaultDaysToRetainBuildLogs uint64,
+	maxDaysToRetainBuildLogs uint64,
 ) BuildLogRetentionCalculator {
 	return &buildLogRetentionCalculator{
-		defaultBuildLogsToRetain: defaultBuildLogsToRetain,
-		maxBuildLogsToRetain: maxBuildLogsToRetain,
-		defaultBuildLogsDaysToRetain: defaultBuildLogsDaysToRetain,
-		maxBuildLogsDaysToRetain: maxBuildLogsDaysToRetain,
+		defaultBuildLogsToRetain:     defaultBuildLogsToRetain,
+		maxBuildLogsToRetain:         maxBuildLogsToRetain,
+		defaultDaysToRetainBuildLogs: defaultDaysToRetainBuildLogs,
+		maxDaysToRetainBuildLogs:     maxDaysToRetainBuildLogs,
 	}
 }
 
@@ -45,16 +45,16 @@ func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) (int, int
 		buildLogsToRetain = int(blrc.defaultBuildLogsToRetain)
 	}
 	if daysToRetainBuildLogs == 0 {
-		daysToRetainBuildLogs = int(blrc.defaultBuildLogsDaysToRetain)
+		daysToRetainBuildLogs = int(blrc.defaultDaysToRetainBuildLogs)
 	}
 
 	// If we don't have a max set, then we're done
-	if blrc.maxBuildLogsToRetain == 0 && blrc.maxBuildLogsDaysToRetain == 0 {
+	if blrc.maxBuildLogsToRetain == 0 && blrc.maxDaysToRetainBuildLogs == 0 {
 		return buildLogsToRetain, daysToRetainBuildLogs
 	}
 
 	var buildLogsToRetainReturn int
-	var buildLogsDaysToRetainReturn int
+	var daysToRetainBuildLogsReturn int
 	// If we have a value set, and we're less than the max, then return
 	if buildLogsToRetain > 0 && buildLogsToRetain < int(blrc.maxBuildLogsToRetain) {
 		buildLogsToRetainReturn = buildLogsToRetain
@@ -62,12 +62,12 @@ func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) (int, int
 		buildLogsToRetainReturn= int(blrc.maxBuildLogsToRetain)
 	}
 
-	if daysToRetainBuildLogs > 0 && daysToRetainBuildLogs < int(blrc.maxBuildLogsDaysToRetain) {
-		buildLogsDaysToRetainReturn = daysToRetainBuildLogs
+	if daysToRetainBuildLogs > 0 && daysToRetainBuildLogs < int(blrc.maxDaysToRetainBuildLogs) {
+		daysToRetainBuildLogsReturn = daysToRetainBuildLogs
 	} else {
-		buildLogsDaysToRetainReturn = int(blrc.maxBuildLogsDaysToRetain)
+		daysToRetainBuildLogsReturn = int(blrc.maxDaysToRetainBuildLogs)
 	}
 
-	return buildLogsToRetainReturn, buildLogsDaysToRetainReturn
+	return buildLogsToRetainReturn, daysToRetainBuildLogsReturn
 
 }

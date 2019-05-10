@@ -54,8 +54,8 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 		}
 
 		for _, job := range jobs {
-			buildLogsToRetain, buildLogsDaysToRetain := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
-			if buildLogsToRetain == 0 && buildLogsDaysToRetain == 0 {
+			buildLogsToRetain, daysToRetainBuildLogs := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
+			if buildLogsToRetain == 0 && daysToRetainBuildLogs == 0 {
 				continue
 			}
 
@@ -130,8 +130,8 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 					}
 				}
 
-				if buildLogsDaysToRetain > 0 {
-					if build.StartTime().AddDate(0, 0, buildLogsDaysToRetain).After(time.Now()) {
+				if daysToRetainBuildLogs > 0 {
+					if build.StartTime().AddDate(0, 0, daysToRetainBuildLogs).After(time.Now()) {
 						continue
 					}
 				}
