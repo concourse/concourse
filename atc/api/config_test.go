@@ -667,6 +667,156 @@ jobs:
 							})
 						})
 
+						Describe("test validate cred params when the check_creds param is set in request", func() {
+							var (
+								payload string
+							)
+
+							BeforeEach(func() {
+								query := request.URL.Query()
+								query.Add(atc.SaveConfigCheckCreds, "")
+								request.URL.RawQuery = query.Encode()
+							})
+
+							ExpectCredsValidationPass := func() {
+								Context("when the param exists in creds manager", func() {
+									BeforeEach(func() {
+										fakeSecretManager.GetReturns("this-string-value-doesn't-matter", nil, true, nil)
+									})
+
+									It("passes validation", func() {
+										Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
+									})
+
+									It("returns 200 ok", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusOK))
+									})
+								})
+							}
+
+							ExpectCredsValidationFail := func() {
+								Context("when the param does not exist in creds manager", func() {
+									BeforeEach(func() {
+										fakeSecretManager.GetReturns(nil, nil, false, nil)
+									})
+
+									It("fail validation", func() {
+										Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
+									})
+
+									It("returns 400", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+									})
+
+								})
+							}
+							Context("when there is param in resource type config", func() {
+								BeforeEach(func() {
+									payload = `---
+resource_types:
+- name: some-type
+  type: some-base-resource-type
+  source:
+    FOO: ((BAR))`
+
+									request.Header.Set("Content-Type", "application/x-yaml")
+									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								})
+
+								ExpectCredsValidationPass()
+								ExpectCredsValidationFail()
+							})
+
+							Context("when there is param in resource source config", func() {
+								BeforeEach(func() {
+									payload = `---
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    FOO: ((BAR))
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource`
+
+									request.Header.Set("Content-Type", "application/x-yaml")
+									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								})
+
+								ExpectCredsValidationPass()
+								ExpectCredsValidationFail()
+							})
+
+							Context("when there is param in resource webhook token", func() {
+								BeforeEach(func() {
+									payload = `---
+resources:
+- name: some-resource
+  type: some-type
+  webhook_token: ((BAR))
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource`
+
+									request.Header.Set("Content-Type", "application/x-yaml")
+									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								})
+
+								ExpectCredsValidationPass()
+								ExpectCredsValidationFail()
+							})
+
+							Context("when it contains task that uses external config file and params in task params", func() {
+								BeforeEach(func() {
+									payload = `---
+resources:
+- name: some-resource
+  type: some-type
+  check_every: 10s
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource
+  - task: some-task
+    file: some-resource/config.yml
+    params:
+      FOO: ((BAR))`
+
+									request.Header.Set("Content-Type", "application/x-yaml")
+									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								})
+
+								ExpectCredsValidationPass()
+								ExpectCredsValidationFail()
+							})
+
+							Context("when it contains task that uses external config file and params in task vars", func() {
+								BeforeEach(func() {
+									payload = `---
+resources:
+- name: some-resource
+  type: some-type
+  check_every: 10s
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource
+  - task: some-task
+    file: some-resource/config.yml
+    vars:
+      FOO: ((BAR))`
+
+									request.Header.Set("Content-Type", "application/x-yaml")
+									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								})
+
+								ExpectCredsValidationPass()
+								ExpectCredsValidationFail()
+							})
+						})
+
 						Context("when it contains credentials to be interpolated", func() {
 							var (
 								payloadAsConfig atc.Config
