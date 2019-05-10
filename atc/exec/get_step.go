@@ -2,13 +2,13 @@ package exec
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -349,12 +349,8 @@ func streamFileHelper(s interface {
 		return nil, err
 	}
 
-	gzReader, err := gzip.NewReader(out)
-	if err != nil {
-		return nil, FileNotFoundError{Path: path}
-	}
-
-	tarReader := tar.NewReader(gzReader)
+	zstdReader := zstd.NewReader(out)
+	tarReader := tar.NewReader(zstdReader)
 
 	_, err = tarReader.Next()
 	if err != nil {
