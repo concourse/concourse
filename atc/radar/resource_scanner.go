@@ -207,7 +207,6 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 	for {
 		lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(
 			logger,
-			interval,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
