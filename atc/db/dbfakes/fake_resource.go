@@ -162,6 +162,18 @@ type FakeResource struct {
 	notifyScanReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ParentResourceTypeStub        func() (db.ResourceType, error)
+	parentResourceTypeMutex       sync.RWMutex
+	parentResourceTypeArgsForCall []struct {
+	}
+	parentResourceTypeReturns struct {
+		result1 db.ResourceType
+		result2 error
+	}
+	parentResourceTypeReturnsOnCall map[int]struct {
+		result1 db.ResourceType
+		result2 error
+	}
 	PinCommentStub        func() string
 	pinCommentMutex       sync.RWMutex
 	pinCommentArgsForCall []struct {
@@ -260,6 +272,18 @@ type FakeResource struct {
 		result2 bool
 		result3 error
 	}
+	ResourceTypesStub        func() (db.ResourceTypes, error)
+	resourceTypesMutex       sync.RWMutex
+	resourceTypesArgsForCall []struct {
+	}
+	resourceTypesReturns struct {
+		result1 db.ResourceTypes
+		result2 error
+	}
+	resourceTypesReturnsOnCall map[int]struct {
+		result1 db.ResourceTypes
+		result2 error
+	}
 	SaveUncheckedVersionStub        func(atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, atc.VersionedResourceTypes) (bool, error)
 	saveUncheckedVersionMutex       sync.RWMutex
 	saveUncheckedVersionArgsForCall []struct {
@@ -331,6 +355,16 @@ type FakeResource struct {
 	}
 	tagsReturnsOnCall map[int]struct {
 		result1 atc.Tags
+	}
+	TeamIDStub        func() int
+	teamIDMutex       sync.RWMutex
+	teamIDArgsForCall []struct {
+	}
+	teamIDReturns struct {
+		result1 int
+	}
+	teamIDReturnsOnCall map[int]struct {
+		result1 int
 	}
 	TeamNameStub        func() string
 	teamNameMutex       sync.RWMutex
@@ -1204,6 +1238,61 @@ func (fake *FakeResource) NotifyScanReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeResource) ParentResourceType() (db.ResourceType, error) {
+	fake.parentResourceTypeMutex.Lock()
+	ret, specificReturn := fake.parentResourceTypeReturnsOnCall[len(fake.parentResourceTypeArgsForCall)]
+	fake.parentResourceTypeArgsForCall = append(fake.parentResourceTypeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ParentResourceType", []interface{}{})
+	fake.parentResourceTypeMutex.Unlock()
+	if fake.ParentResourceTypeStub != nil {
+		return fake.ParentResourceTypeStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.parentResourceTypeReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResource) ParentResourceTypeCallCount() int {
+	fake.parentResourceTypeMutex.RLock()
+	defer fake.parentResourceTypeMutex.RUnlock()
+	return len(fake.parentResourceTypeArgsForCall)
+}
+
+func (fake *FakeResource) ParentResourceTypeCalls(stub func() (db.ResourceType, error)) {
+	fake.parentResourceTypeMutex.Lock()
+	defer fake.parentResourceTypeMutex.Unlock()
+	fake.ParentResourceTypeStub = stub
+}
+
+func (fake *FakeResource) ParentResourceTypeReturns(result1 db.ResourceType, result2 error) {
+	fake.parentResourceTypeMutex.Lock()
+	defer fake.parentResourceTypeMutex.Unlock()
+	fake.ParentResourceTypeStub = nil
+	fake.parentResourceTypeReturns = struct {
+		result1 db.ResourceType
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) ParentResourceTypeReturnsOnCall(i int, result1 db.ResourceType, result2 error) {
+	fake.parentResourceTypeMutex.Lock()
+	defer fake.parentResourceTypeMutex.Unlock()
+	fake.ParentResourceTypeStub = nil
+	if fake.parentResourceTypeReturnsOnCall == nil {
+		fake.parentResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 db.ResourceType
+			result2 error
+		})
+	}
+	fake.parentResourceTypeReturnsOnCall[i] = struct {
+		result1 db.ResourceType
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResource) PinComment() string {
 	fake.pinCommentMutex.Lock()
 	ret, specificReturn := fake.pinCommentReturnsOnCall[len(fake.pinCommentArgsForCall)]
@@ -1697,6 +1786,61 @@ func (fake *FakeResource) ResourceConfigVersionIDReturnsOnCall(i int, result1 in
 	}{result1, result2, result3}
 }
 
+func (fake *FakeResource) ResourceTypes() (db.ResourceTypes, error) {
+	fake.resourceTypesMutex.Lock()
+	ret, specificReturn := fake.resourceTypesReturnsOnCall[len(fake.resourceTypesArgsForCall)]
+	fake.resourceTypesArgsForCall = append(fake.resourceTypesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourceTypes", []interface{}{})
+	fake.resourceTypesMutex.Unlock()
+	if fake.ResourceTypesStub != nil {
+		return fake.ResourceTypesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.resourceTypesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResource) ResourceTypesCallCount() int {
+	fake.resourceTypesMutex.RLock()
+	defer fake.resourceTypesMutex.RUnlock()
+	return len(fake.resourceTypesArgsForCall)
+}
+
+func (fake *FakeResource) ResourceTypesCalls(stub func() (db.ResourceTypes, error)) {
+	fake.resourceTypesMutex.Lock()
+	defer fake.resourceTypesMutex.Unlock()
+	fake.ResourceTypesStub = stub
+}
+
+func (fake *FakeResource) ResourceTypesReturns(result1 db.ResourceTypes, result2 error) {
+	fake.resourceTypesMutex.Lock()
+	defer fake.resourceTypesMutex.Unlock()
+	fake.ResourceTypesStub = nil
+	fake.resourceTypesReturns = struct {
+		result1 db.ResourceTypes
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) ResourceTypesReturnsOnCall(i int, result1 db.ResourceTypes, result2 error) {
+	fake.resourceTypesMutex.Lock()
+	defer fake.resourceTypesMutex.Unlock()
+	fake.ResourceTypesStub = nil
+	if fake.resourceTypesReturnsOnCall == nil {
+		fake.resourceTypesReturnsOnCall = make(map[int]struct {
+			result1 db.ResourceTypes
+			result2 error
+		})
+	}
+	fake.resourceTypesReturnsOnCall[i] = struct {
+		result1 db.ResourceTypes
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResource) SaveUncheckedVersion(arg1 atc.Version, arg2 db.ResourceConfigMetadataFields, arg3 db.ResourceConfig, arg4 atc.VersionedResourceTypes) (bool, error) {
 	fake.saveUncheckedVersionMutex.Lock()
 	ret, specificReturn := fake.saveUncheckedVersionReturnsOnCall[len(fake.saveUncheckedVersionArgsForCall)]
@@ -2048,6 +2192,58 @@ func (fake *FakeResource) TagsReturnsOnCall(i int, result1 atc.Tags) {
 	}
 	fake.tagsReturnsOnCall[i] = struct {
 		result1 atc.Tags
+	}{result1}
+}
+
+func (fake *FakeResource) TeamID() int {
+	fake.teamIDMutex.Lock()
+	ret, specificReturn := fake.teamIDReturnsOnCall[len(fake.teamIDArgsForCall)]
+	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("TeamID", []interface{}{})
+	fake.teamIDMutex.Unlock()
+	if fake.TeamIDStub != nil {
+		return fake.TeamIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.teamIDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) TeamIDCallCount() int {
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
+	return len(fake.teamIDArgsForCall)
+}
+
+func (fake *FakeResource) TeamIDCalls(stub func() int) {
+	fake.teamIDMutex.Lock()
+	defer fake.teamIDMutex.Unlock()
+	fake.TeamIDStub = stub
+}
+
+func (fake *FakeResource) TeamIDReturns(result1 int) {
+	fake.teamIDMutex.Lock()
+	defer fake.teamIDMutex.Unlock()
+	fake.TeamIDStub = nil
+	fake.teamIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeResource) TeamIDReturnsOnCall(i int, result1 int) {
+	fake.teamIDMutex.Lock()
+	defer fake.teamIDMutex.Unlock()
+	fake.TeamIDStub = nil
+	if fake.teamIDReturnsOnCall == nil {
+		fake.teamIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.teamIDReturnsOnCall[i] = struct {
+		result1 int
 	}{result1}
 }
 
@@ -2426,6 +2622,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.nameMutex.RUnlock()
 	fake.notifyScanMutex.RLock()
 	defer fake.notifyScanMutex.RUnlock()
+	fake.parentResourceTypeMutex.RLock()
+	defer fake.parentResourceTypeMutex.RUnlock()
 	fake.pinCommentMutex.RLock()
 	defer fake.pinCommentMutex.RUnlock()
 	fake.pinVersionMutex.RLock()
@@ -2444,6 +2642,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.resourceConfigScopeIDMutex.RUnlock()
 	fake.resourceConfigVersionIDMutex.RLock()
 	defer fake.resourceConfigVersionIDMutex.RUnlock()
+	fake.resourceTypesMutex.RLock()
+	defer fake.resourceTypesMutex.RUnlock()
 	fake.saveUncheckedVersionMutex.RLock()
 	defer fake.saveUncheckedVersionMutex.RUnlock()
 	fake.setCheckSetupErrorMutex.RLock()
@@ -2456,6 +2656,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.sourceMutex.RUnlock()
 	fake.tagsMutex.RLock()
 	defer fake.tagsMutex.RUnlock()
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
 	fake.typeMutex.RLock()

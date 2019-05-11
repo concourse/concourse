@@ -19,8 +19,7 @@ var (
 var _ = BeforeEach(func() {
 	fakeContainer = new(workerfakes.FakeContainer)
 
-	resourceFactory := resource.NewResourceFactory()
-	resourceForContainer = resourceFactory.NewResourceForContainer(fakeContainer)
+	resourceForContainer = resource.NewResource(fakeContainer)
 })
 
 func TestResource(t *testing.T) {

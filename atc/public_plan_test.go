@@ -54,6 +54,17 @@ var _ = Describe("Plan", func() {
 					},
 
 					atc.Plan{
+						ID: "4.2",
+						Check: &atc.CheckPlan{
+							Type:   "type",
+							Name:   "name",
+							Source: atc.Source{"some": "source"},
+							Params: atc.Params{"some": "params"},
+							Tags:   atc.Tags{"tags"},
+						},
+					},
+
+					atc.Plan{
 						ID: "5",
 						Task: &atc.TaskPlan{
 							Name:       "name",
@@ -377,6 +388,13 @@ var _ = Describe("Plan", func() {
         "type": "type",
         "name": "name",
         "resource": "resource"
+      }
+    },
+    {
+      "id": "4.2",
+      "check": {
+        "type": "type",
+        "name": "name"
       }
     },
     {

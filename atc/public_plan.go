@@ -11,6 +11,7 @@ func (plan Plan) Public() *json.RawMessage {
 		Do             *json.RawMessage `json:"do,omitempty"`
 		Get            *json.RawMessage `json:"get,omitempty"`
 		Put            *json.RawMessage `json:"put,omitempty"`
+		Check          *json.RawMessage `json:"check,omitempty"`
 		Task           *json.RawMessage `json:"task,omitempty"`
 		OnAbort        *json.RawMessage `json:"on_abort,omitempty"`
 		OnError        *json.RawMessage `json:"on_error,omitempty"`
@@ -45,6 +46,10 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.Put != nil {
 		public.Put = plan.Put.Public()
+	}
+
+	if plan.Check != nil {
+		public.Check = plan.Check.Public()
 	}
 
 	if plan.Task != nil {
@@ -221,6 +226,16 @@ func (plan PutPlan) Public() *json.RawMessage {
 		Type:     plan.Type,
 		Name:     plan.Name,
 		Resource: plan.Resource,
+	})
+}
+
+func (plan CheckPlan) Public() *json.RawMessage {
+	return enc(struct {
+		Type string `json:"type"`
+		Name string `json:"name,omitempty"`
+	}{
+		Type: plan.Type,
+		Name: plan.Name,
 	})
 }
 

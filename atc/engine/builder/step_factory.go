@@ -98,6 +98,28 @@ func (factory *stepFactory) PutStep(
 	return exec.LogError(putStep, delegate)
 }
 
+func (factory *stepFactory) CheckStep(
+	plan atc.Plan,
+	stepMetadata exec.StepMetadata,
+	containerMetadata db.ContainerMetadata,
+	delegate exec.CheckDelegate,
+) exec.Step {
+
+	checkStep := exec.NewCheckStep(
+		plan.ID,
+		*plan.Check,
+		stepMetadata,
+		containerMetadata,
+		factory.resourceFactory,
+		factory.resourceConfigFactory,
+		factory.strategy,
+		factory.pool,
+		delegate,
+	)
+
+	return checkStep
+}
+
 func (factory *stepFactory) TaskStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,

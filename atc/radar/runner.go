@@ -18,6 +18,7 @@ type Runner struct {
 	noop bool
 
 	scanRunnerFactory ScanRunnerFactory
+	pipeline          db.Pipeline
 	syncInterval      time.Duration
 
 	scanning   *sync.Map
@@ -35,6 +36,7 @@ func NewRunner(
 		logger:            logger,
 		noop:              noop,
 		scanRunnerFactory: scanRunnerFactory,
+		pipeline:          pipeline,
 		syncInterval:      syncInterval,
 		scanning:          &sync.Map{},
 		scanningWg:        &sync.WaitGroup{},

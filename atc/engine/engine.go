@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 
 type Engine interface {
 	NewBuild(db.Build) Runnable
+	NewCheck(db.Check) Runnable
 	ReleaseAll(lager.Logger)
 }
 
@@ -30,6 +32,7 @@ type Runnable interface {
 
 type StepBuilder interface {
 	BuildStep(db.Build) (exec.Step, error)
+	CheckStep(db.Check) (exec.Step, error)
 }
 
 func NewEngine(builder StepBuilder) Engine {
@@ -70,6 +73,21 @@ func (engine *engine) NewBuild(build db.Build) Runnable {
 		ctx,
 		cancel,
 		build,
+		engine.builder,
+		engine.release,
+		engine.trackedStates,
+		engine.waitGroup,
+	)
+}
+
+func (engine *engine) NewCheck(check db.Check) Runnable {
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	return NewCheck(
+		ctx,
+		cancel,
+		check,
 		engine.builder,
 		engine.release,
 		engine.trackedStates,
@@ -259,11 +277,115 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 	}
 }
 
-func (build *engineBuild) runState() exec.RunState {
-	existingState, _ := build.trackedStates.LoadOrStore(build.build.ID(), exec.NewRunState())
+func (b *engineBuild) runState() exec.RunState {
+	id := fmt.Sprintf("build:%v", b.build.ID())
+	existingState, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState())
 	return existingState.(exec.RunState)
 }
 
-func (build *engineBuild) clearRunState() {
-	build.trackedStates.Delete(build.build.ID())
+func (b *engineBuild) clearRunState() {
+	id := fmt.Sprintf("build:%v", b.build.ID())
+	b.trackedStates.Delete(id)
+}
+
+func NewCheck(
+	ctx context.Context,
+	cancel func(),
+	check db.Check,
+	builder StepBuilder,
+	release chan bool,
+	trackedStates *sync.Map,
+	waitGroup *sync.WaitGroup,
+) Runnable {
+	return &engineCheck{
+		ctx:    ctx,
+		cancel: cancel,
+
+		check:   check,
+		builder: builder,
+
+		release:       release,
+		trackedStates: trackedStates,
+		waitGroup:     waitGroup,
+	}
+}
+
+type engineCheck struct {
+	ctx    context.Context
+	cancel func()
+
+	check   db.Check
+	builder StepBuilder
+
+	release       chan bool
+	trackedStates *sync.Map
+	waitGroup     *sync.WaitGroup
+}
+
+func (c *engineCheck) Run(logger lager.Logger) {
+	c.waitGroup.Add(1)
+	defer c.waitGroup.Done()
+
+	logger = logger.WithData(lager.Data{
+		"check": c.check.ID(),
+	})
+
+	lock, acquired, err := c.check.AcquireTrackingLock()
+	if err != nil {
+		logger.Error("failed-to-get-lock", err)
+		return
+	}
+
+	if !acquired {
+		logger.Debug("check-already-tracked")
+		return
+	}
+
+	defer lock.Release()
+
+	err = c.check.Start()
+	if err != nil {
+		logger.Error("failed-to-start-check", err)
+		return
+	}
+
+	step, err := c.builder.CheckStep(c.check)
+	if err != nil {
+		logger.Error("failed-to-create-check-step", err)
+		return
+	}
+
+	logger.Info("running")
+
+	state := c.runState()
+	defer c.clearRunState()
+
+	done := make(chan error)
+	go func() {
+		ctx := lagerctx.NewContext(c.ctx, logger)
+		done <- step.Run(ctx, state)
+	}()
+
+	select {
+	case <-c.release:
+		logger.Info("releasing")
+
+	case err = <-done:
+		if err != nil {
+			c.check.FinishWithError(err)
+		} else {
+			c.check.Finish()
+		}
+	}
+}
+
+func (c *engineCheck) runState() exec.RunState {
+	id := fmt.Sprintf("check:%v", c.check.ID())
+	existingState, _ := c.trackedStates.LoadOrStore(id, exec.NewRunState())
+	return existingState.(exec.RunState)
+}
+
+func (c *engineCheck) clearRunState() {
+	id := fmt.Sprintf("check:%v", c.check.ID())
+	c.trackedStates.Delete(id)
 }

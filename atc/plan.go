@@ -9,6 +9,7 @@ type Plan struct {
 	Do         *DoPlan         `json:"do,omitempty"`
 	Get        *GetPlan        `json:"get,omitempty"`
 	Put        *PutPlan        `json:"put,omitempty"`
+	Check      *CheckPlan      `json:"check,omitempty"`
 	Task       *TaskPlan       `json:"task,omitempty"`
 	OnAbort    *OnAbortPlan    `json:"on_abort,omitempty"`
 	OnError    *OnErrorPlan    `json:"on_error,omitempty"`
@@ -103,6 +104,18 @@ type PutPlan struct {
 	Params   Params        `json:"params,omitempty"`
 	Tags     Tags          `json:"tags,omitempty"`
 	Inputs   *InputsConfig `json:"inputs,omitempty"`
+
+	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+}
+
+type CheckPlan struct {
+	Type        string   `json:"type"`
+	Name        string   `json:"name,omitempty"`
+	Source      Source   `json:"source"`
+	Params      Params   `json:"params,omitempty"`
+	Tags        Tags     `json:"tags,omitempty"`
+	Timeout     string   `json:"timeout,omitempty"`
+	FromVersion *Version `json:"from_version,omitempty"`
 
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }

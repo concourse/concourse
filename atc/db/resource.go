@@ -22,6 +22,8 @@ type Resource interface {
 	Public() bool
 	PipelineID() int
 	PipelineName() string
+	ResourceTypes() (ResourceTypes, error)
+	TeamID() int
 	TeamName() string
 	Type() string
 	Source() atc.Source
@@ -59,9 +61,10 @@ type Resource interface {
 	NotifyScan() error
 
 	Reload() (bool, error)
+	ParentResourceType() (ResourceType, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.type, r.config, r.check_error, rs.last_check_start_time, rs.last_check_end_time, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, rs.check_error, rp.version, rp.comment_text").
+var resourcesQuery = psql.Select("r.id, r.name, r.type, r.config, r.check_error, rs.last_check_start_time, rs.last_check_end_time, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.id, t.name, rs.check_error, rp.version, rp.comment_text").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -75,6 +78,7 @@ type resource struct {
 	public                bool
 	pipelineID            int
 	pipelineName          string
+	teamID                int
 	teamName              string
 	type_                 string
 	source                atc.Source
@@ -142,6 +146,7 @@ func (r *resource) Name() string                     { return r.name }
 func (r *resource) Public() bool                     { return r.public }
 func (r *resource) PipelineID() int                  { return r.pipelineID }
 func (r *resource) PipelineName() string             { return r.pipelineName }
+func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
 func (r *resource) Type() string                     { return r.type_ }
 func (r *resource) Source() atc.Source               { return r.source }
@@ -174,6 +179,32 @@ func (r *resource) Reload() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (r *resource) ResourceTypes() (ResourceTypes, error) {
+	rows, err := resourceTypesQuery.
+		Where(sq.Eq{"r.pipeline_id": r.pipelineID}).
+		OrderBy("r.name").
+		RunWith(r.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer Close(rows)
+
+	resourceTypes := []ResourceType{}
+
+	for rows.Next() {
+		resourceType := &resourceType{conn: r.conn, lockFactory: r.lockFactory}
+		err := scanResourceType(resourceType, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		resourceTypes = append(resourceTypes, resourceType)
+	}
+
+	return resourceTypes, nil
 }
 
 func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
@@ -243,6 +274,10 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 	}
 
 	return resourceConfigScope, nil
+}
+
+func (r *resource) ParentResourceType() (ResourceType, error) {
+	return nil, errors.New("nope")
 }
 
 func (r *resource) SetCheckSetupError(cause error) error {
@@ -650,7 +685,7 @@ func scanResource(r *resource, row scannable) error {
 		lastCheckStartTime, lastCheckEndTime                                        pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamID, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
 	if err != nil {
 		return err
 	}
