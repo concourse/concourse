@@ -190,6 +190,15 @@
         }
       }, false);
 
+      var sideBarStateKey = "is_sidebar_open";
+      app.ports.loadSideBarState.subscribe(function() {
+        var sideBarState = sessionStorage.getItem(sideBarStateKey);
+        app.ports.sideBarStateReceived.send(sideBarState);
+      });
+      app.ports.saveSideBarState.subscribe(function(isOpen) {
+        sessionStorage.setItem(sideBarStateKey, isOpen);
+      });
+
       app.ports.openEventStream.subscribe(function(config) {
         var buffer = [];
         var es = new EventSource(config.url);
@@ -238,10 +247,10 @@
 
       app.ports.scrollIntoView.subscribe(function(id) {
         var interval = setInterval(function() {
-          buildTab = document.getElementById(id);
-          if (buildTab) {
+          thingToBeViewed = document.getElementById(id);
+          if (thingToBeViewed) {
             clearInterval(interval);
-            buildTab.scrollIntoView();
+            thingToBeViewed.scrollIntoView();
           }
         }, 20);
       });

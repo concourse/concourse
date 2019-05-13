@@ -49,13 +49,11 @@ import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(.
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
-import ScreenSize
-import Set exposing (Set)
+import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick)
 import Time
 import UpdateMsg exposing (UpdateMsg)
-import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.DictView as DictView
 import Views.Icon as Icon
@@ -399,17 +397,7 @@ documentTitle model =
     model.jobIdentifier.jobName
 
 
-view :
-    { a
-        | expandedTeams : Set String
-        , pipelines : List Concourse.Pipeline
-        , isSideBarOpen : Bool
-        , userState : UserState
-        , screenSize : ScreenSize.ScreenSize
-        , hovered : Maybe DomID
-    }
-    -> Model
-    -> Html Message
+view : Session a -> Model -> Html Message
 view session model =
     let
         route =
@@ -422,13 +410,7 @@ view session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu
-                { screenSize = session.screenSize
-                , hovered = session.hovered
-                , isSideBarOpen = session.isSideBarOpen
-                , pipelines = session.pipelines
-                , isPaused = False
-                }
+            [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
             , TopBar.breadcrumbs route
             , Login.view session.userState model False
@@ -440,13 +422,13 @@ view session model =
                 , pipelines = session.pipelines
                 , hovered = session.hovered
                 , isSideBarOpen = session.isSideBarOpen
-                , currentPipeline =
-                    Just
-                        { pipelineName = model.jobIdentifier.pipelineName
-                        , teamName = model.jobIdentifier.teamName
-                        }
                 , screenSize = session.screenSize
                 }
+                (Just
+                    { pipelineName = model.jobIdentifier.pipelineName
+                    , teamName = model.jobIdentifier.teamName
+                    }
+                )
             , viewMainJobsSection session model
             ]
         ]

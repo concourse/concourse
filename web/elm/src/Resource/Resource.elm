@@ -74,8 +74,7 @@ import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
-import ScreenSize
-import Set exposing (Set)
+import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents
 import Svg
@@ -696,17 +695,7 @@ documentTitle model =
     model.resourceIdentifier.resourceName
 
 
-view :
-    { a
-        | expandedTeams : Set String
-        , screenSize : ScreenSize.ScreenSize
-        , pipelines : List Concourse.Pipeline
-        , isSideBarOpen : Bool
-        , userState : UserState
-        , hovered : Maybe DomID
-    }
-    -> Model
-    -> Html Message
+view : Session a -> Model -> Html Message
 view session model =
     let
         route =
@@ -719,31 +708,19 @@ view session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu
-                { screenSize = session.screenSize
-                , pipelines = session.pipelines
-                , isSideBarOpen = session.isSideBarOpen
-                , hovered = session.hovered
-                , isPaused = False
-                }
+            [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
             , TopBar.breadcrumbs route
             , Login.view session.userState model False
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ SideBar.view
-                { expandedTeams = session.expandedTeams
-                , pipelines = session.pipelines
-                , hovered = session.hovered
-                , isSideBarOpen = session.isSideBarOpen
-                , currentPipeline =
-                    Just
-                        { pipelineName = model.resourceIdentifier.pipelineName
-                        , teamName = model.resourceIdentifier.teamName
-                        }
-                , screenSize = session.screenSize
-                }
+            [ SideBar.view session
+                (Just
+                    { pipelineName = model.resourceIdentifier.pipelineName
+                    , teamName = model.resourceIdentifier.teamName
+                    }
+                )
             , if model.pageStatus == Err Models.Empty then
                 Html.text ""
 

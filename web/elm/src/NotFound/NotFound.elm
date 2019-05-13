@@ -6,13 +6,12 @@ module NotFound.NotFound exposing
     , view
     )
 
-import Concourse
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (DomID, Message(..))
+import Message.Message exposing (Message(..))
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -22,10 +21,8 @@ import Message.Subscription
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model exposing (Model)
 import Routes
-import ScreenSize
-import Set exposing (Set)
+import Session exposing (Session)
 import SideBar.SideBar as SideBar
-import UserState exposing (UserState)
 import Views.Styles
 import Views.TopBar as TopBar
 
@@ -51,29 +48,13 @@ documentTitle =
     "Not Found"
 
 
-view :
-    { a
-        | expandedTeams : Set String
-        , screenSize : ScreenSize.ScreenSize
-        , pipelines : List Concourse.Pipeline
-        , isSideBarOpen : Bool
-        , userState : UserState
-        , hovered : Maybe DomID
-    }
-    -> Model
-    -> Html Message
+view : Session a -> Model -> Html Message
 view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu
-                { screenSize = session.screenSize
-                , pipelines = session.pipelines
-                , isSideBarOpen = session.isSideBarOpen
-                , hovered = session.hovered
-                , isPaused = False
-                }
+            [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
             , TopBar.breadcrumbs model.route
             , Login.view session.userState model False
@@ -85,9 +66,9 @@ view session model =
                 , pipelines = session.pipelines
                 , hovered = session.hovered
                 , isSideBarOpen = session.isSideBarOpen
-                , currentPipeline = Nothing
                 , screenSize = session.screenSize
                 }
+                Nothing
             , Html.div [ class "notfound" ]
                 [ Html.div [ class "title" ] [ Html.text "404" ]
                 , Html.div [ class "reason" ] [ Html.text "this page was not found" ]

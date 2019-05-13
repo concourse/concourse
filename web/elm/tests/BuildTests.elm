@@ -321,6 +321,237 @@ all =
                         , containing [ text "log message" ]
                         ]
                     |> Query.has [ class "highlighted-line" ]
+        , test "scrolls to highlighted line" <|
+            \_ ->
+                Application.init
+                    flags
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/jobs/j/builds/307"
+                    , query = Nothing
+                    , fragment = Just "Lstepid:1"
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 307
+                                  , name = "307"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message"
+                                                Nothing
+                                      }
+                                    ]
+                        )
+                    |> Tuple.second
+                    |> List.member (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
+                    |> Expect.true
+                        ("should scroll to highlighted line"
+                            ++ " as soon as it is rendered"
+                        )
+        , test "scrolls to top of highlighted range" <|
+            \_ ->
+                Application.init
+                    flags
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/jobs/j/builds/307"
+                    , query = Nothing
+                    , fragment = Just "Lstepid:1:3"
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 307
+                                  , name = "307"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message"
+                                                Nothing
+                                      }
+                                    ]
+                        )
+                    |> Tuple.second
+                    |> List.member (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
+                    |> Expect.true
+                        ("should scroll to highlighted line"
+                            ++ " as soon as it is rendered"
+                        )
+        , test "does not scroll to an invalid range" <|
+            \_ ->
+                Application.init
+                    flags
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/jobs/j/builds/307"
+                    , query = Nothing
+                    , fragment = Just "Lstepid:2:1"
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 307
+                                  , name = "307"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message\n"
+                                                Nothing
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message"
+                                                Nothing
+                                      }
+                                    ]
+                        )
+                    |> Tuple.second
+                    |> List.member (Effects.Scroll (Effects.ToId "stepid:2") "build-body")
+                    |> Expect.false "should not scroll"
         , describe "page title"
             [ test "with a job build" <|
                 \_ ->
@@ -474,6 +705,14 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "not-authorized" ]
+        , test "focuses build body when build is fetched" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                    |> Tuple.second
+                    |> List.member (Effects.Focus Build.bodyId)
+                    |> Expect.true "should focus build body"
         , test "events from a different build are discarded" <|
             \_ ->
                 Application.init
@@ -618,7 +857,8 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToBottom "build-body" ]
+                    |> List.member (Effects.Scroll Effects.ToBottom "build-body")
+                    |> Expect.true "should scroll to bottom"
         , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 initFromApplication

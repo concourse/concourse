@@ -90,6 +90,12 @@ port setFavicon : String -> Cmd msg
 port renderSvgIcon : String -> Cmd msg
 
 
+port loadSideBarState : () -> Cmd msg
+
+
+port saveSideBarState : Bool -> Cmd msg
+
+
 type alias StickyHeaderConfig =
     { pageHeaderHeight : Float
     , pageBodyClass : String
@@ -167,6 +173,8 @@ type Effect
     | Blur String
     | RenderSvgIcon String
     | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
+    | LoadSideBarState
+    | SaveSideBarState Bool
 
 
 type alias VersionId =
@@ -410,6 +418,12 @@ runEffect effect key csrfToken =
                 pipelineId.pipelineName
                 csrfToken
                 |> Task.attempt (VisibilityChanged action pipelineId)
+
+        LoadSideBarState ->
+            loadSideBarState ()
+
+        SaveSideBarState isOpen ->
+            saveSideBarState isOpen
 
 
 scrollInDirection : ScrollDirection -> String -> Cmd Callback

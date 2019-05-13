@@ -13,7 +13,6 @@ module SubPage.SubPage exposing
 import Browser
 import Build.Build as Build
 import Build.Models
-import Concourse
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models
 import EffectTransformer exposing (ET)
@@ -33,10 +32,8 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
-import ScreenSize
-import Set exposing (Set)
+import Session exposing (Session)
 import UpdateMsg exposing (UpdateMsg)
-import UserState exposing (UserState)
 
 
 type Model
@@ -231,10 +228,7 @@ handleDelivery session delivery =
         identity
 
 
-update :
-    { a | hovered : Maybe DomID, screenSize : ScreenSize.ScreenSize }
-    -> Message
-    -> ET Model
+update : Session a -> Message -> ET Model
 update session msg =
     genericUpdate
         (Login.update msg >> Build.update session msg)
@@ -307,17 +301,7 @@ urlUpdate route =
         identity
 
 
-view :
-    { a
-        | userState : UserState
-        , pipelines : List Concourse.Pipeline
-        , isSideBarOpen : Bool
-        , expandedTeams : Set String
-        , screenSize : ScreenSize.ScreenSize
-        , hovered : Maybe DomID
-    }
-    -> Model
-    -> Browser.Document TopLevelMessage
+view : Session a -> Model -> Browser.Document TopLevelMessage
 view ({ userState } as session) mdl =
     let
         ( title, body ) =
