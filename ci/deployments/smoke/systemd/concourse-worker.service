@@ -10,6 +10,8 @@ LimitNPROC=infinity
 LimitNOFILE=infinity
 TasksMax=infinity
 MemoryLimit=infinity
+Delegate=yes
+KillMode=none
 
 [Install]
 WantedBy=multi-user.target
