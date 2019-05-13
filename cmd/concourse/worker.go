@@ -41,7 +41,7 @@ type WorkerCommand struct {
 	HealthCheckTimeout  time.Duration `long:"healthcheck-timeout"    default:"5s"       description:"HTTP timeout for the full duration of health checking."`
 
 	SweepInterval               time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
-	VolumeSweeperMaxInFlight    uint16        `long:"volume-sweeper-max-in-flight" default:"5" description:"Maximum number of volumes which can be swept in parallel."`
+	VolumeSweeperMaxInFlight    uint16        `long:"volume-sweeper-max-in-flight" default:"3" description:"Maximum number of volumes which can be swept in parallel."`
 	ContainerSweeperMaxInFlight uint16        `long:"container-sweeper-max-in-flight" default:"5" description:"Maximum number of containers which can be swept in parallel."`
 
 	RebalanceInterval time.Duration `long:"rebalance-interval" description:"Duration after which the registration should be swapped to another random SSH gateway."`
