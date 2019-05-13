@@ -197,7 +197,7 @@ func validateCredParams(credMgrVars creds.Variables, config atc.Config, session 
 				// external task - we can't really validate much right now, because task yaml will be
 				// retrieved in runtime during job execution. but we can validate vars and params which will be
 				// passed to this task
-				err = creds.NewTaskParamsValidator(credMgrVars, plan.TaskConfig.Params).Validate()
+				err = creds.NewTaskParamsValidator(credMgrVars, plan.Params).Validate()
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}

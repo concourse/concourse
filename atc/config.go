@@ -379,6 +379,7 @@ type PlanConfig struct {
 	TaskConfig *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
 
 	// used by Get and Put for specifying params to the resource
+	// used by Task for passing params to external task config
 	Params Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
 
 	// used to pass specific inputs/outputs as generic inputs/outputs in task config
