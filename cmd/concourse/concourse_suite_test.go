@@ -15,12 +15,16 @@ func TestConcourse(t *testing.T) {
 
 var concoursePath string
 
-var _ = BeforeSuite(func() {
-	var err error
-	concoursePath, err = gexec.Build("github.com/concourse/concourse/cmd/concourse")
+var _ = SynchronizedBeforeSuite(func() []byte {
+	buildPath, err := gexec.Build("github.com/concourse/concourse/cmd/concourse")
 	Expect(err).NotTo(HaveOccurred())
+	return []byte(buildPath)
+}, func(data []byte) {
+	concoursePath = string(data)
 })
 
-var _ = AfterSuite(func() {
+var _ = SynchronizedAfterSuite(func() {
+	// other nodes don't need to do any clean up, as it's already taken care of by the first node
+}, func() {
 	gexec.CleanupBuildArtifacts()
 })
