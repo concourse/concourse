@@ -75,7 +75,7 @@ var _ = Describe("Web Command", func() {
 
 		Context("but no session signing key is provided", func() {
 			It("should fail due to missing db credentials", func() {
-				Eventually(concourseRunner.Buffer()).Should(gbytes.Say("dial tcp 127.0.0.1:5432: connect: connection refused"))
+				Eventually(concourseRunner.Buffer(), "10s", "2s").Should(gbytes.Say("dial tcp 127.0.0.1:5432: connect: connection refused"))
 			})
 		})
 
@@ -98,10 +98,13 @@ var _ = Describe("Web Command", func() {
 					"--postgres-port", strconv.Itoa(5433+GinkgoParallelNode()),
 					"--main-team-local-user", "test",
 					"--add-local-user", "test:test",
+					"--debug-bind-port", strconv.Itoa(8000+GinkgoParallelNode()),
+					"--bind-port", strconv.Itoa(8080+GinkgoParallelNode()),
+					"--tsa-bind-port", strconv.Itoa(2222+GinkgoParallelNode()),
 				)
 			})
 
-			var _ = AfterEach(func() {
+			AfterEach(func() {
 				postgresRunner.DropTestDB()
 
 				dbProcess.Signal(os.Interrupt)
@@ -110,11 +113,11 @@ var _ = Describe("Web Command", func() {
 			})
 
 			It("ATC should start up", func() {
-				Eventually(concourseRunner.Buffer(), "10s", "2s").Should(gbytes.Say("atc.listening"))
+				Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
 			})
 
 			It("TSA should start up", func() {
-				Eventually(concourseRunner.Buffer(), "10s", "2s").Should(gbytes.Say("tsa.listening"))
+				Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
 			})
 
 		})
