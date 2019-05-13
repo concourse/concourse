@@ -73,8 +73,8 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	cmd.TSACommand.SessionSigningKey = cmd.RunCommand.Auth.AuthFlags.SigningKey
 	cmd.TSACommand.PeerAddress = cmd.PeerAddress
 
-	if cmd.RunCommand.Auth.AuthFlags.SigningKey.PrivateKey == nil &&
-		cmd.TSACommand.SessionSigningKey.PrivateKey == nil {
+	if (cmd.RunCommand.Auth.AuthFlags.SigningKey == nil || cmd.RunCommand.Auth.AuthFlags.SigningKey.PrivateKey == nil) &&
+		(cmd.TSACommand.SessionSigningKey == nil || cmd.TSACommand.SessionSigningKey.PrivateKey == nil) {
 		signingKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return fmt.Errorf("failed to generate session signing key: %s", err)
