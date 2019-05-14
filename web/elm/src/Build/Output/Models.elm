@@ -1,6 +1,5 @@
 module Build.Output.Models exposing (OutputModel, OutputState(..))
 
-import Ansi.Log
 import Build.StepTree.Models exposing (StepTreeModel)
 import Routes exposing (Highlight)
 

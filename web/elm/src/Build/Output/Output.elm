@@ -19,7 +19,6 @@ import Build.StepTree.Models as StepTree
         , StepTreeModel
         )
 import Build.StepTree.StepTree
-import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
 import Dict
@@ -29,7 +28,6 @@ import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
 import Routes exposing (StepID)
 import Time
-import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
 
 
