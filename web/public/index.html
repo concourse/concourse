@@ -225,14 +225,6 @@
         setInterval(flush, 200);
       });
 
-      window.onscroll = function(event) {
-        var yOffset = event.currentTarget.pageYOffset;
-        var clientHeight = event.target.documentElement.clientHeight;
-        var scrollHeight = event.target.documentElement.scrollHeight;
-        var atBottom = scrollHeight === yOffset + clientHeight;
-        app.ports.scrolledToBottom.send(atBottom);
-      }
-
       app.ports.checkIsVisible.subscribe(function(id) {
         var interval = setInterval(function() {
           var element = document.getElementById(id);
@@ -243,42 +235,6 @@
             app.ports.reportIsVisible.send([id, isVisible]);
           }
         }, 20);
-      });
-
-      app.ports.scrollIntoView.subscribe(function(id) {
-        var interval = setInterval(function() {
-          thingToBeViewed = document.getElementById(id);
-          if (thingToBeViewed) {
-            clearInterval(interval);
-            thingToBeViewed.scrollIntoView();
-          }
-        }, 20);
-      });
-
-      app.ports.scrollElement.subscribe(function(arg) {
-        var id = arg[0];
-        var delta = arg[1];
-        document.getElementById(id).scrollLeft -= delta;
-      });
-
-      app.ports.scrollToBottom.subscribe(function(id) {
-        var thingToScroll = document.getElementById(id);
-        thingToScroll.scrollTo(0, thingToScroll.scrollHeight);
-      });
-
-      app.ports.scrollToTop.subscribe(function(id) {
-        var thingToScroll = document.getElementById(id);
-        thingToScroll.scrollTo(0, 0);
-      });
-
-      app.ports.scrollUp.subscribe(function(id) {
-        var thingToScroll = document.getElementById(id);
-        thingToScroll.scrollBy(0, -60);
-      });
-
-      app.ports.scrollDown.subscribe(function(id) {
-        var thingToScroll = document.getElementById(id);
-        thingToScroll.scrollBy(0, 60);
       });
 
       app.ports.setFavicon.subscribe(function(url) {

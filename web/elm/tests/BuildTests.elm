@@ -20,6 +20,7 @@ import Dict
 import Expect
 import Html.Attributes as Attr
 import Http
+import Json.Encode as Encode
 import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
@@ -871,6 +872,34 @@ all =
                         }
                     |> Tuple.second
                     |> Expect.equal []
+        , test "build body has scroll handler" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "build-body" ]
+                    |> Event.simulate
+                        (Event.custom "scroll" <|
+                            Encode.object
+                                [ ( "target"
+                                  , Encode.object
+                                        [ ( "clientHeight", Encode.int 0 )
+                                        , ( "scrollTop", Encode.int 0 )
+                                        , ( "scrollHeight", Encode.int 0 )
+                                        ]
+                                  )
+                                ]
+                        )
+                    |> Event.expect
+                        (Msgs.Update <|
+                            Message.Message.Scrolled
+                                { scrollHeight = 0
+                                , scrollTop = 0
+                                , clientHeight = 0
+                                }
+                        )
         , test "when build is running but the user is not scrolled to the bottom it does not scroll on build event" <|
             \_ ->
                 initFromApplication
@@ -878,7 +907,13 @@ all =
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update
-                        (Msgs.DeliveryReceived (ScrolledToBottom False))
+                        (Msgs.Update <|
+                            Message.Message.Scrolled
+                                { scrollHeight = 2
+                                , scrollTop = 0
+                                , clientHeight = 1
+                                }
+                        )
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
@@ -893,10 +928,22 @@ all =
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update
-                        (Msgs.DeliveryReceived (ScrolledToBottom False))
+                        (Msgs.Update <|
+                            Message.Message.Scrolled
+                                { scrollHeight = 2
+                                , scrollTop = 0
+                                , clientHeight = 1
+                                }
+                        )
                     |> Tuple.first
                     |> Application.update
-                        (Msgs.DeliveryReceived (ScrolledToBottom True))
+                        (Msgs.Update <|
+                            Message.Message.Scrolled
+                                { scrollHeight = 2
+                                , scrollTop = 1
+                                , clientHeight = 1
+                                }
+                        )
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"

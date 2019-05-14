@@ -7,7 +7,7 @@ port module Message.Effects exposing
     , stickyHeaderConfig
     )
 
-import Browser.Dom exposing (getViewport)
+import Browser.Dom exposing (Viewport, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus
@@ -61,24 +61,6 @@ port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
 
 
 port closeEventStream : () -> Cmd msg
-
-
-port scrollIntoView : String -> Cmd msg
-
-
-port scrollElement : ( String, Float ) -> Cmd msg
-
-
-port scrollToBottom : String -> Cmd msg
-
-
-port scrollToTop : String -> Cmd msg
-
-
-port scrollUp : String -> Cmd msg
-
-
-port scrollDown : String -> Cmd msg
 
 
 port checkIsVisible : String -> Cmd msg
@@ -382,8 +364,23 @@ runEffect effect key csrfToken =
             Network.Build.abort buildId csrfToken
                 |> Task.attempt BuildAborted
 
-        Scroll dir id ->
-            scrollInDirection dir id
+        Scroll ToTop id ->
+            scroll id id (always 0) (always 0)
+
+        Scroll Down id ->
+            scroll id id (always 0) (.viewport >> .y >> (+) 60)
+
+        Scroll Up id ->
+            scroll id id (always 0) (.viewport >> .y >> (+) -60)
+
+        Scroll ToBottom id ->
+            scroll id id (always 0) (.scene >> .height)
+
+        Scroll (Sideways delta) id ->
+            scroll id id (.viewport >> .x >> (+) -delta) (always 0)
+
+        Scroll (ToId id) idOfThingToScroll ->
+            scroll id idOfThingToScroll (.viewport >> .x) (.viewport >> .y)
 
         SaveToken tokenValue ->
             saveToken tokenValue
@@ -426,26 +423,22 @@ runEffect effect key csrfToken =
             saveSideBarState isOpen
 
 
-scrollInDirection : ScrollDirection -> String -> Cmd Callback
-scrollInDirection dir idOfThingToScroll =
-    case dir of
-        ToTop ->
-            scrollToTop idOfThingToScroll
-
-        Down ->
-            scrollDown idOfThingToScroll
-
-        Up ->
-            scrollUp idOfThingToScroll
-
-        ToBottom ->
-            scrollToBottom idOfThingToScroll
-
-        Sideways delta ->
-            scrollElement ( idOfThingToScroll, delta )
-
-        ToId id ->
-            scrollIntoView id
+scroll :
+    String
+    -> String
+    -> (Viewport -> Float)
+    -> (Viewport -> Float)
+    -> Cmd Callback
+scroll srcId idOfThingToScroll getX getY =
+    getViewportOf srcId
+        |> Task.andThen
+            (\info ->
+                setViewportOf
+                    idOfThingToScroll
+                    (getX info)
+                    (getY info)
+            )
+        |> Task.attempt (\_ -> EmptyCallback)
 
 
 faviconName : Maybe Concourse.BuildStatus -> String

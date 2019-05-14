@@ -26,9 +26,6 @@ port tokenReceived : (Maybe String -> msg) -> Sub msg
 port eventSource : (Json.Encode.Value -> msg) -> Sub msg
 
 
-port scrolledToBottom : (Bool -> msg) -> Sub msg
-
-
 port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
 
 
@@ -40,7 +37,6 @@ type Subscription
     | OnMouse
     | OnKeyDown
     | OnKeyUp
-    | OnScrollToBottom
     | OnWindowResize
     | FromEventSource ( String, List String )
     | OnNonHrefLinkClicked
@@ -54,7 +50,6 @@ type Delivery
     | KeyUp Keyboard.KeyEvent
     | Moused
     | ClockTicked Interval Time.Posix
-    | ScrolledToBottom Bool
     | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
@@ -89,16 +84,9 @@ runSubscription s =
         OnKeyUp ->
             onKeyUp (Keyboard.decodeKeyEvent |> Json.Decode.map KeyUp)
 
-        OnScrollToBottom ->
-            scrolledToBottom ScrolledToBottom
-
         OnWindowResize ->
             onResize
-                (\width height ->
-                    WindowResized
-                        (toFloat width)
-                        (toFloat height)
-                )
+                (\width height -> WindowResized (toFloat width) (toFloat height))
 
         FromEventSource _ ->
             eventSource

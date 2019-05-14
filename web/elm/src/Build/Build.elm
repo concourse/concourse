@@ -53,7 +53,7 @@ import RemoteData
 import Routes
 import Session exposing (Session)
 import SideBar.SideBar as SideBar
-import StrictEvents exposing (onLeftClick, onMouseWheel)
+import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
 import Time
 import UpdateMsg exposing (UpdateMsg)
@@ -127,7 +127,6 @@ subscriptions model =
     in
     [ OnClockTick OneSecond
     , OnClockTick FiveSeconds
-    , OnScrollToBottom
     , OnKeyDown
     , OnKeyUp
     , OnElementVisible
@@ -356,9 +355,6 @@ handleDelivery session delivery ( model, effects ) =
         ClockTicked FiveSeconds _ ->
             ( model, effects ++ [ Effects.FetchPipelines ] )
 
-        ScrolledToBottom atBottom ->
-            ( { model | autoScroll = atBottom }, effects )
-
         EventsReceived result ->
             let
                 eventSourceClosed =
@@ -535,6 +531,11 @@ update session msg ( model, effects ) =
 
         GoToRoute route ->
             ( model, effects ++ [ NavigateTo <| Routes.toString <| route ] )
+
+        Scrolled { scrollHeight, scrollTop, clientHeight } ->
+            ( { model | autoScroll = scrollHeight == scrollTop + clientHeight }
+            , effects
+            )
 
         _ ->
             ( model, effects )
@@ -967,6 +968,7 @@ body { currentBuild, authorized, showHelp, timeZone } =
         ([ class "scrollable-body build-body"
          , id bodyId
          , tabindex 0
+         , onScroll Scrolled
          ]
             ++ Styles.body
         )
