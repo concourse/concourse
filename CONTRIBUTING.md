@@ -271,7 +271,7 @@ fakes for our unit tests. You may need to regenerate fakes if you add or modify 
 interface. To do so, you'll need to install `counterfeiter` as follows:
 
 ```sh
-$ go get -u https://github.com/maxbrunsfeld/counterfeiter/v6
+$ go get -u github.com/maxbrunsfeld/counterfeiter/v6
 ```
 
 You can then generate the fakes by running

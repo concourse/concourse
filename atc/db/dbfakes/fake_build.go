@@ -123,17 +123,6 @@ type FakeBuild struct {
 	finishReturnsOnCall map[int]struct {
 		result1 error
 	}
-	FinishWithErrorStub        func(error) error
-	finishWithErrorMutex       sync.RWMutex
-	finishWithErrorArgsForCall []struct {
-		arg1 error
-	}
-	finishWithErrorReturns struct {
-		result1 error
-	}
-	finishWithErrorReturnsOnCall map[int]struct {
-		result1 error
-	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
 	iDArgsForCall []struct {
@@ -1030,66 +1019,6 @@ func (fake *FakeBuild) FinishReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.finishReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) FinishWithError(arg1 error) error {
-	fake.finishWithErrorMutex.Lock()
-	ret, specificReturn := fake.finishWithErrorReturnsOnCall[len(fake.finishWithErrorArgsForCall)]
-	fake.finishWithErrorArgsForCall = append(fake.finishWithErrorArgsForCall, struct {
-		arg1 error
-	}{arg1})
-	fake.recordInvocation("FinishWithError", []interface{}{arg1})
-	fake.finishWithErrorMutex.Unlock()
-	if fake.FinishWithErrorStub != nil {
-		return fake.FinishWithErrorStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.finishWithErrorReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) FinishWithErrorCallCount() int {
-	fake.finishWithErrorMutex.RLock()
-	defer fake.finishWithErrorMutex.RUnlock()
-	return len(fake.finishWithErrorArgsForCall)
-}
-
-func (fake *FakeBuild) FinishWithErrorCalls(stub func(error) error) {
-	fake.finishWithErrorMutex.Lock()
-	defer fake.finishWithErrorMutex.Unlock()
-	fake.FinishWithErrorStub = stub
-}
-
-func (fake *FakeBuild) FinishWithErrorArgsForCall(i int) error {
-	fake.finishWithErrorMutex.RLock()
-	defer fake.finishWithErrorMutex.RUnlock()
-	argsForCall := fake.finishWithErrorArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeBuild) FinishWithErrorReturns(result1 error) {
-	fake.finishWithErrorMutex.Lock()
-	defer fake.finishWithErrorMutex.Unlock()
-	fake.FinishWithErrorStub = nil
-	fake.finishWithErrorReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) FinishWithErrorReturnsOnCall(i int, result1 error) {
-	fake.finishWithErrorMutex.Lock()
-	defer fake.finishWithErrorMutex.Unlock()
-	fake.FinishWithErrorStub = nil
-	if fake.finishWithErrorReturnsOnCall == nil {
-		fake.finishWithErrorReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.finishWithErrorReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -2981,8 +2910,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.eventsMutex.RUnlock()
 	fake.finishMutex.RLock()
 	defer fake.finishMutex.RUnlock()
-	fake.finishWithErrorMutex.RLock()
-	defer fake.finishWithErrorMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.interceptibleMutex.RLock()

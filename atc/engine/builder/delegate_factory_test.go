@@ -20,7 +20,7 @@ import (
 
 var _ = Describe("DelegateFactory", func() {
 	var (
-		logger    lager.Logger
+		logger    *lagertest.TestLogger
 		fakeBuild *dbfakes.FakeBuild
 		fakeClock *fakeclock.FakeClock
 	)
@@ -264,7 +264,7 @@ var _ = Describe("DelegateFactory", func() {
 					})
 				})
 
-				Context("when saving the event succeeds", func() {
+				Context("when saving the event fails", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
@@ -275,6 +275,44 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(writtenBytes).To(Equal(0))
 						Expect(writeErr).To(Equal(disaster))
 					})
+				})
+			})
+		})
+
+		Describe("Errored", func() {
+			JustBeforeEach(func() {
+				delegate.Errored(logger, "fake error message")
+			})
+
+			Context("when saving the event succeeds", func() {
+				BeforeEach(func() {
+					fakeBuild.SaveEventReturns(nil)
+				})
+
+				It("saves it with the current time", func() {
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Error{
+						Time:    123456789,
+						Message: "fake error message",
+						Origin: event.Origin{
+							ID: "some-plan-id",
+						},
+					}))
+				})
+			})
+
+			Context("when saving the event fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeBuild.SaveEventReturns(disaster)
+				})
+
+				It("logs an error", func() {
+					logs := logger.Logs()
+					Expect(len(logs)).To(Equal(1))
+					Expect(logs[0].Message).To(Equal("test.failed-to-save-error-event"))
+					Expect(logs[0].Data).To(Equal(lager.Data{"error": "nope"}))
 				})
 			})
 		})

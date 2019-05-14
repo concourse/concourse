@@ -1201,45 +1201,6 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("FinishWithError", func() {
-		var cause error
-		var build db.Build
-
-		BeforeEach(func() {
-			var err error
-			build, err = team.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		JustBeforeEach(func() {
-			cause = errors.New("disaster")
-			err := build.FinishWithError(cause)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("creates Error event", func() {
-			found, err := build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusErrored))
-
-			events, err := build.Events(0)
-			Expect(err).NotTo(HaveOccurred())
-
-			defer db.Close(events)
-
-			Expect(events.Next()).To(Equal(envelope(event.Error{
-				Message: "disaster",
-			})))
-		})
-
-		It("updates build status", func() {
-			found, err := build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusErrored))
-		})
-	})
 })
 
 func envelope(ev atc.Event) event.Envelope {

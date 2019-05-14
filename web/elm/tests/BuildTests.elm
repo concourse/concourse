@@ -3069,40 +3069,6 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
-                , test "erroring build has orange exclamation triangle" <|
-                    fetchPlanWithGetStep
-                        >> Application.handleDelivery
-                            (EventsReceived <|
-                                Ok <|
-                                    [ { url = eventsUrl
-                                      , data = STModels.Opened
-                                      }
-                                    ]
-                            )
-                        >> Tuple.first
-                        >> Application.handleDelivery
-                            (EventsReceived <|
-                                Ok <|
-                                    [ { url = eventsUrl
-                                      , data =
-                                            STModels.BuildError
-                                                "error message"
-                                      }
-                                    ]
-                            )
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.findAll [ class "header" ]
-                        >> Query.first
-                        >> Query.children []
-                        >> Query.first
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = "ic-exclamation-triangle.svg"
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
