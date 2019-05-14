@@ -191,16 +191,11 @@ decodeFinishResource cons =
 
 decodeErrorEvent : Json.Decode.Decoder BuildEvent
 decodeErrorEvent =
-    Json.Decode.oneOf
-        [ Json.Decode.map3
-            Error
-            (Json.Decode.field "origin" decodeOrigin)
-            (Json.Decode.field "message" Json.Decode.string)
-            (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
-        , Json.Decode.map
-            BuildError
-            (Json.Decode.field "message" Json.Decode.string)
-        ]
+    Json.Decode.map3
+        Error
+        (Json.Decode.field "origin" decodeOrigin)
+        (Json.Decode.field "message" Json.Decode.string)
+        (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
 
 
 decodeOrigin : Json.Decode.Decoder Origin

@@ -19,7 +19,6 @@ import Build.StepTree.Models as StepTree
         , StepTreeModel
         )
 import Build.StepTree.StepTree
-import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
 import Dict
@@ -29,7 +28,6 @@ import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
 import Routes exposing (StepID)
 import Time
-import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
 
 
@@ -50,7 +48,6 @@ init highlight build =
 
         model =
             { steps = Nothing
-            , errors = Nothing
             , state = outputState
             , eventStreamUrlPath = Nothing
             , eventSourceOpened = False
@@ -228,17 +225,6 @@ handleEvent event ( model, effects, outmsg ) =
             in
             ( { model | steps = newSt }, effects, OutBuildStatus status date )
 
-        BuildError message ->
-            ( { model
-                | errors =
-                    Just <|
-                        Ansi.Log.update message <|
-                            Maybe.withDefault (Ansi.Log.init Ansi.Log.Cooked) model.errors
-              }
-            , effects
-            , outmsg
-            )
-
         End ->
             ( { model | state = StepsComplete, eventStreamUrlPath = Nothing }
             , effects
@@ -347,11 +333,8 @@ setStepFinish mtime tree =
 
 
 view : Time.Zone -> OutputModel -> Html Message
-view timeZone { steps, errors, state } =
-    Html.div [ class "steps" ]
-        [ viewErrors errors
-        , viewStepTree timeZone steps state
-        ]
+view timeZone { steps, state } =
+    Html.div [ class "steps" ] [ viewStepTree timeZone steps state ]
 
 
 viewStepTree :
@@ -372,27 +355,3 @@ viewStepTree timeZone steps state =
 
         ( _, Nothing ) ->
             Html.div [] []
-
-
-viewErrors : Maybe Ansi.Log.Model -> Html Message
-viewErrors errors =
-    case errors of
-        Nothing ->
-            Html.div [] []
-
-        Just log ->
-            Html.div [ class "build-step" ]
-                [ Html.div [ class "header" ]
-                    [ Icon.icon
-                        { sizePx = 28
-                        , image = "ic-exclamation-triangle.svg"
-                        }
-                        Styles.stepStatusIcon
-                    , Html.h3 [] [ Html.text "error" ]
-                    ]
-                , Html.div [ class "step-body build-errors-body" ]
-                    [ Html.pre
-                        []
-                        (Array.toList (Array.map Ansi.Log.viewLine log.lines))
-                    ]
-                ]

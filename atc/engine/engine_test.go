@@ -50,7 +50,7 @@ var _ = Describe("Engine", func() {
 		})
 
 		JustBeforeEach(func() {
-			build, err = engine.LookupBuild(logger, fakeBuild)
+			build = engine.LookupBuild(logger, fakeBuild)
 		})
 
 		It("succeeds", func() {

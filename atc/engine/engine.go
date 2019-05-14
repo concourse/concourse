@@ -16,7 +16,7 @@ import (
 //go:generate counterfeiter . Engine
 
 type Engine interface {
-	LookupBuild(lager.Logger, db.Build) (Build, error)
+	LookupBuild(lager.Logger, db.Build) Build
 	ReleaseAll(lager.Logger)
 }
 
@@ -50,7 +50,7 @@ type engine struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (engine *engine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
+func (engine *engine) LookupBuild(logger lager.Logger, build db.Build) Build {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -62,7 +62,7 @@ func (engine *engine) LookupBuild(logger lager.Logger, build db.Build) (Build, e
 		engine.release,
 		engine.trackedStates,
 		engine.waitGroup,
-	), nil
+	)
 }
 
 func (engine *engine) ReleaseAll(logger lager.Logger) {

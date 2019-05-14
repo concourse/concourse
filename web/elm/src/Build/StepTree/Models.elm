@@ -132,7 +132,6 @@ type BuildEvent
     | FinishPut Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
     | Log Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix
-    | BuildError String
     | End
     | Opened
     | NetworkError

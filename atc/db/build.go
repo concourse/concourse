@@ -85,7 +85,6 @@ type Build interface {
 	Preparation() (BuildPreparation, bool, error)
 
 	Start(atc.Plan) (bool, error)
-	FinishWithError(cause error) error
 	Finish(BuildStatus) error
 
 	SetInterceptible(bool) error
@@ -309,17 +308,6 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func (b *build) FinishWithError(cause error) error {
-	err := b.SaveEvent(event.Error{
-		Message: cause.Error(),
-	})
-	if err != nil {
-		return err
-	}
-
-	return b.Finish(BuildStatusErrored)
 }
 
 func (b *build) Finish(status BuildStatus) error {
