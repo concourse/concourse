@@ -142,8 +142,13 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 			}
 
 			if len(buildIDsToDelete) == 0 {
+				logger.Debug("no-builds-to-reap")
 				continue
 			}
+
+			logger.Debug("reaping-builds", lager.Data{
+				"build-ids": buildIDsToDelete,
+			})
 
 			err = pipeline.DeleteBuildEventsByBuildIDs(buildIDsToDelete)
 			if err != nil {
