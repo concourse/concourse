@@ -1301,6 +1301,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	return api.NewHandler(
 		logger,
 		cmd.ExternalURL.String(),
+		cmd.Server.ClusterName,
 		apiWrapper,
 
 		teamFactory,

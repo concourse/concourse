@@ -32,6 +32,7 @@ var (
 	sink *lager.ReconfigurableSink
 
 	externalURL = "https://example.com"
+	clusterName = "Test Cluster"
 
 	fakeWorkerClient        *workerfakes.FakeClient
 	fakeVolumeRepository    *dbfakes.FakeVolumeRepository
@@ -152,6 +153,7 @@ var _ = BeforeEach(func() {
 		logger,
 
 		externalURL,
+		clusterName,
 
 		wrappa.NewAPIAuthWrappa(
 			checkPipelineAccessHandlerFactory,
