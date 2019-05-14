@@ -17,7 +17,7 @@ var _ = Describe("BuildLogRetentionCalculator", func() {
 		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("nothing set but job gives job", func() {
-		logRetention := NewBuildLogRetentionCalculator(0, 0,0, 0).BuildLogsToRetain(makeJob(3, 0))
+		logRetention := NewBuildLogRetentionCalculator(0, 0, 0, 0).BuildLogsToRetain(makeJob(3, 0))
 		Expect(logRetention.Builds).To(Equal(3))
 		Expect(logRetention.Days).To(Equal(0))
 	})
@@ -37,12 +37,12 @@ var _ = Describe("BuildLogRetentionCalculator", func() {
 		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("max only set gives max", func() {
-		logRetention := NewBuildLogRetentionCalculator(0, 4,0, 0).BuildLogsToRetain(makeJob(0, 0))
+		logRetention := NewBuildLogRetentionCalculator(0, 4, 0, 0).BuildLogsToRetain(makeJob(0, 0))
 		Expect(logRetention.Builds).To(Equal(4))
 		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("mix of count and days with max", func() {
-		logRetention := NewBuildLogRetentionCalculator(2, 4,3, 2).BuildLogsToRetain(makeJob(5, 5))
+		logRetention := NewBuildLogRetentionCalculator(2, 4, 3, 2).BuildLogsToRetain(makeJob(5, 5))
 		Expect(logRetention.Builds).To(Equal(4))
 		Expect(logRetention.Days).To(Equal(2))
 	})

@@ -122,7 +122,6 @@ var _ = Describe("Audit", func() {
 		})
 	})
 
-
 	Describe("EnableContainerAuditLog", func() {
 
 		Context("When EnableContainerAuditLog is false with a Container action", func() {
@@ -235,7 +234,6 @@ var _ = Describe("Audit", func() {
 		})
 	})
 
-
 	Describe("EnablePipelineAuditLog", func() {
 
 		Context("When EnablePipelineAuditLog is false with a Pipeline action", func() {
@@ -291,8 +289,6 @@ var _ = Describe("Audit", func() {
 			})
 		})
 	})
-
-
 
 	Describe("EnableResourceAuditLog", func() {
 
@@ -350,8 +346,6 @@ var _ = Describe("Audit", func() {
 		})
 	})
 
-
-
 	Describe("EnableSystemAuditLog", func() {
 
 		Context("When EnableSystemAuditLog is false with a System action", func() {
@@ -407,7 +401,6 @@ var _ = Describe("Audit", func() {
 			})
 		})
 	})
-
 
 	Describe("EnableTeamAuditLog", func() {
 

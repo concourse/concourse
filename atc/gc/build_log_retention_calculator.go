@@ -6,7 +6,7 @@ import (
 )
 
 type BuildLogRetentionCalculator interface {
-	BuildLogsToRetain(db.Job) (atc.BuildLogRetention)
+	BuildLogsToRetain(db.Job) atc.BuildLogRetention
 }
 
 type buildLogRetentionCalculator struct {
@@ -30,7 +30,7 @@ func NewBuildLogRetentionCalculator(
 	}
 }
 
-func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) (atc.BuildLogRetention) {
+func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) atc.BuildLogRetention {
 	// What does the job want?
 	var daysToRetainBuildLogs = 0
 	var buildLogsToRetain = 0

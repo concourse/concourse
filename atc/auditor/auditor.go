@@ -9,7 +9,6 @@ import (
 
 //go:generate counterfeiter . Auditor
 
-
 func NewAuditor(
 	EnableBuildAuditLog bool,
 	EnableContainerAuditLog bool,
@@ -23,7 +22,7 @@ func NewAuditor(
 	logger lager.Logger,
 ) *auditor {
 	return &auditor{
-		EnableBuildAuditLog:     EnableBuildAuditLog ,
+		EnableBuildAuditLog:     EnableBuildAuditLog,
 		EnableContainerAuditLog: EnableContainerAuditLog,
 		EnableJobAuditLog:       EnableJobAuditLog,
 		EnablePipelineAuditLog:  EnablePipelineAuditLog,
@@ -36,22 +35,21 @@ func NewAuditor(
 	}
 }
 
-
 type Auditor interface {
 	Audit(action string, userName string, r *http.Request)
 }
 
 type auditor struct {
-	EnableBuildAuditLog bool
+	EnableBuildAuditLog     bool
 	EnableContainerAuditLog bool
-	EnableJobAuditLog bool
-	EnablePipelineAuditLog bool
-	EnableResourceAuditLog bool
-	EnableSystemAuditLog bool
-	EnableTeamAuditLog bool
-	EnableWorkerAuditLog bool
-	EnableVolumeAuditLog bool
-	logger lager.Logger
+	EnableJobAuditLog       bool
+	EnablePipelineAuditLog  bool
+	EnableResourceAuditLog  bool
+	EnableSystemAuditLog    bool
+	EnableTeamAuditLog      bool
+	EnableWorkerAuditLog    bool
+	EnableVolumeAuditLog    bool
+	logger                  lager.Logger
 }
 
 func (a *auditor) ValidateAction(action string) bool {
@@ -80,10 +78,10 @@ func (a *auditor) ValidateAction(action string) bool {
 }
 
 func (a *auditor) Audit(action string, userName string, r *http.Request) {
-		err := r.ParseForm()
-		if err == nil &&  a.ValidateAction(action) {
-			a.logger.Info("audit", lager.Data{"action": action, "user": userName, "parameters": r.Form})
-		}
+	err := r.ParseForm()
+	if err == nil && a.ValidateAction(action) {
+		a.logger.Info("audit", lager.Data{"action": action, "user": userName, "parameters": r.Form})
+	}
 }
 
 var loggingLevels = map[string]string{

@@ -3,10 +3,12 @@ package gc
 import (
 	"context"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 
-	"github.com/concourse/concourse/atc/db"
 	"time"
+
+	"github.com/concourse/concourse/atc/db"
 )
 
 type buildLogCollector struct {

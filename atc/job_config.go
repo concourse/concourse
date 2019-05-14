@@ -24,7 +24,7 @@ type JobConfig struct {
 
 type BuildLogRetention struct {
 	Builds int `yaml:"builds,omitempty" json:"builds,omitempty" mapstructure:"builds"`
-	Days int   `yaml:"days,omitempty" json:"days,omitempty" mapstructure:"days"`
+	Days   int `yaml:"days,omitempty" json:"days,omitempty" mapstructure:"days"`
 }
 
 func (config JobConfig) Hooks() Hooks {

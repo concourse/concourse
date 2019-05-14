@@ -12,7 +12,7 @@ func NewAccessorWrappa(accessorFactory accessor.AccessFactory, aud auditor.Audit
 
 type AccessorWrappa struct {
 	accessorFactory accessor.AccessFactory
-	auditor auditor.Auditor
+	auditor         auditor.Auditor
 }
 
 func (w *AccessorWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
