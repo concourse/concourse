@@ -18,7 +18,6 @@ type Certs struct{}
 func (cmd WorkerCommand) lessenRequirements(prefix string, command *flags.Command) {
 	// created in the work-dir
 	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
-	command.FindOptionByLongName(prefix + "tsa-worker-private-key").Required = false
 }
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
