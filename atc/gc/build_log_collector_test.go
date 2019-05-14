@@ -766,10 +766,10 @@ func sb(id int) db.Build {
 	return build
 }
 
-func sbTime(id int, start time.Time) db.Build {
+func sbTime(id int, end time.Time) db.Build {
 	build := new(dbfakes.FakeBuild)
 	build.IDReturns(id)
-	build.StartTimeReturns(start)
+	build.EndTimeReturns(end)
 	build.IsRunningReturns(false)
 	return build
 }

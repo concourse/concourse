@@ -1,11 +1,12 @@
 package gc
 
 import (
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
 type BuildLogRetentionCalculator interface {
-	BuildLogsToRetain(db.Job) (int, int)
+	BuildLogsToRetain(db.Job) (atc.BuildLogRetention)
 }
 
 type buildLogRetentionCalculator struct {
@@ -29,7 +30,7 @@ func NewBuildLogRetentionCalculator(
 	}
 }
 
-func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) (int, int) {
+func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) (atc.BuildLogRetention) {
 	// What does the job want?
 	var daysToRetainBuildLogs = 0
 	var buildLogsToRetain = 0
@@ -50,24 +51,23 @@ func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) (int, int
 
 	// If we don't have a max set, then we're done
 	if blrc.maxBuildLogsToRetain == 0 && blrc.maxDaysToRetainBuildLogs == 0 {
-		return buildLogsToRetain, daysToRetainBuildLogs
+		return atc.BuildLogRetention{buildLogsToRetain, daysToRetainBuildLogs}
 	}
 
-	var buildLogsToRetainReturn int
-	var daysToRetainBuildLogsReturn int
+	var logRetention atc.BuildLogRetention
 	// If we have a value set, and we're less than the max, then return
 	if buildLogsToRetain > 0 && buildLogsToRetain < int(blrc.maxBuildLogsToRetain) {
-		buildLogsToRetainReturn = buildLogsToRetain
+		logRetention.Builds = buildLogsToRetain
 	} else {
-		buildLogsToRetainReturn= int(blrc.maxBuildLogsToRetain)
+		logRetention.Builds = int(blrc.maxBuildLogsToRetain)
 	}
 
 	if daysToRetainBuildLogs > 0 && daysToRetainBuildLogs < int(blrc.maxDaysToRetainBuildLogs) {
-		daysToRetainBuildLogsReturn = daysToRetainBuildLogs
+		logRetention.Days = daysToRetainBuildLogs
 	} else {
-		daysToRetainBuildLogsReturn = int(blrc.maxDaysToRetainBuildLogs)
+		logRetention.Days = int(blrc.maxDaysToRetainBuildLogs)
 	}
 
-	return buildLogsToRetainReturn, daysToRetainBuildLogsReturn
+	return logRetention
 
 }

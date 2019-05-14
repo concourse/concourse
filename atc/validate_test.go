@@ -1293,7 +1293,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			It("returns an error", func() {
 				Expect(errorMessages).To(HaveLen(1))
-				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job can't use both build_log_retention and deprecated build_logs_to_retain"))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job can't use both build_log_retention and build_logs_to_retain"))
 			})
 		})
 

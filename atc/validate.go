@@ -220,7 +220,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 		if job.BuildLogRetention != nil && job.BuildLogsToRetain != 0 {
 			errorMessages = append(
 				errorMessages,
-				identifier+fmt.Sprintf(" can't use both build_log_retention and deprecated build_logs_to_retain"),
+				identifier+fmt.Sprintf(" can't use both build_log_retention and build_logs_to_retain"),
 			)
 		} else if job.BuildLogsToRetain < 0 {
 			errorMessages = append(

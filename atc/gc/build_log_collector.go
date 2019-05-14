@@ -54,8 +54,8 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 		}
 
 		for _, job := range jobs {
-			buildLogsToRetain, daysToRetainBuildLogs := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
-			if buildLogsToRetain == 0 && daysToRetainBuildLogs == 0 {
+			logRetention := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
+			if logRetention.Builds == 0 && logRetention.Days == 0 {
 				continue
 			}
 
@@ -99,9 +99,9 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 
 			var firstBuildToRetain int
 
-			if buildLogsToRetain > 0 {
+			if logRetention.Builds > 0 {
 				buildsToRetain, _, err := job.Builds(
-					db.Page{Limit: buildLogsToRetain},
+					db.Page{Limit: logRetention.Builds},
 				)
 
 				if err != nil {
@@ -120,7 +120,7 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 			for i := len(buildsToConsiderDeleting) - 1; i >= 0; i-- {
 				build := buildsToConsiderDeleting[i]
 
-				if buildLogsToRetain > 0 && build.ID() >= firstBuildToRetain || build.IsRunning() {
+				if logRetention.Builds > 0 && build.ID() >= firstBuildToRetain || build.IsRunning() {
 					break
 				}
 
@@ -130,8 +130,8 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 					}
 				}
 
-				if daysToRetainBuildLogs > 0 {
-					if build.StartTime().AddDate(0, 0, daysToRetainBuildLogs).After(time.Now()) {
+				if logRetention.Days > 0 {
+					if build.EndTime().AddDate(0, 0, logRetention.Days).After(time.Now()) {
 						continue
 					}
 				}
