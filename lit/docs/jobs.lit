@@ -27,7 +27,7 @@ configured job consists of the following fields:
   queue up and execute one-by-one, rather than executing in parallel.
 }{job-serial}
 
-\define-attribute{build_logs_to_retain: number}{
+\define-attribute{build_logs_to_retain: number | config }{
   \italic{Optional.} If configured, only the last specified number of builds
   will have their build logs persisted. This is useful if you have a job that
   runs periodically but after some amount of time the logs aren't worth keeping
@@ -39,6 +39,31 @@ configured job consists of the following fields:
   jobs:
   - name: smoke-tests
     build_logs_to_retain: 100
+    plan:
+    - get: 10m
+    - task: smoke-tests
+      # ...
+  }}
+
+  \define-attribute{days: number}{
+    \italic{Optional.} If configured, only builds in the past days specified
+    will have their build logs persisted.
+  }
+
+  \define-attribute{builds: number}{
+    \italic{Optional.} If configured, only the last specified number of builds
+    will have their build logs persisted.
+  }
+
+  Example:
+  This will ensure build logs within the past 2 days and the last 10 builds are
+  kept regardless of age.
+  \codeblock{yaml}{{
+  jobs:
+  - name: smoke-tests
+    build_logs_to_retain:
+      days: 2
+      builds: 10
     plan:
     - get: 10m
     - task: smoke-tests
