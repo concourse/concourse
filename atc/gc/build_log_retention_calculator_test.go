@@ -12,29 +12,49 @@ import (
 
 var _ = Describe("BuildLogRetentionCalculator", func() {
 	It("nothing set gives all", func() {
-		Expect(NewBuildLogRetentionCalculator(0, 0).BuildLogsToRetain(makeJob(0))).To(Equal(0))
+		logRetention := NewBuildLogRetentionCalculator(0, 0, 0, 0).BuildLogsToRetain(makeJob(0, 0))
+		Expect(logRetention.Builds).To(Equal(0))
+		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("nothing set but job gives job", func() {
-		Expect(NewBuildLogRetentionCalculator(0, 0).BuildLogsToRetain(makeJob(3))).To(Equal(3))
+		logRetention := NewBuildLogRetentionCalculator(0, 0,0, 0).BuildLogsToRetain(makeJob(3, 0))
+		Expect(logRetention.Builds).To(Equal(3))
+		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("default set gives default", func() {
-		Expect(NewBuildLogRetentionCalculator(5, 0).BuildLogsToRetain(makeJob(0))).To(Equal(5))
+		logRetention := NewBuildLogRetentionCalculator(5, 0, 0, 0).BuildLogsToRetain(makeJob(0, 0))
+		Expect(logRetention.Builds).To(Equal(5))
+		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("default and job set gives job", func() {
-		Expect(NewBuildLogRetentionCalculator(5, 0).BuildLogsToRetain(makeJob(6))).To(Equal(6))
+		logRetention := NewBuildLogRetentionCalculator(5, 0, 0, 0).BuildLogsToRetain(makeJob(6, 0))
+		Expect(logRetention.Builds).To(Equal(6))
+		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("default and job set and max set gives max if lower", func() {
-		Expect(NewBuildLogRetentionCalculator(5, 4).BuildLogsToRetain(makeJob(6))).To(Equal(4))
+		logRetention := NewBuildLogRetentionCalculator(5, 4, 0, 0).BuildLogsToRetain(makeJob(6, 0))
+		Expect(logRetention.Builds).To(Equal(4))
+		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("max only set gives max", func() {
-		Expect(NewBuildLogRetentionCalculator(0, 4).BuildLogsToRetain(makeJob(0))).To(Equal(4))
+		logRetention := NewBuildLogRetentionCalculator(0, 4,0, 0).BuildLogsToRetain(makeJob(0, 0))
+		Expect(logRetention.Builds).To(Equal(4))
+		Expect(logRetention.Days).To(Equal(0))
+	})
+	It("mix of count and days with max", func() {
+		logRetention := NewBuildLogRetentionCalculator(2, 4,3, 2).BuildLogsToRetain(makeJob(5, 5))
+		Expect(logRetention.Builds).To(Equal(4))
+		Expect(logRetention.Days).To(Equal(2))
 	})
 })
 
-func makeJob(retainAmount int) db.Job {
+func makeJob(retainAmount int, retainAmountDays int) db.Job {
 	rv := new(dbfakes.FakeJob)
 	rv.ConfigReturns(atc.JobConfig{
-		BuildLogsToRetain: retainAmount,
+		BuildLogRetention: &atc.BuildLogRetention{
+			Builds: retainAmount,
+			Days:   retainAmountDays,
+		},
 	})
 	return rv
 }

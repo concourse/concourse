@@ -234,11 +234,31 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
-		if job.BuildLogsToRetain < 0 {
+		if job.BuildLogRetention != nil && job.BuildLogsToRetain != 0 {
+			errorMessages = append(
+				errorMessages,
+				identifier+fmt.Sprintf(" can't use both build_log_retention and build_logs_to_retain"),
+			)
+		} else if job.BuildLogsToRetain < 0 {
 			errorMessages = append(
 				errorMessages,
 				identifier+fmt.Sprintf(" has negative build_logs_to_retain: %d", job.BuildLogsToRetain),
 			)
+		}
+
+		if job.BuildLogRetention != nil {
+			if job.BuildLogRetention.Builds < 0 {
+				errorMessages = append(
+					errorMessages,
+					identifier+fmt.Sprintf(" has negative build_log_retention.builds: %d", job.BuildLogRetention.Builds),
+				)
+			}
+			if job.BuildLogRetention.Days < 0 {
+				errorMessages = append(
+					errorMessages,
+					identifier+fmt.Sprintf(" has negative build_log_retention.days: %d", job.BuildLogRetention.Days),
+				)
+			}
 		}
 
 		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", PlanConfig{Do: &job.Plan})

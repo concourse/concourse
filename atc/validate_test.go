@@ -1316,5 +1316,47 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages[0]).To(ContainSubstring("jobs[0] and jobs[2] have the same name ('some-job')"))
 			})
 		})
+
+		Context("when a job has build_log_retention and deprecated build_logs_to_retain", func() {
+			BeforeEach(func() {
+				config.Jobs[0].BuildLogRetention = &BuildLogRetention{
+					Builds: 1,
+					Days:   1,
+				}
+				config.Jobs[0].BuildLogsToRetain = 1
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job can't use both build_log_retention and build_logs_to_retain"))
+			})
+		})
+
+		Context("when a job has negative build_logs_to_retain", func() {
+			BeforeEach(func() {
+				config.Jobs[0].BuildLogsToRetain = -1
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_logs_to_retain: -1"))
+			})
+		})
+
+		Context("when a job has negative build_log_retention values", func() {
+			BeforeEach(func() {
+				config.Jobs[0].BuildLogRetention = &BuildLogRetention{
+					Builds: -1,
+					Days:   -1,
+				}
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_log_retention.builds: -1"))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_log_retention.days: -1"))
+			})
+		})
+
 	})
 })
