@@ -50,7 +50,7 @@ type WorkerCommand struct {
 
 	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
 
-	ExternalGardenAddress flag.URL `long:"external-garden-address" description:"garden server connection address, when specified will not use embedded garden"`
+	ExternalGardenURL flag.URL `long:"external-garden-url" description:"API endpoint of an externally managed Garden server to use instead of running the embedded Garden server."`
 
 	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
 
@@ -206,13 +206,14 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 }
 
 func (cmd *WorkerCommand) gardenIsExternal() bool {
-	return cmd.ExternalGardenAddress.URL != nil
+	return cmd.ExternalGardenURL.URL != nil
 }
 
 func (cmd *WorkerCommand) gardenAddr() string {
 	if cmd.gardenIsExternal() {
-		return cmd.ExternalGardenAddress.URL.Host
+		return cmd.ExternalGardenURL.URL.Host
 	}
+
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 }
 
