@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/concourse/concourse/atc"
