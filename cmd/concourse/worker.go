@@ -50,6 +50,8 @@ type WorkerCommand struct {
 
 	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
 
+	ExternalGardenURL flag.URL `long:"external-garden-url" description:"API endpoint of an externally managed Garden server to use instead of running the embedded Garden server."`
+
 	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
 
 	ResourceTypes flag.Dir `long:"resource-types" description:"Path to directory containing resource types the worker should advertise."`
@@ -143,11 +145,16 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.VolumeSweeperMaxInFlight,
 	)
 
-	members := grouper.Members{
-		{
+	var members grouper.Members
+
+	if !cmd.gardenIsExternal() {
+		members = append(members, grouper.Member{
 			Name:   "garden",
 			Runner: NewLoggingRunner(logger.Session("garden-runner"), gardenRunner),
-		},
+		})
+	}
+
+	members = append(members, grouper.Members{
 		{
 			Name:   "baggageclaim",
 			Runner: NewLoggingRunner(logger.Session("baggageclaim-runner"), baggageclaimRunner),
@@ -193,12 +200,20 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				volumeSweeper,
 			),
 		},
-	}
+	}...)
 
 	return grouper.NewParallel(os.Interrupt, members), nil
 }
 
+func (cmd *WorkerCommand) gardenIsExternal() bool {
+	return cmd.ExternalGardenURL.URL != nil
+}
+
 func (cmd *WorkerCommand) gardenAddr() string {
+	if cmd.gardenIsExternal() {
+		return cmd.ExternalGardenURL.URL.Host
+	}
+
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 }
 
