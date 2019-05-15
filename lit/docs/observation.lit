@@ -1,0 +1,63 @@
+\use-plugin{concourse-docs}
+
+\title{Observation}{observation}
+
+This section outlines everything you need to know for observing the state of
+your pipelines.
+
+\section{
+  \title{The Dashboard}{dashboard}
+
+  The dashboard, available at the default route (\code{/}), provides a
+  bird's-eye view of the Concourse cluster. All visible pipelines across all
+  teams are listed here. A "HD view" is available at \code{/hd}.
+}
+
+\section{
+  \title{\code{cc.xml}}
+
+  The Concourse API can return the status of a team's pipelines in a format
+  compatible with tools like \link{CCMenu}{http://ccmenu.org/}. This endpoint
+  is available at the following route:
+
+  \code{{{
+  /api/v1/teams/{team}/cc.xml
+  }}}
+
+  For example: \link{the \code{main} team
+  \code{cc.xml}}{http://ci.concourse-ci.org/api/v1/teams/main/cc.xml}.
+}
+
+\section{
+  \title{Badges}
+
+  The Concourse API supports returning SVG badges indicating the status of a
+  job:
+
+  \code{{{
+  /api/v1/teams/{team}/pipelines/{pipeline}/jobs/{job}/badge
+  }}}
+
+  ...and for an entire pipeline:
+
+  \code{{{
+  /api/v1/teams/{team}/pipelines/{pipeline}/badge
+  }}}
+
+  This can be used to annotate your READMEs with a build status badge like so:
+
+  \codeblock{md}{{{
+  ![CI](https://wings.pivotal.io/api/v1/teams/vito/pipelines/booklit/jobs/unit/badge)]
+  }}}
+
+  ...which should render the following:
+
+  \image{https://wings.pivotal.io/api/v1/teams/vito/pipelines/booklit/jobs/unit/badge}
+}
+
+\section{
+  \title{Pipeline Visibility}
+
+  Pipelines may be exposed so that they can be monitored without having to
+  authenticate. For more information, see \reference{exposing}.
+}
