@@ -1,8 +1,9 @@
 package atc
 
 type JobConfig struct {
-	Name   string `yaml:"name" json:"name" mapstructure:"name"`
-	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
+	Name    string `yaml:"name" json:"name" mapstructure:"name"`
+	OldName string `yaml:"old_name,omitempty" json:"old_name,omitempty" mapstructure:"old_name"`
+	Public  bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
 
 	DisableManualTrigger bool     `yaml:"disable_manual_trigger,omitempty" json:"disable_manual_trigger,omitempty" mapstructure:"disable_manual_trigger"`
 	Serial               bool     `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`

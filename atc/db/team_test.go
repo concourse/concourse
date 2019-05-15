@@ -1962,6 +1962,102 @@ var _ = Describe("Team", func() {
 			Expect(found).To(BeFalse())
 		})
 
+		Context("update job names but keeps history", func() {
+			BeforeEach(func() {
+				newJobConfig := atc.JobConfig{
+					Name: "new-job",
+
+					Public: true,
+
+					Serial:       true,
+					SerialGroups: []string{"serial-group-1", "serial-group-2"},
+
+					Plan: atc.PlanSequence{
+						{
+							Get:      "some-input",
+							Resource: "some-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+							Passed:  []string{"job-1", "job-2"},
+							Trigger: true,
+						},
+						{
+							Task:           "some-task",
+							Privileged:     true,
+							TaskConfigPath: "some/config/path.yml",
+							TaskConfig: &atc.TaskConfig{
+								RootfsURI: "some-image",
+							},
+						},
+						{
+							Put: "some-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+						},
+					},
+				}
+
+				config.Jobs = append(config.Jobs, newJobConfig)
+			})
+
+			It("should handle when there are multiple name changes", func() {
+				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+				Expect(err).ToNot(HaveOccurred())
+
+				job, _, _ := pipeline.Job("some-job")
+				otherJob, _, _ := pipeline.Job("new-job")
+
+				config.Jobs[0].Name = "new-job"
+				config.Jobs[0].OldName = "some-job"
+
+				config.Jobs[1].Name = "new-other-job"
+				config.Jobs[1].OldName = "new-job"
+
+				updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+				Expect(err).ToNot(HaveOccurred())
+
+				updatedJob, _, _ := updatedPipeline.Job("new-job")
+				Expect(updatedJob.ID()).To(Equal(job.ID()))
+
+				otherUpdatedJob, _, _ := updatedPipeline.Job("new-other-job")
+				Expect(otherUpdatedJob.ID()).To(Equal(otherJob.ID()))
+			})
+
+			It("should return an error when there is a swap with job name", func() {
+				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+				Expect(err).ToNot(HaveOccurred())
+
+				config.Jobs[0].Name = "new-job"
+				config.Jobs[0].OldName = "some-job"
+
+				config.Jobs[1].Name = "some-job"
+				config.Jobs[1].OldName = "new-job"
+
+				_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+				Expect(err).To(HaveOccurred())
+			})
+
+			Context("when new job name is in database but is inactive", func() {
+				It("should successfully update job name", func() {
+					pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+					Expect(err).ToNot(HaveOccurred())
+
+					config.Jobs = config.Jobs[:len(config.Jobs)-1]
+
+					_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+					Expect(err).ToNot(HaveOccurred())
+
+					config.Jobs[0].Name = "new-job"
+					config.Jobs[0].OldName = "some-job"
+
+					_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion()+1, db.PipelineNoChange)
+					Expect(err).ToNot(HaveOccurred())
+				})
+			})
+		})
+
 		It("removes worker task caches for jobs that are no longer in pipeline", func() {
 			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).ToNot(HaveOccurred())
