@@ -2,7 +2,7 @@
 name: Bug Report
 about: Let us know about a problem with Concourse
 title: ''
-labels: bug, triage
+labels: bug
 assignees: ''
 
 ---

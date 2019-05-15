@@ -1,5 +1,6 @@
 module Dashboard.Dashboard exposing
-    ( handleCallback
+    ( documentTitle
+    , handleCallback
     , handleDelivery
     , init
     , subscriptions
@@ -7,9 +8,11 @@ module Dashboard.Dashboard exposing
     , view
     )
 
+import Concourse
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
+import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Details as Details
+import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Group.Models exposing (Group, Pipeline)
@@ -29,55 +32,52 @@ import Html.Attributes
     exposing
         ( attribute
         , class
-        , classList
-        , draggable
+        , download
         , href
         , id
-        , placeholder
         , src
         , style
-        , value
         )
 import Html.Events
     exposing
-        ( onBlur
-        , onClick
-        , onFocus
-        , onInput
-        , onMouseDown
-        , onMouseEnter
+        ( onMouseEnter
         , onMouseLeave
         )
-import Http
 import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message as Message exposing (Hoverable(..), Message(..))
+import Message.Message as Message
+    exposing
+        ( DomID(..)
+        , Message(..)
+        , VisibilityAction(..)
+        )
 import Message.Subscription
     exposing
         ( Delivery(..)
         , Interval(..)
         , Subscription(..)
         )
-import Monocle.Common exposing ((<|>), (=>))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Monocle.Compose exposing (optionalWithLens, optionalWithOptional)
 import Monocle.Lens
 import Monocle.Optional
-import MonocleHelpers exposing (..)
-import Regex exposing (HowMany(All), regex, replace)
+import MonocleHelpers exposing (bind, modifyWithEffect)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Simple.Fuzzy exposing (filter, match, root)
-import UserState exposing (UserState)
+import Session exposing (Session)
+import SideBar.SideBar as SideBar
+import UserState
 import Views.Styles
-import Views.TopBar as TopBar
 
 
 type alias Flags =
     { turbulencePath : String
     , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
+    , clusterName : String
     }
 
 
@@ -93,7 +93,6 @@ init flags =
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
       , groups = []
       , version = ""
-      , hovered = Nothing
       , userState = UserState.UserStateUnknown
       , hideFooter = False
       , hideFooterCounter = 0
@@ -102,13 +101,12 @@ init flags =
       , query = Routes.extractQuery flags.searchType
       , isUserMenuExpanded = False
       , dropdown = Hidden
-      , screenSize = Desktop
-      , shiftDown = False
+      , clusterName = flags.clusterName
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
-      , SetTitle <| "Dashboard" ++ " - "
       , GetScreenSize
+      , FetchPipelines
       ]
     )
 
@@ -128,9 +126,6 @@ handleCallback msg ( model, effects ) =
             let
                 groups =
                     Group.groups apiData
-
-                noPipelines =
-                    List.isEmpty <| List.concatMap .pipelines groups
 
                 newModel =
                     case model.state of
@@ -158,7 +153,7 @@ handleCallback msg ( model, effects ) =
                         Nothing ->
                             UserState.UserStateLoggedOut
             in
-            if model.highDensity && noPipelines then
+            if model.highDensity && noPipelines { groups = groups } then
                 ( { newModel
                     | groups = groups
                     , highDensity = False
@@ -192,36 +187,68 @@ handleCallback msg ( model, effects ) =
                    ]
             )
 
-        LoggedOut (Err err) ->
-            flip always (Debug.log "failed to log out" err) <|
-                ( model, effects )
-
-        ScreenResized size ->
-            let
-                newSize =
-                    ScreenSize.fromWindowSize size
-            in
-            ( { model | screenSize = newSize }, effects )
-
         PipelineToggled _ (Ok ()) ->
             ( model, effects ++ [ FetchData ] )
 
-        PipelineToggled _ (Err err) ->
-            case err of
-                Http.BadStatus { status } ->
-                    ( model
-                    , if status.code == 401 then
-                        effects ++ [ RedirectToLogin ]
+        VisibilityChanged Hide pipelineId (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = False, isVisibilityLoading = False })
+                pipelineId
+                model
+            , effects
+            )
 
-                      else
-                        effects
-                    )
+        VisibilityChanged Hide pipelineId (Err _) ->
+            ( updatePipeline
+                (\p -> { p | public = True, isVisibilityLoading = False })
+                pipelineId
+                model
+            , effects
+            )
 
-                _ ->
-                    ( model, effects )
+        VisibilityChanged Expose pipelineId (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = True, isVisibilityLoading = False })
+                pipelineId
+                model
+            , effects
+            )
+
+        VisibilityChanged Expose pipelineId (Err _) ->
+            ( updatePipeline
+                (\p -> { p | public = False, isVisibilityLoading = False })
+                pipelineId
+                model
+            , effects
+            )
 
         _ ->
             ( model, effects )
+
+
+updatePipeline :
+    (Pipeline -> Pipeline)
+    -> Concourse.PipelineIdentifier
+    -> Model
+    -> Model
+updatePipeline updater pipelineId model =
+    let
+        newGroups =
+            model.groups
+                |> List.Extra.updateIf
+                    (.teamName >> (==) pipelineId.teamName)
+                    (\g ->
+                        let
+                            newPipelines =
+                                g.pipelines
+                                    |> List.Extra.updateIf
+                                        (.name >> (==) pipelineId.pipelineName)
+                                        updater
+                        in
+                        { g | pipelines = newPipelines }
+                    )
+    in
+    { model | groups = newGroups }
 
 
 handleDelivery : Delivery -> ET Model
@@ -240,15 +267,15 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData ] )
+            ( model, effects ++ [ FetchData, FetchPipelines ] )
 
         _ ->
             ( model, effects )
 
 
-update : Message -> ET Model
-update msg =
-    SearchBar.update msg >> updateBody msg
+update : Session a -> Message -> ET Model
+update session msg =
+    SearchBar.update session msg >> updateBody msg
 
 
 updateBody : Message -> ET Model
@@ -261,7 +288,7 @@ updateBody msg ( model, effects ) =
             in
             ( newModel, effects )
 
-        DragOver teamName index ->
+        DragOver _ index ->
             let
                 newModel =
                     { model | state = RemoteData.map (\s -> { s | dropState = Models.Dropping index }) model.state }
@@ -292,16 +319,20 @@ updateBody msg ( model, effects ) =
                 dragDropOptional : Monocle.Optional.Optional Model ( Models.DragState, Models.DropState )
                 dragDropOptional =
                     substateOptional
-                        =|> Monocle.Lens.tuple
+                        |> optionalWithLens
+                            (Monocle.Lens.tuple
                                 Details.dragStateLens
                                 Details.dropStateLens
+                            )
 
                 dragDropIndexOptional : Monocle.Optional.Optional Model ( Group.PipelineIndex, Group.PipelineIndex )
                 dragDropIndexOptional =
                     dragDropOptional
-                        => Monocle.Optional.zip
-                            Group.dragIndexOptional
-                            Group.dropIndexOptional
+                        |> optionalWithOptional
+                            (Monocle.Optional.zip
+                                Group.dragIndexOptional
+                                Group.dropIndexOptional
+                            )
 
                 groupsLens : Monocle.Lens.Lens Model (List Group)
                 groupsLens =
@@ -309,13 +340,18 @@ updateBody msg ( model, effects ) =
 
                 groupOptional : Monocle.Optional.Optional Model Group
                 groupOptional =
+                    -- the point of this optional is to find the group whose
+                    -- name matches the name name in the dragstate
                     (substateOptional
-                        =|> Details.dragStateLens
-                        => Group.teamNameOptional
+                        |> optionalWithLens Details.dragStateLens
+                        |> optionalWithOptional Group.teamNameOptional
                     )
-                        >>= (\teamName ->
+                        |> bind
+                            (\teamName ->
                                 groupsLens
-                                    <|= Group.findGroupOptional teamName
+                                    |> Monocle.Optional.fromLens
+                                    |> optionalWithOptional
+                                        (Group.findGroupOptional teamName)
                             )
 
                 bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group )
@@ -329,49 +365,84 @@ updateBody msg ( model, effects ) =
                         |> modifyWithEffect bigOptional
                             (\( t, g ) ->
                                 let
-                                    ( newG, msg ) =
+                                    ( newG, newMsg ) =
                                         updatePipelines t g
                                 in
-                                ( ( t, newG ), msg )
+                                ( ( t, newG ), newMsg )
                             )
                         |> Tuple.mapFirst (dragDropOptional.set ( Models.NotDragging, Models.NotDropping ))
             in
             ( newModel, effects ++ unAccumulatedEffects )
 
-        Hover hovered ->
-            ( { model | hovered = hovered }, effects )
-
-        LogOut ->
+        Click LogoutButton ->
             ( { model | state = RemoteData.NotAsked }, effects )
 
-        TogglePipelinePaused pipelineId isPaused ->
+        Click (PipelineButton pipelineId) ->
             let
-                newGroups =
+                isPaused =
                     model.groups
-                        |> List.Extra.updateIf
+                        |> List.Extra.find
                             (.teamName >> (==) pipelineId.teamName)
+                        |> Maybe.andThen
                             (\g ->
-                                let
-                                    newPipelines =
-                                        g.pipelines
-                                            |> List.Extra.updateIf
-                                                (.name >> (==) pipelineId.pipelineName)
-                                                (\p -> { p | isToggleLoading = True })
-                                in
-                                { g | pipelines = newPipelines }
+                                g.pipelines
+                                    |> List.Extra.find
+                                        (.name >> (==) pipelineId.pipelineName)
+                                    |> Maybe.map
+                                        (.status >> (==) PipelineStatusPaused)
                             )
             in
-            ( { model | groups = newGroups }
-            , effects
-                ++ [ SendTogglePipelineRequest pipelineId isPaused ]
-            )
+            case isPaused of
+                Just ip ->
+                    ( updatePipeline
+                        (\p -> { p | isToggleLoading = True })
+                        pipelineId
+                        model
+                    , effects
+                        ++ [ SendTogglePipelineRequest pipelineId ip ]
+                    )
+
+                Nothing ->
+                    ( model, effects )
+
+        Click (VisibilityButton pipelineId) ->
+            let
+                isPublic =
+                    model.groups
+                        |> List.Extra.find
+                            (.teamName >> (==) pipelineId.teamName)
+                        |> Maybe.andThen
+                            (\g ->
+                                g.pipelines
+                                    |> List.Extra.find
+                                        (.name >> (==) pipelineId.pipelineName)
+                                    |> Maybe.map .public
+                            )
+            in
+            case isPublic of
+                Just public ->
+                    ( updatePipeline
+                        (\p -> { p | isVisibilityLoading = True })
+                        pipelineId
+                        model
+                    , effects
+                        ++ [ if public then
+                                ChangeVisibility Hide pipelineId
+
+                             else
+                                ChangeVisibility Expose pipelineId
+                           ]
+                    )
+
+                Nothing ->
+                    ( model, effects )
 
         _ ->
             ( model, effects )
 
 
-subscriptions : Model -> List Subscription
-subscriptions model =
+subscriptions : List Subscription
+subscriptions =
     [ OnClockTick OneSecond
     , OnClockTick FiveSeconds
     , OnMouse
@@ -381,129 +452,158 @@ subscriptions model =
     ]
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+documentTitle : String
+documentTitle =
+    "Dashboard"
+
+
+view : Session a -> Model -> Html Message
+view session model =
     Html.div
-        [ style Views.Styles.pageIncludingTopBar
-        , id "page-including-top-bar"
-        ]
-        [ Html.div
-            [ id "top-bar-app"
-            , style <| Views.Styles.topBar False
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
+        [ topBar session model
+        , Html.div
+            [ id "page-below-top-bar"
+            , style "padding-top" "54px"
+            , style "box-sizing" "border-box"
+            , style "display" "flex"
+            , style "height" "100%"
+            , style "padding-bottom" <|
+                if model.showHelp || model.hideFooter then
+                    "0"
+
+                else
+                    "50px"
             ]
           <|
-            [ TopBar.concourseLogo ]
-                ++ (let
-                        isDropDownHidden =
-                            model.dropdown == Hidden
-
-                        isMobile =
-                            model.screenSize == ScreenSize.Mobile
-                    in
-                    if
-                        not model.highDensity
-                            && isMobile
-                            && (not isDropDownHidden || model.query /= "")
-                    then
-                        [ SearchBar.view model ]
-
-                    else if not model.highDensity then
-                        [ SearchBar.view model
-                        , Login.view userState model False
-                        ]
-
-                    else
-                        [ Login.view userState model False ]
-                   )
-        , Html.div
-            [ id "page-below-top-bar", style Views.Styles.pageBelowTopBar ]
-            (dashboardView model)
+            [ SideBar.view session Nothing
+            , dashboardView session model
+            ]
+        , Footer.view session model
         ]
 
 
-dashboardView : Model -> List (Html Message)
-dashboardView model =
+topBar : Session a -> Model -> Html Message
+topBar session model =
+    Html.div
+        (id "top-bar-app" :: Views.Styles.topBar False)
+    <|
+        [ Html.div [ style "display" "flex", style "align-items" "center" ]
+            [ SideBar.hamburgerMenu session
+            , Html.a (href "/" :: Views.Styles.concourseLogo) []
+            , clusterName model
+            ]
+        ]
+            ++ (let
+                    isDropDownHidden =
+                        model.dropdown == Hidden
+
+                    isMobile =
+                        session.screenSize == ScreenSize.Mobile
+                in
+                if
+                    not model.highDensity
+                        && isMobile
+                        && (not isDropDownHidden || model.query /= "")
+                then
+                    [ SearchBar.view session model ]
+
+                else if not model.highDensity then
+                    [ SearchBar.view session model
+                    , Login.view session.userState model False
+                    ]
+
+                else
+                    [ Login.view session.userState model False ]
+               )
+
+
+clusterName : Model -> Html Message
+clusterName model =
+    Html.div
+        Styles.clusterName
+        [ Html.text model.clusterName ]
+
+
+dashboardView :
+    { a | hovered : Maybe DomID, screenSize : ScreenSize }
+    -> Model
+    -> Html Message
+dashboardView session model =
     case model.state of
         RemoteData.NotAsked ->
-            [ Html.text "" ]
+            Html.text ""
 
         RemoteData.Loading ->
-            [ Html.text "" ]
+            Html.text ""
 
         RemoteData.Failure (Turbulence path) ->
-            [ turbulenceView path ]
+            turbulenceView path
 
         RemoteData.Success substate ->
-            [ Html.div
-                [ class <| .pageBodyClass Message.Effects.stickyHeaderConfig
-                , style <| Styles.content model.highDensity
-                ]
-              <|
-                welcomeCard model
+            Html.div
+                (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
+                    :: Styles.content model.highDensity
+                )
+            <|
+                welcomeCard session model
                     :: pipelinesView
                         { groups = model.groups
                         , substate = substate
                         , query = model.query
-                        , hovered = model.hovered
+                        , hovered = session.hovered
                         , pipelineRunningKeyframes =
                             model.pipelineRunningKeyframes
                         , userState = model.userState
                         , highDensity = model.highDensity
                         }
-            , Footer.view model
-            ]
 
 
 welcomeCard :
-    { a
-        | hovered : Maybe Hoverable
-        , groups : List Group
-        , userState : UserState.UserState
-    }
+    { a | hovered : Maybe DomID }
+    ->
+        { b
+            | groups : List Group
+            , userState : UserState.UserState
+        }
     -> Html Message
-welcomeCard { hovered, groups, userState } =
+welcomeCard { hovered } { groups, userState } =
     let
-        noPipelines =
-            List.isEmpty (groups |> List.concatMap .pipelines)
-
-        cliIcon : Maybe Hoverable -> Cli.Cli -> Html Message
-        cliIcon hovered cli =
+        cliIcon : Maybe DomID -> Cli.Cli -> Html Message
+        cliIcon hoverable cli =
             Html.a
-                [ href (Cli.downloadUrl cli)
-                , attribute "aria-label" <| Cli.label cli
-                , style <|
-                    Styles.topCliIcon
+                ([ href <| Cli.downloadUrl cli
+                 , attribute "aria-label" <| Cli.label cli
+                 , id <| "top-cli-" ++ Cli.id cli
+                 , onMouseEnter <| Hover <| Just <| Message.WelcomeCardCliIcon cli
+                 , onMouseLeave <| Hover Nothing
+                 , download ""
+                 ]
+                    ++ Styles.topCliIcon
                         { hovered =
-                            hovered
+                            hoverable
                                 == (Just <| Message.WelcomeCardCliIcon cli)
                         , cli = cli
                         }
-                , id <| "top-cli-" ++ Cli.id cli
-                , onMouseEnter <| Hover <| Just <| Message.WelcomeCardCliIcon cli
-                , onMouseLeave <| Hover Nothing
-                ]
+                )
                 []
     in
-    if noPipelines then
+    if noPipelines { groups = groups } then
         Html.div
-            [ id "welcome-card"
-            , style Styles.welcomeCard
-            ]
+            (id "welcome-card" :: Styles.welcomeCard)
             [ Html.div
-                [ style Styles.welcomeCardTitle ]
+                Styles.welcomeCardTitle
                 [ Html.text Text.welcome ]
             , Html.div
-                [ style Styles.welcomeCardBody ]
+                Styles.welcomeCardBody
               <|
                 [ Html.div
-                    [ style
-                        [ ( "display", "flex" )
-                        , ( "align-items", "center" )
-                        ]
+                    [ style "display" "flex"
+                    , style "align-items" "center"
                     ]
                   <|
                     [ Html.div
-                        [ style [ ( "margin-right", "10px" ) ] ]
+                        [ style "margin-right" "10px" ]
                         [ Html.text Text.cliInstructions ]
                     ]
                         ++ List.map (cliIcon hovered) Cli.clis
@@ -513,12 +613,17 @@ welcomeCard { hovered, groups, userState } =
                 ]
                     ++ loginInstruction userState
             , Html.pre
-                [ style Styles.asciiArt ]
+                Styles.asciiArt
                 [ Html.text Text.asciiArt ]
             ]
 
     else
         Html.text ""
+
+
+noPipelines : { a | groups : List Group } -> Bool
+noPipelines { groups } =
+    List.isEmpty (groups |> List.concatMap .pipelines)
 
 
 loginInstruction : UserState.UserState -> List (Html Message)
@@ -530,12 +635,12 @@ loginInstruction userState =
         _ ->
             [ Html.div
                 [ id "login-instruction"
-                , style [ ( "line-height", "42px" ) ]
+                , style "line-height" "42px"
                 ]
                 [ Html.text "login "
                 , Html.a
                     [ href "/login"
-                    , style [ ( "text-decoration", "underline" ) ]
+                    , style "text-decoration" "underline"
                     ]
                     [ Html.text "here" ]
                 ]
@@ -549,9 +654,7 @@ noResultsView query =
             Html.span [ class "monospace-bold" ] [ Html.text query ]
     in
     Html.div
-        [ class "no-results"
-        , style Styles.noResults
-        ]
+        (class "no-results" :: Styles.noResults)
         [ Html.text "No results for "
         , boldedQuery
         , Html.text " matched your search."
@@ -573,7 +676,7 @@ turbulenceView path =
 pipelinesView :
     { groups : List Group
     , substate : Models.SubState
-    , hovered : Maybe Message.Hoverable
+    , hovered : Maybe DomID
     , pipelineRunningKeyframes : String
     , query : String
     , userState : UserState.UserState
@@ -583,22 +686,15 @@ pipelinesView :
 pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, userState, highDensity } =
     let
         filteredGroups =
-            groups |> filter query |> List.sortWith Group.ordering
-
-        groupsToDisplay =
-            if List.all (String.startsWith "team:") (filterTerms query) then
-                filteredGroups
-
-            else
-                filteredGroups |> List.filter (.pipelines >> List.isEmpty >> not)
+            groups |> Filter.filterGroups query |> List.sortWith Group.ordering
 
         groupViews =
             if highDensity then
-                groupsToDisplay
+                filteredGroups
                     |> List.concatMap (Group.hdView pipelineRunningKeyframes)
 
             else
-                groupsToDisplay
+                filteredGroups
                     |> List.map
                         (Group.view
                             { dragState = substate.dragState
@@ -611,79 +707,7 @@ pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, user
                         )
     in
     if List.isEmpty groupViews && not (String.isEmpty query) then
-        [ noResultsView (toString query) ]
+        [ noResultsView query ]
 
     else
         groupViews
-
-
-filterTerms : String -> List String
-filterTerms =
-    replace All (regex "team:\\s*") (\_ -> "team:")
-        >> replace All (regex "status:\\s*") (\_ -> "status:")
-        >> String.words
-        >> List.filter (not << String.isEmpty)
-
-
-filter : String -> List Group -> List Group
-filter =
-    filterTerms >> flip (List.foldl filterGroupsByTerm)
-
-
-filterPipelinesByTerm : String -> Group -> Group
-filterPipelinesByTerm term ({ pipelines } as group) =
-    let
-        searchStatus =
-            String.startsWith "status:" term
-
-        statusSearchTerm =
-            if searchStatus then
-                String.dropLeft 7 term
-
-            else
-                term
-
-        filterByStatus =
-            fuzzySearch (.status >> PipelineStatus.show) statusSearchTerm pipelines
-    in
-    { group
-        | pipelines =
-            if searchStatus then
-                filterByStatus
-
-            else
-                fuzzySearch .name term pipelines
-    }
-
-
-filterGroupsByTerm : String -> List Group -> List Group
-filterGroupsByTerm term groups =
-    let
-        searchTeams =
-            String.startsWith "team:" term
-
-        teamSearchTerm =
-            if searchTeams then
-                String.dropLeft 5 term
-
-            else
-                term
-    in
-    if searchTeams then
-        fuzzySearch .teamName teamSearchTerm groups
-
-    else
-        groups |> List.map (filterPipelinesByTerm term)
-
-
-fuzzySearch : (a -> String) -> String -> List a -> List a
-fuzzySearch map needle records =
-    let
-        negateSearch =
-            String.startsWith "-" needle
-    in
-    if negateSearch then
-        List.filter (not << Simple.Fuzzy.match needle << map) records
-
-    else
-        List.filter (Simple.Fuzzy.match needle << map) records

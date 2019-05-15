@@ -28,13 +28,12 @@ remoteData =
                                             |> Task.andThen
                                                 (\resources ->
                                                     Network.Info.fetch
-                                                        |> Task.map .version
                                                         |> Task.andThen
                                                             (\version ->
                                                                 Network.User.fetchUser
                                                                     |> Task.map Just
                                                                     |> Task.onError
-                                                                        (\err -> Task.succeed Nothing)
+                                                                        (always <| Task.succeed Nothing)
                                                                     |> Task.andThen
                                                                         (\user ->
                                                                             Task.succeed

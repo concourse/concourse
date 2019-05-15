@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/executehelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
@@ -17,7 +18,9 @@ import (
 	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/ui/progress"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/vbauerster/mpb/v4"
 )
 
 type ExecuteCommand struct {
@@ -150,13 +153,26 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		artifacts[artifact.Name] = artifact
 	}
 
+	prog := progress.New()
+
 	for _, output := range outputs {
-		if artifact, ok := artifacts[output.Name]; ok {
-			err = executehelpers.Download(target.Team(), artifact.ID, output.Path)
-			if err != nil {
-				return err
-			}
+		name := output.Name
+		path := output.Path
+
+		artifact, ok := artifacts[name]
+		if !ok {
+			continue
 		}
+
+		prog.Go("downloading "+output.Name, func(bar *mpb.Bar) error {
+			return executehelpers.Download(bar, target.Team(), artifact.ID, path)
+		})
+	}
+
+	err = prog.Wait()
+	if err != nil {
+		displayhelpers.FailWithErrorf("downloading failed: %s", err)
+		return err
 	}
 
 	os.Exit(exitCode)

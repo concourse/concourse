@@ -3,8 +3,8 @@ package worker
 import (
 	"net/http"
 
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	gclient "code.cloudfoundry.org/garden/client"
+	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/garden/routes"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/worker/transport"

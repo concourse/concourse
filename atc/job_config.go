@@ -1,8 +1,9 @@
 package atc
 
 type JobConfig struct {
-	Name   string `yaml:"name" json:"name" mapstructure:"name"`
-	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
+	Name    string `yaml:"name" json:"name" mapstructure:"name"`
+	OldName string `yaml:"old_name,omitempty" json:"old_name,omitempty" mapstructure:"old_name"`
+	Public  bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
 
 	DisableManualTrigger bool     `yaml:"disable_manual_trigger,omitempty" json:"disable_manual_trigger,omitempty" mapstructure:"disable_manual_trigger"`
 	Serial               bool     `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
@@ -11,16 +12,24 @@ type JobConfig struct {
 	RawMaxInFlight       int      `yaml:"max_in_flight,omitempty" json:"max_in_flight,omitempty" mapstructure:"max_in_flight"`
 	BuildLogsToRetain    int      `yaml:"build_logs_to_retain,omitempty" json:"build_logs_to_retain,omitempty" mapstructure:"build_logs_to_retain"`
 
+	BuildLogRetention *BuildLogRetention `yaml:"build_log_retention,omitempty" json:"build_log_retention,omitempty" mapstructure:"build_log_retention"`
+
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
 
 	Abort   *PlanConfig `yaml:"on_abort,omitempty" json:"on_abort,omitempty" mapstructure:"on_abort"`
+	Error   *PlanConfig `yaml:"on_error,omitempty" json:"on_error,omitempty" mapstructure:"on_error"`
 	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
 	Ensure  *PlanConfig `yaml:"ensure,omitempty" json:"ensure,omitempty" mapstructure:"ensure"`
 	Success *PlanConfig `yaml:"on_success,omitempty" json:"on_success,omitempty" mapstructure:"on_success"`
 }
 
+type BuildLogRetention struct {
+	Builds int `yaml:"builds,omitempty" json:"builds,omitempty" mapstructure:"builds"`
+	Days   int `yaml:"days,omitempty" json:"days,omitempty" mapstructure:"days"`
+}
+
 func (config JobConfig) Hooks() Hooks {
-	return Hooks{Abort: config.Abort, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
+	return Hooks{Abort: config.Abort, Error: config.Error, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
 }
 
 func (config JobConfig) MaxInFlight() int {
@@ -51,6 +60,7 @@ func (config JobConfig) Plans() []PlanConfig {
 	plan := collectPlans(PlanConfig{
 		Do:      &config.Plan,
 		Abort:   config.Abort,
+		Error:   config.Error,
 		Ensure:  config.Ensure,
 		Failure: config.Failure,
 		Success: config.Success,
@@ -64,6 +74,10 @@ func collectPlans(plan PlanConfig) []PlanConfig {
 
 	if plan.Abort != nil {
 		plans = append(plans, collectPlans(*plan.Abort)...)
+	}
+
+	if plan.Error != nil {
+		plans = append(plans, collectPlans(*plan.Error)...)
 	}
 
 	if plan.Success != nil {
@@ -90,6 +104,12 @@ func collectPlans(plan PlanConfig) []PlanConfig {
 
 	if plan.Aggregate != nil {
 		for _, p := range *plan.Aggregate {
+			plans = append(plans, collectPlans(p)...)
+		}
+	}
+
+	if plan.InParallel != nil {
+		for _, p := range plan.InParallel.Steps {
 			plans = append(plans, collectPlans(p)...)
 		}
 	}

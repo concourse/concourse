@@ -1,5 +1,6 @@
 module FlySuccess.FlySuccess exposing
-    ( handleCallback
+    ( documentTitle
+    , handleCallback
     , init
     , update
     , view
@@ -10,22 +11,21 @@ import FlySuccess.Models
     exposing
         ( ButtonState(..)
         , Model
-        , TokenTransfer
         , TransferFailure(..)
         , hover
-        , isClicked
-        , isPending
         )
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, id, style)
+import Html.Attributes exposing (attribute, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
+import Routes
 import UserState exposing (UserState)
 import Views.Icon as Icon
 import Views.Styles
@@ -80,41 +80,41 @@ update msg ( model, effects ) =
             , effects
             )
 
-        CopyToken ->
+        Click CopyTokenButton ->
             ( { model | buttonState = Clicked }, effects )
 
         _ ->
             ( model, effects )
 
 
+documentTitle : String
+documentTitle =
+    "Fly Login"
+
+
 view : UserState -> Model -> Html Message
 view userState model =
     Html.div []
         [ Html.div
-            [ style Views.Styles.pageIncludingTopBar
-            , id "page-including-top-bar"
-            ]
+            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
-                [ id "top-bar-app"
-                , style <| Views.Styles.topBar False
-                ]
+                (id "top-bar-app" :: Views.Styles.topBar False)
                 [ TopBar.concourseLogo
                 , Login.view userState model False
                 ]
-            , Html.div [ id "page-below-top-bar", style Views.Styles.pageBelowTopBar ]
+            , Html.div
+                (id "page-below-top-bar"
+                    :: (Views.Styles.pageBelowTopBar <|
+                            Routes.FlySuccess Nothing
+                       )
+                )
                 [ Html.div
-                    [ id "success-card"
-                    , style Styles.card
-                    ]
+                    (id "success-card" :: Styles.card)
                     [ Html.p
-                        [ id "success-card-title"
-                        , style Styles.title
-                        ]
+                        (id "success-card-title" :: Styles.title)
                         [ Html.text Text.title ]
                     , Html.div
-                        [ id "success-card-body"
-                        , style Styles.body
-                        ]
+                        (id "success-card-body" :: Styles.body)
                       <|
                         body model
                     ]
@@ -176,28 +176,26 @@ paragraph { identifier, lines } =
     lines
         |> List.map Html.text
         |> List.intersperse (Html.br [] [])
-        |> Html.p
-            [ id identifier
-            , style Styles.paragraph
-            ]
+        |> Html.p (id identifier :: Styles.paragraph)
 
 
 button : Model -> Html Message
-button { tokenTransfer, authToken, buttonState } =
+button { authToken, buttonState } =
     Html.span
-        [ id "copy-token"
-        , style <| Styles.button buttonState
-        , onMouseEnter <| Hover <| Just CopyTokenButton
-        , onMouseLeave <| Hover Nothing
-        , onClick CopyToken
-        , attribute "data-clipboard-text" authToken
-        ]
+        ([ id "copy-token"
+         , onMouseEnter <| Hover <| Just CopyTokenButton
+         , onMouseLeave <| Hover Nothing
+         , onClick <| Click CopyTokenButton
+         , attribute "data-clipboard-text" authToken
+         ]
+            ++ Styles.button buttonState
+        )
         [ Icon.icon
             { sizePx = 20
             , image = "clippy.svg"
             }
             [ id "copy-icon"
-            , style [ ( "margin-right", "5px" ) ]
+            , style "margin-right" "5px"
             ]
         , Html.text <| Text.button buttonState
         ]

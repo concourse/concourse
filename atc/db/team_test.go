@@ -408,8 +408,7 @@ var _ = Describe("Team", func() {
 
 	Describe("Containers", func() {
 		var (
-			fakeVariablesFactory   *credsfakes.FakeVariablesFactory
-			variables              creds.Variables
+			fakeSecretManager      *credsfakes.FakeSecrets
 			resourceContainer      db.CreatingContainer
 			resourceConfigScope    db.ResourceConfigScope
 			firstContainerCreating db.CreatingContainer
@@ -417,9 +416,8 @@ var _ = Describe("Team", func() {
 
 		Context("when there is a task container and a check container", func() {
 			BeforeEach(func() {
-				fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-				variables = template.StaticVariables{}
-				fakeVariablesFactory.NewVariablesReturns(variables)
+				fakeSecretManager = new(credsfakes.FakeSecrets)
+				fakeSecretManager.GetReturns("", nil, false, nil)
 
 				job, found, err := defaultPipeline.Job("some-job")
 				Expect(err).ToNot(HaveOccurred())
@@ -440,7 +438,7 @@ var _ = Describe("Team", func() {
 				pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.NewVersionedResourceTypes(variables, pipelineResourceTypes.Deserialize()))
+				resourceConfigScope, err = defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()))
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceContainer, err = defaultWorker.CreateContainer(
@@ -1947,7 +1945,7 @@ var _ = Describe("Team", func() {
 			job, found, err := pipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(job.Config().Public).To(BeFalse())
+			Expect(job.Public()).To(BeFalse())
 		})
 
 		It("marks job inactive when it is no longer in pipeline", func() {
@@ -1962,6 +1960,102 @@ var _ = Describe("Team", func() {
 			_, found, err := savedPipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		Context("update job names but keeps history", func() {
+			BeforeEach(func() {
+				newJobConfig := atc.JobConfig{
+					Name: "new-job",
+
+					Public: true,
+
+					Serial:       true,
+					SerialGroups: []string{"serial-group-1", "serial-group-2"},
+
+					Plan: atc.PlanSequence{
+						{
+							Get:      "some-input",
+							Resource: "some-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+							Passed:  []string{"job-1", "job-2"},
+							Trigger: true,
+						},
+						{
+							Task:           "some-task",
+							Privileged:     true,
+							TaskConfigPath: "some/config/path.yml",
+							TaskConfig: &atc.TaskConfig{
+								RootfsURI: "some-image",
+							},
+						},
+						{
+							Put: "some-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+						},
+					},
+				}
+
+				config.Jobs = append(config.Jobs, newJobConfig)
+			})
+
+			It("should handle when there are multiple name changes", func() {
+				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+				Expect(err).ToNot(HaveOccurred())
+
+				job, _, _ := pipeline.Job("some-job")
+				otherJob, _, _ := pipeline.Job("new-job")
+
+				config.Jobs[0].Name = "new-job"
+				config.Jobs[0].OldName = "some-job"
+
+				config.Jobs[1].Name = "new-other-job"
+				config.Jobs[1].OldName = "new-job"
+
+				updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+				Expect(err).ToNot(HaveOccurred())
+
+				updatedJob, _, _ := updatedPipeline.Job("new-job")
+				Expect(updatedJob.ID()).To(Equal(job.ID()))
+
+				otherUpdatedJob, _, _ := updatedPipeline.Job("new-other-job")
+				Expect(otherUpdatedJob.ID()).To(Equal(otherJob.ID()))
+			})
+
+			It("should return an error when there is a swap with job name", func() {
+				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+				Expect(err).ToNot(HaveOccurred())
+
+				config.Jobs[0].Name = "new-job"
+				config.Jobs[0].OldName = "some-job"
+
+				config.Jobs[1].Name = "some-job"
+				config.Jobs[1].OldName = "new-job"
+
+				_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+				Expect(err).To(HaveOccurred())
+			})
+
+			Context("when new job name is in database but is inactive", func() {
+				It("should successfully update job name", func() {
+					pipeline, _, err := team.SavePipeline(pipelineName, config, 0, db.PipelineNoChange)
+					Expect(err).ToNot(HaveOccurred())
+
+					config.Jobs = config.Jobs[:len(config.Jobs)-1]
+
+					_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), db.PipelineNoChange)
+					Expect(err).ToNot(HaveOccurred())
+
+					config.Jobs[0].Name = "new-job"
+					config.Jobs[0].OldName = "some-job"
+
+					_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion()+1, db.PipelineNoChange)
+					Expect(err).ToNot(HaveOccurred())
+				})
+			})
 		})
 
 		It("removes worker task caches for jobs that are no longer in pipeline", func() {
@@ -2436,8 +2530,8 @@ var _ = Describe("Team", func() {
 
 	Describe("FindCheckContainers", func() {
 		var (
-			fakeVariablesFactory *credsfakes.FakeVariablesFactory
-			variables            creds.Variables
+			fakeSecretManager *credsfakes.FakeSecrets
+			variables         creds.Variables
 		)
 
 		expiries := db.ContainerOwnerExpiries{
@@ -2447,9 +2541,8 @@ var _ = Describe("Team", func() {
 		}
 
 		BeforeEach(func() {
-			fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-			variables = template.StaticVariables{}
-			fakeVariablesFactory.NewVariablesReturns(variables)
+			fakeSecretManager = new(credsfakes.FakeSecrets)
+			fakeSecretManager.GetReturns("", nil, false, nil)
 		})
 
 		Context("when pipeline exists", func() {
@@ -2478,7 +2571,7 @@ var _ = Describe("Team", func() {
 					})
 
 					It("returns check container for resource", func() {
-						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource", fakeVariablesFactory)
+						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource", fakeSecretManager)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(containers).To(HaveLen(1))
 						Expect(containers[0].ID()).To(Equal(resourceContainer.ID()))
@@ -2528,7 +2621,7 @@ var _ = Describe("Team", func() {
 						})
 
 						It("returns the same check container", func() {
-							containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "other-pipeline", "some-resource", fakeVariablesFactory)
+							containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "other-pipeline", "some-resource", fakeSecretManager)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(containers).To(HaveLen(1))
 							Expect(containers[0].ID()).To(Equal(otherResourceContainer.ID()))
@@ -2541,7 +2634,7 @@ var _ = Describe("Team", func() {
 
 				Context("when check container does not exist", func() {
 					It("returns empty list", func() {
-						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource", fakeVariablesFactory)
+						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource", fakeSecretManager)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(containers).To(BeEmpty())
 						Expect(checkContainersExpiresAt).To(BeEmpty())
@@ -2551,7 +2644,7 @@ var _ = Describe("Team", func() {
 
 			Context("when resource does not exist", func() {
 				It("returns empty list", func() {
-					containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "non-existent-resource", fakeVariablesFactory)
+					containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "non-existent-resource", fakeSecretManager)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(containers).To(BeEmpty())
 					Expect(checkContainersExpiresAt).To(BeEmpty())
@@ -2561,7 +2654,7 @@ var _ = Describe("Team", func() {
 
 		Context("when pipeline does not exist", func() {
 			It("returns empty list", func() {
-				containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "non-existent-pipeline", "some-resource", fakeVariablesFactory)
+				containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, "non-existent-pipeline", "some-resource", fakeSecretManager)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(containers).To(BeEmpty())
 				Expect(checkContainersExpiresAt).To(BeEmpty())

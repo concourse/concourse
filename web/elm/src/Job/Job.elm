@@ -2,6 +2,7 @@ module Job.Job exposing
     ( Flags
     , Model
     , changeToJob
+    , documentTitle
     , getUpdateMessage
     , handleCallback
     , handleDelivery
@@ -18,18 +19,16 @@ import Concourse.Pagination
     exposing
         ( Page
         , Paginated
-        , Pagination
         , chevron
         , chevronContainer
         )
-import Dict exposing (Dict)
+import Dict
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes
     exposing
         ( attribute
         , class
-        , disabled
         , href
         , id
         , style
@@ -45,14 +44,16 @@ import Job.Styles as Styles
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
+import Session exposing (Session)
+import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick)
-import Time exposing (Time)
+import Time
 import UpdateMsg exposing (UpdateMsg)
-import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.DictView as DictView
 import Views.Icon as Icon
@@ -68,8 +69,8 @@ type alias Model =
         , pausedChanging : Bool
         , buildsWithResources : Paginated BuildWithResources
         , currentPage : Maybe Page
-        , now : Time
-        , hovered : Maybe Hoverable
+        , now : Time.Posix
+        , timeZone : Time.Zone
         }
 
 
@@ -104,16 +105,18 @@ init flags =
                     , nextPage = Nothing
                     }
                 }
-            , now = 0
+            , now = Time.millisToPosix 0
             , currentPage = flags.paging
-            , hovered = Nothing
             , isUserMenuExpanded = False
+            , timeZone = Time.utc
             }
     in
     ( model
     , [ FetchJob flags.jobId
       , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
+      , GetCurrentTimeZone
+      , FetchPipelines
       ]
     )
 
@@ -134,8 +137,8 @@ changeToJob flags ( model, effects ) =
     )
 
 
-subscriptions : Model -> List Subscription
-subscriptions model =
+subscriptions : List Subscription
+subscriptions =
     [ OnClockTick FiveSeconds
     , OnClockTick OneSecond
     ]
@@ -154,6 +157,9 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
+        GotCurrentTimeZone zone ->
+            ( { model | timeZone = zone }, effects )
+
         BuildTriggered (Ok build) ->
             ( model
             , case build.job of
@@ -181,7 +187,7 @@ handleCallback callback ( model, effects ) =
 
         JobFetched (Ok job) ->
             ( { model | job = RemoteData.Success job }
-            , effects ++ [ SetTitle <| job.name ++ " - " ]
+            , effects
             )
 
         JobFetched (Err err) ->
@@ -222,7 +228,7 @@ handleCallback callback ( model, effects ) =
                     , effects
                     )
 
-        BuildResourcesFetched (Err err) ->
+        BuildResourcesFetched (Err _) ->
             ( model, effects )
 
         PausedToggled (Ok ()) ->
@@ -241,11 +247,12 @@ handleDelivery delivery ( model, effects ) =
         ClockTicked OneSecond time ->
             ( { model | now = time }, effects )
 
-        ClockTicked FiveSeconds time ->
+        ClockTicked FiveSeconds _ ->
             ( model
             , effects
                 ++ [ FetchJobBuilds model.jobIdentifier model.currentPage
                    , FetchJob model.jobIdentifier
+                   , FetchPipelines
                    ]
             )
 
@@ -256,10 +263,10 @@ handleDelivery delivery ( model, effects ) =
 update : Message -> ET Model
 update action ( model, effects ) =
     case action of
-        TriggerBuildJob ->
+        Click TriggerBuildButton ->
             ( model, effects ++ [ DoTriggerBuild model.jobIdentifier ] )
 
-        TogglePaused ->
+        Click ToggleJobButton ->
             case model.job |> RemoteData.toMaybe of
                 Nothing ->
                     ( model, effects )
@@ -275,9 +282,6 @@ update action ( model, effects ) =
                       else
                         effects ++ [ PauseJob model.jobIdentifier ]
                     )
-
-        Hover hoverable ->
-            ( { model | hovered = hoverable }, effects )
 
         _ ->
             ( model, effects )
@@ -359,7 +363,7 @@ setExistingResources paginatedBuilds model =
 updateResourcesIfNeeded : BuildWithResources -> Maybe Effect
 updateResourcesIfNeeded bwr =
     case ( bwr.resources, isRunning bwr.build ) of
-        ( Just resources, False ) ->
+        ( Just _, False ) ->
             Nothing
 
         _ ->
@@ -388,35 +392,56 @@ isRunning build =
     Concourse.BuildStatus.isRunning build.status
 
 
-view : UserState -> Model -> Html Message
-view userState model =
-    Html.div []
+documentTitle : Model -> String
+documentTitle model =
+    model.jobIdentifier.jobName
+
+
+view : Session a -> Model -> Html Message
+view session model =
+    let
+        route =
+            Routes.Job
+                { id = model.jobIdentifier
+                , page = model.currentPage
+                }
+    in
+    Html.div
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
-            [ style Views.Styles.pageIncludingTopBar
-            , id "page-including-top-bar"
+            (id "top-bar-app" :: Views.Styles.topBar False)
+            [ SideBar.hamburgerMenu session
+            , TopBar.concourseLogo
+            , TopBar.breadcrumbs route
+            , Login.view session.userState model False
             ]
-            [ Html.div
-                [ id "top-bar-app"
-                , style <| Views.Styles.topBar False
-                ]
-                [ TopBar.concourseLogo
-                , TopBar.breadcrumbs <|
-                    Routes.Job
-                        { id = model.jobIdentifier
-                        , page = model.currentPage
-                        }
-                , Login.view userState model False
-                ]
-            , Html.div
-                [ id "page-below-top-bar", style Styles.pageBelowTopBar ]
-                [ viewMainJobsSection model ]
+        , Html.div
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
+            [ SideBar.view
+                { expandedTeams = session.expandedTeams
+                , pipelines = session.pipelines
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , screenSize = session.screenSize
+                }
+                (Just
+                    { pipelineName = model.jobIdentifier.pipelineName
+                    , teamName = model.jobIdentifier.teamName
+                    }
+                )
+            , viewMainJobsSection session model
             ]
         ]
 
 
-viewMainJobsSection : Model -> Html Message
-viewMainJobsSection model =
-    Html.div [ class "with-fixed-header" ]
+viewMainJobsSection : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewMainJobsSection session model =
+    Html.div
+        [ class "with-fixed-header"
+        , style "flex-grow" "1"
+        , style "display" "flex"
+        , style "flex-direction" "column"
+        ]
         [ case model.job |> RemoteData.toMaybe of
             Nothing ->
                 LoadingIndicator.view
@@ -424,33 +449,32 @@ viewMainJobsSection model =
             Just job ->
                 let
                     toggleHovered =
-                        model.hovered == Just ToggleJobButton
+                        session.hovered == Just ToggleJobButton
 
                     triggerHovered =
-                        model.hovered == Just TriggerBuildButton
+                        session.hovered == Just TriggerBuildButton
                 in
                 Html.div [ class "fixed-header" ]
                     [ Html.div
                         [ class "build-header"
-                        , style
-                            [ ( "display", "flex" )
-                            , ( "justify-content", "space-between" )
-                            , ( "background"
-                              , Colors.buildStatusColor True <| headerBuildStatus job.finishedBuild
-                              )
-                            ]
+                        , style "display" "flex"
+                        , style "justify-content" "space-between"
+                        , style "background" <|
+                            Colors.buildStatusColor True <|
+                                headerBuildStatus job.finishedBuild
                         ]
                         [ Html.div
-                            [ style [ ( "display", "flex" ) ] ]
+                            [ style "display" "flex" ]
                             [ Html.button
-                                [ id "pause-toggle"
-                                , style <|
-                                    Styles.triggerButton False toggleHovered <|
-                                        headerBuildStatus job.finishedBuild
-                                , onMouseEnter <| Hover <| Just ToggleJobButton
-                                , onMouseLeave <| Hover Nothing
-                                , onClick TogglePaused
-                                ]
+                                ([ id "pause-toggle"
+                                 , onMouseEnter <| Hover <| Just ToggleJobButton
+                                 , onMouseLeave <| Hover Nothing
+                                 , onClick <| Click ToggleJobButton
+                                 ]
+                                    ++ (Styles.triggerButton False toggleHovered <|
+                                            headerBuildStatus job.finishedBuild
+                                       )
+                                )
                                 [ Icon.icon
                                     { sizePx = 40
                                     , image =
@@ -460,7 +484,7 @@ viewMainJobsSection model =
                                         else
                                             "ic-pause-circle-outline-white.svg"
                                     }
-                                    [ style <| Styles.icon toggleHovered ]
+                                    (Styles.icon toggleHovered)
                                 ]
                             , Html.h1 []
                                 [ Html.span
@@ -469,30 +493,30 @@ viewMainJobsSection model =
                                 ]
                             ]
                         , Html.button
-                            [ class "trigger-build"
-                            , onLeftClick TriggerBuildJob
-                            , attribute "aria-label" "Trigger Build"
-                            , attribute "title" "Trigger Build"
-                            , onMouseEnter <| Hover <| Just TriggerBuildButton
-                            , onMouseLeave <| Hover Nothing
-                            , style <|
-                                Styles.triggerButton job.disableManualTrigger triggerHovered <|
-                                    headerBuildStatus job.finishedBuild
-                            ]
+                            ([ class "trigger-build"
+                             , onLeftClick <| Click TriggerBuildButton
+                             , attribute "aria-label" "Trigger Build"
+                             , attribute "title" "Trigger Build"
+                             , onMouseEnter <| Hover <| Just TriggerBuildButton
+                             , onMouseLeave <| Hover Nothing
+                             ]
+                                ++ (Styles.triggerButton job.disableManualTrigger triggerHovered <|
+                                        headerBuildStatus job.finishedBuild
+                                   )
+                            )
                           <|
                             [ Icon.icon
                                 { sizePx = 40
                                 , image = "ic-add-circle-outline-white.svg"
                                 }
-                                [ style <|
-                                    Styles.icon <|
-                                        triggerHovered
-                                            && not job.disableManualTrigger
-                                ]
+                                (Styles.icon <|
+                                    triggerHovered
+                                        && not job.disableManualTrigger
+                                )
                             ]
                                 ++ (if job.disableManualTrigger && triggerHovered then
                                         [ Html.div
-                                            [ style Styles.triggerTooltip ]
+                                            Styles.triggerTooltip
                                             [ Html.text <|
                                                 "manual triggering disabled "
                                                     ++ "in job config"
@@ -505,22 +529,18 @@ viewMainJobsSection model =
                         ]
                     , Html.div
                         [ id "pagination-header"
-                        , style
-                            [ ( "display", "flex" )
-                            , ( "justify-content", "space-between" )
-                            , ( "align-items", "stretch" )
-                            , ( "height", "60px" )
-                            , ( "background-color", Colors.secondaryTopBar )
-                            ]
+                        , style "display" "flex"
+                        , style "justify-content" "space-between"
+                        , style "align-items" "stretch"
+                        , style "height" "60px"
+                        , style "background-color" Colors.secondaryTopBar
                         ]
                         [ Html.h1
-                            [ style
-                                [ ( "margin", "0 18px" )
-                                , ( "font-weight", "700" )
-                                ]
+                            [ style "margin" "0 18px"
+                            , style "font-weight" "700"
                             ]
                             [ Html.text "builds" ]
-                        , viewPaginationBar model
+                        , viewPaginationBar session model
                         ]
                     ]
         , case model.buildsWithResources.content of
@@ -528,7 +548,10 @@ viewMainJobsSection model =
                 LoadingIndicator.view
 
             anyList ->
-                Html.div [ class "scrollable-body job-body" ]
+                Html.div
+                    [ class "scrollable-body job-body"
+                    , style "overflow-y" "auto"
+                    ]
                     [ Html.ul [ class "jobs-builds-list builds-list" ] <|
                         List.map (viewBuildWithResources model) anyList
                     ]
@@ -545,27 +568,24 @@ headerBuildStatus finishedBuild =
             build.status
 
 
-viewPaginationBar : Model -> Html Message
-viewPaginationBar model =
+viewPaginationBar : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewPaginationBar session model =
     Html.div
         [ id "pagination"
-        , style
-            [ ( "display", "flex" )
-            , ( "align-items", "stretch" )
-            ]
+        , style "display" "flex"
+        , style "align-items" "stretch"
         ]
         [ case model.buildsWithResources.pagination.previousPage of
             Nothing ->
                 Html.div
-                    [ style chevronContainer ]
+                    chevronContainer
                     [ Html.div
-                        [ style <|
-                            chevron
-                                { direction = "left"
-                                , enabled = False
-                                , hovered = False
-                                }
-                        ]
+                        (chevron
+                            { direction = "left"
+                            , enabled = False
+                            , hovered = False
+                            }
+                        )
                         []
                     ]
 
@@ -575,35 +595,35 @@ viewPaginationBar model =
                         Routes.Job { id = model.jobIdentifier, page = Just page }
                 in
                 Html.div
-                    [ style chevronContainer
-                    , onMouseEnter <| Hover <| Just PreviousPageButton
-                    , onMouseLeave <| Hover Nothing
-                    ]
+                    ([ onMouseEnter <| Hover <| Just PreviousPageButton
+                     , onMouseLeave <| Hover Nothing
+                     ]
+                        ++ chevronContainer
+                    )
                     [ Html.a
-                        [ StrictEvents.onLeftClick <| GoToRoute jobRoute
-                        , href <| Routes.toString <| jobRoute
-                        , attribute "aria-label" "Previous Page"
-                        , style <|
-                            chevron
+                        ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
+                         , href <| Routes.toString <| jobRoute
+                         , attribute "aria-label" "Previous Page"
+                         ]
+                            ++ chevron
                                 { direction = "left"
                                 , enabled = True
-                                , hovered = model.hovered == Just PreviousPageButton
+                                , hovered = session.hovered == Just PreviousPageButton
                                 }
-                        ]
+                        )
                         []
                     ]
         , case model.buildsWithResources.pagination.nextPage of
             Nothing ->
                 Html.div
-                    [ style chevronContainer ]
+                    chevronContainer
                     [ Html.div
-                        [ style <|
-                            chevron
-                                { direction = "right"
-                                , enabled = False
-                                , hovered = False
-                                }
-                        ]
+                        (chevron
+                            { direction = "right"
+                            , enabled = False
+                            , hovered = False
+                            }
+                        )
                         []
                     ]
 
@@ -613,21 +633,22 @@ viewPaginationBar model =
                         Routes.Job { id = model.jobIdentifier, page = Just page }
                 in
                 Html.div
-                    [ style chevronContainer
-                    , onMouseEnter <| Hover <| Just NextPageButton
-                    , onMouseLeave <| Hover Nothing
-                    ]
+                    ([ onMouseEnter <| Hover <| Just NextPageButton
+                     , onMouseLeave <| Hover Nothing
+                     ]
+                        ++ chevronContainer
+                    )
                     [ Html.a
-                        [ StrictEvents.onLeftClick <| GoToRoute jobRoute
-                        , href <| Routes.toString jobRoute
-                        , attribute "aria-label" "Next Page"
-                        , style <|
-                            chevron
+                        ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
+                         , href <| Routes.toString jobRoute
+                         , attribute "aria-label" "Next Page"
+                         ]
+                            ++ chevron
                                 { direction = "right"
                                 , enabled = True
-                                , hovered = model.hovered == Just NextPageButton
+                                , hovered = session.hovered == Just NextPageButton
                                 }
-                        ]
+                        )
                         []
                     ]
         ]
@@ -638,17 +659,17 @@ viewBuildWithResources model bwr =
     Html.li [ class "js-build" ] <|
         let
             buildResourcesView =
-                viewBuildResources model bwr
+                viewBuildResources bwr
         in
-        [ viewBuildHeader model bwr.build
+        [ viewBuildHeader bwr.build
         , Html.div [ class "pam clearfix" ] <|
-            BuildDuration.view bwr.build.duration model.now
+            BuildDuration.view model.timeZone bwr.build.duration model.now
                 :: buildResourcesView
         ]
 
 
-viewBuildHeader : Model -> Concourse.Build -> Html Message
-viewBuildHeader model b =
+viewBuildHeader : Concourse.Build -> Html Message
+viewBuildHeader b =
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
         , StrictEvents.onLeftClick <| GoToRoute <| Routes.buildRoute b
@@ -658,8 +679,8 @@ viewBuildHeader model b =
         ]
 
 
-viewBuildResources : Model -> BuildWithResources -> List (Html Message)
-viewBuildResources model buildWithResources =
+viewBuildResources : BuildWithResources -> List (Html Message)
+viewBuildResources buildWithResources =
     let
         inputsTable =
             case buildWithResources.resources of
@@ -668,7 +689,7 @@ viewBuildResources model buildWithResources =
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|
-                        List.map (viewBuildInputs model) resources.inputs
+                        List.map viewBuildInputs resources.inputs
 
         outputsTable =
             case buildWithResources.resources of
@@ -677,28 +698,28 @@ viewBuildResources model buildWithResources =
 
                 Just resources ->
                     Html.table [ class "build-resources" ] <|
-                        List.map (viewBuildOutputs model) resources.outputs
+                        List.map viewBuildOutputs resources.outputs
     in
     [ Html.div [ class "inputs mrl" ]
         [ Html.div
-            [ style Styles.buildResourceHeader ]
+            Styles.buildResourceHeader
             [ Icon.icon
                 { sizePx = 12
                 , image = "ic-arrow-downward.svg"
                 }
-                [ style Styles.buildResourceIcon ]
+                Styles.buildResourceIcon
             , Html.text "inputs"
             ]
         , inputsTable
         ]
     , Html.div [ class "outputs mrl" ]
         [ Html.div
-            [ style Styles.buildResourceHeader ]
+            Styles.buildResourceHeader
             [ Icon.icon
                 { sizePx = 12
                 , image = "ic-arrow-upward.svg"
                 }
-                [ style Styles.buildResourceIcon ]
+                Styles.buildResourceIcon
             , Html.text "outputs"
             ]
         , outputsTable
@@ -706,8 +727,8 @@ viewBuildResources model buildWithResources =
     ]
 
 
-viewBuildInputs : Model -> Concourse.BuildResourcesInput -> Html Message
-viewBuildInputs model bi =
+viewBuildInputs : Concourse.BuildResourcesInput -> Html Message
+viewBuildInputs bi =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
             [ Html.text bi.name
@@ -718,8 +739,8 @@ viewBuildInputs model bi =
         ]
 
 
-viewBuildOutputs : Model -> Concourse.BuildResourcesOutput -> Html Message
-viewBuildOutputs model bo =
+viewBuildOutputs : Concourse.BuildResourcesOutput -> Html Message
+viewBuildOutputs bo =
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
             [ Html.text bo.name
@@ -732,7 +753,6 @@ viewBuildOutputs model bo =
 
 viewVersion : Concourse.Version -> Html Message
 viewVersion version =
-    DictView.view []
-        << Dict.map (\_ s -> Html.text s)
-    <|
-        version
+    version
+        |> Dict.map (always Html.text)
+        |> DictView.view []

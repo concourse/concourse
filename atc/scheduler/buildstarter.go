@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 )
@@ -31,14 +30,12 @@ func NewBuildStarter(
 	maxInFlightUpdater maxinflight.Updater,
 	factory BuildFactory,
 	inputMapper algorithm.InputMapper,
-	execEngine engine.Engine,
 ) BuildStarter {
 	return &buildStarter{
 		pipeline:           pipeline,
 		maxInFlightUpdater: maxInFlightUpdater,
 		factory:            factory,
 		inputMapper:        inputMapper,
-		execEngine:         execEngine,
 	}
 }
 
@@ -46,7 +43,6 @@ type buildStarter struct {
 	pipeline           db.Pipeline
 	maxInFlightUpdater maxinflight.Updater
 	factory            BuildFactory
-	execEngine         engine.Engine
 	inputMapper        algorithm.InputMapper
 }
 
@@ -97,8 +93,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	}
 
 	if nextPendingBuild.IsManuallyTriggered() {
-		jobBuildInputs := job.Config().Inputs()
-		for _, input := range jobBuildInputs {
+		for _, input := range job.Config().Inputs() {
 			resource, found := resources.Lookup(input.Resource)
 
 			if !found {
@@ -110,7 +105,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 				continue
 			}
 
-			if resource.LastCheckFinished().Before(nextPendingBuild.CreateTime()) {
+			if resource.LastCheckEndTime().Before(nextPendingBuild.CreateTime()) {
 				return false, nil
 			}
 		}
@@ -191,22 +186,24 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	plan, err := s.factory.Create(job.Config(), resourceConfigs, resourceTypes, buildInputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
-		err := nextPendingBuild.Finish(db.BuildStatusErrored)
-		if err != nil {
+		if err = nextPendingBuild.Finish(db.BuildStatusErrored); err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
 		}
 		return false, nil
 	}
 
-	createdBuild, err := s.execEngine.CreateBuild(logger, nextPendingBuild, plan)
+	started, err := nextPendingBuild.Start(plan)
 	if err != nil {
-		logger.Error("failed-to-create-build", err)
+		logger.Error("failed-to-mark-build-as-started", err)
 		return false, nil
 	}
 
-	logger.Info("starting")
-
-	go createdBuild.Resume(logger)
+	if !started {
+		if err = nextPendingBuild.Finish(db.BuildStatusAborted); err != nil {
+			logger.Error("failed-to-mark-build-as-finished", err)
+		}
+		return false, nil
+	}
 
 	return true, nil
 }

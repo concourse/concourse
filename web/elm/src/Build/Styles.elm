@@ -1,5 +1,8 @@
 module Build.Styles exposing
     ( abortButton
+    , body
+    , durationTooltip
+    , durationTooltipArrow
     , firstOccurrenceTooltip
     , firstOccurrenceTooltipArrow
     , header
@@ -16,14 +19,17 @@ import Build.Models exposing (StepHeaderType(..))
 import Colors
 import Concourse
 import Dashboard.Styles exposing (striped)
+import Html
+import Html.Attributes exposing (style)
 
 
-header : Concourse.BuildStatus -> List ( String, String )
+header : Concourse.BuildStatus -> List (Html.Attribute msg)
 header status =
-    [ ( "display", "flex" )
-    , ( "justify-content", "space-between" )
-    , ( "background"
-      , case status of
+    [ style "display" "flex"
+    , style "justify-content" "space-between"
+    , style "height" "60px"
+    , style "background" <|
+        case status of
             Concourse.BuildStatusStarted ->
                 Colors.startedFaded
 
@@ -41,11 +47,15 @@ header status =
 
             Concourse.BuildStatusAborted ->
                 Colors.aborted
-      )
     ]
 
 
-historyItem : Concourse.BuildStatus -> List ( String, String )
+body : List (Html.Attribute msg)
+body =
+    [ style "overflow-y" "auto", style "outline" "none" ]
+
+
+historyItem : Concourse.BuildStatus -> List (Html.Attribute msg)
 historyItem status =
     case status of
         Concourse.BuildStatusStarted ->
@@ -56,86 +66,83 @@ historyItem status =
                 }
 
         Concourse.BuildStatusPending ->
-            [ ( "background", Colors.pending ) ]
+            [ style "background" Colors.pending ]
 
         Concourse.BuildStatusSucceeded ->
-            [ ( "background", Colors.success ) ]
+            [ style "background" Colors.success ]
 
         Concourse.BuildStatusFailed ->
-            [ ( "background", Colors.failure ) ]
+            [ style "background" Colors.failure ]
 
         Concourse.BuildStatusErrored ->
-            [ ( "background", Colors.error ) ]
+            [ style "background" Colors.error ]
 
         Concourse.BuildStatusAborted ->
-            [ ( "background", Colors.aborted ) ]
+            [ style "background" Colors.aborted ]
 
 
-triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List ( String, String )
+triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List (Html.Attribute msg)
 triggerButton buttonDisabled hovered status =
-    [ ( "cursor"
-      , if buttonDisabled then
+    [ style "cursor" <|
+        if buttonDisabled then
             "default"
 
         else
             "pointer"
-      )
-    , ( "position", "relative" )
-    , ( "background-color"
-      , Colors.buildStatusColor (not hovered || buttonDisabled) status
-      )
+    , style "position" "relative"
+    , style "background-color" <|
+        Colors.buildStatusColor (not hovered || buttonDisabled) status
     ]
         ++ button
 
 
-abortButton : Bool -> List ( String, String )
+abortButton : Bool -> List (Html.Attribute msg)
 abortButton isHovered =
-    [ ( "cursor", "pointer" )
-    , ( "background-color"
-      , if isHovered then
+    [ style "cursor" "pointer"
+    , style "background-color" <|
+        if isHovered then
             Colors.failureFaded
 
         else
             Colors.failure
-      )
     ]
         ++ button
 
 
-button : List ( String, String )
+button : List (Html.Attribute msg)
 button =
-    [ ( "padding", "10px" )
-    , ( "outline", "none" )
-    , ( "margin", "0" )
-    , ( "border-width", "0 0 0 1px" )
-    , ( "border-color", Colors.background )
-    , ( "border-style", "solid" )
+    [ style "padding" "10px"
+    , style "outline" "none"
+    , style "margin" "0"
+    , style "border-width" "0 0 0 1px"
+    , style "border-color" Colors.background
+    , style "border-style" "solid"
     ]
 
 
-triggerTooltip : List ( String, String )
+triggerTooltip : List (Html.Attribute msg)
 triggerTooltip =
-    [ ( "position", "absolute" )
-    , ( "right", "100%" )
-    , ( "top", "15px" )
-    , ( "width", "300px" )
-    , ( "color", Colors.buildTooltipBackground )
-    , ( "font-size", "12px" )
-    , ( "font-family", "Inconsolata,monospace" )
-    , ( "padding", "10px" )
-    , ( "text-align", "right" )
-    , ( "pointer-events", "none" )
+    [ style "position" "absolute"
+    , style "right" "100%"
+    , style "top" "15px"
+    , style "width" "300px"
+    , style "color" Colors.buildTooltipBackground
+    , style "font-size" "12px"
+    , style "font-family" "Inconsolata,monospace"
+    , style "padding" "10px"
+    , style "text-align" "right"
+    , style "pointer-events" "none"
     ]
 
 
-stepHeader : List ( String, String )
+stepHeader : List (Html.Attribute msg)
 stepHeader =
-    [ ( "display", "flex" )
-    , ( "justify-content", "space-between" )
+    [ style "display" "flex"
+    , style "justify-content" "space-between"
     ]
 
 
-stepHeaderIcon : StepHeaderType -> List ( String, String )
+stepHeaderIcon : StepHeaderType -> List (Html.Attribute msg)
 stepHeaderIcon icon =
     let
         image =
@@ -152,45 +159,75 @@ stepHeaderIcon icon =
                 StepHeaderTask ->
                     "terminal"
     in
-    [ ( "height", "28px" )
-    , ( "width", "28px" )
-    , ( "background-image"
-      , "url(/public/images/ic-" ++ image ++ ".svg)"
-      )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-size", "14px 14px" )
-    , ( "position", "relative" )
+    [ style "height" "28px"
+    , style "width" "28px"
+    , style "background-image" <|
+        "url(/public/images/ic-"
+            ++ image
+            ++ ".svg)"
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
+    , style "background-size" "14px 14px"
+    , style "position" "relative"
     ]
 
 
-stepStatusIcon : List ( String, String )
+stepStatusIcon : List (Html.Attribute msg)
 stepStatusIcon =
-    [ ( "background-size", "14px 14px" ) ]
+    [ style "background-size" "14px 14px"
+    , style "position" "relative"
+    ]
 
 
-firstOccurrenceTooltip : List ( String, String )
+firstOccurrenceTooltip : List (Html.Attribute msg)
 firstOccurrenceTooltip =
-    [ ( "position", "absolute" )
-    , ( "left", "0" )
-    , ( "bottom", "100%" )
-    , ( "background-color", Colors.tooltipBackground )
-    , ( "padding", "5px" )
-    , ( "z-index", "100" )
-    , ( "width", "6em" )
-    , ( "pointer-events", "none" )
+    [ style "position" "absolute"
+    , style "left" "0"
+    , style "bottom" "100%"
+    , style "background-color" Colors.tooltipBackground
+    , style "padding" "5px"
+    , style "z-index" "100"
+    , style "width" "6em"
+    , style "pointer-events" "none"
     ]
         ++ Application.Styles.disableInteraction
 
 
-firstOccurrenceTooltipArrow : List ( String, String )
+firstOccurrenceTooltipArrow : List (Html.Attribute msg)
 firstOccurrenceTooltipArrow =
-    [ ( "width", "0" )
-    , ( "height", "0" )
-    , ( "left", "50%" )
-    , ( "margin-left", "-5px" )
-    , ( "border-top", "5px solid " ++ Colors.tooltipBackground )
-    , ( "border-left", "5px solid transparent" )
-    , ( "border-right", "5px solid transparent" )
-    , ( "position", "absolute" )
+    [ style "width" "0"
+    , style "height" "0"
+    , style "left" "50%"
+    , style "margin-left" "-5px"
+    , style "border-top" <| "5px solid " ++ Colors.tooltipBackground
+    , style "border-left" "5px solid transparent"
+    , style "border-right" "5px solid transparent"
+    , style "position" "absolute"
+    ]
+
+
+durationTooltip : List (Html.Attribute msg)
+durationTooltip =
+    [ style "position" "absolute"
+    , style "right" "0"
+    , style "bottom" "100%"
+    , style "background-color" Colors.tooltipBackground
+    , style "padding" "5px"
+    , style "z-index" "100"
+    , style "pointer-events" "none"
+    ]
+        ++ Application.Styles.disableInteraction
+
+
+durationTooltipArrow : List (Html.Attribute msg)
+durationTooltipArrow =
+    [ style "width" "0"
+    , style "height" "0"
+    , style "left" "50%"
+    , style "top" "0px"
+    , style "margin-left" "-5px"
+    , style "border-top" <| "5px solid " ++ Colors.tooltipBackground
+    , style "border-left" "5px solid transparent"
+    , style "border-right" "5px solid transparent"
+    , style "position" "absolute"
     ]

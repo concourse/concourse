@@ -225,7 +225,7 @@ var _ = Describe("Resource Config Scope", func() {
 		})
 	})
 
-	Describe("UpdateLastChecked", func() {
+	Describe("UpdateLastCheckStartTime", func() {
 		var (
 			someResource        db.Resource
 			resourceConfigScope db.ResourceConfigScope
@@ -252,14 +252,14 @@ var _ = Describe("Resource Config Scope", func() {
 
 		Context("when there has not been a check", func() {
 			It("should update the last checked", func() {
-				updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, false)
+				updated, err := resourceConfigScope.UpdateLastCheckStartTime(1*time.Second, false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updated).To(BeTrue())
 			})
 
 			Context("when immediate", func() {
 				It("should update the last checked", func() {
-					updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, true)
+					updated, err := resourceConfigScope.UpdateLastCheckStartTime(1*time.Second, true)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(updated).To(BeTrue())
 				})
@@ -270,14 +270,14 @@ var _ = Describe("Resource Config Scope", func() {
 			interval := 1 * time.Second
 
 			BeforeEach(func() {
-				updated, err := resourceConfigScope.UpdateLastChecked(interval, false)
+				updated, err := resourceConfigScope.UpdateLastCheckStartTime(interval, false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updated).To(BeTrue())
 			})
 
 			Context("when not immediate", func() {
 				It("does not update the last checked until the interval has elapsed", func() {
-					updated, err := resourceConfigScope.UpdateLastChecked(interval, false)
+					updated, err := resourceConfigScope.UpdateLastCheckStartTime(interval, false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(updated).To(BeFalse())
 				})
@@ -288,7 +288,7 @@ var _ = Describe("Resource Config Scope", func() {
 					})
 
 					It("updates the last checked", func() {
-						updated, err := resourceConfigScope.UpdateLastChecked(interval, false)
+						updated, err := resourceConfigScope.UpdateLastCheckStartTime(interval, false)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(updated).To(BeTrue())
 					})
@@ -297,7 +297,7 @@ var _ = Describe("Resource Config Scope", func() {
 
 			Context("when it is immediate", func() {
 				It("updates the last checked", func() {
-					updated, err := resourceConfigScope.UpdateLastChecked(1*time.Second, true)
+					updated, err := resourceConfigScope.UpdateLastCheckStartTime(1*time.Second, true)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(updated).To(BeTrue())
 				})
@@ -305,7 +305,7 @@ var _ = Describe("Resource Config Scope", func() {
 		})
 	})
 
-	Describe("UpdateLastCheckFinished", func() {
+	Describe("UpdateLastCheckEndTime", func() {
 		var (
 			someResource        db.Resource
 			resourceConfigScope db.ResourceConfigScope
@@ -331,12 +331,12 @@ var _ = Describe("Resource Config Scope", func() {
 		})
 
 		It("should update last check finished", func() {
-			updated, err := resourceConfigScope.UpdateLastCheckFinished()
+			updated, err := resourceConfigScope.UpdateLastCheckEndTime()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(updated).To(BeTrue())
 
 			someResource.Reload()
-			Expect(someResource.LastCheckFinished()).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
+			Expect(someResource.LastCheckEndTime()).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
 		})
 	})
 

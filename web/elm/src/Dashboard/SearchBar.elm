@@ -1,21 +1,31 @@
-module Dashboard.SearchBar exposing (handleDelivery, searchInputId, update, view)
+module Dashboard.SearchBar exposing
+    ( handleDelivery
+    , searchInputId
+    , update
+    , view
+    )
 
 import Array
+import Concourse.PipelineStatus
+    exposing
+        ( PipelineStatus(..)
+        , StatusDetails(..)
+        )
 import Dashboard.Group.Models exposing (Group)
 import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, id, placeholder, style, value)
+import Html.Attributes exposing (attribute, id, placeholder, value)
 import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseDown)
-import Keycodes
+import Keyboard
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
-import Window
+import Session exposing (Session)
 
 
 searchInputId : String
@@ -23,11 +33,21 @@ searchInputId =
     "search-input-field"
 
 
-update : Message -> ET Model
-update msg ( model, effects ) =
+update : Session a -> Message -> ET Model
+update session msg ( model, effects ) =
     case msg of
-        ShowSearchInput ->
-            showSearchInput ( model, effects )
+        Click ShowSearchButton ->
+            showSearchInput session ( model, effects )
+
+        Click ClearSearchButton ->
+            ( { model | query = "" }
+            , effects
+                ++ [ Focus searchInputId
+                   , ModifyUrl <|
+                        Routes.toString <|
+                            Routes.Dashboard (Routes.Normal Nothing)
+                   ]
+            )
 
         FilterMsg query ->
             ( { model | query = query }
@@ -40,25 +60,17 @@ update msg ( model, effects ) =
             )
 
         FocusMsg ->
-            let
-                newModel =
-                    { model | dropdown = Shown { selectedIdx = Nothing } }
-            in
-            ( newModel, effects )
+            ( { model | dropdown = Shown Nothing }, effects )
 
         BlurMsg ->
-            let
-                newModel =
-                    { model | dropdown = Hidden }
-            in
-            ( newModel, effects )
+            ( { model | dropdown = Hidden }, effects )
 
         _ ->
             ( model, effects )
 
 
-showSearchInput : ET Model
-showSearchInput ( model, effects ) =
+showSearchInput : { a | screenSize : ScreenSize } -> ET Model
+showSearchInput session ( model, effects ) =
     if model.highDensity then
         ( model, effects )
 
@@ -68,138 +80,105 @@ showSearchInput ( model, effects ) =
                 model.dropdown == Hidden
 
             isMobile =
-                model.screenSize == ScreenSize.Mobile
-
-            newModel =
-                { model | dropdown = Shown { selectedIdx = Nothing } }
+                session.screenSize == ScreenSize.Mobile
         in
         if isDropDownHidden && isMobile && model.query == "" then
-            ( newModel, effects ++ [ Focus searchInputId ] )
+            ( { model | dropdown = Shown Nothing }
+            , effects ++ [ Focus searchInputId ]
+            )
 
         else
             ( model, effects )
 
 
-screenResize : Window.Size -> Model -> Model
-screenResize size model =
+screenResize : Float -> Model -> Model
+screenResize width model =
     let
         newSize =
-            ScreenSize.fromWindowSize size
-
-        newModel =
-            { model | screenSize = newSize }
+            ScreenSize.fromWindowSize width
     in
     case newSize of
         ScreenSize.Desktop ->
-            { newModel | dropdown = Hidden }
+            { model | dropdown = Hidden }
 
         ScreenSize.BigDesktop ->
-            { newModel | dropdown = Hidden }
+            { model | dropdown = Hidden }
 
         ScreenSize.Mobile ->
-            newModel
-
-
-handleCallback : Callback -> ET Model
-handleCallback callback ( model, effects ) =
-    case callback of
-        ScreenResized size ->
-            ( screenResize size model, effects )
-
-        _ ->
-            ( model, effects )
+            model
 
 
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        WindowResized size ->
-            ( screenResize size model, effects )
+        WindowResized width _ ->
+            ( screenResize width model, effects )
 
-        KeyUp keyCode ->
-            if keyCode == Keycodes.shift then
-                ( { model | shiftDown = False }, effects )
+        KeyDown keyEvent ->
+            let
+                options =
+                    dropdownOptions model
+            in
+            case keyEvent.code of
+                Keyboard.ArrowUp ->
+                    ( { model
+                        | dropdown =
+                            arrowUp options model.dropdown
+                      }
+                    , effects
+                    )
 
-            else
-                ( model, effects )
+                Keyboard.ArrowDown ->
+                    ( { model
+                        | dropdown =
+                            arrowDown options model.dropdown
+                      }
+                    , effects
+                    )
 
-        KeyDown keyCode ->
-            if keyCode == Keycodes.shift then
-                ( { model | shiftDown = True }, effects )
+                Keyboard.Enter ->
+                    case model.dropdown of
+                        Shown (Just idx) ->
+                            let
+                                selectedItem =
+                                    options
+                                        |> Array.fromList
+                                        |> Array.get idx
+                                        |> Maybe.withDefault
+                                            model.query
+                            in
+                            ( { model
+                                | dropdown = Shown Nothing
+                                , query = selectedItem
+                              }
+                            , [ ModifyUrl <|
+                                    Routes.toString <|
+                                        Routes.Dashboard
+                                            (Routes.Normal (Just selectedItem))
+                              ]
+                            )
 
-            else
-                let
-                    options =
-                        dropdownOptions model
-                in
-                case keyCode of
-                    -- up arrow
-                    38 ->
-                        ( { model
-                            | dropdown =
-                                arrowUp options model.dropdown
-                          }
-                        , effects
-                        )
+                        Shown Nothing ->
+                            ( model, effects )
 
-                    -- down arrow
-                    40 ->
-                        ( { model
-                            | dropdown =
-                                arrowDown options model.dropdown
-                          }
-                        , effects
-                        )
+                        Hidden ->
+                            ( model, effects )
 
-                    -- enter key
-                    13 ->
-                        case model.dropdown of
-                            Shown { selectedIdx } ->
-                                case selectedIdx of
-                                    Nothing ->
-                                        ( model, effects )
+                Keyboard.Escape ->
+                    ( model, effects ++ [ Blur searchInputId ] )
 
-                                    Just selectedIdx ->
-                                        let
-                                            options =
-                                                Array.fromList <|
-                                                    dropdownOptions model
+                Keyboard.Slash ->
+                    ( model
+                    , if keyEvent.shiftKey then
+                        effects
 
-                                            selectedItem =
-                                                Array.get selectedIdx options
-                                                    |> Maybe.withDefault
-                                                        model.query
-                                        in
-                                        ( { model
-                                            | dropdown = Shown { selectedIdx = Nothing }
-                                            , query = selectedItem
-                                          }
-                                        , [ ModifyUrl <|
-                                                Routes.toString <|
-                                                    Routes.Dashboard (Routes.Normal (Just selectedItem))
-                                          ]
-                                        )
+                      else
+                        effects ++ [ Focus searchInputId ]
+                    )
 
-                            _ ->
-                                ( model, effects )
-
-                    -- escape key
-                    27 ->
-                        ( model, effects ++ [ Blur searchInputId ] )
-
-                    -- '/'
-                    191 ->
-                        ( model
-                        , if model.shiftDown then
-                            effects
-
-                          else
-                            effects ++ [ Focus searchInputId ]
-                        )
-
-                    -- any other keycode
-                    _ ->
-                        ( model, effects )
+                -- any other keycode
+                _ ->
+                    ( model, effects )
 
         _ ->
             ( model, effects )
@@ -208,21 +187,19 @@ handleDelivery delivery ( model, effects ) =
 arrowUp : List a -> Dropdown -> Dropdown
 arrowUp options dropdown =
     case dropdown of
-        Shown { selectedIdx } ->
-            case selectedIdx of
-                Nothing ->
-                    let
-                        lastItem =
-                            List.length options - 1
-                    in
-                    Shown { selectedIdx = Just lastItem }
+        Shown Nothing ->
+            let
+                lastItem =
+                    List.length options - 1
+            in
+            Shown (Just lastItem)
 
-                Just selectedIdx ->
-                    let
-                        newSelection =
-                            (selectedIdx - 1) % List.length options
-                    in
-                    Shown { selectedIdx = Just newSelection }
+        Shown (Just idx) ->
+            let
+                newSelection =
+                    modBy (List.length options) (idx - 1)
+            in
+            Shown (Just newSelection)
 
         Hidden ->
             Hidden
@@ -231,38 +208,37 @@ arrowUp options dropdown =
 arrowDown : List a -> Dropdown -> Dropdown
 arrowDown options dropdown =
     case dropdown of
-        Shown { selectedIdx } ->
-            case selectedIdx of
-                Nothing ->
-                    Shown { selectedIdx = Just 0 }
+        Shown Nothing ->
+            Shown (Just 0)
 
-                Just selectedIdx ->
-                    let
-                        newSelection =
-                            (selectedIdx + 1) % List.length options
-                    in
-                    Shown { selectedIdx = Just newSelection }
+        Shown (Just idx) ->
+            let
+                newSelection =
+                    modBy (List.length options) (idx + 1)
+            in
+            Shown (Just newSelection)
 
         Hidden ->
             Hidden
 
 
 view :
-    { a
-        | screenSize : ScreenSize
-        , query : String
-        , dropdown : Dropdown
-        , groups : List Group
-        , highDensity : Bool
-    }
+    { a | screenSize : ScreenSize }
+    ->
+        { b
+            | query : String
+            , dropdown : Dropdown
+            , groups : List Group
+            , highDensity : Bool
+        }
     -> Html Message
-view ({ screenSize, query, dropdown, groups } as params) =
+view session ({ query, dropdown, groups } as params) =
     let
         isDropDownHidden =
             dropdown == Hidden
 
         isMobile =
-            screenSize == ScreenSize.Mobile
+            session.screenSize == ScreenSize.Mobile
 
         noPipelines =
             groups
@@ -274,71 +250,75 @@ view ({ screenSize, query, dropdown, groups } as params) =
 
     else if isDropDownHidden && isMobile && query == "" then
         Html.div
-            [ style <|
-                Styles.showSearchContainer params
-            ]
-            [ Html.a
-                [ id "show-search-button"
-                , onClick ShowSearchInput
-                , style Styles.searchButton
-                ]
+            (Styles.showSearchContainer
+                { screenSize = session.screenSize
+                , highDensity = params.highDensity
+                }
+            )
+            [ Html.div
+                ([ id "show-search-button"
+                 , onClick <| Click ShowSearchButton
+                 ]
+                    ++ Styles.searchButton
+                )
                 []
             ]
 
     else
         Html.div
-            [ id "search-container"
-            , style (Styles.searchContainer screenSize)
-            ]
+            (id "search-container" :: Styles.searchContainer session.screenSize)
             ([ Html.input
-                [ id searchInputId
-                , style (Styles.searchInput screenSize)
-                , placeholder "search"
-                , attribute "autocomplete" "off"
-                , value query
-                , onFocus FocusMsg
-                , onBlur BlurMsg
-                , onInput FilterMsg
-                ]
+                ([ id searchInputId
+                 , placeholder "search"
+                 , attribute "autocomplete" "off"
+                 , value query
+                 , onFocus FocusMsg
+                 , onBlur BlurMsg
+                 , onInput FilterMsg
+                 ]
+                    ++ Styles.searchInput session.screenSize
+                )
                 []
              , Html.div
-                [ id "search-clear"
-                , onClick (FilterMsg "")
-                , style (Styles.searchClearButton (String.length query > 0))
-                ]
+                ([ id "search-clear"
+                 , onClick <| Click ClearSearchButton
+                 ]
+                    ++ Styles.searchClearButton (String.length query > 0)
+                )
                 []
              ]
-                ++ viewDropdownItems params
+                ++ viewDropdownItems session params
             )
 
 
 viewDropdownItems :
     { a
-        | query : String
-        , dropdown : Dropdown
-        , groups : List Group
-        , screenSize : ScreenSize
+        | screenSize : ScreenSize
     }
+    ->
+        { b
+            | query : String
+            , dropdown : Dropdown
+            , groups : List Group
+        }
     -> List (Html Message)
-viewDropdownItems ({ dropdown, screenSize } as model) =
+viewDropdownItems { screenSize } ({ dropdown } as model) =
     case dropdown of
         Hidden ->
             []
 
-        Shown { selectedIdx } ->
+        Shown selectedIdx ->
             let
                 dropdownItem : Int -> String -> Html Message
                 dropdownItem idx text =
                     Html.li
-                        [ onMouseDown (FilterMsg text)
-                        , style (Styles.dropdownItem (Just idx == selectedIdx))
-                        ]
+                        (onMouseDown (FilterMsg text)
+                            :: Styles.dropdownItem (Just idx == selectedIdx)
+                        )
                         [ Html.text text ]
             in
             [ Html.ul
-                [ id "search-dropdown"
-                , style (Styles.dropdownContainer screenSize)
-                ]
+                (id "search-dropdown" :: Styles.dropdownContainer screenSize)
                 (List.indexedMap dropdownItem (dropdownOptions model))
             ]
 

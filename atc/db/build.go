@@ -18,6 +18,8 @@ import (
 	"github.com/lib/pq"
 )
 
+const schema = "exec.v2"
+
 type BuildInput struct {
 	Name       string
 	Version    atc.Version
@@ -43,7 +45,7 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained, b.aborted, b.completed").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -64,7 +66,7 @@ type Build interface {
 	TeamID() int
 	TeamName() string
 	Schema() string
-	PrivatePlan() string
+	PrivatePlan() atc.Plan
 	PublicPlan() *json.RawMessage
 	Status() BuildStatus
 	StartTime() time.Time
@@ -74,6 +76,7 @@ type Build interface {
 	IsManuallyTriggered() bool
 	IsScheduled() bool
 	IsRunning() bool
+	IsCompleted() bool
 
 	Reload() (bool, error)
 
@@ -82,8 +85,7 @@ type Build interface {
 	Interceptible() (bool, error)
 	Preparation() (BuildPreparation, bool, error)
 
-	Start(string, atc.Plan) (bool, error)
-	FinishWithError(cause error) error
+	Start(atc.Plan) (bool, error)
 	Finish(BuildStatus) error
 
 	SetInterceptible(bool) error
@@ -106,6 +108,7 @@ type Build interface {
 
 	Delete() (bool, error)
 	MarkAsAborted() error
+	IsAborted() bool
 	AbortNotifier() (Notifier, error)
 
 	IsDrained() bool
@@ -129,7 +132,7 @@ type build struct {
 	isManuallyTriggered bool
 
 	schema      string
-	privatePlan string
+	privatePlan atc.Plan
 	publicPlan  *json.RawMessage
 
 	createTime time.Time
@@ -140,6 +143,8 @@ type build struct {
 	conn        Conn
 	lockFactory lock.LockFactory
 	drained     bool
+	aborted     bool
+	completed   bool
 }
 
 var ErrBuildDisappeared = errors.New("build disappeared from db")
@@ -165,7 +170,7 @@ func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
 func (b *build) Schema() string               { return b.schema }
-func (b *build) PrivatePlan() string          { return b.privatePlan }
+func (b *build) PrivatePlan() atc.Plan        { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
 func (b *build) CreateTime() time.Time        { return b.createTime }
 func (b *build) StartTime() time.Time         { return b.startTime }
@@ -174,15 +179,9 @@ func (b *build) ReapTime() time.Time          { return b.reapTime }
 func (b *build) Status() BuildStatus          { return b.status }
 func (b *build) IsScheduled() bool            { return b.scheduled }
 func (b *build) IsDrained() bool              { return b.drained }
-
-func (b *build) IsRunning() bool {
-	switch b.status {
-	case BuildStatusPending, BuildStatusStarted:
-		return true
-	default:
-		return false
-	}
-}
+func (b *build) IsRunning() bool              { return !b.completed }
+func (b *build) IsAborted() bool              { return b.aborted }
+func (b *build) IsCompleted() bool            { return b.completed }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -242,7 +241,7 @@ func (b *build) SetInterceptible(i bool) error {
 	return nil
 }
 
-func (b *build) Start(schema string, plan atc.Plan) (bool, error) {
+func (b *build) Start(plan atc.Plan) (bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return false, err
@@ -270,8 +269,9 @@ func (b *build) Start(schema string, plan atc.Plan) (bool, error) {
 		Set("public_plan", plan.Public()).
 		Set("nonce", nonce).
 		Where(sq.Eq{
-			"id":     b.id,
-			"status": "pending",
+			"id":      b.id,
+			"status":  "pending",
+			"aborted": false,
 		}).
 		Suffix("RETURNING start_time").
 		RunWith(tx).
@@ -310,17 +310,6 @@ func (b *build) Start(schema string, plan atc.Plan) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func (b *build) FinishWithError(cause error) error {
-	err := b.SaveEvent(event.Error{
-		Message: cause.Error(),
-	})
-	if err != nil {
-		return err
-	}
-
-	return b.Finish(BuildStatusErrored)
 }
 
 func (b *build) Finish(status BuildStatus) error {
@@ -449,7 +438,7 @@ func (b *build) Delete() (bool, error) {
 // build was aborted before it was started.
 func (b *build) MarkAsAborted() error {
 	_, err := psql.Update("builds").
-		Set("status", string(BuildStatusAborted)).
+		Set("aborted", true).
 		Where(sq.Eq{"id": b.id}).
 		RunWith(b.conn).
 		Exec()
@@ -466,7 +455,7 @@ func (b *build) MarkAsAborted() error {
 func (b *build) AbortNotifier() (Notifier, error) {
 	return newConditionNotifier(b.conn.Bus(), buildAbortChannel(b.id), func() (bool, error) {
 		var aborted bool
-		err := psql.Select("status = 'aborted'").
+		err := psql.Select("aborted = true").
 			From("builds").
 			Where(sq.Eq{"id": b.id}).
 			RunWith(b.conn).
@@ -1041,11 +1030,11 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		schema, privatePlan, jobName, pipelineName, publicPlan sql.NullString
 		createTime, startTime, endTime, reapTime               pq.NullTime
 		nonce                                                  sql.NullString
-		drained                                                bool
+		drained, aborted, completed                            bool
 		status                                                 string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained, &aborted, &completed)
 	if err != nil {
 		return err
 	}
@@ -1061,20 +1050,29 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.endTime = endTime.Time
 	b.reapTime = reapTime.Time
 	b.drained = drained
+	b.aborted = aborted
+	b.completed = completed
 
 	var (
 		noncense      *string
 		decryptedPlan []byte
 	)
+
 	if nonce.Valid {
 		noncense = &nonce.String
 		decryptedPlan, err = encryptionStrategy.Decrypt(string(privatePlan.String), noncense)
 		if err != nil {
 			return err
 		}
-		b.privatePlan = string(decryptedPlan)
 	} else {
-		b.privatePlan = privatePlan.String
+		decryptedPlan = []byte(privatePlan.String)
+	}
+
+	if len(decryptedPlan) > 0 {
+		err = json.Unmarshal(decryptedPlan, &b.privatePlan)
+		if err != nil {
+			return err
+		}
 	}
 
 	if publicPlan.Valid {
@@ -1128,6 +1126,10 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	}
 
 	return createBuildEventSeq(tx, buildID)
+}
+
+func buildStartedChannel() string {
+	return fmt.Sprintf("build_started")
 }
 
 func buildEventsChannel(buildID int) string {

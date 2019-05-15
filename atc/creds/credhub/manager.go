@@ -148,7 +148,7 @@ func (manager CredHubManager) Health() (*creds.HealthResponse, error) {
 	return healthResponse, nil
 }
 
-func (manager CredHubManager) NewVariablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
+func (manager CredHubManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
 	return NewCredHubFactory(logger, manager.Client, manager.PathPrefix), nil
 }
 

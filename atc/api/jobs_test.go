@@ -1501,19 +1501,43 @@ var _ = Describe("Jobs API", func() {
 							Expect(fakeJob.CreateBuildCallCount()).To(Equal(1))
 						})
 
-						It("returns 200 OK", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						Context("when finding the pipeline resources fails", func() {
+							BeforeEach(func() {
+								fakePipeline.ResourcesReturns(nil, errors.New("nope"))
+							})
+
+							It("returns a 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
 						})
 
-						It("returns Content-Type 'application/json'", func() {
-							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-						})
+						Context("when finding the pipeline resources succeeds", func() {
+							var fakeResource *dbfakes.FakeResource
 
-						It("returns the build", func() {
-							body, err := ioutil.ReadAll(response.Body)
-							Expect(err).NotTo(HaveOccurred())
+							BeforeEach(func() {
+								fakeResource = new(dbfakes.FakeResource)
+								fakeResource.NameReturns("some-input")
 
-							Expect(body).To(MatchJSON(`{
+								fakePipeline.ResourcesReturns([]db.Resource{fakeResource}, nil)
+							})
+
+							It("returns 200 OK", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
+
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
+							It("notifies a scan of the resource", func() {
+								Expect(fakeResource.NotifyScanCallCount()).To(Equal(1))
+							})
+
+							It("returns the build", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchJSON(`{
 							"id": 42,
 							"name": "1",
 							"job_name": "some-job",
@@ -1524,6 +1548,7 @@ var _ = Describe("Jobs API", func() {
 							"start_time": 1,
 							"end_time": 100
 						}`))
+							})
 						})
 					})
 				})

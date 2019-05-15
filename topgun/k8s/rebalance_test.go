@@ -43,9 +43,7 @@ var _ = Describe("Worker Rebalancing", func() {
 	})
 
 	AfterEach(func() {
-		helmDestroy(releaseName)
-		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-		Wait(proxySession.Interrupt())
+		cleanup(releaseName, namespace, proxySession)
 	})
 
 	It("eventually has worker connecting to each web nodes over a period of time", func() {

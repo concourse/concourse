@@ -2,10 +2,10 @@
 package algorithmfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	db "github.com/concourse/concourse/atc/db"
-	algorithm "github.com/concourse/concourse/atc/scheduler/algorithm"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 type FakeInputMapper struct {

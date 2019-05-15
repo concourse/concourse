@@ -61,6 +61,22 @@ var _ = Describe("ATC Integration Test", func() {
 		})
 	})
 
+	Context("when cluster name is specified", func() {
+		BeforeEach(func() {
+			cmd.Server.ClusterName = "foobar"
+		})
+
+		It("renders cluster name into HTML template", func() {
+			resp, err := http.Get(atcURL)
+			Expect(err).NotTo(HaveOccurred())
+
+			bodyBytes, err := ioutil.ReadAll(resp.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(200))
+			Expect(string(bodyBytes)).To(ContainSubstring("foobar"))
+		})
+	})
+
 	It("set default team and config auth for the main team", func() {
 		client := webLogin(atcURL, "test", "test")
 
@@ -72,6 +88,12 @@ var _ = Describe("ATC Integration Test", func() {
 		Expect(resp.StatusCode).To(Equal(200))
 		Expect(string(bodyBytes)).To(ContainSubstring("main"))
 		Expect(string(bodyBytes)).To(ContainSubstring("local:test"))
+	})
+
+	It("X-Frame-Options header prevents clickjacking by default", func() {
+		resp, err := http.Get(atcURL)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.Header.Get("x-frame-options")).To(Equal("deny"))
 	})
 })
 

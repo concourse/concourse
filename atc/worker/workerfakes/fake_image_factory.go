@@ -2,11 +2,11 @@
 package workerfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	creds "github.com/concourse/concourse/atc/creds"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeImageFactory struct {

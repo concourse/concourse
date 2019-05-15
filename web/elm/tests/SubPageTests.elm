@@ -1,6 +1,7 @@
 module SubPageTests exposing (all)
 
 import Application.Application as Application
+import Common
 import Dict exposing (Dict)
 import Expect
 import Http
@@ -9,6 +10,7 @@ import NotFound.Model
 import Routes
 import SubPage.SubPage exposing (..)
 import Test exposing (..)
+import Url
 
 
 notFoundResult : Result Http.Error a
@@ -29,26 +31,7 @@ all =
             let
                 init : String -> () -> Application.Model
                 init path _ =
-                    Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = "notfound.svg"
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
-                        { href = ""
-                        , host = ""
-                        , hostname = ""
-                        , protocol = ""
-                        , origin = ""
-                        , port_ = ""
-                        , pathname = path
-                        , search = ""
-                        , hash = ""
-                        , username = ""
-                        , password = ""
-                        }
-                        |> Tuple.first
+                    Common.init path
             in
             [ test "JobNotFound" <|
                 init "/teams/t/pipelines/p/jobs/j"

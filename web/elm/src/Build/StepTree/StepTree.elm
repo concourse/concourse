@@ -17,7 +17,6 @@ import Build.StepTree.Models
         ( HookedStep
         , MetadataField
         , Step
-        , StepFocus
         , StepName
         , StepState(..)
         , StepTree(..)
@@ -34,17 +33,18 @@ import Build.StepTree.Models
         )
 import Build.Styles as Styles
 import Concourse
-import Date exposing (Date)
-import Date.Format
-import Debug
+import DateFormat
 import Dict exposing (Dict)
+import Duration
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style, target)
-import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Hoverable(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
+import Time
+import Url exposing (fromString)
 import Views.DictView as DictView
 import Views.Icon as Icon
 import Views.Spinner as Spinner
@@ -55,28 +55,42 @@ init :
     -> Concourse.BuildResources
     -> Concourse.BuildPlan
     -> StepTreeModel
-init hl resources plan =
-    case plan.step of
+init hl resources buildPlan =
+    case buildPlan.step of
         Concourse.BuildStepTask name ->
-            initBottom hl Task plan.id name
+            initBottom hl Task buildPlan.id name
+
+        Concourse.BuildStepArtifactInput name ->
+            initBottom hl
+                (\s ->
+                    ArtifactInput { s | state = StepStateSucceeded }
+                )
+                buildPlan.id
+                name
 
         Concourse.BuildStepGet name version ->
             initBottom hl
                 (Get << setupGetStep resources name version)
-                plan.id
+                buildPlan.id
                 name
 
+        Concourse.BuildStepArtifactOutput name ->
+            initBottom hl ArtifactOutput buildPlan.id name
+
         Concourse.BuildStepPut name ->
-            initBottom hl Put plan.id name
+            initBottom hl Put buildPlan.id name
 
         Concourse.BuildStepAggregate plans ->
-            initMultiStep hl resources plan.id Aggregate plans
+            initMultiStep hl resources buildPlan.id Aggregate plans
+
+        Concourse.BuildStepInParallel plans ->
+            initMultiStep hl resources buildPlan.id InParallel plans
 
         Concourse.BuildStepDo plans ->
-            initMultiStep hl resources plan.id Do plans
+            initMultiStep hl resources buildPlan.id Do plans
 
         Concourse.BuildStepRetry plans ->
-            initMultiStep hl resources plan.id (Retry plan.id 1 Auto) plans
+            initMultiStep hl resources buildPlan.id (Retry buildPlan.id 1 Auto) plans
 
         Concourse.BuildStepOnSuccess hookedPlan ->
             initHookedStep hl resources OnSuccess hookedPlan
@@ -86,6 +100,9 @@ init hl resources plan =
 
         Concourse.BuildStepOnAbort hookedPlan ->
             initHookedStep hl resources OnAbort hookedPlan
+
+        Concourse.BuildStepOnError hookedPlan ->
+            initHookedStep hl resources OnError hookedPlan
 
         Concourse.BuildStepEnsure hookedPlan ->
             initHookedStep hl resources Ensure hookedPlan
@@ -113,7 +130,7 @@ initMultiStep hl resources planId constructor plans =
             Array.map .tree inited
 
         selfFoci =
-            Dict.singleton planId { update = identity }
+            Dict.singleton planId identity
 
         foci =
             inited
@@ -160,10 +177,13 @@ initBottom hl create id name =
             , metadata = []
             , firstOccurrence = False
             , timestamps = Dict.empty
+            , initialize = Nothing
+            , start = Nothing
+            , finish = Nothing
             }
     in
     { tree = create step
-    , foci = Dict.singleton id { update = identity }
+    , foci = Dict.singleton id identity
     , highlight = hl
     , tooltip = Nothing
     }
@@ -181,7 +201,7 @@ initWrappedStep hl resources create plan =
             init hl resources plan
     in
     { tree = create tree
-    , foci = Dict.map wrapStep foci
+    , foci = Dict.map (always wrapStep) foci
     , highlight = hl
     , tooltip = Nothing
     }
@@ -204,17 +224,20 @@ initHookedStep hl resources create hookedPlan =
     { tree = create { step = stepModel.tree, hook = hookModel.tree }
     , foci =
         Dict.union
-            (Dict.map wrapStep stepModel.foci)
-            (Dict.map wrapHook hookModel.foci)
+            (Dict.map (always wrapStep) stepModel.foci)
+            (Dict.map (always wrapHook) hookModel.foci)
     , highlight = hl
     , tooltip = Nothing
     }
 
 
 treeIsActive : StepTree -> Bool
-treeIsActive tree =
-    case tree of
+treeIsActive stepTree =
+    case stepTree of
         Aggregate trees ->
+            List.any treeIsActive (Array.toList trees)
+
+        InParallel trees ->
             List.any treeIsActive (Array.toList trees)
 
         Do trees ->
@@ -227,6 +250,9 @@ treeIsActive tree =
             treeIsActive step
 
         OnAbort { step } ->
+            treeIsActive step
+
+        OnError { step } ->
             treeIsActive step
 
         Ensure { step } ->
@@ -244,7 +270,13 @@ treeIsActive tree =
         Task step ->
             stepIsActive step
 
+        ArtifactInput _ ->
+            False
+
         Get step ->
+            stepIsActive step
+
+        ArtifactOutput step ->
             stepIsActive step
 
         Put step ->
@@ -346,19 +378,24 @@ toggleExpanded { expanded, state } =
 
 
 updateTooltip :
-    { a
-        | hoveredElement : Maybe Hoverable
-        , hoveredCounter : Int
-    }
+    { a | hovered : Maybe DomID }
+    -> { b | hoveredCounter : Int }
     -> StepTreeModel
     -> ( StepTreeModel, List Effect )
-updateTooltip { hoveredElement, hoveredCounter } model =
+updateTooltip { hovered } { hoveredCounter } model =
     let
         newTooltip =
-            case hoveredElement of
-                Just (FirstOccurrenceIcon id) ->
+            case hovered of
+                Just (FirstOccurrenceIcon _) ->
                     if hoveredCounter > 0 then
-                        Just id
+                        hovered
+
+                    else
+                        Nothing
+
+                Just (StepState _) ->
+                    if hoveredCounter > 0 then
+                        hovered
 
                     else
                         Nothing
@@ -369,25 +406,31 @@ updateTooltip { hoveredElement, hoveredCounter } model =
     ( { model | tooltip = newTooltip }, [] )
 
 
-view : StepTreeModel -> Html Message
-view model =
-    viewTree model model.tree
+view : Time.Zone -> StepTreeModel -> Html Message
+view timeZone model =
+    viewTree timeZone model model.tree
 
 
-viewTree : StepTreeModel -> StepTree -> Html Message
-viewTree model tree =
+viewTree : Time.Zone -> StepTreeModel -> StepTree -> Html Message
+viewTree timeZone model tree =
     case tree of
         Task step ->
-            viewStep model step StepHeaderTask
+            viewStep model timeZone step StepHeaderTask
+
+        ArtifactInput step ->
+            viewStep model timeZone step (StepHeaderGet False)
 
         Get step ->
-            viewStep model step (StepHeaderGet step.firstOccurrence)
+            viewStep model timeZone step (StepHeaderGet step.firstOccurrence)
+
+        ArtifactOutput step ->
+            viewStep model timeZone step StepHeaderPut
 
         Put step ->
-            viewStep model step StepHeaderPut
+            viewStep model timeZone step StepHeaderPut
 
         Try step ->
-            viewTree model step
+            viewTree timeZone model step
 
         Retry id tab _ steps ->
             Html.div [ class "retry" ]
@@ -395,34 +438,42 @@ viewTree model tree =
                     (Array.toList <| Array.indexedMap (viewTab id tab) steps)
                 , case Array.get (tab - 1) steps of
                     Just step ->
-                        viewTree model step
+                        viewTree timeZone model step
 
                     Nothing ->
-                        Debug.crash "impossible (bogus tab selected)"
+                        -- impossible (bogus tab selected)
+                        Html.text ""
                 ]
 
         Timeout step ->
-            viewTree model step
+            viewTree timeZone model step
 
         Aggregate steps ->
             Html.div [ class "aggregate" ]
-                (Array.toList <| Array.map (viewSeq model) steps)
+                (Array.toList <| Array.map (viewSeq timeZone model) steps)
+
+        InParallel steps ->
+            Html.div [ class "parallel" ]
+                (Array.toList <| Array.map (viewSeq timeZone model) steps)
 
         Do steps ->
             Html.div [ class "do" ]
-                (Array.toList <| Array.map (viewSeq model) steps)
+                (Array.toList <| Array.map (viewSeq timeZone model) steps)
 
         OnSuccess { step, hook } ->
-            viewHooked "success" model step hook
+            viewHooked timeZone "success" model step hook
 
         OnFailure { step, hook } ->
-            viewHooked "failure" model step hook
+            viewHooked timeZone "failure" model step hook
 
         OnAbort { step, hook } ->
-            viewHooked "abort" model step hook
+            viewHooked timeZone "abort" model step hook
+
+        OnError { step, hook } ->
+            viewHooked timeZone "error" model step hook
 
         Ensure { step, hook } ->
-            viewHooked "ensure" model step hook
+            viewHooked timeZone "ensure" model step hook
 
 
 viewTab : StepID -> Int -> Int -> StepTree -> Html Message
@@ -432,21 +483,28 @@ viewTab id currentTab idx step =
             idx + 1
     in
     Html.li
-        [ classList [ ( "current", currentTab == tab ), ( "inactive", not <| treeIsActive step ) ] ]
-        [ Html.a [ onClick (SwitchTab id tab) ] [ Html.text (toString tab) ] ]
+        [ classList
+            [ ( "current", currentTab == tab )
+            , ( "inactive", not <| treeIsActive step )
+            ]
+        ]
+        [ Html.a
+            [ onClick <| Click <| StepTab id tab ]
+            [ Html.text (String.fromInt tab) ]
+        ]
 
 
-viewSeq : StepTreeModel -> StepTree -> Html Message
-viewSeq model tree =
-    Html.div [ class "seq" ] [ viewTree model tree ]
+viewSeq : Time.Zone -> StepTreeModel -> StepTree -> Html Message
+viewSeq timeZone model tree =
+    Html.div [ class "seq" ] [ viewTree timeZone model tree ]
 
 
-viewHooked : String -> StepTreeModel -> StepTree -> StepTree -> Html Message
-viewHooked name model step hook =
+viewHooked : Time.Zone -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
+viewHooked timeZone name model step hook =
     Html.div [ class "hooked" ]
-        [ Html.div [ class "step" ] [ viewTree model step ]
+        [ Html.div [ class "step" ] [ viewTree timeZone model step ]
         , Html.div [ class "children" ]
-            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree model hook ]
+            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree timeZone model hook ]
             ]
         ]
 
@@ -461,8 +519,8 @@ autoExpanded state =
     isActive state && state /= StepStateSucceeded
 
 
-viewStep : StepTreeModel -> Step -> StepHeaderType -> Html Message
-viewStep model { id, name, log, state, error, expanded, version, metadata, firstOccurrence, timestamps } headerType =
+viewStep : StepTreeModel -> Time.Zone -> Step -> StepHeaderType -> Html Message
+viewStep model timeZone { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -471,19 +529,20 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
         , attribute "data-step-name" name
         ]
         [ Html.div
-            [ class "header"
-            , style Styles.stepHeader
-            , onClick (ToggleStep id)
-            ]
+            ([ class "header"
+             , onClick <| Click <| StepHeader id
+             ]
+                ++ Styles.stepHeader
+            )
             [ Html.div
-                [ style [ ( "display", "flex" ) ] ]
-                [ viewStepHeaderIcon headerType (model.tooltip == Just id) id
+                [ style "display" "flex" ]
+                [ viewStepHeaderIcon headerType (model.tooltip == Just (FirstOccurrenceIcon id)) id
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
-                [ style [ ( "display", "flex" ) ] ]
+                [ style "display" "flex" ]
                 [ viewVersion version
-                , viewStepState state
+                , viewStepState state id (viewDurationTooltip initialize start finish (model.tooltip == Just (StepState id)))
                 ]
             ]
         , Html.div
@@ -497,7 +556,7 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
             if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
                 [ viewMetadata metadata
                 , Html.pre [ class "timestamped-logs" ] <|
-                    viewLogs log timestamps model.highlight id
+                    viewLogs log timestamps model.highlight timeZone id
                 , case error of
                     Nothing ->
                         Html.span [] []
@@ -511,16 +570,42 @@ viewStep model { id, name, log, state, error, expanded, version, metadata, first
         ]
 
 
-viewLogs : Ansi.Log.Model -> Dict Int Date -> Highlight -> String -> List (Html Message)
-viewLogs { lines } timestamps hl id =
-    Array.toList <| Array.indexedMap (\idx -> viewTimestampedLine timestamps hl id (idx + 1)) lines
+viewLogs :
+    Ansi.Log.Model
+    -> Dict Int Time.Posix
+    -> Highlight
+    -> Time.Zone
+    -> String
+    -> List (Html Message)
+viewLogs { lines } timestamps hl timeZone id =
+    Array.toList <|
+        Array.indexedMap
+            (\idx line ->
+                viewTimestampedLine
+                    { timestamps = timestamps
+                    , highlight = hl
+                    , id = id
+                    , lineNo = idx + 1
+                    , line = line
+                    , timeZone = timeZone
+                    }
+            )
+            lines
 
 
-viewTimestampedLine : Dict Int Date -> Highlight -> StepID -> Int -> Ansi.Log.Line -> Html Message
-viewTimestampedLine timestamps hl id lineNo line =
+viewTimestampedLine :
+    { timestamps : Dict Int Time.Posix
+    , highlight : Highlight
+    , id : StepID
+    , lineNo : Int
+    , line : Ansi.Log.Line
+    , timeZone : Time.Zone
+    }
+    -> Html Message
+viewTimestampedLine { timestamps, highlight, id, lineNo, line, timeZone } =
     let
         highlighted =
-            case hl of
+            case highlight of
                 HighlightNothing ->
                     False
 
@@ -538,8 +623,14 @@ viewTimestampedLine timestamps hl id lineNo line =
             [ ( "timestamped-line", True )
             , ( "highlighted-line", highlighted )
             ]
+        , Html.Attributes.id <| id ++ ":" ++ String.fromInt lineNo
         ]
-        [ viewTimestamp hl id ( lineNo, ts )
+        [ viewTimestamp
+            { id = id
+            , line = lineNo
+            , date = ts
+            , timeZone = timeZone
+            }
         , viewLine line
         ]
 
@@ -551,15 +642,35 @@ viewLine line =
         ]
 
 
-viewTimestamp : Highlight -> String -> ( Int, Maybe Date ) -> Html Message
-viewTimestamp hl id ( line, date ) =
+viewTimestamp :
+    { id : String
+    , line : Int
+    , date : Maybe Time.Posix
+    , timeZone : Time.Zone
+    }
+    -> Html Message
+viewTimestamp { id, line, date, timeZone } =
     Html.a
         [ href (showHighlight (HighlightLine id line))
-        , StrictEvents.onLeftClickOrShiftLeftClick (SetHighlight id line) (ExtendHighlight id line)
+        , StrictEvents.onLeftClickOrShiftLeftClick
+            (SetHighlight id line)
+            (ExtendHighlight id line)
         ]
         [ case date of
-            Just date ->
-                Html.td [ class "timestamp", attribute "data-timestamp" (Date.Format.format "%H:%M:%S" date) ] []
+            Just d ->
+                Html.td
+                    [ class "timestamp" ]
+                    [ Html.text <|
+                        DateFormat.format
+                            [ DateFormat.hourMilitaryFixed
+                            , DateFormat.text ":"
+                            , DateFormat.minuteFixed
+                            , DateFormat.text ":"
+                            , DateFormat.secondFixed
+                            ]
+                            timeZone
+                            d
+                    ]
 
             _ ->
                 Html.td [ class "timestamp placeholder" ] []
@@ -579,16 +690,17 @@ viewMetadata =
         (\{ name, value } ->
             ( name
             , Html.pre []
-                [ if String.startsWith "http://" value || String.startsWith "https://" value then
-                    Html.a
-                        [ href value
-                        , target "_blank"
-                        , style [ ( "text-decoration-line", "underline" ) ]
-                        ]
-                        [ Html.text value ]
+                [ case fromString value of
+                    Just _ ->
+                        Html.a
+                            [ href value
+                            , target "_blank"
+                            , style "text-decoration-line" "underline"
+                            ]
+                            [ Html.text value ]
 
-                  else
-                    Html.text value
+                    Nothing ->
+                        Html.text value
                 ]
             )
         )
@@ -596,65 +708,87 @@ viewMetadata =
         >> DictView.view []
 
 
-viewStepState : StepState -> Html Message
-viewStepState state =
+viewStepState : StepState -> StepID -> List (Html Message) -> Html Message
+viewStepState state id tooltip =
+    let
+        eventHandlers =
+            [ onMouseLeave <| Hover Nothing
+            , onMouseEnter <| Hover (Just (StepState id))
+            , style "position" "relative"
+            ]
+    in
     case state of
         StepStateRunning ->
-            Spinner.spinner { size = "14px", margin = "7px" }
+            Spinner.spinner
+                { sizePx = 14
+                , margin = "7px"
+                }
 
         StepStatePending ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-pending.svg"
                 }
-                [ attribute "data-step-state" "pending"
-                , style Styles.stepStatusIcon
-                ]
+                (attribute "data-step-state" "pending"
+                    :: Styles.stepStatusIcon
+                    ++ eventHandlers
+                )
+                tooltip
 
         StepStateInterrupted ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-interrupted.svg"
                 }
-                [ attribute "data-step-state" "interrupted"
-                , style Styles.stepStatusIcon
-                ]
+                (attribute "data-step-state" "interrupted"
+                    :: Styles.stepStatusIcon
+                    ++ eventHandlers
+                )
+                tooltip
 
         StepStateCancelled ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-cancelled.svg"
                 }
-                [ attribute "data-step-state" "cancelled"
-                , style Styles.stepStatusIcon
-                ]
+                (attribute "data-step-state" "cancelled"
+                    :: Styles.stepStatusIcon
+                    ++ eventHandlers
+                )
+                tooltip
 
         StepStateSucceeded ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-success-check.svg"
                 }
-                [ attribute "data-step-state" "succeeded"
-                , style Styles.stepStatusIcon
-                ]
+                (attribute "data-step-state" "succeeded"
+                    :: Styles.stepStatusIcon
+                    ++ eventHandlers
+                )
+                tooltip
 
         StepStateFailed ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-failure-times.svg"
                 }
-                [ attribute "data-step-state" "failed"
-                , style Styles.stepStatusIcon
-                ]
+                (attribute "data-step-state" "failed"
+                    :: Styles.stepStatusIcon
+                    ++ eventHandlers
+                )
+                tooltip
 
         StepStateErrored ->
-            Icon.icon
+            Icon.iconWithTooltip
                 { sizePx = 28
                 , image = "ic-exclamation-triangle.svg"
                 }
-                [ attribute "data-step-state" "errored"
-                , style Styles.stepStatusIcon
-                ]
+                (attribute "data-step-state" "errored"
+                    :: Styles.stepStatusIcon
+                    ++ eventHandlers
+                )
+                tooltip
 
 
 viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Message
@@ -670,16 +804,56 @@ viewStepHeaderIcon headerType tooltip id =
                 []
     in
     Html.div
-        ([ style <| Styles.stepHeaderIcon headerType ] ++ eventHandlers)
+        (Styles.stepHeaderIcon headerType ++ eventHandlers)
         (if tooltip then
             [ Html.div
-                [ style Styles.firstOccurrenceTooltip ]
+                Styles.firstOccurrenceTooltip
                 [ Html.text "new version" ]
             , Html.div
-                [ style Styles.firstOccurrenceTooltipArrow ]
+                Styles.firstOccurrenceTooltipArrow
                 []
             ]
 
          else
             []
         )
+
+
+viewDurationTooltip : Maybe Time.Posix -> Maybe Time.Posix -> Maybe Time.Posix -> Bool -> List (Html Message)
+viewDurationTooltip minit mstart mfinish tooltip =
+    if tooltip then
+        case ( minit, mstart, mfinish ) of
+            ( Just initializedAt, Just startedAt, Just finishedAt ) ->
+                let
+                    initDuration =
+                        Duration.between initializedAt startedAt
+
+                    stepDuration =
+                        Duration.between startedAt finishedAt
+                in
+                [ Html.div
+                    [ style "position" "inherit"
+                    , style "margin-left" "-500px"
+                    ]
+                    [ Html.div
+                        Styles.durationTooltip
+                        [ DictView.view []
+                            (Dict.fromList
+                                [ ( "initialization"
+                                  , Html.text (Duration.format initDuration)
+                                  )
+                                , ( "step", Html.text (Duration.format stepDuration) )
+                                ]
+                            )
+                        ]
+                    ]
+                , Html.div
+                    Styles.durationTooltipArrow
+                    []
+                ]
+
+            _ ->
+                []
+
+    else
+        []

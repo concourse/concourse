@@ -1,6 +1,7 @@
 module Concourse.PipelineStatus exposing
     ( PipelineStatus(..)
     , StatusDetails(..)
+    , equal
     , icon
     , isRunning
     , show
@@ -8,13 +9,13 @@ module Concourse.PipelineStatus exposing
 
 import Html exposing (Html)
 import Html.Attributes exposing (style)
-import Time exposing (Time)
+import Time
 import Views.Icon as Icon
 
 
 type StatusDetails
     = Running
-    | Since Time
+    | Since Time.Posix
 
 
 type PipelineStatus
@@ -24,6 +25,31 @@ type PipelineStatus
     | PipelineStatusFailed StatusDetails
     | PipelineStatusPending Bool
     | PipelineStatusSucceeded StatusDetails
+
+
+equal : PipelineStatus -> PipelineStatus -> Bool
+equal ps1 ps2 =
+    case ( ps1, ps2 ) of
+        ( PipelineStatusPaused, PipelineStatusPaused ) ->
+            True
+
+        ( PipelineStatusAborted _, PipelineStatusAborted _ ) ->
+            True
+
+        ( PipelineStatusErrored _, PipelineStatusErrored _ ) ->
+            True
+
+        ( PipelineStatusFailed _, PipelineStatusFailed _ ) ->
+            True
+
+        ( PipelineStatusPending _, PipelineStatusPending _ ) ->
+            True
+
+        ( PipelineStatusSucceeded _, PipelineStatusSucceeded _ ) ->
+            True
+
+        _ ->
+            False
 
 
 show : PipelineStatus -> String
@@ -63,8 +89,8 @@ isRunning status =
         PipelineStatusFailed details ->
             details == Running
 
-        PipelineStatusPending isRunning ->
-            isRunning
+        PipelineStatusPending bool ->
+            bool
 
         PipelineStatusSucceeded details ->
             details == Running
@@ -94,4 +120,4 @@ icon status =
                 PipelineStatusErrored _ ->
                     "ic-error-orange.svg"
         }
-        [ style [ ( "background-size", "contain" ) ] ]
+        [ style "background-size" "contain" ]

@@ -2,12 +2,12 @@
 package execfakes
 
 import (
-	io "io"
-	sync "sync"
+	"io"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	db "github.com/concourse/concourse/atc/db"
-	exec "github.com/concourse/concourse/atc/exec"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/exec"
 )
 
 type FakePutDelegate struct {
@@ -34,6 +34,16 @@ type FakePutDelegate struct {
 	}
 	imageVersionDeterminedReturnsOnCall map[int]struct {
 		result1 error
+	}
+	InitializingStub        func(lager.Logger)
+	initializingMutex       sync.RWMutex
+	initializingArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	StartingStub        func(lager.Logger)
+	startingMutex       sync.RWMutex
+	startingArgsForCall []struct {
+		arg1 lager.Logger
 	}
 	StderrStub        func() io.Writer
 	stderrMutex       sync.RWMutex
@@ -184,6 +194,68 @@ func (fake *FakePutDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 
 	}{result1}
 }
 
+func (fake *FakePutDelegate) Initializing(arg1 lager.Logger) {
+	fake.initializingMutex.Lock()
+	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("Initializing", []interface{}{arg1})
+	fake.initializingMutex.Unlock()
+	if fake.InitializingStub != nil {
+		fake.InitializingStub(arg1)
+	}
+}
+
+func (fake *FakePutDelegate) InitializingCallCount() int {
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
+	return len(fake.initializingArgsForCall)
+}
+
+func (fake *FakePutDelegate) InitializingCalls(stub func(lager.Logger)) {
+	fake.initializingMutex.Lock()
+	defer fake.initializingMutex.Unlock()
+	fake.InitializingStub = stub
+}
+
+func (fake *FakePutDelegate) InitializingArgsForCall(i int) lager.Logger {
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
+	argsForCall := fake.initializingArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakePutDelegate) Starting(arg1 lager.Logger) {
+	fake.startingMutex.Lock()
+	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("Starting", []interface{}{arg1})
+	fake.startingMutex.Unlock()
+	if fake.StartingStub != nil {
+		fake.StartingStub(arg1)
+	}
+}
+
+func (fake *FakePutDelegate) StartingCallCount() int {
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
+	return len(fake.startingArgsForCall)
+}
+
+func (fake *FakePutDelegate) StartingCalls(stub func(lager.Logger)) {
+	fake.startingMutex.Lock()
+	defer fake.startingMutex.Unlock()
+	fake.StartingStub = stub
+}
+
+func (fake *FakePutDelegate) StartingArgsForCall(i int) lager.Logger {
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
+	argsForCall := fake.startingArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *FakePutDelegate) Stderr() io.Writer {
 	fake.stderrMutex.Lock()
 	ret, specificReturn := fake.stderrReturnsOnCall[len(fake.stderrArgsForCall)]
@@ -297,6 +369,10 @@ func (fake *FakePutDelegate) Invocations() map[string][][]interface{} {
 	defer fake.finishedMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()

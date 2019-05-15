@@ -36,27 +36,15 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		newHandler := handler
 
 		switch name {
-		// unauthenticated / delegating to handler
-		case atc.DownloadCLI,
-			atc.CheckResourceWebHook,
-			atc.GetInfo,
-			atc.ListTeams,
-			atc.ListAllPipelines,
-			atc.ListPipelines,
-			atc.ListAllJobs,
-			atc.ListAllResources,
-			atc.ListBuilds,
-			atc.MainJobBadge:
-
 		// pipeline is public or authorized
 		case atc.GetBuild,
-			atc.BuildResources,
-			atc.GetBuildPlan:
+			atc.BuildResources:
 			newHandler = wrappa.checkBuildReadAccessHandlerFactory.AnyJobHandler(handler, rejector)
 
 		// pipeline and job are public or authorized
 		case atc.GetBuildPreparation,
 			atc.BuildEvents,
+			atc.GetBuildPlan,
 			atc.ListBuildArtifacts:
 			newHandler = wrappa.checkBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(handler, rejector)
 
@@ -102,12 +90,26 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.RegisterWorker,
 			atc.HeartbeatWorker,
 			atc.DeleteWorker,
+			atc.GetTeam,
 			atc.SetTeam,
 			atc.ListTeamBuilds,
 			atc.RenameTeam,
 			atc.DestroyTeam,
 			atc.ListVolumes:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
+
+		// unauthenticated / delegating to handler (validate token if provided)
+		case atc.DownloadCLI,
+			atc.CheckResourceWebHook,
+			atc.GetInfo,
+			atc.ListTeams,
+			atc.ListAllPipelines,
+			atc.ListPipelines,
+			atc.ListAllJobs,
+			atc.ListAllResources,
+			atc.ListBuilds,
+			atc.MainJobBadge:
+			newHandler = auth.CheckAuthenticationIfProvidedHandler(handler, rejector)
 
 		case atc.GetLogLevel,
 			atc.SetLogLevel,

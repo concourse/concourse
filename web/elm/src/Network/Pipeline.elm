@@ -1,9 +1,16 @@
-module Network.Pipeline exposing (fetchPipeline, fetchPipelines, order, togglePause)
+module Network.Pipeline exposing
+    ( changeVisibility
+    , fetchPipeline
+    , fetchPipelines
+    , order
+    , togglePause
+    )
 
 import Concourse
 import Http
 import Json.Decode
 import Json.Encode
+import Message.Message exposing (VisibilityAction(..))
 import Task exposing (Task)
 
 
@@ -15,7 +22,7 @@ order teamName pipelineNames csrfToken =
             , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/ordering"
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , expect = Http.expectStringResponse (always (Ok ()))
-            , body = Http.jsonBody (Json.Encode.list (List.map Json.Encode.string pipelineNames))
+            , body = Http.jsonBody (Json.Encode.list Json.Encode.string pipelineNames)
             , timeout = Nothing
             , withCredentials = False
             }
@@ -57,6 +64,39 @@ putAction action teamName pipelineName csrfToken =
         Http.request
             { method = "PUT"
             , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/" ++ action
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+            , expect = Http.expectStringResponse (always (Ok ()))
+            , body = Http.emptyBody
+            , timeout = Nothing
+            , withCredentials = False
+            }
+
+
+changeVisibility :
+    VisibilityAction
+    -> String
+    -> String
+    -> Concourse.CSRFToken
+    -> Task Http.Error ()
+changeVisibility action teamName pipelineName csrfToken =
+    let
+        endpoint =
+            case action of
+                Hide ->
+                    "/hide"
+
+                Expose ->
+                    "/expose"
+    in
+    Http.toTask <|
+        Http.request
+            { method = "PUT"
+            , url =
+                "/api/v1/teams/"
+                    ++ teamName
+                    ++ "/pipelines/"
+                    ++ pipelineName
+                    ++ endpoint
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , expect = Http.expectStringResponse (always (Ok ()))
             , body = Http.emptyBody

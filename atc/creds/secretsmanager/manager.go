@@ -69,7 +69,7 @@ func (manager *Manager) Health() (*creds.HealthResponse, error) {
 		Method: "GetSecretValue",
 	}
 
-	_, _, err := manager.SecretManager.getSecretById("__concourse-health-check")
+	_, _, _, err := manager.SecretManager.getSecretById("__concourse-health-check")
 	if err != nil {
 		health.Error = err.Error()
 		return health, nil
@@ -137,7 +137,7 @@ func (manager *Manager) Validate() error {
 	return nil
 }
 
-func (manager *Manager) NewVariablesFactory(log lager.Logger) (creds.VariablesFactory, error) {
+func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactory, error) {
 	config := &aws.Config{Region: &manager.AwsRegion}
 	if manager.AwsAccessKeyID != "" {
 		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)

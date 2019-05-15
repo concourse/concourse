@@ -2,9 +2,9 @@
 package transportfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	transport "github.com/concourse/concourse/atc/worker/transport"
+	"github.com/concourse/concourse/atc/worker/transport"
 )
 
 type FakeReadCloser struct {

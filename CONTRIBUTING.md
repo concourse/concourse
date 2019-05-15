@@ -266,6 +266,22 @@ to run the unit tests and `testflight`:
 $ go get github.com/onsi/ginkgo/ginkgo
 ```
 
+We use [Counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) to generate
+fakes for our unit tests. You may need to regenerate fakes if you add or modify an
+interface. To do so, you'll need to install `counterfeiter` as follows:
+
+```sh
+$ go get -u github.com/maxbrunsfeld/counterfeiter/v6
+```
+
+You can then generate the fakes by running
+
+```sh
+$ go generate ./...
+```
+
+in the directory where the interface is located.
+
 ### Running unit tests
 
 Concourse is a ton of code, so it's faster to just run the tests for the
@@ -335,6 +351,28 @@ Run `yarn test` from the `web/wats` directory. They use puppeteer to run
 a headless Chromium. A handy fact is that in most cases if a test fails,
 a screenshot taken at the moment of the failure will be at
 `web/wats/failure.png`.
+
+
+### Running Kubernetes tests
+
+Kubernetes-related testing are all end-to-end, living under `topgun/k8s`. They
+require access to a real Kubernetes cluster with access granted through a 
+properly configured `~/.kube/config` file.
+
+The tests require a few environment variables to be set:
+
+- `CONCOURSE_IMAGE_TAG` or `CONCOURSE_IMAGE_DIGEST`: the tag or digest to use
+when deploying Concourse in the k8s cluster
+- `CONCOURSE_IMAGE_NAME`: the name of the image to use when deploying Concourse
+to the Kubernetes cluster
+- `CHARTS_DIR`: location in the filesystem where a copy of [`the Concourse Helm 
+chart`][concourse-helm-chart] exists.
+
+With those set, go to `topgun/k8s` and run Ginkgo:
+
+```sh
+ginkgo .
+```
 
 
 ### A note on `topgun`
@@ -421,3 +459,4 @@ pushed commits without the signature.
 [style-guide]: https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide
 [how-to-fork]: https://help.github.com/articles/fork-a-repo/
 [how-to-pr]: https://help.github.com/articles/creating-a-pull-request-from-a-fork/
+[concourse-helm-chart]: https://github.com/helm/charts/blob/master/stable/concourse/README.md

@@ -5,15 +5,16 @@ port module Message.Subscription exposing
     , runSubscription
     )
 
+import Browser
+import Browser.Events exposing (onClick, onKeyDown, onKeyUp, onMouseMove, onResize)
 import Build.StepTree.Models exposing (BuildEventEnvelope)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
 import Keyboard
-import Mouse
 import Routes
 import Time
-import Window
+import Url
 
 
 port newUrl : (String -> msg) -> Sub msg
@@ -25,10 +26,10 @@ port tokenReceived : (Maybe String -> msg) -> Sub msg
 port eventSource : (Json.Encode.Value -> msg) -> Sub msg
 
 
-port scrolledToBottom : (Bool -> msg) -> Sub msg
-
-
 port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
+
+
+port sideBarStateReceived : (Maybe String -> msg) -> Sub msg
 
 
 type Subscription
@@ -36,26 +37,27 @@ type Subscription
     | OnMouse
     | OnKeyDown
     | OnKeyUp
-    | OnScrollToBottom
     | OnWindowResize
     | FromEventSource ( String, List String )
     | OnNonHrefLinkClicked
     | OnTokenReceived
     | OnElementVisible
+    | OnSideBarStateReceived
 
 
 type Delivery
-    = KeyDown Keyboard.KeyCode
-    | KeyUp Keyboard.KeyCode
+    = KeyDown Keyboard.KeyEvent
+    | KeyUp Keyboard.KeyEvent
     | Moused
-    | ClockTicked Interval Time.Time
-    | ScrolledToBottom Bool
-    | WindowResized Window.Size
+    | ClockTicked Interval Time.Posix
+    | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
-    | EventsReceived (Result String (List BuildEventEnvelope))
+    | EventsReceived (Result Json.Decode.Error (List BuildEventEnvelope))
     | RouteChanged Routes.Route
+    | UrlRequest Browser.UrlRequest
     | ElementVisible ( String, Bool )
+    | SideBarStateReceived (Maybe String)
 
 
 type Interval
@@ -72,23 +74,21 @@ runSubscription s =
 
         OnMouse ->
             Sub.batch
-                [ Mouse.moves (always Moused)
-                , Mouse.clicks (always Moused)
+                [ onMouseMove (Json.Decode.succeed Moused)
+                , onClick (Json.Decode.succeed Moused)
                 ]
 
         OnKeyDown ->
-            Keyboard.downs KeyDown
+            onKeyDown (Keyboard.decodeKeyEvent |> Json.Decode.map KeyDown)
 
         OnKeyUp ->
-            Keyboard.ups KeyUp
-
-        OnScrollToBottom ->
-            scrolledToBottom ScrolledToBottom
+            onKeyUp (Keyboard.decodeKeyEvent |> Json.Decode.map KeyUp)
 
         OnWindowResize ->
-            Window.resizes WindowResized
+            onResize
+                (\width height -> WindowResized (toFloat width) (toFloat height))
 
-        FromEventSource key ->
+        FromEventSource _ ->
             eventSource
                 (Json.Decode.decodeValue
                     (Json.Decode.list decodeBuildEventEnvelope)
@@ -96,7 +96,25 @@ runSubscription s =
                 )
 
         OnNonHrefLinkClicked ->
-            newUrl NonHrefLinkClicked
+            newUrl
+                (\path ->
+                    let
+                        url =
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = path
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                    in
+                    case Routes.parsePath url of
+                        Just _ ->
+                            UrlRequest <| Browser.Internal url
+
+                        Nothing ->
+                            UrlRequest <| Browser.External path
+                )
 
         OnTokenReceived ->
             tokenReceived TokenReceived
@@ -104,15 +122,18 @@ runSubscription s =
         OnElementVisible ->
             reportIsVisible ElementVisible
 
+        OnSideBarStateReceived ->
+            sideBarStateReceived SideBarStateReceived
 
-intervalToTime : Interval -> Time.Time
+
+intervalToTime : Interval -> Float
 intervalToTime t =
     case t of
         OneSecond ->
-            Time.second
+            1000
 
         FiveSeconds ->
-            5 * Time.second
+            5 * 1000
 
         OneMinute ->
-            Time.minute
+            60 * 1000

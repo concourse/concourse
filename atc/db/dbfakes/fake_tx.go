@@ -2,11 +2,11 @@
 package dbfakes
 
 import (
-	sql "database/sql"
-	sync "sync"
+	"database/sql"
+	"sync"
 
-	squirrel "github.com/Masterminds/squirrel"
-	db "github.com/concourse/concourse/atc/db"
+	"github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeTx struct {

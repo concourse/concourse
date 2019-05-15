@@ -2,31 +2,15 @@
 package enginefakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	db "github.com/concourse/concourse/atc/db"
-	engine "github.com/concourse/concourse/atc/engine"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/engine"
 )
 
 type FakeEngine struct {
-	CreateBuildStub        func(lager.Logger, db.Build, atc.Plan) (engine.Build, error)
-	createBuildMutex       sync.RWMutex
-	createBuildArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 db.Build
-		arg3 atc.Plan
-	}
-	createBuildReturns struct {
-		result1 engine.Build
-		result2 error
-	}
-	createBuildReturnsOnCall map[int]struct {
-		result1 engine.Build
-		result2 error
-	}
-	LookupBuildStub        func(lager.Logger, db.Build) (engine.Build, error)
+	LookupBuildStub        func(lager.Logger, db.Build) engine.Build
 	lookupBuildMutex       sync.RWMutex
 	lookupBuildArgsForCall []struct {
 		arg1 lager.Logger
@@ -34,97 +18,20 @@ type FakeEngine struct {
 	}
 	lookupBuildReturns struct {
 		result1 engine.Build
-		result2 error
 	}
 	lookupBuildReturnsOnCall map[int]struct {
 		result1 engine.Build
-		result2 error
 	}
 	ReleaseAllStub        func(lager.Logger)
 	releaseAllMutex       sync.RWMutex
 	releaseAllArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	SchemaStub        func() string
-	schemaMutex       sync.RWMutex
-	schemaArgsForCall []struct {
-	}
-	schemaReturns struct {
-		result1 string
-	}
-	schemaReturnsOnCall map[int]struct {
-		result1 string
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeEngine) CreateBuild(arg1 lager.Logger, arg2 db.Build, arg3 atc.Plan) (engine.Build, error) {
-	fake.createBuildMutex.Lock()
-	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
-	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 db.Build
-		arg3 atc.Plan
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("CreateBuild", []interface{}{arg1, arg2, arg3})
-	fake.createBuildMutex.Unlock()
-	if fake.CreateBuildStub != nil {
-		return fake.CreateBuildStub(arg1, arg2, arg3)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.createBuildReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeEngine) CreateBuildCallCount() int {
-	fake.createBuildMutex.RLock()
-	defer fake.createBuildMutex.RUnlock()
-	return len(fake.createBuildArgsForCall)
-}
-
-func (fake *FakeEngine) CreateBuildCalls(stub func(lager.Logger, db.Build, atc.Plan) (engine.Build, error)) {
-	fake.createBuildMutex.Lock()
-	defer fake.createBuildMutex.Unlock()
-	fake.CreateBuildStub = stub
-}
-
-func (fake *FakeEngine) CreateBuildArgsForCall(i int) (lager.Logger, db.Build, atc.Plan) {
-	fake.createBuildMutex.RLock()
-	defer fake.createBuildMutex.RUnlock()
-	argsForCall := fake.createBuildArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeEngine) CreateBuildReturns(result1 engine.Build, result2 error) {
-	fake.createBuildMutex.Lock()
-	defer fake.createBuildMutex.Unlock()
-	fake.CreateBuildStub = nil
-	fake.createBuildReturns = struct {
-		result1 engine.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeEngine) CreateBuildReturnsOnCall(i int, result1 engine.Build, result2 error) {
-	fake.createBuildMutex.Lock()
-	defer fake.createBuildMutex.Unlock()
-	fake.CreateBuildStub = nil
-	if fake.createBuildReturnsOnCall == nil {
-		fake.createBuildReturnsOnCall = make(map[int]struct {
-			result1 engine.Build
-			result2 error
-		})
-	}
-	fake.createBuildReturnsOnCall[i] = struct {
-		result1 engine.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.Build) (engine.Build, error) {
+func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.Build) engine.Build {
 	fake.lookupBuildMutex.Lock()
 	ret, specificReturn := fake.lookupBuildReturnsOnCall[len(fake.lookupBuildArgsForCall)]
 	fake.lookupBuildArgsForCall = append(fake.lookupBuildArgsForCall, struct {
@@ -137,10 +44,10 @@ func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.Build) (engine.Bu
 		return fake.LookupBuildStub(arg1, arg2)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
 	fakeReturns := fake.lookupBuildReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakeEngine) LookupBuildCallCount() int {
@@ -149,7 +56,7 @@ func (fake *FakeEngine) LookupBuildCallCount() int {
 	return len(fake.lookupBuildArgsForCall)
 }
 
-func (fake *FakeEngine) LookupBuildCalls(stub func(lager.Logger, db.Build) (engine.Build, error)) {
+func (fake *FakeEngine) LookupBuildCalls(stub func(lager.Logger, db.Build) engine.Build) {
 	fake.lookupBuildMutex.Lock()
 	defer fake.lookupBuildMutex.Unlock()
 	fake.LookupBuildStub = stub
@@ -162,30 +69,27 @@ func (fake *FakeEngine) LookupBuildArgsForCall(i int) (lager.Logger, db.Build) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeEngine) LookupBuildReturns(result1 engine.Build, result2 error) {
+func (fake *FakeEngine) LookupBuildReturns(result1 engine.Build) {
 	fake.lookupBuildMutex.Lock()
 	defer fake.lookupBuildMutex.Unlock()
 	fake.LookupBuildStub = nil
 	fake.lookupBuildReturns = struct {
 		result1 engine.Build
-		result2 error
-	}{result1, result2}
+	}{result1}
 }
 
-func (fake *FakeEngine) LookupBuildReturnsOnCall(i int, result1 engine.Build, result2 error) {
+func (fake *FakeEngine) LookupBuildReturnsOnCall(i int, result1 engine.Build) {
 	fake.lookupBuildMutex.Lock()
 	defer fake.lookupBuildMutex.Unlock()
 	fake.LookupBuildStub = nil
 	if fake.lookupBuildReturnsOnCall == nil {
 		fake.lookupBuildReturnsOnCall = make(map[int]struct {
 			result1 engine.Build
-			result2 error
 		})
 	}
 	fake.lookupBuildReturnsOnCall[i] = struct {
 		result1 engine.Build
-		result2 error
-	}{result1, result2}
+	}{result1}
 }
 
 func (fake *FakeEngine) ReleaseAll(arg1 lager.Logger) {
@@ -219,69 +123,13 @@ func (fake *FakeEngine) ReleaseAllArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
-func (fake *FakeEngine) Schema() string {
-	fake.schemaMutex.Lock()
-	ret, specificReturn := fake.schemaReturnsOnCall[len(fake.schemaArgsForCall)]
-	fake.schemaArgsForCall = append(fake.schemaArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Schema", []interface{}{})
-	fake.schemaMutex.Unlock()
-	if fake.SchemaStub != nil {
-		return fake.SchemaStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.schemaReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeEngine) SchemaCallCount() int {
-	fake.schemaMutex.RLock()
-	defer fake.schemaMutex.RUnlock()
-	return len(fake.schemaArgsForCall)
-}
-
-func (fake *FakeEngine) SchemaCalls(stub func() string) {
-	fake.schemaMutex.Lock()
-	defer fake.schemaMutex.Unlock()
-	fake.SchemaStub = stub
-}
-
-func (fake *FakeEngine) SchemaReturns(result1 string) {
-	fake.schemaMutex.Lock()
-	defer fake.schemaMutex.Unlock()
-	fake.SchemaStub = nil
-	fake.schemaReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeEngine) SchemaReturnsOnCall(i int, result1 string) {
-	fake.schemaMutex.Lock()
-	defer fake.schemaMutex.Unlock()
-	fake.SchemaStub = nil
-	if fake.schemaReturnsOnCall == nil {
-		fake.schemaReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.schemaReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
 func (fake *FakeEngine) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createBuildMutex.RLock()
-	defer fake.createBuildMutex.RUnlock()
 	fake.lookupBuildMutex.RLock()
 	defer fake.lookupBuildMutex.RUnlock()
 	fake.releaseAllMutex.RLock()
 	defer fake.releaseAllMutex.RUnlock()
-	fake.schemaMutex.RLock()
-	defer fake.schemaMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -2,9 +2,9 @@
 package pipelinesfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	pipelines "github.com/concourse/concourse/atc/pipelines"
+	"github.com/concourse/concourse/atc/pipelines"
 )
 
 type FakePipelineSyncer struct {

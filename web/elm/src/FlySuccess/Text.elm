@@ -12,7 +12,6 @@ module FlySuccess.Text exposing
 import FlySuccess.Models as Models
     exposing
         ( ButtonState
-        , TokenTransfer
         , TransferFailure(..)
         )
 

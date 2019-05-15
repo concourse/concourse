@@ -64,6 +64,10 @@ var _ = Describe("Job", func() {
 					Name: "some-other-job",
 				},
 				{
+					Name:   "some-private-job",
+					Public: false,
+				},
+				{
 					Name:         "other-serial-group-job",
 					SerialGroups: []string{"serial-group", "really-different-group"},
 				},
@@ -90,6 +94,32 @@ var _ = Describe("Job", func() {
 		job, found, err = pipeline.Job("some-job")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
+	})
+
+	Describe("Public", func() {
+		Context("when the config has public set to true", func() {
+			It("returns true", func() {
+				Expect(job.Public()).To(BeTrue())
+			})
+		})
+
+		Context("when the config has public set to false", func() {
+			It("returns false", func() {
+				privateJob, found, err := pipeline.Job("some-private-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(privateJob.Public()).To(BeFalse())
+			})
+		})
+
+		Context("when the config does not have public set", func() {
+			It("returns false", func() {
+				otherJob, found, err := pipeline.Job("some-other-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(otherJob.Public()).To(BeFalse())
+			})
+		})
 	})
 
 	Describe("Pause and Unpause", func() {
@@ -169,14 +199,14 @@ var _ = Describe("Job", func() {
 			nextBuild, err := job.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			started, err := nextBuild.Start("some-schema", atc.Plan{})
+			started, err := nextBuild.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
 			otherNextBuild, err := otherJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			otherStarted, err := otherNextBuild.Start("some-schema", atc.Plan{})
+			otherStarted, err := otherNextBuild.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(otherStarted).To(BeTrue())
 
@@ -195,7 +225,7 @@ var _ = Describe("Job", func() {
 			Expect(next.ID()).To(Equal(nextBuild.ID())) // not anotherRunningBuild
 			Expect(finished.ID()).To(Equal(finishedBuild.ID()))
 
-			started, err = anotherRunningBuild.Start("some-schema", atc.Plan{})
+			started, err = anotherRunningBuild.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -496,7 +526,9 @@ var _ = Describe("Job", func() {
 
 				startedBuild, err = job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
-				_, err = startedBuild.Start("", atc.Plan{})
+				_, err = startedBuild.Schedule([]db.BuildInput{})
+				Expect(err).NotTo(HaveOccurred())
+				_, err = startedBuild.Start(atc.Plan{})
 				Expect(err).NotTo(HaveOccurred())
 
 				scheduledBuild, err = job.CreateBuild()
@@ -1248,7 +1280,7 @@ var _ = Describe("Job", func() {
 
 		Context("when started", func() {
 			BeforeEach(func() {
-				started, err := build1DB.Start("some-schema", atc.Plan{ID: "some-id"})
+				started, err := build1DB.Start(atc.Plan{ID: "some-id"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started).To(BeTrue())
 			})
@@ -1258,8 +1290,8 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build1DB.Status()).To(Equal(db.BuildStatusStarted))
-				Expect(build1DB.Schema()).To(Equal("some-schema"))
-				Expect(build1DB.PrivatePlan()).To(Equal(`{"id":"some-id"}`))
+				Expect(build1DB.Schema()).To(Equal("exec.v2"))
+				Expect(build1DB.PrivatePlan()).To(Equal(atc.Plan{ID: "some-id"}))
 			})
 
 			It("saves the build's start time", func() {
@@ -1324,7 +1356,7 @@ var _ = Describe("Job", func() {
 				build1, err := job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				started, err := build1.Start("some-schema", atc.Plan{})
+				started, err := build1.Start(atc.Plan{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started).To(BeTrue())
 			})
@@ -1349,7 +1381,7 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(builds2).To(HaveLen(1))
 
-				started, err := builds2[0].Start("some-schema", atc.Plan{})
+				started, err := builds2[0].Start(atc.Plan{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started).To(BeTrue())
 
@@ -1467,5 +1499,32 @@ var _ = Describe("Job", func() {
 				})
 			})
 		})
+	})
+
+	Describe("New Inputs", func() {
+		It("starts out as false", func() {
+			Expect(job.HasNewInputs()).To(BeFalse())
+		})
+
+		It("can be set to true then back to false", func() {
+			job.SetHasNewInputs(true)
+
+			found, err := job.Reload()
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.HasNewInputs()).To(BeTrue())
+
+			job.SetHasNewInputs(false)
+
+			found, err = job.Reload()
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.HasNewInputs()).To(BeFalse())
+		})
+
 	})
 })

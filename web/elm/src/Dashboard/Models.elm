@@ -12,10 +12,8 @@ module Dashboard.Models exposing
 import Concourse
 import Dashboard.Group.Models
 import Login.Login as Login
-import Message.Message as Message
 import RemoteData
-import ScreenSize
-import Time exposing (Time)
+import Time
 import UserState
 
 
@@ -29,16 +27,16 @@ type alias Model =
             { state : RemoteData.RemoteData DashboardError SubState
             , turbulencePath : String
             , pipelineRunningKeyframes : String
-            , hovered : Maybe Message.Hoverable
             , userState : UserState.UserState
             , highDensity : Bool
             , query : String
+            , clusterName : String
             }
         )
 
 
 type alias SubState =
-    { now : Time
+    { now : Time.Posix
     , dragState : DragState
     , dropState : DropState
     }
@@ -58,7 +56,7 @@ type alias PipelineIndex =
     Int
 
 
-tick : Time.Time -> SubState -> SubState
+tick : Time.Posix -> SubState -> SubState
 tick now substate =
     { substate | now = now }
 
@@ -69,10 +67,7 @@ type alias FooterModel r =
         , hideFooterCounter : Int
         , showHelp : Bool
         , groups : List Dashboard.Group.Models.Group
-        , hovered : Maybe Message.Hoverable
-        , screenSize : ScreenSize.ScreenSize
         , version : String
-        , shiftDown : Bool
         , dropdown : Dropdown
         , highDensity : Bool
     }
@@ -80,4 +75,4 @@ type alias FooterModel r =
 
 type Dropdown
     = Hidden
-    | Shown { selectedIdx : Maybe Int }
+    | Shown (Maybe Int)

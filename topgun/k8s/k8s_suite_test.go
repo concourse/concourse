@@ -98,7 +98,7 @@ var _ = BeforeEach(func() {
 })
 
 func setReleaseNameAndNamespace(description string) {
-	releaseName = fmt.Sprintf("topgun-"+description+"-%d-%d", rand.Int(), GinkgoParallelNode())
+	releaseName = fmt.Sprintf("topgun-"+description+"-%d-%d", rand.Int31n(1000000), GinkgoParallelNode())
 	namespace = releaseName
 }
 
@@ -121,7 +121,7 @@ type podListResponse struct {
 	Items []pod `json:"items"`
 }
 
-func helmDeploy(releaseName, namespace, chartDir string, args ...string) {
+func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.Session {
 	helmArgs := []string{
 		"upgrade",
 		"--install",
@@ -133,10 +133,12 @@ func helmDeploy(releaseName, namespace, chartDir string, args ...string) {
 	helmArgs = append(helmArgs, args...)
 	helmArgs = append(helmArgs, releaseName, chartDir)
 
-	Wait(Start(nil, "helm", helmArgs...))
+	sess := Start(nil, "helm", helmArgs...)
+	<-sess.Exited
+	return sess
 }
 
-func deployConcourseChart(releaseName string, args ...string) {
+func helmInstallArgs(args ...string) []string {
 	helmArgs := []string{
 		"--set=web.livenessProbe.failureThreshold=3",
 		"--set=web.livenessProbe.initialDelaySeconds=3",
@@ -154,8 +156,20 @@ func deployConcourseChart(releaseName string, args ...string) {
 		helmArgs = append(helmArgs, "--set=imageDigest="+Environment.ConcourseImageDigest)
 	}
 
-	helmArgs = append(helmArgs, args...)
-	helmDeploy(releaseName, releaseName, Environment.ConcourseChartDir, helmArgs...)
+	return append(helmArgs, args...)
+}
+
+func deployFailingConcourseChart(releaseName string, expectedErr string, args ...string) {
+	helmArgs := helmInstallArgs(args...)
+	sess := helmDeploy(releaseName, releaseName, Environment.ConcourseChartDir, helmArgs...)
+	Expect(sess.ExitCode()).ToNot(Equal(0))
+	Expect(sess.Err).To(gbytes.Say(expectedErr))
+}
+
+func deployConcourseChart(releaseName string, args ...string) {
+	helmArgs := helmInstallArgs(args...)
+	sess := helmDeploy(releaseName, releaseName, Environment.ConcourseChartDir, helmArgs...)
+	Expect(sess.ExitCode()).To(Equal(0))
 }
 
 func helmDestroy(releaseName string) {
@@ -238,7 +252,7 @@ func deletePods(namespace string, flags ...string) []string {
 	return podNames
 }
 
-func startPortForwarding(namespace, resource, port string) (*gexec.Session, string) {
+func startPortForwardingWithProtocol(namespace, resource, port, protocol string) (*gexec.Session, string) {
 	session := Start(nil, "kubectl", "port-forward", "--namespace="+namespace, resource, ":"+port)
 	Eventually(session.Out).Should(gbytes.Say("Forwarding"))
 
@@ -247,7 +261,11 @@ func startPortForwarding(namespace, resource, port string) (*gexec.Session, stri
 
 	Expect(address).NotTo(BeEmpty())
 
-	return session, "http://" + address[0]
+	return session, protocol + "://" + address[0]
+}
+
+func startPortForwarding(namespace, resource, port string) (*gexec.Session, string) {
+	return startPortForwardingWithProtocol(namespace, resource, port, "http")
 }
 
 func getRunningWorkers(workers []Worker) (running []Worker) {
@@ -257,4 +275,13 @@ func getRunningWorkers(workers []Worker) (running []Worker) {
 		}
 	}
 	return
+}
+
+func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
+	helmDestroy(releaseName)
+	Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
+
+	if proxySession != nil {
+		Wait(proxySession.Interrupt())
+	}
 }

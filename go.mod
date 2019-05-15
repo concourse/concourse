@@ -3,7 +3,7 @@ module github.com/concourse/concourse
 require (
 	cloud.google.com/go v0.28.0 // indirect
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
-	code.cloudfoundry.org/credhub-cli v0.0.0-20180814203433-814bc1b711fe
+	code.cloudfoundry.org/credhub-cli v0.0.0-20190415201820-e3951663d25c
 	code.cloudfoundry.org/garden v0.0.0-20181108172608-62470dc86365
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	code.cloudfoundry.org/localip v0.0.0-20170223024724-b88ad0dea95c
@@ -46,13 +46,15 @@ require (
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
 	github.com/concourse/baggageclaim v1.4.0
-	github.com/concourse/dex v0.0.0-20190227205709-0d3a1049c2d9
+	github.com/concourse/dex v0.0.0-20190417202333-2202f4ef4172
 	github.com/concourse/flag v1.0.0
-	github.com/concourse/go-archive v1.0.0
-	github.com/concourse/retryhttp v0.0.0-20181126170240-7ab5e29e634f
+	github.com/concourse/go-archive v1.0.1
+	github.com/concourse/retryhttp v1.0.1
 	github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2 // indirect
-	github.com/coreos/go-oidc v0.0.0-20170307191026-be73733bb8cc
-	github.com/coreos/go-systemd v0.0.0-20190212144455-93d5ec2c7f76 // indirect
+	github.com/coreos/etcd v3.3.12+incompatible // indirect
+	github.com/coreos/go-oidc v2.0.0+incompatible
+	github.com/coreos/go-semver v0.3.0 // indirect
+	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/cppforlife/go-patch v0.0.0-20171006213518-250da0e0e68c // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/dancannon/gorethink v4.0.0+incompatible // indirect
@@ -137,15 +139,15 @@ require (
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/juju/ratelimit v1.0.1 // indirect
 	github.com/keybase/go-crypto v0.0.0-20180920171116-0b2a91ace448 // indirect
-	github.com/kr/pty v1.1.3
+	github.com/kr/pty v1.1.4
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v0.0.0-20181016162627-9eb73efc1fcc
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
 	github.com/mattbaird/elastigo v0.0.0-20170123220020-2fe47fd29e4b // indirect
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mattn/go-isatty v0.0.7
-	github.com/mattn/go-runewidth v0.0.3 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.0.2
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/michaelklishin/rabbit-hole v1.4.0 // indirect
 	github.com/miekg/dns v1.1.6
@@ -166,7 +168,7 @@ require (
 	github.com/ory-am/common v0.4.0 // indirect
 	github.com/ory/dockertest v3.3.2+incompatible // indirect
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
-	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/peterhellberg/link v1.0.0
@@ -191,22 +193,20 @@ require (
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect
 	github.com/ugorji/go/codec v0.0.0-20181209151446-772ced7fd4c2 // indirect
+	github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6
 	github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
-	golang.org/x/net v0.0.0-20190313220215-9f648a60d977 // indirect
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890
-	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6 // indirect
-	golang.org/x/sys v0.0.0-20190316082340-a2f829d7f35f // indirect
+	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
 	google.golang.org/api v0.1.0 // indirect
 	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect
 	google.golang.org/grpc v1.19.0 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
-	gopkg.in/cheggaaa/pb.v1 v1.0.27
 	gopkg.in/gorethink/gorethink.v4 v4.1.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 	gopkg.in/ory-am/dockertest.v2 v2.2.3 // indirect

@@ -97,7 +97,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeDBPipeline.TeamIDReturns(teamID)
 		fakeDBPipeline.ReloadReturns(true, nil)
 		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
-		fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+		fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 
 		scanner = NewResourceTypeScanner(
 			fakeClock,
@@ -131,7 +131,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		})
 
 		JustBeforeEach(func() {
-			actualInterval, runErr = scanner.Run(lagertest.NewTestLogger("test"), fakeResourceType.Name())
+			actualInterval, runErr = scanner.Run(lagertest.NewTestLogger("test"), fakeResourceType.ID())
 		})
 
 		Context("when the lock cannot be acquired", func() {
@@ -156,7 +156,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			Context("when the last checked was not updated", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.UpdateLastCheckedReturns(false, nil)
+					fakeResourceConfigScope.UpdateLastCheckStartTimeReturns(false, nil)
 				})
 
 				It("does not check", func() {
@@ -171,7 +171,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			Context("when the last checked was updated", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
+					fakeResourceConfigScope.UpdateLastCheckStartTimeReturns(true, nil)
 				})
 
 				It("checks immediately", func() {
@@ -228,7 +228,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 							fakeResourceType,
 							otherResourceType,
 						}, nil)
-						fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+						fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 					})
 
 					It("constructs the resource of the correct type", func() {
@@ -274,17 +274,17 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Context("when the resource type config has a specified check interval", func() {
 					BeforeEach(func() {
 						fakeResourceType.CheckEveryReturns("10ms")
-						fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+						fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 					})
 
 					It("leases for the configured interval", func() {
 						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
-						Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
+						Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
 
 						_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
 						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 
-						leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+						leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 						Expect(immediate).To(BeFalse())
 
@@ -298,7 +298,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Context("when the interval cannot be parsed", func() {
 						BeforeEach(func() {
 							fakeResourceType.CheckEveryReturns("bad-value")
-							fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+							fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 						})
 
 						It("sets the check error", func() {
@@ -316,12 +316,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
 					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
-					Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
+					Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
 
 					_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(leaseInterval).To(Equal(interval))
 
-					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeFalse())
 
@@ -454,13 +454,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 		})
 
 		JustBeforeEach(func() {
-			runErr = scanner.Scan(lagertest.NewTestLogger("test"), fakeResourceType.Name())
+			runErr = scanner.Scan(lagertest.NewTestLogger("test"), fakeResourceType.ID())
 		})
 
 		Context("when the lock can be acquired and last checked is updated", func() {
 			BeforeEach(func() {
 				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
-				fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
+				fakeResourceConfigScope.UpdateLastCheckStartTimeReturns(true, nil)
 			})
 
 			It("checks immediately", func() {
@@ -525,7 +525,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						fakeResourceType,
 						otherResourceType,
 					}, nil)
-					fakeDBPipeline.ResourceTypeReturnsOnCall(0, fakeResourceType, true, nil)
+					fakeDBPipeline.ResourceTypeByIDReturnsOnCall(0, fakeResourceType, true, nil)
 				})
 
 				Context("when the custom type does not yet have a version", func() {
@@ -535,8 +535,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					It("checks for versions of the parent resource type", func() {
 						By("calling .scan() for the resource type name")
-						Expect(fakeDBPipeline.ResourceTypeCallCount()).To(Equal(2))
-						Expect(fakeDBPipeline.ResourceTypeArgsForCall(1)).To(Equal("custom-resource-parent"))
+						Expect(fakeDBPipeline.ResourceTypeByIDCallCount()).To(Equal(2))
+						Expect(fakeDBPipeline.ResourceTypeByIDArgsForCall(1)).To(Equal(39))
 					})
 
 					Context("when the check for the parent succeeds", func() {
@@ -549,7 +549,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Context("somethinng fails in the parent resource scan", func() {
 						var parentResourceTypeErr = errors.New("jma says no recursion in production")
 						BeforeEach(func() {
-							fakeDBPipeline.ResourceTypeReturnsOnCall(1, otherResourceType, true, parentResourceTypeErr)
+							fakeDBPipeline.ResourceTypeByIDReturnsOnCall(1, otherResourceType, true, parentResourceTypeErr)
 						})
 
 						It("returns the error from scanning the parent", func() {
@@ -572,7 +572,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					})
 
 					It("does not check for versions of the parent resource type", func() {
-						Expect(fakeDBPipeline.ResourceTypeCallCount()).To(Equal(1))
+						Expect(fakeDBPipeline.ResourceTypeByIDCallCount()).To(Equal(1))
 					})
 				})
 			})
@@ -592,7 +592,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						fakeResourceType,
 						otherResourceType,
 					}, nil)
-					fakeDBPipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+					fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
 				})
 
 				It("constructs the resource of the correct type", func() {
@@ -633,12 +633,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
 				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
-				Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(1))
+				Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
 
 				_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
 				Expect(leaseInterval).To(Equal(interval))
 
-				leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+				leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeTrue())
 
@@ -812,7 +812,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					results <- true
 					close(results)
 
-					fakeResourceConfigScope.UpdateLastCheckedStub = func(interval time.Duration, immediate bool) (bool, error) {
+					fakeResourceConfigScope.UpdateLastCheckStartTimeStub = func(interval time.Duration, immediate bool) (bool, error) {
 						if <-results {
 							return true, nil
 						} else {
@@ -825,17 +825,17 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("retries every second until it is", func() {
 					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(3))
-					Expect(fakeResourceConfigScope.UpdateLastCheckedCallCount()).To(Equal(3))
+					Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(3))
 
-					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckedArgsForCall(0)
+					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					leaseInterval, immediate = fakeResourceConfigScope.UpdateLastCheckedArgsForCall(1)
+					leaseInterval, immediate = fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(1)
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					leaseInterval, immediate = fakeResourceConfigScope.UpdateLastCheckedArgsForCall(2)
+					leaseInterval, immediate = fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(2)
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
@@ -887,13 +887,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 		})
 
 		JustBeforeEach(func() {
-			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), "some-resource-type", fromVersion)
+			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), 57, fromVersion)
 		})
 
 		Context("if the lock can be acquired", func() {
 			BeforeEach(func() {
 				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
-				fakeResourceConfigScope.UpdateLastCheckedReturns(true, nil)
+				fakeResourceConfigScope.UpdateLastCheckStartTimeReturns(true, nil)
 				fakeResourceConfigVersion := new(dbfakes.FakeResourceConfigVersion)
 				fakeResourceConfigVersion.IDReturns(1)
 				fakeResourceConfigVersion.VersionReturns(db.Version{"custom": "version"})
@@ -947,12 +947,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			Context("when the resource is not in the database", func() {
 				BeforeEach(func() {
-					fakeDBPipeline.ResourceTypeReturns(nil, false, nil)
+					fakeDBPipeline.ResourceTypeByIDReturns(nil, false, nil)
 				})
 
 				It("returns an error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(scanErr.Error()).To(ContainSubstring("resource type not found: some-resource-type"))
+					Expect(scanErr.Error()).To(ContainSubstring("resource type not found: 57"))
 				})
 			})
 		})

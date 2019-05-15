@@ -2,10 +2,10 @@
 package tokenfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	token "github.com/concourse/concourse/skymarshal/token"
-	oauth2 "golang.org/x/oauth2"
+	"github.com/concourse/concourse/skymarshal/token"
+	"golang.org/x/oauth2"
 )
 
 type FakeGenerator struct {

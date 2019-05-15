@@ -43,9 +43,7 @@ var _ = Describe("Ephemeral workers", func() {
 	})
 
 	AfterEach(func() {
-		helmDestroy(releaseName)
-		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-		Wait(proxySession.Interrupt())
+		cleanup(releaseName, namespace, proxySession)
 	})
 
 	It("Gets properly cleaned when getting removed and then put back on", func() {

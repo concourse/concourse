@@ -54,8 +54,12 @@
               type: internal
             keys:
             - provider_name: main
-              encryption_password: ((credhub_encryption_password))
+              key_properties:
+                encryption_password: ((credhub_encryption_password))
               active: true
+          authorization:
+            acls:
+              enabled: false
           authentication:
             mutual_tls:
               trusted_cas: [((credhub_ca.certificate))]

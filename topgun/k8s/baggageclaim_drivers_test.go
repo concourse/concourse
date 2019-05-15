@@ -16,12 +16,7 @@ var _ = Describe("Baggageclaim Drivers", func() {
 	)
 
 	AfterEach(func() {
-		helmDestroy(releaseName)
-		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-
-		if proxySession != nil {
-			Wait(proxySession.Interrupt())
-		}
+		cleanup(releaseName, namespace, proxySession)
 	})
 
 	type Case struct {
@@ -32,7 +27,7 @@ var _ = Describe("Baggageclaim Drivers", func() {
 
 	DescribeTable("across different node images",
 		func(c Case) {
-			setReleaseNameAndNamespace("bd-"+c.Driver+"-"+c.NodeImage)
+			setReleaseNameAndNamespace("bd-" + c.Driver + "-" + c.NodeImage)
 
 			helmDeployTestFlags := []string{
 				"--set=concourse.web.kubernetes.enabled=false",
@@ -44,11 +39,14 @@ var _ = Describe("Baggageclaim Drivers", func() {
 			deployConcourseChart(releaseName, helmDeployTestFlags...)
 
 			if !c.ShouldWork {
-				workerLogsSession := Start(nil, "kubectl", "logs",
-					"--namespace="+namespace, "-lapp="+namespace+"-worker")
-				<-workerLogsSession.Exited
+				Eventually(func() []byte {
+					workerLogsSession := Start(nil, "kubectl", "logs",
+						"--namespace="+namespace, "-lapp="+namespace+"-worker")
+					<-workerLogsSession.Exited
 
-				Expect(workerLogsSession.Out.Contents()).To(ContainSubstring("failed-to-set-up-driver"))
+					return workerLogsSession.Out.Contents()
+
+				}).Should(ContainSubstring("failed-to-set-up-driver"))
 				return
 			}
 
@@ -61,8 +59,9 @@ var _ = Describe("Baggageclaim Drivers", func() {
 			fly.Login("test", "test", atcEndpoint)
 
 			By("Setting and triggering a dumb pipeline")
-			fly.Run("set-pipeline", "-n", "-c", "../pipelines/get-task.yml", "-p", "pipeline")
-			fly.Run("trigger-job", "-j", "pipeline/simple-job")
+			fly.Run("set-pipeline", "-n", "-c", "../pipelines/get-task.yml", "-p", "some-pipeline")
+			fly.Run("unpause-pipeline", "-p", "some-pipeline")
+			fly.Run("trigger-job", "-w", "-j", "some-pipeline/simple-job")
 		},
 		Entry("with btrfs on cos", Case{
 			Driver:     "btrfs",

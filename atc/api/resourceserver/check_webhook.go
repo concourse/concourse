@@ -38,7 +38,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		variables := s.variablesFactory.NewVariables(dbPipeline.TeamName(), dbPipeline.Name())
+		variables := creds.NewVariables(s.secretManager, dbPipeline.TeamName(), dbPipeline.Name())
 		token, err := creds.NewString(variables, pipelineResource.WebhookToken()).Evaluate()
 		if token != webhookToken {
 			logger.Info("invalid-token", lager.Data{"error": fmt.Sprintf("invalid token for webhook %s", webhookToken)})
@@ -75,7 +75,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			}
 
 			scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
-			scanner.ScanFromVersion(logger, resourceName, fromVersion)
+			scanner.ScanFromVersion(logger, pipelineResource.ID(), fromVersion)
 		}()
 
 		w.WriteHeader(http.StatusOK)

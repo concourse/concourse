@@ -168,7 +168,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					switch s {
 					case db.BuildStatusPending:
 					case db.BuildStatusStarted:
-						_, err = dbBuild.Start("exec.v2", atc.Plan{})
+						_, err = dbBuild.Start(atc.Plan{})
 						Expect(err).ToNot(HaveOccurred())
 					default:
 						err = dbBuild.Finish(s)
@@ -200,7 +200,7 @@ var _ = Describe("Worker Lifecycle", func() {
 				switch s {
 				case db.BuildStatusPending:
 				case db.BuildStatusStarted:
-					_, err := dbBuild.Start("exec.v2", atc.Plan{})
+					_, err := dbBuild.Start(atc.Plan{})
 					Expect(err).ToNot(HaveOccurred())
 				default:
 					err := dbBuild.Finish(s)
@@ -412,7 +412,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					switch s {
 					case db.BuildStatusPending:
 					case db.BuildStatusStarted:
-						_, err := dbBuild.Start("exec.v2", atc.Plan{})
+						_, err := dbBuild.Start(atc.Plan{})
 						Expect(err).ToNot(HaveOccurred())
 					default:
 						err := dbBuild.Finish(s)
@@ -446,7 +446,7 @@ var _ = Describe("Worker Lifecycle", func() {
 				switch s {
 				case db.BuildStatusPending:
 				case db.BuildStatusStarted:
-					_, err := dbBuild.Start("exec.v2", atc.Plan{})
+					_, err := dbBuild.Start(atc.Plan{})
 					Expect(err).ToNot(HaveOccurred())
 				default:
 					err := dbBuild.Finish(s)

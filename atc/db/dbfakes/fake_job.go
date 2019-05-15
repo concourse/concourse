@@ -2,13 +2,13 @@
 package dbfakes
 
 import (
-	sync "sync"
-	time "time"
+	"sync"
+	"time"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	db "github.com/concourse/concourse/atc/db"
-	lock "github.com/concourse/concourse/atc/db/lock"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeJob struct {
@@ -209,6 +209,16 @@ type FakeJob struct {
 		result1 []db.Build
 		result2 error
 	}
+	HasNewInputsStub        func() bool
+	hasNewInputsMutex       sync.RWMutex
+	hasNewInputsArgsForCall []struct {
+	}
+	hasNewInputsReturns struct {
+		result1 bool
+	}
+	hasNewInputsReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
 	iDArgsForCall []struct {
@@ -269,6 +279,16 @@ type FakeJob struct {
 	pipelineNameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	PublicStub        func() bool
+	publicMutex       sync.RWMutex
+	publicArgsForCall []struct {
+	}
+	publicReturns struct {
+		result1 bool
+	}
+	publicReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	ReloadStub        func() (bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct {
@@ -291,6 +311,17 @@ type FakeJob struct {
 		result1 error
 	}
 	saveNextInputMappingReturnsOnCall map[int]struct {
+		result1 error
+	}
+	SetHasNewInputsStub        func(bool) error
+	setHasNewInputsMutex       sync.RWMutex
+	setHasNewInputsArgsForCall []struct {
+		arg1 bool
+	}
+	setHasNewInputsReturns struct {
+		result1 error
+	}
+	setHasNewInputsReturnsOnCall map[int]struct {
 		result1 error
 	}
 	SetMaxInFlightReachedStub        func(bool) error
@@ -1264,6 +1295,58 @@ func (fake *FakeJob) GetRunningBuildsBySerialGroupReturnsOnCall(i int, result1 [
 	}{result1, result2}
 }
 
+func (fake *FakeJob) HasNewInputs() bool {
+	fake.hasNewInputsMutex.Lock()
+	ret, specificReturn := fake.hasNewInputsReturnsOnCall[len(fake.hasNewInputsArgsForCall)]
+	fake.hasNewInputsArgsForCall = append(fake.hasNewInputsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("HasNewInputs", []interface{}{})
+	fake.hasNewInputsMutex.Unlock()
+	if fake.HasNewInputsStub != nil {
+		return fake.HasNewInputsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.hasNewInputsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) HasNewInputsCallCount() int {
+	fake.hasNewInputsMutex.RLock()
+	defer fake.hasNewInputsMutex.RUnlock()
+	return len(fake.hasNewInputsArgsForCall)
+}
+
+func (fake *FakeJob) HasNewInputsCalls(stub func() bool) {
+	fake.hasNewInputsMutex.Lock()
+	defer fake.hasNewInputsMutex.Unlock()
+	fake.HasNewInputsStub = stub
+}
+
+func (fake *FakeJob) HasNewInputsReturns(result1 bool) {
+	fake.hasNewInputsMutex.Lock()
+	defer fake.hasNewInputsMutex.Unlock()
+	fake.HasNewInputsStub = nil
+	fake.hasNewInputsReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeJob) HasNewInputsReturnsOnCall(i int, result1 bool) {
+	fake.hasNewInputsMutex.Lock()
+	defer fake.hasNewInputsMutex.Unlock()
+	fake.HasNewInputsStub = nil
+	if fake.hasNewInputsReturnsOnCall == nil {
+		fake.hasNewInputsReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.hasNewInputsReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeJob) ID() int {
 	fake.iDMutex.Lock()
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
@@ -1576,6 +1659,58 @@ func (fake *FakeJob) PipelineNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeJob) Public() bool {
+	fake.publicMutex.Lock()
+	ret, specificReturn := fake.publicReturnsOnCall[len(fake.publicArgsForCall)]
+	fake.publicArgsForCall = append(fake.publicArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Public", []interface{}{})
+	fake.publicMutex.Unlock()
+	if fake.PublicStub != nil {
+		return fake.PublicStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.publicReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) PublicCallCount() int {
+	fake.publicMutex.RLock()
+	defer fake.publicMutex.RUnlock()
+	return len(fake.publicArgsForCall)
+}
+
+func (fake *FakeJob) PublicCalls(stub func() bool) {
+	fake.publicMutex.Lock()
+	defer fake.publicMutex.Unlock()
+	fake.PublicStub = stub
+}
+
+func (fake *FakeJob) PublicReturns(result1 bool) {
+	fake.publicMutex.Lock()
+	defer fake.publicMutex.Unlock()
+	fake.PublicStub = nil
+	fake.publicReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeJob) PublicReturnsOnCall(i int, result1 bool) {
+	fake.publicMutex.Lock()
+	defer fake.publicMutex.Unlock()
+	fake.PublicStub = nil
+	if fake.publicReturnsOnCall == nil {
+		fake.publicReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.publicReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeJob) Reload() (bool, error) {
 	fake.reloadMutex.Lock()
 	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
@@ -1688,6 +1823,66 @@ func (fake *FakeJob) SaveNextInputMappingReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.saveNextInputMappingReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJob) SetHasNewInputs(arg1 bool) error {
+	fake.setHasNewInputsMutex.Lock()
+	ret, specificReturn := fake.setHasNewInputsReturnsOnCall[len(fake.setHasNewInputsArgsForCall)]
+	fake.setHasNewInputsArgsForCall = append(fake.setHasNewInputsArgsForCall, struct {
+		arg1 bool
+	}{arg1})
+	fake.recordInvocation("SetHasNewInputs", []interface{}{arg1})
+	fake.setHasNewInputsMutex.Unlock()
+	if fake.SetHasNewInputsStub != nil {
+		return fake.SetHasNewInputsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.setHasNewInputsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) SetHasNewInputsCallCount() int {
+	fake.setHasNewInputsMutex.RLock()
+	defer fake.setHasNewInputsMutex.RUnlock()
+	return len(fake.setHasNewInputsArgsForCall)
+}
+
+func (fake *FakeJob) SetHasNewInputsCalls(stub func(bool) error) {
+	fake.setHasNewInputsMutex.Lock()
+	defer fake.setHasNewInputsMutex.Unlock()
+	fake.SetHasNewInputsStub = stub
+}
+
+func (fake *FakeJob) SetHasNewInputsArgsForCall(i int) bool {
+	fake.setHasNewInputsMutex.RLock()
+	defer fake.setHasNewInputsMutex.RUnlock()
+	argsForCall := fake.setHasNewInputsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeJob) SetHasNewInputsReturns(result1 error) {
+	fake.setHasNewInputsMutex.Lock()
+	defer fake.setHasNewInputsMutex.Unlock()
+	fake.SetHasNewInputsStub = nil
+	fake.setHasNewInputsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJob) SetHasNewInputsReturnsOnCall(i int, result1 error) {
+	fake.setHasNewInputsMutex.Lock()
+	defer fake.setHasNewInputsMutex.Unlock()
+	fake.SetHasNewInputsStub = nil
+	if fake.setHasNewInputsReturnsOnCall == nil {
+		fake.setHasNewInputsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setHasNewInputsReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -2053,6 +2248,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.getPendingBuildsMutex.RUnlock()
 	fake.getRunningBuildsBySerialGroupMutex.RLock()
 	defer fake.getRunningBuildsBySerialGroupMutex.RUnlock()
+	fake.hasNewInputsMutex.RLock()
+	defer fake.hasNewInputsMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.nameMutex.RLock()
@@ -2065,10 +2262,14 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.pipelineIDMutex.RUnlock()
 	fake.pipelineNameMutex.RLock()
 	defer fake.pipelineNameMutex.RUnlock()
+	fake.publicMutex.RLock()
+	defer fake.publicMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
+	fake.setHasNewInputsMutex.RLock()
+	defer fake.setHasNewInputsMutex.RUnlock()
 	fake.setMaxInFlightReachedMutex.RLock()
 	defer fake.setMaxInFlightReachedMutex.RUnlock()
 	fake.tagsMutex.RLock()

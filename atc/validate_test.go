@@ -142,6 +142,41 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 		})
+
+		Context("when the groups have two duplicate names", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, GroupConfig{
+					Name: "some-group",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorMessages[0]).To(ContainSubstring("'some-group' appears 2 times. Duplicate names are not allowed."))
+			})
+		})
+
+		Context("when the groups have four duplicate names", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, GroupConfig{
+					Name: "some-group",
+				}, GroupConfig{
+					Name: "some-group",
+				}, GroupConfig{
+					Name: "some-group",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				errorMessage := strings.Trim(errorMessages[0], "\n")
+				errorLines := strings.Split(errorMessage, "\n")
+				Expect(errorLines).To(HaveLen(2))
+				Expect(errorLines[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorLines[1]).To(ContainSubstring("group 'some-group' appears 4 times. Duplicate names are not allowed."))
+			})
+		})
 	})
 
 	Describe("invalid resources", func() {
@@ -242,7 +277,15 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
+						Name: "parallel",
+						Type: "some-type",
+					},
+					{
 						Name: "abort",
+						Type: "some-type",
+					},
+					{
+						Name: "error",
 						Type: "some-type",
 					},
 					{
@@ -300,10 +343,28 @@ var _ = Describe("ValidateConfig", func() {
 								},
 							},
 							{
+								InParallel: &InParallelConfig{
+									Steps: PlanSequence{
+										{
+											Get: "parallel",
+										},
+									},
+									Limit:    1,
+									FailFast: true,
+								},
+							},
+							{
 								Task:           "some-task",
 								TaskConfigPath: "some/config/path.yml",
-								Failure: &PlanConfig{
+								Abort: &PlanConfig{
 									Get: "abort",
+								},
+							},
+							{
+								Task:           "some-task",
+								TaskConfigPath: "some/config/path.yml",
+								Error: &PlanConfig{
+									Get: "error",
 								},
 							},
 							{
@@ -541,16 +602,44 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
+		Context("when a job has duplicate inputs via parallel", func() {
+			BeforeEach(func() {
+				job.Plan = append(job.Plan, PlanConfig{
+					Get: "some-resource",
+				})
+				job.Plan = append(job.Plan, PlanConfig{
+					InParallel: &InParallelConfig{
+						Steps: PlanSequence{
+							{
+								Get: "some-resource",
+							},
+						},
+						Limit:    1,
+						FailFast: true,
+					},
+				})
+
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns a single error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
+			})
+		})
+
 		Describe("plans", func() {
 			Context("when multiple actions are specified in the same plan", func() {
 				Context("when it's not just Get and Put", func() {
 					BeforeEach(func() {
 						job.Plan = append(job.Plan, PlanConfig{
-							Get:       "some-resource",
-							Put:       "some-resource",
-							Task:      "some-resource",
-							Do:        &PlanSequence{},
-							Aggregate: &PlanSequence{},
+							Get:        "some-resource",
+							Put:        "some-resource",
+							Task:       "some-resource",
+							Do:         &PlanSequence{},
+							Aggregate:  &PlanSequence{},
+							InParallel: &InParallelConfig{},
 						})
 
 						config.Jobs = append(config.Jobs, job)
@@ -559,18 +648,19 @@ var _ = Describe("ValidateConfig", func() {
 					It("returns an error", func() {
 						Expect(errorMessages).To(HaveLen(1))
 						Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-						Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has multiple actions specified (aggregate, do, get, put, task)"))
+						Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has multiple actions specified (aggregate, do, get, parallel, put, task)"))
 					})
 				})
 
 				Context("when it's just Get and Put (this was valid at one point)", func() {
 					BeforeEach(func() {
 						job.Plan = append(job.Plan, PlanConfig{
-							Get:       "some-resource",
-							Put:       "some-resource",
-							Task:      "",
-							Do:        nil,
-							Aggregate: nil,
+							Get:        "some-resource",
+							Put:        "some-resource",
+							Task:       "",
+							Do:         nil,
+							Aggregate:  nil,
+							InParallel: nil,
 						})
 
 						config.Jobs = append(config.Jobs, job)
@@ -990,6 +1080,25 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a plan has an invalid step within an error", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, PlanConfig{
+						Get: "some-resource",
+						Error: &PlanConfig{
+							Put:      "custom-name",
+							Resource: "some-missing-resource",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.error.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+				})
+			})
+
 			Context("when a plan has an invalid step within an ensure", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
@@ -1006,25 +1115,6 @@ var _ = Describe("ValidateConfig", func() {
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.ensure.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
-				})
-			})
-
-			Context("when a plan has an invalid step within an abort", func() {
-				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
-						Get: "some-resource",
-						Abort: &PlanConfig{
-							Put:      "custom-name",
-							Resource: "some-missing-resource",
-						},
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("throws a validation error", func() {
-					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.abort.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -1226,5 +1316,47 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages[0]).To(ContainSubstring("jobs[0] and jobs[2] have the same name ('some-job')"))
 			})
 		})
+
+		Context("when a job has build_log_retention and deprecated build_logs_to_retain", func() {
+			BeforeEach(func() {
+				config.Jobs[0].BuildLogRetention = &BuildLogRetention{
+					Builds: 1,
+					Days:   1,
+				}
+				config.Jobs[0].BuildLogsToRetain = 1
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job can't use both build_log_retention and build_logs_to_retain"))
+			})
+		})
+
+		Context("when a job has negative build_logs_to_retain", func() {
+			BeforeEach(func() {
+				config.Jobs[0].BuildLogsToRetain = -1
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_logs_to_retain: -1"))
+			})
+		})
+
+		Context("when a job has negative build_log_retention values", func() {
+			BeforeEach(func() {
+				config.Jobs[0].BuildLogRetention = &BuildLogRetention{
+					Builds: -1,
+					Days:   -1,
+				}
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_log_retention.builds: -1"))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_log_retention.days: -1"))
+			})
+		})
+
 	})
 })

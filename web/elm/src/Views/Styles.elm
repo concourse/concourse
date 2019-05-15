@@ -1,17 +1,22 @@
 module Views.Styles exposing
-    ( breadcrumbComponent
+    ( TooltipPosition(..)
+    , breadcrumbComponent
     , breadcrumbContainer
     , breadcrumbItem
     , concourseLogo
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
+    , pauseToggle
     , pauseToggleIcon
-    , pipelinePageBelowTopBar
+    , pauseToggleTooltip
     , topBar
     )
 
 import Colors
+import Html
+import Html.Attributes exposing (style)
+import Routes
 
 
 pageHeaderHeight : Float
@@ -19,117 +24,177 @@ pageHeaderHeight =
     54
 
 
-pageIncludingTopBar : List ( String, String )
+pageIncludingTopBar : List (Html.Attribute msg)
 pageIncludingTopBar =
-    [ ( "-webkit-font-smoothing", "antialiased" )
-    , ( "font-weight", "700" )
-    , ( "height", "100%" )
+    [ style "-webkit-font-smoothing" "antialiased"
+    , style "font-weight" "700"
+    , style "height" "100%"
     ]
 
 
-pageBelowTopBar : List ( String, String )
-pageBelowTopBar =
-    [ ( "padding-top", "54px" )
-    , ( "height", "100%" )
-    , ( "padding-bottom", "50px" )
-    , ( "box-sizing", "border-box" )
-    , ( "display", "flex" )
-    ]
+pageBelowTopBar : Routes.Route -> List (Html.Attribute msg)
+pageBelowTopBar route =
+    style "padding-top" "54px"
+        :: (case route of
+                Routes.FlySuccess _ ->
+                    [ style "height" "100%" ]
+
+                Routes.Resource _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
+
+                Routes.Pipeline _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
+
+                Routes.Dashboard _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "display" "flex"
+                    , style "height" "100%"
+                    , style "padding-bottom" "50px"
+                    ]
+
+                Routes.Build _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
+
+                Routes.OneOffBuild _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
+
+                Routes.Job _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
+           )
 
 
-pipelinePageBelowTopBar : List ( String, String )
-pipelinePageBelowTopBar =
-    [ ( "padding-top", "0" )
-    , ( "height", "100%" )
-    ]
-
-
-topBar : Bool -> List ( String, String )
+topBar : Bool -> List (Html.Attribute msg)
 topBar isPaused =
-    [ ( "position", "fixed" )
-    , ( "top", "0" )
-    , ( "width", "100%" )
-    , ( "z-index", "999" )
-    , ( "display", "flex" )
-    , ( "justify-content", "space-between" )
-    , ( "font-weight", "700" )
-    , ( "background-color"
-      , if isPaused then
+    [ style "position" "fixed"
+    , style "top" "0"
+    , style "width" "100%"
+    , style "height" "54px"
+    , style "z-index" "999"
+    , style "display" "flex"
+    , style "justify-content" "space-between"
+    , style "font-weight" "700"
+    , style "background-color" <|
+        if isPaused then
             Colors.paused
 
         else
             Colors.frame
-      )
     ]
 
 
-concourseLogo : List ( String, String )
+concourseLogo : List (Html.Attribute msg)
 concourseLogo =
-    [ ( "background-image", "url(/public/images/concourse-logo-white.svg)" )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-size", "42px 42px" )
-    , ( "display", "inline-block" )
-    , ( "width", "54px" )
-    , ( "height", "54px" )
+    [ style "background-image" "url(/public/images/concourse-logo-white.svg)"
+    , style "background-position" "50% 50%"
+    , style "background-repeat" "no-repeat"
+    , style "background-size" "42px 42px"
+    , style "display" "inline-block"
+    , style "width" "54px"
+    , style "height" "54px"
     ]
 
 
-breadcrumbContainer : List ( String, String )
+breadcrumbContainer : List (Html.Attribute msg)
 breadcrumbContainer =
-    [ ( "flex-grow", "1" ) ]
+    [ style "flex-grow" "1" ]
 
 
-breadcrumbComponent : String -> List ( String, String )
+breadcrumbComponent : String -> List (Html.Attribute msg)
 breadcrumbComponent componentType =
-    [ ( "background-image", "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "background-size", "contain" )
-    , ( "display", "inline-block" )
-    , ( "vertical-align", "middle" )
-    , ( "height", "16px" )
-    , ( "width", "32px" )
-    , ( "margin-right", "10px" )
+    [ style "background-image" <| "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)"
+    , style "background-repeat" "no-repeat"
+    , style "background-size" "contain"
+    , style "display" "inline-block"
+    , style "vertical-align" "middle"
+    , style "height" "16px"
+    , style "width" "32px"
+    , style "margin-right" "10px"
     ]
 
 
-breadcrumbItem : Bool -> List ( String, String )
+breadcrumbItem : Bool -> List (Html.Attribute msg)
 breadcrumbItem clickable =
-    [ ( "display", "inline-block" )
-    , ( "vertical-align", "middle" )
-    , ( "font-size", "18px" )
-    , ( "padding", "0 10px" )
-    , ( "line-height", "54px" )
-    , ( "cursor"
-      , if clickable then
+    [ style "display" "inline-block"
+    , style "vertical-align" "middle"
+    , style "font-size" "18px"
+    , style "padding" "0 10px"
+    , style "line-height" "54px"
+    , style "cursor" <|
+        if clickable then
             "pointer"
 
         else
             "default"
-      )
+    ]
+
+
+pauseToggle : String -> List (Html.Attribute msg)
+pauseToggle margin =
+    [ style "position" "relative"
+    , style "margin" margin
     ]
 
 
 pauseToggleIcon :
     { isHovered : Bool
     , isClickable : Bool
-    , margin : String
     }
-    -> List ( String, String )
-pauseToggleIcon { isHovered, isClickable, margin } =
-    [ ( "margin", margin )
-    , ( "opacity"
-      , if isHovered then
+    -> List (Html.Attribute msg)
+pauseToggleIcon { isHovered, isClickable } =
+    [ style "opacity" <|
+        if not isClickable then
+            "0.2"
+
+        else if isHovered then
             "1"
 
         else
             "0.5"
-      )
-    , ( "cursor"
-      , if isClickable then
+    , style "cursor" <|
+        if isClickable then
             "pointer"
 
         else
             "default"
-      )
+    ]
+
+
+type TooltipPosition
+    = Above
+    | Below
+
+
+pauseToggleTooltip : TooltipPosition -> List (Html.Attribute msg)
+pauseToggleTooltip ttp =
+    [ style "background-color" "#9b9b9b"
+    , style "position" "absolute"
+    , style
+        (case ttp of
+            Above ->
+                "bottom"
+
+            Below ->
+                "top"
+        )
+        "100%"
+    , style "white-space" "nowrap"
+    , style "padding" "2.5px"
+    , style "margin-bottom" "5px"
+    , style "right" "-150%"
+    , style "z-index" "1"
     ]

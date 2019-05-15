@@ -112,7 +112,7 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 				return
 			}
 
-			if !job.Config().Public {
+			if !job.Public() {
 				if acc.IsAuthenticated() {
 					h.rejector.Forbidden(w, r)
 					return

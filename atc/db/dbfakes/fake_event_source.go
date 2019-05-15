@@ -2,10 +2,10 @@
 package dbfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	db "github.com/concourse/concourse/atc/db"
-	event "github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/event"
 )
 
 type FakeEventSource struct {

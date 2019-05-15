@@ -9,6 +9,8 @@ module Concourse.Pagination exposing
     )
 
 import Colors
+import Html
+import Html.Attributes exposing (style)
 
 
 type alias Paginated a =
@@ -60,38 +62,38 @@ equal one two =
     directionEqual one.direction two.direction
 
 
-chevronContainer : List ( String, String )
+chevronContainer : List (Html.Attribute msg)
 chevronContainer =
-    [ ( "padding", "5px" )
-    , ( "display", "flex" )
-    , ( "align-items", "center" )
-    , ( "border-left", "1px solid " ++ Colors.background )
+    [ style "padding" "5px"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "border-left" <| "1px solid " ++ Colors.background
     ]
 
 
 chevron :
     { direction : String, enabled : Bool, hovered : Bool }
-    -> List ( String, String )
+    -> List (Html.Attribute msg)
 chevron { direction, enabled, hovered } =
-    [ ( "background-image"
-      , "url(/public/images/baseline-chevron-" ++ direction ++ "-24px.svg)"
-      )
-    , ( "background-position", "50% 50%" )
-    , ( "background-repeat", "no-repeat" )
-    , ( "width", "24px" )
-    , ( "height", "24px" )
-    , ( "padding", "5px" )
-    , ( "opacity"
-      , if enabled then
+    [ style "background-image" <|
+        "url(/public/images/baseline-chevron-"
+            ++ direction
+            ++ "-24px.svg)"
+    , style "background-position" "50% 50%"
+    , style "background-repeat" "no-repeat"
+    , style "width" "24px"
+    , style "height" "24px"
+    , style "padding" "5px"
+    , style "opacity" <|
+        if enabled then
             "1"
 
         else
             "0.5"
-      )
     ]
         ++ (if hovered then
-                [ ( "background-color", Colors.paginationHover )
-                , ( "border-radius", "50%" )
+                [ style "background-color" Colors.paginationHover
+                , style "border-radius" "50%"
                 ]
 
             else

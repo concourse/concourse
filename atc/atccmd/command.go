@@ -23,6 +23,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
+	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/noop"
@@ -31,7 +32,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/engine"
-	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lockrunner"
 	"github.com/concourse/concourse/atc/metric"
@@ -47,11 +48,12 @@ import (
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/concourse/web"
+	"github.com/concourse/concourse/web/indexhandler"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
-	multierror "github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/hashicorp/go-multierror"
+	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -129,7 +131,8 @@ type RunCommand struct {
 	} `group:"Metrics & Diagnostics"`
 
 	Server struct {
-		XFrameOptions string `long:"x-frame-options" description:"The value to set for X-Frame-Options. If omitted, the header is not set."`
+		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
+		ClusterName   string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 	} `group:"Web Server"`
 
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
@@ -148,8 +151,23 @@ type RunCommand struct {
 	DefaultBuildLogsToRetain uint64 `long:"default-build-logs-to-retain" description:"Default build logs to retain, 0 means all"`
 	MaxBuildLogsToRetain     uint64 `long:"max-build-logs-to-retain" description:"Maximum build logs to retain, 0 means not specified. Will override values configured in jobs"`
 
+	DefaultDaysToRetainBuildLogs uint64 `long:"default-days-to-retain-build-logs" description:"Default days to retain build logs. 0 means unlimited"`
+	MaxDaysToRetainBuildLogs     uint64 `long:"max-days-to-retain-build-logs" description:"Maximum days to retain build logs, 0 means not specified. Will override values configured in jobs"`
+
 	DefaultCpuLimit    *int    `long:"default-task-cpu-limit" description:"Default max number of cpu shares per task, 0 means unlimited"`
 	DefaultMemoryLimit *string `long:"default-task-memory-limit" description:"Default maximum memory per task, 0 means unlimited"`
+
+	Auditor struct {
+		EnableBuildAuditLog     bool `long:"enable-build-auditing" description:"Enable auditing for all api requests connected to builds."`
+		EnableContainerAuditLog bool `long:"enable-container-auditing" description:"Enable auditing for all api requests connected to containers."`
+		EnableJobAuditLog       bool `long:"enable-job-auditing" description:"Enable auditing for all api requests connected to jobs."`
+		EnablePipelineAuditLog  bool `long:"enable-pipeline-auditing" description:"Enable auditing for all api requests connected to pipelines."`
+		EnableResourceAuditLog  bool `long:"enable-resource-auditing" description:"Enable auditing for all api requests connected to resources."`
+		EnableSystemAuditLog    bool `long:"enable-system-auditing" description:"Enable auditing for all api requests connected to system transactions."`
+		EnableTeamAuditLog      bool `long:"enable-team-auditing" description:"Enable auditing for all api requests connected to teams."`
+		EnableWorkerAuditLog    bool `long:"enable-worker-auditing" description:"Enable auditing for all api requests connected to workers."`
+		EnableVolumeAuditLog    bool `long:"enable-volume-auditing" description:"Enable auditing for all api requests connected to volumes."`
+	}
 
 	Syslog struct {
 		Hostname      string        `long:"syslog-hostname" description:"Client hostname with which the build logs will be sent to the syslog server." default:"atc-syslog-drainer"`
@@ -391,7 +409,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory)
+	secretManager, err := cmd.secretManager(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -433,6 +456,7 @@ func (cmd *RunCommand) constructMembers(
 	backendConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
+	secretManager creds.Secrets,
 ) ([]grouper.Member, error) {
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
@@ -444,12 +468,12 @@ func (cmd *RunCommand) constructMembers(
 		}()
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
 
-	backendMembers, err := cmd.constructBackendMembers(logger, backendConn, lockFactory)
+	backendMembers, err := cmd.constructBackendMembers(logger, backendConn, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -463,6 +487,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
+	secretManager creds.Secrets,
 ) ([]grouper.Member, error) {
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 
@@ -531,11 +556,6 @@ func (cmd *RunCommand) constructAPIMembers(
 	pool := worker.NewPool(workerProvider)
 	workerClient := worker.NewClient(pool, workerProvider)
 
-	variablesFactory, err := cmd.variablesFactory(logger)
-	if err != nil {
-		return nil, err
-	}
-
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
 
 	radarScannerFactory := radar.NewScannerFactory(
@@ -545,11 +565,10 @@ func (cmd *RunCommand) constructAPIMembers(
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
-		variablesFactory,
+		secretManager,
 		checkContainerStrategy,
 	)
 
-	drain := make(chan struct{})
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
@@ -573,9 +592,8 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbBuildFactory,
 		dbResourceConfigFactory,
 		workerClient,
-		drain,
 		radarScannerFactory,
-		variablesFactory,
+		secretManager,
 		credsManagers,
 		accessFactory,
 	)
@@ -584,6 +602,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
+	indexhandler.ClusterName = cmd.Server.ClusterName
 	webHandler, err := webHandler(logger)
 	if err != nil {
 		return nil, err
@@ -661,6 +680,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	logger lager.Logger,
 	dbConn db.Conn,
 	lockFactory lock.LockFactory,
+	secretManager creds.Secrets,
 ) ([]grouper.Member, error) {
 
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
@@ -671,8 +691,6 @@ func (cmd *RunCommand) constructBackendMembers(
 	if cmd.Syslog.Address == "" {
 		syslogDrainConfigured = false
 	}
-
-	drain := make(chan struct{})
 
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 
@@ -720,11 +738,6 @@ func (cmd *RunCommand) constructBackendMembers(
 		return nil, err
 	}
 
-	variablesFactory, err := cmd.variablesFactory(logger)
-	if err != nil {
-		return nil, err
-	}
-
 	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
 
@@ -734,7 +747,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		resourceFetcher,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
-		variablesFactory,
+		secretManager,
 		defaultLimits,
 		buildContainerStrategy,
 		resourceFactory,
@@ -746,9 +759,9 @@ func (cmd *RunCommand) constructBackendMembers(
 		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
-		engine,
 		checkContainerStrategy,
 	)
+
 	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
@@ -758,22 +771,13 @@ func (cmd *RunCommand) constructBackendMembers(
 	bus := dbConn.Bus()
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	members := []grouper.Member{
-		{Name: "drainer", Runner: drainer{
-			logger: logger.Session("drain"),
-			drain:  drain,
-			tracker: builds.NewTracker(
-				logger.Session("build-tracker"),
-				dbBuildFactory,
-				engine,
-			),
-			bus: bus,
-		}},
 		{Name: "pipelines", Runner: pipelines.SyncRunner{
 			Syncer: cmd.constructPipelineSyncer(
 				logger.Session("pipelines"),
 				dbPipelineFactory,
 				radarSchedulerFactory,
-				variablesFactory,
+				secretManager,
+				bus,
 			),
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
@@ -784,11 +788,10 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbBuildFactory,
 				engine,
 			),
-			ListenBus: bus,
-			Interval:  cmd.BuildTrackerInterval,
-			Clock:     clock.NewClock(),
-			DrainCh:   drain,
-			Logger:    logger.Session("tracker-runner"),
+			Notifications: bus,
+			Interval:      cmd.BuildTrackerInterval,
+			Clock:         clock.NewClock(),
+			Logger:        logger.Session("tracker-runner"),
 		}},
 		{Name: "collector", Runner: lockrunner.NewRunner(
 			logger.Session("collector"),
@@ -830,6 +833,8 @@ func (cmd *RunCommand) constructBackendMembers(
 				gc.NewBuildLogRetentionCalculator(
 					cmd.DefaultBuildLogsToRetain,
 					cmd.MaxBuildLogsToRetain,
+					cmd.DefaultDaysToRetainBuildLogs,
+					cmd.MaxDaysToRetainBuildLogs,
 				),
 				syslogDrainConfigured,
 			),
@@ -870,8 +875,8 @@ func workerVersion() (version.Version, error) {
 	return version.NewVersionFromString(concourse.WorkerVersion)
 }
 
-func (cmd *RunCommand) variablesFactory(logger lager.Logger) (creds.VariablesFactory, error) {
-	var variablesFactory creds.VariablesFactory = noop.NewNoopFactory()
+func (cmd *RunCommand) secretManager(logger lager.Logger) (creds.Secrets, error) {
+	var secretsFactory creds.SecretsFactory = noop.NewNoopFactory()
 	for name, manager := range cmd.CredentialManagers {
 		if !manager.IsConfigured() {
 			continue
@@ -893,14 +898,20 @@ func (cmd *RunCommand) variablesFactory(logger lager.Logger) (creds.VariablesFac
 			return nil, fmt.Errorf("credential manager '%s' misconfigured: %s", name, err)
 		}
 
-		variablesFactory, err = manager.NewVariablesFactory(credsLogger)
+		secretsFactory, err = manager.NewSecretsFactory(credsLogger)
 		if err != nil {
 			return nil, err
 		}
 
 		break
 	}
-	return creds.NewRetryableVariablesFactory(variablesFactory, cmd.CredentialManagement.RetryConfig), nil
+
+	result := secretsFactory.NewSecrets()
+	result = creds.NewRetryableSecrets(result, cmd.CredentialManagement.RetryConfig)
+	if cmd.CredentialManagement.CacheConfig.Enabled {
+		result = creds.NewCachedSecrets(result, cmd.CredentialManagement.CacheConfig)
+	}
+	return result, nil
 }
 
 func (cmd *RunCommand) newKey() *encryption.Key {
@@ -992,20 +1003,8 @@ func (cmd *RunCommand) tlsConfig() (*tls.Config, error) {
 			return nil, err
 		}
 
-		tlsConfig = &tls.Config{
-			Certificates:     []tls.Certificate{cert},
-			MinVersion:       tls.VersionTLS12,
-			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-			},
-			PreferServerCipherSuites: true,
-			NextProtos:               []string{"h2"},
-		}
+		tlsConfig = atc.DefaultTLSConfig()
+		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 	return tlsConfig, nil
 }
@@ -1197,32 +1196,31 @@ func (cmd *RunCommand) constructEngine(
 	resourceFetcher resource.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
 ) engine.Engine {
-	gardenFactory := exec.NewGardenFactory(
+
+	stepFactory := builder.NewStepFactory(
 		workerPool,
 		workerClient,
 		resourceFetcher,
 		resourceCacheFactory,
 		resourceConfigFactory,
-		variablesFactory,
+		secretManager,
 		defaultLimits,
 		strategy,
 		resourceFactory,
 	)
 
-	execV2Engine := engine.NewExecEngine(
-		gardenFactory,
-		engine.NewBuildDelegateFactory(),
+	stepBuilder := builder.NewStepBuilder(
+		stepFactory,
+		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
 	)
 
-	execV1Engine := engine.NewExecV1DummyEngine()
-
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine})
+	return engine.NewEngine(stepBuilder)
 }
 
 func (cmd *RunCommand) constructHTTPHandler(
@@ -1270,9 +1268,8 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbBuildFactory db.BuildFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	workerClient worker.Client,
-	drain <-chan struct{},
 	radarScannerFactory radar.ScannerFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
 ) (http.Handler, error) {
@@ -1282,6 +1279,18 @@ func (cmd *RunCommand) constructAPIHandler(
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
+	aud := auditor.NewAuditor(
+		cmd.Auditor.EnableBuildAuditLog,
+		cmd.Auditor.EnableContainerAuditLog,
+		cmd.Auditor.EnableJobAuditLog,
+		cmd.Auditor.EnablePipelineAuditLog,
+		cmd.Auditor.EnableResourceAuditLog,
+		cmd.Auditor.EnableSystemAuditLog,
+		cmd.Auditor.EnableTeamAuditLog,
+		cmd.Auditor.EnableWorkerAuditLog,
+		cmd.Auditor.EnableVolumeAuditLog,
+		logger,
+	)
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
@@ -1291,7 +1300,7 @@ func (cmd *RunCommand) constructAPIHandler(
 			checkWorkerTeamAccessHandlerFactory,
 		),
 		wrappa.NewConcourseVersionWrappa(concourse.Version),
-		wrappa.NewAccessorWrappa(accessFactory),
+		wrappa.NewAccessorWrappa(accessFactory, aud),
 	}
 
 	return api.NewHandler(
@@ -1311,7 +1320,6 @@ func (cmd *RunCommand) constructAPIHandler(
 		resourceConfigFactory,
 
 		buildserver.NewEventHandler,
-		drain,
 
 		workerClient,
 		radarScannerFactory,
@@ -1323,7 +1331,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.CLIArtifactsDir.Path(),
 		concourse.Version,
 		concourse.WorkerVersion,
-		variablesFactory,
+		secretManager,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
 	)
@@ -1354,13 +1362,14 @@ func (cmd *RunCommand) constructPipelineSyncer(
 	logger lager.Logger,
 	pipelineFactory db.PipelineFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
+	bus db.NotificationsBus,
 ) *pipelines.Syncer {
 	return pipelines.NewSyncer(
 		logger,
 		pipelineFactory,
 		func(pipeline db.Pipeline) ifrit.Runner {
-			variables := variablesFactory.NewVariables(pipeline.TeamName(), pipeline.Name())
+			variables := creds.NewVariables(secretManager, pipeline.TeamName(), pipeline.Name())
 			return grouper.NewParallel(os.Interrupt, grouper.Members{
 				{
 					Name: fmt.Sprintf("radar:%d", pipeline.ID()),
@@ -1370,7 +1379,7 @@ func (cmd *RunCommand) constructPipelineSyncer(
 							"pipeline": pipeline.Name(),
 						}),
 						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables),
+						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables, bus),
 						pipeline,
 						1*time.Minute,
 					),
@@ -1423,7 +1432,4 @@ func (cmd *RunCommand) appendStaticWorker(
 
 func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
-}
-
-func init() {
 }

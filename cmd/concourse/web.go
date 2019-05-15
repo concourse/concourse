@@ -16,8 +16,9 @@ import (
 )
 
 type WebCommand struct {
-	*atccmd.RunCommand
+	PeerAddress string `long:"peer-address" default:"127.0.0.1" description:"Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses."`
 
+	*atccmd.RunCommand
 	*tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
 }
 
@@ -70,9 +71,10 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 
 func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	cmd.TSACommand.SessionSigningKey = cmd.RunCommand.Auth.AuthFlags.SigningKey
+	cmd.TSACommand.PeerAddress = cmd.PeerAddress
 
-	if cmd.RunCommand.Auth.AuthFlags.SigningKey.PrivateKey == nil &&
-		cmd.TSACommand.SessionSigningKey.PrivateKey == nil {
+	if (cmd.RunCommand.Auth.AuthFlags.SigningKey == nil || cmd.RunCommand.Auth.AuthFlags.SigningKey.PrivateKey == nil) &&
+		(cmd.TSACommand.SessionSigningKey == nil || cmd.TSACommand.SessionSigningKey.PrivateKey == nil) {
 		signingKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return fmt.Errorf("failed to generate session signing key: %s", err)

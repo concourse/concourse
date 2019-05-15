@@ -15,28 +15,39 @@ type BuildTracker interface {
 	Release()
 }
 
-//go:generate counterfeiter . ATCListener
+//go:generate counterfeiter . Notifications
 
-type ATCListener interface {
+type Notifications interface {
 	Listen(channel string) (chan bool, error)
+	Unlisten(channel string, notifier chan bool) error
+	Notify(channel string) error
 }
 
 type TrackerRunner struct {
-	Tracker   BuildTracker
-	ListenBus ATCListener
-	Interval  time.Duration
-	Clock     clock.Clock
-	DrainCh   <-chan struct{}
-	Logger    lager.Logger
+	Tracker       BuildTracker
+	Notifications Notifications
+	Interval      time.Duration
+	Clock         clock.Clock
+	Logger        lager.Logger
 }
 
 func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	ticker := runner.Clock.NewTicker(runner.Interval)
-	notify, err := runner.ListenBus.Listen("atc_shutdown")
 
+	shutdownNotifier, err := runner.Notifications.Listen("atc_shutdown")
 	if err != nil {
 		return err
 	}
+
+	defer runner.Notifications.Unlisten("atc_shutdown", shutdownNotifier)
+
+	buildNotifier, err := runner.Notifications.Listen("build_started")
+	if err != nil {
+		return err
+	}
+
+	defer runner.Notifications.Unlisten("build_started", buildNotifier)
+
+	ticker := runner.Clock.NewTicker(runner.Interval)
 
 	close(ready)
 
@@ -44,15 +55,23 @@ func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{})
 
 	for {
 		select {
-		case <-runner.DrainCh:
-			return nil
-		case <-notify:
+		case <-shutdownNotifier:
 			runner.Logger.Info("received-atc-shutdown-message")
 			runner.Tracker.Track()
+
+		case <-buildNotifier:
+			runner.Logger.Info("received-build-started-message")
+			runner.Tracker.Track()
+
 		case <-ticker.C():
 			runner.Tracker.Track()
+
 		case <-signals:
-			return nil
+			runner.Logger.Info("releasing-tracker")
+			runner.Tracker.Release()
+			runner.Logger.Info("released-tracker")
+			runner.Logger.Info("sending-atc-shutdown-message")
+			return runner.Notifications.Notify("atc_shutdown")
 		}
 	}
 }

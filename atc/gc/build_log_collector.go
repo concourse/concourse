@@ -3,7 +3,11 @@ package gc
 import (
 	"context"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+
+	"time"
+
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -52,8 +56,8 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 		}
 
 		for _, job := range jobs {
-			buildLogsToRetain := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
-			if buildLogsToRetain == 0 {
+			logRetention := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
+			if logRetention.Builds == 0 && logRetention.Days == 0 {
 				continue
 			}
 
@@ -95,25 +99,30 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 				buildIDsToConsiderDeleting = append(buildIDsToConsiderDeleting, build.ID())
 			}
 
-			buildsToRetain, _, err := job.Builds(
-				db.Page{Limit: buildLogsToRetain},
-			)
-			if err != nil {
-				logger.Error("failed-to-get-job-builds-to-retain", err)
-				return err
-			}
+			var firstBuildToRetain int
 
-			if len(buildsToRetain) == 0 {
-				continue
-			}
+			if logRetention.Builds > 0 {
+				buildsToRetain, _, err := job.Builds(
+					db.Page{Limit: logRetention.Builds},
+				)
 
-			firstBuildToRetain := buildsToRetain[len(buildsToRetain)-1].ID()
+				if err != nil {
+					logger.Error("failed-to-get-job-builds-to-retain", err)
+					return err
+				}
+
+				if len(buildsToRetain) == 0 {
+					continue
+				}
+
+				firstBuildToRetain = buildsToRetain[len(buildsToRetain)-1].ID()
+			}
 
 			buildIDsToDelete := []int{}
 			for i := len(buildsToConsiderDeleting) - 1; i >= 0; i-- {
 				build := buildsToConsiderDeleting[i]
 
-				if build.ID() >= firstBuildToRetain || build.IsRunning() {
+				if logRetention.Builds > 0 && build.ID() >= firstBuildToRetain || build.IsRunning() {
 					break
 				}
 
@@ -123,12 +132,23 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 					}
 				}
 
+				if logRetention.Days > 0 {
+					if build.EndTime().AddDate(0, 0, logRetention.Days).After(time.Now()) {
+						continue
+					}
+				}
+
 				buildIDsToDelete = append(buildIDsToDelete, build.ID())
 			}
 
 			if len(buildIDsToDelete) == 0 {
+				logger.Debug("no-builds-to-reap")
 				continue
 			}
+
+			logger.Debug("reaping-builds", lager.Data{
+				"build-ids": buildIDsToDelete,
+			})
 
 			err = pipeline.DeleteBuildEventsByBuildIDs(buildIDsToDelete)
 			if err != nil {

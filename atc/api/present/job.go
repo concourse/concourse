@@ -59,6 +59,7 @@ func Job(
 		FinishedBuild:        presentedFinishedBuild,
 		NextBuild:            presentedNextBuild,
 		TransitionBuild:      presentedTransitionBuild,
+		HasNewInputs:         job.HasNewInputs(),
 
 		Inputs:  sanitizedInputs,
 		Outputs: sanitizedOutputs,

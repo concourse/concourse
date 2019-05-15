@@ -118,7 +118,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	teamName := rata.Param(r, "team_name")
 
 	if checkCredentials {
-		variables := s.variablesFactory.NewVariables(teamName, pipelineName)
+		variables := creds.NewVariables(s.secretManager, teamName, pipelineName)
 
 		errs := validateCredParams(variables, config, session)
 		if errs != nil {
@@ -197,7 +197,7 @@ func validateCredParams(credMgrVars creds.Variables, config atc.Config, session 
 				// external task - we can't really validate much right now, because task yaml will be
 				// retrieved in runtime during job execution. but we can validate vars and params which will be
 				// passed to this task
-				err = creds.NewTaskParamsValidator(credMgrVars, plan.TaskConfig.Params).Validate()
+				err = creds.NewTaskParamsValidator(credMgrVars, plan.Params).Validate()
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}
@@ -339,6 +339,7 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 			atc.SanitizeDecodeHook,
 			atc.VersionConfigDecodeHook,
 			atc.InputsConfigDecodeHook,
+			atc.InParallelConfigDecodeHook,
 			atc.ContainerLimitsDecodeHook,
 		),
 	}

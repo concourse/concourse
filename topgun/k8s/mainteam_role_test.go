@@ -39,9 +39,7 @@ var _ = Describe("Main team role config", func() {
 	})
 
 	AfterEach(func() {
-		helmDestroy(releaseName)
-		Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
-		Wait(proxySession.Interrupt())
+		cleanup(releaseName, namespace, proxySession)
 	})
 
 	Context("Adding team role config yaml to web", func() {

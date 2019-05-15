@@ -37,12 +37,12 @@ type ResourceConfigScope interface {
 		interval time.Duration,
 	) (lock.Lock, bool, error)
 
-	UpdateLastChecked(
+	UpdateLastCheckStartTime(
 		interval time.Duration,
 		immediate bool,
 	) (bool, error)
 
-	UpdateLastCheckFinished() (bool, error)
+	UpdateLastCheckEndTime() (bool, error)
 }
 
 type resourceConfigScope struct {
@@ -184,7 +184,7 @@ func (r *resourceConfigScope) AcquireResourceCheckingLock(
 	)
 }
 
-func (r *resourceConfigScope) UpdateLastChecked(
+func (r *resourceConfigScope) UpdateLastCheckStartTime(
 	interval time.Duration,
 	immediate bool,
 ) (bool, error) {
@@ -199,13 +199,13 @@ func (r *resourceConfigScope) UpdateLastChecked(
 
 	condition := ""
 	if !immediate {
-		condition = "AND now() - last_checked > ($2 || ' SECONDS')::INTERVAL"
+		condition = "AND now() - last_check_start_time > ($2 || ' SECONDS')::INTERVAL"
 		params = append(params, interval.Seconds())
 	}
 
 	updated, err := checkIfRowsUpdated(tx, `
 			UPDATE resource_config_scopes
-			SET last_checked = now()
+			SET last_check_start_time = now()
 			WHERE id = $1
 		`+condition, params...)
 	if err != nil {
@@ -224,7 +224,7 @@ func (r *resourceConfigScope) UpdateLastChecked(
 	return true, nil
 }
 
-func (r *resourceConfigScope) UpdateLastCheckFinished() (bool, error) {
+func (r *resourceConfigScope) UpdateLastCheckEndTime() (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
@@ -234,7 +234,7 @@ func (r *resourceConfigScope) UpdateLastCheckFinished() (bool, error) {
 
 	updated, err := checkIfRowsUpdated(tx, `
 			UPDATE resource_config_scopes
-			SET last_check_finished = now()
+			SET last_check_end_time = now()
 			WHERE id = $1
 		`, r.id)
 	if err != nil {

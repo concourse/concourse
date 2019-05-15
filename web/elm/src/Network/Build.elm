@@ -9,7 +9,7 @@ import Task exposing (Task)
 
 fetch : Concourse.BuildId -> Task Http.Error Concourse.Build
 fetch buildId =
-    Http.toTask <| Http.get ("/api/v1/builds/" ++ toString buildId) Concourse.decodeBuild
+    Http.toTask <| Http.get ("/api/v1/builds/" ++ String.fromInt buildId) Concourse.decodeBuild
 
 
 fetchJobBuild : Concourse.JobBuildIdentifier -> Task Http.Error Concourse.Build
@@ -26,7 +26,7 @@ abort buildId csrfToken =
     Http.toTask <|
         Http.request
             { method = "PUT"
-            , url = "/api/v1/builds/" ++ toString buildId ++ "/abort"
+            , url = "/api/v1/builds/" ++ String.fromInt buildId ++ "/abort"
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , body = Http.emptyBody
             , expect = Http.expectStringResponse (always (Ok ()))
@@ -35,10 +35,22 @@ abort buildId csrfToken =
             }
 
 
-fetchJobBuilds : Concourse.JobIdentifier -> Maybe Page -> Task Http.Error (Paginated Concourse.Build)
+fetchJobBuilds :
+    Concourse.JobIdentifier
+    -> Maybe Page
+    -> Task Http.Error (Paginated Concourse.Build)
 fetchJobBuilds job page =
     let
-        url =
-            "/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds"
+        segments =
+            [ "api"
+            , "v1"
+            , "teams"
+            , job.teamName
+            , "pipelines"
+            , job.pipelineName
+            , "jobs"
+            , job.jobName
+            , "builds"
+            ]
     in
-    Network.Pagination.fetch Concourse.decodeBuild url page
+    Network.Pagination.fetch Concourse.decodeBuild segments page

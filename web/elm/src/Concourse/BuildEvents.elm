@@ -9,9 +9,9 @@ module Concourse.BuildEvents exposing
 
 import Build.StepTree.Models exposing (BuildEvent(..), BuildEventEnvelope, Origin)
 import Concourse
-import Date exposing (Date)
-import Dict exposing (Dict)
+import Dict
 import Json.Decode
+import Time
 
 
 decodeBuildEventEnvelope : Json.Decode.Decoder BuildEventEnvelope
@@ -23,7 +23,7 @@ decodeBuildEventEnvelope =
                 Json.Decode.string
 
         urlDecoder =
-            Json.Decode.at ["target", "url"] Json.Decode.string
+            Json.Decode.at [ "target", "url" ] Json.Decode.string
 
         dataDecoder =
             typeDecoder
@@ -43,12 +43,17 @@ decodeBuildEventEnvelope =
                                 Json.Decode.field "data" Json.Decode.string
                                     |> Json.Decode.andThen
                                         (\rawEvent ->
-                                            case Json.Decode.decodeString decodeBuildEvent rawEvent of
+                                            case
+                                                Json.Decode.decodeString
+                                                    decodeBuildEvent
+                                                    rawEvent
+                                            of
                                                 Ok event ->
                                                     Json.Decode.succeed event
 
                                                 Err err ->
-                                                    Json.Decode.fail err
+                                                    Json.Decode.fail <|
+                                                        Json.Decode.errorToString err
                                         )
                     )
     in
@@ -68,7 +73,7 @@ decodeBuildEvent =
                             "data"
                             (Json.Decode.map2 BuildStatus
                                 (Json.Decode.field "status" Concourse.decodeBuildStatus)
-                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.float)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
                     "log" ->
@@ -77,37 +82,71 @@ decodeBuildEvent =
                             (Json.Decode.map3 Log
                                 (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
                                 (Json.Decode.field "payload" Json.Decode.string)
-                                (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.float)
+                                (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
                     "error" ->
                         Json.Decode.field "data" decodeErrorEvent
 
-                    "initialize" ->
-                        Json.Decode.field
-                            "data"
-                            (Json.Decode.map Initialize (Json.Decode.field "origin" decodeOrigin))
-
                     "initialize-task" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map Initialize (Json.Decode.field "origin" decodeOrigin))
+                            (Json.Decode.map2 InitializeTask
+                                (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
 
                     "start-task" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map StartTask (Json.Decode.field "origin" decodeOrigin))
+                            (Json.Decode.map2 StartTask
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
 
                     "finish-task" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map2 FinishTask
+                            (Json.Decode.map3 FinishTask
                                 (Json.Decode.field "origin" decodeOrigin)
                                 (Json.Decode.field "exit_status" Json.Decode.int)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
+
+                    "initialize-get" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map2 InitializeGet
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
+
+                    "start-get" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map2 StartGet
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
                     "finish-get" ->
                         Json.Decode.field "data" (decodeFinishResource FinishGet)
+
+                    "initialize-put" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map2 InitializePut
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
+
+                    "start-put" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map2 StartPut
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
 
                     "finish-put" ->
                         Json.Decode.field "data" (decodeFinishResource FinishPut)
@@ -117,9 +156,9 @@ decodeBuildEvent =
             )
 
 
-dateFromSeconds : Float -> Date
+dateFromSeconds : Int -> Time.Posix
 dateFromSeconds =
-    Date.fromTime << (*) 1000
+    Time.millisToPosix << (*) 1000
 
 
 decodeFinishResource :
@@ -127,11 +166,12 @@ decodeFinishResource :
      -> Int
      -> Concourse.Version
      -> Concourse.Metadata
+     -> Maybe Time.Posix
      -> a
     )
     -> Json.Decode.Decoder a
 decodeFinishResource cons =
-    Json.Decode.map4 cons
+    Json.Decode.map5 cons
         (Json.Decode.field "origin" decodeOrigin)
         (Json.Decode.field "exit_status" Json.Decode.int)
         (Json.Decode.map
@@ -146,19 +186,16 @@ decodeFinishResource cons =
          <|
             Json.Decode.field "metadata" Concourse.decodeMetadata
         )
+        (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
 
 
 decodeErrorEvent : Json.Decode.Decoder BuildEvent
 decodeErrorEvent =
-    Json.Decode.oneOf
-        [ Json.Decode.map2
-            Error
-            (Json.Decode.field "origin" decodeOrigin)
-            (Json.Decode.field "message" Json.Decode.string)
-        , Json.Decode.map
-            BuildError
-            (Json.Decode.field "message" Json.Decode.string)
-        ]
+    Json.Decode.map3
+        Error
+        (Json.Decode.field "origin" decodeOrigin)
+        (Json.Decode.field "message" Json.Decode.string)
+        (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
 
 
 decodeOrigin : Json.Decode.Decoder Origin

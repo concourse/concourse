@@ -2,20 +2,20 @@ port module Message.Effects exposing
     ( Effect(..)
     , ScrollDirection(..)
     , renderPipeline
+    , renderSvgIcon
     , runEffect
-    , setTitle
     , stickyHeaderConfig
     )
 
+import Browser.Dom exposing (Viewport, getViewport, getViewportOf, setViewportOf)
+import Browser.Navigation as Navigation
 import Concourse
-import Concourse.Pagination exposing (Page, Paginated)
+import Concourse.BuildStatus
+import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
-import Dom
-import Favicon
 import Json.Encode
 import Message.Callback exposing (Callback(..))
-import Message.Message exposing (VersionToggleAction(..))
-import Navigation
+import Message.Message exposing (VersionToggleAction(..), VisibilityAction(..))
 import Network.Build
 import Network.BuildPlan
 import Network.BuildPrep
@@ -29,12 +29,8 @@ import Network.Resource
 import Network.User
 import Process
 import Task
-import Time exposing (Time)
+import Time
 import Views.Styles
-import Window
-
-
-port setTitle : String -> Cmd msg
 
 
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
@@ -67,25 +63,19 @@ port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
 port closeEventStream : () -> Cmd msg
 
 
-port scrollIntoView : String -> Cmd msg
-
-
-port scrollElement : ( String, Float ) -> Cmd msg
-
-
-port scrollToBottom : () -> Cmd msg
-
-
-port scrollToTop : () -> Cmd msg
-
-
-port scrollUp : () -> Cmd msg
-
-
-port scrollDown : () -> Cmd msg
-
-
 port checkIsVisible : String -> Cmd msg
+
+
+port setFavicon : String -> Cmd msg
+
+
+port renderSvgIcon : String -> Cmd msg
+
+
+port loadSideBarState : () -> Cmd msg
+
+
+port saveSideBarState : Bool -> Cmd msg
 
 
 type alias StickyHeaderConfig =
@@ -121,14 +111,16 @@ type Effect
     | FetchOutputOf Concourse.VersionedResourceIdentifier
     | FetchData
     | FetchUser
-    | FetchBuild Time Int Int
+    | FetchBuild Float Int Int
     | FetchJobBuild Int Concourse.JobBuildIdentifier
     | FetchBuildJobDetails Concourse.JobIdentifier
     | FetchBuildHistory Concourse.JobIdentifier (Maybe Page)
-    | FetchBuildPrep Time Int Int
+    | FetchBuildPrep Float Int Int
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
+    | FetchPipelines
     | GetCurrentTime
+    | GetCurrentTimeZone
     | DoTriggerBuild Concourse.JobIdentifier
     | DoAbortBuild Int
     | PauseJob Concourse.JobIdentifier
@@ -136,9 +128,9 @@ type Effect
     | ResetPipelineFocus
     | RenderPipeline Json.Encode.Value Json.Encode.Value
     | RedirectToLogin
+    | LoadExternal String
     | NavigateTo String
     | ModifyUrl String
-    | SetTitle String
     | DoPinVersion Concourse.VersionedResourceIdentifier
     | DoUnpinVersion Concourse.ResourceIdentifier
     | DoToggleVersion VersionToggleAction VersionId
@@ -152,7 +144,7 @@ type Effect
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames StickyHeaderConfig
-    | Scroll ScrollDirection
+    | Scroll ScrollDirection String
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
@@ -161,6 +153,10 @@ type Effect
     | CheckIsVisible String
     | Focus String
     | Blur String
+    | RenderSvgIcon String
+    | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
+    | LoadSideBarState
+    | SaveSideBarState Bool
 
 
 type alias VersionId =
@@ -172,12 +168,12 @@ type ScrollDirection
     | Down
     | Up
     | ToBottom
-    | Element String Float
+    | Sideways Float
     | ToId String
 
 
-runEffect : Effect -> Concourse.CSRFToken -> Cmd Callback
-runEffect effect csrfToken =
+runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
+runEffect effect key csrfToken =
     case effect of
         FetchJob id ->
             Network.Job.fetchJob id
@@ -197,7 +193,7 @@ runEffect effect csrfToken =
 
         FetchVersionedResources id paging ->
             Network.Resource.fetchVersionedResources id paging
-                |> Task.map ((,) paging)
+                |> Task.map (\b -> ( paging, b ))
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
@@ -206,7 +202,7 @@ runEffect effect csrfToken =
 
         FetchBuildResources id ->
             Network.BuildResources.fetch id
-                |> Task.map ((,) id)
+                |> Task.map (\b -> ( id, b ))
                 |> Task.attempt BuildResourcesFetched
 
         FetchPipeline id ->
@@ -215,26 +211,32 @@ runEffect effect csrfToken =
 
         FetchVersion ->
             Network.Info.fetch
-                |> Task.map .version
                 |> Task.attempt VersionFetched
 
         FetchInputTo id ->
             Network.Resource.fetchInputTo id
-                |> Task.map ((,) id)
+                |> Task.map (\b -> ( id, b ))
                 |> Task.attempt InputToFetched
 
         FetchOutputOf id ->
             Network.Resource.fetchOutputOf id
-                |> Task.map ((,) id)
+                |> Task.map (\b -> ( id, b ))
                 |> Task.attempt OutputOfFetched
 
         FetchData ->
             Network.DashboardAPIData.remoteData
-                |> Task.map2 (,) Time.now
+                |> Task.map2 (\a b -> ( a, b )) Time.now
                 |> Task.attempt APIDataFetched
+
+        FetchPipelines ->
+            Network.Pipeline.fetchPipelines
+                |> Task.attempt PipelinesFetched
 
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now
+
+        GetCurrentTimeZone ->
+            Task.perform GotCurrentTimeZone Time.here
 
         DoTriggerBuild id ->
             Network.Job.triggerBuild id csrfToken
@@ -251,20 +253,20 @@ runEffect effect csrfToken =
         RedirectToLogin ->
             requestLoginRedirect ""
 
+        LoadExternal url ->
+            Navigation.load url
+
         NavigateTo url ->
-            Navigation.newUrl url
+            Navigation.pushUrl key url
 
         ModifyUrl url ->
-            Navigation.modifyUrl url
+            Navigation.replaceUrl key url
 
         ResetPipelineFocus ->
             resetPipelineFocus ()
 
         RenderPipeline jobs resources ->
             renderPipeline ( jobs, resources )
-
-        SetTitle newTitle ->
-            setTitle newTitle
 
         DoPinVersion version ->
             Network.Resource.pinVersion version csrfToken
@@ -312,20 +314,20 @@ runEffect effect csrfToken =
             Task.attempt LoggedOut Network.User.logOut
 
         GetScreenSize ->
-            Task.perform ScreenResized Window.size
+            Task.perform ScreenResized getViewport
 
-        PinTeamNames stickyHeaderConfig ->
-            pinTeamNames stickyHeaderConfig
+        PinTeamNames shc ->
+            pinTeamNames shc
 
         FetchBuild delay browsingIndex buildId ->
             Process.sleep delay
                 |> Task.andThen (always <| Network.Build.fetch buildId)
-                |> Task.map ((,) browsingIndex)
+                |> Task.map (\b -> ( browsingIndex, b ))
                 |> Task.attempt BuildFetched
 
         FetchJobBuild browsingIndex jbi ->
             Network.Build.fetchJobBuild jbi
-                |> Task.map ((,) browsingIndex)
+                |> Task.map (\b -> ( browsingIndex, b ))
                 |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
@@ -339,11 +341,11 @@ runEffect effect csrfToken =
         FetchBuildPrep delay browsingIndex buildId ->
             Process.sleep delay
                 |> Task.andThen (always <| Network.BuildPrep.fetch buildId)
-                |> Task.map ((,) browsingIndex)
+                |> Task.map (\b -> ( browsingIndex, b ))
                 |> Task.attempt BuildPrepFetched
 
         FetchBuildPlanAndResources buildId ->
-            Task.map2 (,) (Network.BuildPlan.fetch buildId) (Network.BuildResources.fetch buildId)
+            Task.map2 (\a b -> ( a, b )) (Network.BuildPlan.fetch buildId) (Network.BuildResources.fetch buildId)
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchBuildPlan buildId ->
@@ -356,15 +358,29 @@ runEffect effect csrfToken =
                 |> Task.attempt UserFetched
 
         SetFavIcon status ->
-            Favicon.set status
-                |> Task.perform (always EmptyCallback)
+            setFavicon (faviconName status)
 
         DoAbortBuild buildId ->
             Network.Build.abort buildId csrfToken
                 |> Task.attempt BuildAborted
 
-        Scroll dir ->
-            scrollInDirection dir
+        Scroll ToTop id ->
+            scroll id id (always 0) (always 0)
+
+        Scroll Down id ->
+            scroll id id (always 0) (.viewport >> .y >> (+) 60)
+
+        Scroll Up id ->
+            scroll id id (always 0) (.viewport >> .y >> (+) -60)
+
+        Scroll ToBottom id ->
+            scroll id id (always 0) (.scene >> .height)
+
+        Scroll (Sideways delta) id ->
+            scroll id id (.viewport >> .x >> (+) -delta) (always 0)
+
+        Scroll (ToId id) idOfThingToScroll ->
+            scroll id idOfThingToScroll (.viewport >> .x) (.viewport >> .y)
 
         SaveToken tokenValue ->
             saveToken tokenValue
@@ -373,11 +389,11 @@ runEffect effect csrfToken =
             loadToken ()
 
         Focus id ->
-            Dom.focus id
+            Browser.Dom.focus id
                 |> Task.attempt (always EmptyCallback)
 
         Blur id ->
-            Dom.blur id
+            Browser.Dom.blur id
                 |> Task.attempt (always EmptyCallback)
 
         OpenBuildEventStream config ->
@@ -389,24 +405,47 @@ runEffect effect csrfToken =
         CheckIsVisible id ->
             checkIsVisible id
 
+        RenderSvgIcon icon ->
+            renderSvgIcon icon
 
-scrollInDirection : ScrollDirection -> Cmd Callback
-scrollInDirection dir =
-    case dir of
-        ToTop ->
-            scrollToTop ()
+        ChangeVisibility action pipelineId ->
+            Network.Pipeline.changeVisibility
+                action
+                pipelineId.teamName
+                pipelineId.pipelineName
+                csrfToken
+                |> Task.attempt (VisibilityChanged action pipelineId)
 
-        Down ->
-            scrollDown ()
+        LoadSideBarState ->
+            loadSideBarState ()
 
-        Up ->
-            scrollUp ()
+        SaveSideBarState isOpen ->
+            saveSideBarState isOpen
 
-        ToBottom ->
-            scrollToBottom ()
 
-        Element id delta ->
-            scrollElement ( id, delta )
+scroll :
+    String
+    -> String
+    -> (Viewport -> Float)
+    -> (Viewport -> Float)
+    -> Cmd Callback
+scroll srcId idOfThingToScroll getX getY =
+    getViewportOf srcId
+        |> Task.andThen
+            (\info ->
+                setViewportOf
+                    idOfThingToScroll
+                    (getX info)
+                    (getY info)
+            )
+        |> Task.attempt (\_ -> EmptyCallback)
 
-        ToId id ->
-            scrollIntoView id
+
+faviconName : Maybe Concourse.BuildStatus -> String
+faviconName status =
+    case status of
+        Just bs ->
+            "/public/images/favicon-" ++ Concourse.BuildStatus.show bs ++ ".png"
+
+        Nothing ->
+            "/public/images/favicon.png"

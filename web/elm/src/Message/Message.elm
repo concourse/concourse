@@ -1,32 +1,26 @@
 module Message.Message exposing
-    ( Hoverable(..)
+    ( DomID(..)
     , Message(..)
     , VersionId
     , VersionToggleAction(..)
+    , VisibilityAction(..)
     )
 
 import Concourse
 import Concourse.Cli as Cli
-import Concourse.Pagination exposing (Page, Paginated)
+import Concourse.Pagination exposing (Page)
 import Routes exposing (StepID)
 import StrictEvents
 
 
 type Message
     = -- Top Bar
-      LogIn
-    | LogOut
-    | FilterMsg String
+      FilterMsg String
     | FocusMsg
     | BlurMsg
-    | ToggleUserMenu
-    | ShowSearchInput
-    | TogglePipelinePaused Concourse.PipelineIdentifier Bool
       -- Pipeline
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
-      -- Fly Success
-    | CopyToken
       -- Dashboard
     | DragStart String Int
     | DragOver String Int
@@ -34,55 +28,64 @@ type Message
     | Tooltip String String
     | TooltipHd String String
       -- Resource
-    | LoadPage Page
-    | ExpandVersionedResource VersionId
-    | PinVersion VersionId
-    | UnpinVersion
-    | ToggleVersion VersionToggleAction VersionId
-    | CheckRequested Bool
     | EditComment String
-    | SaveComment String
     | FocusTextArea
     | BlurTextArea
-      -- Job
-    | TriggerBuildJob
-    | TogglePaused
       -- Build
-    | SwitchToBuild Concourse.Build
-    | TriggerBuild (Maybe Concourse.JobIdentifier)
-    | AbortBuild Int
     | ScrollBuilds StrictEvents.MouseWheelEvent
     | RevealCurrentBuildInHistory
-    | ToggleStep String
-    | SwitchTab String Int
     | SetHighlight String Int
     | ExtendHighlight String Int
       -- common
-    | Hover (Maybe Hoverable)
+    | Hover (Maybe DomID)
+    | Click DomID
     | GoToRoute Routes.Route
+    | Scrolled StrictEvents.ScrollState
 
 
-type Hoverable
+type DomID
     = ToggleJobButton
     | TriggerBuildButton
     | PreviousPageButton
     | NextPageButton
-    | CheckButton
+    | CheckButton Bool
     | SaveCommentButton
     | AbortBuildButton
     | FirstOccurrenceIcon StepID
+    | StepState StepID
     | PinIcon
-    | PinButton
+    | PinButton VersionId
     | PinBar
     | PipelineButton Concourse.PipelineIdentifier
+    | VisibilityButton Concourse.PipelineIdentifier
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
+    | JobGroup Int
+    | StepTab String Int
+    | StepHeader String
+    | ShowSearchButton
+    | ClearSearchButton
+    | LoginButton
+    | LogoutButton
+    | UserMenu
+    | PaginationButton Page
+    | VersionHeader VersionId
+    | VersionToggle VersionId
+    | BuildTab Concourse.Build
+    | HamburgerMenu
+    | SideBarTeam String
+    | SideBarPipeline Concourse.PipelineIdentifier
 
 
 type VersionToggleAction
     = Enable
     | Disable
+
+
+type VisibilityAction
+    = Expose
+    | Hide
 
 
 type alias VersionId =

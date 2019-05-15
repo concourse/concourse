@@ -3,11 +3,11 @@ module Login.Login exposing (Model, update, view)
 import Concourse
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, href, id, style)
+import Html.Attributes exposing (attribute, href, id)
 import Html.Events exposing (onClick)
 import Login.Styles as Styles
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import UserState exposing (UserState(..))
 
 
@@ -18,13 +18,13 @@ type alias Model r =
 update : Message -> ET (Model r)
 update msg ( model, effects ) =
     case msg of
-        LogIn ->
+        Click LoginButton ->
             ( model, effects ++ [ RedirectToLogin ] )
 
-        LogOut ->
+        Click LogoutButton ->
             ( model, effects ++ [ SendLogOutRequest ] )
 
-        ToggleUserMenu ->
+        Click UserMenu ->
             ( { model | isUserMenuExpanded = not model.isUserMenuExpanded }
             , effects
             )
@@ -39,8 +39,9 @@ view :
     -> Bool
     -> Html Message
 view userState model isPaused =
-    Html.div [ id "login-component", style Styles.loginComponent ] <|
-        viewLoginState userState model.isUserMenuExpanded isPaused
+    Html.div
+        (id "login-component" :: Styles.loginComponent)
+        (viewLoginState userState model.isUserMenuExpanded isPaused)
 
 
 viewLoginState : UserState -> Bool -> Bool -> List (Html Message)
@@ -51,16 +52,15 @@ viewLoginState userState isUserMenuExpanded isPaused =
 
         UserStateLoggedOut ->
             [ Html.div
-                [ href "/sky/login"
-                , attribute "aria-label" "Log In"
-                , id "login-container"
-                , onClick LogIn
-                , style (Styles.loginContainer isPaused)
-                ]
+                ([ href "/sky/login"
+                 , attribute "aria-label" "Log In"
+                 , id "login-container"
+                 , onClick <| Click LoginButton
+                 ]
+                    ++ Styles.loginContainer isPaused
+                )
                 [ Html.div
-                    [ style Styles.loginItem
-                    , id "login-item"
-                    ]
+                    (id "login-item" :: Styles.loginItem)
                     [ Html.a
                         [ href "/sky/login" ]
                         [ Html.text "login" ]
@@ -70,21 +70,22 @@ viewLoginState userState isUserMenuExpanded isPaused =
 
         UserStateLoggedIn user ->
             [ Html.div
-                [ id "login-container"
-                , onClick ToggleUserMenu
-                , style (Styles.loginContainer isPaused)
-                ]
-                [ Html.div [ id "user-id", style Styles.loginItem ]
-                    ([ Html.div
-                        [ style Styles.loginText ]
+                ([ id "login-container"
+                 , onClick <| Click UserMenu
+                 ]
+                    ++ Styles.loginContainer isPaused
+                )
+                [ Html.div (id "user-id" :: Styles.loginItem)
+                    (Html.div
+                        Styles.loginText
                         [ Html.text (userDisplayName user) ]
-                     ]
-                        ++ (if isUserMenuExpanded then
+                        :: (if isUserMenuExpanded then
                                 [ Html.div
-                                    [ id "logout-button"
-                                    , style Styles.logoutButton
-                                    , onClick LogOut
-                                    ]
+                                    ([ id "logout-button"
+                                     , onClick <| Click LogoutButton
+                                     ]
+                                        ++ Styles.logoutButton
+                                    )
                                     [ Html.text "logout" ]
                                 ]
 

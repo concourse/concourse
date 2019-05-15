@@ -1,6 +1,8 @@
 module ApplicationTests exposing (all)
 
 import Application.Application as Application
+import Browser
+import Common exposing (queryView)
 import Expect
 import Message.Effects as Effects
 import Message.Subscription as Subscription exposing (Delivery(..))
@@ -8,123 +10,39 @@ import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (style)
+import Url
 
 
 all : Test
 all =
-    describe "top-level layout"
+    describe "top-level application"
         [ test "bold and antialiasing on dashboard" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
-                    }
-                    |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
+                Common.init "/"
+                    |> queryView
                     |> Query.has
-                        [ style
-                            [ ( "-webkit-font-smoothing", "antialiased" )
-                            , ( "font-weight", "700" )
-                            ]
+                        [ style "-webkit-font-smoothing" "antialiased"
+                        , style "font-weight" "700"
                         ]
         , test "bold and antialiasing on resource page" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/resources/r"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
-                    }
-                    |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
+                Common.init "/teams/t/pipelines/p/resources/r"
+                    |> queryView
                     |> Query.has
-                        [ style
-                            [ ( "-webkit-font-smoothing", "antialiased" )
-                            , ( "font-weight", "700" )
-                            ]
+                        [ style "-webkit-font-smoothing" "antialiased"
+                        , style "font-weight" "700"
                         ]
         , test "bold and antialiasing everywhere else" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/team/pipelines/pipeline"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
-                    }
-                    |> Tuple.first
-                    |> Application.view
-                    |> Query.fromHtml
+                Common.init "/teams/team/pipelines/pipeline"
+                    |> queryView
                     |> Query.has
-                        [ style
-                            [ ( "-webkit-font-smoothing", "antialiased" )
-                            , ( "font-weight", "700" )
-                            ]
+                        [ style "-webkit-font-smoothing" "antialiased"
+                        , style "font-weight" "700"
                         ]
         , test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline, and the token return" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
-                    }
-                    |> Tuple.first
+                Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
                     |> Expect.all
                         [ List.member Subscription.OnNonHrefLinkClicked
@@ -134,56 +52,25 @@ all =
                         ]
         , test "clicking a not-automatically-linked box in the pipeline redirects" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = "token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/teams/t/pipelines/p/"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
-                    }
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| NonHrefLinkClicked "/foo/bar")
+                Common.init "/teams/t/pipelines/p/"
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            NonHrefLinkClicked "/foo/bar"
+                        )
                     |> Tuple.second
-                    |> Expect.equal [ Effects.NavigateTo "/foo/bar" ]
+                    |> Expect.equal [ Effects.LoadExternal "/foo/bar" ]
         , test "received token is passed to all subsquent requests" <|
             \_ ->
                 let
                     pipelineIdentifier =
                         { pipelineName = "p", teamName = "t" }
                 in
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { href = ""
-                    , host = ""
-                    , hostname = ""
-                    , protocol = ""
-                    , origin = ""
-                    , port_ = ""
-                    , pathname = "/"
-                    , search = ""
-                    , hash = ""
-                    , username = ""
-                    , password = ""
-                    }
-                    |> Tuple.first
-                    |> Application.update (Msgs.DeliveryReceived <| TokenReceived <| Just "real-token")
+                Common.init "/"
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            TokenReceived <|
+                                Just "real-token"
+                        )
                     |> Tuple.first
                     |> .csrfToken
                     |> Expect.equal "real-token"

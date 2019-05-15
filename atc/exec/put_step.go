@@ -17,6 +17,8 @@ import (
 type PutDelegate interface {
 	BuildStepDelegate
 
+	Initializing(lager.Logger)
+	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, VersionInfo)
 }
 
@@ -100,6 +102,12 @@ func NewPutStep(
 // script will be interrupted.
 func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
+	logger = logger.Session("put-step", lager.Data{
+		"step-name": step.name,
+		"job-id":    step.build.JobID(),
+	})
+
+	step.delegate.Initializing(logger)
 
 	containerInputs, err := step.inputs.FindAll(state.Artifacts())
 	if err != nil {
@@ -159,6 +167,8 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	if err != nil {
 		return err
 	}
+
+	step.delegate.Starting(logger)
 
 	putResource := step.resourceFactory.NewResourceForContainer(container)
 	versionedSource, err := putResource.Put(

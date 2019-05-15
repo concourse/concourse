@@ -2,12 +2,12 @@
 package workerfakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	db "github.com/concourse/concourse/atc/db"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeContainerProvider struct {

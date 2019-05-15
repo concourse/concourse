@@ -38,6 +38,8 @@ func (e ErrResourceNotFound) Error() string {
 type GetDelegate interface {
 	BuildStepDelegate
 
+	Initializing(lager.Logger)
+	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, VersionInfo)
 }
 
@@ -151,6 +153,12 @@ func NewGetStep(
 // fetching the resource) is registered under the step's SourceName.
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
+	logger = logger.Session("get-step", lager.Data{
+		"step-name": step.name,
+		"job-id":    step.build.JobID(),
+	})
+
+	step.delegate.Initializing(logger)
 
 	version, err := step.versionSource.Version(state)
 	if err != nil {
@@ -210,6 +218,8 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	if err != nil {
 		return err
 	}
+
+	step.delegate.Starting(logger)
 
 	versionedSource, err := step.resourceFetcher.Fetch(
 		ctx,
@@ -355,4 +365,9 @@ func streamFileHelper(s interface {
 		Reader: tarReader,
 		Closer: out,
 	}, nil
+}
+
+type fileReadCloser struct {
+	io.Reader
+	io.Closer
 }
