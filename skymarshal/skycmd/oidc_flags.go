@@ -25,6 +25,7 @@ type OIDCFlags struct {
 	Scopes             []string    `long:"scope" description:"Any additional scopes that need to be requested during authorization"`
 	GroupsKey          string      `long:"groups-key" default:"groups" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
 	UserNameKey        string      `long:"user-name-key" default:"username" description:"The user name key indicates which claim to use to map an external user name to a Concourse user name."`
+	UserIDKey          string      `long:"user-id-key" description:"The user id key indicates which claim to use to map an external user id to a Concourse user id."`
 	HostedDomains      []string    `long:"hosted-domains" description:"List of whitelisted domains when using Google, only users from a listed domain will be allowed to log in"`
 	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
@@ -72,6 +73,7 @@ func (flag *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 		Scopes:             flag.Scopes,
 		GroupsKey:          flag.GroupsKey,
 		UserNameKey:        flag.UserNameKey,
+		UserIDKey:          flag.UserIDKey,
 		HostedDomains:      flag.HostedDomains,
 		RootCAs:            caCerts,
 		InsecureSkipVerify: flag.InsecureSkipVerify,
