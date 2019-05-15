@@ -52,6 +52,22 @@ quite involved.
   \codeblock{bash}{{{
   CONCOURSE_VAULT_PATH_PREFIX=/some-other-prefix
   }}}
+
+  \section{
+    \title{Configuring a shared path}{vault-shared-path}
+
+    A "shared path" can also be configured for credentials that you would like
+    to share across all teams and pipelines, foregoing the default
+    team/pipeline namespacing. Use with care!
+
+    \codeblock{bash}{{{
+    CONCOURSE_VAULT_SHARED_PATH=some-shared-path
+    }}}
+
+    This path must exist under the configured path prefix. The above
+    configuration would correspond to \code{/concourse/some-shared-path} with
+    the default \code{/concourse} prefix.
+  }
 }
 
 \section{
