@@ -41,6 +41,7 @@ func NewGetDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.G
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
+		clock:       clock,
 	}
 }
 
@@ -49,6 +50,7 @@ type getDelegate struct {
 
 	build       db.Build
 	eventOrigin event.Origin
+	clock       clock.Clock
 }
 
 func (d *getDelegate) Initializing(logger lager.Logger) {
@@ -80,6 +82,7 @@ func (d *getDelegate) Starting(logger lager.Logger) {
 func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info exec.VersionInfo) {
 	err := d.build.SaveEvent(event.FinishGet{
 		Origin:          d.eventOrigin,
+		Time:            d.clock.Now().Unix(),
 		ExitStatus:      int(exitStatus),
 		FetchedVersion:  info.Version,
 		FetchedMetadata: info.Metadata,
@@ -98,6 +101,7 @@ func NewPutDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.P
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
+		clock:       clock,
 	}
 }
 
@@ -106,6 +110,7 @@ type putDelegate struct {
 
 	build       db.Build
 	eventOrigin event.Origin
+	clock       clock.Clock
 }
 
 func (d *putDelegate) Initializing(logger lager.Logger) {
@@ -137,6 +142,7 @@ func (d *putDelegate) Starting(logger lager.Logger) {
 func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info exec.VersionInfo) {
 	err := d.build.SaveEvent(event.FinishPut{
 		Origin:          d.eventOrigin,
+		Time:            d.clock.Now().Unix(),
 		ExitStatus:      int(exitStatus),
 		CreatedVersion:  info.Version,
 		CreatedMetadata: info.Metadata,
