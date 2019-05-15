@@ -323,6 +323,10 @@ even some automated fixes!
 Run `yarn format` to format the elm code according to the official Elm Style
 Guide. Powered by [elm-format](https://github.com/avh4/elm-format).
 
+### Elm benchmarking
+
+Run `yarn benchmark`.
+
 ### Running the acceptance tests (`testflight`)
 
 The `testflight` package contains tests that run against a real live Concourse.

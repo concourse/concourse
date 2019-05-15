@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Benchmark exposing (Benchmark)
+import Benchmark
 import Benchmark.Runner exposing (BenchmarkProgram, program)
 import Concourse
 import Concourse.BuildStatus
@@ -101,7 +101,7 @@ viewJob job =
                     "no-builds"
 
         isJobRunning =
-            (/=) job.nextBuild Nothing
+            job.nextBuild /= Nothing
 
         latestBuild =
             if job.nextBuild == Nothing then

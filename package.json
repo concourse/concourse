@@ -6,6 +6,7 @@
   "license": "Apache-2.0",
   "dependencies": {},
   "devDependencies": {
+    "child-process-promise": "^2.2.1",
     "chokidar-cli": "^1.2.1",
     "elm": "^0.19.0-bugfix6",
     "elm-analyse": "^0.16.2",
@@ -15,6 +16,7 @@
     "less-plugin-autoprefix": "^1.5.1",
     "less-plugin-clean-css": "^1.5.1",
     "@mdi/svg": "^3.5.95",
+    "puppeteer": "^1.12.2",
     "uglify-js": "^3.3.22"
   },
   "scripts": {
@@ -27,6 +29,7 @@
     "build-elm": "cd web/elm && elm make --optimize --output ../public/elm.js src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
     "build-elm-debug": "cd web/elm && elm make --output ../public/elm.js src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
     "watch": "chokidar -i elm-stuff 'web/elm/src/**/*.elm' 'web/assets/css/*.less' -c 'yarn run build-debug' --initial",
-    "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" > web/public/mdi-svg.js && uglifyjs < web/public/mdi-svg.js > web/public/mdi-svg.min.js"
+    "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" > web/public/mdi-svg.js && uglifyjs < web/public/mdi-svg.js > web/public/mdi-svg.min.js",
+    "benchmark": "cd web/elm && elm make --output /tmp/benchmark.html benchmarks/Main.elm && node benchmarks/benchmark.js /tmp/benchmark.html"
   }
 }
