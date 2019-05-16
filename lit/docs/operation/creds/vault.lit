@@ -321,31 +321,6 @@ quite involved.
   }
 }
 
-\section{
-  \title{Configuring credential caching}
-
-  By default, credentials are fetched each time they're used. This can add up
-  when many pipelines are configured, resulting in a ton of requests to Vault.
-
-  To reduce load on your Vault server you may want to enable caching, by
-  setting the following env on the \reference{web-node}:
-
-  \codeblock{bash}{{{
-  CONCOURSE_VAULT_CACHE=true
-  }}}
-
-  When enabled, credentials are cached for half of their lease duration.
-
-  To set an upper bound and force cache busting after a certain amount of time,
-  set the following env:
-
-  \codeblock{bash}{{{
-  CONCOURSE_VAULT_MAX_LEASE=1m
-  }}}
-
-  With this set, credentials will only be cached for up to 1 minute.
-}
-
 \right-side{Examples}{
   \example{Docker Compose, Vault, \code{cert} auth}{
     Configuring Vault with TLS cert-based auth involves a few moving parts. The

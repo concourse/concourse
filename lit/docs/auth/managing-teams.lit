@@ -99,6 +99,15 @@
 }
 
 \section{
+  \title{\code{fly get-team}}{fly-get-team}
+
+  To show a team's configuration, run:
+  \codeblock{bash}{{
+  $ fly -t example get-team -n some-team
+  }}
+}
+
+\section{
   \title{\code{fly rename-team}}{fly-rename-team}
 
   To rename a team, run:

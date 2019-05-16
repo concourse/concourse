@@ -233,3 +233,64 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     \code{concourse} binary and you should be good to go.
   }
 }
+
+\section{
+  \title{Configuration}{web-configuration}
+
+  \section{
+    \title{Giving your cluster a name}
+
+    If you've got many Concourse clusters that you switch between, you can make
+    it slightly easier to notice which one you're on by giving each cluster a
+    name:
+
+    \codeblock{bash}{{{
+    CONCOURSE_CLUSTER_NAME=production
+    }}}
+
+    When set, this name will be shown in the top bar when viewing the dashboard.
+  }
+
+  \section{
+    \title{Enabling audit logs}{audit-logs}
+
+    A very simplistic form of audit logging can be enabled with the following
+    vars:
+
+    \codeblock{bash}{{{
+      # Enable auditing for all api requests connected to builds.
+      CONCOURSE_ENABLE_BUILD_AUDITING=true
+
+      # Enable auditing for all api requests connected to containers.
+      CONCOURSE_ENABLE_CONTAINER_AUDITING=true
+
+      # Enable auditing for all api requests connected to jobs.
+      CONCOURSE_ENABLE_JOB_AUDITING=true
+
+      # Enable auditing for all api requests connected to pipelines.
+      CONCOURSE_ENABLE_PIPELINE_AUDITING=true
+
+      # Enable auditing for all api requests connected to resources.
+      CONCOURSE_ENABLE_RESOURCE_AUDITING=true
+
+      # Enable auditing for all api requests connected to system transactions.
+      CONCOURSE_ENABLE_SYSTEM_AUDITING=true
+
+      # Enable auditing for all api requests connected to teams.
+      CONCOURSE_ENABLE_TEAM_AUDITING=true
+
+      # Enable auditing for all api requests connected to workers.
+      CONCOURSE_ENABLE_WORKER_AUDITING=true
+
+      # Enable auditing for all api requests connected to volumes.
+      CONCOURSE_ENABLE_VOLUME_AUDITING=true
+    }}}
+
+    When enabled, API requests will result in an info-level log line like so:
+
+    \codeblock{json}{{{
+    {"timestamp":"2019-05-09T14:41:54.880381537Z","level":"info","source":"atc","message":"atc.audit","data":{"action":"Info","parameters":{},"user":"test"}}
+    {"timestamp":"2019-05-09T14:42:36.704864093Z","level":"info","source":"atc","message":"atc.audit","data":{"action":"GetPipeline","parameters":{":pipeline_name":["booklit"],":team_name":["main"]},"user":"test"}}
+    }}}
+  }
+}

@@ -5,29 +5,29 @@ set -e -x
 export GOPATH=$PWD/gopath
 export PATH=$PWD/gopath/bin:$PATH
 
-if [ -d version ]; then
-  export CONCOURSE_VERSION=$(cat version/version)
-fi
-
 git config --global user.email "concourseteam+concourse-github-bot@gmail.com"
 git config --global user.name "Concourse Bot"
 
 pushd docs
-  # undo single-branch clone and fetch gh-pages
-  git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-  git fetch origin gh-pages
+  if [ -e .git ] && git remote | grep origin >/dev/null; then
+    # undo single-branch clone and fetch gh-pages
+    git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+    git fetch origin gh-pages
 
-  ref=$(git rev-parse HEAD)
-  git checkout gh-pages
-  git pull
-  git merge --no-edit $ref
+    ref=$(git rev-parse HEAD)
+    git checkout gh-pages
+    git pull
+    git merge --no-edit $ref
 
-  # TODO: booklit should just clear it each time
-  rm -f search_index.json
+    # clear out old content
+    git rm *.html
+    git rm search_index.json
+  fi
 
   ./scripts/build
-  git add -A
-  git commit --allow-empty -m "build"
-popd
 
-git clone ./docs ./built-docs
+  if [ -e .git ]; then
+    git add -A
+    git commit --allow-empty -m "build"
+  fi
+popd

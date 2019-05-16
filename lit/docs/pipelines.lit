@@ -27,6 +27,8 @@ schema:
 \define-attribute{groups: [group]}{
   A list of \reference{pipeline-groups}{groups} to use for cleaning
   up/organizing jobs in the web UI.
+
+  Each group must have a unique name.
 }
 
 \split-sections
