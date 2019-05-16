@@ -3,12 +3,13 @@ package worker
 import (
 	"context"
 	"fmt"
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/metric"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/metric"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -23,8 +24,6 @@ const userPropertyName = "user"
 //go:generate counterfeiter . Worker
 
 type Worker interface {
-	ActiveContainers() int
-	ActiveVolumes() int
 	BuildContainers() int
 
 	Description() string
@@ -59,12 +58,12 @@ type Worker interface {
 }
 
 type gardenWorker struct {
-	gardenClient      garden.Client
-	volumeClient      VolumeClient
-	imageFactory      ImageFactory
-	dbWorker          db.Worker
-	buildContainers   int
-	helper workerHelper
+	gardenClient    garden.Client
+	volumeClient    VolumeClient
+	imageFactory    ImageFactory
+	dbWorker        db.Worker
+	buildContainers int
+	helper          workerHelper
 }
 
 // NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
@@ -91,12 +90,12 @@ func NewGardenWorker(
 	}
 
 	return &gardenWorker{
-		gardenClient:      gardenClient,
-		volumeClient:      volumeClient,
-		imageFactory:      imageFactory,
-		dbWorker:          dbWorker,
-		buildContainers:   numBuildContainers,
-		helper:	workerHelper,
+		gardenClient:    gardenClient,
+		volumeClient:    volumeClient,
+		imageFactory:    imageFactory,
+		dbWorker:        dbWorker,
+		buildContainers: numBuildContainers,
+		helper:          workerHelper,
 	}
 }
 
@@ -180,7 +179,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		gardenContainer   garden.Container
 		createdContainer  db.CreatedContainer
 		creatingContainer db.CreatingContainer
-		containerHandle string
+		containerHandle   string
 		err               error
 	)
 
@@ -492,16 +491,6 @@ func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID in
 	}
 
 	return container, true, nil
-}
-
-// TODO: are these required on the Worker object?
-// does the caller already have the db.Worker available?
-func (worker *gardenWorker) ActiveContainers() int {
-	return worker.dbWorker.ActiveContainers()
-}
-
-func (worker *gardenWorker) ActiveVolumes() int {
-	return worker.dbWorker.ActiveVolumes()
 }
 
 func (worker *gardenWorker) Name() string {
