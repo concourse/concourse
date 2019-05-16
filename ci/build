@@ -20,8 +20,8 @@ pushd docs
     git merge --no-edit $ref
 
     # clear out old content
-    git rm *.html
-    git rm search_index.json
+    git rm *.html || true
+    git rm search_index.json || true
   fi
 
   ./scripts/build
