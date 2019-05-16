@@ -17,43 +17,40 @@ Team Viewer.
 }
 
 \section{
-  \title{Team Owner role}{team-owner-role}
+  \title{\code{owner} role}{team-owner-role}
 
-  Team Owners have read, write and auth management capabilities within the
-  scope of their team. For those familiar with Concourse today, the scope of
-  allowed actions for a Team Owner is very closely aligned to today’s Concourse
-  team member. The new change is that you can no longer rename your own team
-  or destroy your own team as an owner.
+  Team owners have read, write and auth management capabilities within the
+  scope of their team, but they cannot rename or destroy the team.
 }
 
 \section{
-  \title{Team Member role}{team-member-role}
+  \title{\code{member} role}{team-member-role}
 
-  Team Member lets users operate within their teams in a read & write fashion;
-  but prevents them from changing the auth configurations of their team.
+  Team members can operate within their team in a read & write fashion, but
+  they can not change the configuration of their team.
 }
 
 \section{
-  \title{Team Pipeline Operator role}{team-pipeline-operator-role}
+  \title{\code{pipeline-operator} role}{team-pipeline-operator-role}
 
-  Team Pipeline Operator is a role that can perform pipeline operations such as
-  triggering builds and pinning resources, however they cannot update or fetch
-  pipeline configurations.
+  Team pipeline operators can perform pipeline operations such as triggering
+  builds and pinning resources, however they cannot update pipeline
+  configurations.
 }
 
 \section{
-  \title{Team Viewer role}{team-viewer-role}
+  \title{\code{viewer} role}{team-viewer-role}
 
-  Team Viewer gives users "read-only" access to a team. This locks everything
-  down, preventing users from doing a \reference{fly-set-pipeline} or
-  \reference{fly-intercept}.
+  Team viewers have "read-only" access to a team and its pipelines. This locks
+  everything down, preventing users from doing a \reference{fly-set-pipeline}
+  or \reference{fly-intercept}.
 }
 
 \section{
   \title{Permission Matrix}{permission-matrix}
 
   \better-table{
-    \table-row{\reference{fly-cli} command      }{Anon}{Admin}{Owner}{Member}{Pipeline Operator}{Viewer}
+    \table-row{\reference{fly-cli} command      }{Anon}{Admin}{\code{owner}}{\code{member}}{\code{pipeline-operator}}{\code{viewer}}
     \table-row{\reference{fly-abort-build}      }{✘   }{     }{✓    }{✓     }{✓                }{✘     }
     \table-row{\reference{fly-builds}           }{✓   }{     }{✓    }{✓     }{✓                }{✓     }
     \table-row{\reference{fly-check-resource}   }{✘   }{     }{✓    }{✓     }{✓                }{✘     }
