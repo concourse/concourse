@@ -57,6 +57,7 @@ var _ = Describe("DelegateFactory", func() {
 				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 				Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.FinishGet{
 					Origin:          event.Origin{ID: event.OriginID("some-plan-id")},
+					Time:            123456789,
 					ExitStatus:      int(exitStatus),
 					FetchedVersion:  info.Version,
 					FetchedMetadata: info.Metadata,
@@ -90,6 +91,7 @@ var _ = Describe("DelegateFactory", func() {
 				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 				Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.FinishPut{
 					Origin:          event.Origin{ID: event.OriginID("some-plan-id")},
+					Time:            123456789,
 					ExitStatus:      int(exitStatus),
 					CreatedVersion:  info.Version,
 					CreatedMetadata: info.Metadata,
