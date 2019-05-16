@@ -146,7 +146,7 @@ func (im *inputMapper) computeNextInputs(configs InputConfigs, versionsDB *db.Ve
 		inputResult := db.InputResult{}
 
 		if versions[i] == nil {
-			inputResult.ResolveError = errors.New("did not finish due to other resource errors")
+			inputResult.ResolveSkipped = true
 			valid = false
 
 		} else if versions[i].ResolveError != nil {
@@ -283,6 +283,7 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 			}
 
 			candidates[i] = newCandidateVersion(versionID)
+			unresolvedCandidates[i] = newCandidateVersion(versionID)
 			continue
 		}
 
@@ -404,7 +405,7 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 							allVouchedFor = allVouchedFor && candidates[c].VouchedForBy[passedJobID]
 						}
 
-						if unresolvedCandidates[i] == nil && allVouchedFor {
+						if allVouchedFor && (unresolvedCandidates[i] == nil || (unresolvedCandidates[i] != nil && unresolvedCandidates[i].ResolveError != nil)) {
 							unresolvedCandidates[i] = newCandidateVersion(output.VersionID)
 						}
 					}

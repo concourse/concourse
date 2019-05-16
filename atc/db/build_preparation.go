@@ -3,7 +3,7 @@ package db
 type BuildPreparationStatus string
 
 const (
-	BuildPreparationStatusUnknown     BuildPreparationStatus = "unknown"
+	BuildPreparationStatusSkipped     BuildPreparationStatus = "skipped"
 	BuildPreparationStatusBlocking    BuildPreparationStatus = "blocking"
 	BuildPreparationStatusNotBlocking BuildPreparationStatus = "not_blocking"
 )

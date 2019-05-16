@@ -27,6 +27,7 @@ type BuildInput struct {
 
 	FirstOccurrence bool
 	ResolveError    error
+	ResolveSkipped  bool
 }
 
 type BuildOutput struct {
@@ -624,7 +625,9 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		}
 
 		if found {
-			if buildInput.ResolveError == nil {
+			if buildInput.ResolveSkipped {
+				inputs[configInput.Name] = BuildPreparationStatusSkipped
+			} else if buildInput.ResolveError == nil {
 				inputs[configInput.Name] = BuildPreparationStatusNotBlocking
 			} else {
 				inputs[configInput.Name] = BuildPreparationStatusBlocking

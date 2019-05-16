@@ -1,5 +1,6 @@
 BEGIN;
   ALTER TABLE next_build_inputs
+    ADD COLUMN resolve_skipped boolean NOT NULL DEFAULT false,
     ADD COLUMN resolve_error text,
     ALTER COLUMN resource_config_version_id DROP NOT NULL,
     ALTER COLUMN resource_id DROP NOT NULL,

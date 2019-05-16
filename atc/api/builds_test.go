@@ -1052,7 +1052,7 @@ var _ = Describe("Builds API", func() {
 					PausedJob:        db.BuildPreparationStatusNotBlocking,
 					MaxRunningBuilds: db.BuildPreparationStatusBlocking,
 					Inputs: map[string]db.BuildPreparationStatus{
-						"foo": db.BuildPreparationStatusUnknown,
+						"foo": db.BuildPreparationStatusSkipped,
 						"bar": db.BuildPreparationStatusBlocking,
 					},
 					InputsSatisfied:     db.BuildPreparationStatusBlocking,
@@ -1186,7 +1186,7 @@ var _ = Describe("Builds API", func() {
 					"paused_job": "not_blocking",
 					"max_running_builds": "blocking",
 					"inputs": {
-						"foo": "unknown",
+						"foo": "skipped",
 						"bar": "blocking"
 					},
 					"inputs_satisfied": "blocking",

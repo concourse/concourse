@@ -916,6 +916,7 @@ var _ = Describe("Build", func() {
 									},
 									{Get: "input2"},
 									{Get: "input3", Passed: []string{"some-upstream-job"}},
+									{Get: "input4"},
 								},
 							},
 						},
@@ -923,6 +924,7 @@ var _ = Describe("Build", func() {
 							{Name: "input1", Type: "some-type", Source: atc.Source{"some": "source-1"}},
 							{Name: "input2", Type: "some-type", Source: atc.Source{"some": "source-2"}},
 							{Name: "input3", Type: "some-type", Source: atc.Source{"some": "source-3"}},
+							{Name: "input4", Type: "some-type", Source: atc.Source{"some": "source-4"}},
 						},
 					}
 
@@ -970,18 +972,22 @@ var _ = Describe("Build", func() {
 						"input2": db.InputResult{
 							ResolveError: errors.New("resolve error"),
 						},
+						"input3": db.InputResult{
+							ResolveSkipped: true,
+						},
 					}, false)
 					Expect(err).NotTo(HaveOccurred())
 
 					expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
 						"input1": db.BuildPreparationStatusNotBlocking,
 						"input2": db.BuildPreparationStatusBlocking,
-						"input3": db.BuildPreparationStatusBlocking,
+						"input3": db.BuildPreparationStatusSkipped,
+						"input4": db.BuildPreparationStatusBlocking,
 					}
 					expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
 					expectedBuildPrep.MissingInputReasons = db.MissingInputReasons{
 						"input2": "resolve error",
-						"input3": db.MissingBuildInput,
+						"input4": db.MissingBuildInput,
 					}
 				})
 

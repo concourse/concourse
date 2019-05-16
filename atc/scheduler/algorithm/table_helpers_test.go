@@ -60,9 +60,10 @@ type Version struct {
 }
 
 type Result struct {
-	OK     bool
-	Values map[string]string
-	Errors map[string]string
+	OK      bool
+	Values  map[string]string
+	Errors  map[string]string
+	Skipped map[string]bool
 }
 
 type StringMapping map[string]int
@@ -458,8 +459,11 @@ func (example Example) Run() {
 
 	prettyValues := map[string]string{}
 	erroredValues := map[string]string{}
+	skippedValues := map[string]bool{}
 	for name, inputSource := range resolved {
-		if inputSource.ResolveError != nil {
+		if inputSource.ResolveSkipped == true {
+			skippedValues[name] = true
+		} else if inputSource.ResolveError != nil {
 			erroredValues[name] = inputSource.ResolveError.Error()
 		} else {
 			prettyValues[name] = setup.versionIDs.Name(inputSource.Input.AlgorithmVersion.VersionID)
@@ -469,6 +473,10 @@ func (example Example) Run() {
 	actualResult := Result{OK: ok}
 	if len(erroredValues) != 0 {
 		actualResult.Errors = erroredValues
+	}
+
+	if len(skippedValues) != 0 {
+		actualResult.Skipped = skippedValues
 	}
 
 	actualResult.Values = prettyValues
