@@ -30,6 +30,6 @@
     "build-elm-debug": "cd web/elm && elm make --output ../public/elm.js src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
     "watch": "chokidar -i elm-stuff 'web/elm/src/**/*.elm' 'web/assets/css/*.less' -c 'yarn run build-debug' --initial",
     "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" > web/public/mdi-svg.js && uglifyjs < web/public/mdi-svg.js > web/public/mdi-svg.min.js",
-    "benchmark": "cd web/elm && elm make --output /tmp/benchmark.html benchmarks/Main.elm && node benchmarks/benchmark.js /tmp/benchmark.html"
+    "benchmark": "cd web/elm && elm make --output /tmp/benchmark.html benchmarks/Benchmarks.elm && node benchmarks/benchmark.js /tmp/benchmark.html"
   }
 }
