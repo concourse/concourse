@@ -51,47 +51,57 @@ configured job consists of the following fields:
   queue up and execute one-by-one, rather than executing in parallel.
 }{job-serial}
 
-\define-attribute{build_logs_to_retain: number | config }{
-  \italic{Optional.} If configured, only the last specified number of builds
-  will have their build logs persisted. This is useful if you have a job that
-  runs periodically but after some amount of time the logs aren't worth keeping
-  around.
+\define-attribute{build_log_retention: retention_config}{
+  \italic{Optional.} Configures the retention policy for build logs. This is
+  useful if you have a job that runs often but after some amount of time the
+  logs aren't worth keeping around.
 
-  Example:
-
-  \codeblock{yaml}{{
-  jobs:
-  - name: smoke-tests
-    build_logs_to_retain: 100
-    plan:
-    - get: 10m
-    - task: smoke-tests
-      # ...
-  }}
+  The following fields may be specified in \code{retention_config}:
 
   \define-attribute{days: number}{
-    \italic{Optional.} If configured, only builds in the past days specified
-    will have their build logs persisted.
-  }
+    \italic{Optional.} Keep logs for builds which have finished within the
+    specified number of days.
+  }{job-build-log-retention-days}
 
   \define-attribute{builds: number}{
-    \italic{Optional.} If configured, only the last specified number of builds
-    will have their build logs persisted.
-  }
+    \italic{Optional.} Keep logs for the last specified number of builds.
+  }{job-build-log-retention-builds}
 
-  Example:
-  This will ensure build logs within the past 2 days and the last 10 builds are
-  kept regardless of age.
-  \codeblock{yaml}{{
+  Builds which are not retained by one of the above configurations will have
+  their logs reaped.
+
+  The following example will keep logs for any builds that have completed in
+  the last 2 days, while also keeping the last 1000 builds.
+
+  \codeblock{yaml}{{{
   jobs:
   - name: smoke-tests
-    build_logs_to_retain:
+    build_log_retention:
       days: 2
-      builds: 10
+      builds: 1000
     plan:
     - get: 10m
     - task: smoke-tests
       # ...
+  }}}
+
+  Note: if more than 1000 builds finish in the past 2 days, \italic{all} of
+  them will be retained thanks to the \reference{job-build-log-retention-days}
+  configuration. Similarly, if there are 1000 builds spanning more than 2 days,
+  they will also be kept thanks to the
+  \reference{job-build-log-retention-builds} configuration. Both policies
+  operate independently.
+}{job-build-log-retention}
+
+\define-attribute{build_logs_to_retain: number}{
+  \italic{Optional.} Deprecated in favor of
+  \reference{job-build-log-retention}.
+
+  Equivalent to the following:
+
+  \codeblock{yaml}{{
+  build_log_retention:
+    builds: number
   }}
 }{job-build-logs-to-retain}
 
