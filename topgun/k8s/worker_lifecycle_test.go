@@ -104,12 +104,7 @@ var _ = Describe("Worker lifecycle", func() {
 					Should(HaveLen(0))
 
 				By("seeing that the build succeeded")
-				Eventually(func() *gbytes.Buffer {
-					startSession := fly.Start("builds", "-j", "some-pipeline/simple-job")
-					<-startSession.Exited
-					return startSession.Out
-				}, 1*time.Minute, 5*time.Second).
-					Should(gbytes.Say("succeeded"))
+				fly.Run("watch", "-j", "some-pipeline/simple-job")
 			})
 		})
 
@@ -129,7 +124,7 @@ var _ = Describe("Worker lifecycle", func() {
 				By("seeing that the worker disappeared")
 				startSession := fly.Start("watch", "-j", "some-pipeline/simple-job")
 				<-startSession.Exited
-				Expect(startSession.Out).To(gbytes.Say("disappeared"))
+				Expect(startSession.Out).To(gbytes.Say("errored"))
 			})
 		})
 	})
