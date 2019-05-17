@@ -1,7 +1,8 @@
 {
     "type": "application",
     "source-directories": [
-        "src"
+        "src",
+        "benchmarks"
     ],
     "elm-version": "0.19.0",
     "dependencies": {
@@ -20,6 +21,7 @@
             "elm-community/json-extra": "4.0.0",
             "elm-community/list-extra": "8.1.0",
             "elm-community/maybe-extra": "5.0.0",
+            "elm-explorations/benchmark": "1.0.1",
             "fapian/elm-html-aria": "1.4.0",
             "krisajenkins/remotedata": "5.0.0",
             "lukewestby/elm-http-builder": "6.0.0",
@@ -29,11 +31,11 @@
             "vito/elm-ansi": "9.0.1"
         },
         "indirect": {
+            "BrianHicks/elm-trend": "2.1.2",
             "Skinney/murmur3": "2.0.8",
-            "avh4/elm-fifo": "1.0.4",
-            "elm/virtual-dom": "1.0.2",
-            "rtfeldman/elm-hex": "1.0.0",
             "elm/regex": "1.0.0",
+            "elm/virtual-dom": "1.0.2",
+            "mdgriffith/style-elements": "5.0.1",
             "rtfeldman/elm-iso8601-date-strings": "1.1.2"
         }
     },
@@ -42,7 +44,9 @@
             "elm-explorations/test": "1.2.1"
         },
         "indirect": {
-            "elm/random": "1.0.0"
+            "avh4/elm-fifo": "1.0.4",
+            "elm/random": "1.0.0",
+            "rtfeldman/elm-hex": "1.0.0"
         }
     }
 }
