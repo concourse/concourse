@@ -58,3 +58,11 @@ test('can fly login with browser and reuse same browser without CSRF issues', as
   await t.context.web.page.waitForSelector(pauseButton, {timeout: 90000});
   t.pass();
 });
+
+test.only('password input does not autocomplete', async t => {
+  await t.context.web.page.goto(t.context.web.route('/sky/login'));
+  let passwordInput = await t.context.web.page.waitForSelector('#password', {timeout: 90000});
+  const autocomplete = await t.context.web.page.evaluate(body => body.getAttribute('autocomplete'), passwordInput);
+  await passwordInput.dispose();
+  t.is(autocomplete, 'off');
+});
