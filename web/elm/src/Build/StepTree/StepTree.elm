@@ -515,8 +515,7 @@ isActive =
 
 
 autoExpanded : StepState -> Bool
-autoExpanded state =
-    isActive state && state /= StepStateSucceeded
+autoExpanded state = False
 
 
 viewStep : StepTreeModel -> Time.Zone -> Step -> StepHeaderType -> Html Message
