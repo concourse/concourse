@@ -27,6 +27,7 @@ import Html.Attributes exposing (class)
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
 import Routes exposing (StepID)
+import Session
 import Time
 import Views.LoadingIndicator as LoadingIndicator
 
@@ -332,26 +333,26 @@ setStepFinish mtime tree =
     StepTree.map (\step -> { step | finish = mtime }) tree
 
 
-view : Time.Zone -> OutputModel -> Html Message
-view timeZone { steps, state } =
-    Html.div [ class "steps" ] [ viewStepTree timeZone steps state ]
+view : Session.Session a -> OutputModel -> Html Message
+view session { steps, state } =
+    Html.div [ class "steps" ] [ viewStepTree session steps state ]
 
 
 viewStepTree :
-    Time.Zone
+    Session.Session a
     -> Maybe StepTreeModel
     -> OutputState
     -> Html Message
-viewStepTree timeZone steps state =
+viewStepTree session steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
             LoadingIndicator.view
 
         ( StepsLiveUpdating, Just root ) ->
-            Build.StepTree.StepTree.view timeZone root
+            Build.StepTree.StepTree.view session root
 
         ( StepsComplete, Just root ) ->
-            Build.StepTree.StepTree.view timeZone root
+            Build.StepTree.StepTree.view session root
 
         ( _, Nothing ) ->
             Html.div [] []

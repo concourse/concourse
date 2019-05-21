@@ -116,7 +116,6 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = False
             , icon = Nothing
-            , timeZone = Time.utc
             }
     in
     ( model
@@ -206,9 +205,6 @@ subscriptions =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
-        GotCurrentTimeZone zone ->
-            ( { model | timeZone = zone }, effects )
-
         ResourceFetched (Ok resource) ->
             ( { model
                 | pageStatus = Ok ()
@@ -738,13 +734,13 @@ view session model =
         ]
 
 
-header : { a | hovered : Maybe DomID } -> Model -> Html Message
+header : Session.Session a -> Model -> Html Message
 header session model =
     let
         lastCheckedView =
             case ( model.now, model.lastChecked ) of
                 ( Just now, Just date ) ->
-                    viewLastChecked model.timeZone now date
+                    viewLastChecked session.timeZone now date
 
                 ( _, _ ) ->
                     Html.text ""

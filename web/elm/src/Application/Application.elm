@@ -31,6 +31,7 @@ import Session exposing (Session)
 import Set
 import SideBar.SideBar as SideBar
 import SubPage.SubPage as SubPage
+import Time
 import Url
 import UserState exposing (UserState(..))
 
@@ -89,6 +90,7 @@ init flags url =
             , screenSize = ScreenSize.Desktop
             , hovered = Nothing
             , clusterName = flags.clusterName
+            , timeZone = Time.utc
             }
 
         handleTokenEffect =
@@ -173,6 +175,9 @@ handleCallback callback model =
                         ScreenSize.fromWindowSize viewport.viewport.width
                 }
                 callback
+
+        GotCurrentTimeZone zone ->
+            ( { model | timeZone = zone }, [] )
 
         -- otherwise, pass down
         _ ->

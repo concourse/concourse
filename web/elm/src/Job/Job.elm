@@ -70,7 +70,6 @@ type alias Model =
         , buildsWithResources : Paginated BuildWithResources
         , currentPage : Maybe Page
         , now : Time.Posix
-        , timeZone : Time.Zone
         }
 
 
@@ -108,7 +107,6 @@ init flags =
             , now = Time.millisToPosix 0
             , currentPage = flags.paging
             , isUserMenuExpanded = False
-            , timeZone = Time.utc
             }
     in
     ( model
@@ -157,9 +155,6 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
-        GotCurrentTimeZone zone ->
-            ( { model | timeZone = zone }, effects )
-
         BuildTriggered (Ok build) ->
             ( model
             , case build.job of
@@ -434,7 +429,7 @@ view session model =
         ]
 
 
-viewMainJobsSection : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewMainJobsSection : Session.Session a -> Model -> Html Message
 viewMainJobsSection session model =
     Html.div
         [ class "with-fixed-header"
@@ -553,7 +548,7 @@ viewMainJobsSection session model =
                     , style "overflow-y" "auto"
                     ]
                     [ Html.ul [ class "jobs-builds-list builds-list" ] <|
-                        List.map (viewBuildWithResources model) anyList
+                        List.map (viewBuildWithResources session model) anyList
                     ]
         ]
 
@@ -654,8 +649,12 @@ viewPaginationBar session model =
         ]
 
 
-viewBuildWithResources : Model -> BuildWithResources -> Html Message
-viewBuildWithResources model bwr =
+viewBuildWithResources :
+    Session.Session a
+    -> Model
+    -> BuildWithResources
+    -> Html Message
+viewBuildWithResources session model bwr =
     Html.li [ class "js-build" ] <|
         let
             buildResourcesView =
@@ -663,7 +662,7 @@ viewBuildWithResources model bwr =
         in
         [ viewBuildHeader bwr.build
         , Html.div [ class "pam clearfix" ] <|
-            BuildDuration.view model.timeZone bwr.build.duration model.now
+            BuildDuration.view session.timeZone bwr.build.duration model.now
                 :: buildResourcesView
         ]
 

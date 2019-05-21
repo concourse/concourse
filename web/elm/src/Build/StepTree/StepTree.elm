@@ -42,6 +42,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
+import Session
 import StrictEvents
 import Time
 import Url exposing (fromString)
@@ -406,39 +407,47 @@ updateTooltip { hovered } { hoveredCounter } model =
     ( { model | tooltip = newTooltip }, [] )
 
 
-view : Time.Zone -> StepTreeModel -> Html Message
-view timeZone model =
-    viewTree timeZone model model.tree
+view :
+    Session.Session a
+    -> StepTreeModel
+    -> Html Message
+view session model =
+    viewTree session model model.tree
 
 
-viewTree : Time.Zone -> StepTreeModel -> StepTree -> Html Message
-viewTree timeZone model tree =
+viewTree :
+    Session.Session a
+    -> StepTreeModel
+    -> StepTree
+    -> Html Message
+viewTree session model tree =
     case tree of
         Task step ->
-            viewStep model timeZone step StepHeaderTask
+            viewStep model session step StepHeaderTask
 
         ArtifactInput step ->
-            viewStep model timeZone step (StepHeaderGet False)
+            viewStep model session step (StepHeaderGet False)
 
         Get step ->
-            viewStep model timeZone step (StepHeaderGet step.firstOccurrence)
+            viewStep model session step (StepHeaderGet step.firstOccurrence)
 
         ArtifactOutput step ->
-            viewStep model timeZone step StepHeaderPut
+            viewStep model session step StepHeaderPut
 
         Put step ->
-            viewStep model timeZone step StepHeaderPut
+            viewStep model session step StepHeaderPut
 
         Try step ->
-            viewTree timeZone model step
+            viewTree session model step
 
         Retry id tab _ steps ->
             Html.div [ class "retry" ]
-                [ Html.ul [ class "retry-tabs" ]
-                    (Array.toList <| Array.indexedMap (viewTab id tab) steps)
+                [ Html.ul
+                    (class "retry-tabs" :: Styles.retryTabList)
+                    (Array.toList <| Array.indexedMap (viewTab session id tab) steps)
                 , case Array.get (tab - 1) steps of
                     Just step ->
-                        viewTree timeZone model step
+                        viewTree session model step
 
                     Nothing ->
                         -- impossible (bogus tab selected)
@@ -446,72 +455,84 @@ viewTree timeZone model tree =
                 ]
 
         Timeout step ->
-            viewTree timeZone model step
+            viewTree session model step
 
         Aggregate steps ->
             Html.div [ class "aggregate" ]
-                (Array.toList <| Array.map (viewSeq timeZone model) steps)
+                (Array.toList <| Array.map (viewSeq session model) steps)
 
         InParallel steps ->
             Html.div [ class "parallel" ]
-                (Array.toList <| Array.map (viewSeq timeZone model) steps)
+                (Array.toList <| Array.map (viewSeq session model) steps)
 
         Do steps ->
             Html.div [ class "do" ]
-                (Array.toList <| Array.map (viewSeq timeZone model) steps)
+                (Array.toList <| Array.map (viewSeq session model) steps)
 
         OnSuccess { step, hook } ->
-            viewHooked timeZone "success" model step hook
+            viewHooked session "success" model step hook
 
         OnFailure { step, hook } ->
-            viewHooked timeZone "failure" model step hook
+            viewHooked session "failure" model step hook
 
         OnAbort { step, hook } ->
-            viewHooked timeZone "abort" model step hook
+            viewHooked session "abort" model step hook
 
         OnError { step, hook } ->
-            viewHooked timeZone "error" model step hook
+            viewHooked session "error" model step hook
 
         Ensure { step, hook } ->
-            viewHooked timeZone "ensure" model step hook
+            viewHooked session "ensure" model step hook
 
 
-viewTab : StepID -> Int -> Int -> StepTree -> Html Message
-viewTab id currentTab idx step =
+viewTab :
+    Session.Session a
+    -> StepID
+    -> Int
+    -> Int
+    -> StepTree
+    -> Html Message
+viewTab { hovered } id currentTab idx step =
     let
         tab =
             idx + 1
     in
     Html.li
-        [ classList
+        ([ classList
             [ ( "current", currentTab == tab )
             , ( "inactive", not <| treeIsActive step )
             ]
-        ]
-        [ Html.a
-            [ onClick <| Click <| StepTab id tab ]
-            [ Html.text (String.fromInt tab) ]
-        ]
+         , onMouseEnter <| Hover <| Just <| StepTab id tab
+         , onMouseLeave <| Hover Nothing
+         , onClick <| Click <| StepTab id tab
+         ]
+            ++ Styles.retryTab
+                { isHovered = hovered == (Just <| StepTab id tab)
+                , isCurrent = currentTab == tab
+                , isStarted = treeIsActive step
+                }
+        )
+        [ Html.text (String.fromInt tab) ]
 
 
-viewSeq : Time.Zone -> StepTreeModel -> StepTree -> Html Message
-viewSeq timeZone model tree =
-    Html.div [ class "seq" ] [ viewTree timeZone model tree ]
+viewSeq : Session.Session a -> StepTreeModel -> StepTree -> Html Message
+viewSeq session model tree =
+    Html.div [ class "seq" ] [ viewTree session model tree ]
 
 
-viewHooked : Time.Zone -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
-viewHooked timeZone name model step hook =
+viewHooked : Session.Session a -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
+viewHooked session name model step hook =
     Html.div [ class "hooked" ]
-        [ Html.div [ class "step" ] [ viewTree timeZone model step ]
+        [ Html.div [ class "step" ] [ viewTree session model step ]
         , Html.div [ class "children" ]
-            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree timeZone model hook ]
+            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree session model hook ]
             ]
         ]
 
 
 isActive : StepState -> Bool
-isActive =
-    (/=) StepStatePending
+isActive state =
+    state /= StepStatePending && state /= StepStateCancelled
 
 
 autoExpanded : StepState -> Bool
@@ -519,8 +540,8 @@ autoExpanded state =
     isActive state && state /= StepStateSucceeded
 
 
-viewStep : StepTreeModel -> Time.Zone -> Step -> StepHeaderType -> Html Message
-viewStep model timeZone { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
+viewStep : StepTreeModel -> Session.Session a -> Step -> StepHeaderType -> Html Message
+viewStep model session { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -556,7 +577,7 @@ viewStep model timeZone { id, name, log, state, error, expanded, version, metada
             if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
                 [ viewMetadata metadata
                 , Html.pre [ class "timestamped-logs" ] <|
-                    viewLogs log timestamps model.highlight timeZone id
+                    viewLogs log timestamps model.highlight session.timeZone id
                 , case error of
                     Nothing ->
                         Html.span [] []
