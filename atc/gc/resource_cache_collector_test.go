@@ -129,7 +129,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 						Expect(defaultJob.SaveNextInputMapping(db.InputMapping{
 							"whatever": db.InputResult{
-								Input: db.AlgorithmInput{
+								Input: &db.AlgorithmInput{
 									AlgorithmVersion: db.AlgorithmVersion{
 										VersionID:  versionID,
 										ResourceID: resource.ID(),

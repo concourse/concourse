@@ -785,7 +785,7 @@ var _ = Describe("Build", func() {
 
 					err = job.SaveNextInputMapping(db.InputMapping{
 						"some-input": db.InputResult{
-							Input: db.AlgorithmInput{
+							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
 									VersionID: rcv.ID(), ResourceID: resource.ID(),
 								},
@@ -963,7 +963,7 @@ var _ = Describe("Build", func() {
 
 					err = job.SaveNextInputMapping(db.InputMapping{
 						"input1": db.InputResult{
-							Input: db.AlgorithmInput{
+							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{VersionID: versions[0].ID, ResourceID: resource1.ID()},
 								FirstOccurrence:  true,
 							},

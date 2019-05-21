@@ -330,7 +330,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 				err = defaultJob.SaveNextInputMapping(db.InputMapping{
 					"some-resource": db.InputResult{
-						Input: db.AlgorithmInput{
+						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
 								VersionID:  resourceConfigVersion.ID(),
 								ResourceID: defaultResource.ID(),

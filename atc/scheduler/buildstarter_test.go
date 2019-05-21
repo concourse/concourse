@@ -218,7 +218,7 @@ var _ = Describe("BuildStarter", func() {
 								BeforeEach(func() {
 									expectedInputMapping = map[string]db.InputResult{
 										"input-1": db.InputResult{
-											Input: db.AlgorithmInput{
+											Input: &db.AlgorithmInput{
 												AlgorithmVersion: db.AlgorithmVersion{
 													ResourceID: 1,
 													VersionID:  1,

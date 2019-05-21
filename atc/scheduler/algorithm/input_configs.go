@@ -51,11 +51,11 @@ func (e PinnedVersionNotFoundError) Error() string {
 }
 
 type NoSatisfiableBuildsForPassedJobError struct {
-	JobID int
+	JobName string
 }
 
 func (e NoSatisfiableBuildsForPassedJobError) Error() string {
-	return fmt.Sprintf("passed job %d does not have a build that satisfies the constraints", e.JobID)
+	return fmt.Sprintf("passed job '%s' does not have a build that satisfies the constraints", e.JobName)
 }
 
 type version struct {
@@ -160,7 +160,7 @@ func (im *inputMapper) computeNextInputs(configs InputConfigs, versionsDB *db.Ve
 			}
 
 			inputResult = db.InputResult{
-				Input: db.AlgorithmInput{
+				Input: &db.AlgorithmInput{
 					AlgorithmVersion: db.AlgorithmVersion{
 						ResourceID: config.ResourceID,
 						VersionID:  versions[i].ID,
@@ -375,6 +375,7 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 						}
 
 						if db.DisabledVersionIDs[output.VersionID] {
+							debug("disabled", output.VersionID, jobID)
 							mismatch = true
 							break outputs
 						}
@@ -439,7 +440,13 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 			// we've exhausted all the builds and never found a matching input set;
 			// give up on this input
 			if unresolvedCandidates[i] == nil {
-				unresolvedCandidates[i] = newCandidateError(NoSatisfiableBuildsForPassedJobError{jobID})
+				var jobName string
+				for jName, jID := range db.JobIDs {
+					if jID == jobID {
+						jobName = jName
+					}
+				}
+				unresolvedCandidates[i] = newCandidateError(NoSatisfiableBuildsForPassedJobError{jobName})
 			}
 			return false, nil
 		}

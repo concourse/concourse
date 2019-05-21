@@ -134,7 +134,7 @@ var _ = Describe("Versions DB", func() {
 
 					err = currentJob.SaveNextInputMapping(db.InputMapping{
 						"input": db.InputResult{
-							Input: db.AlgorithmInput{
+							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
 									VersionID:  version.ID(),
 									ResourceID: resource.ID(),
@@ -227,7 +227,7 @@ var _ = Describe("Versions DB", func() {
 
 					err = currentJob.SaveNextInputMapping(db.InputMapping{
 						"input": db.InputResult{
-							Input: db.AlgorithmInput{
+							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
 									VersionID:  version.ID(),
 									ResourceID: resource.ID(),

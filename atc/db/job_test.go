@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"errors"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -716,13 +717,10 @@ var _ = Describe("Job", func() {
 
 	Describe("GetNextBuildInputs", func() {
 		var (
-			pipeline2           db.Pipeline
 			versions            []atc.ResourceVersion
 			job                 db.Job
-			job2                db.Job
 			resourceConfigScope db.ResourceConfigScope
 			resource            db.Resource
-			resource2           db.Resource
 		)
 
 		BeforeEach(func() {
@@ -736,6 +734,42 @@ var _ = Describe("Job", func() {
 			_, err = brt.FindOrCreate(setupTx, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
+
+			var created bool
+			pipeline, created, err = team.SavePipeline("build-inputs-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						Plan: atc.PlanSequence{
+							{
+								Get:      "some-input",
+								Resource: "some-resource",
+								Passed:   []string{"job-1", "job-2"},
+								Trigger:  true,
+							},
+							{
+								Get:      "some-input-2",
+								Resource: "some-resource",
+								Passed:   []string{"job-1"},
+								Trigger:  true,
+							},
+							{
+								Get:      "some-input-3",
+								Resource: "some-resource",
+								Trigger:  true,
+							},
+						},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+					},
+				},
+			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(created).To(BeTrue())
 
 			var found bool
 			job, found, err = pipeline.Job("some-job")
@@ -756,55 +790,18 @@ var _ = Describe("Job", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			// save metadata for v1
-			_, err = resource.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
-				db.ResourceConfigMetadataField{
-					Name:  "name1",
-					Value: "value1",
-				},
-			}, resourceConfigScope.ResourceConfig(), creds.VersionedResourceTypes{})
-			Expect(err).NotTo(HaveOccurred())
-
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			versions = []atc.ResourceVersion{reversions[2], reversions[1], reversions[0]}
-
-			config := atc.Config{
-				Jobs: atc.JobConfigs{
-					{
-						Name: "some-job",
-					},
-					{
-						Name: "some-other-job",
-					},
-				},
-				Resources: atc.ResourceConfigs{
-					{
-						Name: "some-resource",
-						Type: "some-type",
-					},
-				},
-			}
-
-			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, db.PipelineUnpaused)
-			Expect(err).ToNot(HaveOccurred())
-
-			resource2, found, err = pipeline2.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			job2, found, err = pipeline2.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
 		})
 
 		Describe("partial next build inputs", func() {
 			It("gets partial next build inputs for the given job name", func() {
 				inputVersions := db.InputMapping{
 					"some-input-1": db.InputResult{
-						Input: db.AlgorithmInput{
+						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
 								VersionID:  versions[0].ID,
 								ResourceID: resource.ID(),
@@ -814,33 +811,74 @@ var _ = Describe("Job", func() {
 						PassedBuildIDs: []int{},
 					},
 					"some-input-2": db.InputResult{
-						Input: db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								VersionID:  versions[1].ID,
-								ResourceID: resource.ID(),
-							},
-							FirstOccurrence: true,
-						},
-						PassedBuildIDs: []int{},
+						ResolveError: errors.New("disaster"),
+					},
+					"some-input-3": db.InputResult{
+						ResolveSkipped: true,
 					},
 				}
 
 				err := job.SaveNextInputMapping(inputVersions, false)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipeline2InputVersions := db.InputMapping{
+				buildInputs := []db.BuildInput{
+					{
+						Name:            "some-input-1",
+						ResourceID:      resource.ID(),
+						Version:         atc.Version{"version": "v1"},
+						FirstOccurrence: false,
+					},
+					{
+						Name:         "some-input-2",
+						ResolveError: errors.New("disaster"),
+					},
+					{
+						Name:           "some-input-3",
+						ResolveSkipped: true,
+					},
+				}
+
+				actualBuildInputs, err := job.GetNextBuildInputs()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
+			})
+
+			It("gets full next build inputs for the given job name", func() {
+				inputVersions := db.InputMapping{
+					"some-input-1": db.InputResult{
+						Input: &db.AlgorithmInput{
+							AlgorithmVersion: db.AlgorithmVersion{
+								VersionID:  versions[0].ID,
+								ResourceID: resource.ID(),
+							},
+							FirstOccurrence: false,
+						},
+						PassedBuildIDs: []int{},
+					},
+					"some-input-2": db.InputResult{
+						Input: &db.AlgorithmInput{
+							AlgorithmVersion: db.AlgorithmVersion{
+								VersionID:  versions[1].ID,
+								ResourceID: resource.ID(),
+							},
+							FirstOccurrence: false,
+						},
+						PassedBuildIDs: []int{},
+					},
 					"some-input-3": db.InputResult{
-						Input: db.AlgorithmInput{
+						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
 								VersionID:  versions[2].ID,
-								ResourceID: resource2.ID(),
+								ResourceID: resource.ID(),
 							},
 							FirstOccurrence: false,
 						},
 						PassedBuildIDs: []int{},
 					},
 				}
-				err = job2.SaveNextInputMapping(pipeline2InputVersions, false)
+
+				err := job.SaveNextInputMapping(inputVersions, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				buildInputs := []db.BuildInput{
@@ -854,7 +892,13 @@ var _ = Describe("Job", func() {
 						Name:            "some-input-2",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v2"},
-						FirstOccurrence: true,
+						FirstOccurrence: false,
+					},
+					{
+						Name:            "some-input-3",
+						ResourceID:      resource.ID(),
+						Version:         atc.Version{"version": "v3"},
+						FirstOccurrence: false,
 					},
 				}
 
@@ -862,60 +906,6 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
-
-				By("updating the set of partial next build inputs")
-				inputVersions2 := db.InputMapping{
-					"some-input-2": db.InputResult{
-						Input: db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								VersionID:  versions[2].ID,
-								ResourceID: resource.ID(),
-							},
-							FirstOccurrence: false,
-						},
-						PassedBuildIDs: []int{},
-					},
-					"some-input-3": db.InputResult{
-						Input: db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								VersionID:  versions[2].ID,
-								ResourceID: resource.ID(),
-							},
-							FirstOccurrence: true,
-						},
-						PassedBuildIDs: []int{},
-					},
-				}
-				err = job.SaveNextInputMapping(inputVersions2, false)
-				Expect(err).NotTo(HaveOccurred())
-
-				buildInputs2 := []db.BuildInput{
-					{
-						Name:            "some-input-2",
-						ResourceID:      resource.ID(),
-						Version:         atc.Version{"version": "v3"},
-						FirstOccurrence: false,
-					},
-					{
-						Name:            "some-input-3",
-						ResourceID:      resource.ID(),
-						Version:         atc.Version{"version": "v3"},
-						FirstOccurrence: true,
-					},
-				}
-
-				actualBuildInputs2, err := job.GetNextBuildInputs()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(actualBuildInputs2).To(ConsistOf(buildInputs2))
-
-				By("updating next build inputs to an empty set when the mapping is nil")
-				err = job.SaveNextInputMapping(nil, false)
-				Expect(err).NotTo(HaveOccurred())
-
-				actualBuildInputs3, err := job.GetNextBuildInputs()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(actualBuildInputs3).To(BeEmpty())
 			})
 		})
 	})
@@ -1009,7 +999,7 @@ var _ = Describe("Job", func() {
 		It("gets next build inputs for the given job name", func() {
 			inputVersions := db.InputMapping{
 				"some-input-1": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							VersionID:  versions[0].ID,
 							ResourceID: resource.ID(),
@@ -1019,7 +1009,7 @@ var _ = Describe("Job", func() {
 					PassedBuildIDs: []int{},
 				},
 				"some-input-2": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							VersionID:  versions[1].ID,
 							ResourceID: resource.ID(),
@@ -1034,7 +1024,7 @@ var _ = Describe("Job", func() {
 
 			pipeline2InputVersions := db.InputMapping{
 				"some-input-3": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							VersionID:  versions[2].ID,
 							ResourceID: resource2.ID(),
@@ -1071,7 +1061,7 @@ var _ = Describe("Job", func() {
 			By("updating the set of next build inputs")
 			inputVersions2 := db.InputMapping{
 				"some-input-2": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							VersionID:  versions[2].ID,
 							ResourceID: resource.ID(),
@@ -1081,7 +1071,7 @@ var _ = Describe("Job", func() {
 					PassedBuildIDs: []int{},
 				},
 				"some-input-3": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							VersionID:  versions[2].ID,
 							ResourceID: resource.ID(),
@@ -1143,7 +1133,7 @@ var _ = Describe("Job", func() {
 		It("does not grab inputs if inputs were not successfully determined", func() {
 			inputVersions := db.InputMapping{
 				"some-input-1": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							VersionID:  versions[0].ID,
 							ResourceID: resource.ID(),
@@ -1153,7 +1143,7 @@ var _ = Describe("Job", func() {
 					PassedBuildIDs: []int{},
 				},
 				"some-input-2": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							VersionID:  versions[1].ID,
 							ResourceID: resource.ID(),

@@ -230,7 +230,7 @@ var _ = Describe("Resolve", func() {
 		It("sets FirstOccurrence to false", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
 						FirstOccurrence:  false,
 					},
@@ -257,7 +257,7 @@ var _ = Describe("Resolve", func() {
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
 						FirstOccurrence:  true,
 					},
@@ -284,7 +284,7 @@ var _ = Describe("Resolve", func() {
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
 						FirstOccurrence:  true,
 					},
@@ -311,7 +311,7 @@ var _ = Describe("Resolve", func() {
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
 						FirstOccurrence:  true,
 					},
@@ -337,7 +337,7 @@ var _ = Describe("Resolve", func() {
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
-					Input: db.AlgorithmInput{
+					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
 						FirstOccurrence:  true,
 					},

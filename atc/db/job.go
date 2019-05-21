@@ -15,6 +15,14 @@ import (
 	"github.com/lib/pq"
 )
 
+type InputVersionEmptyError struct {
+	InputName string
+}
+
+func (e InputVersionEmptyError) Error() string {
+	return fmt.Sprintf("input '%s' has successfully resolved but contains missing version information", e.InputName)
+}
+
 //go:generate counterfeiter . Job
 
 type Job interface {
@@ -703,8 +711,6 @@ func (j *job) getNewBuildName(tx Tx) (string, error) {
 	return buildName, err
 }
 
-//TODO: don't worry about verifying if things have changed
-// just remove all inputs for a build and bulk insert new ones
 func (j *job) SaveNextInputMapping(inputMapping InputMapping, inputsDetermined bool) error {
 	tx, err := j.conn.Begin()
 	if err != nil {
@@ -744,6 +750,10 @@ func (j *job) SaveNextInputMapping(inputMapping InputMapping, inputsDetermined b
 		} else if inputResult.ResolveSkipped == true {
 			resolveSkipped = true
 		} else {
+			if inputResult.Input == nil {
+				return InputVersionEmptyError{inputName}
+			}
+
 			firstOccurrence = sql.NullBool{Bool: inputResult.Input.FirstOccurrence, Valid: true}
 			versionID = sql.NullInt64{Int64: int64(inputResult.Input.VersionID), Valid: true}
 			resourceID = sql.NullInt64{Int64: int64(inputResult.Input.ResourceID), Valid: true}
