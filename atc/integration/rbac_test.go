@@ -90,6 +90,37 @@ jobs:
 				})
 			})
 
+			Context("when the role is pipeline-operator", func() {
+				BeforeEach(func() {
+					team.Auth = atc.TeamAuth{
+						"pipeline-operator": map[string][]string{
+							"users":  []string{"local:po-user"},
+							"groups": []string{},
+						},
+						"owner": map[string][]string{
+							"users":  []string{"local:test"},
+							"groups": []string{},
+						},
+					}
+				})
+
+				It("should be able to view the pipelines", func() {
+					ccClient := login(atcURL, "po-user", "po-user")
+
+					pipelines, err := ccClient.Team(team.Name).ListPipelines()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pipelines).To(HaveLen(1))
+				})
+
+				It("should NOT be able to set pipelines", func() {
+					ccClient := login(atcURL, "po-user", "po-user")
+
+					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig("pipeline-new", "0", pipelineData, false)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("forbidden"))
+				})
+			})
+
 			Context("when the role is member", func() {
 				BeforeEach(func() {
 					team.Auth = atc.TeamAuth{

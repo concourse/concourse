@@ -53,3 +53,4 @@ type Callback
     | PlanAndResourcesFetched Int (Fetched ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Fetched ())
     | VisibilityChanged VisibilityAction Concourse.PipelineIdentifier (Fetched ())
+    | PipelinesFetched (Fetched (List Concourse.Pipeline))

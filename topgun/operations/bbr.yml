@@ -5,10 +5,6 @@
     version: ((backup_and_restore_sdk_release_version))
 
 - type: replace
-  path: /releases/name=postgres/version
-  value: 31
-
-- type: replace
   path: /instance_groups/name=db/jobs/-
   value:
     name: database-backup-restorer

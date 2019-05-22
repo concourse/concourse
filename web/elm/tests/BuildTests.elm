@@ -20,6 +20,7 @@ import Dict
 import Expect
 import Html.Attributes as Attr
 import Http
+import Json.Encode as Encode
 import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
@@ -56,37 +57,21 @@ all =
                 , buildName = "1"
                 }
 
+            flags =
+                { turbulenceImgSrc = ""
+                , notFoundImgSrc = ""
+                , csrfToken = csrfToken
+                , authToken = ""
+                , clusterName = ""
+                , pipelineRunningKeyframes = ""
+                }
+
             pageLoadJobBuild =
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
+                Common.init
+                    "/teams/team/pipelines/pipeline/jobs/job/builds/1"
 
             pageLoadOneOffBuild =
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/builds/1"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
+                Common.init "/builds/1"
 
             theBuild : Concourse.Build
             theBuild =
@@ -253,33 +238,18 @@ all =
             csrfToken =
                 "csrf_token"
 
+            eventsUrl : String
+            eventsUrl =
+                "http://localhost:8080/api/v1/builds/307/events"
+
             initFromApplication : Application.Model
             initFromApplication =
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/teams/t/pipelines/p/jobs/j/builds/1"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
         in
         [ test "converts URL hash to highlighted line in view" <|
             \_ ->
                 Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
+                    flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
@@ -326,7 +296,7 @@ all =
                         (Msgs.DeliveryReceived <|
                             EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.StartTask
                                                 { source = "stdout"
@@ -334,7 +304,7 @@ all =
                                                 }
                                                 (Time.millisToPosix 0)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.Log
                                                 { source = "stdout"
@@ -352,16 +322,242 @@ all =
                         , containing [ text "log message" ]
                         ]
                     |> Query.has [ class "highlighted-line" ]
+        , test "scrolls to highlighted line" <|
+            \_ ->
+                Application.init
+                    flags
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/jobs/j/builds/307"
+                    , query = Nothing
+                    , fragment = Just "Lstepid:1"
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 307
+                                  , name = "307"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message"
+                                                Nothing
+                                      }
+                                    ]
+                        )
+                    |> Tuple.second
+                    |> List.member (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
+                    |> Expect.true
+                        ("should scroll to highlighted line"
+                            ++ " as soon as it is rendered"
+                        )
+        , test "scrolls to top of highlighted range" <|
+            \_ ->
+                Application.init
+                    flags
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/jobs/j/builds/307"
+                    , query = Nothing
+                    , fragment = Just "Lstepid:1:3"
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 307
+                                  , name = "307"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message"
+                                                Nothing
+                                      }
+                                    ]
+                        )
+                    |> Tuple.second
+                    |> List.member (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
+                    |> Expect.true
+                        ("should scroll to highlighted line"
+                            ++ " as soon as it is rendered"
+                        )
+        , test "does not scroll to an invalid range" <|
+            \_ ->
+                Application.init
+                    flags
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/jobs/j/builds/307"
+                    , query = Nothing
+                    , fragment = Just "Lstepid:2:1"
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 307
+                                  , name = "307"
+                                  , job =
+                                        Just
+                                            { teamName = "t"
+                                            , pipelineName = "p"
+                                            , jobName = "j"
+                                            }
+                                  , status = Concourse.BuildStatusStarted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 307 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message\n"
+                                                Nothing
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.Log
+                                                { source = "stdout"
+                                                , id = "stepid"
+                                                }
+                                                "log message"
+                                                Nothing
+                                      }
+                                    ]
+                        )
+                    |> Tuple.second
+                    |> List.member (Effects.Scroll (Effects.ToId "stepid:2") "build-body")
+                    |> Expect.false "should not scroll"
         , describe "page title"
             [ test "with a job build" <|
                 \_ ->
                     Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
+                        flags
                         { protocol = Url.Http
                         , host = ""
                         , port_ = Nothing
@@ -378,12 +574,7 @@ all =
             , test "with a one-off-build" <|
                 \_ ->
                     Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
+                        flags
                         { protocol = Url.Http
                         , host = ""
                         , port_ = Nothing
@@ -399,12 +590,7 @@ all =
             , test "with just the page name" <|
                 \_ ->
                     Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = ""
-                        , csrfToken = ""
-                        , authToken = ""
-                        , pipelineRunningKeyframes = ""
-                        }
+                        flags
                         { protocol = Url.Http
                         , host = ""
                         , port_ = Nothing
@@ -520,15 +706,18 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "not-authorized" ]
+        , test "focuses build body when build is fetched" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                    |> Tuple.second
+                    |> List.member (Effects.Focus Build.bodyId)
+                    |> Expect.true "should focus build body"
         , test "events from a different build are discarded" <|
             \_ ->
                 Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
+                    flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
@@ -597,21 +786,7 @@ all =
                     |> Query.hasNot [ text "bad message" ]
         , test "log lines have timestamps in current zone" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/builds/1"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/builds/1"
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
@@ -683,7 +858,8 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
+                    |> List.member (Effects.Scroll Effects.ToBottom "build-body")
+                    |> Expect.true "should scroll to bottom"
         , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 initFromApplication
@@ -696,6 +872,34 @@ all =
                         }
                     |> Tuple.second
                     |> Expect.equal []
+        , test "build body has scroll handler" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "build-body" ]
+                    |> Event.simulate
+                        (Event.custom "scroll" <|
+                            Encode.object
+                                [ ( "target"
+                                  , Encode.object
+                                        [ ( "clientHeight", Encode.int 0 )
+                                        , ( "scrollTop", Encode.int 0 )
+                                        , ( "scrollHeight", Encode.int 0 )
+                                        ]
+                                  )
+                                ]
+                        )
+                    |> Event.expect
+                        (Msgs.Update <|
+                            Message.Message.Scrolled
+                                { scrollHeight = 0
+                                , scrollTop = 0
+                                , clientHeight = 0
+                                }
+                        )
         , test "when build is running but the user is not scrolled to the bottom it does not scroll on build event" <|
             \_ ->
                 initFromApplication
@@ -703,7 +907,13 @@ all =
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update
-                        (Msgs.DeliveryReceived (ScrolledToBottom False))
+                        (Msgs.Update <|
+                            Message.Message.Scrolled
+                                { scrollHeight = 2
+                                , scrollTop = 0
+                                , clientHeight = 1
+                                }
+                        )
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
@@ -718,17 +928,29 @@ all =
                         (Callback.BuildFetched <| Ok ( 1, startedBuild ))
                     |> Tuple.first
                     |> Application.update
-                        (Msgs.DeliveryReceived (ScrolledToBottom False))
+                        (Msgs.Update <|
+                            Message.Message.Scrolled
+                                { scrollHeight = 2
+                                , scrollTop = 0
+                                , clientHeight = 1
+                                }
+                        )
                     |> Tuple.first
                     |> Application.update
-                        (Msgs.DeliveryReceived (ScrolledToBottom True))
+                        (Msgs.Update <|
+                            Message.Message.Scrolled
+                                { scrollHeight = 2
+                                , scrollTop = 1
+                                , clientHeight = 1
+                                }
+                        )
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
                         , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToBottom "build-body" ]
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
                 initFromApplication
@@ -819,7 +1041,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToTop ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToTop "build-body" ]
         , test "pressing 'G' scrolls to the bottom" <|
             \_ ->
                 initFromApplication
@@ -836,7 +1058,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToBottom ]
+                    |> Expect.equal [ Effects.Scroll Effects.ToBottom "build-body" ]
         , test "pressing 'g' once does nothing" <|
             \_ ->
                 initFromApplication
@@ -876,12 +1098,25 @@ all =
         , test "says 'loading' on page load" <|
             \_ ->
                 pageLoadJobBuild
-                    |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "loading" ]
         , test "fetches build on page load" <|
             \_ ->
-                pageLoadJobBuild
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , clusterName = ""
+                    , pipelineRunningKeyframes = "pipeline-running"
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
                     |> Tuple.second
                     |> List.member
                         (Effects.FetchJobBuild 1
@@ -894,7 +1129,21 @@ all =
                     |> Expect.true "should fetch build"
         , test "gets current timezone on page load" <|
             \_ ->
-                pageLoadJobBuild
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , clusterName = ""
+                    , pipelineRunningKeyframes = "pipeline-running"
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
                     |> Tuple.second
                     |> List.member Effects.GetCurrentTimeZone
                     |> Expect.true "should get timezone"
@@ -902,13 +1151,11 @@ all =
             [ test "has a top bar" <|
                 \_ ->
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> Common.queryView
                         |> Query.has [ id "top-bar-app" ]
             , test "has a concourse icon" <|
                 \_ ->
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
@@ -918,7 +1165,6 @@ all =
             , test "has the breadcrumbs" <|
                 \_ ->
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Expect.all
@@ -930,7 +1176,6 @@ all =
             , test "has the breadcrumbs after fetching build" <|
                 \_ ->
                     pageLoadOneOffBuild
-                        |> Tuple.first
                         |> fetchBuild
                         |> Tuple.first
                         |> Common.queryView
@@ -944,7 +1189,6 @@ all =
             , test "has a user section" <|
                 \_ ->
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has [ id "login-component" ]
@@ -952,26 +1196,34 @@ all =
         , test "page below top bar has padding to accomodate top bar" <|
             \_ ->
                 pageLoadJobBuild
-                    |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has [ style "padding-top" "54px" ]
+        , test "page below top bar fills vertically without scrolling" <|
+            \_ ->
+                pageLoadJobBuild
+                    |> Common.queryView
+                    |> Query.find [ id "page-below-top-bar" ]
+                    |> Query.has
+                        [ style "height" "100%"
+                        , style "box-sizing" "border-box"
+                        ]
         , describe "after build is fetched" <|
             let
                 givenBuildFetched _ =
-                    pageLoadJobBuild |> Tuple.first |> fetchBuild
+                    pageLoadJobBuild |> fetchBuild
             in
             [ test "has a header after the build is fetched" <|
                 givenBuildFetched
                     >> Tuple.first
                     >> Common.queryView
                     >> Query.has [ id "build-header" ]
-            , test "page body has padding to accomodate header" <|
+            , test "build body scrolls independently of page frame" <|
                 givenBuildFetched
                     >> Tuple.first
                     >> Common.queryView
                     >> Query.find [ id "build-body" ]
-                    >> Query.has [ style "padding-top" "104px" ]
+                    >> Query.has [ style "overflow-y" "auto" ]
             , test "fetches build history and job details after build is fetched" <|
                 givenBuildFetched
                     >> Tuple.second
@@ -1068,7 +1320,6 @@ all =
                 [ test "pending build has grey banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusPending
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1076,7 +1327,6 @@ all =
                 , test "started build has yellow banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusStarted
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1084,7 +1334,6 @@ all =
                 , test "succeeded build has green banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1092,7 +1341,6 @@ all =
                 , test "failed build has red banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusFailed
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1100,7 +1348,6 @@ all =
                 , test "errored build has amber banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusErrored
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1108,7 +1355,6 @@ all =
                 , test "aborted build has brown banner" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusAborted
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
@@ -1118,7 +1364,6 @@ all =
                 [ test "pending build has grey tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusPending
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1127,7 +1372,6 @@ all =
                 , test "started build has animated striped yellow tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusStarted
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1136,7 +1380,6 @@ all =
                 , test "succeeded build has green tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusSucceeded
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1145,7 +1388,6 @@ all =
                 , test "failed build has red tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusFailed
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1154,7 +1396,6 @@ all =
                 , test "errored build has amber tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusErrored
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1163,7 +1404,6 @@ all =
                 , test "aborted build has brown tab in build history" <|
                     \_ ->
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchBuildWithStatus Concourse.BuildStatusAborted
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
@@ -1195,6 +1435,20 @@ all =
                         >> Query.has
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
+                            ]
+                , test """page contents lay out vertically, filling available 
+                          space without scrolling horizontally""" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "page-below-top-bar" ]
+                        >> Query.children []
+                        >> Query.index 1
+                        >> Query.has
+                            [ style "flex-grow" "1"
+                            , style "display" "flex"
+                            , style "flex-direction" "column"
+                            , style "overflow" "hidden"
                             ]
                 , test "pressing 'L' switches to the next build" <|
                     givenBuildFetched
@@ -1536,7 +1790,7 @@ all =
                         >> Application.handleDelivery
                             (Subscription.ElementVisible ( "1", False ))
                         >> Tuple.second
-                        >> Expect.equal [ Effects.Scroll <| Effects.ToId "1" ]
+                        >> Expect.equal [ Effects.Scroll (Effects.ToId "1") "builds" ]
                 , test "does not scroll to current build more than once" <|
                     givenBuildFetched
                         >> Tuple.first
@@ -1740,7 +1994,6 @@ all =
             let
                 givenBuildStarted _ =
                     pageLoadJobBuild
-                        |> Tuple.first
                         |> fetchBuildWithStatus Concourse.BuildStatusStarted
                         |> fetchHistory
                         |> Tuple.first
@@ -1954,7 +2207,6 @@ all =
                 let
                     preBuildPlanReceived _ =
                         pageLoadJobBuild
-                            |> Tuple.first
                             |> fetchStartedBuild
                             |> Tuple.first
                             |> fetchHistory
@@ -2500,7 +2752,7 @@ all =
                             (EventsReceived <|
                                 Ok <|
                                     [ { url =
-                                            "http://localhost:8080/api/v1/builds/307/events"
+                                            eventsUrl
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusFailed
@@ -2527,7 +2779,7 @@ all =
                             (EventsReceived <|
                                 Ok <|
                                     [ { url =
-                                            "http://localhost:8080/api/v1/builds/307/events"
+                                            eventsUrl
                                       , data =
                                             STModels.FinishGet
                                                 { source = "stdout"
@@ -2557,7 +2809,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
@@ -2579,19 +2831,19 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.InitializeTask
                                                 { source = "stdout", id = "plan" }
                                                 (Time.millisToPosix 0)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.StartTask
                                                 { source = "stdout", id = "plan" }
                                                 (Time.millisToPosix 10000)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.FinishTask
                                                 { source = "stdout", id = "plan" }
@@ -2626,19 +2878,19 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.InitializeTask
                                                 { source = "stdout", id = "plan" }
                                                 (Time.millisToPosix 0)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.StartTask
                                                 { source = "stdout", id = "plan" }
                                                 (Time.millisToPosix 10000)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.FinishTask
                                                 { source = "stdout", id = "plan" }
@@ -2673,7 +2925,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.StartTask
                                                 { source = "stdout"
@@ -2710,7 +2962,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.InitializeTask
                                                 { source = "stdout"
@@ -2718,7 +2970,7 @@ all =
                                                 }
                                                 (Time.millisToPosix 0)
                                       }
-                                    , { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    , { url = eventsUrl
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusAborted
@@ -2743,7 +2995,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.BuildStatus
                                                 Concourse.BuildStatusAborted
@@ -2768,7 +3020,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.FinishGet
                                                 { source = "stdout", id = "plan" }
@@ -2796,7 +3048,7 @@ all =
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
-                                    [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                    [ { url = eventsUrl
                                       , data =
                                             STModels.Error
                                                 { source = "stderr", id = "plan" }
@@ -2817,64 +3069,49 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
-                , describe "erroring build" <|
-                    [ test "has orange exclamation triangle at left" <|
-                        fetchPlanWithGetStep
-                            >> Application.handleDelivery
-                                (EventsReceived <|
-                                    Ok <|
-                                        [ { url = "http://localhost:8080/api/v1/builds/307/events"
-                                          , data = STModels.Opened
-                                          }
-                                        ]
-                                )
-                            >> Tuple.first
-                            >> Application.handleDelivery
-                                (EventsReceived <|
-                                    Ok <|
-                                        [ { url = "http://localhost:8080/api/v1/builds/307/events"
-                                          , data =
-                                                STModels.BuildError
-                                                    "error message"
-                                          }
-                                        ]
-                                )
-                            >> Tuple.first
-                            >> Common.queryView
-                            >> Query.findAll [ class "header" ]
-                            >> Query.first
-                            >> Query.children []
-                            >> Query.first
-                            >> Query.has
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = "ic-exclamation-triangle.svg"
-                                    }
-                                    ++ [ style "background-size" "14px 14px" ]
-                                )
-                    , test "has passport officer icon" <|
-                        let
-                            imgUrl =
-                                "/public/images/passport-officer-ic.svg"
-
-                            eventsUrl =
-                                "http://localhost:8080/api/v1/builds/307/events"
-                        in
-                        fetchPlanWithGetStep
-                            >> Application.handleDelivery
-                                (EventsReceived <|
-                                    Ok
-                                        [ { data = STModels.NetworkError
-                                          , url = eventsUrl
-                                          }
-                                        ]
-                                )
-                            >> Tuple.first
-                            >> Common.queryView
-                            >> Query.find [ class "not-authorized" ]
-                            >> Query.find [ tag "img" ]
-                            >> Query.has [ attribute <| Attr.src imgUrl ]
-                    ]
+                , test "network error on first event shows passport officer" <|
+                    let
+                        imgUrl =
+                            "/public/images/passport-officer-ic.svg"
+                    in
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok
+                                    [ { data = STModels.NetworkError
+                                      , url = eventsUrl
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ class "not-authorized" ]
+                        >> Query.find [ tag "img" ]
+                        >> Query.has [ attribute <| Attr.src imgUrl ]
+                , test """network error after first event fails silently
+                          (EventSource browser API will retry connection)""" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok
+                                    [ { url = eventsUrl
+                                      , data = STModels.Opened
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok
+                                    [ { data = STModels.NetworkError
+                                      , url = eventsUrl
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.findAll [ class "not-authorized" ]
+                        >> Query.count (Expect.equal 0)
                 ]
             , describe "get step with metadata" <|
                 let
@@ -2892,12 +3129,7 @@ all =
 
                     metadataView =
                         Application.init
-                            { turbulenceImgSrc = ""
-                            , notFoundImgSrc = ""
-                            , csrfToken = "csrf_token"
-                            , authToken = ""
-                            , pipelineRunningKeyframes = ""
-                            }
+                            flags
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing
@@ -2945,7 +3177,7 @@ all =
                                 (Msgs.DeliveryReceived <|
                                     EventsReceived <|
                                         Ok <|
-                                            [ { url = "http://localhost:8080/api/v1/builds/307/events"
+                                            [ { url = eventsUrl
                                               , data =
                                                     STModels.FinishGet
                                                         { source = "stdout"

@@ -40,6 +40,7 @@ type Message
     | Hover (Maybe DomID)
     | Click DomID
     | GoToRoute Routes.Route
+    | Scrolled StrictEvents.ScrollState
 
 
 type DomID
@@ -72,6 +73,9 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Concourse.Build
+    | HamburgerMenu
+    | SideBarTeam String
+    | SideBarPipeline Concourse.PipelineIdentifier
 
 
 type VersionToggleAction

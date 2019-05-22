@@ -1,5 +1,7 @@
 module Build.Build exposing
-    ( changeToBuild
+    ( bodyId
+    , changeToBuild
+    , currentJob
     , documentTitle
     , getScrollBehavior
     , getUpdateMessage
@@ -11,6 +13,7 @@ module Build.Build exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Build.Models exposing (BuildPageType(..), CurrentBuild, Model)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
@@ -32,6 +35,7 @@ import Html.Attributes
         , href
         , id
         , style
+        , tabindex
         , title
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
@@ -48,11 +52,11 @@ import Message.Subscription as Subscription exposing (Delivery(..), Interval(..)
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import Routes
-import StrictEvents exposing (onLeftClick, onMouseWheel)
+import SideBar.SideBar as SideBar
+import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
 import Time
 import UpdateMsg exposing (UpdateMsg)
-import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
@@ -60,6 +64,16 @@ import Views.NotAuthorized as NotAuthorized
 import Views.Spinner as Spinner
 import Views.Styles
 import Views.TopBar as TopBar
+
+
+bodyId : String
+bodyId =
+    "build-body"
+
+
+historyId : String
+historyId =
+    "builds"
 
 
 type alias Flags =
@@ -70,6 +84,7 @@ type alias Flags =
 
 type ScrollBehavior
     = ScrollWindow
+    | ScrollToID String
     | NoScroll
 
 
@@ -89,7 +104,6 @@ init flags =
           , previousTriggerBuildByKey = False
           , showHelp = False
           , highlight = flags.highlight
-          , hoveredElement = Nothing
           , hoveredCounter = 0
           , authorized = True
           , fetchingHistory = False
@@ -98,7 +112,7 @@ init flags =
           , isUserMenuExpanded = False
           , timeZone = Time.utc
           }
-        , [ GetCurrentTime, GetCurrentTimeZone ]
+        , [ GetCurrentTime, GetCurrentTimeZone, FetchPipelines ]
         )
 
 
@@ -112,7 +126,7 @@ subscriptions model =
                 |> Maybe.andThen .eventStreamUrlPath
     in
     [ OnClockTick OneSecond
-    , OnScrollToBottom
+    , OnClockTick FiveSeconds
     , OnKeyDown
     , OnKeyUp
     , OnElementVisible
@@ -310,8 +324,8 @@ handleCallback action ( model, effects ) =
             ( model, effects )
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery ( model, effects ) =
+handleDelivery : { a | hovered : Maybe DomID } -> Delivery -> ET Model
+handleDelivery session delivery ( model, effects ) =
     case delivery of
         KeyDown keyEvent ->
             handleKeyPressed keyEvent ( model, effects )
@@ -334,60 +348,58 @@ handleDelivery delivery ( model, effects ) =
             in
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <|
-                    StepTree.updateTooltip newModel
+                    StepTree.updateTooltip session newModel
                 )
                 ( newModel, effects )
 
-        ScrolledToBottom atBottom ->
-            ( { model | autoScroll = atBottom }, effects )
+        ClockTicked FiveSeconds _ ->
+            ( model, effects ++ [ Effects.FetchPipelines ] )
 
         EventsReceived result ->
             let
-                scrollEffects =
-                    case getScrollBehavior model of
-                        ScrollWindow ->
-                            effects ++ [ Effects.Scroll Effects.ToBottom ]
+                eventSourceClosed =
+                    model.currentBuild
+                        |> RemoteData.toMaybe
+                        |> Maybe.andThen .output
+                        |> Maybe.map (.eventSourceOpened >> not)
+                        |> Maybe.withDefault False
 
-                        NoScroll ->
-                            effects
+                batchContainsNetworkError =
+                    result
+                        |> Result.map (List.map .data)
+                        |> Result.map (List.member STModels.NetworkError)
+                        |> Result.withDefault False
             in
             case result of
                 Ok envelopes ->
-                    let
-                        newModel =
-                            if
-                                List.map .data envelopes
-                                    |> List.member STModels.NetworkError
-                            then
-                                { model | authorized = False }
-
-                            else
-                                model
-                    in
                     updateOutput
                         (Build.Output.Output.handleEnvelopes envelopes)
-                        ( newModel, scrollEffects )
+                        ( if eventSourceClosed && batchContainsNetworkError then
+                            { model | authorized = False }
 
-                Err _ ->
-                    let
-                        eventSourceOpened =
-                            model.currentBuild
-                                |> RemoteData.toMaybe
-                                |> Maybe.andThen .output
-                                |> Maybe.map .eventSourceOpened
-                                |> Maybe.withDefault True
-                    in
-                    ( if eventSourceOpened then
-                        -- connection could have dropped out of the blue;
-                        -- just let the browser handle reconnecting
-                        model
+                          else
+                            model
+                        , case getScrollBehavior model of
+                            ScrollWindow ->
+                                effects
+                                    ++ [ Effects.Scroll
+                                            Effects.ToBottom
+                                            bodyId
+                                       ]
 
-                      else
-                        -- assume request was rejected because auth is required;
-                        -- no way to really tell
-                        { model | authorized = False }
-                    , scrollEffects
-                    )
+                            ScrollToID id ->
+                                effects
+                                    ++ [ Effects.Scroll
+                                            (Effects.ToId id)
+                                            bodyId
+                                       ]
+
+                            NoScroll ->
+                                effects
+                        )
+
+                _ ->
+                    ( model, effects )
 
         ElementVisible ( id, True ) ->
             let
@@ -433,7 +445,7 @@ handleDelivery delivery ( model, effects ) =
             ( { model | scrolledToCurrentBuild = True }
             , effects
                 ++ (if shouldScroll then
-                        [ Scroll <| ToId id ]
+                        [ Scroll (ToId id) historyId ]
 
                     else
                         []
@@ -444,8 +456,8 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Message -> ET Model
-update msg ( model, effects ) =
+update : { a | hovered : Maybe DomID } -> Message -> ET Model
+update session msg ( model, effects ) =
     case msg of
         Click (BuildTab build) ->
             ( model
@@ -453,13 +465,13 @@ update msg ( model, effects ) =
                 ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
             )
 
-        Hover state ->
+        Hover _ ->
             let
                 newModel =
-                    { model | hoveredElement = state, hoveredCounter = 0 }
+                    { model | hoveredCounter = 0 }
             in
             updateOutput
-                (Build.Output.Output.handleStepTreeMsg <| StepTree.updateTooltip newModel)
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.updateTooltip session newModel)
                 ( newModel, effects )
 
         Click TriggerBuildButton ->
@@ -502,10 +514,10 @@ update msg ( model, effects ) =
             let
                 scroll =
                     if event.deltaX == 0 then
-                        [ Scroll (Element "builds" event.deltaY) ]
+                        [ Scroll (Sideways event.deltaY) historyId ]
 
                     else
-                        [ Scroll (Element "builds" -event.deltaX) ]
+                        [ Scroll (Sideways -event.deltaX) historyId ]
 
                 checkVisibility =
                     case model.history |> List.Extra.last of
@@ -520,30 +532,47 @@ update msg ( model, effects ) =
         GoToRoute route ->
             ( model, effects ++ [ NavigateTo <| Routes.toString <| route ] )
 
+        Scrolled { scrollHeight, scrollTop, clientHeight } ->
+            ( { model | autoScroll = scrollHeight == scrollTop + clientHeight }
+            , effects
+            )
+
         _ ->
             ( model, effects )
 
 
 getScrollBehavior : Model -> ScrollBehavior
 getScrollBehavior model =
-    if model.autoScroll then
-        case model.currentBuild |> RemoteData.toMaybe of
-            Nothing ->
+    case model.highlight of
+        Routes.HighlightLine stepID lineNumber ->
+            ScrollToID <| stepID ++ ":" ++ String.fromInt lineNumber
+
+        Routes.HighlightRange stepID beginning end ->
+            if beginning <= end then
+                ScrollToID <| stepID ++ ":" ++ String.fromInt beginning
+
+            else
                 NoScroll
 
-            Just cb ->
-                case cb.build.status of
-                    Concourse.BuildStatusSucceeded ->
+        Routes.HighlightNothing ->
+            if model.autoScroll then
+                case model.currentBuild |> RemoteData.toMaybe of
+                    Nothing ->
                         NoScroll
 
-                    Concourse.BuildStatusPending ->
-                        NoScroll
+                    Just cb ->
+                        case cb.build.status of
+                            Concourse.BuildStatusSucceeded ->
+                                NoScroll
 
-                    _ ->
-                        ScrollWindow
+                            Concourse.BuildStatusPending ->
+                                NoScroll
 
-    else
-        NoScroll
+                            _ ->
+                                ScrollWindow
+
+            else
+                NoScroll
 
 
 updateOutput :
@@ -591,7 +620,10 @@ handleKeyPressed keyEvent ( model, effects ) =
             ( Keyboard.H, False ) ->
                 case Maybe.andThen (nextBuild newModel.history) currentBuild of
                     Just build ->
-                        update (Click <| BuildTab build) ( newModel, effects )
+                        ( newModel
+                        , effects
+                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                        )
 
                     Nothing ->
                         ( newModel, [] )
@@ -601,21 +633,26 @@ handleKeyPressed keyEvent ( model, effects ) =
                     Maybe.andThen (prevBuild newModel.history) currentBuild
                 of
                     Just build ->
-                        update (Click <| BuildTab build) ( newModel, effects )
+                        ( newModel
+                        , effects
+                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                        )
 
                     Nothing ->
                         ( newModel, [] )
 
             ( Keyboard.J, False ) ->
-                ( newModel, [ Scroll Down ] )
+                ( newModel, [ Scroll Down bodyId ] )
 
             ( Keyboard.K, False ) ->
-                ( newModel, [ Scroll Up ] )
+                ( newModel, [ Scroll Up bodyId ] )
 
             ( Keyboard.T, True ) ->
                 if not newModel.previousTriggerBuildByKey then
-                    update
-                        (Click TriggerBuildButton)
+                    (currentJob model
+                        |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
+                        |> Maybe.withDefault identity
+                    )
                         ( { newModel | previousTriggerBuildByKey = True }, effects )
 
                 else
@@ -625,8 +662,12 @@ handleKeyPressed keyEvent ( model, effects ) =
                 if currentBuild == List.head newModel.history then
                     case currentBuild of
                         Just _ ->
-                            update
-                                (Click <| AbortBuildButton)
+                            (model.currentBuild
+                                |> RemoteData.toMaybe
+                                |> Maybe.map
+                                    (.build >> .id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
+                                |> Maybe.withDefault identity
+                            )
                                 ( newModel, effects )
 
                         Nothing ->
@@ -636,14 +677,14 @@ handleKeyPressed keyEvent ( model, effects ) =
                     ( newModel, [] )
 
             ( Keyboard.G, True ) ->
-                ( { newModel | autoScroll = True }, [ Scroll ToBottom ] )
+                ( { newModel | autoScroll = True }, [ Scroll ToBottom bodyId ] )
 
             ( Keyboard.G, False ) ->
                 if
                     (model.previousKeyPress |> Maybe.map .code)
                         == Just Keyboard.G
                 then
-                    ( { newModel | autoScroll = False }, [ Scroll ToTop ] )
+                    ( { newModel | autoScroll = False }, [ Scroll ToTop bodyId ] )
 
                 else
                     ( newModel, [] )
@@ -745,7 +786,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                     ( withBuild, effects )
         in
         ( { newModel | fetchingHistory = True }
-        , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status) ]
+        , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status), Focus bodyId ]
         )
 
     else
@@ -821,8 +862,8 @@ documentTitle =
     extractTitle
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view : Session -> Model -> Html Message
+view session model =
     let
         route =
             case model.page of
@@ -842,13 +883,30 @@ view userState model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ TopBar.concourseLogo
+            [ SideBar.hamburgerMenu session
+            , TopBar.concourseLogo
             , breadcrumbs model
-            , Login.view userState model False
+            , Login.view session.userState model False
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ viewBuildPage model ]
+            [ SideBar.view
+                { expandedTeams = session.expandedTeams
+                , pipelines = session.pipelines
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , screenSize = session.screenSize
+                }
+                (currentJob model
+                    |> Maybe.map
+                        (\j ->
+                            { pipelineName = j.pipelineName
+                            , teamName = j.teamName
+                            }
+                        )
+                )
+            , viewBuildPage session model
+            ]
         ]
 
 
@@ -873,15 +931,19 @@ breadcrumbs model =
             Html.text ""
 
 
-viewBuildPage : Model -> Html Message
-viewBuildPage model =
+viewBuildPage : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewBuildPage session model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
             Html.div
                 [ class "with-fixed-header"
                 , attribute "data-build-name" currentBuild.build.name
+                , style "flex-grow" "1"
+                , style "display" "flex"
+                , style "flex-direction" "column"
+                , style "overflow" "hidden"
                 ]
-                [ viewBuildHeader currentBuild.build model
+                [ viewBuildHeader session model currentBuild.build
                 , body
                     { currentBuild = currentBuild
                     , authorized = model.authorized
@@ -904,7 +966,9 @@ body :
 body { currentBuild, authorized, showHelp, timeZone } =
     Html.div
         ([ class "scrollable-body build-body"
-         , id "build-body"
+         , id bodyId
+         , tabindex 0
+         , onScroll Scrolled
          ]
             ++ Styles.body
         )
@@ -1195,8 +1259,12 @@ viewBuildPrepStatus status =
                 ]
 
 
-viewBuildHeader : Concourse.Build -> Model -> Html Message
-viewBuildHeader build model =
+viewBuildHeader :
+    { a | hovered : Maybe DomID }
+    -> Model
+    -> Concourse.Build
+    -> Html Message
+viewBuildHeader session model build =
     let
         triggerButton =
             case currentJob model of
@@ -1206,7 +1274,7 @@ viewBuildHeader build model =
                             model.disableManualTrigger
 
                         buttonHovered =
-                            model.hoveredElement == Just TriggerBuildButton
+                            session.hovered == Just TriggerBuildButton
                     in
                     Html.button
                         ([ attribute "role" "button"
@@ -1248,7 +1316,7 @@ viewBuildHeader build model =
                     Html.text ""
 
         abortHovered =
-            model.hoveredElement == Just AbortBuildButton
+            session.hovered == Just AbortBuildButton
 
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then
@@ -1324,7 +1392,7 @@ lazyViewHistory currentBuild builds =
 
 viewHistory : Concourse.Build -> List Concourse.Build -> Html Message
 viewHistory currentBuild builds =
-    Html.ul [ id "builds" ]
+    Html.ul [ id historyId ]
         (List.map (viewHistoryItem currentBuild) builds)
 
 

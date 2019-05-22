@@ -84,6 +84,7 @@
           notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
           csrfToken: {{ .CSRFToken }},
           authToken: {{ .AuthToken }},
+          clusterName: {{ .ClusterName }},
           pipelineRunningKeyframes: "pipeline-running"
         }
       });
@@ -189,6 +190,15 @@
         }
       }, false);
 
+      var sideBarStateKey = "is_sidebar_open";
+      app.ports.loadSideBarState.subscribe(function() {
+        var sideBarState = sessionStorage.getItem(sideBarStateKey);
+        app.ports.sideBarStateReceived.send(sideBarState);
+      });
+      app.ports.saveSideBarState.subscribe(function(isOpen) {
+        sessionStorage.setItem(sideBarStateKey, isOpen);
+      });
+
       app.ports.openEventStream.subscribe(function(config) {
         var buffer = [];
         var es = new EventSource(config.url);
@@ -215,14 +225,6 @@
         setInterval(flush, 200);
       });
 
-      window.onscroll = function(event) {
-        var yOffset = event.currentTarget.pageYOffset;
-        var clientHeight = event.target.documentElement.clientHeight;
-        var scrollHeight = event.target.documentElement.scrollHeight;
-        var atBottom = scrollHeight === yOffset + clientHeight;
-        app.ports.scrolledToBottom.send(atBottom);
-      }
-
       app.ports.checkIsVisible.subscribe(function(id) {
         var interval = setInterval(function() {
           var element = document.getElementById(id);
@@ -233,38 +235,6 @@
             app.ports.reportIsVisible.send([id, isVisible]);
           }
         }, 20);
-      });
-
-      app.ports.scrollIntoView.subscribe(function(id) {
-        var interval = setInterval(function() {
-          buildTab = document.getElementById(id);
-          if (buildTab) {
-            clearInterval(interval);
-            buildTab.scrollIntoView();
-          }
-        }, 20);
-      });
-
-      app.ports.scrollElement.subscribe(function(arg) {
-        var id = arg[0];
-        var delta = arg[1];
-        document.getElementById(id).scrollLeft -= delta;
-      });
-
-      app.ports.scrollToBottom.subscribe(function() {
-        window.scrollTo(0, document.body.scrollHeight);
-      });
-
-      app.ports.scrollToTop.subscribe(function() {
-        window.scrollTo(0, 0);
-      });
-
-      app.ports.scrollUp.subscribe(function() {
-        window.scrollBy(0, -60);
-      });
-
-      app.ports.scrollDown.subscribe(function() {
-        window.scrollBy(0, 60);
       });
 
       app.ports.setFavicon.subscribe(function(url) {

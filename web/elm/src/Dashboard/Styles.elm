@@ -2,6 +2,7 @@ module Dashboard.Styles exposing
     ( asciiArt
     , cardBody
     , cardFooter
+    , clusterName
     , content
     , dropdownContainer
     , dropdownItem
@@ -71,6 +72,16 @@ content highDensity =
         else
             "0"
     , style "flex-grow" "1"
+    , style "overflow-y" "auto"
+    , style "height" "100%"
+    , style "width" "100%"
+    , style "box-sizing" "border-box"
+    , style "flex-direction" <|
+        if highDensity then
+            "column"
+
+        else
+            "row"
     ]
 
 
@@ -688,4 +699,13 @@ visibilityTooltip =
     , style "padding" "2.5px"
     , style "margin-bottom" "5px"
     , style "right" "-150%"
+    ]
+
+
+clusterName : List (Html.Attribute msg)
+clusterName =
+    [ style "font-size" "21px"
+    , style "color" "#ffffff"
+    , style "letter-spacing" "0.1em"
+    , style "margin-left" "10px"
     ]

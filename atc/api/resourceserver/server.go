@@ -17,7 +17,7 @@ type ScannerFactory interface {
 type Server struct {
 	logger                lager.Logger
 	scannerFactory        ScannerFactory
-	variablesFactory      creds.VariablesFactory
+	secretManager         creds.Secrets
 	resourceFactory       db.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 }
@@ -25,14 +25,14 @@ type Server struct {
 func NewServer(
 	logger lager.Logger,
 	scannerFactory ScannerFactory,
-	variablesFactory creds.VariablesFactory,
+	secretManager creds.Secrets,
 	resourceFactory db.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 ) *Server {
 	return &Server{
 		logger:                logger,
 		scannerFactory:        scannerFactory,
-		variablesFactory:      variablesFactory,
+		secretManager:         secretManager,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 	}

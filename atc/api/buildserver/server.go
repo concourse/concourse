@@ -18,7 +18,6 @@ type Server struct {
 	teamFactory         db.TeamFactory
 	buildFactory        db.BuildFactory
 	eventHandlerFactory EventHandlerFactory
-	drain               <-chan struct{}
 	rejector            auth.Rejector
 }
 
@@ -28,7 +27,6 @@ func NewServer(
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	eventHandlerFactory EventHandlerFactory,
-	drain <-chan struct{},
 ) *Server {
 	return &Server{
 		logger: logger,
@@ -38,7 +36,6 @@ func NewServer(
 		teamFactory:         teamFactory,
 		buildFactory:        buildFactory,
 		eventHandlerFactory: eventHandlerFactory,
-		drain:               drain,
 
 		rejector: auth.UnauthorizedRejector{},
 	}

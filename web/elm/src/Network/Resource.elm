@@ -63,13 +63,25 @@ fetchVersionedResource vrid =
             ++ String.fromInt vrid.versionID
 
 
-fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Task Http.Error (Paginated Concourse.VersionedResource)
+fetchVersionedResources :
+    Concourse.ResourceIdentifier
+    -> Maybe Page
+    -> Task Http.Error (Paginated Concourse.VersionedResource)
 fetchVersionedResources rid page =
     let
-        url =
-            "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++ "/resources/" ++ rid.resourceName ++ "/versions"
+        segments =
+            [ "api"
+            , "v1"
+            , "teams"
+            , rid.teamName
+            , "pipelines"
+            , rid.pipelineName
+            , "resources"
+            , rid.resourceName
+            , "versions"
+            ]
     in
-    Network.Pagination.fetch Concourse.decodeVersionedResource url page
+    Network.Pagination.fetch Concourse.decodeVersionedResource segments page
 
 
 enableDisableVersionedResource : Bool -> Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()

@@ -12,10 +12,12 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type ArtifactVolumeNotFoundErr string
+type ArtifactVolumeNotFoundError struct {
+	ArtifactName string
+}
 
-func (e ArtifactVolumeNotFoundErr) Error() string {
-	return fmt.Sprintf("volume for worker artifact '%s' not found", e)
+func (e ArtifactVolumeNotFoundError) Error() string {
+	return fmt.Sprintf("volume for worker artifact '%s' not found", e.ArtifactName)
 }
 
 type ArtifactInputStep struct {
@@ -51,7 +53,7 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	if !found {
-		return ArtifactVolumeNotFoundErr(buildArtifact.Name())
+		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
 	}
 
 	workerVolume, found, err := step.workerClient.FindVolume(logger, volume.TeamID(), volume.Handle())
@@ -60,7 +62,7 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	if !found {
-		return ArtifactVolumeNotFoundErr(buildArtifact.Name())
+		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
 	}
 
 	logger.Info("register-artifact-source", lager.Data{

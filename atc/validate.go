@@ -56,11 +56,21 @@ func validateGroups(c Config) error {
 	errorMessages := []string{}
 
 	jobsGrouped := make(map[string]bool)
+	groupNames := make(map[string]int)
+
 	for _, job := range c.Jobs {
 		jobsGrouped[job.Name] = false
 	}
 
 	for _, group := range c.Groups {
+
+		if val, ok := groupNames[group.Name]; ok {
+			groupNames[group.Name] = val + 1
+
+		} else {
+			groupNames[group.Name] = 1
+		}
+
 		for _, job := range group.Jobs {
 			_, exists := c.Jobs.Lookup(job)
 			if !exists {
@@ -77,6 +87,13 @@ func validateGroups(c Config) error {
 				errorMessages = append(errorMessages,
 					fmt.Sprintf("group '%s' has unknown resource '%s'", group.Name, resource))
 			}
+		}
+	}
+
+	for groupName, groupCount := range groupNames {
+		if groupCount > 1 {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf("group '%s' appears %d times. Duplicate names are not allowed.", groupName, groupCount))
 		}
 	}
 
@@ -217,11 +234,31 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
-		if job.BuildLogsToRetain < 0 {
+		if job.BuildLogRetention != nil && job.BuildLogsToRetain != 0 {
+			errorMessages = append(
+				errorMessages,
+				identifier+fmt.Sprintf(" can't use both build_log_retention and build_logs_to_retain"),
+			)
+		} else if job.BuildLogsToRetain < 0 {
 			errorMessages = append(
 				errorMessages,
 				identifier+fmt.Sprintf(" has negative build_logs_to_retain: %d", job.BuildLogsToRetain),
 			)
+		}
+
+		if job.BuildLogRetention != nil {
+			if job.BuildLogRetention.Builds < 0 {
+				errorMessages = append(
+					errorMessages,
+					identifier+fmt.Sprintf(" has negative build_log_retention.builds: %d", job.BuildLogRetention.Builds),
+				)
+			}
+			if job.BuildLogRetention.Days < 0 {
+				errorMessages = append(
+					errorMessages,
+					identifier+fmt.Sprintf(" has negative build_log_retention.days: %d", job.BuildLogRetention.Days),
+				)
+			}
 		}
 
 		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", PlanConfig{Do: &job.Plan})
@@ -334,6 +371,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		foundTypes.Find("aggregate")
 	}
 
+	if plan.InParallel != nil {
+		foundTypes.Find("parallel")
+	}
+
 	if plan.Try != nil {
 		foundTypes.Find("try")
 	}
@@ -355,8 +396,20 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		}
 
 	case plan.Aggregate != nil:
+		warnings = append(warnings, ConfigWarning{
+			Type:    "pipeline",
+			Message: identifier + " : aggregate is deprecated and will be removed in a future version",
+		})
 		for i, plan := range *plan.Aggregate {
 			subIdentifier := fmt.Sprintf("%s.aggregate[%d]", identifier, i)
+			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
+			warnings = append(warnings, planWarnings...)
+			errorMessages = append(errorMessages, planErrMessages...)
+		}
+
+	case plan.InParallel != nil:
+		for i, plan := range plan.InParallel.Steps {
+			subIdentifier := fmt.Sprintf("%s.in_parallel[%d]", identifier, i)
 			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
 			warnings = append(warnings, planWarnings...)
 			errorMessages = append(errorMessages, planErrMessages...)

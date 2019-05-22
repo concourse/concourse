@@ -23,6 +23,6 @@ func NewSecretsManagerFactory(log lager.Logger, session *session.Session, secret
 	}
 }
 
-func (factory *secretsManagerFactory) NewVariables(teamName string, pipelineName string) creds.Variables {
-	return NewSecretsManager(factory.log, factory.api, teamName, pipelineName, factory.secretTemplates)
+func (factory *secretsManagerFactory) NewSecrets() creds.Secrets {
+	return NewSecretsManager(factory.log, factory.api, factory.secretTemplates)
 }

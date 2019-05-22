@@ -12,6 +12,7 @@ module Job.Job exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -49,10 +50,10 @@ import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(.
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
+import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick)
 import Time
 import UpdateMsg exposing (UpdateMsg)
-import UserState exposing (UserState)
 import Views.BuildDuration as BuildDuration
 import Views.DictView as DictView
 import Views.Icon as Icon
@@ -69,7 +70,6 @@ type alias Model =
         , buildsWithResources : Paginated BuildWithResources
         , currentPage : Maybe Page
         , now : Time.Posix
-        , hovered : Maybe DomID
         , timeZone : Time.Zone
         }
 
@@ -107,7 +107,6 @@ init flags =
                 }
             , now = Time.millisToPosix 0
             , currentPage = flags.paging
-            , hovered = Nothing
             , isUserMenuExpanded = False
             , timeZone = Time.utc
             }
@@ -117,6 +116,7 @@ init flags =
       , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
       , GetCurrentTimeZone
+      , FetchPipelines
       ]
     )
 
@@ -252,6 +252,7 @@ handleDelivery delivery ( model, effects ) =
             , effects
                 ++ [ FetchJobBuilds model.jobIdentifier model.currentPage
                    , FetchJob model.jobIdentifier
+                   , FetchPipelines
                    ]
             )
 
@@ -281,9 +282,6 @@ update action ( model, effects ) =
                       else
                         effects ++ [ PauseJob model.jobIdentifier ]
                     )
-
-        Hover hoverable ->
-            ( { model | hovered = hoverable }, effects )
 
         _ ->
             ( model, effects )
@@ -399,8 +397,8 @@ documentTitle model =
     model.jobIdentifier.jobName
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view : Session -> Model -> Html Message
+view session model =
     let
         route =
             Routes.Job
@@ -408,25 +406,42 @@ view userState model =
                 , page = model.currentPage
                 }
     in
-    Html.div []
+    Html.div
+        (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
-            (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-            [ Html.div
-                (id "top-bar-app" :: Views.Styles.topBar False)
-                [ TopBar.concourseLogo
-                , TopBar.breadcrumbs route
-                , Login.view userState model False
-                ]
-            , Html.div
-                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-                [ viewMainJobsSection model ]
+            (id "top-bar-app" :: Views.Styles.topBar False)
+            [ SideBar.hamburgerMenu session
+            , TopBar.concourseLogo
+            , TopBar.breadcrumbs route
+            , Login.view session.userState model False
+            ]
+        , Html.div
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
+            [ SideBar.view
+                { expandedTeams = session.expandedTeams
+                , pipelines = session.pipelines
+                , hovered = session.hovered
+                , isSideBarOpen = session.isSideBarOpen
+                , screenSize = session.screenSize
+                }
+                (Just
+                    { pipelineName = model.jobIdentifier.pipelineName
+                    , teamName = model.jobIdentifier.teamName
+                    }
+                )
+            , viewMainJobsSection session model
             ]
         ]
 
 
-viewMainJobsSection : Model -> Html Message
-viewMainJobsSection model =
-    Html.div [ class "with-fixed-header" ]
+viewMainJobsSection : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewMainJobsSection session model =
+    Html.div
+        [ class "with-fixed-header"
+        , style "flex-grow" "1"
+        , style "display" "flex"
+        , style "flex-direction" "column"
+        ]
         [ case model.job |> RemoteData.toMaybe of
             Nothing ->
                 LoadingIndicator.view
@@ -434,10 +449,10 @@ viewMainJobsSection model =
             Just job ->
                 let
                     toggleHovered =
-                        model.hovered == Just ToggleJobButton
+                        session.hovered == Just ToggleJobButton
 
                     triggerHovered =
-                        model.hovered == Just TriggerBuildButton
+                        session.hovered == Just TriggerBuildButton
                 in
                 Html.div [ class "fixed-header" ]
                     [ Html.div
@@ -525,7 +540,7 @@ viewMainJobsSection model =
                             , style "font-weight" "700"
                             ]
                             [ Html.text "builds" ]
-                        , viewPaginationBar model
+                        , viewPaginationBar session model
                         ]
                     ]
         , case model.buildsWithResources.content of
@@ -533,7 +548,10 @@ viewMainJobsSection model =
                 LoadingIndicator.view
 
             anyList ->
-                Html.div [ class "scrollable-body job-body" ]
+                Html.div
+                    [ class "scrollable-body job-body"
+                    , style "overflow-y" "auto"
+                    ]
                     [ Html.ul [ class "jobs-builds-list builds-list" ] <|
                         List.map (viewBuildWithResources model) anyList
                     ]
@@ -550,8 +568,8 @@ headerBuildStatus finishedBuild =
             build.status
 
 
-viewPaginationBar : Model -> Html Message
-viewPaginationBar model =
+viewPaginationBar : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewPaginationBar session model =
     Html.div
         [ id "pagination"
         , style "display" "flex"
@@ -590,7 +608,7 @@ viewPaginationBar model =
                             ++ chevron
                                 { direction = "left"
                                 , enabled = True
-                                , hovered = model.hovered == Just PreviousPageButton
+                                , hovered = session.hovered == Just PreviousPageButton
                                 }
                         )
                         []
@@ -628,7 +646,7 @@ viewPaginationBar model =
                             ++ chevron
                                 { direction = "right"
                                 , enabled = True
-                                , hovered = model.hovered == Just NextPageButton
+                                , hovered = session.hovered == Just NextPageButton
                                 }
                         )
                         []

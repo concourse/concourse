@@ -18,21 +18,7 @@ all =
     describe "top-level application"
         [ test "bold and antialiasing on dashboard" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/"
                     |> queryView
                     |> Query.has
                         [ style "-webkit-font-smoothing" "antialiased"
@@ -40,21 +26,7 @@ all =
                         ]
         , test "bold and antialiasing on resource page" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/teams/t/pipelines/p/resources/r"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/teams/t/pipelines/p/resources/r"
                     |> queryView
                     |> Query.has
                         [ style "-webkit-font-smoothing" "antialiased"
@@ -62,21 +34,7 @@ all =
                         ]
         , test "bold and antialiasing everywhere else" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/teams/team/pipelines/pipeline"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/teams/team/pipelines/pipeline"
                     |> queryView
                     |> Query.has
                         [ style "-webkit-font-smoothing" "antialiased"
@@ -84,21 +42,7 @@ all =
                         ]
         , test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline, and the token return" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/teams/t/pipelines/p/"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
                     |> Expect.all
                         [ List.member Subscription.OnNonHrefLinkClicked
@@ -108,21 +52,7 @@ all =
                         ]
         , test "clicking a not-automatically-linked box in the pipeline redirects" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = "token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/teams/t/pipelines/p/"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/teams/t/pipelines/p/"
                     |> Application.update
                         (Msgs.DeliveryReceived <|
                             NonHrefLinkClicked "/foo/bar"
@@ -135,21 +65,7 @@ all =
                     pipelineIdentifier =
                         { pipelineName = "p", teamName = "t" }
                 in
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = ""
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.first
+                Common.init "/"
                     |> Application.update
                         (Msgs.DeliveryReceived <|
                             TokenReceived <|

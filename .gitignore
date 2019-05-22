@@ -1,5 +1,6 @@
 .DS_Store
 .idea
+*.iml
 node_modules
 *-packr.go
 tags

@@ -17,6 +17,7 @@ import EffectTransformer exposing (ET)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
+import Message.Message as Message
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -24,7 +25,11 @@ import Message.Subscription
         , Subscription(..)
         )
 import Message.TopLevelMessage as Msgs exposing (TopLevelMessage(..))
+import RemoteData
 import Routes
+import ScreenSize
+import Set
+import SideBar.SideBar as SideBar
 import SubPage.SubPage as SubPage
 import Url
 import UserState exposing (UserState(..))
@@ -35,14 +40,15 @@ type alias Flags =
     , notFoundImgSrc : String
     , csrfToken : Concourse.CSRFToken
     , authToken : String
+    , clusterName : String
     , pipelineRunningKeyframes : String
     }
 
 
 type alias Model =
     { subModel : SubPage.Model
-    , session : Session
     , route : Routes.Route
+    , session : Session
     }
 
 
@@ -54,12 +60,18 @@ init flags url =
                 |> Maybe.withDefault (Routes.Dashboard (Routes.Normal Nothing))
 
         session =
-            { turbulenceImgSrc = flags.turbulenceImgSrc
+            { userState = UserStateUnknown
+            , hovered = Nothing
+            , clusterName = flags.clusterName
+            , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
             , authToken = flags.authToken
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-            , userState = UserStateUnknown
+            , expandedTeams = Set.empty
+            , pipelines = RemoteData.NotAsked
+            , isSideBarOpen = False
+            , screenSize = ScreenSize.Desktop
             }
 
         ( subModel, subEffects ) =
@@ -82,7 +94,11 @@ init flags url =
                 , Effects.ModifyUrl <| Routes.toString route
                 ]
     in
-    ( model, FetchUser :: handleTokenEffect ++ subEffects )
+    ( model
+    , [ FetchUser, GetScreenSize, LoadSideBarState ]
+        ++ handleTokenEffect
+        ++ subEffects
+    )
 
 
 locationMsg : Url.Url -> TopLevelMessage
@@ -117,11 +133,11 @@ handleCallback callback model =
             redirectToLoginIfNecessary err ( model, [] )
 
         PipelineToggled _ (Err err) ->
-            subpageHandleCallback model callback
+            subpageHandleCallback callback ( model, [] )
                 |> redirectToLoginIfNecessary err
 
         VisibilityChanged _ _ (Err err) ->
-            subpageHandleCallback model callback
+            subpageHandleCallback callback ( model, [] )
                 |> redirectToLoginIfNecessary err
 
         LoggedOut (Ok ()) ->
@@ -132,7 +148,7 @@ handleCallback callback model =
                 newSession =
                     { session | userState = UserStateLoggedOut }
             in
-            subpageHandleCallback { model | session = newSession } callback
+            subpageHandleCallback callback ( { model | session = newSession }, [] )
 
         APIDataFetched (Ok ( _, data )) ->
             let
@@ -147,9 +163,9 @@ handleCallback callback model =
                                 |> Maybe.withDefault UserStateLoggedOut
                     }
             in
-            subpageHandleCallback { model | session = newSession } callback
+            subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        APIDataFetched (Err _) ->
+        APIDataFetched (Err err) ->
             let
                 session =
                     model.session
@@ -157,7 +173,8 @@ handleCallback callback model =
                 newSession =
                     { session | userState = UserStateLoggedOut }
             in
-            subpageHandleCallback { model | session = newSession } callback
+            subpageHandleCallback callback ( { model | session = newSession }, [] )
+                |> redirectToLoginIfNecessary err
 
         UserFetched (Ok user) ->
             let
@@ -167,7 +184,7 @@ handleCallback callback model =
                 newSession =
                     { session | userState = UserStateLoggedIn user }
             in
-            subpageHandleCallback { model | session = newSession } callback
+            subpageHandleCallback callback ( { model | session = newSession }, [] )
 
         UserFetched (Err _) ->
             let
@@ -177,32 +194,132 @@ handleCallback callback model =
                 newSession =
                     { session | userState = UserStateLoggedOut }
             in
-            subpageHandleCallback { model | session = newSession } callback
+            subpageHandleCallback callback ( { model | session = newSession }, [] )
+
+        ScreenResized viewport ->
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session
+                        | screenSize =
+                            ScreenSize.fromWindowSize viewport.viewport.width
+                    }
+            in
+            subpageHandleCallback
+                callback
+                ( { model | session = newSession }, [] )
 
         -- otherwise, pass down
         _ ->
-            subpageHandleCallback model callback
+            sideBarHandleCallback callback ( model, [] )
+                |> subpageHandleCallback callback
 
 
-subpageHandleCallback : Model -> Callback -> ( Model, List Effect )
-subpageHandleCallback model callback =
+sideBarHandleCallback : Callback -> ET Model
+sideBarHandleCallback callback ( model, effects ) =
     let
-        ( subModel, effects ) =
-            ( model.subModel, [] )
+        ( session, newEffects ) =
+            ( model.session, effects )
+                |> (case model.subModel of
+                        SubPage.ResourceModel { resourceIdentifier } ->
+                            SideBar.handleCallback callback <|
+                                RemoteData.Success resourceIdentifier
+
+                        SubPage.PipelineModel { pipelineLocator } ->
+                            SideBar.handleCallback callback <|
+                                RemoteData.Success pipelineLocator
+
+                        SubPage.JobModel { jobIdentifier } ->
+                            SideBar.handleCallback callback <|
+                                RemoteData.Success jobIdentifier
+
+                        SubPage.BuildModel buildModel ->
+                            SideBar.handleCallback callback
+                                (buildModel.currentBuild
+                                    |> RemoteData.map .build
+                                    |> RemoteData.andThen
+                                        (\b ->
+                                            case b.job of
+                                                Just j ->
+                                                    RemoteData.Success j
+
+                                                Nothing ->
+                                                    RemoteData.NotAsked
+                                        )
+                                )
+
+                        _ ->
+                            SideBar.handleCallback callback <|
+                                RemoteData.NotAsked
+                   )
+    in
+    ( { model | session = session }, newEffects )
+
+
+subpageHandleCallback : Callback -> ET Model
+subpageHandleCallback callback ( model, effects ) =
+    let
+        ( subModel, newEffects ) =
+            ( model.subModel, effects )
                 |> SubPage.handleCallback callback model.session
                 |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
     in
-    ( { model | subModel = subModel }, effects )
+    ( { model | subModel = subModel }, newEffects )
 
 
 update : TopLevelMessage -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
+        Update (Message.Click Message.HamburgerMenu) ->
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | isSideBarOpen = not session.isSideBarOpen }
+            in
+            ( { model | session = newSession }
+            , [ SaveSideBarState <| not session.isSideBarOpen ]
+            )
+
+        Update (Message.Hover hovered) ->
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | hovered = hovered }
+
+                ( subModel, subEffects ) =
+                    ( model.subModel, [] )
+                        |> SubPage.update model.session (Message.Hover hovered)
+            in
+            ( { model | subModel = subModel, session = newSession }, subEffects )
+
+        Update (Message.Click (Message.SideBarTeam teamName)) ->
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session
+                        | expandedTeams =
+                            if Set.member teamName session.expandedTeams then
+                                Set.remove teamName session.expandedTeams
+
+                            else
+                                Set.insert teamName session.expandedTeams
+                    }
+            in
+            ( { model | session = newSession }, [] )
+
         Update m ->
             let
                 ( subModel, subEffects ) =
                     ( model.subModel, [] )
-                        |> SubPage.update m
+                        |> SubPage.update model.session m
                         |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
             in
             ( { model | subModel = subModel }, subEffects )
@@ -219,15 +336,19 @@ handleDelivery delivery model =
     let
         ( newSubmodel, subPageEffects ) =
             ( model.subModel, [] )
-                |> SubPage.handleDelivery delivery
+                |> SubPage.handleDelivery model.session delivery
                 |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
 
         ( newModel, applicationEffects ) =
             handleDeliveryForApplication
                 delivery
                 { model | subModel = newSubmodel }
+
+        ( newSession, sessionEffects ) =
+            ( newModel.session, [] )
+                |> SideBar.handleDelivery delivery
     in
-    ( newModel, subPageEffects ++ applicationEffects )
+    ( { newModel | session = newSession }, subPageEffects ++ applicationEffects ++ sessionEffects )
 
 
 handleDeliveryForApplication : Delivery -> Model -> ( Model, List Effect )
@@ -248,6 +369,16 @@ handleDeliveryForApplication delivery model =
 
         RouteChanged route ->
             urlUpdate route model
+
+        WindowResized width _ ->
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | screenSize = ScreenSize.fromWindowSize width }
+            in
+            ( { model | session = newSession }, [] )
 
         UrlRequest request ->
             case request of
@@ -300,13 +431,15 @@ urlUpdate route model =
 
 view : Model -> Browser.Document TopLevelMessage
 view model =
-    SubPage.view model.session.userState model.subModel
+    SubPage.view model.session model.subModel
 
 
 subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnNonHrefLinkClicked
     , OnTokenReceived
+    , OnSideBarStateReceived
+    , OnWindowResize
     ]
         ++ SubPage.subscriptions model.subModel
 
@@ -326,8 +459,8 @@ routeMatchesModel route model =
         ( Routes.Job _, SubPage.JobModel _ ) ->
             True
 
-        ( Routes.Dashboard searchType, SubPage.DashboardModel dashboardModel ) ->
-            dashboardModel.highDensity == (searchType == Routes.HighDensity)
+        ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->
+            True
 
         _ ->
             False

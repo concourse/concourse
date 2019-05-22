@@ -83,6 +83,9 @@ init hl resources buildPlan =
         Concourse.BuildStepAggregate plans ->
             initMultiStep hl resources buildPlan.id Aggregate plans
 
+        Concourse.BuildStepInParallel plans ->
+            initMultiStep hl resources buildPlan.id InParallel plans
+
         Concourse.BuildStepDo plans ->
             initMultiStep hl resources buildPlan.id Do plans
 
@@ -234,6 +237,9 @@ treeIsActive stepTree =
         Aggregate trees ->
             List.any treeIsActive (Array.toList trees)
 
+        InParallel trees ->
+            List.any treeIsActive (Array.toList trees)
+
         Do trees ->
             List.any treeIsActive (Array.toList trees)
 
@@ -372,26 +378,24 @@ toggleExpanded { expanded, state } =
 
 
 updateTooltip :
-    { a
-        | hoveredElement : Maybe DomID
-        , hoveredCounter : Int
-    }
+    { a | hovered : Maybe DomID }
+    -> { b | hoveredCounter : Int }
     -> StepTreeModel
     -> ( StepTreeModel, List Effect )
-updateTooltip { hoveredElement, hoveredCounter } model =
+updateTooltip { hovered } { hoveredCounter } model =
     let
         newTooltip =
-            case hoveredElement of
+            case hovered of
                 Just (FirstOccurrenceIcon _) ->
                     if hoveredCounter > 0 then
-                        hoveredElement
+                        hovered
 
                     else
                         Nothing
 
                 Just (StepState _) ->
                     if hoveredCounter > 0 then
-                        hoveredElement
+                        hovered
 
                     else
                         Nothing
@@ -446,6 +450,10 @@ viewTree timeZone model tree =
 
         Aggregate steps ->
             Html.div [ class "aggregate" ]
+                (Array.toList <| Array.map (viewSeq timeZone model) steps)
+
+        InParallel steps ->
+            Html.div [ class "parallel" ]
                 (Array.toList <| Array.map (viewSeq timeZone model) steps)
 
         Do steps ->
@@ -615,6 +623,7 @@ viewTimestampedLine { timestamps, highlight, id, lineNo, line, timeZone } =
             [ ( "timestamped-line", True )
             , ( "highlighted-line", highlighted )
             ]
+        , Html.Attributes.id <| id ++ ":" ++ String.fromInt lineNo
         ]
         [ viewTimestamp
             { id = id

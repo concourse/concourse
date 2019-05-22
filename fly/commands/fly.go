@@ -24,6 +24,7 @@ type FlyCommand struct {
 	Userinfo UserinfoCommand `command:"userinfo" description:"User information"`
 
 	Teams       TeamsCommand       `command:"teams" alias:"t" description:"List the configured teams"`
+	GetTeam     GetTeamCommand     `command:"get-team"  alias:"gt" description:"Show team configuration"`
 	SetTeam     SetTeamCommand     `command:"set-team"  alias:"st" description:"Create or modify a team to have the given credentials"`
 	RenameTeam  RenameTeamCommand  `command:"rename-team"   alias:"rt" description:"Rename a team"`
 	DestroyTeam DestroyTeamCommand `command:"destroy-team"  alias:"dt" description:"Destroy a team and delete all of its data"`

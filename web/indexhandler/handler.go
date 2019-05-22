@@ -9,9 +9,12 @@ import (
 	"github.com/gobuffalo/packr"
 )
 
+var ClusterName = ""
+
 type templateData struct {
-	CSRFToken string
-	AuthToken string
+	CSRFToken   string
+	AuthToken   string
+	ClusterName string
 }
 
 type handler struct {
@@ -60,8 +63,9 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.template.Execute(w, templateData{
-		CSRFToken: csrfToken,
-		AuthToken: authToken,
+		CSRFToken:   csrfToken,
+		AuthToken:   authToken,
+		ClusterName: ClusterName,
 	})
 
 	if err != nil {

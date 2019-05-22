@@ -2,6 +2,7 @@ package vault_test
 
 import (
 	"github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/vault"
 	vaultapi "github.com/hashicorp/vault/api"
 	. "github.com/onsi/ginkgo"
@@ -21,7 +22,7 @@ func (msr *MockSecretReader) Read(lookupPath string) (*vaultapi.Secret, error) {
 	Expect(lookupPath).ToNot(BeNil())
 
 	for _, secret := range *msr.secrets {
-		if (lookupPath == secret.path) {
+		if lookupPath == secret.path {
 			return secret.secret, nil
 		}
 	}
@@ -32,6 +33,7 @@ func (msr *MockSecretReader) Read(lookupPath string) (*vaultapi.Secret, error) {
 var _ = Describe("Vault", func() {
 
 	var v *vault.Vault
+	var variables creds.Variables
 	var msr *MockSecretReader
 
 	JustBeforeEach(func() {
@@ -47,12 +49,11 @@ var _ = Describe("Vault", func() {
 
 		v = &vault.Vault{
 			SecretReader: msr,
-			PathPrefix:   "/concourse",
+			Prefix:       "/concourse",
 			SharedPath:   "shared",
-			TeamName:     "team",
-			PipelineName: "pipeline",
 		}
 
+		variables = creds.NewVariables(v, "team", "pipeline")
 	})
 
 	Describe("Get()", func() {
@@ -65,7 +66,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := v.Get(template.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(template.VariableDefinition{Name: "foo"})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -80,7 +81,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := v.Get(template.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(template.VariableDefinition{Name: "foo"})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -95,7 +96,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := v.Get(template.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(template.VariableDefinition{Name: "foo"})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -116,7 +117,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := v.Get(template.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(template.VariableDefinition{Name: "foo"})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())

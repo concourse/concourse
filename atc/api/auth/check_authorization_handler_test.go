@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/auth/authfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -50,8 +51,10 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 		server = httptest.NewServer(accessor.NewHandler(auth.CheckAuthorizationHandler(
 			simpleHandler,
 			fakeRejector,
-		), fakeAccessor, "some-action"),
-		)
+		), fakeAccessor,
+			"some-action",
+			new(auditorfakes.FakeAuditor),
+		))
 
 		client = &http.Client{
 			Transport: &http.Transport{},

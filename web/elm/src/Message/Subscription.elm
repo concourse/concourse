@@ -14,6 +14,7 @@ import Json.Encode
 import Keyboard
 import Routes
 import Time
+import Url
 
 
 port newUrl : (String -> msg) -> Sub msg
@@ -25,10 +26,10 @@ port tokenReceived : (Maybe String -> msg) -> Sub msg
 port eventSource : (Json.Encode.Value -> msg) -> Sub msg
 
 
-port scrolledToBottom : (Bool -> msg) -> Sub msg
-
-
 port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
+
+
+port sideBarStateReceived : (Maybe String -> msg) -> Sub msg
 
 
 type Subscription
@@ -36,12 +37,12 @@ type Subscription
     | OnMouse
     | OnKeyDown
     | OnKeyUp
-    | OnScrollToBottom
     | OnWindowResize
     | FromEventSource ( String, List String )
     | OnNonHrefLinkClicked
     | OnTokenReceived
     | OnElementVisible
+    | OnSideBarStateReceived
 
 
 type Delivery
@@ -49,7 +50,6 @@ type Delivery
     | KeyUp Keyboard.KeyEvent
     | Moused
     | ClockTicked Interval Time.Posix
-    | ScrolledToBottom Bool
     | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | TokenReceived (Maybe String)
@@ -57,6 +57,7 @@ type Delivery
     | RouteChanged Routes.Route
     | UrlRequest Browser.UrlRequest
     | ElementVisible ( String, Bool )
+    | SideBarStateReceived (Maybe String)
 
 
 type Interval
@@ -83,16 +84,9 @@ runSubscription s =
         OnKeyUp ->
             onKeyUp (Keyboard.decodeKeyEvent |> Json.Decode.map KeyUp)
 
-        OnScrollToBottom ->
-            scrolledToBottom ScrolledToBottom
-
         OnWindowResize ->
             onResize
-                (\width height ->
-                    WindowResized
-                        (toFloat width)
-                        (toFloat height)
-                )
+                (\width height -> WindowResized (toFloat width) (toFloat height))
 
         FromEventSource _ ->
             eventSource
@@ -102,13 +96,34 @@ runSubscription s =
                 )
 
         OnNonHrefLinkClicked ->
-            newUrl NonHrefLinkClicked
+            newUrl
+                (\path ->
+                    let
+                        url =
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = path
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                    in
+                    case Routes.parsePath url of
+                        Just _ ->
+                            UrlRequest <| Browser.Internal url
+
+                        Nothing ->
+                            UrlRequest <| Browser.External path
+                )
 
         OnTokenReceived ->
             tokenReceived TokenReceived
 
         OnElementVisible ->
             reportIsVisible ElementVisible
+
+        OnSideBarStateReceived ->
+            sideBarStateReceived SideBarStateReceived
 
 
 intervalToTime : Interval -> Float

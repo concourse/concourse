@@ -4,10 +4,10 @@ import "github.com/concourse/concourse/atc"
 
 type TaskParamsValidator struct {
 	variablesResolver Variables
-	rawTaskParams     map[string]string
+	rawTaskParams     atc.Params
 }
 
-func NewTaskParamsValidator(variables Variables, params map[string]string) TaskParamsValidator {
+func NewTaskParamsValidator(variables Variables, params atc.Params) TaskParamsValidator {
 	return TaskParamsValidator{
 		variablesResolver: variables,
 		rawTaskParams:     params,
