@@ -16,10 +16,3 @@
   value:
     release: concourse
     name: bbr-atcdb
-    properties:
-      postgresql_database: atc
-      postgresql:
-        database: atc
-        role:
-          name: atc
-          password: dummy-password
