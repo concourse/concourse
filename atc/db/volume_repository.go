@@ -6,7 +6,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/nu7hatch/gouuid"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 //go:generate counterfeiter . VolumeRepository
@@ -22,7 +22,7 @@ type VolumeRepository interface {
 
 	FindResourceCacheVolume(workerName string, resourceCache UsedResourceCache) (CreatedVolume, bool, error)
 
-	FindTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, CreatedVolume, error)
+	FindTaskCacheVolume(teamID int, workerName string, taskCache UsedTaskCache) (CreatedVolume, bool, error)
 	CreateTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, error)
 
 	FindResourceCertsVolume(workerName string, uwrc *UsedWorkerResourceCerts) (CreatingVolume, CreatedVolume, error)
@@ -339,10 +339,32 @@ func (repository *volumeRepository) FindBaseResourceTypeVolume(uwbrt *UsedWorker
 	})
 }
 
-func (repository *volumeRepository) FindTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, CreatedVolume, error) {
-	return repository.findVolume(teamID, uwtc.WorkerName, map[string]interface{}{
-		"v.worker_task_cache_id": uwtc.ID,
+func (repository *volumeRepository) FindTaskCacheVolume(teamID int, workerName string, taskCache UsedTaskCache) (CreatedVolume, bool, error) {
+	usedWorkerTaskCache, found, err := WorkerTaskCache{
+		WorkerName: workerName,
+		TaskCache:  taskCache,
+	}.find(repository.conn)
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	_, createdVolume, err := repository.findVolume(teamID, workerName, map[string]interface{}{
+		"v.worker_task_cache_id": usedWorkerTaskCache.ID,
 	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	if createdVolume == nil {
+		return nil, false, nil
+	}
+
+	return createdVolume, true, nil
 }
 
 func (repository *volumeRepository) CreateTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, error) {

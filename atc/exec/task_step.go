@@ -470,7 +470,12 @@ func (action *TaskStep) registerOutputs(logger lager.Logger, repository *artifac
 				if volumeMount.MountPath == filepath.Join(action.artifactsRoot, cacheConfig.Path) {
 					logger.Debug("initializing-cache", lager.Data{"path": volumeMount.MountPath})
 
-					err := volumeMount.Volume.InitializeTaskCache(logger, action.jobID, action.stepName, cacheConfig.Path, bool(action.privileged))
+					err := volumeMount.Volume.InitializeTaskCache(
+						logger,
+						action.jobID,
+						action.stepName,
+						cacheConfig.Path,
+						bool(action.privileged))
 					if err != nil {
 						return err
 					}

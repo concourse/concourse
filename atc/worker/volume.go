@@ -25,7 +25,7 @@ type Volume interface {
 	COWStrategy() baggageclaim.COWStrategy
 
 	InitializeResourceCache(db.UsedResourceCache) error
-	InitializeTaskCache(lager.Logger, int, string, string, bool) error
+	InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error
 	InitializeArtifact(name string, buildID int) (db.WorkerArtifact, error)
 
 	CreateChildForContainer(db.CreatingContainer, string) (db.CreatingVolume, error)
