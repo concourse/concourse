@@ -115,8 +115,9 @@ type RunCommand struct {
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
 
-	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
+	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"fewest-build-containers" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
 	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
+
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
@@ -1206,8 +1207,10 @@ func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacement
 		strategy = worker.NewFewestBuildContainersPlacementStrategy()
 	case "limit-active-tasks":
 		strategy = worker.NewLimitActiveTasksPlacementStrategy(cmd.MaxActiveTasksPerWorker)
-	default:
+	case "volume-locality":
 		strategy = worker.NewVolumeLocalityPlacementStrategy()
+	default:
+		strategy = worker.NewFewestBuildContainersPlacementStrategy()
 	}
 
 	return strategy, nil
