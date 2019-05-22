@@ -10,7 +10,6 @@ inputs:
 
 caches:
 - path: concourse/node_modules
-- path: concourse/web/elm/elm-stuff
 
 run:
   path: concourse/ci/tasks/scripts/yarn-benchmark
