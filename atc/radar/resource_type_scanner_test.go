@@ -184,13 +184,16 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
 
-					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+					_, _, owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",
 					}))
 					Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
 					Expect(containerSpec.TeamID).To(Equal(123))
+					Expect(metadata).To(Equal(db.ContainerMetadata{
+						Type: db.ContainerTypeCheck,
+					}))
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "registry-image",
 						Tags:          []string{"some-tag"},
@@ -199,11 +202,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 					}))
 
 					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-					_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+					_, _, _, owner, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
-					Expect(metadata).To(Equal(db.ContainerMetadata{
-						Type: db.ContainerTypeCheck,
-					}))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",
 					}))
@@ -243,12 +243,15 @@ var _ = Describe("ResourceTypeScanner", func() {
 						err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
 						Expect(err).To(BeNil())
 
-						_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+						_, _, owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 						Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 							ResourceType: "registry-image",
 						}))
 						Expect(containerSpec.TeamID).To(Equal(123))
+						Expect(metadata).To(Equal(db.ContainerMetadata{
+							Type: db.ContainerTypeCheck,
+						}))
 						Expect(workerSpec).To(Equal(worker.WorkerSpec{
 							ResourceType:  "registry-image",
 							ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
@@ -256,11 +259,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 						}))
 
 						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-						_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+						_, _, _, owner, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
 						Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
-						Expect(metadata).To(Equal(db.ContainerMetadata{
-							Type: db.ContainerTypeCheck,
-						}))
 						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 							ResourceType: "registry-image",
 						}))
@@ -477,13 +477,16 @@ var _ = Describe("ResourceTypeScanner", func() {
 				err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
-				_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+				_, _, owner, containerSpec, metadata,  workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "registry-image",
 				}))
 				Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
 				Expect(containerSpec.TeamID).To(Equal(123))
+				Expect(metadata).To(Equal(db.ContainerMetadata{
+					Type: db.ContainerTypeCheck,
+				}))
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					ResourceType:  "registry-image",
 					Tags:          []string{"some-tag"},
@@ -492,11 +495,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 				}))
 
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, _, _, owner, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
-				Expect(metadata).To(Equal(db.ContainerMetadata{
-					Type: db.ContainerTypeCheck,
-				}))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "registry-image",
 				}))
@@ -603,7 +603,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						versionedResourceType,
 					})))
 
-					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+					_, _,  owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",
@@ -614,13 +614,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 						ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
 						TeamID:        123,
 					}))
-
-					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-					_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
 					}))
+
+					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+					_, _, _, owner, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
+					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",
 					}))

@@ -214,7 +214,15 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		ResourceTypes: step.resourceTypes,
 	}
 
-	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(logger, resourceInstance.ContainerOwner(), containerSpec, workerSpec, step.strategy)
+	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(
+		ctx,
+		logger,
+		resourceInstance.ContainerOwner(),
+		containerSpec,
+		step.containerMetadata,
+		workerSpec,
+		step.strategy,
+	)
 	if err != nil {
 		return err
 	}

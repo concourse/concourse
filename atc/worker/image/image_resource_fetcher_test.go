@@ -192,7 +192,7 @@ var _ = Describe("Image", func() {
 
 					It("checks for the latest version of the resource type", func() {
 						By("find or create a resource container")
-						_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+						_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 						Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
 
 						By("calling the resource type's check script")
@@ -205,8 +205,9 @@ var _ = Describe("Image", func() {
 						})
 
 						It("uses the version of the custom type when checking for the original resource", func() {
+							Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(2))
 							Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(2))
-							_, _, _, _, _, containerSpec, customTypes := fakeWorker.FindOrCreateContainerArgsForCall(1)
+							_, _, _, _, containerSpec, customTypes := fakeWorker.FindOrCreateContainerArgsForCall(1)
 							Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
 							Expect(customTypes[0].Version).To(Equal(atc.Version{"some": "version"}))
 						})
@@ -277,13 +278,17 @@ var _ = Describe("Image", func() {
 								})
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-									Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-									cctx, _, delegate, owner, metadata, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-									Expect(cctx).To(Equal(ctx))
-									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
+									Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(1))
+									_, _, owner, metadata := fakeWorker.EnsureDBContainerExistsArgsForCall(0)
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
+									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
+
+									Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+									cctx, _, delegate, owner, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+									Expect(cctx).To(Equal(ctx))
+									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 									Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 										ResourceType: "docker",
 									}))
@@ -318,13 +323,17 @@ var _ = Describe("Image", func() {
 							})
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-								Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-								cctx, _, delegate, owner, metadata, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-								Expect(cctx).To(Equal(ctx))
-								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
+								Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(1))
+								_, _, owner, metadata := fakeWorker.EnsureDBContainerExistsArgsForCall(0)
 								Expect(metadata).To(Equal(db.ContainerMetadata{
 									Type: db.ContainerTypeCheck,
 								}))
+								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
+
+								Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+								cctx, _, delegate, owner, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+								Expect(cctx).To(Equal(ctx))
+								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ResourceType: "docker",
 								}))
@@ -537,6 +546,7 @@ var _ = Describe("Image", func() {
 					})
 
 					It("does not construct a new resource for checking", func() {
+						Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(BeZero())
 						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(BeZero())
 						Expect(fakeResourceFactory.NewResourceForContainerCallCount()).To(BeZero())
 					})

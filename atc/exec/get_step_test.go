@@ -162,7 +162,7 @@ var _ = Describe("GetStep", func() {
 
 	It("finds or chooses a worker", func() {
 		Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-		_, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+		_, _, actualOwner, actualContainerSpec, actualContainerMetadata, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(buildID, atc.PlanID(planID), teamID)))
 		Expect(actualContainerSpec).To(Equal(worker.ContainerSpec{
 			ImageSpec: worker.ImageSpec{
@@ -171,6 +171,7 @@ var _ = Describe("GetStep", func() {
 			TeamID: teamID,
 			Env:    stepMetadata.Env(),
 		}))
+		Expect(actualContainerMetadata).To(Equal(containerMetadata))
 		Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
 			ResourceType:  "some-resource-type",
 			Tags:          atc.Tags{"some", "tags"},
