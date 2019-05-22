@@ -2,7 +2,6 @@ import test from 'ava';
 import Fly from './helpers/fly';
 import Web from './helpers/web';
 import puppeteer from 'puppeteer';
-import Suite from './helpers/suite';
 
 test.beforeEach(async t => {
   let url = process.env.ATC_URL || 'http://localhost:8080';
@@ -23,16 +22,18 @@ test.afterEach(async t => {
 });
 
 test.afterEach.always(async t => {
-  await t.context.fly.run('destroy-pipeline -n -p some-pipeline');
   if (t.context.web.page && !t.context.succeeded) {
     await t.context.web.page.screenshot({path: 'failure.png'});
   }
-
   if (t.context.web.browser) {
     await t.context.web.browser.close();
   }
   await t.context.fly.cleanup();
 });
+
+async function cleanup (t) {
+  await t.context.fly.run('destroy-pipeline -n -p some-pipeline');
+};
 
 test('can fly login with browser and reuse same browser without CSRF issues', async t => {
   let flyPromise = t.context.fly.spawn(`login -c ${t.context.url}`);
@@ -57,4 +58,14 @@ test('can fly login with browser and reuse same browser without CSRF issues', as
   await t.context.web.page.click(playButton);
   await t.context.web.page.waitForSelector(pauseButton, {timeout: 90000});
   t.pass();
+
+  cleanup(t);
+});
+
+test('password input does not autocomplete', async t => {
+  await t.context.web.page.goto(t.context.web.route('/sky/login'));
+  let passwordInput = await t.context.web.page.waitForSelector('#password', {timeout: 90000});
+  const autocomplete = await t.context.web.page.evaluate(body => body.getAttribute('autocomplete'), passwordInput);
+  await passwordInput.dispose();
+  t.is(autocomplete, 'off');
 });

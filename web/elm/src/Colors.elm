@@ -37,6 +37,7 @@ module Colors exposing
     , resourceError
     , secondaryTopBar
     , sectionHeader
+    , sideBar
     , started
     , startedFaded
     , statusColor
@@ -269,6 +270,11 @@ groupBorderHovered =
 groupBackground : String
 groupBackground =
     "rgba(151, 151, 151, 0.1)"
+
+
+sideBar : String
+sideBar =
+    "#333333"
 
 
 statusColor : PipelineStatus -> String

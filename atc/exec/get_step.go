@@ -153,6 +153,10 @@ func NewGetStep(
 // fetching the resource) is registered under the step's SourceName.
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
+	logger = logger.Session("get-step", lager.Data{
+		"step-name": step.name,
+		"job-id":    step.build.JobID(),
+	})
 
 	step.delegate.Initializing(logger)
 
@@ -361,4 +365,9 @@ func streamFileHelper(s interface {
 		Reader: tarReader,
 		Closer: out,
 	}, nil
+}
+
+type fileReadCloser struct {
+	io.Reader
+	io.Closer
 }

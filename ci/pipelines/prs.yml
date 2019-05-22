@@ -12,27 +12,39 @@ resource_types:
 resources:
 - name: concourse-master
   type: git
+  icon: github-circle
   source:
     uri: https://github.com/concourse/concourse
 
 - name: concourse-pr
   type: pull-request
+  icon: source-pull
   source:
     repository: concourse/concourse
     access_token: ((pull_requests_access_token))
 
 - name: baggageclaim-pr
   type: pull-request
+  icon: source-pull
   source:
     repository: concourse/baggageclaim
     access_token: ((pull_requests_access_token))
 
+- name: docs-pr
+  type: pull-request
+  icon: source-pull
+  source:
+    repository: concourse/docs
+    access_token: ((pull_requests_access_token))
+
 - name: dev-image
   type: registry-image
+  icon: docker
   source: {repository: concourse/dev}
 
 - name: postgres-image
   type: registry-image
+  icon: docker
   source: {repository: postgres}
 
 jobs:
@@ -74,6 +86,11 @@ jobs:
     file: concourse-pr/ci/tasks/yarn-test.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]
+  - task: yarn-benchmark
+    attempts: 3
+    file: concourse-pr/ci/tasks/yarn-benchmark.yml
+    input_mapping: {concourse: concourse-pr}
+    tags: [pr]
   - task: unit
     attempts: 3
     timeout: 1h
@@ -95,7 +112,7 @@ jobs:
     params: {path: concourse-pr, status: success, context: testflight}
     tags: [pr]
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse-pr
       trigger: true
       version: every
@@ -136,7 +153,7 @@ jobs:
     params: {path: concourse-pr, status: success, context: watsjs}
     tags: [pr]
   plan:
-  - aggregate:
+  - in_parallel:
     - get: concourse-pr
       trigger: true
       version: every
@@ -168,11 +185,11 @@ jobs:
   public: true
   on_failure:
     put: baggageclaim-pr
-    params: {path: baggageclaim-pr, status: failure, context: baggageclaim}
+    params: {path: baggageclaim-pr, status: failure, context: unit}
     tags: [pr]
   on_success:
     put: baggageclaim-pr
-    params: {path: baggageclaim-pr, status: success, context: baggageclaim}
+    params: {path: baggageclaim-pr, status: success, context: unit}
     tags: [pr]
   plan:
   - get: baggageclaim-pr
@@ -180,11 +197,36 @@ jobs:
     version: every
     tags: [pr]
   - put: baggageclaim-pr
-    params: {path: baggageclaim-pr, status: pending, context: baggageclaim}
+    params: {path: baggageclaim-pr, status: pending, context: unit}
     tags: [pr]
   - task: unit-linux
     privileged: true
     timeout: 1h
     file: baggageclaim-pr/ci/unit-linux.yml
     input_mapping: {baggageclaim: baggageclaim-pr}
+    tags: [pr]
+
+- name: docs
+  public: true
+  on_failure:
+    put: docs-pr
+    inputs: [docs-pr]
+    params: {path: docs-pr, status: failure, context: build}
+    tags: [pr]
+  on_success:
+    put: docs-pr
+    inputs: [docs-pr]
+    params: {path: docs-pr, status: success, context: build}
+    tags: [pr]
+  plan:
+  - get: docs-pr
+    trigger: true
+    version: every
+    tags: [pr]
+  - put: docs-pr
+    params: {path: docs-pr, status: pending, context: build}
+    tags: [pr]
+  - task: build
+    file: docs-pr/ci/build.yml
+    input_mapping: {docs: docs-pr}
     tags: [pr]

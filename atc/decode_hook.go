@@ -203,6 +203,29 @@ var InputsConfigDecodeHook = func(
 	return data, nil
 }
 
+var InParallelConfigDecodeHook = func(
+	srcType reflect.Type,
+	dstType reflect.Type,
+	data interface{},
+) (interface{}, error) {
+	if dstType != reflect.TypeOf(InParallelConfig{}) {
+		return data, nil
+	}
+
+	if srcType.Kind() != reflect.Slice {
+		return data, nil
+	}
+
+	steps, ok := data.([]interface{})
+	if !ok {
+		return data, nil
+	}
+
+	return map[string]interface{}{
+		"steps": steps,
+	}, nil
+}
+
 func sanitize(root interface{}) (interface{}, error) {
 	switch rootVal := root.(type) {
 	case map[interface{}]interface{}:

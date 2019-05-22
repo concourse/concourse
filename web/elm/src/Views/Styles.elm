@@ -1,12 +1,15 @@
 module Views.Styles exposing
-    ( breadcrumbComponent
+    ( TooltipPosition(..)
+    , breadcrumbComponent
     , breadcrumbContainer
     , breadcrumbItem
     , concourseLogo
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
+    , pauseToggle
     , pauseToggleIcon
+    , pauseToggleTooltip
     , topBar
     )
 
@@ -37,22 +40,41 @@ pageBelowTopBar route =
                     [ style "height" "100%" ]
 
                 Routes.Resource _ ->
-                    [ style "height" "100%" ]
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
 
                 Routes.Pipeline _ ->
                     [ style "box-sizing" "border-box"
                     , style "height" "100%"
+                    , style "display" "flex"
                     ]
 
                 Routes.Dashboard _ ->
                     [ style "box-sizing" "border-box"
                     , style "display" "flex"
-                    , style "padding-bottom" "50px"
                     , style "height" "100%"
+                    , style "padding-bottom" "50px"
                     ]
 
-                _ ->
-                    []
+                Routes.Build _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
+
+                Routes.OneOffBuild _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
+
+                Routes.Job _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
            )
 
 
@@ -61,6 +83,7 @@ topBar isPaused =
     [ style "position" "fixed"
     , style "top" "0"
     , style "width" "100%"
+    , style "height" "54px"
     , style "z-index" "999"
     , style "display" "flex"
     , style "justify-content" "space-between"
@@ -120,16 +143,24 @@ breadcrumbItem clickable =
     ]
 
 
+pauseToggle : String -> List (Html.Attribute msg)
+pauseToggle margin =
+    [ style "position" "relative"
+    , style "margin" margin
+    ]
+
+
 pauseToggleIcon :
     { isHovered : Bool
     , isClickable : Bool
-    , margin : String
     }
     -> List (Html.Attribute msg)
-pauseToggleIcon { isHovered, isClickable, margin } =
-    [ style "margin" margin
-    , style "opacity" <|
-        if isHovered then
+pauseToggleIcon { isHovered, isClickable } =
+    [ style "opacity" <|
+        if not isClickable then
+            "0.2"
+
+        else if isHovered then
             "1"
 
         else
@@ -140,4 +171,30 @@ pauseToggleIcon { isHovered, isClickable, margin } =
 
         else
             "default"
+    ]
+
+
+type TooltipPosition
+    = Above
+    | Below
+
+
+pauseToggleTooltip : TooltipPosition -> List (Html.Attribute msg)
+pauseToggleTooltip ttp =
+    [ style "background-color" "#9b9b9b"
+    , style "position" "absolute"
+    , style
+        (case ttp of
+            Above ->
+                "bottom"
+
+            Below ->
+                "top"
+        )
+        "100%"
+    , style "white-space" "nowrap"
+    , style "padding" "2.5px"
+    , style "margin-bottom" "5px"
+    , style "right" "-150%"
+    , style "z-index" "1"
     ]

@@ -12,9 +12,7 @@ module Dashboard.Models exposing
 import Concourse
 import Dashboard.Group.Models
 import Login.Login as Login
-import Message.Message as Message
 import RemoteData
-import ScreenSize
 import Time
 import UserState
 
@@ -29,10 +27,10 @@ type alias Model =
             { state : RemoteData.RemoteData DashboardError SubState
             , turbulencePath : String
             , pipelineRunningKeyframes : String
-            , hovered : Maybe Message.DomID
             , userState : UserState.UserState
             , highDensity : Bool
             , query : String
+            , clusterName : String
             }
         )
 
@@ -69,8 +67,6 @@ type alias FooterModel r =
         , hideFooterCounter : Int
         , showHelp : Bool
         , groups : List Dashboard.Group.Models.Group
-        , hovered : Maybe Message.DomID
-        , screenSize : ScreenSize.ScreenSize
         , version : String
         , dropdown : Dropdown
         , highDensity : Bool

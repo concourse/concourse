@@ -14,6 +14,27 @@ import (
 
 var ErrDestroyRefused = errors.New("not-permitted-to-destroy-as-requested")
 
+// Team get team with the name given as argument.
+func (team *team) Team(teamName string) (atc.Team, bool, error) {
+	var t atc.Team
+	params := rata.Params{"team_name": teamName}
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.GetTeam,
+		Params:      params,
+	}, &internal.Response{
+		Result: &t,
+	})
+
+	switch err.(type) {
+	case nil:
+		return t, true, nil
+	case internal.ResourceNotFoundError:
+		return atc.Team{}, false, nil
+	default:
+		return atc.Team{}, false, err
+	}
+}
+
 // CreateOrUpdate creates or updates team teamName with the settings provided in passedTeam.
 // passedTeam should reflect the desired state of team's configuration.
 func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, error) {

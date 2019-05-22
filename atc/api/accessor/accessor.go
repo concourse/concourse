@@ -9,12 +9,14 @@ import (
 //go:generate counterfeiter . Access
 
 type Access interface {
+	HasToken() bool
 	IsAuthenticated() bool
 	IsAuthorized(string) bool
 	IsAdmin() bool
 	IsSystem() bool
 	TeamNames() []string
 	CSRFToken() string
+	UserName() string
 }
 
 type access struct {
@@ -22,8 +24,21 @@ type access struct {
 	action string
 }
 
+func (a *access) HasToken() bool {
+	return a.Token != nil
+}
+
 func (a *access) IsAuthenticated() bool {
-	return a.Token.Valid
+	return a.HasToken() && a.Token.Valid
+}
+
+func (a *access) Claims() jwt.MapClaims {
+	if a.IsAuthenticated() {
+		if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
+			return claims
+		}
+	}
+	return jwt.MapClaims{}
 }
 
 func (a *access) IsAuthorized(team string) bool {
@@ -45,53 +60,29 @@ func (a *access) HasPermission(role string) bool {
 		return role == "owner"
 	case "member":
 		return role == "owner" || role == "member"
+	case "pipeline-operator":
+		return role == "owner" || role == "member" || role == "pipeline-operator"
 	case "viewer":
-		return role == "owner" || role == "member" || role == "viewer"
+		return role == "owner" || role == "member" || role == "pipeline-operator" || role == "viewer"
 	default:
 		return false
 	}
 }
 
 func (a *access) IsAdmin() bool {
-	if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
-		if isAdminClaim, ok := claims["is_admin"]; ok {
-			isAdmin, ok := isAdminClaim.(bool)
-			return ok && isAdmin
-		}
+	if isAdminClaim, ok := a.Claims()["is_admin"]; ok {
+		isAdmin, ok := isAdminClaim.(bool)
+		return ok && isAdmin
 	}
 	return false
 }
 
 func (a *access) IsSystem() bool {
-	if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
-		if isSystemClaim, ok := claims["system"]; ok {
-			isSystem, ok := isSystemClaim.(bool)
-			return ok && isSystem
-		}
+	if isSystemClaim, ok := a.Claims()["system"]; ok {
+		isSystem, ok := isSystemClaim.(bool)
+		return ok && isSystem
 	}
 	return false
-}
-
-func (a *access) TeamRoles() map[string][]string {
-	teamRoles := map[string][]string{}
-
-	if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
-		if teamsClaim, ok := claims["teams"]; ok {
-
-			// support legacy token format with team names array
-			if teamsArr, ok := teamsClaim.([]interface{}); ok {
-				for _, teamObj := range teamsArr {
-					if teamName, ok := teamObj.(string); ok {
-						teamRoles[teamName] = []string{"owner"}
-					}
-				}
-			} else {
-				_ = mapstructure.Decode(teamsClaim, &teamRoles)
-			}
-		}
-	}
-
-	return teamRoles
 }
 
 func (a *access) TeamNames() []string {
@@ -104,12 +95,43 @@ func (a *access) TeamNames() []string {
 	return teams
 }
 
-func (a *access) CSRFToken() string {
-	if claims, ok := a.Token.Claims.(jwt.MapClaims); ok {
-		if csrfTokenClaim, ok := claims["csrf"]; ok {
-			if csrfToken, ok := csrfTokenClaim.(string); ok {
-				return csrfToken
+func (a *access) TeamRoles() map[string][]string {
+	teamRoles := map[string][]string{}
+
+	if teamsClaim, ok := a.Claims()["teams"]; ok {
+
+		// support legacy token format with team names array
+		if teamsArr, ok := teamsClaim.([]interface{}); ok {
+			for _, teamObj := range teamsArr {
+				if teamName, ok := teamObj.(string); ok {
+					teamRoles[teamName] = []string{"owner"}
+				}
 			}
+		} else {
+			_ = mapstructure.Decode(teamsClaim, &teamRoles)
+		}
+	}
+
+	return teamRoles
+}
+
+func (a *access) CSRFToken() string {
+	if csrfTokenClaim, ok := a.Claims()["csrf"]; ok {
+		if csrfToken, ok := csrfTokenClaim.(string); ok {
+			return csrfToken
+		}
+	}
+	return ""
+}
+
+func (a *access) UserName() string {
+	if userName, ok := a.Claims()["user_name"]; ok {
+		if userName, ok := userName.(string); ok {
+			return userName
+		}
+	} else if systemName, ok := a.Claims()["system"]; ok {
+		if systemName == true {
+			return "system"
 		}
 	}
 	return ""
@@ -125,37 +147,35 @@ var requiredRoles = map[string]string{
 	atc.ListBuilds:                    "viewer",
 	atc.BuildEvents:                   "viewer",
 	atc.BuildResources:                "viewer",
-	atc.AbortBuild:                    "member",
+	atc.AbortBuild:                    "pipeline-operator",
 	atc.GetBuildPreparation:           "viewer",
 	atc.GetJob:                        "viewer",
-	atc.CreateJobBuild:                "member",
+	atc.CreateJobBuild:                "pipeline-operator",
 	atc.ListAllJobs:                   "viewer",
 	atc.ListJobs:                      "viewer",
 	atc.ListJobBuilds:                 "viewer",
 	atc.ListJobInputs:                 "viewer",
 	atc.GetJobBuild:                   "viewer",
-	atc.PauseJob:                      "member",
-	atc.UnpauseJob:                    "member",
+	atc.PauseJob:                      "pipeline-operator",
+	atc.UnpauseJob:                    "pipeline-operator",
 	atc.GetVersionsDB:                 "viewer",
 	atc.JobBadge:                      "viewer",
 	atc.MainJobBadge:                  "viewer",
-	atc.ClearTaskCache:                "member",
+	atc.ClearTaskCache:                "pipeline-operator",
 	atc.ListAllResources:              "viewer",
 	atc.ListResources:                 "viewer",
 	atc.ListResourceTypes:             "viewer",
 	atc.GetResource:                   "viewer",
-	atc.PauseResource:                 "member",
-	atc.UnpauseResource:               "member",
-	atc.UnpinResource:                 "member",
-	atc.SetPinCommentOnResource:       "member",
-	atc.CheckResource:                 "member",
-	atc.CheckResourceWebHook:          "member",
-	atc.CheckResourceType:             "member",
+	atc.UnpinResource:                 "pipeline-operator",
+	atc.SetPinCommentOnResource:       "pipeline-operator",
+	atc.CheckResource:                 "pipeline-operator",
+	atc.CheckResourceWebHook:          "pipeline-operator",
+	atc.CheckResourceType:             "pipeline-operator",
 	atc.ListResourceVersions:          "viewer",
 	atc.GetResourceVersion:            "viewer",
-	atc.EnableResourceVersion:         "member",
-	atc.DisableResourceVersion:        "member",
-	atc.PinResourceVersion:            "member",
+	atc.EnableResourceVersion:         "pipeline-operator",
+	atc.DisableResourceVersion:        "pipeline-operator",
+	atc.PinResourceVersion:            "pipeline-operator",
 	atc.ListBuildsWithVersionAsInput:  "viewer",
 	atc.ListBuildsWithVersionAsOutput: "viewer",
 	atc.GetResourceCausality:          "viewer",
@@ -164,8 +184,8 @@ var requiredRoles = map[string]string{
 	atc.GetPipeline:                   "viewer",
 	atc.DeletePipeline:                "member",
 	atc.OrderPipelines:                "member",
-	atc.PausePipeline:                 "member",
-	atc.UnpausePipeline:               "member",
+	atc.PausePipeline:                 "pipeline-operator",
+	atc.UnpausePipeline:               "pipeline-operator",
 	atc.ExposePipeline:                "member",
 	atc.HidePipeline:                  "member",
 	atc.RenamePipeline:                "member",
@@ -193,6 +213,7 @@ var requiredRoles = map[string]string{
 	atc.ListDestroyingVolumes:         "viewer",
 	atc.ReportWorkerVolumes:           "member",
 	atc.ListTeams:                     "viewer",
+	atc.GetTeam:                       "viewer",
 	atc.SetTeam:                       "owner",
 	atc.RenameTeam:                    "owner",
 	atc.DestroyTeam:                   "owner",

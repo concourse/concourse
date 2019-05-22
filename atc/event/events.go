@@ -4,7 +4,7 @@ import "github.com/concourse/concourse/atc"
 
 type Error struct {
 	Message string `json:"message"`
-	Origin  Origin `json:"origin,omitempty"`
+	Origin  Origin `json:"origin"`
 	Time    int64  `json:"time"`
 }
 

@@ -51,6 +51,7 @@ import Message.Message as Message
     exposing
         ( DomID(..)
         , Message(..)
+        , VisibilityAction(..)
         )
 import Message.Subscription
     exposing
@@ -66,15 +67,17 @@ import MonocleHelpers exposing (bind, modifyWithEffect)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import UserState exposing (UserState)
+import Session exposing (Session)
+import SideBar.SideBar as SideBar
+import UserState
 import Views.Styles
-import Views.TopBar as TopBar
 
 
 type alias Flags =
     { turbulencePath : String
     , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
+    , clusterName : String
     }
 
 
@@ -90,7 +93,6 @@ init flags =
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
       , groups = []
       , version = ""
-      , hovered = Nothing
       , userState = UserState.UserStateUnknown
       , hideFooter = False
       , hideFooterCounter = 0
@@ -99,11 +101,12 @@ init flags =
       , query = Routes.extractQuery flags.searchType
       , isUserMenuExpanded = False
       , dropdown = Hidden
-      , screenSize = Desktop
+      , clusterName = flags.clusterName
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
       , GetScreenSize
+      , FetchPipelines
       ]
     )
 
@@ -123,9 +126,6 @@ handleCallback msg ( model, effects ) =
             let
                 groups =
                     Group.groups apiData
-
-                noPipelines =
-                    List.isEmpty <| List.concatMap .pipelines groups
 
                 newModel =
                     case model.state of
@@ -153,7 +153,7 @@ handleCallback msg ( model, effects ) =
                         Nothing ->
                             UserState.UserStateLoggedOut
             in
-            if model.highDensity && noPipelines then
+            if model.highDensity && noPipelines { groups = groups } then
                 ( { newModel
                     | groups = groups
                     , highDensity = False
@@ -187,18 +187,10 @@ handleCallback msg ( model, effects ) =
                    ]
             )
 
-        ScreenResized viewport ->
-            let
-                newSize =
-                    ScreenSize.fromWindowSize
-                        viewport.viewport.width
-            in
-            ( { model | screenSize = newSize }, effects )
-
         PipelineToggled _ (Ok ()) ->
             ( model, effects ++ [ FetchData ] )
 
-        PipelineHidden pipelineId (Ok ()) ->
+        VisibilityChanged Hide pipelineId (Ok ()) ->
             ( updatePipeline
                 (\p -> { p | public = False, isVisibilityLoading = False })
                 pipelineId
@@ -206,7 +198,7 @@ handleCallback msg ( model, effects ) =
             , effects
             )
 
-        PipelineHidden pipelineId (Err _) ->
+        VisibilityChanged Hide pipelineId (Err _) ->
             ( updatePipeline
                 (\p -> { p | public = True, isVisibilityLoading = False })
                 pipelineId
@@ -214,7 +206,7 @@ handleCallback msg ( model, effects ) =
             , effects
             )
 
-        PipelineExposed pipelineId (Ok ()) ->
+        VisibilityChanged Expose pipelineId (Ok ()) ->
             ( updatePipeline
                 (\p -> { p | public = True, isVisibilityLoading = False })
                 pipelineId
@@ -222,7 +214,7 @@ handleCallback msg ( model, effects ) =
             , effects
             )
 
-        PipelineExposed pipelineId (Err _) ->
+        VisibilityChanged Expose pipelineId (Err _) ->
             ( updatePipeline
                 (\p -> { p | public = False, isVisibilityLoading = False })
                 pipelineId
@@ -275,15 +267,15 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData ] )
+            ( model, effects ++ [ FetchData, FetchPipelines ] )
 
         _ ->
             ( model, effects )
 
 
-update : Message -> ET Model
-update msg =
-    SearchBar.update msg >> updateBody msg
+update : Session a -> Message -> ET Model
+update session msg =
+    SearchBar.update session msg >> updateBody msg
 
 
 updateBody : Message -> ET Model
@@ -382,9 +374,6 @@ updateBody msg ( model, effects ) =
             in
             ( newModel, effects ++ unAccumulatedEffects )
 
-        Hover hovered ->
-            ( { model | hovered = hovered }, effects )
-
         Click LogoutButton ->
             ( { model | state = RemoteData.NotAsked }, effects )
 
@@ -438,10 +427,10 @@ updateBody msg ( model, effects ) =
                         model
                     , effects
                         ++ [ if public then
-                                HidePipeline pipelineId
+                                ChangeVisibility Hide pipelineId
 
                              else
-                                ExposePipeline pipelineId
+                                ChangeVisibility Expose pipelineId
                            ]
                     )
 
@@ -468,87 +457,118 @@ documentTitle =
     "Dashboard"
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view : Session a -> Model -> Html Message
+view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-        [ Html.div
-            (id "top-bar-app" :: Views.Styles.topBar False)
-          <|
-            [ TopBar.concourseLogo ]
-                ++ (let
-                        isDropDownHidden =
-                            model.dropdown == Hidden
-
-                        isMobile =
-                            model.screenSize == ScreenSize.Mobile
-                    in
-                    if
-                        not model.highDensity
-                            && isMobile
-                            && (not isDropDownHidden || model.query /= "")
-                    then
-                        [ SearchBar.view model ]
-
-                    else if not model.highDensity then
-                        [ SearchBar.view model
-                        , Login.view userState model False
-                        ]
-
-                    else
-                        [ Login.view userState model False ]
-                   )
+        [ topBar session model
         , Html.div
-            (id "page-below-top-bar" :: (Views.Styles.pageBelowTopBar <| Routes.Dashboard (Routes.Normal Nothing)))
-            (dashboardView model)
+            [ id "page-below-top-bar"
+            , style "padding-top" "54px"
+            , style "box-sizing" "border-box"
+            , style "display" "flex"
+            , style "height" "100%"
+            , style "padding-bottom" <|
+                if model.showHelp || model.hideFooter then
+                    "0"
+
+                else
+                    "50px"
+            ]
+          <|
+            [ SideBar.view session Nothing
+            , dashboardView session model
+            ]
+        , Footer.view session model
         ]
 
 
-dashboardView : Model -> List (Html Message)
-dashboardView model =
+topBar : Session a -> Model -> Html Message
+topBar session model =
+    Html.div
+        (id "top-bar-app" :: Views.Styles.topBar False)
+    <|
+        [ Html.div [ style "display" "flex", style "align-items" "center" ]
+            [ SideBar.hamburgerMenu session
+            , Html.a (href "/" :: Views.Styles.concourseLogo) []
+            , clusterName model
+            ]
+        ]
+            ++ (let
+                    isDropDownHidden =
+                        model.dropdown == Hidden
+
+                    isMobile =
+                        session.screenSize == ScreenSize.Mobile
+                in
+                if
+                    not model.highDensity
+                        && isMobile
+                        && (not isDropDownHidden || model.query /= "")
+                then
+                    [ SearchBar.view session model ]
+
+                else if not model.highDensity then
+                    [ SearchBar.view session model
+                    , Login.view session.userState model False
+                    ]
+
+                else
+                    [ Login.view session.userState model False ]
+               )
+
+
+clusterName : Model -> Html Message
+clusterName model =
+    Html.div
+        Styles.clusterName
+        [ Html.text model.clusterName ]
+
+
+dashboardView :
+    { a | hovered : Maybe DomID, screenSize : ScreenSize }
+    -> Model
+    -> Html Message
+dashboardView session model =
     case model.state of
         RemoteData.NotAsked ->
-            [ Html.text "" ]
+            Html.text ""
 
         RemoteData.Loading ->
-            [ Html.text "" ]
+            Html.text ""
 
         RemoteData.Failure (Turbulence path) ->
-            [ turbulenceView path ]
+            turbulenceView path
 
         RemoteData.Success substate ->
-            [ Html.div
+            Html.div
                 (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
                     :: Styles.content model.highDensity
                 )
-              <|
-                welcomeCard model
+            <|
+                welcomeCard session model
                     :: pipelinesView
                         { groups = model.groups
                         , substate = substate
                         , query = model.query
-                        , hovered = model.hovered
+                        , hovered = session.hovered
                         , pipelineRunningKeyframes =
                             model.pipelineRunningKeyframes
                         , userState = model.userState
                         , highDensity = model.highDensity
                         }
-            , Footer.view model
-            ]
 
 
 welcomeCard :
-    { a
-        | hovered : Maybe DomID
-        , groups : List Group
-        , userState : UserState.UserState
-    }
+    { a | hovered : Maybe DomID }
+    ->
+        { b
+            | groups : List Group
+            , userState : UserState.UserState
+        }
     -> Html Message
-welcomeCard { hovered, groups, userState } =
+welcomeCard { hovered } { groups, userState } =
     let
-        noPipelines =
-            List.isEmpty (groups |> List.concatMap .pipelines)
-
         cliIcon : Maybe DomID -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
             Html.a
@@ -568,7 +588,7 @@ welcomeCard { hovered, groups, userState } =
                 )
                 []
     in
-    if noPipelines then
+    if noPipelines { groups = groups } then
         Html.div
             (id "welcome-card" :: Styles.welcomeCard)
             [ Html.div
@@ -599,6 +619,11 @@ welcomeCard { hovered, groups, userState } =
 
     else
         Html.text ""
+
+
+noPipelines : { a | groups : List Group } -> Bool
+noPipelines { groups } =
+    List.isEmpty (groups |> List.concatMap .pipelines)
 
 
 loginInstruction : UserState.UserState -> List (Html Message)

@@ -13,6 +13,7 @@ tag =
     Fuzz.frequency
         [ ( 1, Fuzz.constant Tag.Owner )
         , ( 1, Fuzz.constant Tag.Member )
+        , ( 1, Fuzz.constant Tag.PipelineOperator )
         , ( 1, Fuzz.constant Tag.Viewer )
         ]
 

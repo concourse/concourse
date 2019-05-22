@@ -237,7 +237,7 @@ var _ = Describe("Scheduler", func() {
 						})
 					})
 
-					Context("when marking job as having new input succeeds", func(){
+					Context("when marking job as having new input succeeds", func() {
 						BeforeEach(func() {
 							fakeJob.SetHasNewInputsReturns(nil)
 						})

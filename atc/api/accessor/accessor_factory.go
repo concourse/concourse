@@ -2,7 +2,6 @@ package accessor
 
 import (
 	"crypto/rsa"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,28 +27,28 @@ func NewAccessFactory(key *rsa.PublicKey) AccessFactory {
 
 func (a *accessFactory) Create(r *http.Request, action string) Access {
 
-	token, err := a.parseToken(r)
+	header := r.Header.Get("Authorization")
+	if header == "" {
+		return &access{nil, action}
+	}
+
+	if len(header) < 7 || strings.ToUpper(header[0:6]) != "BEARER" {
+		return &access{&jwt.Token{}, action}
+	}
+
+	token, err := jwt.Parse(header[7:], a.validate)
 	if err != nil {
-		token = &jwt.Token{}
+		return &access{&jwt.Token{}, action}
 	}
 
 	return &access{token, action}
 }
 
-func (a *accessFactory) parseToken(r *http.Request) (*jwt.Token, error) {
-	fun := func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-		return a.publicKey, nil
+func (a *accessFactory) validate(token *jwt.Token) (interface{}, error) {
+
+	if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+		return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 	}
 
-	if ah := r.Header.Get("Authorization"); ah != "" {
-		// Should be a bearer token
-		if len(ah) > 6 && strings.ToUpper(ah[0:6]) == "BEARER" {
-			return jwt.Parse(ah[7:], fun)
-		}
-	}
-
-	return nil, errors.New("unable to parse authorization header")
+	return a.publicKey, nil
 }

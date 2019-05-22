@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
@@ -102,7 +103,12 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 	Context("AnyJobHandler", func() {
 		BeforeEach(func() {
 			checkBuildReadAccessHandler := handlerFactory.AnyJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = accessor.NewHandler(checkBuildReadAccessHandler, fakeAccessor, "some-action")
+			handler = accessor.NewHandler(
+				checkBuildReadAccessHandler,
+				fakeAccessor,
+				"some-action",
+				new(auditorfakes.FakeAuditor),
+			)
 		})
 
 		Context("when authenticated and accessing same team's build", func() {
@@ -210,7 +216,12 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		BeforeEach(func() {
 			fakeJob = new(dbfakes.FakeJob)
 			checkBuildReadAccessHandler := handlerFactory.CheckIfPrivateJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = accessor.NewHandler(checkBuildReadAccessHandler, fakeAccessor, "some-action")
+			handler = accessor.NewHandler(
+				checkBuildReadAccessHandler,
+				fakeAccessor,
+				"some-action",
+				new(auditorfakes.FakeAuditor),
+			)
 		})
 
 		ItChecksIfJobIsPrivate := func(status int) {

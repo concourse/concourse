@@ -210,10 +210,11 @@ all =
             \_ ->
                 Application.init
                     { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
                     , authToken = ""
-                    , pipelineRunningKeyframes = ""
+                    , clusterName = ""
+                    , pipelineRunningKeyframes = "pipeline-running"
                     }
                     { protocol = Url.Http
                     , host = ""
@@ -247,18 +248,24 @@ all =
                             )
                         )
                     |> Tuple.second
-                    |> Expect.equal
-                        [ Effects.FetchResource
-                            { resourceName = resourceName
-                            , pipelineName = pipelineName
-                            , teamName = teamName
-                            }
-                        , Effects.FetchVersionedResources
-                            { resourceName = resourceName
-                            , pipelineName = pipelineName
-                            , teamName = teamName
-                            }
-                            Nothing
+                    |> Expect.all
+                        [ List.member
+                            (Effects.FetchResource
+                                { resourceName = resourceName
+                                , pipelineName = pipelineName
+                                , teamName = teamName
+                                }
+                            )
+                            >> Expect.true "should fetch resource"
+                        , List.member
+                            (Effects.FetchVersionedResources
+                                { resourceName = resourceName
+                                , pipelineName = pipelineName
+                                , teamName = teamName
+                                }
+                                Nothing
+                            )
+                            >> Expect.true "should fetch versions"
                         ]
         , test "autorefresh respects expanded state" <|
             \_ ->
@@ -383,20 +390,11 @@ all =
                         |> queryView
                         |> Query.find [ id "page-header" ]
             in
-            [ test "sticks to the top of the viewport" <|
-                \_ ->
-                    pageHeader
-                        |> Query.has
-                            [ style "position" "fixed"
-                            , style "top" "54px"
-                            , style "z-index" "1"
-                            ]
-            , test "fills the top of the screen with dark grey background" <|
+            [ test "has dark grey background" <|
                 \_ ->
                     pageHeader
                         |> Query.has
                             [ style "height" "60px"
-                            , style "width" "100%"
                             , style "background-color" "#2a2929"
                             ]
             , test "lays out contents horizontally, stretching them vertically" <|
@@ -603,16 +601,27 @@ all =
                 ]
             ]
         , describe "page body" <|
-            [ test "has horizontal padding of 10px" <|
+            [ test "has 10px padding" <|
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
                         |> queryView
                         |> Query.find [ id "body" ]
-                        |> Query.has
-                            [ style "padding-left" "10px"
-                            , style "padding-right" "10px"
-                            ]
+                        |> Query.has [ style "padding" "10px" ]
+            , test "scrolls independently" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "body" ]
+                        |> Query.has [ style "overflow-y" "auto" ]
+            , test "fills vertical space" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "body" ]
+                        |> Query.has [ style "flex-grow" "1" ]
             ]
         , describe "checkboxes" <|
             let
@@ -1334,14 +1343,6 @@ all =
                         |> givenResourcePinnedWithComment
                         |> queryView
                         |> Query.has [ id "comment-bar" ]
-            , test "body has padding to accomodate pin comment bar" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedWithComment
-                        |> queryView
-                        |> Query.find [ id "body" ]
-                        |> Query.has
-                            [ style "padding-bottom" "300px" ]
             , describe "pin comment bar" <|
                 let
                     commentBar : Application.Model -> Query.Single Msgs.TopLevelMessage
@@ -1356,27 +1357,15 @@ all =
                             |> commentBar
                             |> Query.has
                                 [ style "background-color" almostBlack ]
-                , test "pin comment bar is fixed to viewport bottom" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedWithComment
-                            |> commentBar
-                            |> Query.has
-                                [ style "position" "fixed"
-                                , style "bottom" "0"
-                                ]
-                , test "pin comment bar is as wide as the viewport" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedWithComment
-                            |> commentBar
-                            |> Query.has [ style "width" "100%" ]
                 , test "pin comment bar is 300px tall" <|
                     \_ ->
                         init
                             |> givenResourcePinnedWithComment
                             |> commentBar
-                            |> Query.has [ style "height" "300px" ]
+                            |> Query.has
+                                [ style "height" "300px"
+                                , style "flex-shrink" "0"
+                                ]
                 , test "pin comment bar centers contents horizontally" <|
                     \_ ->
                         init
@@ -2154,14 +2143,6 @@ all =
                         |> givenResourceIsNotPinned
                         |> queryView
                         |> Query.hasNot [ id "comment-bar" ]
-            , test "body does not have padding to accomodate comment bar" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "body" ]
-                        |> Query.hasNot
-                            [ style "padding-bottom" "300px" ]
             , test "then nothing has purple border" <|
                 \_ ->
                     init
@@ -3120,29 +3101,27 @@ csrfToken =
     "csrf_token"
 
 
+flags : Application.Flags
+flags =
+    { turbulenceImgSrc = ""
+    , notFoundImgSrc = ""
+    , csrfToken = csrfToken
+    , authToken = ""
+    , clusterName = ""
+    , pipelineRunningKeyframes = ""
+    }
+
+
 init : Application.Model
 init =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = csrfToken
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
-        { protocol = Url.Http
-        , host = ""
-        , port_ = Nothing
-        , path =
-            "/teams/"
-                ++ teamName
-                ++ "/pipelines/"
-                ++ pipelineName
-                ++ "/resources/"
-                ++ resourceName
-        , query = Nothing
-        , fragment = Nothing
-        }
-        |> Tuple.first
+    Common.init
+        ("/teams/"
+            ++ teamName
+            ++ "/pipelines/"
+            ++ pipelineName
+            ++ "/resources/"
+            ++ resourceName
+        )
 
 
 update :

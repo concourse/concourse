@@ -138,7 +138,7 @@ func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.
 	return sess
 }
 
-func helmInstallArgs(args ...string) []string{
+func helmInstallArgs(args ...string) []string {
 	helmArgs := []string{
 		"--set=web.livenessProbe.failureThreshold=3",
 		"--set=web.livenessProbe.initialDelaySeconds=3",
@@ -279,7 +279,7 @@ func getRunningWorkers(workers []Worker) (running []Worker) {
 
 func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
 	helmDestroy(releaseName)
-	Wait(Start(nil, "kubectl", "delete", "namespace", namespace, "--wait=false"))
+	Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
 
 	if proxySession != nil {
 		Wait(proxySession.Interrupt())

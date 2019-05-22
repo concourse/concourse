@@ -12,10 +12,12 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type ArtifactNotFoundErr string
+type ArtifactNotFoundError struct {
+	ArtifactName string
+}
 
-func (e ArtifactNotFoundErr) Error() string {
-	return fmt.Sprintf("artifact '%s' not found", e)
+func (e ArtifactNotFoundError) Error() string {
+	return fmt.Sprintf("artifact '%s' not found", e.ArtifactName)
 }
 
 type ArtifactOutputStep struct {
@@ -44,12 +46,12 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
 
 	source, found := state.Artifacts().SourceFor(artifact.Name(outputName))
 	if !found {
-		return ArtifactNotFoundErr(outputName)
+		return ArtifactNotFoundError{outputName}
 	}
 
 	volume, ok := source.(worker.Volume)
 	if !ok {
-		return ArtifactNotFoundErr(outputName)
+		return ArtifactNotFoundError{outputName}
 	}
 
 	artifact, err := volume.InitializeArtifact(outputName, step.build.ID())

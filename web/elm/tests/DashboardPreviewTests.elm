@@ -172,21 +172,7 @@ viewJob =
 
 dashboardWithJob : Concourse.Job -> Application.Model
 dashboardWithJob j =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = ""
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
-        { protocol = Url.Http
-        , host = ""
-        , port_ = Nothing
-        , path = "/"
-        , query = Nothing
-        , fragment = Nothing
-        }
-        |> Tuple.first
+    Common.init "/"
         |> Application.handleCallback
             (Callback.APIDataFetched <|
                 Ok

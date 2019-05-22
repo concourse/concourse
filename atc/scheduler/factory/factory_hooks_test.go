@@ -558,7 +558,6 @@ var _ = Describe("Factory Hooks", func() {
 			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 
-
 		It("can build a job with one failure hook", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{

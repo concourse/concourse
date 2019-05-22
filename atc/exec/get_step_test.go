@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
@@ -35,19 +34,16 @@ var _ = Describe("GetStep", func() {
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeWorker                *workerfakes.FakeWorker
-		fakePool                  *workerfakes.FakePool
-		fakeClient                *workerfakes.FakeClient
-		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
-		fakeResourceFactory       *resourcefakes.FakeResourceFactory
-		fakeResourceFetcher       *resourcefakes.FakeFetcher
-		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
-		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-		fakeVariablesFactory      *credsfakes.FakeVariablesFactory
-		variables                 creds.Variables
-		fakeBuild                 *dbfakes.FakeBuild
-		fakeDelegate              *execfakes.FakeGetDelegate
-		getPlan                   *atc.GetPlan
+		fakeWorker               *workerfakes.FakeWorker
+		fakePool                 *workerfakes.FakePool
+		fakeStrategy             *workerfakes.FakeContainerPlacementStrategy
+		fakeResourceFetcher      *resourcefakes.FakeFetcher
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+		fakeSecretManager        *credsfakes.FakeSecrets
+		variables                creds.Variables
+		fakeBuild                *dbfakes.FakeBuild
+		fakeDelegate             *execfakes.FakeGetDelegate
+		getPlan                  *atc.GetPlan
 
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
 		resourceTypes       atc.VersionedResourceTypes
@@ -55,7 +51,6 @@ var _ = Describe("GetStep", func() {
 		artifactRepository *artifact.Repository
 		state              *execfakes.FakeRunState
 
-		factory exec.Factory
 		getStep exec.Step
 		stepErr error
 
@@ -73,21 +68,18 @@ var _ = Describe("GetStep", func() {
 	)
 
 	BeforeEach(func() {
+		testLogger = lagertest.NewTestLogger("get-action-test")
 		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakePool = new(workerfakes.FakePool)
-		fakeClient = new(workerfakes.FakeClient)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
-		fakeVariablesFactory = new(credsfakes.FakeVariablesFactory)
-		variables = template.StaticVariables{
-			"source-param": "super-secret-source",
-		}
-		fakeVariablesFactory.NewVariablesReturns(variables)
+		fakeSecretManager = new(credsfakes.FakeSecrets)
+		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
+		variables = creds.NewVariables(fakeSecretManager, "team", "pipeline")
 
 		artifactRepository = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -100,6 +92,8 @@ var _ = Describe("GetStep", func() {
 		fakeBuild.IDReturns(buildID)
 		fakeBuild.TeamIDReturns(teamID)
 		fakeBuild.PipelineNameReturns("pipeline")
+
+		fakeDelegate = new(execfakes.FakeGetDelegate)
 
 		resourceTypes = atc.VersionedResourceTypes{
 			{
@@ -122,9 +116,7 @@ var _ = Describe("GetStep", func() {
 			VersionedResourceTypes: resourceTypes,
 		}
 
-		factory = exec.NewGardenFactory(fakePool, fakeClient, fakeResourceFetcher, fakeResourceCacheFactory, fakeResourceConfigFactory, fakeVariablesFactory, atc.ContainerLimits{}, fakeStrategy, fakeResourceFactory)
-
-		fakeDelegate = new(execfakes.FakeGetDelegate)
+		containerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 	})
 
 	AfterEach(func() {
@@ -132,17 +124,37 @@ var _ = Describe("GetStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		testLogger = lagertest.NewTestLogger("get-action-test")
-		getStep = factory.Get(
-			testLogger,
-			atc.Plan{
-				ID:  atc.PlanID(planID),
-				Get: getPlan,
-			},
+		plan := atc.Plan{
+			ID:  atc.PlanID(planID),
+			Get: getPlan,
+		}
+
+		variables := creds.NewVariables(fakeSecretManager, fakeBuild.TeamName(), fakeBuild.PipelineName())
+
+		getStep = exec.NewGetStep(
 			fakeBuild,
-			stepMetadata,
-			containerMetadata,
+
+			plan.Get.Name,
+			plan.Get.Type,
+			plan.Get.Resource,
+			creds.NewSource(variables, plan.Get.Source),
+			creds.NewParams(variables, plan.Get.Params),
+			exec.NewVersionSourceFromPlan(plan.Get),
+			plan.Get.Tags,
+
 			fakeDelegate,
+			fakeResourceFetcher,
+			fakeBuild.TeamID(),
+			fakeBuild.ID(),
+			plan.ID,
+			containerMetadata,
+			fakeResourceCacheFactory,
+			stepMetadata,
+
+			creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
+
+			fakeStrategy,
+			fakePool,
 		)
 
 		stepErr = getStep.Run(ctx, state)

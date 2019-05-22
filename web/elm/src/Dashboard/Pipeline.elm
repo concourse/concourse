@@ -19,6 +19,7 @@ import Time
 import UserState exposing (UserState)
 import Views.PauseToggle as PauseToggle
 import Views.Spinner as Spinner
+import Views.Styles
 
 
 pipelineNotSetView : Html Message
@@ -154,14 +155,16 @@ footerView userState pipeline now hovered =
             [ style "display" "flex" ]
           <|
             List.intersperse spacer
-                [ PauseToggle.view "0"
-                    userState
+                [ PauseToggle.view
                     { isPaused =
                         pipeline.status == PipelineStatus.PipelineStatusPaused
                     , pipeline = pipelineId
                     , isToggleHovered =
                         hovered == (Just <| PipelineButton pipelineId)
                     , isToggleLoading = pipeline.isToggleLoading
+                    , tooltipPosition = Views.Styles.Above
+                    , margin = "0"
+                    , userState = userState
                     }
                 , visibilityView
                     { public = pipeline.public
@@ -190,8 +193,8 @@ visibilityView :
     -> Html Message
 visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading } =
     if isVisibilityLoading then
-        Spinner.spinner
-            { size = "20px"
+        Spinner.hoverableSpinner
+            { sizePx = 20
             , margin = "0"
             , hoverable = Just <| VisibilityButton pipelineId
             }

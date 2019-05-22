@@ -1,0 +1,5 @@
+BEGIN;
+
+  ALTER TABLE builds DROP COLUMN aborted;
+
+COMMIT;

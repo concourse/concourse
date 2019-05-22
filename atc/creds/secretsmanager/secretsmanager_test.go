@@ -2,6 +2,7 @@ package secretsmanager_test
 
 import (
 	"errors"
+	"github.com/concourse/concourse/atc/creds"
 	"text/template"
 
 	"code.cloudfoundry.org/lager"
@@ -37,6 +38,7 @@ func (mock *MockSecretsManagerService) GetSecretValue(input *secretsmanager.GetS
 
 var _ = Describe("SecretsManager", func() {
 	var secretAccess *SecretsManager
+	var variables creds.Variables
 	var varDef varTemplate.VariableDefinition
 	var mockService MockSecretsManagerService
 
@@ -48,7 +50,8 @@ var _ = Describe("SecretsManager", func() {
 		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		secretAccess = NewSecretsManager(lager.NewLogger("secretsmanager_test"), &mockService, "alpha", "bogus", []*template.Template{t1, t2})
+		secretAccess = NewSecretsManager(lager.NewLogger("secretsmanager_test"), &mockService, []*template.Template{t1, t2})
+		variables = creds.NewVariables(secretAccess, "alpha", "bogus")
 		Expect(secretAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {
 			if input == "/concourse/alpha/bogus/cheery" {
@@ -60,7 +63,7 @@ var _ = Describe("SecretsManager", func() {
 
 	Describe("Get()", func() {
 		It("should get parameter if exists", func() {
-			value, found, err := secretAccess.Get(varDef)
+			value, found, err := variables.Get(varDef)
 			Expect(value).To(BeEquivalentTo("secret value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -72,7 +75,7 @@ var _ = Describe("SecretsManager", func() {
 					SecretBinary: []byte(`{"name": "yours", "pass": "truely"}`),
 				}, nil
 			}
-			value, found, err := secretAccess.Get(varTemplate.VariableDefinition{Name: "user"})
+			value, found, err := variables.Get(varTemplate.VariableDefinition{Name: "user"})
 			Expect(err).To(BeNil())
 			Expect(found).To(BeTrue())
 			Expect(value).To(BeEquivalentTo(map[interface{}]interface{}{
@@ -88,7 +91,7 @@ var _ = Describe("SecretsManager", func() {
 				}
 				return &secretsmanager.GetSecretValueOutput{SecretString: aws.String("team decrypted value")}, nil
 			}
-			value, found, err := secretAccess.Get(varDef)
+			value, found, err := variables.Get(varDef)
 			Expect(value).To(BeEquivalentTo("team decrypted value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -96,19 +99,19 @@ var _ = Describe("SecretsManager", func() {
 
 		It("should return not found on error", func() {
 			mockService.stubGetParameter = nil
-			value, found, err := secretAccess.Get(varDef)
+			value, found, err := variables.Get(varDef)
 			Expect(value).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("should allow empty pipeline name", func() {
-			secretAccess.PipelineName = ""
+			variables := creds.NewVariables(secretAccess, "alpha", "")
 			mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {
 				Expect(input).To(Equal("/concourse/alpha/cheery"))
 				return &secretsmanager.GetSecretValueOutput{SecretString: aws.String("team power")}, nil
 			}
-			value, found, err := secretAccess.Get(varDef)
+			value, found, err := variables.Get(varDef)
 			Expect(value).To(BeEquivalentTo("team power"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())

@@ -80,14 +80,7 @@ func (lifecycle *workerLifecycle) DeleteFinishedRetiringWorkers() ([]string, err
 		Join("containers c ON b.id = c.build_id").
 		Join("workers w ON w.name = c.worker_name").
 		LeftJoin("jobs j ON j.id = b.job_id").
-		Where(sq.Or{
-			sq.Eq{
-				"b.status": string(BuildStatusStarted),
-			},
-			sq.Eq{
-				"b.status": string(BuildStatusPending),
-			},
-		}).
+		Where(sq.Eq{"b.completed": false}).
 		Where(sq.Or{
 			sq.Eq{
 				"j.interruptible": false,
@@ -136,14 +129,7 @@ func (lifecycle *workerLifecycle) LandFinishedLandingWorkers() ([]string, error)
 		Join("containers c ON b.id = c.build_id").
 		Join("workers w ON w.name = c.worker_name").
 		LeftJoin("jobs j ON j.id = b.job_id").
-		Where(sq.Or{
-			sq.Eq{
-				"b.status": string(BuildStatusStarted),
-			},
-			sq.Eq{
-				"b.status": string(BuildStatusPending),
-			},
-		}).
+		Where(sq.Eq{"b.completed": false}).
 		Where(sq.Or{
 			sq.Eq{
 				"j.interruptible": false,

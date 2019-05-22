@@ -59,7 +59,7 @@ type Team interface {
 	IsContainerWithinTeam(string, bool) (bool, error)
 
 	FindContainerByHandle(string) (Container, bool, error)
-	FindCheckContainers(lager.Logger, string, string, creds.VariablesFactory) ([]Container, map[int]time.Time, error)
+	FindCheckContainers(lager.Logger, string, string, creds.Secrets) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
@@ -489,6 +489,11 @@ func (t *team) SavePipeline(
 		}
 	}
 
+	err = t.updateName(tx, config.Jobs, pipelineID)
+	if err != nil {
+		return nil, false, err
+	}
+
 	for _, job := range config.Jobs {
 		err = t.saveJob(tx, job, pipelineID, jobGroups[job.Name])
 		if err != nil {
@@ -708,7 +713,7 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		"team_id":      t.id,
 		"status":       BuildStatusStarted,
 		"start_time":   sq.Expr("now()"),
-		"schema":       "exec.v2",
+		"schema":       schema,
 		"private_plan": encryptedPlan,
 		"public_plan":  plan.Public(),
 		"nonce":        nonce,
@@ -803,7 +808,7 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 	return tx.Commit()
 }
 
-func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, variablesFactory creds.VariablesFactory) ([]Container, map[int]time.Time, error) {
+func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets) ([]Container, map[int]time.Time, error) {
 	pipeline, found, err := t.Pipeline(pipelineName)
 	if err != nil {
 		return nil, nil, err
@@ -825,7 +830,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		return nil, nil, err
 	}
 
-	variables := variablesFactory.NewVariables(t.name, pipeline.Name())
+	variables := creds.NewVariables(secretManager, t.name, pipeline.Name())
 
 	versionedResourceTypes := pipelineResourceTypes.Deserialize()
 
@@ -895,6 +900,105 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 	}
 
 	return containers, checkContainersExpiresAt, nil
+}
+
+type UpdateName struct {
+	OldName  string
+	NewName  string
+}
+
+func (t *team) updateName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
+	jobsToUpdate := []UpdateName{}
+
+	for _, job := range jobs {
+		if job.OldName != "" {
+			var count int
+			err := psql.Select("COUNT(*) as count").
+				From("jobs").
+				Where(sq.Eq{
+					"name": job.OldName,
+					"pipeline_id": pipelineID}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&count)
+			if err != nil {
+				return err
+			}
+
+			if count != 0 {
+				jobsToUpdate = append(jobsToUpdate, UpdateName{
+					OldName: job.OldName,
+					NewName: job.Name,
+				})
+			}
+		}
+	}
+
+	newMap := make(map[int]bool)
+	for _, updateNames := range jobsToUpdate {
+		isCyclic := checkCyclic(jobsToUpdate, updateNames.OldName, newMap)
+		if isCyclic {
+			return errors.New("job name swapping is not supported at this time")
+		}
+	}
+
+	jobsToUpdate = sortUpdateNames(jobsToUpdate)
+
+	for _, updateName := range jobsToUpdate {
+		_, err := psql.Delete("jobs").
+			Where(sq.Eq{
+				"name": updateName.NewName,
+				"pipeline_id": pipelineID,
+				"active": false}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+
+		_, err = psql.Update("jobs").
+			Set("name", updateName.NewName).
+			Where(sq.Eq{"name": updateName.OldName, "pipeline_id": pipelineID}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkCyclic(jobNames []UpdateName, curr string, visited map[int]bool) bool {
+	for i, job := range jobNames {
+		if job.NewName == curr && !visited[i] {
+			visited[i] = true
+			checkCyclic(jobNames, job.OldName, visited)
+		} else if job.NewName == curr && visited[i] && curr != job.OldName {
+			return true
+		}
+	}
+
+	return false
+}
+
+func sortUpdateNames(jobNames []UpdateName) []UpdateName {
+	newMap := make(map[string]int)
+	for i, job := range jobNames {
+		newMap[job.NewName] = i+1
+
+		if newMap[job.OldName] != 0 {
+			index := newMap[job.OldName]-1
+
+			tempJob := jobNames[index]
+			jobNames[index] = job
+			jobNames[i] = tempJob
+
+			return sortUpdateNames(jobNames)
+		}
+	}
+
+	return jobNames
 }
 
 func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string) error {

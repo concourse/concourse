@@ -45,6 +45,7 @@ type StepTree
     | ArtifactOutput Step
     | Put Step
     | Aggregate (Array StepTree)
+    | InParallel (Array StepTree)
     | Do (Array StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
@@ -131,7 +132,6 @@ type BuildEvent
     | FinishPut Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
     | Log Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix
-    | BuildError String
     | End
     | Opened
     | NetworkError
@@ -260,6 +260,9 @@ getMultiStepIndex idx tree =
                 Aggregate trees ->
                     trees
 
+                InParallel trees ->
+                    trees
+
                 Do trees ->
                     trees
 
@@ -284,6 +287,9 @@ setMultiStepIndex idx update tree =
     case tree of
         Aggregate trees ->
             Aggregate (Array.set idx (update (getMultiStepIndex idx tree)) trees)
+
+        InParallel trees ->
+            InParallel (Array.set idx (update (getMultiStepIndex idx tree)) trees)
 
         Do trees ->
             Do (Array.set idx (update (getMultiStepIndex idx tree)) trees)
@@ -325,6 +331,9 @@ finishTree root =
 
         Aggregate trees ->
             Aggregate (Array.map finishTree trees)
+
+        InParallel trees ->
+            InParallel (Array.map finishTree trees)
 
         Do trees ->
             Do (Array.map finishTree trees)

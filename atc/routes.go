@@ -34,8 +34,6 @@ const (
 	ListResources        = "ListResources"
 	ListResourceTypes    = "ListResourceTypes"
 	GetResource          = "GetResource"
-	PauseResource        = "PauseResource"
-	UnpauseResource      = "UnpauseResource"
 	CheckResource        = "CheckResource"
 	CheckResourceWebHook = "CheckResourceWebHook"
 	CheckResourceType    = "CheckResourceType"
@@ -93,6 +91,7 @@ const (
 	ReportWorkerVolumes   = "ReportWorkerVolumes"
 
 	ListTeams      = "ListTeams"
+	GetTeam        = "GetTeam"
 	SetTeam        = "SetTeam"
 	RenameTeam     = "RenameTeam"
 	DestroyTeam    = "DestroyTeam"
@@ -199,6 +198,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/volumes/report", Method: "PUT", Name: ReportWorkerVolumes},
 
 	{Path: "/api/v1/teams", Method: "GET", Name: ListTeams},
+	{Path: "/api/v1/teams/:team_name", Method: "GET", Name: GetTeam},
 	{Path: "/api/v1/teams/:team_name", Method: "PUT", Name: SetTeam},
 	{Path: "/api/v1/teams/:team_name/rename", Method: "PUT", Name: RenameTeam},
 	{Path: "/api/v1/teams/:team_name", Method: "DELETE", Name: DestroyTeam},

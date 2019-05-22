@@ -1,5 +1,6 @@
 module Common exposing
     ( defineHoverBehaviour
+    , init
     , isColorWithStripes
     , pipelineRunningKeyframes
     , queryView
@@ -8,12 +9,14 @@ module Common exposing
 import Application.Application as Application
 import Expect exposing (Expectation)
 import Html
+import Message.Effects exposing (Effect)
 import Message.Message exposing (DomID, Message(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (Selector, style)
+import Url
 
 
 queryView : Application.Model -> Query.Single TopLevelMessage
@@ -112,3 +115,29 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hovered
                     |> query
                     |> Query.has unhoveredSelector.selector
         ]
+
+
+init : String -> Application.Model
+init path =
+    Application.init
+        { turbulenceImgSrc = ""
+        , notFoundImgSrc = "notfound.svg"
+        , csrfToken = "csrf_token"
+        , authToken = ""
+        , clusterName = ""
+        , pipelineRunningKeyframes = "pipeline-running"
+        }
+        { protocol = Url.Http
+        , host = ""
+        , port_ = Nothing
+        , path = path
+        , query = Nothing
+        , fragment = Nothing
+        }
+        |> Tuple.first
+
+
+
+-- 6 places where Application.init is used with a query
+-- 6 places where Application.init is used with a fragment
+-- 1 place where Application.init is used with an instance name

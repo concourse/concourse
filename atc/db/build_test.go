@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/concourse/concourse/atc"
@@ -29,7 +28,7 @@ var _ = Describe("Build", func() {
 		It("updates the model", func() {
 			build, err := team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			started, err := build.Start("schema", atc.Plan{})
+			started, err := build.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -67,6 +66,8 @@ var _ = Describe("Build", func() {
 	})
 
 	Describe("Start", func() {
+		var err error
+		var started bool
 		var build db.Build
 		var plan atc.Plan
 
@@ -96,44 +97,68 @@ var _ = Describe("Build", func() {
 				},
 			}
 
-			var err error
 			build, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-
-			started, err := build.Start("schema", plan)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(started).To(BeTrue())
 		})
 
-		It("creates Start event", func() {
-			found, err := build.Reload()
+		JustBeforeEach(func() {
+			started, err = build.Start(plan)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusStarted))
-
-			events, err := build.Events(0)
-			Expect(err).NotTo(HaveOccurred())
-
-			defer db.Close(events)
-
-			Expect(events.Next()).To(Equal(envelope(event.Status{
-				Status: atc.StatusStarted,
-				Time:   build.StartTime().Unix(),
-			})))
 		})
 
-		It("updates build status", func() {
-			found, err := build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+		Context("build has been aborted", func() {
+			BeforeEach(func() {
+				err = build.MarkAsAborted()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("does not start the build", func() {
+				Expect(started).To(BeFalse())
+			})
+
+			It("leaves the build in pending state", func() {
+				found, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.Status()).To(Equal(db.BuildStatusPending))
+			})
 		})
 
-		It("saves the public plan", func() {
-			found, err := build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.PublicPlan()).To(Equal(plan.Public()))
+		Context("build has not been aborted", func() {
+			It("starts the build", func() {
+				Expect(started).To(BeTrue())
+			})
+
+			It("creates Start event", func() {
+				found, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+
+				events, err := build.Events(0)
+				Expect(err).NotTo(HaveOccurred())
+
+				defer db.Close(events)
+
+				Expect(events.Next()).To(Equal(envelope(event.Status{
+					Status: atc.StatusStarted,
+					Time:   build.StartTime().Unix(),
+				})))
+			})
+
+			It("updates build status", func() {
+				found, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+			})
+
+			It("saves the public plan", func() {
+				found, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.PublicPlan()).To(Equal(plan.Public()))
+			})
 		})
 	})
 
@@ -172,11 +197,22 @@ var _ = Describe("Build", func() {
 			Expect(build.Status()).To(Equal(db.BuildStatusSucceeded))
 		})
 
-		It("sets engine metadata to nil", func() {
+		It("clears out the private plan", func() {
 			found, err := build.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(build.PrivatePlan()).To(BeEmpty())
+			Expect(build.PrivatePlan()).To(Equal(atc.Plan{}))
+		})
+
+		It("sets completed to true", func() {
+			Expect(build.IsCompleted()).To(BeFalse())
+			Expect(build.IsRunning()).To(BeTrue())
+
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.IsCompleted()).To(BeTrue())
+			Expect(build.IsRunning()).To(BeFalse())
 		})
 	})
 
@@ -191,11 +227,11 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("updates build status", func() {
+		It("updates aborted to true", func() {
 			found, err := build.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusAborted))
+			Expect(build.IsAborted()).To(BeTrue())
 		})
 	})
 
@@ -211,7 +247,7 @@ var _ = Describe("Build", func() {
 			defer db.Close(events)
 
 			By("emitting a status event when started")
-			started, err := build.Start("schema", atc.Plan{})
+			started, err := build.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -655,7 +691,7 @@ var _ = Describe("Build", func() {
 
 			Context("when the build is started", func() {
 				BeforeEach(func() {
-					started, err := build.Start("some-schema", atc.Plan{})
+					started, err := build.Start(atc.Plan{})
 					Expect(started).To(BeTrue())
 					Expect(err).NotTo(HaveOccurred())
 
@@ -753,7 +789,7 @@ var _ = Describe("Build", func() {
 
 				Context("when the build is started", func() {
 					BeforeEach(func() {
-						started, err := build.Start("some-schema", atc.Plan{})
+						started, err := build.Start(atc.Plan{})
 						Expect(started).To(BeTrue())
 						Expect(err).NotTo(HaveOccurred())
 
@@ -1164,45 +1200,6 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("FinishWithError", func() {
-		var cause error
-		var build db.Build
-
-		BeforeEach(func() {
-			var err error
-			build, err = team.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		JustBeforeEach(func() {
-			cause = errors.New("disaster")
-			err := build.FinishWithError(cause)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("creates Error event", func() {
-			found, err := build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusErrored))
-
-			events, err := build.Events(0)
-			Expect(err).NotTo(HaveOccurred())
-
-			defer db.Close(events)
-
-			Expect(events.Next()).To(Equal(envelope(event.Error{
-				Message: "disaster",
-			})))
-		})
-
-		It("updates build status", func() {
-			found, err := build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusErrored))
-		})
-	})
 })
 
 func envelope(ev atc.Event) event.Envelope {

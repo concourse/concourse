@@ -5,67 +5,59 @@ import (
 	"encoding/json"
 	"strings"
 	"text/template"
+	"time"
+
+	"github.com/concourse/concourse/atc/creds"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
-
-	varTemplate "github.com/cloudfoundry/bosh-cli/director/template"
 )
 
 type SecretsManager struct {
 	log             lager.Logger
 	api             secretsmanageriface.SecretsManagerAPI
-	TeamName        string
-	PipelineName    string
-	SecretTemplates []*template.Template
+	secretTemplates []*template.Template
 }
 
-func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerAPI, teamName string, pipelineName string, secretTemplates []*template.Template) *SecretsManager {
+func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerAPI, secretTemplates []*template.Template) *SecretsManager {
 	return &SecretsManager{
 		log:             log,
 		api:             api,
-		TeamName:        teamName,
-		PipelineName:    pipelineName,
-		SecretTemplates: secretTemplates,
+		secretTemplates: secretTemplates,
 	}
 }
 
-func (s *SecretsManager) buildSecretId(nameTemplate *template.Template, secret string) (string, error) {
-	var buf bytes.Buffer
-	err := nameTemplate.Execute(&buf, &Secret{
-		Team:     s.TeamName,
-		Pipeline: s.PipelineName,
-		Secret:   secret,
-	})
-	return buf.String(), err
-}
+// NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
+func (s *SecretsManager) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+	lookupPaths := []creds.SecretLookupPath{}
+	for _, tmpl := range s.secretTemplates {
+		lPath := NewSecretLookupPathAws(tmpl, teamName, pipelineName)
 
-func (s *SecretsManager) Get(varDef varTemplate.VariableDefinition) (interface{}, bool, error) {
-	for _, st := range s.SecretTemplates {
-		secretId, err := s.buildSecretId(st, varDef.Name)
-		if err != nil {
-			s.log.Error("build-secret-id", err, lager.Data{"template": st.Name(), "secret": varDef.Name})
-			return nil, false, err
-		}
-
-		if strings.Contains(secretId, "//") {
-			continue
-		}
-
-		value, found, err := s.getSecretById(secretId)
-		if err != nil {
-			s.log.Error("get-secret", err, lager.Data{
-				"template": st.Name(), "secret": varDef.Name, "secretId": secretId,
-			})
-			return nil, false, err
-		}
-		if found {
-			return value, true, nil
+		// if pipeline name is empty, double slashes may be present in the rendered template
+		// let's avoid adding these templates
+		samplePath, err := lPath.VariableToSecretPath("variable")
+		if err == nil && !strings.Contains(samplePath, "//") {
+			lookupPaths = append(lookupPaths, lPath)
 		}
 	}
-	return nil, false, nil
+	return lookupPaths
+}
+
+// Get retrieves the value and expiration of an individual secret
+func (s *SecretsManager) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+	value, expiration, found, err := s.getSecretById(secretPath)
+	if err != nil {
+		s.log.Error("failed-to-fetch-aws-secret", err, lager.Data{
+			"secret-path": secretPath,
+		})
+		return nil, nil, false, err
+	}
+	if found {
+		return value, expiration, true, nil
+	}
+	return nil, nil, false, nil
 }
 
 /*
@@ -74,31 +66,26 @@ func (s *SecretsManager) Get(varDef varTemplate.VariableDefinition) (interface{}
 
 	In case SecretBinary is set, it is expected to be a valid JSON object or it will error.
 */
-func (s *SecretsManager) getSecretById(name string) (interface{}, bool, error) {
+func (s *SecretsManager) getSecretById(name string) (interface{}, *time.Time, bool, error) {
 	value, err := s.api.GetSecretValue(&secretsmanager.GetSecretValueInput{
 		SecretId: &name,
 	})
 	if err == nil {
 		switch {
 		case value.SecretString != nil:
-			return *value.SecretString, true, nil
+			return *value.SecretString, nil, true, nil
 		case value.SecretBinary != nil:
 			values, err := decodeJsonValue(value.SecretBinary)
 			if err != nil {
-				return nil, true, err
+				return nil, nil, true, err
 			}
-			return values, true, nil
+			return values, nil, true, nil
 		}
 	} else if errObj, ok := err.(awserr.Error); ok && errObj.Code() == secretsmanager.ErrCodeResourceNotFoundException {
-		return nil, false, nil
+		return nil, nil, false, nil
 	}
 
-	return nil, false, err
-}
-
-func (s *SecretsManager) List() ([]varTemplate.VariableDefinition, error) {
-	// not implemented, see vault implementation
-	return []varTemplate.VariableDefinition{}, nil
+	return nil, nil, false, err
 }
 
 func decodeJsonValue(data []byte) (map[interface{}]interface{}, error) {
@@ -111,4 +98,29 @@ func decodeJsonValue(data []byte) (map[interface{}]interface{}, error) {
 		evenLessTyped[k] = v
 	}
 	return evenLessTyped, nil
+}
+
+// SecretLookupPathAws is an implementation which returns an evaluated go text template
+type SecretLookupPathAws struct {
+	NameTemplate *template.Template
+	TeamName     string
+	PipelineName string
+}
+
+func NewSecretLookupPathAws(nameTemplate *template.Template, teamName string, pipelineName string) creds.SecretLookupPath {
+	return &SecretLookupPathAws{
+		NameTemplate: nameTemplate,
+		TeamName:     teamName,
+		PipelineName: pipelineName,
+	}
+}
+
+func (sl SecretLookupPathAws) VariableToSecretPath(varName string) (string, error) {
+	var buf bytes.Buffer
+	err := sl.NameTemplate.Execute(&buf, &Secret{
+		Team:     sl.TeamName,
+		Pipeline: sl.PipelineName,
+		Secret:   varName,
+	})
+	return buf.String(), err
 }

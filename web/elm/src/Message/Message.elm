@@ -3,6 +3,7 @@ module Message.Message exposing
     , Message(..)
     , VersionId
     , VersionToggleAction(..)
+    , VisibilityAction(..)
     )
 
 import Concourse
@@ -39,6 +40,7 @@ type Message
     | Hover (Maybe DomID)
     | Click DomID
     | GoToRoute Routes.Route
+    | Scrolled StrictEvents.ScrollState
 
 
 type DomID
@@ -72,11 +74,19 @@ type DomID
     | VersionToggle VersionId
     | BuildTab Concourse.Build
     | JobPreview Concourse.JobIdentifier
+    | HamburgerMenu
+    | SideBarTeam String
+    | SideBarPipeline Concourse.PipelineIdentifier
 
 
 type VersionToggleAction
     = Enable
     | Disable
+
+
+type VisibilityAction
+    = Expose
+    | Hide
 
 
 type alias VersionId =

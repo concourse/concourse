@@ -146,12 +146,35 @@ local create_release = {
     ]
   }
 };
+local generate_dpkg_list = {
+  platform: "linux",
+  inputs: [
+    { name: "version" },
+  ],
+  outputs: [
+    { name: "dpkg-file" },
+  ],
+  run: {
+    path: "bash",
+    args: [
+      "-exc",
+      |||
+        VERSION="$(cat version/number)"
+        RESOURCE="%(resource)s"
+        DPKG_FILE="${RESOURCE}-dpkg-list-${VERSION}.txt"
+        dpkg -l > "dpkg-file/${DPKG_FILE}"
+      ||| % {
+        resource: resource,
+      },
+    ],
+  },
+};
 
 local publish_job(bump) = {
-  name: bump,
+  name: "publish-" + bump,
   plan: [
     {
-      aggregate: [
+      in_parallel: [
         {
           get: "resource-repo",
           passed: ["build-alpine", "build-ubuntu"]
@@ -177,7 +200,12 @@ local publish_job(bump) = {
       config: create_release
     },
     {
-      aggregate: [
+      task: "generate-dpkg-list",
+      config: generate_dpkg_list,
+      image: "resource-image-dev-ubuntu",
+    },
+    {
+      in_parallel: [
         {
           put: "resource-image-alpine",
           params: {
@@ -205,6 +233,12 @@ local publish_job(bump) = {
       ]
     },
     {
+      put: "dpkg-list-store",
+      params: {
+        file: "dpkg-file/" + resource + "-dpkg-list-*.txt",
+      },
+    },
+    {
       put: "version",
       params: {file: "version/version"}
     }
@@ -223,7 +257,7 @@ local validate_pr(distro) = {
   public: true,
   plan: [
     {
-      aggregate: [
+      in_parallel: [
         {
           get: "resource-pr",
           trigger: true,
@@ -278,7 +312,7 @@ local build_image(distro) = {
   name: "build-" + distro,
   plan: [
     {
-      aggregate: [
+      in_parallel: [
         {
           get: resource+"-resource",
           resource: "resource-repo",
@@ -328,12 +362,18 @@ local build_image(distro) = {
       name: "s3",
       type: "registry-image",
       source: {repository: "concourse/s3-resource"}
+    },
+    {
+      name: "gcs",
+      type: "registry-image",
+      source: {repository: "frodenas/gcs-resource"}
     }
   ],
   resources: [
     {
       name: "alpine-edge",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "alpine",
         tag: "edge"
@@ -342,6 +382,7 @@ local build_image(distro) = {
     {
       name: "ubuntu-bionic",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "ubuntu",
         tag: "bionic"
@@ -350,6 +391,7 @@ local build_image(distro) = {
     {
       name: "resource-repo",
       type: "git",
+      icon: "github-circle",
       source: {
         uri: "git@github.com:concourse/"+resource+"-resource",
         branch: "master",
@@ -359,6 +401,7 @@ local build_image(distro) = {
     {
       name: "resource-repo-release",
       type: "github-release",
+      icon: "package-variant-closed",
       source: {
         owner: "concourse",
         repository: resource+"-resource",
@@ -368,6 +411,7 @@ local build_image(distro) = {
     {
       name: "version",
       type: "semver",
+      icon: "tag",
       source: {
         driver: "git",
         uri: "git@github.com:concourse/"+resource+"-resource",
@@ -379,6 +423,7 @@ local build_image(distro) = {
     {
       name: "resource-pr",
       type: "pull-request",
+      icon: "source-pull",
       source: {
         repo: "concourse/"+resource+"-resource",
         base: "master",
@@ -389,6 +434,7 @@ local build_image(distro) = {
     {
       name: "resource-image-alpine",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "concourse/"+resource+"-resource",
         tag: "alpine",
@@ -399,6 +445,7 @@ local build_image(distro) = {
     {
       name: "resource-image-ubuntu",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "concourse/"+resource+"-resource",
         tag: "ubuntu",
@@ -409,6 +456,7 @@ local build_image(distro) = {
     {
       name: "resource-image-dev-alpine",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "concourse/"+resource+"-resource",
         tag: "dev",
@@ -419,13 +467,23 @@ local build_image(distro) = {
     {
       name: "resource-image-dev-ubuntu",
       type: "docker-image",
+      icon: "docker",
       source: {
         repository: "concourse/"+resource+"-resource",
         tag: "dev-ubuntu",
         username: "((docker.username))",
         password: "((docker.password))"
       }
-    }
+    },
+    {
+      name: "dpkg-list-store",
+      type: "gcs",
+      source: {
+        bucket: "concourse-ubuntu-dpkg-list",
+        json_key: "((concourse_dpkg_list_json_key))",
+        regexp: resource + "-dpkg-list-(.*).txt",
+      },
+    },
   ] + extra_resources,
   jobs: [
     build_image("alpine"),

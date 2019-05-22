@@ -1,8 +1,7 @@
 module Network.Pipeline exposing
-    ( expose
+    ( changeVisibility
     , fetchPipeline
     , fetchPipelines
-    , hide
     , order
     , togglePause
     )
@@ -11,6 +10,7 @@ import Concourse
 import Http
 import Json.Decode
 import Json.Encode
+import Message.Message exposing (VisibilityAction(..))
 import Task exposing (Task)
 
 
@@ -72,8 +72,22 @@ putAction action teamName pipelineName csrfToken =
             }
 
 
-hide : String -> String -> Concourse.CSRFToken -> Task Http.Error ()
-hide teamName pipelineName csrfToken =
+changeVisibility :
+    VisibilityAction
+    -> String
+    -> String
+    -> Concourse.CSRFToken
+    -> Task Http.Error ()
+changeVisibility action teamName pipelineName csrfToken =
+    let
+        endpoint =
+            case action of
+                Hide ->
+                    "/hide"
+
+                Expose ->
+                    "/expose"
+    in
     Http.toTask <|
         Http.request
             { method = "PUT"
@@ -82,26 +96,7 @@ hide teamName pipelineName csrfToken =
                     ++ teamName
                     ++ "/pipelines/"
                     ++ pipelineName
-                    ++ "/hide"
-            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
-            , expect = Http.expectStringResponse (always (Ok ()))
-            , body = Http.emptyBody
-            , timeout = Nothing
-            , withCredentials = False
-            }
-
-
-expose : String -> String -> Concourse.CSRFToken -> Task Http.Error ()
-expose teamName pipelineName csrfToken =
-    Http.toTask <|
-        Http.request
-            { method = "PUT"
-            , url =
-                "/api/v1/teams/"
-                    ++ teamName
-                    ++ "/pipelines/"
-                    ++ pipelineName
-                    ++ "/expose"
+                    ++ endpoint
             , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , expect = Http.expectStringResponse (always (Ok ()))
             , body = Http.emptyBody

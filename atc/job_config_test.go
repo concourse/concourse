@@ -557,6 +557,94 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
+			Context("when a simple parallel plan is the first step", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = atc.PlanSequence{
+						{
+							InParallel: &atc.InParallelConfig{
+								Steps: atc.PlanSequence{
+									{Get: "a"},
+									{Put: "y"},
+									{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
+									{Get: "c", Trigger: true},
+								},
+								Limit:    1,
+								FailFast: true,
+							},
+						},
+					}
+				})
+
+				It("returns an input config for all get plans", func() {
+					Expect(inputs).To(Equal([]atc.JobInput{
+						{
+							Name:     "a",
+							Resource: "a",
+							Trigger:  false,
+						},
+						{
+							Name:     "b",
+							Resource: "some-resource",
+							Passed:   []string{"x"},
+							Trigger:  false,
+						},
+						{
+							Name:     "c",
+							Resource: "c",
+							Trigger:  true,
+						},
+					}))
+
+				})
+			})
+
+			Context("when an overly complicated parallel plan is the first step", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = atc.PlanSequence{
+						{
+							InParallel: &atc.InParallelConfig{
+								Steps: atc.PlanSequence{
+									{
+										InParallel: &atc.InParallelConfig{
+											Steps: atc.PlanSequence{
+												{Get: "a"},
+											},
+											Limit: 1,
+										},
+									},
+									{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
+									{Get: "c", Trigger: true},
+								},
+								Limit:    2,
+								FailFast: true,
+							},
+						},
+					}
+				})
+
+				It("returns an input config for all of the get plans present", func() {
+					Expect(inputs).To(Equal([]atc.JobInput{
+						{
+							Name:     "a",
+							Resource: "a",
+							Trigger:  false,
+						},
+						{
+							Name:     "b",
+							Resource: "some-resource",
+							Passed:   []string{"x"},
+							Trigger:  false,
+						},
+						{
+							Name:     "c",
+							Resource: "c",
+							Trigger:  true,
+						},
+					}))
+
+				})
+			})
+
 			Context("when there are not gets in the plan", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = atc.PlanSequence{
@@ -605,8 +693,10 @@ var _ = Describe("JobConfig", func() {
 						{
 							Aggregate: &atc.PlanSequence{
 								{
-									Aggregate: &atc.PlanSequence{
-										{Put: "a"},
+									InParallel: &atc.InParallelConfig{
+										Steps: atc.PlanSequence{
+											{Put: "a"},
+										},
 									},
 								},
 								{Put: "b", Resource: "some-resource"},

@@ -33,25 +33,14 @@ body,
 
 .with-fixed-header {
   .fixed-header {
-    height: @fixed-header-height;
-    position: fixed;
-    top: @top-bar-height;
-    left: 0;
-    right: 0;
     z-index: @fixed-header-z-index;
     background: @base01;
   }
 
   .scrollable-body {
     width: 100%;
-    height: 100%;
     box-sizing: border-box;
     padding: 10px;
-    padding-top: @fixed-header-height + 10px;
-
-    &.job-body {
-      padding-top: @fixed-header-height + @pagination-header-height + 10px;
-    }
   }
 }
 

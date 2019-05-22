@@ -27,6 +27,7 @@ func (cmd QuickstartCommand) lessenRequirements(command *flags.Command) {
 	command.FindOptionByLongName("session-signing-key").Required = false
 	command.FindOptionByLongName("tsa-authorized-keys").Required = false
 	command.FindOptionByLongName("tsa-host-key").Required = false
+	command.FindOptionByLongName("worker-tsa-worker-private-key").Required = false
 }
 
 func (cmd *QuickstartCommand) Execute(args []string) error {

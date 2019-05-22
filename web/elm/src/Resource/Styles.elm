@@ -32,22 +32,11 @@ import Html
 import Html.Attributes exposing (style)
 import Pinned
 import Resource.Models as Models
-import Views.Styles
 
 
 headerHeight : Int
 headerHeight =
     60
-
-
-commentBarHeight : Int
-commentBarHeight =
-    300
-
-
-bodyPadding : Int
-bodyPadding =
-    10
 
 
 pinBar : Bool -> List (Html.Attribute msg)
@@ -216,12 +205,10 @@ borderColor pinnedState =
 commentBar : List (Html.Attribute msg)
 commentBar =
     [ style "background-color" Colors.frame
-    , style "position" "fixed"
-    , style "bottom" "0"
-    , style "width" "100%"
     , style "height" "300px"
     , style "display" "flex"
     , style "justify-content" "center"
+    , style "flex-shrink" "0"
     ]
 
 
@@ -323,12 +310,8 @@ commentBarIconContainer =
 headerBar : List (Html.Attribute msg)
 headerBar =
     [ style "height" <| String.fromInt headerHeight ++ "px"
-    , style "position" "fixed"
-    , style "top" <| String.fromFloat Views.Styles.pageHeaderHeight ++ "px"
     , style "display" "flex"
     , style "align-items" "stretch"
-    , style "width" "100%"
-    , style "z-index" "1"
     , style "background-color" Colors.secondaryTopBar
     ]
 
@@ -352,17 +335,11 @@ headerLastCheckedSection =
     ]
 
 
-body : Bool -> List (Html.Attribute msg)
-body hasCommentBar =
-    [ style "padding-top" <| String.fromInt (headerHeight + bodyPadding) ++ "px"
-    , style "padding-left" <| String.fromInt bodyPadding ++ "px"
-    , style "padding-right" <| String.fromInt bodyPadding ++ "px"
-    , style "padding-bottom" <|
-        if hasCommentBar then
-            String.fromInt commentBarHeight ++ "px"
-
-        else
-            String.fromInt bodyPadding ++ "px"
+body : List (Html.Attribute msg)
+body =
+    [ style "padding" "10px"
+    , style "overflow-y" "auto"
+    , style "flex-grow" "1"
     ]
 
 

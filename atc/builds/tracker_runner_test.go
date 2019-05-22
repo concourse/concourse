@@ -101,6 +101,25 @@ var _ = Describe("TrackerRunner", func() {
 		})
 	})
 
+	Context("when it receives shutdown signal", func() {
+		JustBeforeEach(func() {
+			<-tracked
+			go func() {
+				process.Signal(os.Interrupt)
+			}()
+		})
+
+		It("releases tracker", func() {
+			<-process.Wait()
+			Expect(fakeTracker.ReleaseCallCount()).To(Equal(1))
+		})
+
+		It("notifies other atc it is shutting down", func() {
+			<-process.Wait()
+			Expect(fakeNotifications.NotifyCallCount()).To(Equal(1))
+		})
+	})
+
 	Context("when the interval elapses", func() {
 		JustBeforeEach(func() {
 			<-tracked

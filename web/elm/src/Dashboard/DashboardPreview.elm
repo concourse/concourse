@@ -3,27 +3,23 @@ module Dashboard.DashboardPreview exposing (view)
 import Concourse
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
 import Dashboard.Styles as Styles
+import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
-import List.Extra exposing (find)
+import List.Extra
+import Maybe.Extra
 import Message.Message exposing (DomID(..), Message(..))
 import Routes
-import TopologicalSort exposing (flattenToLayers)
+import Set exposing (Set)
 
 
 view : Maybe DomID -> List Concourse.Job -> Html Message
 view hovered jobs =
     let
-        jobDependencies : Concourse.Job -> List Concourse.Job
-        jobDependencies job =
-            job.inputs
-                |> List.concatMap .passed
-                |> List.filterMap (\name -> find (\j -> j.name == name) jobs)
-
         layers : List (List Concourse.Job)
         layers =
-            flattenToLayers (List.map (\j -> ( j, jobDependencies j )) jobs)
+            groupByRank jobs
 
         width : Int
         width =
@@ -90,3 +86,60 @@ viewJob hovered job =
             (href (Routes.toString buildRoute) :: Styles.jobPreviewLink)
             [ Html.text "" ]
         ]
+
+
+groupByRank : List Concourse.Job -> List (List Concourse.Job)
+groupByRank jobs =
+    let
+        depths =
+            jobs
+                |> jobDepths Set.empty Dict.empty
+    in
+    jobs
+        |> List.Extra.gatherEqualsBy (\job -> Dict.get job.name depths)
+        |> List.map (\( h, t ) -> h :: t)
+
+
+jobDepths : Set String -> Dict String Int -> List Concourse.Job -> Dict String Int
+jobDepths visited depths jobs =
+    case jobs of
+        [] ->
+            depths
+
+        job :: otherJobs ->
+            case
+                ( List.concatMap .passed job.inputs
+                    |> List.map (\jobName -> Dict.get jobName depths)
+                    |> calculate List.maximum
+                , Set.member job.name visited
+                )
+            of
+                ( Nothing, _ ) ->
+                    jobDepths visited (Dict.insert job.name 0 depths) otherJobs
+
+                ( Just (Confident depth), _ ) ->
+                    jobDepths visited (Dict.insert job.name (depth + 1) depths) otherJobs
+
+                ( Just (Speculative depth), True ) ->
+                    jobDepths visited (Dict.insert job.name (depth + 1) depths) otherJobs
+
+                ( Just (Speculative _), False ) ->
+                    jobDepths (Set.insert job.name visited) depths (otherJobs ++ [ job ])
+
+
+type Calculation a
+    = Confident a
+    | Speculative a
+
+
+calculate : (List a -> Maybe b) -> List (Maybe a) -> Maybe (Calculation b)
+calculate f xs =
+    case ( List.any ((==) Nothing) xs, f (Maybe.Extra.values xs) ) of
+        ( True, Just value ) ->
+            Just (Speculative value)
+
+        ( False, Just value ) ->
+            Just (Confident value)
+
+        ( _, Nothing ) ->
+            Nothing

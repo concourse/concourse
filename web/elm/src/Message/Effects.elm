@@ -7,7 +7,7 @@ port module Message.Effects exposing
     , stickyHeaderConfig
     )
 
-import Browser.Dom exposing (getViewport)
+import Browser.Dom exposing (Viewport, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus
@@ -15,7 +15,7 @@ import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Json.Encode
 import Message.Callback exposing (Callback(..))
-import Message.Message exposing (VersionToggleAction(..))
+import Message.Message exposing (VersionToggleAction(..), VisibilityAction(..))
 import Network.Build
 import Network.BuildPlan
 import Network.BuildPrep
@@ -63,24 +63,6 @@ port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
 port closeEventStream : () -> Cmd msg
 
 
-port scrollIntoView : String -> Cmd msg
-
-
-port scrollElement : ( String, Float ) -> Cmd msg
-
-
-port scrollToBottom : () -> Cmd msg
-
-
-port scrollToTop : () -> Cmd msg
-
-
-port scrollUp : () -> Cmd msg
-
-
-port scrollDown : () -> Cmd msg
-
-
 port checkIsVisible : String -> Cmd msg
 
 
@@ -88,6 +70,12 @@ port setFavicon : String -> Cmd msg
 
 
 port renderSvgIcon : String -> Cmd msg
+
+
+port loadSideBarState : () -> Cmd msg
+
+
+port saveSideBarState : Bool -> Cmd msg
 
 
 type alias StickyHeaderConfig =
@@ -130,6 +118,7 @@ type Effect
     | FetchBuildPrep Float Int Int
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
+    | FetchPipelines
     | GetCurrentTime
     | GetCurrentTimeZone
     | DoTriggerBuild Concourse.JobIdentifier
@@ -155,7 +144,7 @@ type Effect
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames StickyHeaderConfig
-    | Scroll ScrollDirection
+    | Scroll ScrollDirection String
     | SetFavIcon (Maybe Concourse.BuildStatus)
     | SaveToken String
     | LoadToken
@@ -165,8 +154,9 @@ type Effect
     | Focus String
     | Blur String
     | RenderSvgIcon String
-    | HidePipeline Concourse.PipelineIdentifier
-    | ExposePipeline Concourse.PipelineIdentifier
+    | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
+    | LoadSideBarState
+    | SaveSideBarState Bool
 
 
 type alias VersionId =
@@ -178,7 +168,7 @@ type ScrollDirection
     | Down
     | Up
     | ToBottom
-    | Element String Float
+    | Sideways Float
     | ToId String
 
 
@@ -237,6 +227,10 @@ runEffect effect key csrfToken =
             Network.DashboardAPIData.remoteData
                 |> Task.map2 (\a b -> ( a, b )) Time.now
                 |> Task.attempt APIDataFetched
+
+        FetchPipelines ->
+            Network.Pipeline.fetchPipelines
+                |> Task.attempt PipelinesFetched
 
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now
@@ -370,8 +364,23 @@ runEffect effect key csrfToken =
             Network.Build.abort buildId csrfToken
                 |> Task.attempt BuildAborted
 
-        Scroll dir ->
-            scrollInDirection dir
+        Scroll ToTop id ->
+            scroll id id (always 0) (always 0)
+
+        Scroll Down id ->
+            scroll id id (always 0) (.viewport >> .y >> (+) 60)
+
+        Scroll Up id ->
+            scroll id id (always 0) (.viewport >> .y >> (+) -60)
+
+        Scroll ToBottom id ->
+            scroll id id (always 0) (.scene >> .height)
+
+        Scroll (Sideways delta) id ->
+            scroll id id (.viewport >> .x >> (+) -delta) (always 0)
+
+        Scroll (ToId id) idOfThingToScroll ->
+            scroll id idOfThingToScroll (.viewport >> .x) (.viewport >> .y)
 
         SaveToken tokenValue ->
             saveToken tokenValue
@@ -399,41 +408,37 @@ runEffect effect key csrfToken =
         RenderSvgIcon icon ->
             renderSvgIcon icon
 
-        HidePipeline pipelineId ->
-            Network.Pipeline.hide
+        ChangeVisibility action pipelineId ->
+            Network.Pipeline.changeVisibility
+                action
                 pipelineId.teamName
                 pipelineId.pipelineName
                 csrfToken
-                |> Task.attempt (PipelineHidden pipelineId)
+                |> Task.attempt (VisibilityChanged action pipelineId)
 
-        ExposePipeline pipelineId ->
-            Network.Pipeline.expose
-                pipelineId.teamName
-                pipelineId.pipelineName
-                csrfToken
-                |> Task.attempt (PipelineExposed pipelineId)
+        LoadSideBarState ->
+            loadSideBarState ()
+
+        SaveSideBarState isOpen ->
+            saveSideBarState isOpen
 
 
-scrollInDirection : ScrollDirection -> Cmd Callback
-scrollInDirection dir =
-    case dir of
-        ToTop ->
-            scrollToTop ()
-
-        Down ->
-            scrollDown ()
-
-        Up ->
-            scrollUp ()
-
-        ToBottom ->
-            scrollToBottom ()
-
-        Element id delta ->
-            scrollElement ( id, delta )
-
-        ToId id ->
-            scrollIntoView id
+scroll :
+    String
+    -> String
+    -> (Viewport -> Float)
+    -> (Viewport -> Float)
+    -> Cmd Callback
+scroll srcId idOfThingToScroll getX getY =
+    getViewportOf srcId
+        |> Task.andThen
+            (\info ->
+                setViewportOf
+                    idOfThingToScroll
+                    (getX info)
+                    (getY info)
+            )
+        |> Task.attempt (\_ -> EmptyCallback)
 
 
 faviconName : Maybe Concourse.BuildStatus -> String

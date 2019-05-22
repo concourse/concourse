@@ -6,7 +6,7 @@
 --  subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 
 
-module Views.Spinner exposing (spinner)
+module Views.Spinner exposing (hoverableSpinner, spinner)
 
 import Html exposing (Html)
 import Html.Attributes exposing (style)
@@ -14,14 +14,19 @@ import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Message exposing (DomID, Message(..))
 
 
-spinner :
-    { size : String, margin : String, hoverable : Maybe DomID }
+spinner : { sizePx : Float, margin : String } -> Html Message
+spinner { sizePx, margin } =
+    hoverableSpinner { sizePx = sizePx, margin = margin, hoverable = Nothing }
+
+
+hoverableSpinner :
+    { sizePx : Float, margin : String, hoverable : Maybe DomID }
     -> Html Message
-spinner { size, margin, hoverable } =
+hoverableSpinner { sizePx, margin, hoverable } =
     Html.div
         -- preloader-wrapper active
-        ([ style "width" size
-         , style "height" size
+        ([ style "width" <| String.fromFloat sizePx ++ "px"
+         , style "height" <| String.fromFloat sizePx ++ "px"
          , style "box-sizing" "border-box"
          , style "animation" "container-rotate 1568ms linear infinite"
          , style "margin" margin

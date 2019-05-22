@@ -23,7 +23,7 @@ import Job.Job as Job
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID, Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model
@@ -32,8 +32,8 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
+import Session exposing (Session)
 import UpdateMsg exposing (UpdateMsg)
-import UserState exposing (UserState)
 
 
 type Model
@@ -50,6 +50,7 @@ type alias Flags =
     { authToken : String
     , turbulencePath : String
     , pipelineRunningKeyframes : String
+    , clusterName : String
     }
 
 
@@ -97,6 +98,7 @@ init flags route =
                 { turbulencePath = flags.turbulencePath
                 , searchType = searchType
                 , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+                , clusterName = flags.clusterName
                 }
                 |> Tuple.mapFirst DashboardModel
 
@@ -214,26 +216,26 @@ handleLoggedOut ( m, effs ) =
     )
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery =
+handleDelivery : { a | hovered : Maybe DomID } -> Delivery -> ET Model
+handleDelivery session delivery =
     genericUpdate
-        (Build.handleDelivery delivery)
+        (Build.handleDelivery session delivery)
         (Job.handleDelivery delivery)
         (Resource.handleDelivery delivery)
         (Pipeline.handleDelivery delivery)
         (Dashboard.handleDelivery delivery)
-        identity
+        (NotFound.handleDelivery delivery)
         identity
 
 
-update : Message -> ET Model
-update msg =
+update : Session a -> Message -> ET Model
+update session msg =
     genericUpdate
-        (Login.update msg >> Build.update msg)
+        (Login.update msg >> Build.update session msg)
         (Login.update msg >> Job.update msg)
         (Login.update msg >> Resource.update msg)
         (Login.update msg >> Pipeline.update msg)
-        (Login.update msg >> Dashboard.update msg)
+        (Login.update msg >> Dashboard.update session msg)
         (Login.update msg)
         (Login.update msg >> FlySuccess.update msg)
         >> (case msg of
@@ -287,44 +289,51 @@ urlUpdate route =
             _ ->
                 identity
         )
-        identity
+        (case route of
+            Routes.Dashboard st ->
+                Tuple.mapFirst
+                    (\dm -> { dm | highDensity = st == Routes.HighDensity })
+
+            _ ->
+                identity
+        )
         identity
         identity
 
 
-view : UserState -> Model -> Browser.Document TopLevelMessage
-view userState mdl =
+view : Session a -> Model -> Browser.Document TopLevelMessage
+view ({ userState } as session) mdl =
     let
         ( title, body ) =
             case mdl of
                 BuildModel model ->
                     ( Build.documentTitle model
-                    , Build.view userState model
+                    , Build.view session model
                     )
 
                 JobModel model ->
                     ( Job.documentTitle model
-                    , Job.view userState model
+                    , Job.view session model
                     )
 
                 PipelineModel model ->
                     ( Pipeline.documentTitle model
-                    , Pipeline.view userState model
+                    , Pipeline.view session model
                     )
 
                 ResourceModel model ->
                     ( Resource.documentTitle model
-                    , Resource.view userState model
+                    , Resource.view session model
                     )
 
                 DashboardModel model ->
                     ( Dashboard.documentTitle
-                    , Dashboard.view userState model
+                    , Dashboard.view session model
                     )
 
                 NotFoundModel model ->
                     ( NotFound.documentTitle
-                    , NotFound.view userState model
+                    , NotFound.view session model
                     )
 
                 FlySuccessModel model ->
@@ -354,7 +363,7 @@ subscriptions mdl =
             Dashboard.subscriptions
 
         NotFoundModel _ ->
-            []
+            NotFound.subscriptions
 
         FlySuccessModel _ ->
             []

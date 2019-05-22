@@ -21,6 +21,17 @@ type FakeNotifications struct {
 		result1 chan bool
 		result2 error
 	}
+	NotifyStub        func(string) error
+	notifyMutex       sync.RWMutex
+	notifyArgsForCall []struct {
+		arg1 string
+	}
+	notifyReturns struct {
+		result1 error
+	}
+	notifyReturnsOnCall map[int]struct {
+		result1 error
+	}
 	UnlistenStub        func(string, chan bool) error
 	unlistenMutex       sync.RWMutex
 	unlistenArgsForCall []struct {
@@ -100,6 +111,66 @@ func (fake *FakeNotifications) ListenReturnsOnCall(i int, result1 chan bool, res
 	}{result1, result2}
 }
 
+func (fake *FakeNotifications) Notify(arg1 string) error {
+	fake.notifyMutex.Lock()
+	ret, specificReturn := fake.notifyReturnsOnCall[len(fake.notifyArgsForCall)]
+	fake.notifyArgsForCall = append(fake.notifyArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Notify", []interface{}{arg1})
+	fake.notifyMutex.Unlock()
+	if fake.NotifyStub != nil {
+		return fake.NotifyStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.notifyReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeNotifications) NotifyCallCount() int {
+	fake.notifyMutex.RLock()
+	defer fake.notifyMutex.RUnlock()
+	return len(fake.notifyArgsForCall)
+}
+
+func (fake *FakeNotifications) NotifyCalls(stub func(string) error) {
+	fake.notifyMutex.Lock()
+	defer fake.notifyMutex.Unlock()
+	fake.NotifyStub = stub
+}
+
+func (fake *FakeNotifications) NotifyArgsForCall(i int) string {
+	fake.notifyMutex.RLock()
+	defer fake.notifyMutex.RUnlock()
+	argsForCall := fake.notifyArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeNotifications) NotifyReturns(result1 error) {
+	fake.notifyMutex.Lock()
+	defer fake.notifyMutex.Unlock()
+	fake.NotifyStub = nil
+	fake.notifyReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeNotifications) NotifyReturnsOnCall(i int, result1 error) {
+	fake.notifyMutex.Lock()
+	defer fake.notifyMutex.Unlock()
+	fake.NotifyStub = nil
+	if fake.notifyReturnsOnCall == nil {
+		fake.notifyReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.notifyReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeNotifications) Unlisten(arg1 string, arg2 chan bool) error {
 	fake.unlistenMutex.Lock()
 	ret, specificReturn := fake.unlistenReturnsOnCall[len(fake.unlistenArgsForCall)]
@@ -166,6 +237,8 @@ func (fake *FakeNotifications) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.listenMutex.RLock()
 	defer fake.listenMutex.RUnlock()
+	fake.notifyMutex.RLock()
+	defer fake.notifyMutex.RUnlock()
 	fake.unlistenMutex.RLock()
 	defer fake.unlistenMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
