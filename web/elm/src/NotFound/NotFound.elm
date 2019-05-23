@@ -6,6 +6,7 @@ module NotFound.NotFound exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src)
@@ -21,7 +22,6 @@ import Message.Subscription
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model exposing (Model)
 import Routes
-import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import Views.Styles
 import Views.TopBar as TopBar
@@ -48,7 +48,7 @@ documentTitle =
     "Not Found"
 
 
-view : Session a -> Model -> Html Message
+view : Session -> Model -> Html Message
 view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)

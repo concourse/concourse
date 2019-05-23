@@ -8,6 +8,7 @@ module Dashboard.Dashboard exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
@@ -67,7 +68,6 @@ import MonocleHelpers exposing (bind, modifyWithEffect)
 import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import UserState
 import Views.Styles
@@ -273,7 +273,7 @@ handleDeliveryBody delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Session a -> Message -> ET Model
+update : Session -> Message -> ET Model
 update session msg =
     SearchBar.update session msg >> updateBody msg
 
@@ -457,7 +457,7 @@ documentTitle =
     "Dashboard"
 
 
-view : Session a -> Model -> Html Message
+view : Session -> Model -> Html Message
 view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
@@ -483,7 +483,7 @@ view session model =
         ]
 
 
-topBar : Session a -> Model -> Html Message
+topBar : Session -> Model -> Html Message
 topBar session model =
     Html.div
         (id "top-bar-app" :: Views.Styles.topBar False)

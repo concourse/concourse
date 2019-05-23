@@ -15,7 +15,7 @@ main : BenchmarkProgram
 main =
     program <|
         Benchmark.compare "view"
-            "with topological sort"
+            "with uncertainty metric"
             (\_ -> DP.view Nothing sampleJobs)
             "straight recursion"
             (\_ -> view sampleJobs)

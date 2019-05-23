@@ -29,6 +29,7 @@ var _ = Describe("VolumeClient", func() {
 		fakeDBVolumeRepository            *dbfakes.FakeVolumeRepository
 		fakeWorkerBaseResourceTypeFactory *dbfakes.FakeWorkerBaseResourceTypeFactory
 		fakeWorkerTaskCacheFactory        *dbfakes.FakeWorkerTaskCacheFactory
+		fakeTaskCacheFactory              *dbfakes.FakeTaskCacheFactory
 		fakeClock                         *fakeclock.FakeClock
 		dbWorker                          *dbfakes.FakeWorker
 
@@ -46,6 +47,7 @@ var _ = Describe("VolumeClient", func() {
 
 		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
 		fakeWorkerBaseResourceTypeFactory = new(dbfakes.FakeWorkerBaseResourceTypeFactory)
+		fakeTaskCacheFactory = new(dbfakes.FakeTaskCacheFactory)
 		fakeWorkerTaskCacheFactory = new(dbfakes.FakeWorkerTaskCacheFactory)
 		fakeLock = new(lockfakes.FakeLock)
 
@@ -57,6 +59,7 @@ var _ = Describe("VolumeClient", func() {
 			fakeLockFactory,
 			fakeDBVolumeRepository,
 			fakeWorkerBaseResourceTypeFactory,
+			fakeTaskCacheFactory,
 			fakeWorkerTaskCacheFactory,
 		)
 	})
@@ -567,7 +570,8 @@ var _ = Describe("VolumeClient", func() {
 	Describe("FindVolumeForTaskCache", func() {
 		Context("when worker task cache does not exist", func() {
 			BeforeEach(func() {
-				fakeWorkerTaskCacheFactory.FindReturns(nil, false, nil)
+				// fakeWorkerTaskCacheFactory.FindReturns(nil, false, nil)
+				fakeTaskCacheFactory.FindReturns(nil, false, nil)
 			})
 
 			It("returns false", func() {
@@ -589,7 +593,7 @@ var _ = Describe("VolumeClient", func() {
 
 			Context("when task cache volume does not exist in db", func() {
 				BeforeEach(func() {
-					fakeDBVolumeRepository.FindTaskCacheVolumeReturns(nil, nil, nil)
+					fakeDBVolumeRepository.FindTaskCacheVolumeReturns(nil, false, nil)
 				})
 
 				It("returns false", func() {
@@ -604,7 +608,7 @@ var _ = Describe("VolumeClient", func() {
 
 				BeforeEach(func() {
 					dbVolume = new(dbfakes.FakeCreatedVolume)
-					fakeDBVolumeRepository.FindTaskCacheVolumeReturns(nil, dbVolume, nil)
+					fakeDBVolumeRepository.FindTaskCacheVolumeReturns(dbVolume, true, nil)
 				})
 
 				Context("when task cache volume does not exist in baggageclaim", func() {
@@ -625,6 +629,7 @@ var _ = Describe("VolumeClient", func() {
 					BeforeEach(func() {
 						bcVolume = new(baggageclaimfakes.FakeVolume)
 						fakeBaggageclaimClient.LookupVolumeReturns(bcVolume, true, nil)
+						fakeTaskCacheFactory.FindReturns(nil, true, nil)
 					})
 
 					It("returns volume", func() {
@@ -764,6 +769,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeLockFactory,
 				fakeDBVolumeRepository,
 				fakeWorkerBaseResourceTypeFactory,
+				fakeTaskCacheFactory,
 				fakeWorkerTaskCacheFactory,
 			).LookupVolume(testLogger, handle)
 		})
