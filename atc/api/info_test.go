@@ -63,7 +63,9 @@ var _ = Describe("Pipelines API", func() {
 
 			Expect(body).To(MatchJSON(`{
 				"version": "1.2.3",
-				"worker_version": "4.5.6"
+				"worker_version": "4.5.6",
+				"external_url": "https://example.com",
+				"cluster_name": "Test Cluster"
 			}`))
 		})
 	})
