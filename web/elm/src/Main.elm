@@ -68,8 +68,13 @@ effectsToCmd :
     -> ( TopLevelModel, Cmd Msgs.TopLevelMessage )
 effectsToCmd ( model, effs ) =
     ( model
-    , List.map (effectToCmd model.model.csrfToken model.key) effs |> Cmd.batch
+    , List.map (effectToCmd model.model.session.csrfToken model.key) effs |> Cmd.batch
     )
+
+
+
+-- there's a case to be made that this function should actually
+-- accept a Session
 
 
 effectToCmd :

@@ -18,8 +18,14 @@ if [ -e final-version/version ]; then
 fi
 
 pushd concourse
-  CGO_ENABLED=0 go build -ldflags "$ldflags" -o $output/fly ./fly
-  if which ldd && ldd $output/fly; then
+  export CGO_ENABLED=1
+  if [ "$platform" = "linux" ]; then
+    export CGO_ENABLED=0
+  fi
+
+  go build -ldflags "$ldflags" -o $output/fly ./fly
+
+  if [ "$platform" = "linux" ] && which ldd && ldd $output/fly; then
     echo "binary is not static; aborting"
     exit 1
   fi

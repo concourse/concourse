@@ -13,6 +13,7 @@ module Build.Build exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Build.Models exposing (BuildPageType(..), CurrentBuild, Model)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
@@ -51,7 +52,6 @@ import Message.Subscription as Subscription exposing (Delivery(..), Interval(..)
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import Routes
-import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
@@ -858,7 +858,7 @@ documentTitle =
     extractTitle
 
 
-view : Session a -> Model -> Html Message
+view : Session -> Model -> Html Message
 view session model =
     let
         route =
@@ -927,7 +927,7 @@ breadcrumbs model =
             Html.text ""
 
 
-viewBuildPage : Session.Session a -> Model -> Html Message
+viewBuildPage : Session -> Model -> Html Message
 viewBuildPage session model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
@@ -953,7 +953,7 @@ viewBuildPage session model =
 
 
 body :
-    Session.Session a
+    Session
     ->
         { currentBuild : CurrentBuild
         , authorized : Bool
@@ -1133,7 +1133,7 @@ mmDDYY =
         ]
 
 
-viewBuildOutput : Session.Session a -> Maybe OutputModel -> Html Message
+viewBuildOutput : Session -> Maybe OutputModel -> Html Message
 viewBuildOutput session output =
     case output of
         Just o ->
@@ -1257,7 +1257,7 @@ viewBuildPrepStatus status =
 
 
 viewBuildHeader :
-    Session.Session a
+    Session
     -> Model
     -> Concourse.Build
     -> Html Message

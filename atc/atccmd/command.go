@@ -531,6 +531,7 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
+	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
 	workerVersion, err := workerVersion()
@@ -545,6 +546,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
+		dbTaskCacheFactory,
 		dbWorkerTaskCacheFactory,
 		dbVolumeRepository,
 		teamFactory,
@@ -707,6 +709,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
+	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
 	dbWorkerFactory := db.NewWorkerFactory(dbConn)
@@ -722,6 +725,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
+		dbTaskCacheFactory,
 		dbWorkerTaskCacheFactory,
 		dbVolumeRepository,
 		teamFactory,
@@ -1306,6 +1310,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	return api.NewHandler(
 		logger,
 		cmd.ExternalURL.String(),
+		cmd.Server.ClusterName,
 		apiWrapper,
 
 		teamFactory,

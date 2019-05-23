@@ -1,92 +1,130 @@
 module TopologicalSortTests exposing (all)
 
+import Dashboard.DashboardPreview exposing (groupByRank)
 import Expect
 import Test exposing (..)
-import TopologicalSort exposing (flattenToLayers, tsort)
 
 
 all : Test
 all =
-    describe "tsort utilities"
-        [ describe "topological sort"
-            [ test "empty case" <|
-                \_ ->
-                    []
-                        |> tsort
-                        |> Expect.equal []
-            , test "singleton" <|
-                \_ ->
-                    [ ( 'a', [] ) ]
-                        |> tsort
-                        |> Expect.equal [ [ 'a' ] ]
-            , test "looping singleton" <|
-                \_ ->
-                    [ ( 'a', [ 'a' ] ) ]
-                        |> tsort
-                        |> Expect.equal [ [ 'a' ] ]
-            , test "simple DAG" <|
-                \_ ->
-                    [ ( 'a', [ 'b', 'c' ] ), ( 'b', [ 'c' ] ), ( 'c', [ 'd' ] ), ( 'd', [ 'e', 'f' ] ), ( 'e', [] ), ( 'f', [] ) ]
-                        |> tsort
-                        |> Expect.equal [ [ 'f' ], [ 'e' ], [ 'd' ], [ 'c' ], [ 'b' ], [ 'a' ] ]
-            , test "very flat DAG" <|
-                \_ ->
-                    [ ( 'a', [ 'b', 'c', 'd', 'e' ] ), ( 'b', [ 'f' ] ), ( 'c', [ 'f' ] ), ( 'd', [ 'e', 'f' ] ), ( 'e', [] ), ( 'f', [] ) ]
-                        |> tsort
-                        |> Expect.equal [ [ 'f' ], [ 'e' ], [ 'd' ], [ 'c' ], [ 'b' ], [ 'a' ] ]
-            , test "simple cyclic graph" <|
-                \_ ->
-                    [ ( 'a', [ 'b' ] ), ( 'b', [ 'a', 'c' ] ), ( 'c', [ 'd' ] ), ( 'd', [ 'c' ] ) ]
-                        |> tsort
-                        |> Expect.equal [ [ 'c', 'd' ], [ 'a', 'b' ] ]
-            , test "multi-looped cyclic graph" <|
-                \_ ->
-                    [ ( 'a', [ 'a', 'b' ] ), ( 'b', [ 'a', 'c' ] ), ( 'c', [ 'a', 'b', 'd' ] ), ( 'd', [] ) ]
-                        |> tsort
-                        |> Expect.equal [ [ 'd' ], [ 'a', 'b', 'c' ] ]
-
-            -- this one is the example gif on wikipedia ;)
-            , test "large cyclic graph" <|
-                \_ ->
-                    [ ( 'a', [ 'b' ] ), ( 'b', [ 'c' ] ), ( 'c', [ 'a' ] ), ( 'd', [ 'b', 'c', 'e' ] ), ( 'e', [ 'd', 'f' ] ), ( 'f', [ 'c', 'g' ] ), ( 'g', [ 'f' ] ), ( 'h', [ 'e', 'g', 'h' ] ) ]
-                        |> tsort
-                        |> Expect.equal [ [ 'b', 'a', 'c' ], [ 'f', 'g' ], [ 'd', 'e' ], [ 'h' ] ]
-            ]
-        , describe "flatten to layers"
-            [ test "empty case" <|
-                \_ ->
-                    []
-                        |> flattenToLayers
-                        |> Expect.equal []
-            , test "singleton" <|
-                \_ ->
-                    [ ( 'a', [] ) ]
-                        |> flattenToLayers
-                        |> Expect.equal [ [ 'a' ] ]
-            , test "looping singleton" <|
-                \_ ->
-                    [ ( 'a', [ 'a' ] ) ]
-                        |> flattenToLayers
-                        |> Expect.equal [ [ 'a' ] ]
-            , test "simple DAG" <|
-                \_ ->
-                    [ ( 'a', [ 'b', 'c' ] ), ( 'b', [ 'c' ] ), ( 'c', [ 'd' ] ), ( 'd', [ 'e', 'f' ] ), ( 'e', [] ), ( 'f', [] ) ]
-                        |> flattenToLayers
-                        |> Expect.equal [ [ 'e', 'f' ], [ 'd' ], [ 'c' ], [ 'b' ], [ 'a' ] ]
-            , test "very flat DAG" <|
-                \_ ->
-                    [ ( 'a', [ 'b', 'c', 'd', 'e' ] ), ( 'b', [ 'f' ] ), ( 'c', [ 'f' ] ), ( 'd', [ 'e', 'f' ] ), ( 'e', [] ), ( 'f', [] ) ]
-                        |> flattenToLayers
-                        |> Expect.equal [ [ 'e', 'f' ], [ 'b', 'c', 'd' ], [ 'a' ] ]
-            , test "multi-looped cyclic graph" <|
-                \_ ->
-                    [ ( 'a', [ 'a', 'b' ] ), ( 'b', [ 'a', 'c' ] ), ( 'c', [ 'a', 'b', 'd' ] ), ( 'd', [] ) ]
-                        |> flattenToLayers
-                        |> Expect.equal [ [ 'd' ], [ 'a', 'b', 'c' ] ]
-            , test "large cyclic graph" <|
-                \_ ->
-                    [ ( 'a', [ 'b' ] ), ( 'b', [ 'c' ] ), ( 'c', [ 'a' ] ), ( 'd', [ 'b', 'c', 'e' ] ), ( 'e', [ 'd', 'f' ] ), ( 'f', [ 'c', 'g' ] ), ( 'g', [ 'f' ] ), ( 'h', [ 'e', 'g', 'h' ] ) ]
-                        |> flattenToLayers
-                        |> Expect.equal [ [ 'a', 'b', 'c' ], [ 'f', 'g' ], [ 'd', 'e' ], [ 'h' ] ]
-            ]
+    describe "DashboardPreview.groupByRank"
+        [ test "empty case" <|
+            \_ ->
+                []
+                    |> groupByRank
+                    |> Expect.equal []
+        , test "singleton" <|
+            \_ ->
+                [ { name = "a", inputs = [] } ]
+                    |> groupByRank
+                    |> Expect.equal [ [ { name = "a", inputs = [] } ] ]
+        , test "looping singleton" <|
+            \_ ->
+                [ { name = "a", inputs = [ { passed = [ "a" ] } ] } ]
+                    |> groupByRank
+                    |> Expect.equal [ [ { name = "a", inputs = [ { passed = [ "a" ] } ] } ] ]
+        , test "very simple DAG" <|
+            \_ ->
+                [ { name = "c", inputs = [ { passed = [ "b" ] } ] }
+                , { name = "b", inputs = [ { passed = [ "a" ] } ] }
+                , { name = "a", inputs = [ { passed = [] } ] }
+                ]
+                    |> groupByRank
+                    |> Expect.equal
+                        [ [ { name = "a", inputs = [ { passed = [] } ] } ]
+                        , [ { name = "b", inputs = [ { passed = [ "a" ] } ] } ]
+                        , [ { name = "c", inputs = [ { passed = [ "b" ] } ] } ]
+                        ]
+        , test "simple DAG" <|
+            \_ ->
+                [ { name = "a", inputs = [ { passed = [ "b", "c" ] } ] }
+                , { name = "b", inputs = [ { passed = [ "c" ] } ] }
+                , { name = "c", inputs = [ { passed = [ "d" ] } ] }
+                , { name = "d", inputs = [ { passed = [ "e", "f" ] } ] }
+                , { name = "e", inputs = [ { passed = [] } ] }
+                , { name = "f", inputs = [ { passed = [] } ] }
+                ]
+                    |> groupByRank
+                    |> Expect.equal
+                        [ [ { name = "e", inputs = [ { passed = [] } ] }
+                          , { name = "f", inputs = [ { passed = [] } ] }
+                          ]
+                        , [ { name = "d", inputs = [ { passed = [ "e", "f" ] } ] } ]
+                        , [ { name = "c", inputs = [ { passed = [ "d" ] } ] } ]
+                        , [ { name = "b", inputs = [ { passed = [ "c" ] } ] } ]
+                        , [ { name = "a", inputs = [ { passed = [ "b", "c" ] } ] } ]
+                        ]
+        , test "very flat DAG" <|
+            \_ ->
+                [ { name = "a", inputs = [ { passed = [ "b", "c", "d", "e" ] } ] }
+                , { name = "b", inputs = [ { passed = [ "f" ] } ] }
+                , { name = "c", inputs = [ { passed = [ "f" ] } ] }
+                , { name = "d", inputs = [ { passed = [ "e", "f" ] } ] }
+                , { name = "e", inputs = [ { passed = [] } ] }
+                , { name = "f", inputs = [ { passed = [] } ] }
+                ]
+                    |> groupByRank
+                    |> Expect.equal
+                        [ [ { name = "e", inputs = [ { passed = [] } ] }
+                          , { name = "f", inputs = [ { passed = [] } ] }
+                          ]
+                        , [ { name = "b", inputs = [ { passed = [ "f" ] } ] }
+                          , { name = "c", inputs = [ { passed = [ "f" ] } ] }
+                          , { name = "d", inputs = [ { passed = [ "e", "f" ] } ] }
+                          ]
+                        , [ { name = "a", inputs = [ { passed = [ "b", "c", "d", "e" ] } ] } ]
+                        ]
+        , test "two cycles and a bridge" <|
+            \_ ->
+                [ { name = "a", inputs = [ { passed = [ "b" ] } ] }
+                , { name = "b", inputs = [ { passed = [ "a" ] } ] }
+                , { name = "c", inputs = [ { passed = [ "b", "d" ] } ] }
+                , { name = "d", inputs = [ { passed = [ "c" ] } ] }
+                ]
+                    |> groupByRank
+                    |> Expect.equal
+                        [ [ { name = "a", inputs = [ { passed = [ "b" ] } ] } ]
+                        , [ { name = "b", inputs = [ { passed = [ "a" ] } ] } ]
+                        , [ { name = "c", inputs = [ { passed = [ "b", "d" ] } ] } ]
+                        , [ { name = "d", inputs = [ { passed = [ "c" ] } ] } ]
+                        ]
+        , test "multi-looped cyclic graph" <|
+            \_ ->
+                [ { name = "a", inputs = [ { passed = [ "a", "b" ] } ] }
+                , { name = "b", inputs = [ { passed = [ "a", "c" ] } ] }
+                , { name = "c", inputs = [ { passed = [ "a", "b", "d" ] } ] }
+                , { name = "d", inputs = [ { passed = [] } ] }
+                ]
+                    |> groupByRank
+                    |> Expect.equal
+                        [ [ { name = "a", inputs = [ { passed = [ "a", "b" ] } ] }
+                          , { name = "d", inputs = [ { passed = [] } ] }
+                          ]
+                        , [ { name = "b", inputs = [ { passed = [ "a", "c" ] } ] } ]
+                        , [ { name = "c", inputs = [ { passed = [ "a", "b", "d" ] } ] } ]
+                        ]
+        , test "large cyclic graph" <|
+            \_ ->
+                [ { name = "a", inputs = [ { passed = [ "b" ] } ] }
+                , { name = "b", inputs = [ { passed = [ "c" ] } ] }
+                , { name = "c", inputs = [ { passed = [ "a" ] } ] }
+                , { name = "d", inputs = [ { passed = [ "b", "c", "e" ] } ] }
+                , { name = "e", inputs = [ { passed = [ "d", "f" ] } ] }
+                , { name = "f", inputs = [ { passed = [ "c", "g" ] } ] }
+                , { name = "g", inputs = [ { passed = [ "f" ] } ] }
+                , { name = "h", inputs = [ { passed = [ "e", "g", "h" ] } ] }
+                ]
+                    |> groupByRank
+                    |> Expect.equal
+                        [ [ { name = "a", inputs = [ { passed = [ "b" ] } ] } ]
+                        , [ { name = "c", inputs = [ { passed = [ "a" ] } ] } ]
+                        , [ { name = "b", inputs = [ { passed = [ "c" ] } ] }
+                          , { name = "f", inputs = [ { passed = [ "c", "g" ] } ] }
+                          ]
+                        , [ { name = "d", inputs = [ { passed = [ "b", "c", "e" ] } ] }
+                          , { name = "g", inputs = [ { passed = [ "f" ] } ] }
+                          ]
+                        , [ { name = "e", inputs = [ { passed = [ "d", "f" ] } ] } ]
+                        , [ { name = "h", inputs = [ { passed = [ "e", "g", "h" ] } ] } ]
+                        ]
         ]

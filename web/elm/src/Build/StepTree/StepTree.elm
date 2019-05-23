@@ -10,6 +10,7 @@ module Build.StepTree.StepTree exposing
     )
 
 import Ansi.Log
+import Application.Models exposing (Session)
 import Array exposing (Array)
 import Build.Models exposing (StepHeaderType(..))
 import Build.StepTree.Models
@@ -42,7 +43,6 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
-import Session
 import StrictEvents
 import Time
 import Url exposing (fromString)
@@ -408,7 +408,7 @@ updateTooltip { hovered } { hoveredCounter } model =
 
 
 view :
-    Session.Session a
+    Session
     -> StepTreeModel
     -> Html Message
 view session model =
@@ -416,7 +416,7 @@ view session model =
 
 
 viewTree :
-    Session.Session a
+    Session
     -> StepTreeModel
     -> StepTree
     -> Html Message
@@ -486,7 +486,7 @@ viewTree session model tree =
 
 
 viewTab :
-    Session.Session a
+    Session
     -> StepID
     -> Int
     -> Int
@@ -515,12 +515,12 @@ viewTab { hovered } id currentTab idx step =
         [ Html.text (String.fromInt tab) ]
 
 
-viewSeq : Session.Session a -> StepTreeModel -> StepTree -> Html Message
+viewSeq : Session -> StepTreeModel -> StepTree -> Html Message
 viewSeq session model tree =
     Html.div [ class "seq" ] [ viewTree session model tree ]
 
 
-viewHooked : Session.Session a -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
+viewHooked : Session -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
 viewHooked session name model step hook =
     Html.div [ class "hooked" ]
         [ Html.div [ class "step" ] [ viewTree session model step ]
@@ -540,7 +540,7 @@ autoExpanded state =
     isActive state && state /= StepStateSucceeded
 
 
-viewStep : StepTreeModel -> Session.Session a -> Step -> StepHeaderType -> Html Message
+viewStep : StepTreeModel -> Session -> Step -> StepHeaderType -> Html Message
 viewStep model session { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
     Html.div
         [ classList

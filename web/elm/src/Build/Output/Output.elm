@@ -8,6 +8,7 @@ module Build.Output.Output exposing
     )
 
 import Ansi.Log
+import Application.Models exposing (Session)
 import Array
 import Build.Output.Models exposing (OutputModel, OutputState(..))
 import Build.StepTree.Models as StepTree
@@ -27,7 +28,6 @@ import Html.Attributes exposing (class)
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
 import Routes exposing (StepID)
-import Session
 import Time
 import Views.LoadingIndicator as LoadingIndicator
 
@@ -333,13 +333,13 @@ setStepFinish mtime tree =
     StepTree.map (\step -> { step | finish = mtime }) tree
 
 
-view : Session.Session a -> OutputModel -> Html Message
+view : Session -> OutputModel -> Html Message
 view session { steps, state } =
     Html.div [ class "steps" ] [ viewStepTree session steps state ]
 
 
 viewStepTree :
-    Session.Session a
+    Session
     -> Maybe StepTreeModel
     -> OutputState
     -> Html Message

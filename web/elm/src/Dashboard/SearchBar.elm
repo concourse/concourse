@@ -5,6 +5,7 @@ module Dashboard.SearchBar exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Array
 import Concourse.PipelineStatus
     exposing
@@ -25,7 +26,6 @@ import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
-import Session exposing (Session)
 
 
 searchInputId : String
@@ -33,7 +33,7 @@ searchInputId =
     "search-input-field"
 
 
-update : Session a -> Message -> ET Model
+update : Session -> Message -> ET Model
 update session msg ( model, effects ) =
     case msg of
         Click ShowSearchButton ->

@@ -34,6 +34,7 @@ func NewHandler(
 	logger lager.Logger,
 
 	externalURL string,
+	clusterName string,
 
 	wrapper wrappa.Wrappa,
 
@@ -89,7 +90,7 @@ func NewHandler(
 	containerServer := containerserver.NewServer(logger, workerClient, secretManager, interceptTimeoutFactory, containerRepository, destroyer)
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
-	infoServer := infoserver.NewServer(logger, version, workerVersion, credsManagers)
+	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
 	artifactServer := artifactserver.NewServer(logger, workerClient)
 
 	handlers := map[string]http.Handler{
