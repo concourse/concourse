@@ -145,6 +145,10 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmVersion, error)
 		outputs = append(outputs, o)
 	}
 
+	sort.Slice(outputs, func(i, j int) bool {
+		return outputs[i].ResourceID > outputs[j].ResourceID
+	})
+
 	return outputs, nil
 }
 

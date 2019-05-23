@@ -1694,9 +1694,46 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	// XXX: Passing for the wrong reasons
+	Entry("resolves the version that is pinned with passed", Example{
+		DB: DB{
+			BuildOutputs: []DBRow{
+				{Job: "some-job", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "some-job", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "some-job", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "some-job", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Pinned: "rxv2"},
+				Passed:   []string{"some-job"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv2",
+			},
+		},
+	}),
+
 	Entry("does not resolve a version when the pinned version has not passed the constraint", Example{
 		DB: DB{
+			BuildOutputs: []DBRow{
+				{Job: "some-job", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
+
 			Resources: []DBRow{
 				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
 				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
@@ -1718,6 +1755,59 @@ var _ = DescribeTable("Input resolving",
 			OK:     false,
 			Values: map[string]string{},
 			Errors: map[string]string{"resource-x": "passed job 'some-job' does not have a build that satisfies the constraints"},
+		},
+	}),
+
+	Entry("uses the build that includes the pinned with passed while there are multiple inputs", Example{
+		DB: DB{
+			BuildOutputs: []DBRow{
+				{Job: "shared-job", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "shared-job", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+
+				{Job: "shared-job", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "shared-job", BuildID: 2, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
+
+				{Job: "shared-job", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "shared-job", BuildID: 3, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+
+				{Job: "shared-job", BuildID: 4, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "shared-job", BuildID: 4, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Pinned: "rxv3"},
+				Passed:   []string{"shared-job"},
+			},
+			{
+				Name:     "resource-y",
+				Resource: "resource-y",
+				Version:  Version{Pinned: "ryv1"},
+				Passed:   []string{"shared-job"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv3",
+				"resource-y": "ryv1",
+			},
 		},
 	}),
 
@@ -1940,7 +2030,7 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	XEntry("finds a suitable candidate for any inputs resolved before an unresolveable candidates, all candidates after are skipped", Example{
+	Entry("finds a suitable candidate for any inputs resolved before an unresolveable candidates, all candidates after are skipped", Example{
 		DB: DB{
 			BuildInputs: []DBRow{
 				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},

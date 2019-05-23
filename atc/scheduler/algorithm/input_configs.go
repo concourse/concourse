@@ -380,6 +380,24 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 							break outputs
 						}
 
+						if inputConfigs[c].PinnedVersion != nil {
+							id, found, err := db.FindVersionOfResource(inputConfigs[c].ResourceID, inputConfigs[c].PinnedVersion)
+							if err != nil {
+								return false, err
+							}
+
+							if !found {
+								unresolvedCandidates[i] = newCandidateError(PinnedVersionNotFoundError{inputConfigs[c].PinnedVersion})
+								return false, nil
+							}
+
+							if id != output.VersionID {
+								debug("mismatch pinned version", output.VersionID, jobID)
+								mismatch = true
+								break outputs
+							}
+						}
+
 						if candidate != nil && candidate.ID != output.VersionID {
 							// don't return here! just try the next output set. it's possible
 							// we just need to use an older output set.
