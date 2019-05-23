@@ -3,7 +3,7 @@ BEGIN;
       id integer NOT NULL,
       job_id integer NOT NULL,
       input_name text NOT NULL,
-      first_occurrence boolean NOT NULL
+      first_occurrence boolean NOT NULL,
       resource_config_version_id integer NOT NULL REFERENCES resource_config_versions (id) ON DELETE CASCADE,
       resource_id integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
   );
