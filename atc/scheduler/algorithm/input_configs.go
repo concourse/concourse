@@ -3,8 +3,6 @@ package algorithm
 import (
 	"errors"
 	"fmt"
-	"log"
-	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -205,14 +203,14 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 
 	for i, inputConfig := range inputConfigs {
 		debug := func(messages ...interface{}) {
-			log.Println(
-				append(
-					[]interface{}{
-						strings.Repeat("-", depth) + fmt.Sprintf("[%s]", inputConfig.Name),
-					},
-					messages...,
-				)...,
-			)
+			// log.Println(
+			// 	append(
+			// 		[]interface{}{
+			// 			strings.Repeat("-", depth) + fmt.Sprintf("[%s]", inputConfig.Name),
+			// 		},
+			// 		messages...,
+			// 	)...,
+			// )
 		}
 
 		if len(inputConfig.Passed) == 0 {
@@ -264,7 +262,7 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 					}
 				}
 
-				debug("setting candidate", i, "to version for version every", versionID)
+				debug("setting candidate", i, "to version for version every", versionID, " resource ", inputConfig.ResourceID)
 			} else {
 				// there are no passed constraints, so just take the latest version
 				var err error

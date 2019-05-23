@@ -788,7 +788,7 @@ func (j *job) SaveNextInputMapping(inputMapping InputMapping, inputsDetermined b
 	}
 
 	if insertPipes {
-		_, err = pipesBuilder.RunWith(tx).Exec()
+		_, err = pipesBuilder.Suffix("ON CONFLICT DO NOTHING").RunWith(tx).Exec()
 		if err != nil {
 			return err
 		}

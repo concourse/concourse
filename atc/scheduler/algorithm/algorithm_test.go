@@ -2202,4 +2202,34 @@ var _ = DescribeTable("Input resolving",
 			},
 		},
 	}),
+
+	Entry("finds the next every version scoped to a resource", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+
+				// higher check-order but different resource
+				{Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Every: true},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv1",
+			},
+		},
+	}),
 )

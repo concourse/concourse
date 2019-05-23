@@ -247,7 +247,9 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (int, b
 	var nextVersionID int
 	err = psql.Select("rcv.id").
 		From("resource_config_versions rcv").
+		Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
 		Where(sq.Expr("rcv.version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
+		Where(sq.Eq{"r.id": resourceID}).
 		Where(sq.Gt{"rcv.check_order": checkOrder}).
 		OrderBy("rcv.check_order ASC").
 		Limit(1).
@@ -258,7 +260,9 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (int, b
 		if err == sql.ErrNoRows {
 			err = psql.Select("rcv.id").
 				From("resource_config_versions rcv").
+				Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
 				Where(sq.Expr("rcv.version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
+				Where(sq.Eq{"r.id": resourceID}).
 				Where(sq.LtOrEq{"rcv.check_order": checkOrder}).
 				OrderBy("rcv.check_order DESC").
 				Limit(1).
