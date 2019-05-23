@@ -12,6 +12,7 @@ module Pipeline.Pipeline exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Colors
 import Concourse
 import Concourse.Cli as Cli
@@ -47,7 +48,6 @@ import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
 import Routes
-import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg
@@ -378,7 +378,7 @@ documentTitle model =
     model.pipelineLocator.pipelineName
 
 
-view : Session a -> Model -> Html Message
+view : Session -> Model -> Html Message
 view session model =
     let
         route =

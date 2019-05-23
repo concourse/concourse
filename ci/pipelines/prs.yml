@@ -86,6 +86,11 @@ jobs:
     file: concourse-pr/ci/tasks/yarn-test.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]
+  - task: yarn-benchmark
+    attempts: 3
+    file: concourse-pr/ci/tasks/yarn-benchmark.yml
+    input_mapping: {concourse: concourse-pr}
+    tags: [pr]
   - task: unit
     attempts: 3
     timeout: 1h

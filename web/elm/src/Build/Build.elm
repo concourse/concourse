@@ -13,6 +13,7 @@ module Build.Build exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Build.Models exposing (BuildPageType(..), CurrentBuild, Model)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
@@ -51,7 +52,6 @@ import Message.Subscription as Subscription exposing (Delivery(..), Interval(..)
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import Routes
-import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import String
@@ -862,7 +862,7 @@ documentTitle =
     extractTitle
 
 
-view : Session a -> Model -> Html Message
+view : Session -> Model -> Html Message
 view session model =
     let
         route =

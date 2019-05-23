@@ -565,7 +565,7 @@ func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 
 	defer Rollback(tx)
 
-	var sqlBuilder sq.DeleteBuilder = psql.Delete("worker_task_caches").
+	var sqlBuilder sq.DeleteBuilder = psql.Delete("task_caches").
 		Where(sq.Eq{
 			"job_id":    j.id,
 			"step_name": stepName,

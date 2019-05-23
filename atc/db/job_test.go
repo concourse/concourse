@@ -1382,8 +1382,8 @@ var _ = Describe("Job", func() {
 		})
 	})
 
-	Describe("Clear worker task cache", func() {
-		Context("when worker task cache exists", func() {
+	Describe("Clear task cache", func() {
+		Context("when task cache exists", func() {
 			var (
 				someOtherJob db.Job
 				rowsDeleted  int64
@@ -1395,7 +1395,13 @@ var _ = Describe("Job", func() {
 					found bool
 				)
 
-				_, err = workerTaskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path", defaultWorker.Name())
+				usedTaskCache, err := taskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path")
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = workerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{
+					TaskCache:  usedTaskCache,
+					WorkerName: defaultWorker.Name(),
+				})
 				Expect(err).ToNot(HaveOccurred())
 
 				someOtherJob, found, err = pipeline.Job("some-other-job")
@@ -1403,7 +1409,13 @@ var _ = Describe("Job", func() {
 				Expect(found).To(BeTrue())
 				Expect(someOtherJob).ToNot(BeNil())
 
-				_, err = workerTaskCacheFactory.FindOrCreate(someOtherJob.ID(), "some-other-task", "some-other-path", defaultWorker.Name())
+				otherUsedTaskCache, err := taskCacheFactory.FindOrCreate(someOtherJob.ID(), "some-other-task", "some-other-path")
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = workerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{
+					TaskCache:  otherUsedTaskCache,
+					WorkerName: defaultWorker.Name(),
+				})
 				Expect(err).ToNot(HaveOccurred())
 
 			})
@@ -1415,19 +1427,27 @@ var _ = Describe("Job", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("deletes a row from the worker_task_caches table", func() {
+				It("deletes a row from the task_caches table", func() {
 					Expect(rowsDeleted).To(Equal(int64(1)))
 				})
 
 				It("removes the task cache", func() {
-					_, found, err := workerTaskCacheFactory.Find(job.ID(), "some-task", "some-path", defaultWorker.Name())
-					Expect(found).To(BeFalse())
+					usedTaskCache, found, err := taskCacheFactory.Find(job.ID(), "some-task", "some-path")
 					Expect(err).ToNot(HaveOccurred())
+					Expect(usedTaskCache).To(BeNil())
+					Expect(found).To(BeFalse())
 				})
 
 				It("doesn't remove other jobs caches", func() {
-					_, found, err := workerTaskCacheFactory.Find(someOtherJob.ID(), "some-other-task", "some-other-path", defaultWorker.Name())
+					otherUsedTaskCache, found, err := taskCacheFactory.Find(someOtherJob.ID(), "some-other-task", "some-other-path")
+					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+
+					_, err = workerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{
+						TaskCache:  otherUsedTaskCache,
+						WorkerName: defaultWorker.Name(),
+					})
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -1452,12 +1472,20 @@ var _ = Describe("Job", func() {
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("does not delete any rows from the worker_task_caches table", func() {
+					It("does not delete any rows from the task_caches table", func() {
 						Expect(rowsDeleted).To(BeZero())
 					})
 
-					It("should not delete any other task steps", func() {
-						_, found, err := workerTaskCacheFactory.Find(job.ID(), "some-task", "some-path", defaultWorker.Name())
+					It("should not delete any task steps", func() {
+						usedTaskCache, found, err := taskCacheFactory.Find(job.ID(), "some-task", "some-path")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+
+						_, found, err = workerTaskCacheFactory.Find(db.WorkerTaskCache{
+							TaskCache:  usedTaskCache,
+							WorkerName: defaultWorker.Name(),
+						})
 						Expect(found).To(BeTrue())
 						Expect(err).ToNot(HaveOccurred())
 					})
@@ -1471,18 +1499,18 @@ var _ = Describe("Job", func() {
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("deletes a row from the worker_task_caches table", func() {
+					It("deletes a row from the task_caches table", func() {
 						Expect(rowsDeleted).To(Equal(int64(1)))
 					})
 
 					It("removes the task cache", func() {
-						_, found, err := workerTaskCacheFactory.Find(job.ID(), "some-task", "some-path", defaultWorker.Name())
+						_, found, err := taskCacheFactory.Find(job.ID(), "some-task", "some-path")
 						Expect(found).To(BeFalse())
 						Expect(err).ToNot(HaveOccurred())
 					})
 
 					It("doesn't remove other jobs caches", func() {
-						_, found, err := workerTaskCacheFactory.Find(someOtherJob.ID(), "some-other-task", "some-other-path", defaultWorker.Name())
+						_, found, err := taskCacheFactory.Find(someOtherJob.ID(), "some-other-task", "some-other-path")
 						Expect(found).To(BeTrue())
 						Expect(err).ToNot(HaveOccurred())
 					})

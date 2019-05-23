@@ -22,6 +22,7 @@ type dbWorkerProvider struct {
 	dbResourceCacheFactory            db.ResourceCacheFactory
 	dbResourceConfigFactory           db.ResourceConfigFactory
 	dbWorkerBaseResourceTypeFactory   db.WorkerBaseResourceTypeFactory
+	dbTaskCacheFactory                db.TaskCacheFactory
 	dbWorkerTaskCacheFactory          db.WorkerTaskCacheFactory
 	dbVolumeRepository                db.VolumeRepository
 	dbTeamFactory                     db.TeamFactory
@@ -37,6 +38,7 @@ func NewDBWorkerProvider(
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbWorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
+	dbTaskCacheFactory db.TaskCacheFactory,
 	dbWorkerTaskCacheFactory db.WorkerTaskCacheFactory,
 	dbVolumeRepository db.VolumeRepository,
 	dbTeamFactory db.TeamFactory,
@@ -51,6 +53,7 @@ func NewDBWorkerProvider(
 		dbResourceCacheFactory:            dbResourceCacheFactory,
 		dbResourceConfigFactory:           dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory:   dbWorkerBaseResourceTypeFactory,
+		dbTaskCacheFactory:                dbTaskCacheFactory,
 		dbWorkerTaskCacheFactory:          dbWorkerTaskCacheFactory,
 		dbVolumeRepository:                dbVolumeRepository,
 		dbTeamFactory:                     dbTeamFactory,
@@ -194,24 +197,16 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		provider.lockFactory,
 		provider.dbVolumeRepository,
 		provider.dbWorkerBaseResourceTypeFactory,
+		provider.dbTaskCacheFactory,
 		provider.dbWorkerTaskCacheFactory,
-	)
-
-	containerProvider := NewContainerProvider(
-		gClient,
-		volumeClient,
-		savedWorker,
-		provider.imageFactory,
-		provider.dbVolumeRepository,
-		provider.dbTeamFactory,
-		provider.lockFactory,
 	)
 
 	return NewGardenWorker(
 		gClient,
-		containerProvider,
+		provider.dbVolumeRepository,
 		volumeClient,
 		provider.imageFactory,
+		provider.dbTeamFactory,
 		savedWorker,
 		buildContainersCount,
 	)

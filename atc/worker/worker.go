@@ -3,8 +3,13 @@ package worker
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
+
+	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/metric"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -19,8 +24,6 @@ const userPropertyName = "user"
 //go:generate counterfeiter . Worker
 
 type Worker interface {
-	ActiveContainers() int
-	ActiveVolumes() int
 	BuildContainers() int
 
 	Description() string
@@ -55,12 +58,12 @@ type Worker interface {
 }
 
 type gardenWorker struct {
-	gardenClient      garden.Client
-	volumeClient      VolumeClient
-	imageFactory      ImageFactory
-	containerProvider ContainerProvider
-	dbWorker          db.Worker
-	buildContainers   int
+	gardenClient    garden.Client
+	volumeClient    VolumeClient
+	imageFactory    ImageFactory
+	dbWorker        db.Worker
+	buildContainers int
+	helper          workerHelper
 }
 
 // NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
@@ -68,22 +71,31 @@ type gardenWorker struct {
 // A Garden Worker is comprised of: db.Worker, garden Client, container provider, and a volume client
 func NewGardenWorker(
 	gardenClient garden.Client,
-	containerProvider ContainerProvider,
+	volumeRepository db.VolumeRepository,
 	volumeClient VolumeClient,
 	imageFactory ImageFactory,
+	dbTeamFactory db.TeamFactory,
 	dbWorker db.Worker,
 	numBuildContainers int,
 	// TODO: numBuildContainers is only needed for placement strategy but this
 	// method is called in ContainerProvider.FindOrCreateContainer as well and
 	// hence we pass in 0 values for numBuildContainers everywhere.
 ) Worker {
+	workerHelper := workerHelper{
+		gardenClient:  gardenClient,
+		volumeClient:  volumeClient,
+		volumeRepo:    volumeRepository,
+		dbTeamFactory: dbTeamFactory,
+		dbWorker:      dbWorker,
+	}
+
 	return &gardenWorker{
-		gardenClient:      gardenClient,
-		volumeClient:      volumeClient,
-		imageFactory:      imageFactory,
-		containerProvider: containerProvider,
-		dbWorker:          dbWorker,
-		buildContainers:   numBuildContainers,
+		gardenClient:    gardenClient,
+		volumeClient:    volumeClient,
+		imageFactory:    imageFactory,
+		dbWorker:        dbWorker,
+		buildContainers: numBuildContainers,
+		helper:          workerHelper,
 	}
 }
 
@@ -163,41 +175,322 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	resourceTypes creds.VersionedResourceTypes,
 ) (Container, error) {
 
+	var (
+		gardenContainer   garden.Container
+		createdContainer  db.CreatedContainer
+		creatingContainer db.CreatingContainer
+		containerHandle   string
+		err               error
+	)
+
+	creatingContainer, createdContainer, containerHandle, err = worker.helper.findOrInitializeContainer(logger, owner, metadata)
+	if err != nil {
+		logger.Error("failed-to-find-container-in-db", err)
+		return nil, err
+	}
+
+	gardenContainer, err = worker.gardenClient.Lookup(containerHandle)
+	if err != nil {
+		if _, ok := err.(garden.ContainerNotFoundError); !ok {
+			logger.Error("failed-to-lookup-creating-container-in-garden", err)
+			return nil, err
+		}
+	}
+
+	if createdContainer != nil {
+		logger = logger.WithData(lager.Data{"container": containerHandle})
+		logger.Debug("found-created-container-in-db")
+
+		if gardenContainer == nil {
+			return nil, garden.ContainerNotFoundError{containerHandle}
+		}
+		return worker.helper.constructGardenWorkerContainer(
+			logger,
+			createdContainer,
+			gardenContainer,
+		)
+	}
+
+	if gardenContainer == nil {
+
+		fetchedImage, err := worker.fetchImageForContainer(ctx, logger, containerSpec.ImageSpec, containerSpec.TeamID, delegate, resourceTypes, creatingContainer)
+		if err != nil {
+			creatingContainer.Failed()
+			logger.Error("failed-to-fetch-image-for-container", err)
+			return nil, err
+		}
+
+		volumeMounts, err := worker.createVolumes(logger, fetchedImage.Privileged, creatingContainer, containerSpec)
+		if err != nil {
+			creatingContainer.Failed()
+			logger.Error("failed-to-create-volume-mounts-for-container", err)
+			return nil, err
+		}
+
+		bindMounts, err := worker.getBindMounts(volumeMounts, containerSpec.BindMounts)
+		if err != nil {
+			creatingContainer.Failed()
+			logger.Error("failed-to-create-bind-mounts-for-container", err)
+			return nil, err
+		}
+
+		logger.Debug("creating-garden-container")
+
+		gardenContainer, err = worker.helper.createGardenContainer(containerSpec, fetchedImage, creatingContainer.Handle(), bindMounts)
+		if err != nil {
+			_, failedErr := creatingContainer.Failed()
+			if failedErr != nil {
+				logger.Error("failed-to-mark-container-as-failed", err)
+			}
+			metric.FailedContainers.Inc()
+
+			logger.Error("failed-to-create-container-in-garden", err)
+			return nil, err
+		}
+
+	}
+
+	logger.Debug("created-container-in-garden")
+
+	metric.ContainersCreated.Inc()
+	createdContainer, err = creatingContainer.Created()
+	if err != nil {
+		logger.Error("failed-to-mark-container-as-created", err)
+
+		_ = worker.gardenClient.Destroy(containerHandle)
+
+		return nil, err
+	}
+
+	logger.Debug("created-container-in-db")
+
+	return worker.helper.constructGardenWorkerContainer(
+		logger,
+		createdContainer,
+		gardenContainer,
+	)
+}
+
+func (worker *gardenWorker) getBindMounts(volumeMounts []VolumeMount, bindMountSources []BindMountSource) ([]garden.BindMount, error) {
+	bindMounts := []garden.BindMount{}
+
+	for _, mount := range bindMountSources {
+		bindMount, found, mountErr := mount.VolumeOn(worker)
+		if mountErr != nil {
+			return nil, mountErr
+		}
+		if found {
+			bindMounts = append(bindMounts, bindMount)
+		}
+	}
+
+	for _, mount := range volumeMounts {
+		bindMounts = append(bindMounts, garden.BindMount{
+			SrcPath: mount.Volume.Path(),
+			DstPath: mount.MountPath,
+			Mode:    garden.BindMountModeRW,
+		})
+	}
+	return bindMounts, nil
+}
+
+func (worker *gardenWorker) fetchImageForContainer(
+	ctx context.Context,
+	logger lager.Logger,
+	spec ImageSpec,
+	teamID int,
+	delegate ImageFetchingDelegate,
+	resourceTypes creds.VersionedResourceTypes,
+	creatingContainer db.CreatingContainer,
+) (FetchedImage, error) {
 	image, err := worker.imageFactory.GetImage(
 		logger,
 		worker,
 		worker.volumeClient,
-		containerSpec.ImageSpec,
-		containerSpec.TeamID,
+		spec,
+		teamID,
 		delegate,
 		resourceTypes,
 	)
 	if err != nil {
+		return FetchedImage{}, err
+	}
+
+	logger.Debug("fetching-image")
+	return image.FetchForContainer(ctx, logger, creatingContainer)
+}
+
+func (worker *gardenWorker) createVolumes(logger lager.Logger, isPrivileged bool, creatingContainer db.CreatingContainer, spec ContainerSpec) ([]VolumeMount, error) {
+	var volumeMounts []VolumeMount
+	var ioVolumeMounts []VolumeMount
+
+	scratchVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
+		logger,
+		VolumeSpec{
+			Strategy:   baggageclaim.EmptyStrategy{},
+			Privileged: isPrivileged,
+		},
+		creatingContainer,
+		spec.TeamID,
+		"/scratch",
+	)
+	if err != nil {
 		return nil, err
 	}
-	return worker.containerProvider.FindOrCreateContainer(
-		ctx,
-		logger,
-		owner,
-		delegate,
-		metadata,
-		containerSpec,
-		image,
-	)
+
+	scratchMount := VolumeMount{
+		Volume:    scratchVolume,
+		MountPath: "/scratch",
+	}
+
+	volumeMounts = append(volumeMounts, scratchMount)
+
+	hasSpecDirInInputs := anyMountTo(spec.Dir, getDestinationPathsFromInputs(spec.Inputs))
+	hasSpecDirInOutputs := anyMountTo(spec.Dir, getDestinationPathsFromOutputs(spec.Outputs))
+
+	if spec.Dir != "" && !hasSpecDirInOutputs && !hasSpecDirInInputs {
+		workdirVolume, volumeErr := worker.volumeClient.FindOrCreateVolumeForContainer(
+			logger,
+			VolumeSpec{
+				Strategy:   baggageclaim.EmptyStrategy{},
+				Privileged: isPrivileged,
+			},
+			creatingContainer,
+			spec.TeamID,
+			spec.Dir,
+		)
+		if volumeErr != nil {
+			return nil, volumeErr
+		}
+
+		volumeMounts = append(volumeMounts, VolumeMount{
+			Volume:    workdirVolume,
+			MountPath: spec.Dir,
+		})
+	}
+
+	inputDestinationPaths := make(map[string]bool)
+
+	for _, inputSource := range spec.Inputs {
+		var inputVolume Volume
+
+		localVolume, found, err := inputSource.Source().VolumeOn(logger, worker)
+		if err != nil {
+			return nil, err
+		}
+
+		cleanedInputPath := filepath.Clean(inputSource.DestinationPath())
+
+		if found {
+			inputVolume, err = worker.volumeClient.FindOrCreateCOWVolumeForContainer(
+				logger,
+				VolumeSpec{
+					Strategy:   localVolume.COWStrategy(),
+					Privileged: isPrivileged,
+				},
+				creatingContainer,
+				localVolume,
+				spec.TeamID,
+				cleanedInputPath,
+			)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			inputVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
+				logger,
+				VolumeSpec{
+					Strategy:   baggageclaim.EmptyStrategy{},
+					Privileged: isPrivileged,
+				},
+				creatingContainer,
+				spec.TeamID,
+				cleanedInputPath,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			destData := lager.Data{
+				"dest-volume": inputVolume.Handle(),
+				"dest-worker": inputVolume.WorkerName(),
+			}
+			err = inputSource.Source().StreamTo(logger.Session("stream-to", destData), inputVolume)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		ioVolumeMounts = append(ioVolumeMounts, VolumeMount{
+			Volume:    inputVolume,
+			MountPath: cleanedInputPath,
+		})
+
+		inputDestinationPaths[cleanedInputPath] = true
+	}
+
+	for _, outputPath := range spec.Outputs {
+		cleanedOutputPath := filepath.Clean(outputPath)
+
+		// reuse volume if output path is the same as input
+		if inputDestinationPaths[cleanedOutputPath] {
+			continue
+		}
+
+		outVolume, volumeErr := worker.volumeClient.FindOrCreateVolumeForContainer(
+			logger,
+			VolumeSpec{
+				Strategy:   baggageclaim.EmptyStrategy{},
+				Privileged: isPrivileged,
+			},
+			creatingContainer,
+			spec.TeamID,
+			cleanedOutputPath,
+		)
+		if volumeErr != nil {
+			return nil, volumeErr
+		}
+
+		ioVolumeMounts = append(ioVolumeMounts, VolumeMount{
+			Volume:    outVolume,
+			MountPath: cleanedOutputPath,
+		})
+	}
+
+	sort.Sort(byMountPath(ioVolumeMounts))
+
+	volumeMounts = append(volumeMounts, ioVolumeMounts...)
+	return volumeMounts, nil
 }
 
 func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
-	return worker.containerProvider.FindCreatedContainerByHandle(logger, handle, teamID)
-}
+	gardenContainer, err := worker.gardenClient.Lookup(handle)
+	if err != nil {
+		if _, ok := err.(garden.ContainerNotFoundError); ok {
+			logger.Info("container-not-found")
+			return nil, false, nil
+		}
 
-// TODO: are these required on the Worker object?
-// does the caller already have the db.Worker available?
-func (worker *gardenWorker) ActiveContainers() int {
-	return worker.dbWorker.ActiveContainers()
-}
+		logger.Error("failed-to-lookup-on-garden", err)
+		return nil, false, err
+	}
 
-func (worker *gardenWorker) ActiveVolumes() int {
-	return worker.dbWorker.ActiveVolumes()
+	createdContainer, found, err := worker.helper.dbTeamFactory.GetByID(teamID).FindCreatedContainerByHandle(handle)
+	if err != nil {
+		logger.Error("failed-to-lookup-in-db", err)
+		return nil, false, err
+	}
+	if !found {
+		return nil, false, nil
+	}
+
+	container, err := worker.helper.constructGardenWorkerContainer(logger, createdContainer, gardenContainer)
+	if err != nil {
+		logger.Error("failed-to-construct-container", err)
+		return nil, false, err
+	}
+
+	return container, true, nil
 }
 
 func (worker *gardenWorker) Name() string {
