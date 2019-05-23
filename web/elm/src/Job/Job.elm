@@ -12,6 +12,7 @@ module Job.Job exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -49,7 +50,6 @@ import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(.
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
-import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick)
 import Time
@@ -397,7 +397,7 @@ documentTitle model =
     model.jobIdentifier.jobName
 
 
-view : Session a -> Model -> Html Message
+view : Session -> Model -> Html Message
 view session model =
     let
         route =

@@ -1210,7 +1210,7 @@ all =
                         |> Query.find (versionSelector otherVersion)
                         |> Query.find pinButtonSelector
                         |> Query.has defaultCursor
-            , test "clicking on pin button on pinned version will trigger UnpinVersion msg" <|
+            , test "pin button on pinned version has click handler" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
@@ -1341,12 +1341,6 @@ all =
                         |> queryView
                         |> Query.has [ id "comment-bar" ]
             , describe "pin comment bar" <|
-                let
-                    commentBar : Application.Model -> Query.Single Msgs.TopLevelMessage
-                    commentBar =
-                        queryView
-                            >> Query.find [ id "comment-bar" ]
-                in
                 [ test "pin comment bar has dark background" <|
                     \_ ->
                         init
@@ -2314,93 +2308,129 @@ all =
                             (Query.find pinButtonSelector
                                 >> Query.has [ style "background-color" "#1e1d1d" ]
                             )
-            , test "sends PinVersion msg when pin button clicked" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> Event.simulate Event.click
-                        |> Event.expect
+            , describe "clicking pin buttons" <|
+                let
+                    setup _ =
+                        init
+                            |> Application.handleCallback
+                                (Callback.UserFetched <|
+                                    Ok
+                                        { id = "some-user"
+                                        , userName = "some-user"
+                                        , name = "some-user"
+                                        , email = "some-user"
+                                        , teams =
+                                            Dict.fromList
+                                                [ ( "some-team"
+                                                  , [ "member" ]
+                                                  )
+                                                ]
+                                        }
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.DeliveryReceived <|
+                                    ClockTicked
+                                        OneSecond
+                                        (Time.millisToPosix 0)
+                                )
+                            |> Tuple.first
+                            |> givenResourceIsNotPinned
+                            |> givenVersionsWithoutPagination
+                in
+                [ test "pin button on 'v1' has click handler" <|
+                    setup
+                        >> queryView
+                        >> Query.find (versionSelector version)
+                        >> Query.find pinButtonSelector
+                        >> Event.simulate Event.click
+                        >> Event.expect
                             (Msgs.Update <|
                                 Message.Message.Click <|
                                     Message.Message.PinButton versionID
                             )
-            , test "pin button on 'v1' shows transition state when (PinVersion v1) is received" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> clickToPin versionID
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> pinButtonHasTransitionState
-            , test "other pin buttons disabled when (PinVersion v1) is received" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> clickToPin versionID
-                        |> queryView
-                        |> Query.find (versionSelector otherVersion)
-                        |> Query.find pinButtonSelector
-                        |> Event.simulate Event.click
-                        |> Event.toResult
-                        |> Expect.err
-            , test "pin bar shows unpinned state when (PinVersion v1) is received" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> clickToPin versionID
-                        |> queryView
-                        |> pinBarHasUnpinnedState
-            , test "pin button on 'v1' still shows transition state on autorefresh before VersionPinned returns" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> clickToPin versionID
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> pinButtonHasTransitionState
-            , test "pin bar reflects 'v2' when upon successful (VersionPinned v1) msg" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> clickToPin versionID
-                        |> Application.handleCallback (Callback.VersionPinned (Ok ()))
-                        |> Tuple.first
-                        |> queryView
-                        |> pinBarHasPinnedState version
-            , test "pin bar shows unpinned state upon receiving failing (VersionPinned v1) msg" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> clickToPin versionID
-                        |> Application.handleCallback (Callback.VersionPinned badResponse)
-                        |> Tuple.first
-                        |> queryView
-                        |> pinBarHasUnpinnedState
-            , test "pin button on 'v1' shows unpinned state upon receiving failing (VersionPinned v1) msg" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> clickToPin versionID
-                        |> Application.handleCallback (Callback.VersionPinned badResponse)
-                        |> Tuple.first
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> pinButtonHasUnpinnedState
+                , describe "after clicking 'v1' pin button" <|
+                    let
+                        afterClick =
+                            setup >> clickToPin versionID
+                    in
+                    [ test "clicked button shows transition state" <|
+                        afterClick
+                            >> queryView
+                            >> Query.find (versionSelector version)
+                            >> Query.find pinButtonSelector
+                            >> pinButtonHasTransitionState
+                    , test "other pin buttons disabled" <|
+                        afterClick
+                            >> queryView
+                            >> Query.find (versionSelector otherVersion)
+                            >> Query.find pinButtonSelector
+                            >> Event.simulate Event.click
+                            >> Event.toResult
+                            >> Expect.err
+                    , test "pin bar shows unpinned state" <|
+                        afterClick
+                            >> queryView
+                            >> pinBarHasUnpinnedState
+                    , test "autorefresh respects transition state" <|
+                        afterClick
+                            >> givenResourceIsNotPinned
+                            >> queryView
+                            >> Query.find (versionSelector version)
+                            >> Query.find pinButtonSelector
+                            >> pinButtonHasTransitionState
+                    , describe "when pinning succeeds" <|
+                        let
+                            onSuccess =
+                                afterClick
+                                    >> Application.handleCallback
+                                        (Callback.VersionPinned <| Ok ())
+                        in
+                        [ test "pin bar reflects 'v1'" <|
+                            onSuccess
+                                >> Tuple.first
+                                >> queryView
+                                >> pinBarHasPinnedState version
+                        , test "fills in comment input with default text" <|
+                            onSuccess
+                                >> Tuple.first
+                                >> commentBar
+                                >> Query.find [ tag "textarea" ]
+                                >> Query.has
+                                    [ attribute <|
+                                        Attr.value
+                                            "pinned by some-user at Jan 1 1970 12:00:00 AM"
+                                    ]
+                        , test "automatically tries to set comment" <|
+                            onSuccess
+                                >> Tuple.second
+                                >> Expect.equal
+                                    [ Effects.SetPinComment
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , resourceName = resourceName
+                                        }
+                                        "pinned by some-user at Jan 1 1970 12:00:00 AM"
+                                    ]
+                        ]
+                    , test "pin bar shows unpinned state when pinning fails" <|
+                        afterClick
+                            >> Application.handleCallback
+                                (Callback.VersionPinned badResponse)
+                            >> Tuple.first
+                            >> queryView
+                            >> pinBarHasUnpinnedState
+                    , test "clicked button shows unpinned state when pinning fails" <|
+                        afterClick
+                            >> Application.handleCallback
+                                (Callback.VersionPinned badResponse)
+                            >> Tuple.first
+                            >> queryView
+                            >> Query.find (versionSelector version)
+                            >> Query.find pinButtonSelector
+                            >> pinButtonHasUnpinnedState
+                    ]
+                ]
             , test "pin bar expands horizontally to fill available space" <|
                 \_ ->
                     init
@@ -3412,6 +3442,12 @@ pressMetaEnter =
                 , code = Keyboard.Enter
                 }
         )
+
+
+commentBar : Application.Model -> Query.Single Msgs.TopLevelMessage
+commentBar =
+    queryView
+        >> Query.find [ id "comment-bar" ]
 
 
 versionSelector : String -> List Selector

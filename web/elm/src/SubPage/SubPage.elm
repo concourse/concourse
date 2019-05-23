@@ -10,6 +10,7 @@ module SubPage.SubPage exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Browser
 import Build.Build as Build
 import Build.Models
@@ -32,7 +33,6 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
-import Session exposing (Session)
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -46,16 +46,8 @@ type Model
     | FlySuccessModel FlySuccess.Models.Model
 
 
-type alias Flags =
-    { authToken : String
-    , turbulencePath : String
-    , pipelineRunningKeyframes : String
-    , clusterName : String
-    }
-
-
-init : Flags -> Routes.Route -> ( Model, List Effect )
-init flags route =
+init : Session -> Routes.Route -> ( Model, List Effect )
+init session route =
     case route of
         Routes.Build { id, highlight } ->
             Build.init
@@ -88,23 +80,23 @@ init flags route =
         Routes.Pipeline { id, groups } ->
             Pipeline.init
                 { pipelineLocator = id
-                , turbulenceImgSrc = flags.turbulencePath
+                , turbulenceImgSrc = session.turbulenceImgSrc
                 , selectedGroups = groups
                 }
                 |> Tuple.mapFirst PipelineModel
 
         Routes.Dashboard searchType ->
             Dashboard.init
-                { turbulencePath = flags.turbulencePath
+                { turbulencePath = session.turbulenceImgSrc
                 , searchType = searchType
-                , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-                , clusterName = flags.clusterName
+                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
+                , clusterName = session.clusterName
                 }
                 |> Tuple.mapFirst DashboardModel
 
         Routes.FlySuccess flyPort ->
             FlySuccess.init
-                { authToken = flags.authToken
+                { authToken = session.authToken
                 , flyPort = flyPort
                 }
                 |> Tuple.mapFirst FlySuccessModel
@@ -183,12 +175,12 @@ genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
                 |> Tuple.mapFirst NotFoundModel
 
 
-handleCallback : Callback -> ET Model
-handleCallback callback =
+handleCallback : Callback -> Session -> ET Model
+handleCallback callback session =
     genericUpdate
         (Build.handleCallback callback)
         (Job.handleCallback callback)
-        (Resource.handleCallback callback)
+        (Resource.handleCallback callback session)
         (Pipeline.handleCallback callback)
         (Dashboard.handleCallback callback)
         identity
@@ -228,7 +220,7 @@ handleDelivery session delivery =
         identity
 
 
-update : Session a -> Message -> ET Model
+update : Session -> Message -> ET Model
 update session msg =
     genericUpdate
         (Login.update msg >> Build.update session msg)
@@ -301,7 +293,7 @@ urlUpdate route =
         identity
 
 
-view : Session a -> Model -> Browser.Document TopLevelMessage
+view : Session -> Model -> Browser.Document TopLevelMessage
 view ({ userState } as session) mdl =
     let
         ( title, body ) =
