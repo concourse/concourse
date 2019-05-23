@@ -1,4 +1,4 @@
-module Dashboard.DashboardPreview exposing (view)
+module Dashboard.DashboardPreview exposing (groupByRank, view)
 
 import Concourse
 import Concourse.BuildStatus
@@ -6,9 +6,7 @@ import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href)
 import List.Extra
-import Maybe.Extra
 import Routes
-import Set exposing (Set)
 
 
 view : List Concourse.Job -> Html msg
@@ -84,58 +82,76 @@ viewJob job =
         [ Html.a [ href <| Routes.toString buildRoute ] [ Html.text "" ] ]
 
 
-groupByRank : List Concourse.Job -> List (List Concourse.Job)
+type alias Job a b =
+    { a
+        | name : String
+        , inputs : List { b | passed : List String }
+    }
+
+
+groupByRank : List (Job a b) -> List (List (Job a b))
 groupByRank jobs =
     let
         depths =
-            jobs
-                |> jobDepths Set.empty Dict.empty
+            jobDepths Dict.empty Dict.empty jobs
     in
-    jobs
-        |> List.Extra.gatherEqualsBy (\job -> Dict.get job.name depths)
-        |> List.map (\( h, t ) -> h :: t)
+    depths
+        |> Dict.values
+        |> List.sort
+        |> List.Extra.unique
+        |> List.map
+            (\d ->
+                jobs
+                    |> List.filter (\j -> Dict.get j.name depths == Just d)
+            )
 
 
-jobDepths : Set String -> Dict String Int -> List Concourse.Job -> Dict String Int
-jobDepths visited depths jobs =
+jobDepths :
+    Dict String { value : Int, uncertainty : Int }
+    -> Dict String Int
+    -> List (Job a b)
+    -> Dict String Int
+jobDepths calculations depths jobs =
     case jobs of
         [] ->
             depths
 
         job :: otherJobs ->
-            case
-                ( List.concatMap .passed job.inputs
-                    |> List.map (\jobName -> Dict.get jobName depths)
-                    |> calculate List.maximum
-                , Set.member job.name visited
-                )
-            of
-                ( Nothing, _ ) ->
-                    jobDepths visited (Dict.insert job.name 0 depths) otherJobs
+            let
+                dependencies =
+                    List.concatMap .passed job.inputs
 
-                ( Just (Confident depth), _ ) ->
-                    jobDepths visited (Dict.insert job.name (depth + 1) depths) otherJobs
+                values =
+                    List.filterMap
+                        (\jobName -> Dict.get jobName depths)
+                        dependencies
 
-                ( Just (Speculative depth), True ) ->
-                    jobDepths visited (Dict.insert job.name (depth + 1) depths) otherJobs
+                new =
+                    { value =
+                        values
+                            |> List.maximum
+                            |> Maybe.map ((+) 1)
+                            |> Maybe.withDefault 0
+                    , uncertainty = List.length otherJobs
+                    }
 
-                ( Just (Speculative _), False ) ->
-                    jobDepths (Set.insert job.name visited) depths (otherJobs ++ [ job ])
+                totalConfidence =
+                    List.length values
+                        == List.length dependencies
 
+                neverGonnaGetBetter =
+                    Dict.get job.name calculations
+                        |> Maybe.map (\oldCalc -> oldCalc.uncertainty <= new.uncertainty)
+                        |> Maybe.withDefault False
+            in
+            if totalConfidence || neverGonnaGetBetter then
+                jobDepths
+                    (Dict.remove job.name calculations)
+                    (Dict.insert job.name new.value depths)
+                    otherJobs
 
-type Calculation a
-    = Confident a
-    | Speculative a
-
-
-calculate : (List a -> Maybe b) -> List (Maybe a) -> Maybe (Calculation b)
-calculate f xs =
-    case ( List.any ((==) Nothing) xs, f (Maybe.Extra.values xs) ) of
-        ( True, Just value ) ->
-            Just (Speculative value)
-
-        ( False, Just value ) ->
-            Just (Confident value)
-
-        ( _, Nothing ) ->
-            Nothing
+            else
+                jobDepths
+                    (Dict.insert job.name new calculations)
+                    depths
+                    (otherJobs ++ [ job ])
