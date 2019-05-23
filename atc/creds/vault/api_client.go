@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"fmt"
 	"path"
 	"sync/atomic"
 	"time"
@@ -80,8 +81,19 @@ func (ac *APIClient) Login() (time.Duration, error) {
 	}
 
 	client := ac.client()
+	loginPath := path.Join("auth", ac.authConfig.Backend, "login")
 
-	secret, err := client.Logical().Write(path.Join("auth", ac.authConfig.Backend, "login"), ac.loginParams())
+	if ac.authConfig.Backend == "ldap" {
+		username, ok := ac.loginParams()["username"].(string)
+		if !ok {
+			err := fmt.Errorf("failed to assert username as string")
+			logger.Error("failed", err)
+			return time.Second, err
+		}
+		loginPath = path.Join("auth", ac.authConfig.Backend, "login", username)
+	}
+
+	secret, err := client.Logical().Write(loginPath, ac.loginParams())
 	if err != nil {
 		logger.Error("failed", err)
 		return time.Second, err
