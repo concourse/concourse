@@ -92,15 +92,15 @@
     plan:
     - get: some-repo
     - in_parallel:
-      limit: 2
-      fail_fast: false
-      steps:
-        - task: unit-windows
-          file: some-repo/ci/windows.yml
-        - task: unit-linux
-          file: some-repo/ci/linux.yml
-        - task: unit-darwin
-          file: some-repo/ci/darwin.yml
+        limit: 2
+        fail_fast: false
+        steps:
+          - task: unit-windows
+            file: some-repo/ci/windows.yml
+          - task: unit-linux
+            file: some-repo/ci/linux.yml
+          - task: unit-darwin
+            file: some-repo/ci/darwin.yml
     }}
   }
 }
