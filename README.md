@@ -11,7 +11,7 @@ declarative config, stateless workers, and reproducible builds.
 
 ## Installation
 
-Concourse is distributed as a single `concourse` binary, available on the [Downloads page](https://concourse-ci.org/download.html).
+Concourse is distributed as a single `concourse` binary, available on the [Releases page](https://github.com/concourse/concourse/releases/latest).
 
 If you want to just kick the tires, jump ahead to the [Quick Start](#quick-start).
 
