@@ -67,7 +67,7 @@ resource "google_compute_instance" "smoke" {
 
   connection {
     type        = "ssh"
-    host        = self.network_interface.0.network_ip
+    host        = google_compute_address.smoke.address
     user        = "root"
     private_key = file("keys/id_rsa")
   }
