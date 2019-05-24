@@ -388,11 +388,13 @@ jobs:
       passed: [build-rc]
     - get: unit-image
       passed: [build-rc]
+    - get: concourse-docker
+      trigger: true
     - get: builder
   - task: build
     image: builder
     privileged: true
-    file: concourse/ci/tasks/build-rc-image.yml
+    file: concourse-docker/ci/build-image.yml
   - put: concourse-rc-image
     params: {image: image/image.tar}
     get_params: {format: oci}
@@ -832,3 +834,8 @@ resources:
     owner: concourse
     repository: tracker-resource
     access_token: ((concourse_github_dummy.access_token))
+
+- name: concourse-docker
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse-docker
