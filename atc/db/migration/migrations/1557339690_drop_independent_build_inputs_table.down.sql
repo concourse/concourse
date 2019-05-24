@@ -5,7 +5,7 @@ BEGIN;
       input_name text NOT NULL,
       first_occurrence boolean NOT NULL,
       resource_config_version_id integer NOT NULL REFERENCES resource_config_versions (id) ON DELETE CASCADE,
-      resource_id integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE,
+      resource_id integer NOT NULL REFERENCES resources (id) ON DELETE CASCADE
   );
 
   CREATE SEQUENCE independent_build_inputs_id_seq
