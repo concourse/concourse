@@ -8,10 +8,11 @@ image_resource:
 
 inputs:
 - name: concourse
-- name: version
 - name: concourse-release-repo
-- name: ubuntu-linux-rc
+- name: linux-rc
 - name: windows-rc
+- name: version
+  optional: true
 
 outputs:
 - name: bumped-concourse-release-repo

@@ -3,7 +3,10 @@
 
 set -e -x
 
-version=$(cat version/version)
+version=""
+if [ -e version/version ]; then
+  version="$(cat version/version)"
+fi
 
 git clone concourse-release-repo bumped-concourse-release-repo
 
@@ -25,7 +28,7 @@ pushd bumped-concourse-release-repo/
     bosh -n remove-blob $blob
   done
 
-  for blob in ../ubuntu-linux-rc/concourse-*.tgz ../windows-rc/concourse-*.zip; do
+  for blob in ../linux-rc/concourse-*.tgz ../windows-rc/concourse-*.zip; do
     bosh -n add-blob $blob concourse/$(basename $blob)
   done
 
@@ -33,5 +36,9 @@ pushd bumped-concourse-release-repo/
   bosh -n upload-blobs
 
   git add -A
-  git commit -m "bump concourse to $version"
+  if [ -n "$version" ]; then
+    git commit -m "bump concourse to $version"
+  else
+    git commit -m "bump concourse"
+  fi
 popd
