@@ -23,12 +23,24 @@ resources:
     repository: concourse/concourse
     access_token: ((pull_requests_access_token))
 
+- name: baggageclaim-master
+  type: git
+  icon: github-circle
+  source:
+    uri: https://github.com/concourse/baggageclaim
+
 - name: baggageclaim-pr
   type: pull-request
   icon: source-pull
   source:
     repository: concourse/baggageclaim
     access_token: ((pull_requests_access_token))
+
+- name: docs-master
+  type: git
+  icon: github-circle
+  source:
+    uri: https://github.com/concourse/docs
 
 - name: docs-pr
   type: pull-request
@@ -62,39 +74,40 @@ jobs:
     params: {path: concourse-pr, status: success, context: unit}
     tags: [pr]
   plan:
-  - get: concourse-pr
-    trigger: true
-    version: every
-    tags: [pr]
-  - get: concourse-master
-    tags: [pr]
+  - in_parallel:
+    - get: concourse-pr
+      trigger: true
+      version: every
+      tags: [pr]
+    - get: concourse-master
+      tags: [pr]
   - put: concourse-pr
     inputs: [concourse-pr]
     params: {path: concourse-pr, status: pending, context: unit}
     tags: [pr]
   - task: check-migration-order
     timeout: 5m
-    file: concourse-pr/ci/tasks/check-migration-order.yml
+    file: concourse-master/ci/tasks/check-migration-order.yml
     tags: [pr]
   - task: yarn-analyse
     attempts: 3
-    file: concourse-pr/ci/tasks/yarn-analyse.yml
+    file: concourse-master/ci/tasks/yarn-analyse.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]
   - task: yarn-test
     attempts: 3
-    file: concourse-pr/ci/tasks/yarn-test.yml
+    file: concourse-master/ci/tasks/yarn-test.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]
   - task: yarn-benchmark
     attempts: 3
-    file: concourse-pr/ci/tasks/yarn-benchmark.yml
+    file: concourse-master/ci/tasks/yarn-benchmark.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]
   - task: unit
     attempts: 3
     timeout: 1h
-    file: concourse-pr/ci/tasks/unit.yml
+    file: concourse-master/ci/tasks/unit.yml
     input_mapping: {concourse: built-concourse}
     tags: [pr]
 
@@ -117,6 +130,8 @@ jobs:
       trigger: true
       version: every
       tags: [pr]
+    - get: concourse-master
+      tags: [pr]
     - get: dev-image
       params: {format: oci}
       tags: [pr]
@@ -128,13 +143,13 @@ jobs:
     params: {path: concourse-pr, status: pending, context: testflight}
   - task: yarn-build
     attempts: 3
-    file: concourse-pr/ci/tasks/yarn-build.yml
+    file: concourse-master/ci/tasks/yarn-build.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]
   - task: testflight
     timeout: 1h
     privileged: true
-    file: concourse-pr/ci/tasks/docker-compose-testflight.yml
+    file: concourse-master/ci/tasks/docker-compose-testflight.yml
     input_mapping: {concourse: built-concourse}
     params: {BUILD: true}
     tags: [pr]
@@ -158,6 +173,8 @@ jobs:
       trigger: true
       version: every
       tags: [pr]
+    - get: concourse-master
+      tags: [pr]
     - get: dev-image
       params: {format: oci}
       tags: [pr]
@@ -170,13 +187,13 @@ jobs:
     tags: [pr]
   - task: yarn-build
     attempts: 3
-    file: concourse-pr/ci/tasks/yarn-build.yml
+    file: concourse-master/ci/tasks/yarn-build.yml
     input_mapping: {concourse: concourse-pr}
     tags: [pr]
   - task: watsjs
     timeout: 1h
     privileged: true
-    file: concourse-pr/ci/tasks/docker-compose-watsjs.yml
+    file: concourse-master/ci/tasks/docker-compose-watsjs.yml
     input_mapping: {concourse: built-concourse}
     params: {BUILD: true}
     tags: [pr]
@@ -196,13 +213,15 @@ jobs:
     trigger: true
     version: every
     tags: [pr]
+  - get: baggageclaim-master
+    tags: [pr]
   - put: baggageclaim-pr
     params: {path: baggageclaim-pr, status: pending, context: unit}
     tags: [pr]
   - task: unit-linux
     privileged: true
     timeout: 1h
-    file: baggageclaim-pr/ci/unit-linux.yml
+    file: baggageclaim-master/ci/unit-linux.yml
     input_mapping: {baggageclaim: baggageclaim-pr}
     tags: [pr]
 
@@ -223,10 +242,12 @@ jobs:
     trigger: true
     version: every
     tags: [pr]
+  - get: docs-master
+    tags: [pr]
   - put: docs-pr
     params: {path: docs-pr, status: pending, context: build}
     tags: [pr]
   - task: build
-    file: docs-pr/ci/build.yml
+    file: docs-master/ci/build.yml
     input_mapping: {docs: docs-pr}
     tags: [pr]

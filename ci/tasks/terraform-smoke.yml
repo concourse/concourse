@@ -11,7 +11,7 @@ params:
   GCP_PROJECT:
   GCP_KEY:
   SSH_KEY:
-  DEPLOYMENT:
+  WORKSPACE: default
 
 inputs:
 - name: concourse
