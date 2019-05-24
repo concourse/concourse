@@ -74,12 +74,13 @@ jobs:
     params: {path: concourse-pr, status: success, context: unit}
     tags: [pr]
   plan:
-  - get: concourse-pr
-    trigger: true
-    version: every
-    tags: [pr]
-  - get: concourse-master
-    tags: [pr]
+  - in_parallel:
+    - get: concourse-pr
+      trigger: true
+      version: every
+      tags: [pr]
+    - get: concourse-master
+      tags: [pr]
   - put: concourse-pr
     inputs: [concourse-pr]
     params: {path: concourse-pr, status: pending, context: unit}
@@ -129,6 +130,8 @@ jobs:
       trigger: true
       version: every
       tags: [pr]
+    - get: concourse-master
+      tags: [pr]
     - get: dev-image
       params: {format: oci}
       tags: [pr]
@@ -169,6 +172,8 @@ jobs:
     - get: concourse-pr
       trigger: true
       version: every
+      tags: [pr]
+    - get: concourse-master
       tags: [pr]
     - get: dev-image
       params: {format: oci}
