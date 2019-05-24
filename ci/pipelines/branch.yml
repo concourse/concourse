@@ -419,7 +419,7 @@ jobs:
       GCP_PROJECT: cf-concourse-production
       GCP_KEY: ((concourse_smoke_gcp_key))
       SSH_KEY: ((concourse_smoke_ssh_key))
-      DEPLOYMENT: smoke
+      WORKSPACE: branch-((branch_name))
   - task: smoke
     image: unit-image
     file: concourse/ci/tasks/smoke.yml
