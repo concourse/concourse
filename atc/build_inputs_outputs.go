@@ -6,6 +6,7 @@ type BuildInputsOutputs struct {
 }
 
 type PublicBuildInput struct {
+	ID              int     `json:"id"`
 	Name            string  `json:"name"`
 	Version         Version `json:"version"`
 	PipelineID      int     `json:"pipeline_id"`
@@ -13,6 +14,7 @@ type PublicBuildInput struct {
 }
 
 type PublicBuildOutput struct {
+	ID	    int     `json:"id"`
 	Name    string  `json:"name"`
 	Version Version `json:"version"`
 }

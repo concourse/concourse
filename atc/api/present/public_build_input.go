@@ -7,6 +7,7 @@ import (
 
 func PublicBuildInput(input db.BuildInput, pipelineID int) atc.PublicBuildInput {
 	return atc.PublicBuildInput{
+		ID:              input.ID,
 		Name:            input.Name,
 		Version:         atc.Version(input.Version),
 		PipelineID:      pipelineID,
@@ -16,6 +17,7 @@ func PublicBuildInput(input db.BuildInput, pipelineID int) atc.PublicBuildInput 
 
 func PublicBuildOutput(output db.BuildOutput) atc.PublicBuildOutput {
 	return atc.PublicBuildOutput{
+		ID:      output.ID,
 		Name:    output.Name,
 		Version: atc.Version(output.Version),
 	}

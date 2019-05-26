@@ -21,6 +21,7 @@ import (
 const schema = "exec.v2"
 
 type BuildInput struct {
+	VersionID  int
 	Name       string
 	Version    atc.Version
 	ResourceID int
@@ -29,8 +30,9 @@ type BuildInput struct {
 }
 
 type BuildOutput struct {
-	Name    string
-	Version atc.Version
+	VersionID int
+	Name      string
+	Version   atc.Version
 }
 
 type BuildStatus string
@@ -961,7 +963,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			AND i.build_id < builds.id
 		)`
 
-	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", firstOccurrence).
+	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", firstOccurrence, "versions.id").
 		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
 		Where(sq.NotEq{"versions.check_order": 0}).
@@ -992,9 +994,10 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			versionBlob     string
 			version         atc.Version
 			resourceID      int
+			versionID       int
 		)
 
-		err = rows.Scan(&inputName, &resourceID, &versionBlob, &firstOccurrence)
+		err = rows.Scan(&inputName, &resourceID, &versionBlob, &firstOccurrence, &versionID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1005,6 +1008,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		}
 
 		inputs = append(inputs, BuildInput{
+			VersionID:       versionID,
 			Name:            inputName,
 			Version:         version,
 			ResourceID:      resourceID,
@@ -1012,7 +1016,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		})
 	}
 
-	rows, err = psql.Select("outputs.name", "versions.version").
+	rows, err = psql.Select("outputs.name", "versions.version, versions.id").
 		From("resource_config_versions versions, build_resource_config_version_outputs outputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
 		Where(sq.NotEq{"versions.check_order": 0}).
@@ -1034,9 +1038,10 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			outputName  string
 			versionBlob string
 			version     atc.Version
+			versionID   int
 		)
 
-		err := rows.Scan(&outputName, &versionBlob)
+		err := rows.Scan(&outputName, &versionBlob, &versionID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1047,8 +1052,9 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		}
 
 		outputs = append(outputs, BuildOutput{
-			Name:    outputName,
-			Version: version,
+			VersionID: versionID,
+			Name:      outputName,
+			Version:   version,
 		})
 	}
 
