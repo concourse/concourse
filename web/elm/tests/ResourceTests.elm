@@ -2212,7 +2212,7 @@ all =
                             (Query.children []
                                 >> Query.first
                                 >> Query.children []
-                                >> Query.index 2
+                                >> Query.index 3
                                 >> Query.has
                                     [ style "display" "flex"
                                     , style "align-items" "center"
@@ -2224,7 +2224,7 @@ all =
                             (Query.children []
                                 >> Query.first
                                 >> Query.children []
-                                >> Query.index 2
+                                >> Query.index 3
                                 >> Query.has
                                     [ style "flex-grow" "1" ]
                             )
@@ -2234,7 +2234,7 @@ all =
                             (Query.children []
                                 >> Query.first
                                 >> Query.children []
-                                >> Query.index 2
+                                >> Query.index 3
                                 >> Query.has
                                     [ style "cursor" "pointer" ]
                             )
@@ -2244,7 +2244,7 @@ all =
                             (Query.children []
                                 >> Query.first
                                 >> Query.children []
-                                >> Query.index 2
+                                >> Query.index 3
                                 >> Query.has
                                     [ style "padding-left" "10px" ]
                             )

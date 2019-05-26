@@ -909,11 +909,13 @@ all =
                             { name = "some-input"
                             , version = Dict.fromList [ ( "version", "v1" ) ]
                             , firstOccurrence = True
+                            , versionId = 1
                             }
 
                         buildOutput =
                             { name = "some-resource"
                             , version = Dict.fromList [ ( "version", "v2" ) ]
+                            , versionId = 2
                             }
                     in
                     let

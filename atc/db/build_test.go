@@ -579,13 +579,14 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(inputs).To(ConsistOf([]db.BuildInput{
-				{Name: "some-input", Version: atc.Version{"ver": "1"}, ResourceID: resource1.ID(), FirstOccurrence: true},
+				{Name: "some-input", Version: atc.Version{"ver": "1"}, ResourceID: resource1.ID(), FirstOccurrence: true, VersionID: 1},
 			}))
 
 			Expect(outputs).To(ConsistOf([]db.BuildOutput{
 				{
-					Name:    "some-output-name",
-					Version: atc.Version{"ver": "2"},
+					Name:      "some-output-name",
+					Version:   atc.Version{"ver": "2"},
+					VersionID: 4,
 				},
 			}))
 		})

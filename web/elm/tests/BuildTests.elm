@@ -2415,14 +2415,17 @@ all =
                                                 [ { name = "step"
                                                   , version = version
                                                   , firstOccurrence = True
+                                                  , versionId = 1
                                                   }
                                                 , { name = "step2"
                                                   , version = version
                                                   , firstOccurrence = True
+                                                  , versionId = 2
                                                   }
                                                 , { name = "step3"
                                                   , version = version
                                                   , firstOccurrence = False
+                                                  , versionId = 3
                                                   }
                                                 ]
                                           , outputs = []

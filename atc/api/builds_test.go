@@ -685,12 +685,14 @@ var _ = Describe("Builds API", func() {
 						Expect(body).To(MatchJSON(`{
 							"inputs": [
 								{
+									"id": 0,
 									"name": "input1",
 									"version": {"version": "value1"},
 									"pipeline_id": 42,
 									"first_occurrence": true
 								},
 								{
+									"id": 0,
 									"name": "input2",
 									"version": {"version": "value2"},
 									"pipeline_id": 42,
@@ -699,10 +701,12 @@ var _ = Describe("Builds API", func() {
 							],
 							"outputs": [
 								{
+									"id": 0,
 									"name": "myresource3",
 									"version": {"version": "value3"}
 								},
 								{
+									"id": 0,
 									"name": "myresource4",
 									"version": {"version": "value4"}
 								}
