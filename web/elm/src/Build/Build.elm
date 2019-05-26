@@ -1,8 +1,8 @@
 module Build.Build exposing
     ( bodyId
     , changeToBuild
-    , currentJob
     , documentTitle
+    , getCurrentJob
     , getScrollBehavior
     , getUpdateMessage
     , handleCallback
@@ -111,7 +111,7 @@ init flags =
           , shiftDown = False
           , isUserMenuExpanded = False
           }
-        , [ GetCurrentTime, GetCurrentTimeZone, FetchPipelines ]
+        , [ RenderSvgIcon "pound", GetCurrentTime, GetCurrentTimeZone, FetchPipelines ]
         )
 
 
@@ -178,7 +178,7 @@ changeToBuild { highlight, pageType } ( model, effects ) =
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model, model.page ) of
+    case ( model.currentBuild |> RemoteData.toMaybe, getCurrentJob model, model.page ) of
         ( Just build, Just { jobName }, _ ) ->
             jobName ++ " #" ++ build.build.name
 
@@ -189,8 +189,8 @@ extractTitle model =
             "#" ++ String.fromInt id
 
 
-currentJob : Model -> Maybe Concourse.JobIdentifier
-currentJob =
+getCurrentJob : Model -> Maybe Concourse.JobIdentifier
+getCurrentJob =
     .currentBuild
         >> RemoteData.toMaybe
         >> Maybe.map .build
@@ -413,7 +413,7 @@ handleDelivery session delivery ( model, effects ) =
                 needsToFetchMorePages =
                     not model.fetchingHistory && lastBuildVisible && hasNextPage
             in
-            case currentJob model of
+            case getCurrentJob model of
                 Just job ->
                     if needsToFetchMorePages then
                         ( { model | fetchingHistory = True }
@@ -471,7 +471,7 @@ update session msg ( model, effects ) =
                 ( newModel, effects )
 
         Click TriggerBuildButton ->
-            (currentJob model
+            (getCurrentJob model
                 |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
                 |> Maybe.withDefault identity
             )
@@ -645,7 +645,7 @@ handleKeyPressed keyEvent ( model, effects ) =
 
             ( Keyboard.T, True ) ->
                 if not newModel.previousTriggerBuildByKey then
-                    (currentJob model
+                    (getCurrentJob model
                         |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
                         |> Maybe.withDefault identity
                     )
@@ -742,7 +742,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                 }
 
             fetchJobAndHistory =
-                case ( currentJob model, build.job ) of
+                case ( getCurrentJob model, build.job ) of
                     ( Nothing, Just buildJob ) ->
                         [ FetchBuildJobDetails buildJob
                         , FetchBuildHistory buildJob Nothing
@@ -825,7 +825,7 @@ handleHistoryFetched history ( model, effects ) =
                 , fetchingHistory = False
             }
     in
-    case ( currentBuild, currentJob model ) of
+    case ( currentBuild, getCurrentJob model ) of
         ( RemoteData.Success build, Just job ) ->
             if List.member build newModel.history then
                 ( newModel, effects ++ [ CheckIsVisible <| String.fromInt build.id ] )
@@ -893,7 +893,7 @@ view session model =
                 , isSideBarOpen = session.isSideBarOpen
                 , screenSize = session.screenSize
                 }
-                (currentJob model
+                (getCurrentJob model
                     |> Maybe.map
                         (\j ->
                             { pipelineName = j.pipelineName
@@ -908,7 +908,7 @@ view session model =
 
 breadcrumbs : Model -> Html Message
 breadcrumbs model =
-    case ( currentJob model, model.page ) of
+    case ( getCurrentJob model, model.page ) of
         ( Just jobId, _ ) ->
             TopBar.breadcrumbs <|
                 Routes.Job
@@ -972,7 +972,7 @@ body session { currentBuild, authorized, showHelp } =
     <|
         if authorized then
             [ viewBuildPrep currentBuild.prep
-            , Html.Lazy.lazy2 viewBuildOutput session currentBuild.output
+            , Html.Lazy.lazy3 viewBuildOutput currentBuild.build.job session currentBuild.output
             , keyboardHelp showHelp
             ]
                 ++ tombstone session.timeZone currentBuild
@@ -1133,11 +1133,11 @@ mmDDYY =
         ]
 
 
-viewBuildOutput : Session -> Maybe OutputModel -> Html Message
-viewBuildOutput session output =
+viewBuildOutput : Maybe Concourse.JobIdentifier -> Session -> Maybe OutputModel -> Html Message
+viewBuildOutput currentJob session output =
     case output of
         Just o ->
-            Build.Output.Output.view session o
+            Build.Output.Output.view currentJob session o
 
         Nothing ->
             Html.div [] []
@@ -1264,7 +1264,7 @@ viewBuildHeader :
 viewBuildHeader session model build =
     let
         triggerButton =
-            case currentJob model of
+            case getCurrentJob model of
                 Just _ ->
                     let
                         buttonDisabled =

@@ -69,6 +69,7 @@ type alias Step =
     , error : Maybe String
     , expanded : Maybe Bool
     , version : Maybe Version
+    , versionId : Maybe Int
     , metadata : List MetadataField
     , firstOccurrence : Bool
     , timestamps : Dict Int Time.Posix

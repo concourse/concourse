@@ -40,10 +40,13 @@ import Duration
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Maybe.Extra
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
+import Svg
+import Svg.Attributes as SvgAttributes
 import Time
 import Url exposing (fromString)
 import Views.DictView as DictView
@@ -175,6 +178,7 @@ initBottom hl create id name =
                         else
                             Nothing
             , version = Nothing
+            , versionId = Nothing
             , metadata = []
             , firstOccurrence = False
             , timestamps = Dict.empty
@@ -293,6 +297,11 @@ setupGetStep : Concourse.BuildResources -> StepName -> Maybe Version -> Step -> 
 setupGetStep resources name version step =
     { step
         | version = version
+        , versionId =
+            resources.inputs
+                |> List.filter (\i -> Just i.version == version)
+                |> List.head
+                |> Maybe.map .versionId
         , firstOccurrence = isFirstOccurrence resources.inputs name
     }
 
@@ -408,37 +417,39 @@ updateTooltip { hovered } { hoveredCounter } model =
 
 
 view :
-    Session
+    Maybe Concourse.JobIdentifier
+    -> Session
     -> StepTreeModel
     -> Html Message
-view session model =
-    viewTree session model model.tree
+view currentJob session model =
+    viewTree currentJob session model model.tree
 
 
 viewTree :
-    Session
+    Maybe Concourse.JobIdentifier
+    -> Session
     -> StepTreeModel
     -> StepTree
     -> Html Message
-viewTree session model tree =
+viewTree currentJob session model tree =
     case tree of
         Task step ->
-            viewStep model session step StepHeaderTask
+            viewStep currentJob model session step StepHeaderTask
 
         ArtifactInput step ->
-            viewStep model session step (StepHeaderGet False)
+            viewStep currentJob model session step (StepHeaderGet False)
 
         Get step ->
-            viewStep model session step (StepHeaderGet step.firstOccurrence)
+            viewStep currentJob model session step (StepHeaderGet step.firstOccurrence)
 
         ArtifactOutput step ->
-            viewStep model session step StepHeaderPut
+            viewStep currentJob model session step StepHeaderPut
 
         Put step ->
-            viewStep model session step StepHeaderPut
+            viewStep currentJob model session step StepHeaderPut
 
         Try step ->
-            viewTree session model step
+            viewTree currentJob session model step
 
         Retry id tab _ steps ->
             Html.div [ class "retry" ]
@@ -447,7 +458,7 @@ viewTree session model tree =
                     (Array.toList <| Array.indexedMap (viewTab session id tab) steps)
                 , case Array.get (tab - 1) steps of
                     Just step ->
-                        viewTree session model step
+                        viewTree currentJob session model step
 
                     Nothing ->
                         -- impossible (bogus tab selected)
@@ -455,34 +466,34 @@ viewTree session model tree =
                 ]
 
         Timeout step ->
-            viewTree session model step
+            viewTree currentJob session model step
 
         Aggregate steps ->
             Html.div [ class "aggregate" ]
-                (Array.toList <| Array.map (viewSeq session model) steps)
+                (Array.toList <| Array.map (viewSeq currentJob session model) steps)
 
         InParallel steps ->
             Html.div [ class "parallel" ]
-                (Array.toList <| Array.map (viewSeq session model) steps)
+                (Array.toList <| Array.map (viewSeq currentJob session model) steps)
 
         Do steps ->
             Html.div [ class "do" ]
-                (Array.toList <| Array.map (viewSeq session model) steps)
+                (Array.toList <| Array.map (viewSeq currentJob session model) steps)
 
         OnSuccess { step, hook } ->
-            viewHooked session "success" model step hook
+            viewHooked currentJob session "success" model step hook
 
         OnFailure { step, hook } ->
-            viewHooked session "failure" model step hook
+            viewHooked currentJob session "failure" model step hook
 
         OnAbort { step, hook } ->
-            viewHooked session "abort" model step hook
+            viewHooked currentJob session "abort" model step hook
 
         OnError { step, hook } ->
-            viewHooked session "error" model step hook
+            viewHooked currentJob session "error" model step hook
 
         Ensure { step, hook } ->
-            viewHooked session "ensure" model step hook
+            viewHooked currentJob session "ensure" model step hook
 
 
 viewTab :
@@ -515,17 +526,17 @@ viewTab { hovered } id currentTab idx step =
         [ Html.text (String.fromInt tab) ]
 
 
-viewSeq : Session -> StepTreeModel -> StepTree -> Html Message
-viewSeq session model tree =
-    Html.div [ class "seq" ] [ viewTree session model tree ]
+viewSeq : Maybe Concourse.JobIdentifier -> Session -> StepTreeModel -> StepTree -> Html Message
+viewSeq currentJob session model tree =
+    Html.div [ class "seq" ] [ viewTree currentJob session model tree ]
 
 
-viewHooked : Session -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
-viewHooked session name model step hook =
+viewHooked : Maybe Concourse.JobIdentifier -> Session -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
+viewHooked currentJob session name model step hook =
     Html.div [ class "hooked" ]
-        [ Html.div [ class "step" ] [ viewTree session model step ]
+        [ Html.div [ class "step" ] [ viewTree currentJob session model step ]
         , Html.div [ class "children" ]
-            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree session model hook ]
+            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree currentJob session model hook ]
             ]
         ]
 
@@ -540,8 +551,8 @@ autoExpanded state =
     isActive state && state /= StepStateSucceeded
 
 
-viewStep : StepTreeModel -> Session -> Step -> StepHeaderType -> Html Message
-viewStep model session { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
+viewStep : Maybe Concourse.JobIdentifier -> StepTreeModel -> Session -> Step -> StepHeaderType -> Html Message
+viewStep currentJob model session { id, name, log, state, error, expanded, version, versionId, metadata, timestamps, initialize, start, finish } headerType =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -558,7 +569,43 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
             [ Html.div
                 [ style "display" "flex" ]
                 [ viewStepHeaderIcon headerType (model.tooltip == Just (FirstOccurrenceIcon id)) id
-                , Html.h3 [] [ Html.text name ]
+                , Html.div []
+                    (versionId
+                        |> Maybe.map
+                            (\vid ->
+                                currentJob |> Maybe.map (\cj -> { teamName = cj.teamName, pipelineName = cj.pipelineName, resourceName = name, versionID = vid })
+                            )
+                        |> Maybe.Extra.join
+                        |> Maybe.map
+                            (\versionRouteIdentifier ->
+                                [ Html.a
+                                    [ href <|
+                                        Routes.toString <|
+                                            Routes.ResourceVersion versionRouteIdentifier
+                                    ]
+                                    [ Svg.svg
+                                        [ SvgAttributes.viewBox "0 0 24 24"
+                                        , style "height" "16px"
+                                        , style "width" "16px"
+                                        , style "margin-top" "6px"
+                                        , SvgAttributes.fill
+                                            (case headerType of
+                                                StepHeaderGet True ->
+                                                    "#f6b900"
+
+                                                _ ->
+                                                    "#e6e7e8"
+                                            )
+                                        ]
+                                        [ Svg.use [ SvgAttributes.xlinkHref "#pound-svg-icon" ] []
+                                        ]
+                                    ]
+                                ]
+                            )
+                        |> Maybe.withDefault []
+                    )
+                , Html.h3 []
+                    [ Html.text name ]
                 ]
             , Html.div
                 [ style "display" "flex" ]

@@ -333,26 +333,27 @@ setStepFinish mtime tree =
     StepTree.map (\step -> { step | finish = mtime }) tree
 
 
-view : Session -> OutputModel -> Html Message
-view session { steps, state } =
-    Html.div [ class "steps" ] [ viewStepTree session steps state ]
+view : Maybe Concourse.JobIdentifier -> Session -> OutputModel -> Html Message
+view currentJob session { steps, state } =
+    Html.div [ class "steps" ] [ viewStepTree currentJob session steps state ]
 
 
 viewStepTree :
-    Session
+    Maybe Concourse.JobIdentifier
+    -> Session
     -> Maybe StepTreeModel
     -> OutputState
     -> Html Message
-viewStepTree session steps state =
+viewStepTree currentJob session steps state =
     case ( state, steps ) of
         ( StepsLoading, _ ) ->
             LoadingIndicator.view
 
         ( StepsLiveUpdating, Just root ) ->
-            Build.StepTree.StepTree.view session root
+            Build.StepTree.StepTree.view currentJob session root
 
         ( StepsComplete, Just root ) ->
-            Build.StepTree.StepTree.view session root
+            Build.StepTree.StepTree.view currentJob session root
 
         ( _, Nothing ) ->
             Html.div [] []
