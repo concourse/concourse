@@ -226,7 +226,7 @@ handleCallback callback session ( model, effects ) =
               }
                 |> updatePinnedVersion resource
             , effects
-                ++ (RenderSvgIcon "arrow-right"
+                ++ (RenderSvgIcon "pound"
                         :: (case resource.icon of
                                 Just icon ->
                                     [ RenderSvgIcon icon ]
@@ -1466,13 +1466,13 @@ viewDetailsButton { versionID, pinState } =
             ]
             [ Svg.svg
                 [ SvgAttributes.viewBox "0 0 24 24"
-                , style "height" "20px"
-                , style "width" "20px"
-                , style "margin-left" "2px"
-                , style "margin-top" "2px"
+                , style "height" "16px"
+                , style "width" "16px"
+                , style "margin-left" "4px"
+                , style "margin-top" "4px"
                 , SvgAttributes.fill "white"
                 ]
-                [ Svg.use [ SvgAttributes.xlinkHref "#arrow-right-svg-icon" ] []
+                [ Svg.use [ SvgAttributes.xlinkHref "#pound-svg-icon" ] []
                 ]
             ]
         ]

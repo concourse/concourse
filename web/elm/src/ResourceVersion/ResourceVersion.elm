@@ -206,14 +206,12 @@ handleCallback callback session ( model, effects ) =
               }
                 |> updatePinnedVersion resource
             , effects
-                ++ (RenderSvgIcon "arrow-right"
-                        :: (case resource.icon of
-                                Just icon ->
-                                    [ RenderSvgIcon icon ]
+                ++ (case resource.icon of
+                        Just icon ->
+                            [ RenderSvgIcon icon ]
 
-                                Nothing ->
-                                    []
-                           )
+                        Nothing ->
+                            []
                    )
             )
 
