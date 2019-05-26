@@ -1,4 +1,4 @@
-module Resource.Styles exposing
+module ResourceVersion.Styles exposing
     ( body
     , checkBarStatus
     , checkButton
@@ -32,7 +32,7 @@ import Colors
 import Html
 import Html.Attributes exposing (style)
 import Pinned
-import Resource.Models as Models
+import ResourceVersion.Models as Models
 
 
 headerHeight : Int

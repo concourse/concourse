@@ -40,6 +40,7 @@ import Url.Parser.Query as Query
 type Route
     = Build { id : Concourse.JobBuildIdentifier, highlight : Highlight }
     | Resource { id : Concourse.ResourceIdentifier, page : Maybe Pagination.Page }
+    | ResourceVersion Concourse.VersionedResourceIdentifier
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
@@ -142,6 +143,29 @@ resource =
             <?> Query.int "since"
             <?> Query.int "until"
             <?> Query.int "limit"
+        )
+
+
+resourceVersion : Parser (Route -> a) a
+resourceVersion =
+    let
+        resourceVersionHelper teamName pipelineName resourceName versionId =
+            ResourceVersion
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , resourceName = resourceName
+                , versionID = versionId
+                }
+    in
+    map resourceVersionHelper
+        (s "teams"
+            </> string
+            </> s "pipelines"
+            </> string
+            </> s "resources"
+            </> string
+            </> s "versions"
+            </> int
         )
 
 
@@ -319,6 +343,7 @@ sitemap : Parser (Route -> a) a
 sitemap =
     oneOf
         [ resource
+        , resourceVersion
         , job
         , dashboard
         , pipeline
@@ -384,6 +409,16 @@ toString route =
                 ++ "/resources/"
                 ++ id.resourceName
                 ++ pageToQueryString page
+
+        ResourceVersion id ->
+            "/teams/"
+                ++ id.teamName
+                ++ "/pipelines/"
+                ++ id.pipelineName
+                ++ "/resources/"
+                ++ id.resourceName
+                ++ "/versions/"
+                ++ String.fromInt id.versionID
 
         OneOffBuild { id, highlight } ->
             "/builds/"

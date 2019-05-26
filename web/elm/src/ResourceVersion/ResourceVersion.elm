@@ -1,6 +1,6 @@
-module Resource.Resource exposing
+module ResourceVersion.ResourceVersion exposing
     ( Flags
-    , changeToResource
+    , changeToResourceVersion
     , documentTitle
     , getUpdateMessage
     , handleCallback
@@ -17,14 +17,6 @@ module Resource.Resource exposing
 import Application.Models exposing (Session)
 import Concourse
 import Concourse.BuildStatus
-import Concourse.Pagination
-    exposing
-        ( Page
-        , Paginated
-        , chevron
-        , chevronContainer
-        , equal
-        )
 import DateFormat
 import Dict
 import Duration
@@ -53,8 +45,6 @@ import Html.Events
         , onMouseOver
         )
 import Http
-import Keyboard
-import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
@@ -72,8 +62,9 @@ import Message.Subscription as Subscription
         )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
-import Resource.Models as Models exposing (Model)
 import Resource.Styles
+import ResourceVersion.Models as Models exposing (Model)
+import ResourceVersion.Styles
 import Routes
 import SideBar.SideBar as SideBar
 import StrictEvents
@@ -90,53 +81,44 @@ import Views.TopBar as TopBar
 
 
 type alias Flags =
-    { resourceId : Concourse.ResourceIdentifier
-    , paging : Maybe Concourse.Pagination.Page
-    }
+    Concourse.VersionedResourceIdentifier
 
 
 init : Flags -> ( Model, List Effect )
 init flags =
     let
         model =
-            { resourceIdentifier = flags.resourceId
+            { resourceVersionIdentifier = flags
             , pageStatus = Err Models.Empty
             , checkStatus = Models.CheckingSuccessfully
             , checkError = ""
             , checkSetupError = ""
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
-            , currentPage = flags.paging
-            , versions =
-                { content = []
-                , pagination = { previousPage = Nothing, nextPage = Nothing }
-                }
+            , version = Nothing
             , now = Nothing
             , pinCommentLoading = False
             , textAreaFocused = False
             , isUserMenuExpanded = False
             , icon = Nothing
+            , timeZone = Time.utc
             }
     in
     ( model
-    , [ FetchResource flags.resourceId
-      , FetchVersionedResources flags.resourceId flags.paging
+    , [ FetchResource { teamName = flags.teamName, pipelineName = flags.pipelineName, resourceName = flags.resourceName }
+      , FetchResourceVersion flags
       , GetCurrentTimeZone
       , FetchPipelines
       ]
     )
 
 
-changeToResource : Flags -> ET Model
-changeToResource flags ( model, effects ) =
+changeToResourceVersion : Flags -> ET Model
+changeToResourceVersion flags ( model, effects ) =
     ( { model
-        | currentPage = flags.paging
-        , versions =
-            { content = []
-            , pagination = { previousPage = Nothing, nextPage = Nothing }
-            }
+        | version = Nothing
       }
-    , effects ++ [ FetchVersionedResources model.resourceIdentifier flags.paging ]
+    , effects ++ [ FetchResourceVersion flags ]
     )
 
 
@@ -205,14 +187,12 @@ subscriptions =
 handleCallback : Callback -> Session -> ET Model
 handleCallback callback session ( model, effects ) =
     case callback of
+        GotCurrentTimeZone zone ->
+            ( { model | timeZone = zone }, effects )
+
         ResourceFetched (Ok resource) ->
             ( { model
                 | pageStatus = Ok ()
-                , resourceIdentifier =
-                    { teamName = resource.teamName
-                    , pipelineName = resource.pipelineName
-                    , resourceName = resource.name
-                    }
                 , checkStatus =
                     if resource.failingToCheck then
                         Models.FailingToCheck
@@ -252,116 +232,61 @@ handleCallback callback session ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        VersionedResourcesFetched (Ok ( requestedPage, paginated )) ->
+        VersionedResourceFetched (Ok versionResource) ->
             let
-                fetchedPage =
-                    permalink paginated.content
+                enabledStateAccordingToServer =
+                    if versionResource.enabled then
+                        Models.Enabled
 
-                versions =
-                    { pagination = paginated.pagination
-                    , content =
-                        paginated.content
-                            |> List.map
-                                (\vr ->
-                                    let
-                                        existingVersion : Maybe Models.Version
-                                        existingVersion =
-                                            model.versions.content
-                                                |> List.Extra.find
-                                                    (\v ->
-                                                        v.id.versionID == vr.id
-                                                    )
+                    else
+                        Models.Disabled
 
-                                        enabledStateAccordingToServer : Models.VersionEnabledState
-                                        enabledStateAccordingToServer =
-                                            if vr.enabled then
-                                                Models.Enabled
-
-                                            else
-                                                Models.Disabled
-                                    in
-                                    case existingVersion of
-                                        Just ev ->
-                                            { ev
-                                                | enabled =
-                                                    if ev.enabled == Models.Changing then
-                                                        Models.Changing
-
-                                                    else
-                                                        enabledStateAccordingToServer
-                                            }
-
-                                        Nothing ->
-                                            { id =
-                                                { teamName = model.resourceIdentifier.teamName
-                                                , pipelineName = model.resourceIdentifier.pipelineName
-                                                , resourceName = model.resourceIdentifier.resourceName
-                                                , versionID = vr.id
-                                                }
-                                            , version = vr.version
-                                            , metadata = vr.metadata
-                                            , enabled = enabledStateAccordingToServer
-                                            , expanded = False
-                                            , inputTo = []
-                                            , outputOf = []
-                                            , showTooltip = False
-                                            }
-                                )
-                    }
-
-                newModel =
-                    \newPage ->
-                        { model
-                            | versions = versions
-                            , currentPage = newPage
+                version =
+                    { id =
+                        { teamName = model.resourceVersionIdentifier.teamName
+                        , pipelineName = model.resourceVersionIdentifier.pipelineName
+                        , resourceName = model.resourceVersionIdentifier.resourceName
+                        , versionID = versionResource.id
                         }
-
-                chosenModelWith =
-                    \requestedPageUnwrapped ->
-                        case model.currentPage of
-                            Nothing ->
-                                newModel <| Just fetchedPage
-
-                            Just page ->
-                                if Concourse.Pagination.equal page requestedPageUnwrapped then
-                                    newModel <| requestedPage
-
-                                else
-                                    model
+                    , version = versionResource.version
+                    , metadata = versionResource.metadata
+                    , enabled = enabledStateAccordingToServer
+                    , expanded = True
+                    , inputTo = []
+                    , outputOf = []
+                    , showTooltip = False
+                    }
             in
-            case requestedPage of
-                Nothing ->
-                    ( newModel (Just fetchedPage), effects )
+            ( { model | version = Just version }
+            , effects
+                ++ [ FetchInputTo model.resourceVersionIdentifier
+                   , FetchOutputOf model.resourceVersionIdentifier
+                   ]
+            )
 
-                Just requestedPageUnwrapped ->
-                    ( chosenModelWith requestedPageUnwrapped
-                    , effects
-                    )
-
-        InputToFetched (Ok ( versionID, builds )) ->
-            ( updateVersion versionID (\v -> { v | inputTo = builds }) model
+        InputToFetched (Ok ( _, builds )) ->
+            ( updateVersion (\v -> { v | inputTo = builds }) model
             , effects
             )
 
-        OutputOfFetched (Ok ( versionID, builds )) ->
-            ( updateVersion versionID (\v -> { v | outputOf = builds }) model
+        OutputOfFetched (Ok ( _, builds )) ->
+            ( updateVersion (\v -> { v | outputOf = builds }) model
             , effects
             )
 
         VersionPinned (Ok ()) ->
             case ( session.userState, model.now, model.pinnedVersion ) of
-                ( UserStateLoggedIn user, Just time, PinningTo pinningTo ) ->
+                ( UserStateLoggedIn user, Just time, PinningTo _ ) ->
                     let
                         commentText =
                             "pinned by "
                                 ++ Login.userDisplayName user
                                 ++ " at "
-                                ++ formatDate session.timeZone time
+                                ++ formatDate model.timeZone time
                     in
                     ( { model
                         | pinnedVersion =
-                            model.versions.content
-                                |> List.Extra.find (\v -> v.id == pinningTo)
+                            model.version
                                 |> Maybe.map .version
                                 |> Maybe.map
                                     (PinnedDynamicallyTo
@@ -373,7 +298,10 @@ handleCallback callback session ( model, effects ) =
                       }
                     , effects
                         ++ [ SetPinComment
-                                model.resourceIdentifier
+                                { teamName = model.resourceVersionIdentifier.teamName
+                                , pipelineName = model.resourceVersionIdentifier.pipelineName
+                                , resourceName = model.resourceVersionIdentifier.resourceName
+                                }
                                 commentText
                            ]
                     )
@@ -388,7 +316,7 @@ handleCallback callback session ( model, effects ) =
 
         VersionUnpinned (Ok ()) ->
             ( { model | pinnedVersion = NotPinned }
-            , effects ++ [ FetchResource model.resourceIdentifier ]
+            , effects ++ [ FetchResourceVersion model.resourceVersionIdentifier ]
             )
 
         VersionUnpinned (Err _) ->
@@ -396,7 +324,7 @@ handleCallback callback session ( model, effects ) =
             , effects
             )
 
-        VersionToggled action versionID result ->
+        VersionToggled action _ result ->
             let
                 newEnabledState : Models.VersionEnabledState
                 newEnabledState =
@@ -413,17 +341,14 @@ handleCallback callback session ( model, effects ) =
                         ( Err _, Message.Disable ) ->
                             Models.Enabled
             in
-            ( updateVersion versionID (\v -> { v | enabled = newEnabledState }) model
+            ( updateVersion (\v -> { v | enabled = newEnabledState }) model
             , effects
             )
 
         Checked (Ok ()) ->
             ( { model | checkStatus = Models.CheckingSuccessfully }
             , effects
-                ++ [ FetchResource model.resourceIdentifier
-                   , FetchVersionedResources
-                        model.resourceIdentifier
-                        model.currentPage
+                ++ [ FetchResourceVersion model.resourceVersionIdentifier
                    ]
             )
 
@@ -435,7 +360,7 @@ handleCallback callback session ( model, effects ) =
                         effects ++ [ RedirectToLogin ]
 
                     else
-                        effects ++ [ FetchResource model.resourceIdentifier ]
+                        effects ++ [ FetchResourceVersion model.resourceVersionIdentifier ]
 
                 _ ->
                     effects
@@ -456,7 +381,7 @@ handleCallback callback session ( model, effects ) =
                         ( _, pv ) ->
                             pv
               }
-            , effects ++ [ FetchResource model.resourceIdentifier ]
+            , effects ++ [ FetchResourceVersion model.resourceVersionIdentifier ]
             )
 
         _ ->
@@ -466,35 +391,17 @@ handleCallback callback session ( model, effects ) =
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keyEvent ->
-            if
-                (keyEvent.code == Keyboard.Enter)
-                    && Keyboard.hasControlModifier keyEvent
-                    && model.textAreaFocused
-            then
-                ( model
-                , case model.pinnedVersion of
-                    PinnedDynamicallyTo { comment } _ ->
-                        effects ++ [ SetPinComment model.resourceIdentifier comment ]
-
-                    _ ->
-                        effects
-                )
-
-            else
-                ( model, effects )
-
         ClockTicked OneSecond time ->
             ( { model | now = Just time }, effects )
 
         ClockTicked FiveSeconds _ ->
             ( model
             , effects
-                ++ [ FetchResource model.resourceIdentifier
-                   , FetchVersionedResources model.resourceIdentifier model.currentPage
+                ++ [ FetchResourceVersion model.resourceVersionIdentifier
                    , FetchPipelines
+                   , FetchInputTo model.resourceVersionIdentifier
+                   , FetchOutputOf model.resourceVersionIdentifier
                    ]
-                ++ fetchDataForExpandedVersions model
             )
 
         _ ->
@@ -504,59 +411,11 @@ handleDelivery delivery ( model, effects ) =
 update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
-        Click (PaginationButton page) ->
-            ( { model
-                | currentPage = Just page
-              }
-            , effects
-                ++ [ FetchVersionedResources model.resourceIdentifier <| Just page
-                   , NavigateTo <|
-                        Routes.toString <|
-                            Routes.Resource
-                                { id = model.resourceIdentifier
-                                , page = Just page
-                                }
-                   ]
-            )
-
-        Click (VersionHeader versionID) ->
-            let
-                version : Maybe Models.Version
-                version =
-                    model.versions.content
-                        |> List.Extra.find (.id >> (==) versionID)
-
-                newExpandedState : Bool
-                newExpandedState =
-                    case version of
-                        Just v ->
-                            not v.expanded
-
-                        Nothing ->
-                            False
-            in
-            ( updateVersion
-                versionID
-                (\v ->
-                    { v | expanded = newExpandedState }
-                )
-                model
-            , if newExpandedState then
-                effects
-                    ++ [ FetchInputTo versionID
-                       , FetchOutputOf versionID
-                       ]
-
-              else
-                effects
-            )
-
         Click (PinButton versionID) ->
             let
                 version : Maybe Models.Version
                 version =
-                    model.versions.content
-                        |> List.Extra.find (\v -> v.id == versionID)
+                    model.version
             in
             case model.pinnedVersion of
                 PinnedDynamicallyTo _ _ ->
@@ -564,7 +423,13 @@ update msg ( model, effects ) =
                         | pinnedVersion =
                             Pinned.startUnpinning model.pinnedVersion
                       }
-                    , effects ++ [ DoUnpinVersion model.resourceIdentifier ]
+                    , effects
+                        ++ [ DoUnpinVersion
+                                { teamName = model.resourceVersionIdentifier.teamName
+                                , pipelineName = model.resourceVersionIdentifier.pipelineName
+                                , resourceName = model.resourceVersionIdentifier.resourceName
+                                }
+                           ]
                     )
 
                 NotPinned ->
@@ -590,7 +455,13 @@ update msg ( model, effects ) =
                         | pinnedVersion =
                             Pinned.startUnpinning model.pinnedVersion
                       }
-                    , effects ++ [ DoUnpinVersion model.resourceIdentifier ]
+                    , effects
+                        ++ [ DoUnpinVersion
+                                { teamName = model.resourceVersionIdentifier.teamName
+                                , pipelineName = model.resourceVersionIdentifier.pipelineName
+                                , resourceName = model.resourceVersionIdentifier.resourceName
+                                }
+                           ]
                     )
 
                 _ ->
@@ -600,13 +471,12 @@ update msg ( model, effects ) =
             let
                 enabledState : Maybe Models.VersionEnabledState
                 enabledState =
-                    model.versions.content
-                        |> List.Extra.find (.id >> (==) versionID)
+                    model.version
                         |> Maybe.map .enabled
             in
             case enabledState of
                 Just Models.Enabled ->
-                    ( updateVersion versionID
+                    ( updateVersion
                         (\v ->
                             { v | enabled = Models.Changing }
                         )
@@ -615,7 +485,7 @@ update msg ( model, effects ) =
                     )
 
                 Just Models.Disabled ->
-                    ( updateVersion versionID
+                    ( updateVersion
                         (\v ->
                             { v | enabled = Models.Changing }
                         )
@@ -629,7 +499,13 @@ update msg ( model, effects ) =
         Click (CheckButton isAuthorized) ->
             if isAuthorized then
                 ( { model | checkStatus = Models.CurrentlyChecking }
-                , effects ++ [ DoCheck model.resourceIdentifier ]
+                , effects
+                    ++ [ DoCheck
+                            { teamName = model.resourceVersionIdentifier.teamName
+                            , pipelineName = model.resourceVersionIdentifier.pipelineName
+                            , resourceName = model.resourceVersionIdentifier.resourceName
+                            }
+                       ]
                 )
 
             else
@@ -657,7 +533,10 @@ update msg ( model, effects ) =
                     ( { model | pinCommentLoading = True }
                     , effects
                         ++ [ SetPinComment
-                                model.resourceIdentifier
+                                { teamName = model.resourceVersionIdentifier.teamName
+                                , pipelineName = model.resourceVersionIdentifier.pipelineName
+                                , resourceName = model.resourceVersionIdentifier.resourceName
+                                }
                                 commentState.comment
                            ]
                     )
@@ -676,51 +555,28 @@ update msg ( model, effects ) =
 
 
 updateVersion :
-    Models.VersionId
-    -> (Models.Version -> Models.Version)
+    (Models.Version -> Models.Version)
     -> Model
     -> Model
-updateVersion versionID updateFunc model =
+updateVersion updateFunc model =
     let
-        newVersionsContent : List Models.Version
-        newVersionsContent =
-            model.versions.content
-                |> List.Extra.updateIf (.id >> (==) versionID) updateFunc
-
-        versions : Paginated Models.Version
-        versions =
-            model.versions
+        newVersion =
+            model.version
+                |> Maybe.map updateFunc
     in
-    { model | versions = { versions | content = newVersionsContent } }
-
-
-permalink : List Concourse.VersionedResource -> Page
-permalink versionedResources =
-    case List.head versionedResources of
-        Nothing ->
-            { direction = Concourse.Pagination.Since 0
-            , limit = 100
-            }
-
-        Just version ->
-            { direction = Concourse.Pagination.From version.id
-            , limit = List.length versionedResources
-            }
+    { model | version = newVersion }
 
 
 documentTitle : Model -> String
 documentTitle model =
-    model.resourceIdentifier.resourceName
+    model.resourceVersionIdentifier.resourceName ++ " #" ++ String.fromInt model.resourceVersionIdentifier.versionID
 
 
 view : Session -> Model -> Html Message
 view session model =
     let
         route =
-            Routes.Resource
-                { id = model.resourceIdentifier
-                , page = Nothing
-                }
+            Routes.ResourceVersion model.resourceVersionIdentifier
     in
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
@@ -735,8 +591,8 @@ view session model =
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
             [ SideBar.view session
                 (Just
-                    { pipelineName = model.resourceIdentifier.pipelineName
-                    , teamName = model.resourceIdentifier.teamName
+                    { pipelineName = model.resourceVersionIdentifier.pipelineName
+                    , teamName = model.resourceVersionIdentifier.teamName
                     }
                 )
             , if model.pageStatus == Err Models.Empty then
@@ -756,13 +612,13 @@ view session model =
         ]
 
 
-header : Session -> Model -> Html Message
+header : { a | hovered : Maybe DomID } -> Model -> Html Message
 header session model =
     let
         lastCheckedView =
             case ( model.now, model.lastChecked ) of
                 ( Just now, Just date ) ->
-                    viewLastChecked session.timeZone now date
+                    viewLastChecked model.timeZone now date
 
                 ( _, _ ) ->
                     Html.text ""
@@ -788,13 +644,12 @@ header session model =
         [ Html.h1
             Resource.Styles.headerResourceName
             [ iconView
-            , Html.text model.resourceIdentifier.resourceName
+            , Html.text model.resourceVersionIdentifier.resourceName
             ]
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]
         , pinBar session model
-        , paginationMenu session model
         ]
 
 
@@ -810,120 +665,18 @@ body session model =
             , checkError = model.checkError
             , hovered = session.hovered
             , userState = session.userState
-            , teamName = model.resourceIdentifier.teamName
+            , teamName = model.resourceVersionIdentifier.teamName
             }
     in
     Html.div
         (id "body" :: Resource.Styles.body)
         [ checkSection sectionModel
-        , viewVersionedResources session model
-        ]
+        , case model.version of
+            Just version ->
+                viewVersionedResource version model.pinnedVersion session.hovered
 
-
-paginationMenu :
-    { a | hovered : Maybe DomID }
-    ->
-        { b
-            | versions : Paginated Models.Version
-            , resourceIdentifier : Concourse.ResourceIdentifier
-        }
-    -> Html Message
-paginationMenu { hovered } { versions, resourceIdentifier } =
-    let
-        previousButtonEventHandler =
-            case versions.pagination.previousPage of
-                Nothing ->
-                    []
-
-                Just pp ->
-                    [ onClick <| Click <| PaginationButton pp ]
-
-        nextButtonEventHandler =
-            case versions.pagination.nextPage of
-                Nothing ->
-                    []
-
-                Just np ->
-                    let
-                        updatedPage =
-                            { np | limit = 100 }
-                    in
-                    [ onClick <| Click <| PaginationButton updatedPage ]
-    in
-    Html.div
-        (id "pagination" :: Resource.Styles.pagination)
-        [ case versions.pagination.previousPage of
             Nothing ->
-                Html.div
-                    chevronContainer
-                    [ Html.div
-                        (chevron
-                            { direction = "left"
-                            , enabled = False
-                            , hovered = False
-                            }
-                        )
-                        []
-                    ]
-
-            Just page ->
-                Html.div
-                    ([ onMouseEnter <| Hover <| Just Message.PreviousPageButton
-                     , onMouseLeave <| Hover Nothing
-                     ]
-                        ++ chevronContainer
-                        ++ previousButtonEventHandler
-                    )
-                    [ Html.a
-                        ([ href <|
-                            Routes.toString <|
-                                Routes.Resource { id = resourceIdentifier, page = Just page }
-                         , attribute "aria-label" "Previous Page"
-                         ]
-                            ++ chevron
-                                { direction = "left"
-                                , enabled = True
-                                , hovered = hovered == Just Message.PreviousPageButton
-                                }
-                        )
-                        []
-                    ]
-        , case versions.pagination.nextPage of
-            Nothing ->
-                Html.div
-                    chevronContainer
-                    [ Html.div
-                        (chevron
-                            { direction = "right"
-                            , enabled = False
-                            , hovered = False
-                            }
-                        )
-                        []
-                    ]
-
-            Just page ->
-                Html.div
-                    ([ onMouseEnter <| Hover <| Just Message.NextPageButton
-                     , onMouseLeave <| Hover Nothing
-                     ]
-                        ++ chevronContainer
-                        ++ nextButtonEventHandler
-                    )
-                    [ Html.a
-                        ([ href <|
-                            Routes.toString <|
-                                Routes.Resource { id = resourceIdentifier, page = Just page }
-                         , attribute "aria-label" "Next Page"
-                         ]
-                            ++ chevron
-                                { direction = "right"
-                                , enabled = True
-                                , hovered = hovered == Just Message.NextPageButton
-                                }
-                        )
-                        []
-                    ]
+                Html.div [] []
         ]
 
 
@@ -1061,11 +814,11 @@ commentBar :
     ->
         { b
             | pinnedVersion : Models.PinnedVersion
-            , resourceIdentifier : Concourse.ResourceIdentifier
+            , resourceVersionIdentifier : Concourse.VersionedResourceIdentifier
             , pinCommentLoading : Bool
         }
     -> Html Message
-commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommentLoading } =
+commentBar { userState, hovered } { resourceVersionIdentifier, pinnedVersion, pinCommentLoading } =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
@@ -1099,7 +852,7 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                     in
                     if
                         UserState.isMember
-                            { teamName = resourceIdentifier.teamName
+                            { teamName = resourceVersionIdentifier.teamName
                             , userState = userState
                             }
                     then
@@ -1238,34 +991,12 @@ pinBar { hovered } { pinnedVersion } =
         )
 
 
-viewVersionedResources :
-    { a | hovered : Maybe DomID }
-    ->
-        { b
-            | versions : Paginated Models.Version
-            , pinnedVersion : Models.PinnedVersion
-        }
-    -> Html Message
-viewVersionedResources { hovered } { versions, pinnedVersion } =
-    versions.content
-        |> List.map
-            (\v ->
-                viewVersionedResource
-                    { version = v
-                    , pinnedVersion = pinnedVersion
-                    , hovered = hovered
-                    }
-            )
-        |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
-
-
 viewVersionedResource :
-    { version : Models.Version
-    , pinnedVersion : Models.PinnedVersion
-    , hovered : Maybe DomID
-    }
+    Models.Version
+    -> Models.PinnedVersion
+    -> Maybe DomID
     -> Html Message
-viewVersionedResource { version, pinnedVersion, hovered } =
+viewVersionedResource version pinnedVersion hovered =
     let
         pinState =
             case Pinned.pinState version.version version.id pinnedVersion of
@@ -1275,53 +1006,51 @@ viewVersionedResource { version, pinnedVersion, hovered } =
                 x ->
                     x
     in
-    Html.li
-        (case ( pinState, version.enabled ) of
-            ( Disabled, _ ) ->
-                [ style "opacity" "0.5" ]
+    Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
+        [ Html.li
+            (case ( pinState, version.enabled ) of
+                ( Disabled, _ ) ->
+                    [ style "opacity" "0.5" ]
 
-            ( _, Models.Disabled ) ->
-                [ style "opacity" "0.5" ]
+                ( _, Models.Disabled ) ->
+                    [ style "opacity" "0.5" ]
 
-            _ ->
-                []
-        )
-        (Html.div
-            [ style "display" "flex"
-            , style "margin" "5px 0px"
-            ]
-            [ viewEnabledCheckbox
-                { enabled = version.enabled
-                , id = version.id
-                , pinState = pinState
-                }
-            , viewPinButton
-                { versionID = version.id
-                , pinState = pinState
-                , hovered = hovered
-                }
-            , viewDetailsButton
-                { versionID = version.id
-                , pinState = pinState
-                }
-            , viewVersionHeader
-                { id = version.id
-                , version = version.version
-                , pinnedState = pinState
-                }
-            ]
-            :: (if version.expanded then
-                    [ viewVersionBody
-                        { inputTo = version.inputTo
-                        , outputOf = version.outputOf
-                        , metadata = version.metadata
-                        }
-                    ]
-
-                else
+                _ ->
                     []
-               )
-        )
+            )
+            (Html.div
+                [ style "display" "flex"
+                , style "margin" "5px 0px"
+                ]
+                [ viewEnabledCheckbox
+                    { enabled = version.enabled
+                    , id = version.id
+                    , pinState = pinState
+                    }
+                , viewPinButton
+                    { versionID = version.id
+                    , pinState = pinState
+                    , hovered = hovered
+                    }
+                , viewVersionHeader
+                    { id = version.id
+                    , version = version.version
+                    , pinnedState = pinState
+                    }
+                ]
+                :: (if version.expanded then
+                        [ viewVersionBody
+                            { inputTo = version.inputTo
+                            , outputOf = version.outputOf
+                            , metadata = version.metadata
+                            }
+                        ]
+
+                    else
+                        []
+                   )
+            )
+        ]
 
 
 viewVersionBody :
@@ -1375,7 +1104,7 @@ viewEnabledCheckbox ({ enabled, id } as params) =
     in
     Html.div
         (Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
-            :: Resource.Styles.enabledCheckbox params
+            :: ResourceVersion.Styles.enabledCheckbox params
             ++ clickHandler
         )
         (case enabled of
@@ -1447,35 +1176,6 @@ viewPinButton { versionID, pinState, hovered } =
             _ ->
                 []
         )
-
-
-viewDetailsButton :
-    { versionID : Models.VersionId
-    , pinState : VersionPinState
-    }
-    -> Html Message
-viewDetailsButton { versionID, pinState } =
-    Html.div
-        (Html.Attributes.attribute "aria-label" "View Resource Details"
-            :: Resource.Styles.versionButton pinState
-        )
-        [ Html.a
-            [ href <|
-                Routes.toString <|
-                    Routes.ResourceVersion versionID
-            ]
-            [ Svg.svg
-                [ SvgAttributes.viewBox "0 0 24 24"
-                , style "height" "20px"
-                , style "width" "20px"
-                , style "margin-left" "2px"
-                , style "margin-top" "2px"
-                , SvgAttributes.fill "white"
-                ]
-                [ Svg.use [ SvgAttributes.xlinkHref "#arrow-right-svg-icon" ] []
-                ]
-            ]
-        ]
 
 
 viewVersionHeader :
@@ -1629,10 +1329,3 @@ viewBuildsByJob buildDict jobName =
                 List.map oneBuildToLi buildList
         )
     ]
-
-
-fetchDataForExpandedVersions : Model -> List Effect
-fetchDataForExpandedVersions model =
-    model.versions.content
-        |> List.filter .expanded
-        |> List.concatMap (\v -> [ FetchInputTo v.id, FetchOutputOf v.id ])

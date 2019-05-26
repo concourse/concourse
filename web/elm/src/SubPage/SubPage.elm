@@ -32,6 +32,8 @@ import NotFound.NotFound as NotFound
 import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
+import ResourceVersion.Models
+import ResourceVersion.ResourceVersion as ResourceVersion
 import Routes
 import UpdateMsg exposing (UpdateMsg)
 
@@ -40,6 +42,7 @@ type Model
     = BuildModel Build.Models.Model
     | JobModel Job.Model
     | ResourceModel Resource.Models.Model
+    | ResourceVersionModel ResourceVersion.Models.Model
     | PipelineModel Pipeline.Model
     | NotFoundModel NotFound.Model.Model
     | DashboardModel Dashboard.Models.Model
@@ -69,6 +72,11 @@ init session route =
                 , paging = page
                 }
                 |> Tuple.mapFirst ResourceModel
+
+        Routes.ResourceVersion id ->
+            ResourceVersion.init
+                id
+                |> Tuple.mapFirst ResourceVersionModel
 
         Routes.Job { id, page } ->
             Job.init
@@ -139,12 +147,13 @@ genericUpdate :
     ET Build.Models.Model
     -> ET Job.Model
     -> ET Resource.Models.Model
+    -> ET ResourceVersion.Models.Model
     -> ET Pipeline.Model
     -> ET Dashboard.Models.Model
     -> ET NotFound.Model.Model
     -> ET FlySuccess.Models.Model
     -> ET Model
-genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
+genericUpdate fBuild fJob fRes fResVer fPipe fDash fNF fFS ( model, effects ) =
     case model of
         BuildModel buildModel ->
             fBuild ( buildModel, effects )
@@ -161,6 +170,10 @@ genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
         ResourceModel resourceModel ->
             fRes ( resourceModel, effects )
                 |> Tuple.mapFirst ResourceModel
+
+        ResourceVersionModel resourceVersionModel ->
+            fResVer ( resourceVersionModel, effects )
+                |> Tuple.mapFirst ResourceVersionModel
 
         DashboardModel dashboardModel ->
             fDash ( dashboardModel, effects )
@@ -181,6 +194,7 @@ handleCallback callback session =
         (Build.handleCallback callback)
         (Job.handleCallback callback)
         (Resource.handleCallback callback session)
+        (ResourceVersion.handleCallback callback session)
         (Pipeline.handleCallback callback)
         (Dashboard.handleCallback callback)
         identity
@@ -188,6 +202,7 @@ handleCallback callback session =
         >> (case callback of
                 LoggedOut (Ok ()) ->
                     genericUpdate
+                        handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
@@ -214,6 +229,7 @@ handleDelivery session delivery =
         (Build.handleDelivery session delivery)
         (Job.handleDelivery delivery)
         (Resource.handleDelivery delivery)
+        (ResourceVersion.handleDelivery delivery)
         (Pipeline.handleDelivery delivery)
         (Dashboard.handleDelivery delivery)
         (NotFound.handleDelivery delivery)
@@ -226,6 +242,7 @@ update session msg =
         (Login.update msg >> Build.update session msg)
         (Login.update msg >> Job.update msg)
         (Login.update msg >> Resource.update msg)
+        (Login.update msg >> ResourceVersion.update msg)
         (Login.update msg >> Pipeline.update msg)
         (Login.update msg >> Dashboard.update session msg)
         (Login.update msg)
@@ -267,6 +284,13 @@ urlUpdate route =
         (case route of
             Routes.Resource { id, page } ->
                 Resource.changeToResource { resourceId = id, paging = page }
+
+            _ ->
+                identity
+        )
+        (case route of
+            Routes.ResourceVersion id ->
+                ResourceVersion.changeToResourceVersion id
 
             _ ->
                 identity
@@ -318,6 +342,11 @@ view ({ userState } as session) mdl =
                     , Resource.view session model
                     )
 
+                ResourceVersionModel model ->
+                    ( ResourceVersion.documentTitle model
+                    , ResourceVersion.view session model
+                    )
+
                 DashboardModel model ->
                     ( Dashboard.documentTitle
                     , Dashboard.view session model
@@ -350,6 +379,9 @@ subscriptions mdl =
 
         ResourceModel _ ->
             Resource.subscriptions
+
+        ResourceVersionModel _ ->
+            ResourceVersion.subscriptions
 
         DashboardModel _ ->
             Dashboard.subscriptions

@@ -50,7 +50,20 @@ breadcrumbs route =
                     , pipelineName = id.pipelineName
                     }
                 , breadcrumbSeparator
-                , resourceBreadcrumb id.resourceName
+                , resourceBreadcrumb id
+                ]
+
+            Routes.ResourceVersion id ->
+                [ pipelineBreadcumb
+                    { teamName = id.teamName
+                    , pipelineName = id.pipelineName
+                    }
+                , breadcrumbSeparator
+                , resourceBreadcrumb
+                    { teamName = id.teamName
+                    , pipelineName = id.pipelineName
+                    , resourceName = id.resourceName
+                    }
                 ]
 
             Routes.Job { id } ->
@@ -102,11 +115,17 @@ jobBreadcrumb jobName =
         (breadcrumbComponent "job" jobName)
 
 
-resourceBreadcrumb : String -> Html Message
-resourceBreadcrumb resourceName =
-    Html.li
-        (id "breadcrumb-resource" :: Styles.breadcrumbItem False)
-        (breadcrumbComponent "resource" resourceName)
+resourceBreadcrumb : Concourse.ResourceIdentifier -> Html Message
+resourceBreadcrumb resourceId =
+    Html.a
+        ([ id "breadcrumb-resource"
+         , href <|
+            Routes.toString <|
+                Routes.Resource { id = resourceId, page = Nothing }
+         ]
+            ++ Styles.breadcrumbItem True
+        )
+        (breadcrumbComponent "resource" resourceId.resourceName)
 
 
 decodeName : String -> String
