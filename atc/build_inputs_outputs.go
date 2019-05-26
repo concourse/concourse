@@ -14,7 +14,7 @@ type PublicBuildInput struct {
 }
 
 type PublicBuildOutput struct {
-	ID	    int     `json:"id"`
+	ID      int     `json:"id"`
 	Name    string  `json:"name"`
 	Version Version `json:"version"`
 }
