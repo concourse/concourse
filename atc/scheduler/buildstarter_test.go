@@ -69,6 +69,48 @@ var _ = Describe("BuildStarter", func() {
 			resource.NameReturns("some-resource")
 		})
 
+		Context("when one pending build is aborted before start", func() {
+			var abortedBuild *dbfakes.FakeBuild
+
+			BeforeEach(func() {
+				job = new(dbfakes.FakeJob)
+				job.NameReturns("some-job")
+				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}})
+
+				abortedBuild = new(dbfakes.FakeBuild)
+				abortedBuild.IDReturns(42)
+				abortedBuild.IsAbortedReturns(true)
+
+				// make sure pending build can be started after another pending build is aborted
+				pendingBuilds = append([]db.Build{abortedBuild}, pendingBuilds...)
+				resources = db.Resources{resource}
+			})
+
+			JustBeforeEach(func() {
+				tryStartErr = buildStarter.TryStartPendingBuildsForJob(
+					lagertest.NewTestLogger("test"),
+					job,
+					resources,
+					versionedResourceTypes,
+					pendingBuilds,
+				)
+			})
+
+			It("won't try to start the aborted pending build", func() {
+				Expect(abortedBuild.CancelCallCount()).To(Equal(1))
+			})
+
+			It("will try to start the next non aborted pending build", func() {
+				Expect(fakeUpdater.UpdateMaxInFlightReachedCallCount()).To(Equal(1))
+				_, _, buildID := fakeUpdater.UpdateMaxInFlightReachedArgsForCall(0)
+				Expect(buildID).To(Equal(66))
+			})
+
+			It("returns without error", func() {
+				Expect(tryStartErr).NotTo(HaveOccurred())
+			})
+		})
+
 		Context("when manually triggered", func() {
 			BeforeEach(func() {
 				job = new(dbfakes.FakeJob)
@@ -274,7 +316,6 @@ var _ = Describe("BuildStarter", func() {
 									}}))
 								})
 							})
-
 						})
 					})
 				})

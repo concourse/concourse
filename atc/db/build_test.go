@@ -216,6 +216,50 @@ var _ = Describe("Build", func() {
 		})
 	})
 
+	Describe("Cancel", func() {
+		var build db.Build
+		BeforeEach(func() {
+			var err error
+			build, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build.Cancel()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("updates build status", func() {
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.Status()).To(Equal(db.BuildStatusAborted))
+		})
+
+		It("doesn't set start timestamp", func() {
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.StartTime().IsZero()).To(BeTrue())
+		})
+
+		It("doesn't set end timestamp", func() {
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.EndTime().IsZero()).To(BeTrue())
+		})
+
+		It("sets completed to true", func() {
+			Expect(build.IsCompleted()).To(BeFalse())
+			Expect(build.IsRunning()).To(BeTrue())
+
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.IsCompleted()).To(BeTrue())
+			Expect(build.IsRunning()).To(BeFalse())
+		})
+	})
+
 	Describe("Abort", func() {
 		var build db.Build
 		BeforeEach(func() {

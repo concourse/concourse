@@ -85,6 +85,7 @@ type Build interface {
 	Preparation() (BuildPreparation, bool, error)
 
 	Start(atc.Plan) (bool, error)
+	Cancel() error
 	Finish(BuildStatus) error
 
 	SetInterceptible(bool) error
@@ -308,6 +309,56 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (b *build) Cancel() error {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = psql.Update("builds").
+		Set("status", BuildStatusAborted).
+		Set("completed", true).
+		Set("start_time", nil).
+		Set("end_time", nil).
+		Where(sq.Eq{"id": b.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	if b.jobID != 0 {
+		err = bumpCacheIndex(tx, b.pipelineID)
+		if err != nil {
+			return err
+		}
+
+		err = updateTransitionBuildForJob(tx, b.jobID, b.id, BuildStatusAborted)
+		if err != nil {
+			return err
+		}
+
+		err = updateLatestCompletedBuildForJob(tx, b.jobID)
+		if err != nil {
+			return err
+		}
+
+		err = updateNextBuildForJob(tx, b.jobID)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b *build) Finish(status BuildStatus) error {

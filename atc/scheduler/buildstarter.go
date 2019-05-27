@@ -80,6 +80,16 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		"build-name": nextPendingBuild.Name(),
 	})
 
+	if nextPendingBuild.IsAborted() {
+		logger.Debug("cancel-aborted-pending-build")
+		err := nextPendingBuild.Cancel()
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
+	}
+
 	reachedMaxInFlight, err := s.maxInFlightUpdater.UpdateMaxInFlightReached(logger, job, nextPendingBuild.ID())
 	if err != nil {
 		return false, err
