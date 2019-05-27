@@ -97,7 +97,7 @@ var _ = Describe("BuildStarter", func() {
 			})
 
 			It("won't try to start the aborted pending build", func() {
-				Expect(abortedBuild.CancelCallCount()).To(Equal(1))
+				Expect(abortedBuild.FinishCallCount()).To(Equal(1))
 			})
 
 			It("will try to start the next non aborted pending build", func() {

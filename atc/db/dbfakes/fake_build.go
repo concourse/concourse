@@ -67,16 +67,6 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
-	CancelStub        func() error
-	cancelMutex       sync.RWMutex
-	cancelArgsForCall []struct {
-	}
-	cancelReturns struct {
-		result1 error
-	}
-	cancelReturnsOnCall map[int]struct {
-		result1 error
-	}
 	CreateTimeStub        func() time.Time
 	createTimeMutex       sync.RWMutex
 	createTimeArgsForCall []struct {
@@ -749,58 +739,6 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 		result1 []db.WorkerArtifact
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeBuild) Cancel() error {
-	fake.cancelMutex.Lock()
-	ret, specificReturn := fake.cancelReturnsOnCall[len(fake.cancelArgsForCall)]
-	fake.cancelArgsForCall = append(fake.cancelArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Cancel", []interface{}{})
-	fake.cancelMutex.Unlock()
-	if fake.CancelStub != nil {
-		return fake.CancelStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.cancelReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) CancelCallCount() int {
-	fake.cancelMutex.RLock()
-	defer fake.cancelMutex.RUnlock()
-	return len(fake.cancelArgsForCall)
-}
-
-func (fake *FakeBuild) CancelCalls(stub func() error) {
-	fake.cancelMutex.Lock()
-	defer fake.cancelMutex.Unlock()
-	fake.CancelStub = stub
-}
-
-func (fake *FakeBuild) CancelReturns(result1 error) {
-	fake.cancelMutex.Lock()
-	defer fake.cancelMutex.Unlock()
-	fake.CancelStub = nil
-	fake.cancelReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) CancelReturnsOnCall(i int, result1 error) {
-	fake.cancelMutex.Lock()
-	defer fake.cancelMutex.Unlock()
-	fake.CancelStub = nil
-	if fake.cancelReturnsOnCall == nil {
-		fake.cancelReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.cancelReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeBuild) CreateTime() time.Time {
@@ -2962,8 +2900,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
 	defer fake.artifactsMutex.RUnlock()
-	fake.cancelMutex.RLock()
-	defer fake.cancelMutex.RUnlock()
 	fake.createTimeMutex.RLock()
 	defer fake.createTimeMutex.RUnlock()
 	fake.deleteMutex.RLock()

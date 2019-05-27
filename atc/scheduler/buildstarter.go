@@ -82,7 +82,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 	if nextPendingBuild.IsAborted() {
 		logger.Debug("cancel-aborted-pending-build")
-		err := nextPendingBuild.Cancel()
+		err := nextPendingBuild.Finish(db.BuildStatusAborted)
 		if err != nil {
 			return false, err
 		}
