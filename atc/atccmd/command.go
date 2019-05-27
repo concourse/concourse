@@ -1006,7 +1006,7 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 	if cmd.isTLSEnabled() {
 		tlsLogger := logger.Session("tls-enabled")
 		if cmd.EnableAutocert {
-			tlsLogger.Info("starting autocert manager")
+			tlsLogger.Debug("using-autocert-manager")
 
 			cache, err := newDbCache(dbConn)
 			if err != nil {
@@ -1017,12 +1017,11 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 				Cache:      cache,
 				HostPolicy: autocert.HostWhitelist(cmd.ExternalURL.URL.Hostname()),
 				Client:     &acme.Client{DirectoryURL: cmd.ACMEURL.URL.String()},
-				ForceRSA:   true,
 			}
 			tlsConfig.NextProtos = append(tlsConfig.NextProtos, acme.ALPNProto)
 			tlsConfig.GetCertificate = m.GetCertificate
 		} else {
-			tlsLogger.Info("configuring tls using provided certs")
+			tlsLogger.Debug("loading-tls-certs")
 			cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
 			if err != nil {
 				return nil, err
@@ -1097,12 +1096,6 @@ func (cmd *RunCommand) validate() error {
 			errs = multierror.Append(
 				errs,
 				errors.New("cannot enable autocert if --tls-cert or --tls-key are set"),
-			)
-		}
-		if cmd.TLSBindPort != 443 {
-			errs = multierror.Append(
-				errs,
-				errors.New("cannot enable autocert if external port is not 443"),
 			)
 		}
 	case cmd.TLSCert != "" && cmd.TLSKey != "":
