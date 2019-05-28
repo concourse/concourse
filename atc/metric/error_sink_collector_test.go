@@ -13,10 +13,12 @@ var _ = Describe("ErrorSinkCollector", func() {
 	var (
 		errorSinkCollector metric.ErrorSinkCollector
 		emitter            *metricfakes.FakeEmitter
+		metricsBufferLimit	int
 	)
 
 	BeforeEach(func() {
 		testLogger := lager.NewLogger("test")
+		metricsBufferLimit = 1000
 
 		errorSinkCollector = metric.NewErrorSinkCollector(testLogger)
 
@@ -25,7 +27,7 @@ var _ = Describe("ErrorSinkCollector", func() {
 		metric.RegisterEmitter(emitterFactory)
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
-		metric.Initialize(testLogger, "test", map[string]string{})
+		metric.Initialize(testLogger, "test", map[string]string{}, metricsBufferLimit)
 	})
 
 	AfterEach(func() {

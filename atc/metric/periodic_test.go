@@ -19,6 +19,7 @@ import (
 var _ = Describe("Periodic emission of metrics", func() {
 	var (
 		emitter *metricfakes.FakeEmitter
+		metricsBufferLimit int
 
 		process ifrit.Process
 	)
@@ -26,6 +27,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 	BeforeEach(func() {
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitter = &metricfakes.FakeEmitter{}
+		metricsBufferLimit = 1000
 
 		metric.RegisterEmitter(emitterFactory)
 		emitterFactory.IsConfiguredReturns(true)
@@ -35,7 +37,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 		b := &dbfakes.FakeConn{}
 		b.NameReturns("B")
 		metric.Databases = []db.Conn{a, b}
-		metric.Initialize(nil, "test", map[string]string{})
+		metric.Initialize(nil, "test", map[string]string{}, metricsBufferLimit)
 
 		process = ifrit.Invoke(metric.PeriodicallyEmit(lager.NewLogger("dont care"), 250*time.Millisecond))
 	})

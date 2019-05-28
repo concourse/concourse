@@ -32,17 +32,19 @@ var _ = Describe("MetricsHandler", func() {
 	var (
 		ts      *httptest.Server
 		emitter *metricfakes.FakeEmitter
+		metricBufferLimit int
 	)
 
 	BeforeEach(func() {
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitter = &metricfakes.FakeEmitter{}
+		metricBufferLimit = 1000
 
 		metric.RegisterEmitter(emitterFactory)
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
 
-		metric.Initialize(dummyLogger, "test", map[string]string{})
+		metric.Initialize(dummyLogger, "test", map[string]string{}, metricBufferLimit)
 
 		ts = httptest.NewServer(
 			WrapHandler(dummyLogger, "ApiEndpoint", http.HandlerFunc(noopHandler)))
