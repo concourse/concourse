@@ -86,11 +86,14 @@ type RunCommand struct {
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
-	TLSBindPort    uint16    `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
-	TLSCert        flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`
-	TLSKey         flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
-	EnableAutocert bool      `long:"enable-autocert"      description:"Use ACME to obtain an SSL certificate"`
-	ACMEURL        flag.URL  `long:"acme-url" default:"https://acme-v01.api.letsencrypt.org/directory" description:"URL of the ACME CA directory endpoint."`
+	TLSBindPort uint16    `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
+	TLSCert     flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`
+	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
+
+	LetsEncrypt struct {
+		Enable  bool     `long:"enable-lets-encrypt"   description:"Automatically configure TLS certificates via Let's Encrypt/ACME."`
+		ACMEURL flag.URL `long:"lets-encrypt-acme-url" description:"URL of the ACME CA directory endpoint." default:"https://acme-v01.api.letsencrypt.org/directory"`
+	} `group:"Let's Encrypt Configuration"`
 
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
 
@@ -954,7 +957,8 @@ func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
 		if err != nil {
 			return nil, err
 		}
-		if !cmd.EnableAutocert {
+
+		if !cmd.LetsEncrypt.Enable {
 			cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
 			if err != nil {
 				return nil, err
@@ -966,8 +970,8 @@ func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
 			}
 
 			certpool.AddCert(x509Cert)
-
 		}
+
 		httpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				RootCAs: certpool,
@@ -1009,7 +1013,7 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 
 	if cmd.isTLSEnabled() {
 		tlsLogger := logger.Session("tls-enabled")
-		if cmd.EnableAutocert {
+		if cmd.LetsEncrypt.Enable {
 			tlsLogger.Debug("using-autocert-manager")
 
 			cache, err := newDbCache(dbConn)
@@ -1020,7 +1024,7 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 				Prompt:     autocert.AcceptTOS,
 				Cache:      cache,
 				HostPolicy: autocert.HostWhitelist(cmd.ExternalURL.URL.Hostname()),
-				Client:     &acme.Client{DirectoryURL: cmd.ACMEURL.URL.String()},
+				Client:     &acme.Client{DirectoryURL: cmd.LetsEncrypt.ACMEURL.String()},
 			}
 			tlsConfig.NextProtos = append(tlsConfig.NextProtos, acme.ALPNProto)
 			tlsConfig.GetCertificate = m.GetCertificate
@@ -1089,17 +1093,17 @@ func (cmd *RunCommand) validate() error {
 
 	switch {
 	case cmd.TLSBindPort == 0:
-		if cmd.TLSCert != "" || cmd.TLSKey != "" || cmd.EnableAutocert {
+		if cmd.TLSCert != "" || cmd.TLSKey != "" || cmd.LetsEncrypt.Enable {
 			errs = multierror.Append(
 				errs,
 				errors.New("must specify --tls-bind-port to use TLS"),
 			)
 		}
-	case cmd.EnableAutocert:
+	case cmd.LetsEncrypt.Enable:
 		if cmd.TLSCert != "" || cmd.TLSKey != "" {
 			errs = multierror.Append(
 				errs,
-				errors.New("cannot enable autocert if --tls-cert or --tls-key are set"),
+				errors.New("cannot specify --enable-lets-encrypt if --tls-cert or --tls-key are set"),
 			)
 		}
 	case cmd.TLSCert != "" && cmd.TLSKey != "":
@@ -1112,7 +1116,7 @@ func (cmd *RunCommand) validate() error {
 	default:
 		errs = multierror.Append(
 			errs,
-			errors.New("must specify --tls-cert and --tls-key, or --autocert to use TLS"),
+			errors.New("must specify --tls-cert and --tls-key, or --enable-lets-encrypt to use TLS"),
 		)
 	}
 
