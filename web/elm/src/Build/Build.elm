@@ -110,7 +110,6 @@ init flags =
           , scrolledToCurrentBuild = False
           , shiftDown = False
           , isUserMenuExpanded = False
-          , timeZone = Time.utc
           }
         , [ GetCurrentTime, GetCurrentTimeZone, FetchPipelines ]
         )
@@ -211,9 +210,6 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback action ( model, effects ) =
     case action of
-        GotCurrentTimeZone zone ->
-            ( { model | timeZone = zone }, effects )
-
         BuildTriggered (Ok build) ->
             ( { model | history = build :: model.history }
             , effects
@@ -931,7 +927,7 @@ breadcrumbs model =
             Html.text ""
 
 
-viewBuildPage : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewBuildPage : Session -> Model -> Html Message
 viewBuildPage session model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
@@ -945,10 +941,10 @@ viewBuildPage session model =
                 ]
                 [ viewBuildHeader session model currentBuild.build
                 , body
+                    session
                     { currentBuild = currentBuild
                     , authorized = model.authorized
                     , showHelp = model.showHelp
-                    , timeZone = model.timeZone
                     }
                 ]
 
@@ -957,13 +953,14 @@ viewBuildPage session model =
 
 
 body :
-    { currentBuild : CurrentBuild
-    , authorized : Bool
-    , showHelp : Bool
-    , timeZone : Time.Zone
-    }
+    Session
+    ->
+        { currentBuild : CurrentBuild
+        , authorized : Bool
+        , showHelp : Bool
+        }
     -> Html Message
-body { currentBuild, authorized, showHelp, timeZone } =
+body session { currentBuild, authorized, showHelp } =
     Html.div
         ([ class "scrollable-body build-body"
          , id bodyId
@@ -975,10 +972,10 @@ body { currentBuild, authorized, showHelp, timeZone } =
     <|
         if authorized then
             [ viewBuildPrep currentBuild.prep
-            , Html.Lazy.lazy2 viewBuildOutput timeZone currentBuild.output
+            , Html.Lazy.lazy2 viewBuildOutput session currentBuild.output
             , keyboardHelp showHelp
             ]
-                ++ tombstone timeZone currentBuild
+                ++ tombstone session.timeZone currentBuild
 
         else
             [ NotAuthorized.view ]
@@ -1136,11 +1133,11 @@ mmDDYY =
         ]
 
 
-viewBuildOutput : Time.Zone -> Maybe OutputModel -> Html Message
-viewBuildOutput timeZone output =
+viewBuildOutput : Session -> Maybe OutputModel -> Html Message
+viewBuildOutput session output =
     case output of
         Just o ->
-            Build.Output.Output.view timeZone o
+            Build.Output.Output.view session o
 
         Nothing ->
             Html.div [] []
@@ -1260,7 +1257,7 @@ viewBuildPrepStatus status =
 
 
 viewBuildHeader :
-    { a | hovered : Maybe DomID }
+    Session
     -> Model
     -> Concourse.Build
     -> Html Message
@@ -1370,7 +1367,7 @@ viewBuildHeader session model build =
                 [ Html.h1 [] [ buildTitle ]
                 , case model.now of
                     Just n ->
-                        BuildDuration.view model.timeZone build.duration n
+                        BuildDuration.view session.timeZone build.duration n
 
                     Nothing ->
                         Html.text ""

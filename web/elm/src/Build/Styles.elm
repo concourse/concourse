@@ -7,6 +7,8 @@ module Build.Styles exposing
     , firstOccurrenceTooltipArrow
     , header
     , historyItem
+    , retryTab
+    , retryTabList
     , stepHeader
     , stepHeaderIcon
     , stepStatusIcon
@@ -230,4 +232,37 @@ durationTooltipArrow =
     , style "border-left" "5px solid transparent"
     , style "border-right" "5px solid transparent"
     , style "position" "absolute"
+    ]
+
+
+retryTabList : List (Html.Attribute msg)
+retryTabList =
+    [ style "margin" "0"
+    , style "font-size" "16px"
+    , style "line-height" "26px"
+    , style "background-color" Colors.background
+    ]
+
+
+retryTab :
+    { isHovered : Bool, isCurrent : Bool, isStarted : Bool }
+    -> List (Html.Attribute msg)
+retryTab { isHovered, isCurrent, isStarted } =
+    [ style "display" "inline-block"
+    , style "padding" "0 5px"
+    , style "font-weight" "700"
+    , style "cursor" "pointer"
+    , style "color" Colors.retryTabText
+    , style "background-color" <|
+        if isHovered || isCurrent then
+            Colors.paginationHover
+
+        else
+            Colors.background
+    , style "opacity" <|
+        if isStarted then
+            "1"
+
+        else
+            "0.5"
     ]

@@ -3,6 +3,7 @@ module Application.Models exposing (Session)
 import Concourse
 import Message.Message as Message
 import SideBar.SideBar as SideBar
+import Time
 import UserState exposing (UserState)
 
 
@@ -16,4 +17,5 @@ type alias Session =
         , csrfToken : Concourse.CSRFToken
         , authToken : String
         , pipelineRunningKeyframes : String
+        , timeZone : Time.Zone
         }
