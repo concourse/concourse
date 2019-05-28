@@ -44,13 +44,6 @@ RUN curl -L "https://github.com/cloudfoundry/bosh-cli/releases/download/v5.3.1/b
       -o /usr/local/bin/bosh && \
       chmod +x /usr/local/bin/bosh
 
-# install Vault for bosh-topgun
-RUN apt-get update && apt-get -y install unzip && \
-      curl -L https://releases.hashicorp.com/vault/0.7.3/vault_0.7.3_linux_amd64.zip -o /tmp/vault.zip && \
-      unzip /tmp/vault.zip -d /usr/local/bin && \
-      rm /tmp/vault.zip && \
-      apt-get -y remove unzip
-
 # install kubectl for k8s-related jobs
 RUN curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
       touch /etc/apt/sources.list.d/kubernetes.list && \
@@ -61,6 +54,11 @@ RUN curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add 
 
 # install helm for k8s-related jobs
 RUN curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+
+# install Vault for bosh-topgun
+RUN curl -L https://releases.hashicorp.com/vault/0.7.3/vault_0.7.3_linux_amd64.zip -o /tmp/vault.zip && \
+      unzip /tmp/vault.zip -d /usr/local/bin && \
+      rm /tmp/vault.zip
 
 # install Terraform and jq for bin-smoke
 RUN curl -fsSL https://releases.hashicorp.com/terraform/0.12.0/terraform_0.12.0_linux_amd64.zip -o /tmp/terraform.zip && \
