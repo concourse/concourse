@@ -1,9 +1,5 @@
 module ResourceVersion.Styles exposing
     ( body
-    , checkBarStatus
-    , checkButton
-    , checkButtonIcon
-    , checkStatusIcon
     , commentBar
     , commentBarContent
     , commentBarHeader
@@ -18,7 +14,6 @@ module ResourceVersion.Styles exposing
     , headerHeight
     , headerLastCheckedSection
     , headerResourceName
-    , pagination
     , pinBar
     , pinBarTooltip
     , pinButton
@@ -96,11 +91,6 @@ pinBarTooltip =
     , style "padding" "5px"
     , style "z-index" "2"
     ]
-
-
-checkStatusIcon : List (Html.Attribute msg)
-checkStatusIcon =
-    [ style "background-size" "14px 14px" ]
 
 
 versionButton : Pinned.VersionPinState -> List (Html.Attribute msg)
@@ -341,51 +331,4 @@ body =
     [ style "padding" "10px"
     , style "overflow-y" "auto"
     , style "flex-grow" "1"
-    ]
-
-
-pagination : List (Html.Attribute msg)
-pagination =
-    [ style "display" "flex"
-    , style "align-items" "stretch"
-    ]
-
-
-checkBarStatus : List (Html.Attribute msg)
-checkBarStatus =
-    [ style "display" "flex"
-    , style "justify-content" "space-between"
-    , style "align-items" "center"
-    , style "flex-grow" "1"
-    , style "height" "28px"
-    , style "background" Colors.sectionHeader
-    , style "padding-left" "5px"
-    ]
-
-
-checkButton : Bool -> List (Html.Attribute msg)
-checkButton isClickable =
-    [ style "height" "28px"
-    , style "width" "28px"
-    , style "background-color" Colors.sectionHeader
-    , style "margin-right" "5px"
-    , style "cursor" <|
-        if isClickable then
-            "pointer"
-
-        else
-            "default"
-    ]
-
-
-checkButtonIcon : Bool -> List (Html.Attribute msg)
-checkButtonIcon isHighlighted =
-    [ style "margin" "4px"
-    , style "background-size" "contain"
-    , style "opacity" <|
-        if isHighlighted then
-            "1"
-
-        else
-            "0.5"
     ]

@@ -90,9 +90,6 @@ init flags =
         model =
             { resourceVersionIdentifier = flags
             , pageStatus = Err Models.Empty
-            , checkStatus = Models.CheckingSuccessfully
-            , checkError = ""
-            , checkSetupError = ""
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
             , version = Nothing
@@ -193,14 +190,6 @@ handleCallback callback session ( model, effects ) =
         ResourceFetched (Ok resource) ->
             ( { model
                 | pageStatus = Ok ()
-                , checkStatus =
-                    if resource.failingToCheck then
-                        Models.FailingToCheck
-
-                    else
-                        Models.CheckingSuccessfully
-                , checkError = resource.checkError
-                , checkSetupError = resource.checkSetupError
                 , lastChecked = resource.lastChecked
                 , icon = resource.icon
               }
@@ -344,14 +333,14 @@ handleCallback callback session ( model, effects ) =
             )
 
         Checked (Ok ()) ->
-            ( { model | checkStatus = Models.CheckingSuccessfully }
+            ( model
             , effects
                 ++ [ FetchResourceVersion model.resourceVersionIdentifier
                    ]
             )
 
         Checked (Err err) ->
-            ( { model | checkStatus = Models.FailingToCheck }
+            ( model
             , case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
@@ -496,7 +485,7 @@ update msg ( model, effects ) =
 
         Click (CheckButton isAuthorized) ->
             if isAuthorized then
-                ( { model | checkStatus = Models.CurrentlyChecking }
+                ( model
                 , effects
                     ++ [ DoCheck
                             { teamName = model.resourceVersionIdentifier.teamName
@@ -656,155 +645,15 @@ body :
     -> Model
     -> Html Message
 body session model =
-    let
-        sectionModel =
-            { checkStatus = model.checkStatus
-            , checkSetupError = model.checkSetupError
-            , checkError = model.checkError
-            , hovered = session.hovered
-            , userState = session.userState
-            , teamName = model.resourceVersionIdentifier.teamName
-            }
-    in
     Html.div
         (id "body" :: Resource.Styles.body)
-        [ checkSection sectionModel
-        , case model.version of
+        (case model.version of
             Just version ->
-                viewVersionedResource version model.pinnedVersion session.hovered
+                [ viewVersionedResource version model.pinnedVersion session.hovered ]
 
             Nothing ->
-                Html.div [] []
-        ]
-
-
-checkSection :
-    { a
-        | checkStatus : Models.CheckStatus
-        , checkSetupError : String
-        , checkError : String
-        , hovered : Maybe DomID
-        , userState : UserState
-        , teamName : String
-    }
-    -> Html Message
-checkSection ({ checkStatus, checkSetupError, checkError } as model) =
-    let
-        failingToCheck =
-            checkStatus == Models.FailingToCheck
-
-        checkMessage =
-            case checkStatus of
-                Models.FailingToCheck ->
-                    "checking failed"
-
-                Models.CurrentlyChecking ->
-                    "currently checking"
-
-                Models.CheckingSuccessfully ->
-                    "checking successfully"
-
-        stepBody =
-            if failingToCheck then
-                if not (String.isEmpty checkSetupError) then
-                    [ Html.div [ class "step-body" ]
-                        [ Html.pre [] [ Html.text checkSetupError ]
-                        ]
-                    ]
-
-                else
-                    [ Html.div [ class "step-body" ]
-                        [ Html.pre [] [ Html.text checkError ]
-                        ]
-                    ]
-
-            else
                 []
-
-        statusIcon =
-            case checkStatus of
-                Models.CurrentlyChecking ->
-                    Spinner.spinner
-                        { sizePx = 14
-                        , margin = "7px"
-                        }
-
-                _ ->
-                    Icon.icon
-                        { sizePx = 28
-                        , image =
-                            if failingToCheck then
-                                "ic-exclamation-triangle.svg"
-
-                            else
-                                "ic-success-check.svg"
-                        }
-                        Resource.Styles.checkStatusIcon
-
-        statusBar =
-            Html.div
-                Resource.Styles.checkBarStatus
-                [ Html.h3 [] [ Html.text checkMessage ]
-                , statusIcon
-                ]
-
-        checkBar =
-            Html.div
-                [ style "display" "flex" ]
-                [ checkButton model
-                , statusBar
-                ]
-    in
-    Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
-
-
-checkButton :
-    { a
-        | hovered : Maybe DomID
-        , userState : UserState
-        , teamName : String
-        , checkStatus : Models.CheckStatus
-    }
-    -> Html Message
-checkButton ({ hovered, userState, checkStatus } as params) =
-    let
-        isMember =
-            UserState.isMember params
-
-        isHovered =
-            hovered == Just (CheckButton isMember)
-
-        isCurrentlyChecking =
-            checkStatus == Models.CurrentlyChecking
-
-        isAnonymous =
-            UserState.isAnonymous userState
-
-        isClickable =
-            (isAnonymous || isMember)
-                && not isCurrentlyChecking
-
-        isHighlighted =
-            (isClickable && isHovered) || isCurrentlyChecking
-    in
-    Html.div
-        ([ onMouseEnter <| Hover <| Just <| CheckButton isMember
-         , onMouseLeave <| Hover Nothing
-         ]
-            ++ Resource.Styles.checkButton isClickable
-            ++ (if isClickable then
-                    [ onClick <| Click <| CheckButton isMember ]
-
-                else
-                    []
-               )
         )
-        [ Icon.icon
-            { sizePx = 20
-            , image = "baseline-refresh-24px.svg"
-            }
-            (Resource.Styles.checkButtonIcon isHighlighted)
-        ]
 
 
 commentBar :

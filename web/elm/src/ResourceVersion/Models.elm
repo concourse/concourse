@@ -1,6 +1,5 @@
 module ResourceVersion.Models exposing
-    ( CheckStatus(..)
-    , Model
+    ( Model
     , PageError(..)
     , PinnedVersion
     , Version
@@ -19,18 +18,9 @@ type PageError
     | NotFound
 
 
-type CheckStatus
-    = CheckingSuccessfully
-    | CurrentlyChecking
-    | FailingToCheck
-
-
 type alias Model =
     Login.Model
         { pageStatus : Result PageError ()
-        , checkStatus : CheckStatus
-        , checkError : String
-        , checkSetupError : String
         , lastChecked : Maybe Time.Posix
         , pinnedVersion : PinnedVersion
         , now : Maybe Time.Posix
