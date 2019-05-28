@@ -1,7 +1,0 @@
-#!/bin/bash
-# vim: set ft=sh
-
-set -e -x
-
-cp $(which gdn) gdn/gdn
-cp -a /usr/local/concourse/resource-types/* resource-types/
