@@ -25,6 +25,9 @@ terraform workspace select "$WORKSPACE" || \
 
 terraform apply --auto-approve --var project=$GCP_PROJECT
 
-terraform output | while read name _ value; do
+{
+  terraform output -json | \
+    jq -r 'keys[] as $k | "\($k) \(.[$k].value)"'
+} | while read name value; do
   echo "$value" > $outputs/$name
 done

@@ -504,6 +504,7 @@ jobs:
       passed: [build-rc]
       trigger: true
   - task: terraform-smoke
+    image: unit-image
     file: concourse/ci/tasks/terraform-smoke.yml
     params:
       GCP_PROJECT: cf-concourse-production
