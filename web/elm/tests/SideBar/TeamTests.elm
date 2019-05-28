@@ -33,6 +33,15 @@ all =
                                 }
                                 |> teamName
                                 |> Query.has [ style "opacity" "1" ]
+                    , test "team icon is bright" <|
+                        \_ ->
+                            team
+                                { active = True
+                                , expanded = True
+                                , hovered = True
+                                }
+                                |> teamIcon
+                                |> Query.has [ style "opacity" "1" ]
                     ]
                 , describe "when unhovered"
                     [ test "arrow is bright" <|
@@ -52,6 +61,15 @@ all =
                                 , hovered = False
                                 }
                                 |> teamName
+                                |> Query.has [ style "opacity" "1" ]
+                    , test "team icon is bright" <|
+                        \_ ->
+                            team
+                                { active = True
+                                , expanded = True
+                                , hovered = False
+                                }
+                                |> teamIcon
                                 |> Query.has [ style "opacity" "1" ]
                     ]
                 ]
@@ -75,6 +93,15 @@ all =
                                 }
                                 |> teamName
                                 |> Query.has [ style "opacity" "1" ]
+                    , test "team icon is bright" <|
+                        \_ ->
+                            team
+                                { active = True
+                                , expanded = False
+                                , hovered = True
+                                }
+                                |> teamIcon
+                                |> Query.has [ style "opacity" "1" ]
                     ]
                 , describe "when unhovered"
                     [ test "arrow is dim" <|
@@ -94,6 +121,15 @@ all =
                                 , hovered = False
                                 }
                                 |> teamName
+                                |> Query.has [ style "opacity" "1" ]
+                    , test "team icon is bright" <|
+                        \_ ->
+                            team
+                                { active = True
+                                , expanded = False
+                                , hovered = False
+                                }
+                                |> teamIcon
                                 |> Query.has [ style "opacity" "1" ]
                     ]
                 ]
@@ -119,6 +155,15 @@ all =
                                 }
                                 |> teamName
                                 |> Query.has [ style "opacity" "1" ]
+                    , test "team icon is bright" <|
+                        \_ ->
+                            team
+                                { active = False
+                                , expanded = True
+                                , hovered = True
+                                }
+                                |> teamIcon
+                                |> Query.has [ style "opacity" "0.5" ]
                     ]
                 , describe "when unhovered"
                     [ test "arrow is bright" <|
@@ -139,6 +184,15 @@ all =
                                 }
                                 |> teamName
                                 |> Query.has [ style "opacity" "0.5" ]
+                    , test "team icon is dim" <|
+                        \_ ->
+                            team
+                                { active = False
+                                , expanded = True
+                                , hovered = False
+                                }
+                                |> teamIcon
+                                |> Query.has [ style "opacity" "0.2" ]
                     ]
                 ]
             , describe "when collapsed"
@@ -161,6 +215,15 @@ all =
                                 }
                                 |> teamName
                                 |> Query.has [ style "opacity" "1" ]
+                    , test "team icon is greyed out" <|
+                        \_ ->
+                            team
+                                { active = False
+                                , expanded = False
+                                , hovered = True
+                                }
+                                |> teamIcon
+                                |> Query.has [ style "opacity" "0.5" ]
                     ]
                 , describe "when unhovered"
                     [ test "arrow is dim" <|
@@ -181,6 +244,15 @@ all =
                                 }
                                 |> teamName
                                 |> Query.has [ style "opacity" "0.5" ]
+                    , test "team icon is greyed out" <|
+                        \_ ->
+                            team
+                                { active = False
+                                , expanded = False
+                                , hovered = False
+                                }
+                                |> teamIcon
+                                |> Query.has [ style "opacity" "0.2" ]
                     ]
                 ]
             ]
@@ -221,6 +293,15 @@ team { active, expanded, hovered } =
         , pipelines = pipelines
         , currentPipeline = activePipeline
         }
+
+
+teamIcon : Html Message -> Query.Single Message
+teamIcon =
+    Query.fromHtml
+        >> Query.children []
+        >> Query.first
+        >> Query.children []
+        >> Query.index 0
 
 
 arrow : Html Message -> Query.Single Message
