@@ -19,6 +19,7 @@ params:
   AWS_REGION:
   AWS_ACCESS_KEY_ID:
   AWS_SECRET_ACCESS_KEY:
+  DEPLOY_RETRY_ATTEMPTS:
 
 inputs:
 - name: bbr

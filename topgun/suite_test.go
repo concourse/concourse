@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -53,6 +54,7 @@ var (
 	vaultReleaseVersion, credhubReleaseVersion                         string
 	stemcellVersion                                                    string
 	backupAndRestoreReleaseVersion                                     string
+	deployRetryAttempts                                                int
 
 	pipelineName string
 
@@ -126,6 +128,15 @@ var _ = BeforeEach(func() {
 		backupAndRestoreReleaseVersion = "latest"
 	}
 
+	deployRetryAttemptsString := os.Getenv("DEPLOY_RETRY_ATTEMPTS")
+	if deployRetryAttemptsString == "" {
+		deployRetryAttempts = 1
+	} else {
+		var err error
+		deployRetryAttempts, err = strconv.Atoi(deployRetryAttemptsString)
+		Expect(err).ToNot(HaveOccurred())
+	}
+
 	deploymentNumber := GinkgoParallelNode()
 
 	deploymentName = fmt.Sprintf("%s-%d", deploymentNamePrefix, deploymentNumber)
@@ -197,12 +208,16 @@ func Deploy(manifest string, args ...string) {
 		Expect(dbConn.Close()).To(Succeed())
 	}
 
+	retryCounter := 0
 	for {
 		deploy := StartDeploy(manifest, args...)
 		<-deploy.Exited
 		if deploy.ExitCode() != 0 {
 			if strings.Contains(string(deploy.Out.Contents()), "Timed out pinging") {
 				fmt.Fprintln(GinkgoWriter, "detected ping timeout; trying again...")
+				continue
+			} else if retryCounter < deployRetryAttempts {
+				retryCounter++
 				continue
 			}
 
