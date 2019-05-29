@@ -25,7 +25,7 @@ var _ = Describe("ErrorSinkCollector", func() {
 		metric.RegisterEmitter(emitterFactory)
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
-		metric.Initialize(testLogger, "test", map[string]string{})
+		metric.Initialize(testLogger, "test", map[string]string{}, 1000)
 	})
 
 	AfterEach(func() {

@@ -66,7 +66,13 @@ var (
 	emissions       chan eventEmission
 )
 
-func Initialize(logger lager.Logger, host string, attributes map[string]string) error {
+func Initialize(logger lager.Logger, host string, attributes map[string]string, bufferSize int) error {
+	logger.Debug("metric-initialize", lager.Data{
+		"host": host,
+		"attributes": attributes,
+		"buffer-size": bufferSize,
+	})
+	
 	var (
 		emitterDescriptions []string
 		err                 error
@@ -97,7 +103,7 @@ func Initialize(logger lager.Logger, host string, attributes map[string]string) 
 	emitter = emitter
 	eventHost = host
 	eventAttributes = attributes
-	emissions = make(chan eventEmission, 1000)
+	emissions = make(chan eventEmission, bufferSize)
 
 	go emitLoop()
 
@@ -110,6 +116,9 @@ func Deinitialize(logger lager.Logger) {
 }
 
 func emit(logger lager.Logger, event Event) {
+	logger.Debug("emit-event", lager.Data{
+		"event": event, "emitter": emitter,
+	})
 	if emitter == nil {
 		return
 	}
@@ -132,6 +141,9 @@ func emit(logger lager.Logger, event Event) {
 
 	select {
 	case emissions <- eventEmission{logger: logger, event: event}:
+		logger.Debug("emit-event-write-to-channel", lager.Data{
+			"event": event,
+		})
 	default:
 		logger.Error("queue-full", nil)
 	}
@@ -139,6 +151,9 @@ func emit(logger lager.Logger, event Event) {
 
 func emitLoop() {
 	for emission := range emissions {
+		emission.logger.Debug("emit-event-loop", lager.Data{
+			"event": emission.event,
+		})
 		emitter.Emit(emission.logger.Session("emit"), emission.event)
 	}
 }
