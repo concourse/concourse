@@ -114,40 +114,46 @@ func shouldRetry(err error) bool {
 	return false
 }
 
-var encryptedColumns = map[string]string{
-	"teams":          "legacy_auth",
-	"resources":      "config",
-	"jobs":           "config",
-	"resource_types": "config",
-	"builds":         "private_plan",
-	"cert_cache":     "cert",
+type encryptedColumn struct {
+	Table      string
+	Column     string
+	PrimaryKey string
+}
+
+var encryptedColumns = []encryptedColumn{
+	{"teams", "legacy_auth", "id"},
+	{"resources", "config", "id"},
+	{"jobs", "config", "id"},
+	{"resource_types", "config", "id"},
+	{"builds", "private_plan", "id"},
+	{"vert_cache", "cert", "domain"},
 }
 
 func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *encryption.Key) error {
-	for table, col := range encryptedColumns {
+	for _, ec := range encryptedColumns {
 		rows, err := sqlDB.Query(`
-			SELECT id, ` + col + `
-			FROM ` + table + `
+			SELECT ` + ec.PrimaryKey + `, ` + ec.Column + `
+			FROM ` + ec.Table + `
 			WHERE nonce IS NULL
-			AND ` + col + ` IS NOT NULL
+			AND ` + ec.Column + ` IS NOT NULL
 		`)
 		if err != nil {
 			return err
 		}
 
 		tLog := logger.Session("table", lager.Data{
-			"table": table,
+			"table": ec.Table,
 		})
 
 		encryptedRows := 0
 
 		for rows.Next() {
 			var (
-				id  int
+				key interface{}
 				val sql.NullString
 			)
 
-			err := rows.Scan(&id, &val)
+			err := rows.Scan(&key, &val)
 			if err != nil {
 				tLog.Error("failed-to-scan", err)
 				return err
@@ -158,7 +164,7 @@ func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *encryption.Key) e
 			}
 
 			rLog := tLog.Session("row", lager.Data{
-				"id": id,
+				"key": key,
 			})
 
 			encrypted, nonce, err := key.Encrypt([]byte(val.String))
@@ -168,10 +174,10 @@ func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *encryption.Key) e
 			}
 
 			_, err = sqlDB.Exec(`
-				UPDATE `+table+`
-				SET `+col+` = $1, nonce = $2
-				WHERE id = $3
-			`, encrypted, nonce, id)
+				UPDATE `+ec.Table+`
+				SET `+ec.Column+` = $1, nonce = $2
+				WHERE `+ec.PrimaryKey+` = $3
+			`, encrypted, nonce, key)
 			if err != nil {
 				rLog.Error("failed-to-update", err)
 				return err
@@ -191,10 +197,10 @@ func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *encryption.Key) e
 }
 
 func decryptToPlaintext(logger lager.Logger, sqlDB *sql.DB, oldKey *encryption.Key) error {
-	for table, col := range encryptedColumns {
+	for _, ec := range encryptedColumns {
 		rows, err := sqlDB.Query(`
-			SELECT id, nonce, ` + col + `
-			FROM ` + table + `
+			SELECT ` + ec.PrimaryKey + `, nonce, ` + ec.Column + `
+			FROM ` + ec.Table + `
 			WHERE nonce IS NOT NULL
 		`)
 		if err != nil {
@@ -202,25 +208,25 @@ func decryptToPlaintext(logger lager.Logger, sqlDB *sql.DB, oldKey *encryption.K
 		}
 
 		tLog := logger.Session("table", lager.Data{
-			"table": table,
+			"table": ec.Table,
 		})
 
 		decryptedRows := 0
 
 		for rows.Next() {
 			var (
-				id         int
+				key        interface{}
 				val, nonce string
 			)
 
-			err := rows.Scan(&id, &nonce, &val)
+			err := rows.Scan(&key, &nonce, &val)
 			if err != nil {
 				tLog.Error("failed-to-scan", err)
 				return err
 			}
 
 			rLog := tLog.Session("row", lager.Data{
-				"id": id,
+				"key": key,
 			})
 
 			decrypted, err := oldKey.Decrypt(val, &nonce)
@@ -230,10 +236,10 @@ func decryptToPlaintext(logger lager.Logger, sqlDB *sql.DB, oldKey *encryption.K
 			}
 
 			_, err = sqlDB.Exec(`
-				UPDATE `+table+`
-				SET `+col+` = $1, nonce = NULL
-				WHERE id = $2
-			`, decrypted, id)
+				UPDATE `+ec.Table+`
+				SET `+ec.Column+` = $1, nonce = NULL
+				WHERE `+ec.PrimaryKey+` = $2
+			`, decrypted, key)
 			if err != nil {
 				rLog.Error("failed-to-update", err)
 				return err
@@ -255,10 +261,10 @@ func decryptToPlaintext(logger lager.Logger, sqlDB *sql.DB, oldKey *encryption.K
 var ErrEncryptedWithUnknownKey = errors.New("row encrypted with neither old nor new key")
 
 func encryptWithNewKey(logger lager.Logger, sqlDB *sql.DB, newKey *encryption.Key, oldKey *encryption.Key) error {
-	for table, col := range encryptedColumns {
+	for _, ec := range encryptedColumns {
 		rows, err := sqlDB.Query(`
-			SELECT id, nonce, ` + col + `
-			FROM ` + table + `
+			SELECT ` + ec.PrimaryKey + `, nonce, ` + ec.Column + `
+			FROM ` + ec.Table + `
 			WHERE nonce IS NOT NULL
 		`)
 		if err != nil {
@@ -266,25 +272,25 @@ func encryptWithNewKey(logger lager.Logger, sqlDB *sql.DB, newKey *encryption.Ke
 		}
 
 		tLog := logger.Session("table", lager.Data{
-			"table": table,
+			"table": ec.Table,
 		})
 
 		encryptedRows := 0
 
 		for rows.Next() {
 			var (
-				id         int
+				key        interface{}
 				val, nonce string
 			)
 
-			err := rows.Scan(&id, &nonce, &val)
+			err := rows.Scan(&key, &nonce, &val)
 			if err != nil {
 				tLog.Error("failed-to-scan", err)
 				return err
 			}
 
 			rLog := tLog.Session("row", lager.Data{
-				"id": id,
+				"key": key,
 			})
 
 			decrypted, err := oldKey.Decrypt(val, &nonce)
@@ -306,10 +312,10 @@ func encryptWithNewKey(logger lager.Logger, sqlDB *sql.DB, newKey *encryption.Ke
 			}
 
 			_, err = sqlDB.Exec(`
-				UPDATE `+table+`
-				SET `+col+` = $1, nonce = $2
-				WHERE id = $3
-			`, encrypted, newNonce, id)
+				UPDATE `+ec.Table+`
+				SET `+ec.Column+` = $1, nonce = $2
+				WHERE `+ec.PrimaryKey+` = $3
+			`, encrypted, newNonce, key)
 			if err != nil {
 				rLog.Error("failed-to-update", err)
 				return err
