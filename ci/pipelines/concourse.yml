@@ -7,6 +7,10 @@ resource_types:
   type: registry-image
   source: {repository: dpb587/bosh-release-resource}
 
+- name: bosh-deployment
+  type: registry-image
+  source: {repository: cloudfoundry/bosh-deployment-resource}
+
 groups:
 - name: develop
   jobs:
