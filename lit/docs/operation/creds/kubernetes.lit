@@ -76,7 +76,7 @@ CONCOURSE_KUBERNETES_CONFIG_PATH=~/.kube/config
   }
 
   The prefix prepended to the namespace used by Concourse to search for secrets
-  (in the examples above, \code{concourse-} can be changed by configuring the
+  (in the examples above, \code{concourse-}) can be changed by configuring the
   following in the \reference{web-node}:
 
   \codeblock{bash}{{{
@@ -99,6 +99,153 @@ CONCOURSE_KUBERNETES_CONFIG_PATH=~/.kube/config
   enabled, that means creating the necessary Kubernetes objects to identify the
   Web nodes and give them access to a predefined list of namespaces where the
   secrets live.
+
+  Regardless of how the Kubernetes RBAC-related objects are created, the basic
+  requirement is that \bold{\code{web} must be able to read secrets in the 
+  namespaces where each teams' secrets live}.
+
+  For instance, if you have the following teams which you want to read secrets
+  from:
+
+	\list{
+		team-a
+	}{
+		team-b
+	}
+
+  Assuming the following \reference{web-node} configuration:
+
+  \codeblock{bash}{{{
+  CONCOURSE_KUBERNETES_NAMESPACE_PREFIX=myprefix-
+  }}}
+
+  \code{web} must be able to \code{get} secrets from the following namespaces:
+
+
+	\list{
+		myprefix-team-a
+	}{
+		myprefix-team-b
+	}
+
+  As an example, the following sample RBAC Kubernetes could be created to allow
+  \code{web} to interpolate credentials for "team-a" and "team-b":
+
+
+  \codeblock{yaml}{{{
+  ---
+  # Identifies the `web` service as an actor.
+  #
+  # ref: https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/
+  #
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: web
+    labels:
+      app: web
+
+
+  ---
+  # Describes the rules that represents the set of permissions
+  # that an actor can perform in any namespace within the cluster.
+  #
+  # ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#api-overview
+  #
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: read-secrets
+    labels:
+      app: web
+  rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+
+
+  ---
+  # Grants the permissions defined in a role to one or more 
+  # users (subjects) represented as `ServiceAccount`s.
+  #
+  # Even though in this example we're binding to a ClusterRole
+  # (which is not tied to any namespace), the use of such cluster
+  # role is (see `metadata.namespace`), making the effective 
+  # permissions restricted to the namespace applied in the
+  # `roleBinding`.
+  #
+  # To have access to multiple namespaces, multiple RoleBindings
+  # would then be created (one for each namespace).
+  #
+  # ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding
+  #
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: RoleBinding
+  metadata:
+    name: web-team-a
+    namespace: myprefix-team-a
+    labels:
+      app: web
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: read-secrets
+  subjects:
+  - kind: ServiceAccount
+    name: web
+    namespace: concourse
+
+  ---
+  # Role binding for the second team (`team-b`), allowing `web`
+  # to consume secrets from it.
+  #
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: RoleBinding
+  metadata:
+    name: web-team-b
+    namespace: myprefix-team-b
+    labels:
+      app: web
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: read-secrets
+  subjects:
+  - kind: ServiceAccount
+    name: web
+    namespace: concourse
+
+  ---
+  # The deployment that creates the `web` pods.
+  # Note how it ties the pods to the `ServiceAccount`
+  # previously created.
+  #
+  # ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+  #
+  apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    name: web
+    labels:
+      app: web
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: web
+      spec:
+        serviceAccountName: web
+        containers:
+          - name: web
+            image: "concourse/concourse:5.2.0"
+            args: [ web ]
+            env:
+              - name: CONCOURSE_KUBERNETES_NAMESPACE_PREFIX
+                value: "myprefix-"
+            # ...
+  }}}
 
 }
 
