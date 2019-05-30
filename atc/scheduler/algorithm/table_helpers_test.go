@@ -42,6 +42,7 @@ type Example struct {
 	DB     DB
 	Inputs Inputs
 	Result Result
+	Error  error
 }
 
 type Inputs []Input
@@ -369,17 +370,43 @@ func (example Example) Run() {
 		}
 
 		if len(input.Version.Pinned) != 0 {
-			inputConfigs[i].PinnedVersion = atc.Version{"ver": input.Version.Pinned}
+			versionJSON, err := json.Marshal(atc.Version{"ver": input.Version.Pinned})
+			Expect(err).ToNot(HaveOccurred())
+
+			var pinnedID int
+			rows, err := setup.psql.Select("rcv.id").
+				From("resource_config_versions rcv").
+				Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
+				Where(sq.Eq{
+					"rcv.version": versionJSON,
+					"r.id":        inputConfigs[i].ResourceID,
+				}).
+				Query()
+			Expect(err).ToNot(HaveOccurred())
+
+			if rows.Next() {
+				err = rows.Scan(&pinnedID)
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			rows.Close()
+
+			if pinnedID != 0 {
+				inputConfigs[i].PinnedVersionID = pinnedID
+			} else {
+				// Pinning to an inexistant version id
+				inputConfigs[i].PinnedVersionID = 123
+			}
 		}
 	}
 
 	inputs := atc.PlanSequence{}
-	for _, input := range inputConfigs {
+	for i, input := range inputConfigs {
 		var version *atc.VersionConfig
 		if input.UseEveryVersion {
 			version = &atc.VersionConfig{Every: true}
-		} else if input.PinnedVersion != nil {
-			version = &atc.VersionConfig{Pinned: input.PinnedVersion}
+		} else if input.PinnedVersionID != 0 {
+			version = &atc.VersionConfig{Pinned: atc.Version{"ver": example.Inputs[i].Version.Pinned}}
 		} else {
 			version = &atc.VersionConfig{Latest: true}
 		}
@@ -455,33 +482,37 @@ func (example Example) Run() {
 
 	inputMapper := algorithm.NewInputMapper()
 	resolved, ok, err := inputMapper.MapInputs(versionsDB, job, dbResources)
-	Expect(err).ToNot(HaveOccurred())
+	if example.Error != nil {
+		Expect(err).To(Equal(example.Error))
+	} else {
+		Expect(err).ToNot(HaveOccurred())
 
-	prettyValues := map[string]string{}
-	erroredValues := map[string]string{}
-	skippedValues := map[string]bool{}
-	for name, inputSource := range resolved {
-		if inputSource.ResolveSkipped == true {
-			skippedValues[name] = true
-		} else if inputSource.ResolveError != nil {
-			erroredValues[name] = inputSource.ResolveError.Error()
-		} else {
-			prettyValues[name] = setup.versionIDs.Name(inputSource.Input.AlgorithmVersion.VersionID)
+		prettyValues := map[string]string{}
+		erroredValues := map[string]string{}
+		skippedValues := map[string]bool{}
+		for name, inputSource := range resolved {
+			if inputSource.ResolveSkipped == true {
+				skippedValues[name] = true
+			} else if inputSource.ResolveError != nil {
+				erroredValues[name] = inputSource.ResolveError.Error()
+			} else {
+				prettyValues[name] = setup.versionIDs.Name(inputSource.Input.AlgorithmVersion.VersionID)
+			}
 		}
+
+		actualResult := Result{OK: ok}
+		if len(erroredValues) != 0 {
+			actualResult.Errors = erroredValues
+		}
+
+		if len(skippedValues) != 0 {
+			actualResult.Skipped = skippedValues
+		}
+
+		actualResult.Values = prettyValues
+
+		Expect(actualResult).To(Equal(example.Result))
 	}
-
-	actualResult := Result{OK: ok}
-	if len(erroredValues) != 0 {
-		actualResult.Errors = erroredValues
-	}
-
-	if len(skippedValues) != 0 {
-		actualResult.Skipped = skippedValues
-	}
-
-	actualResult.Values = prettyValues
-
-	Expect(actualResult).To(Equal(example.Result))
 }
 
 type setupDB struct {

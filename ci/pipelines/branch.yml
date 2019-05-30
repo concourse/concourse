@@ -10,6 +10,10 @@ resource_types:
   type: registry-image
   source: {repository: frodenas/gcs-resource}
 
+- name: bosh-release
+  type: registry-image
+  source: {repository: dpb587/bosh-release-resource}
+
 groups:
 - name: develop
   jobs:
@@ -317,13 +321,13 @@ jobs:
   plan:
   - in_parallel:
     - get: concourse
-      passed: [testflight, watsjs, upgrade, downgrade]
+      passed: [testflight, watsjs]
       trigger: true
     - get: dev-image
       trigger: true
-      passed: [testflight, watsjs, upgrade, downgrade]
+      passed: [testflight, watsjs]
     - get: unit-image
-      passed: [testflight, watsjs, upgrade, downgrade]
+      passed: [testflight, watsjs]
       trigger: true
 
 - name: build-rc
@@ -452,13 +456,13 @@ jobs:
   plan:
   - in_parallel:
     - get: concourse
-      passed: [bosh-check-props]
+      passed: [build-rc]
       trigger: true
     - get: unit-image
-      passed: [bosh-check-props]
+      passed: [build-rc]
       trigger: true
     - get: linux-rc
-      passed: [build-rc, bosh-check-props]
+      passed: [build-rc]
       trigger: true
     - get: windows-rc
       passed: [build-rc]

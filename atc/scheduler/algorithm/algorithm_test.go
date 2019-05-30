@@ -1,6 +1,8 @@
 package algorithm_test
 
 import (
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	. "github.com/onsi/ginkgo/extensions/table"
 )
 
@@ -119,13 +121,7 @@ var _ = DescribeTable("Input resolving",
 			},
 		},
 
-		Result: Result{
-			OK:     false,
-			Values: map[string]string{},
-			Errors: map[string]string{
-				"resource-x": "pinned version ver:rxv2 not found",
-			},
-		},
+		Error: algorithm.PinnedVersionNotFoundError{atc.Version{"ver": "rxv2"}},
 	}),
 
 	Entry("finds only versions that passed through together", Example{
@@ -1685,13 +1681,7 @@ var _ = DescribeTable("Input resolving",
 			},
 		},
 
-		Result: Result{
-			OK:     false,
-			Values: map[string]string{},
-			Errors: map[string]string{
-				"resource-x": "pinned version ver:rxv2 not found",
-			},
-		},
+		Error: algorithm.PinnedVersionNotFoundError{atc.Version{"ver": "rxv2"}},
 	}),
 
 	Entry("resolves the version that is pinned with passed", Example{

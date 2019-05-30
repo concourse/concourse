@@ -3,6 +3,8 @@ package algorithm
 import (
 	"errors"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -14,7 +16,7 @@ type InputConfig struct {
 	Name            string
 	Passed          db.JobSet
 	UseEveryVersion bool
-	PinnedVersion   atc.Version
+	PinnedVersionID int
 	ResourceID      int
 	JobID           int
 }
@@ -92,7 +94,6 @@ func (im *inputMapper) MapInputs(
 	job db.Job,
 	resources db.Resources,
 ) (db.InputMapping, bool, error) {
-
 	inputConfigs := InputConfigs{}
 
 	for _, input := range job.Config().Inputs() {
@@ -113,16 +114,30 @@ func (im *inputMapper) MapInputs(
 			JobID:      job.ID(),
 		}
 
+		var pinnedVersion atc.Version
 		if resource.CurrentPinnedVersion() != nil {
-			inputConfig.PinnedVersion = resource.CurrentPinnedVersion()
+			pinnedVersion = resource.CurrentPinnedVersion()
 		}
 
 		if input.Version != nil {
 			inputConfig.UseEveryVersion = input.Version.Every
 
 			if input.Version.Pinned != nil {
-				inputConfig.PinnedVersion = input.Version.Pinned
+				pinnedVersion = input.Version.Pinned
 			}
+		}
+
+		if pinnedVersion != nil {
+			id, found, err := versions.FindVersionOfResource(inputConfig.ResourceID, pinnedVersion)
+			if err != nil {
+				return nil, false, err
+			}
+
+			if !found {
+				return nil, false, PinnedVersionNotFoundError{pinnedVersion}
+			}
+
+			inputConfig.PinnedVersionID = id
 		}
 
 		inputConfigs = append(inputConfigs, inputConfig)
@@ -220,19 +235,9 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 			}
 
 			var versionID int
-			if inputConfig.PinnedVersion != nil {
+			if inputConfig.PinnedVersionID != 0 {
 				// pinned
-				id, found, err := db.FindVersionOfResource(inputConfig.ResourceID, inputConfig.PinnedVersion)
-				if err != nil {
-					return false, err
-				}
-
-				if !found {
-					unresolvedCandidates[i] = newCandidateError(PinnedVersionNotFoundError{inputConfig.PinnedVersion})
-					return false, nil
-				}
-
-				versionID = id
+				versionID = inputConfig.PinnedVersionID
 				debug("setting candidate", i, "to unconstrained version", versionID)
 			} else if inputConfig.UseEveryVersion {
 				buildID, found, err := db.LatestBuildID(inputConfig.JobID)
@@ -378,22 +383,10 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 							break outputs
 						}
 
-						if inputConfigs[c].PinnedVersion != nil {
-							id, found, err := db.FindVersionOfResource(inputConfigs[c].ResourceID, inputConfigs[c].PinnedVersion)
-							if err != nil {
-								return false, err
-							}
-
-							if !found {
-								unresolvedCandidates[i] = newCandidateError(PinnedVersionNotFoundError{inputConfigs[c].PinnedVersion})
-								return false, nil
-							}
-
-							if id != output.VersionID {
-								debug("mismatch pinned version", output.VersionID, jobID)
-								mismatch = true
-								break outputs
-							}
+						if inputConfigs[c].PinnedVersionID != 0 && inputConfigs[c].PinnedVersionID != output.VersionID {
+							debug("mismatch pinned version", output.VersionID, jobID)
+							mismatch = true
+							break outputs
 						}
 
 						if candidate != nil && candidate.ID != output.VersionID {
