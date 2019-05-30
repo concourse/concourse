@@ -62,6 +62,11 @@ run_helm_deploy() {
     --set "worker.replicas=1" \
     $RELEASE_NAME \
     $chart
+
+  kubectl \
+    --namespace "$RELEASE_NAME" \
+    rollout status deployment \
+    "$RELEASE_NAME-web"
 }
 
 main "$@"
