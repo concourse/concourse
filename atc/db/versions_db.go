@@ -93,20 +93,43 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) ([]int, error) {
 }
 
 func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, versionID int) ([]int, error) {
-	var buildIDs []int
-	rows, err := psql.Select("DISTINCT b.id").
-		From("resource_config_versions v").
-		LeftJoin("build_resource_config_version_inputs bi ON bi.version_md5 = v.version_md5").
-		LeftJoin("build_resource_config_version_outputs bo ON bo.version_md5 = v.version_md5").
-		LeftJoin("builds b ON b.id = bi.build_id OR b.id = bo.build_id").
+	var versionMD5 string
+	err := psql.Select("version_md5").
+		From("resource_config_versions").
 		Where(sq.Eq{
-			"b.job_id": jobID,
-			"b.status": "succeeded",
-			"v.id":     versionID,
+			"id": versionID,
 		}).
-		OrderBy("b.id DESC").
 		RunWith(versions.Conn).
-		Query()
+		QueryRow().
+		Scan(&versionMD5)
+	if err != nil {
+		return nil, err
+	}
+
+	var buildIDs []int
+	rows, err := versions.Conn.Query(`
+			WITH
+				succeeded_builds AS (
+					SELECT id
+					FROM builds
+					WHERE job_id = $1
+					AND status = 'succeeded'
+				)
+			SELECT b.id
+			FROM succeeded_builds b
+			WHERE EXISTS (
+				SELECT 1
+				FROM build_resource_config_version_inputs bi
+				WHERE bi.build_id = b.id
+				AND bi.version_md5 = $2
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM build_resource_config_version_outputs bo
+				WHERE bo.build_id = b.id
+				AND bo.version_md5 = $2
+			)
+			ORDER BY b.id DESC`, jobID, versionMD5)
 	if err != nil {
 		return nil, err
 	}
@@ -399,22 +422,43 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) ([]int, error) {
 }
 
 func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int, versionID int) ([]int, error) {
-	var buildIDs []int
-	rows, err := psql.Select("DISTINCT b.id").
-		From("resource_config_versions v").
-		LeftJoin("build_resource_config_version_inputs bi ON bi.version_md5 = v.version_md5").
-		LeftJoin("build_resource_config_version_outputs bo ON bo.version_md5 = v.version_md5").
-		LeftJoin("builds b ON b.id = bi.build_id OR b.id = bo.build_id").
-		Where(sq.And{
-			sq.Gt{"b.id": buildID},
-			sq.Eq{
-				"b.job_id": jobID,
-				"v.id":     versionID,
-			},
+	var versionMD5 string
+	err := psql.Select("version_md5").
+		From("resource_config_versions").
+		Where(sq.Eq{
+			"id": versionID,
 		}).
-		OrderBy("b.id ASC").
 		RunWith(versions.Conn).
-		Query()
+		QueryRow().
+		Scan(&versionMD5)
+	if err != nil {
+		return nil, err
+	}
+
+	var buildIDs []int
+	rows, err := versions.Conn.Query(`
+			WITH
+				succeeded_builds AS (
+					SELECT id
+					FROM builds
+					WHERE job_id = $1
+					AND id > $3
+				)
+			SELECT b.id
+			FROM succeeded_builds b
+			WHERE EXISTS (
+				SELECT 1
+				FROM build_resource_config_version_inputs bi
+				WHERE bi.build_id = b.id
+				AND bi.version_md5 = $2
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM build_resource_config_version_outputs bo
+				WHERE bo.build_id = b.id
+				AND bo.version_md5 = $2
+			)
+			ORDER BY b.id ASC`, jobID, versionMD5, buildID)
 	if err != nil {
 		return nil, err
 	}
@@ -430,21 +474,29 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		buildIDs = append(buildIDs, buildID)
 	}
 
-	rows, err = psql.Select("DISTINCT b.id").
-		From("resource_config_versions v").
-		LeftJoin("build_resource_config_version_inputs bi ON bi.version_md5 = v.version_md5").
-		LeftJoin("build_resource_config_version_outputs bo ON bo.version_md5 = v.version_md5").
-		LeftJoin("builds b ON b.id = bi.build_id OR b.id = bo.build_id").
-		Where(sq.And{
-			sq.LtOrEq{"b.id": buildID},
-			sq.Eq{
-				"b.job_id": jobID,
-				"v.id":     versionID,
-			},
-		}).
-		OrderBy("b.id DESC").
-		RunWith(versions.Conn).
-		Query()
+	rows, err = versions.Conn.Query(`
+			WITH
+				succeeded_builds AS (
+					SELECT id
+					FROM builds
+					WHERE job_id = $1
+					AND id <= $3
+				)
+			SELECT b.id
+			FROM succeeded_builds b
+			WHERE EXISTS (
+				SELECT 1
+				FROM build_resource_config_version_inputs bi
+				WHERE bi.build_id = b.id
+				AND bi.version_md5 = $2
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM build_resource_config_version_outputs bo
+				WHERE bo.build_id = b.id
+				AND bo.version_md5 = $2
+			)
+			ORDER BY b.id DESC`, jobID, versionMD5, buildID)
 	if err != nil {
 		return nil, err
 	}
