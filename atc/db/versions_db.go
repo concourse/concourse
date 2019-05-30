@@ -92,6 +92,38 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) ([]int, error) {
 	return buildIDs, nil
 }
 
+func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, versionID int) ([]int, error) {
+	var buildIDs []int
+	rows, err := psql.Select("DISTINCT b.id").
+		From("resource_config_versions v").
+		LeftJoin("build_resource_config_version_inputs bi ON bi.version_md5 = v.version_md5").
+		LeftJoin("build_resource_config_version_outputs bo ON bo.version_md5 = v.version_md5").
+		LeftJoin("builds b ON b.id = bi.build_id OR b.id = bo.build_id").
+		Where(sq.Eq{
+			"b.job_id": jobID,
+			"b.status": "succeeded",
+			"v.id":     versionID,
+		}).
+		OrderBy("b.id DESC").
+		RunWith(versions.Conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var id int
+		err := rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+
+		buildIDs = append(buildIDs, id)
+	}
+
+	return buildIDs, nil
+}
+
 func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmVersion, error) {
 	uniqOutputs := map[int]AlgorithmVersion{}
 
@@ -346,6 +378,71 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) ([]int, error) {
 			sq.Eq{"job_id": jobID},
 		}).
 		OrderBy("id DESC").
+		RunWith(versions.Conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var buildID int
+
+		err = rows.Scan(&buildID)
+		if err != nil {
+			return nil, err
+		}
+
+		buildIDs = append(buildIDs, buildID)
+	}
+
+	return buildIDs, nil
+}
+
+func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int, versionID int) ([]int, error) {
+	var buildIDs []int
+	rows, err := psql.Select("DISTINCT b.id").
+		From("resource_config_versions v").
+		LeftJoin("build_resource_config_version_inputs bi ON bi.version_md5 = v.version_md5").
+		LeftJoin("build_resource_config_version_outputs bo ON bo.version_md5 = v.version_md5").
+		LeftJoin("builds b ON b.id = bi.build_id OR b.id = bo.build_id").
+		Where(sq.And{
+			sq.Gt{"b.id": buildID},
+			sq.Eq{
+				"b.job_id": jobID,
+				"v.id":     versionID,
+			},
+		}).
+		OrderBy("b.id ASC").
+		RunWith(versions.Conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var buildID int
+
+		err = rows.Scan(&buildID)
+		if err != nil {
+			return nil, err
+		}
+
+		buildIDs = append(buildIDs, buildID)
+	}
+
+	rows, err = psql.Select("DISTINCT b.id").
+		From("resource_config_versions v").
+		LeftJoin("build_resource_config_version_inputs bi ON bi.version_md5 = v.version_md5").
+		LeftJoin("build_resource_config_version_outputs bo ON bo.version_md5 = v.version_md5").
+		LeftJoin("builds b ON b.id = bi.build_id OR b.id = bo.build_id").
+		Where(sq.And{
+			sq.LtOrEq{"b.id": buildID},
+			sq.Eq{
+				"b.job_id": jobID,
+				"v.id":     versionID,
+			},
+		}).
+		OrderBy("b.id DESC").
 		RunWith(versions.Conn).
 		Query()
 	if err != nil {

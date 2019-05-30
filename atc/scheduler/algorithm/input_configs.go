@@ -331,7 +331,11 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 					}
 
 					if found {
-						builds, err = db.UnusedBuilds(constraintBuildID, jobID)
+						if candidates[i] != nil {
+							builds, err = db.UnusedBuildsVersionConstrained(constraintBuildID, jobID, candidates[i].ID)
+						} else {
+							builds, err = db.UnusedBuilds(constraintBuildID, jobID)
+						}
 						if err != nil {
 							return false, err
 						}
@@ -341,7 +345,13 @@ func (im *inputMapper) tryResolve(depth int, db *db.VersionsDB, inputConfigs Inp
 
 			var err error
 			if len(builds) == 0 {
-				builds, err = db.SuccessfulBuilds(jobID)
+				if candidates[i] != nil {
+					builds, err = db.SuccessfulBuildsVersionConstrained(jobID, candidates[i].ID)
+					debug("found", len(builds), "builds for candidate", candidates[i].ID)
+				} else {
+					builds, err = db.SuccessfulBuilds(jobID)
+					debug("found", len(builds), "builds no candidate")
+				}
 				if err != nil {
 					return false, err
 				}
