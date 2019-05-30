@@ -9,14 +9,13 @@ module SideBar.SideBar exposing
 import Concourse
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (href, id, title)
+import Html.Attributes exposing (id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
-import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
 import SideBar.Styles as Styles

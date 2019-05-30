@@ -184,7 +184,7 @@ all =
                                 }
                                 |> teamName
                                 |> Query.has [ style "opacity" "0.5" ]
-                    , test "team icon is dim" <|
+                    , test "team icon is greyed out" <|
                         \_ ->
                             team
                                 { active = False
@@ -192,7 +192,7 @@ all =
                                 , hovered = False
                                 }
                                 |> teamIcon
-                                |> Query.has [ style "opacity" "0.2" ]
+                                |> Query.has [ style "opacity" "0.5" ]
                     ]
                 ]
             , describe "when collapsed"

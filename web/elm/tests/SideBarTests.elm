@@ -437,12 +437,12 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
                 >> then_ iSeeItEllipsizesLongText
-        , test "pipeline icon is greyed out when pipeline link is hovered" <|
+        , test "pipeline icon is bright when pipeline link is hovered" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given iHoveredThePipelineLink
                 >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeItIsGreyedOut
+                >> then_ iSeeItIsBright
         , DashboardTests.defineHoverBehaviour
             { name = "pipeline link"
             , setup =
@@ -468,7 +468,7 @@ hasSideBar iAmLookingAtThePage =
                 , selector =
                     [ style "opacity" "1"
                     , style "border" "1px solid #525151"
-                    , style "background-color" "#302F2F"
+                    , style "background-color" "#3A3A3A"
                     ]
                 }
             }
@@ -491,7 +491,7 @@ hasSideBar iAmLookingAtThePage =
                         given iHaveAnExpandedTeam
                             >> given iHoveredNothing
                             >> when iAmLookingAtTheTeamIcon
-                            >> then_ iSeeItIsDim
+                            >> then_ iSeeItIsGreyedOut
                     , test "is greyed out when hovered" <|
                         given iHaveAnExpandedTeam
                             >> given iHoveredThePipelineGroup
@@ -631,7 +631,7 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherPipelineName
-            >> then_ iSeeAGreyBackground
+            >> then_ iSeeADarkGreyBackground
     , test "current pipeline has bright pipeline icon" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
@@ -1858,6 +1858,10 @@ iSeeItIsGreyedOut =
 
 iSeeAGreyBackground =
     Query.has [ style "background-color" "#353434" ]
+
+
+iSeeADarkGreyBackground =
+    Query.has [ style "background-color" "#272727" ]
 
 
 iSeeItStretches =

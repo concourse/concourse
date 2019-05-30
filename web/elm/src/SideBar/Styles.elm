@@ -61,8 +61,8 @@ iconGroup =
     ]
 
 
-teamIcon : { isCurrent : Bool, isHovered : Bool } -> Html.Html msg
-teamIcon { isCurrent, isHovered } =
+teamIcon : { isExpanded : Bool, isCurrent : Bool, isHovered : Bool } -> Html.Html msg
+teamIcon { isExpanded, isCurrent, isHovered } =
     Icon.icon
         { sizePx = 20
         , image = "baseline-people-24px.svg"
@@ -74,7 +74,7 @@ teamIcon { isCurrent, isHovered } =
             if isCurrent then
                 "1"
 
-            else if isHovered then
+            else if isHovered || isExpanded then
                 "0.5"
 
             else
@@ -174,10 +174,10 @@ pipelineLink { isHovered, isCurrent } =
             "0.5"
     ]
         ++ (if isCurrent then
-                [ style "background-color" "#353434" ]
+                [ style "background-color" "#272727" ]
 
             else if isHovered then
-                [ style "background-color" "#302F2F" ]
+                [ style "background-color" "#3A3A3A" ]
 
             else
                 []
@@ -239,11 +239,8 @@ pipelineIcon { isCurrent, isHovered } =
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
     , style "opacity" <|
-        if isCurrent then
+        if isCurrent || isHovered then
             "1"
-
-        else if isHovered then
-            "0.5"
 
         else
             "0.2"
