@@ -3,9 +3,7 @@ platform: linux
 
 image_resource:
   type: registry-image
-  source:
-    repository: hashicorp/terraform
-    tag: full
+  source: {repository: concourse/unit}
 
 params:
   GCP_PROJECT:

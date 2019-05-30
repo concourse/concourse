@@ -2,7 +2,7 @@
 
 # vim: set ft=sh
 
-set -u
+set -e -u
 
 readonly ATC_URL="${ATC_URL:-}"
 readonly MAX_TICKS="${MAX_TICKS:-}"
@@ -46,7 +46,7 @@ try_until_responding() {
 
   echo "waiting for a worker to be running"
 
-  until $(fly -t $TARGET_NAME workers | grep 'running' &> /dev/null); do
+  until fly -t $TARGET_NAME workers | grep 'running' &> /dev/null; do
     echo -n
 
     ((ticks++))
@@ -57,7 +57,7 @@ try_until_responding() {
     fi
 
     sleep 1
-done
+  done
 }
 
 main

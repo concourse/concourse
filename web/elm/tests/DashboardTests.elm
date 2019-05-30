@@ -3,7 +3,6 @@ module DashboardTests exposing
     , almostBlack
     , apiData
     , darkGrey
-    , defineHoverBehaviour
     , givenDataAndUser
     , givenDataUnauthenticated
     , iconSelector
@@ -13,7 +12,7 @@ module DashboardTests exposing
     )
 
 import Application.Application as Application
-import Common
+import Common exposing (defineHoverBehaviour)
 import Concourse
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
@@ -3500,86 +3499,6 @@ afterSeconds n =
 csrfToken : String
 csrfToken =
     "csrf_token"
-
-
-defineHoverBehaviour :
-    { name : String
-    , setup : Application.Model
-    , query : Application.Model -> Query.Single ApplicationMsgs.TopLevelMessage
-    , unhoveredSelector : { description : String, selector : List Selector }
-    , hoverable : Msgs.DomID
-    , hoveredSelector : { description : String, selector : List Selector }
-    }
-    -> Test
-defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hoveredSelector } =
-    describe (name ++ " hover behaviour")
-        [ test (name ++ " is " ++ unhoveredSelector.description) <|
-            \_ ->
-                setup
-                    |> query
-                    |> Query.has unhoveredSelector.selector
-        , test ("mousing over " ++ name ++ " triggers Hover msg") <|
-            \_ ->
-                setup
-                    |> query
-                    |> Event.simulate Event.mouseEnter
-                    |> Event.expect
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover <|
-                                Just hoverable
-                        )
-        , test
-            ("Hover msg causes "
-                ++ name
-                ++ " to become "
-                ++ hoveredSelector.description
-            )
-          <|
-            \_ ->
-                setup
-                    |> Application.update
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover <|
-                                Just hoverable
-                        )
-                    |> Tuple.first
-                    |> query
-                    |> Query.has hoveredSelector.selector
-        , test ("mousing off " ++ name ++ " triggers unhover msg") <|
-            \_ ->
-                setup
-                    |> Application.update
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover <|
-                                Just hoverable
-                        )
-                    |> Tuple.first
-                    |> query
-                    |> Event.simulate Event.mouseLeave
-                    |> Event.expect (ApplicationMsgs.Update <| Msgs.Hover Nothing)
-        , test
-            ("unhover msg causes "
-                ++ name
-                ++ " to become "
-                ++ unhoveredSelector.description
-            )
-          <|
-            \_ ->
-                setup
-                    |> Application.update
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover <|
-                                Just hoverable
-                        )
-                    |> Tuple.first
-                    |> Application.update
-                        (ApplicationMsgs.Update <|
-                            Msgs.Hover Nothing
-                        )
-                    |> Tuple.first
-                    |> query
-                    |> Query.has unhoveredSelector.selector
-        ]
 
 
 iconSelector : { size : String, image : String } -> List Selector

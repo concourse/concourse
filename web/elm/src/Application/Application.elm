@@ -31,6 +31,7 @@ import ScreenSize
 import Set
 import SideBar.SideBar as SideBar
 import SubPage.SubPage as SubPage
+import Time
 import Url
 import UserState exposing (UserState(..))
 
@@ -72,6 +73,7 @@ init flags url =
             , pipelines = RemoteData.NotAsked
             , isSideBarOpen = False
             , screenSize = ScreenSize.Desktop
+            , timeZone = Time.utc
             }
 
         ( subModel, subEffects ) =
@@ -210,6 +212,16 @@ handleCallback callback model =
             subpageHandleCallback
                 callback
                 ( { model | session = newSession }, [] )
+
+        GotCurrentTimeZone zone ->
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | timeZone = zone }
+            in
+            ( { model | session = newSession }, [] )
 
         -- otherwise, pass down
         _ ->

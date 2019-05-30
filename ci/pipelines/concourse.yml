@@ -3,11 +3,6 @@ resource_types:
   type: registry-image
   source: {repository: frodenas/gcs-resource}
 
-# needed for 'tag' file creation; can be removed once shipped
-- name: registry-image
-  type: registry-image
-  source: {repository: concourse/registry-image-resource}
-
 - name: bosh-release
   type: registry-image
   source: {repository: dpb587/bosh-release-resource}
@@ -15,26 +10,6 @@ resource_types:
 - name: bosh-deployment
   type: registry-image
   source: {repository: cloudfoundry/bosh-deployment-resource}
-
-- name: github-release
-  type: registry-image
-  source: {repository: concourse/github-release-resource}
-
-- name: semver
-  type: registry-image
-  source: {repository: concourse/semver-resource}
-
-- name: s3
-  type: registry-image
-  source: {repository: concourse/s3-resource}
-
-- name: bosh-io-release
-  type: registry-image
-  source: {repository: concourse/bosh-io-release-resource}
-
-- name: bosh-io-stemcell
-  type: registry-image
-  source: {repository: concourse/bosh-io-stemcell-resource}
 
 groups:
 - name: develop
@@ -533,6 +508,7 @@ jobs:
       passed: [build-rc]
       trigger: true
   - task: terraform-smoke
+    image: unit-image
     file: concourse/ci/tasks/terraform-smoke.yml
     params:
       GCP_PROJECT: cf-concourse-production
@@ -1323,7 +1299,7 @@ resources:
 - name: builder
   type: registry-image
   icon: *image-icon
-  source: {repository: concourse/builder}
+  source: {repository: concourse/builder-task}
 
 - name: version
   type: semver
