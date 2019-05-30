@@ -126,7 +126,7 @@ var encryptedColumns = []encryptedColumn{
 	{"jobs", "config", "id"},
 	{"resource_types", "config", "id"},
 	{"builds", "private_plan", "id"},
-	{"vert_cache", "cert", "domain"},
+	{"cert_cache", "cert", "domain"},
 }
 
 func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *encryption.Key) error {
