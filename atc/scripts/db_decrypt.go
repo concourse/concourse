@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/atc/db/encryption"
+	"github.com/concourse/concourse/v5/atc/db/encryption"
 	"github.com/concourse/flag"
 	flags "github.com/jessevdk/go-flags"
 )

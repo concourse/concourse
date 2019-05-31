@@ -7,8 +7,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/db/lock"
 )
 
 //go:generate counterfeiter . ResourceConfigScope

@@ -12,10 +12,10 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/lock/lockfakes"
-	. "github.com/concourse/concourse/atc/lockrunner"
-	"github.com/concourse/concourse/atc/lockrunner/lockrunnerfakes"
+	"github.com/concourse/concourse/v5/atc/db/lock"
+	"github.com/concourse/concourse/v5/atc/db/lock/lockfakes"
+	. "github.com/concourse/concourse/v5/atc/lockrunner"
+	"github.com/concourse/concourse/v5/atc/lockrunner/lockrunnerfakes"
 )
 
 var _ = Describe("Runner", func() {

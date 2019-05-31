@@ -2,8 +2,8 @@ package volumeserver
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/gc"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/atc/gc"
 )
 
 type Server struct {

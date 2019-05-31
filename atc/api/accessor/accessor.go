@@ -1,7 +1,7 @@
 package accessor
 
 import (
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v5/atc"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/mitchellh/mapstructure"
 )

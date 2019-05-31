@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v5/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -29,7 +29,7 @@ const atcVersion = "4.0.0"
 const workerVersion = "4.5.6"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	binPath, err := gexec.Build("github.com/concourse/concourse/fly")
+	binPath, err := gexec.Build("github.com/concourse/concourse/v5/fly")
 	Expect(err).NotTo(HaveOccurred())
 
 	return []byte(binPath)

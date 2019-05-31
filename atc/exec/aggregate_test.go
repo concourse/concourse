@@ -5,9 +5,9 @@ import (
 	"errors"
 	"sync"
 
-	. "github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
-	"github.com/concourse/concourse/atc/exec/execfakes"
+	. "github.com/concourse/concourse/v5/atc/exec"
+	"github.com/concourse/concourse/v5/atc/exec/artifact"
+	"github.com/concourse/concourse/v5/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

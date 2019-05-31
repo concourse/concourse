@@ -6,12 +6,12 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/worker/transport"
-	"github.com/concourse/concourse/atc/worker/transport/transportfakes"
+	"github.com/concourse/concourse/v5/atc/db/dbfakes"
+	"github.com/concourse/concourse/v5/atc/worker/transport"
+	"github.com/concourse/concourse/v5/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp/retryhttpfakes"
 
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -13,9 +13,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/encryption"
-	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/atc/db/encryption"
+	"github.com/concourse/concourse/v5/atc/db/migration"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"

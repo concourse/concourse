@@ -14,5 +14,5 @@ EOF
 mkdir release/artifacts
 
 for platform in linux windows darwin; do
-  cp ${platform}-binary/* release/artifacts
+    cp ${platform}-binary/* release/artifacts
 done

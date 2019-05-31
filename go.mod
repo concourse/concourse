@@ -1,4 +1,4 @@
-module github.com/concourse/concourse
+module github.com/concourse/concourse/v5
 
 require (
 	cloud.google.com/go v0.28.0 // indirect

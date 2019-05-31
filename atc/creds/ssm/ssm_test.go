@@ -2,7 +2,7 @@ package ssm_test
 
 import (
 	"errors"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v5/atc/creds"
 	"strconv"
 	"text/template"
 
@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	varTemplate "github.com/cloudfoundry/bosh-cli/director/template"
-	. "github.com/concourse/concourse/atc/creds/ssm"
+	. "github.com/concourse/concourse/v5/atc/creds/ssm"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

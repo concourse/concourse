@@ -1,7 +1,7 @@
 package setpipelinehelpers_test
 
 import (
-	. "github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
+	. "github.com/concourse/concourse/v5/fly/commands/internal/setpipelinehelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

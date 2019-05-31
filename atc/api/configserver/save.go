@@ -12,14 +12,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/v5/atc/exec"
 
 	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/creds"
+	"github.com/concourse/concourse/v5/atc/db"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tedsuo/rata"

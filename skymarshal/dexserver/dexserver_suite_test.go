@@ -3,7 +3,7 @@ package dexserver_test
 import (
 	"os"
 
-	"github.com/concourse/concourse/atc/postgresrunner"
+	"github.com/concourse/concourse/v5/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"

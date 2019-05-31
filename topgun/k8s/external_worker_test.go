@@ -5,7 +5,7 @@ import (
 
 	"github.com/onsi/gomega/gexec"
 
-	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/v5/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

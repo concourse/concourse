@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/api/present"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/v5/atc/api/present"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/atc/worker"
 )
 
 func (s *Server) CreateArtifact(team db.Team) http.Handler {

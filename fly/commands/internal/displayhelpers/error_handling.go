@@ -2,10 +2,10 @@ package displayhelpers
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v5/go-concourse/concourse"
 	"os"
 
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v5/fly/ui"
 )
 
 func PrintDeprecationWarningHeader() {

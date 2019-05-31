@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/skymarshal/skyserver"
-	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
+	"github.com/concourse/concourse/v5/atc/db/dbfakes"
+	"github.com/concourse/concourse/v5/skymarshal/skyserver"
+	"github.com/concourse/concourse/v5/skymarshal/token/tokenfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

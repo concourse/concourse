@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/encryption"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/atc/db/encryption"
 	"golang.org/x/crypto/acme/autocert"
 )
 

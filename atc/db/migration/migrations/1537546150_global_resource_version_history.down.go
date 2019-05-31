@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v5/atc"
 )
 
 func (self *migrations) Down_1537546150() error {

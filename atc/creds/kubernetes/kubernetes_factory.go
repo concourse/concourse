@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v5/atc/creds"
 	"k8s.io/client-go/kubernetes"
 )
 

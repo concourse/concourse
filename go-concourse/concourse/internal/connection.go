@@ -12,7 +12,7 @@ import (
 
 	"log"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v5/atc"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
 )

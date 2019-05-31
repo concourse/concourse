@@ -7,10 +7,10 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/atc/event"
+	"github.com/concourse/concourse/v5/atc/exec"
 )
 
 func NewDelegateFactory() *delegateFactory {

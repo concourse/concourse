@@ -3,7 +3,7 @@ package pipelineserver
 import (
 	"net/http"
 
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc/db"
 )
 
 func (s *Server) HidePipeline(pipelineDB db.Pipeline) http.Handler {

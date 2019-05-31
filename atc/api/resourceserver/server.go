@@ -2,9 +2,9 @@ package resourceserver
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/v5/atc/creds"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/atc/radar"
 )
 
 //go:generate counterfeiter . ScannerFactory

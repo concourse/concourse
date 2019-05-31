@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/concourse/concourse/atc/resource"
+	. "github.com/concourse/concourse/v5/atc/resource"
 )
 
 var _ = Describe("Resource", func() {

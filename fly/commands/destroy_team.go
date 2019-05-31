@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/fly/ui"
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v5/fly/rc"
+	"github.com/concourse/concourse/v5/fly/ui"
+	"github.com/concourse/concourse/v5/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
 )
 

@@ -2,8 +2,8 @@ package vault_test
 
 import (
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/vault"
+	"github.com/concourse/concourse/v5/atc/creds"
+	"github.com/concourse/concourse/v5/atc/creds/vault"
 	vaultapi "github.com/hashicorp/vault/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

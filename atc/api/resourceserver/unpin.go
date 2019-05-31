@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc/db"
 )
 
 func (s *Server) UnpinResource(pipeline db.Pipeline) http.Handler {

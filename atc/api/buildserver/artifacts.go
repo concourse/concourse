@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/concourse/atc/api/present"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc/api/present"
+	"github.com/concourse/concourse/v5/atc/db"
 )
 
 func (s *Server) GetBuildArtifacts(build db.Build) http.Handler {

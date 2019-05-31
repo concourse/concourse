@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse/internal"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
 

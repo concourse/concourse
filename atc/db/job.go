@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/algorithm"
-	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/db/algorithm"
+	"github.com/concourse/concourse/v5/atc/db/lock"
 	"github.com/lib/pq"
 )
 

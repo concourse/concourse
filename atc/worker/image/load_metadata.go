@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/v5/atc/worker"
 )
 
 type MalformedMetadataError struct {

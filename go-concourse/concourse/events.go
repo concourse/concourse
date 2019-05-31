@@ -1,9 +1,9 @@
 package concourse
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse/eventstream"
-	"github.com/concourse/concourse/go-concourse/concourse/internal"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/go-concourse/concourse/eventstream"
+	"github.com/concourse/concourse/v5/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
 

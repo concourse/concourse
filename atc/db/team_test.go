@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/creds"
+	"github.com/concourse/concourse/v5/atc/creds/credsfakes"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

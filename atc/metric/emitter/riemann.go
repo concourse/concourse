@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/The-Cloud-Source/goryman"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/v5/atc/metric"
 	"github.com/pkg/errors"
 )
 

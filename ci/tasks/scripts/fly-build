@@ -13,26 +13,26 @@ output="$PWD/fly-${platform}"
 
 ldflags=""
 if [ -e final-version/version ]; then
-  final_version="$(cat final-version/version)"
-  ldflags="-X github.com/concourse/concourse.Version=${final_version}"
+    final_version="$(cat final-version/version)"
+    ldflags="-X github.com/concourse/concourse.Version=${final_version}"
 fi
 
 pushd concourse
-  export CGO_ENABLED=1
-  if [ "$platform" = "linux" ]; then
+export CGO_ENABLED=1
+if [ "$platform" = "linux" ]; then
     export CGO_ENABLED=0
-  fi
+fi
 
-  go build -ldflags "$ldflags" -o $output/fly ./fly
+go build -ldflags "$ldflags" -o $output/fly ./fly
 
-  if [ "$platform" = "linux" ] && which ldd && ldd $output/fly; then
+if [ "$platform" = "linux" ] && which ldd && ldd $output/fly; then
     echo "binary is not static; aborting"
     exit 1
-  fi
+fi
 popd
 
 pushd $output
-  archive=fly-$platform-$arch.tgz
-  tar -czf $archive fly
-  shasum "$archive" > "${archive}.sha1"
+archive=fly-$platform-$arch.tgz
+tar -czf $archive fly
+shasum "$archive" > "${archive}.sha1"
 popd

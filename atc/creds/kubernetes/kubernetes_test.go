@@ -1,8 +1,8 @@
 package kubernetes_test
 
 import (
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/kubernetes"
+	"github.com/concourse/concourse/v5/atc/creds"
+	"github.com/concourse/concourse/v5/atc/creds/kubernetes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

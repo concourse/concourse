@@ -14,7 +14,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v5/atc"
 	"github.com/concourse/flag"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"

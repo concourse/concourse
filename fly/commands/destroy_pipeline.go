@@ -3,10 +3,10 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/v5/fly/rc"
 	"github.com/vito/go-interact/interact"
 
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/v5/fly/commands/internal/flaghelpers"
 )
 
 type DestroyPipelineCommand struct {

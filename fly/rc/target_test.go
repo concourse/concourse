@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/v5/fly/rc"
 	"golang.org/x/oauth2"
 	yaml "gopkg.in/yaml.v2"
 

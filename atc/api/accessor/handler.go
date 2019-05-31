@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/concourse/concourse/atc/auditor"
+	"github.com/concourse/concourse/v5/atc/auditor"
 )
 
 func NewHandler(

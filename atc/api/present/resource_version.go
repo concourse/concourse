@@ -1,7 +1,7 @@
 package present
 
 import (
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v5/atc"
 )
 
 func ResourceVersions(hideMetadata bool, resourceVersions []atc.ResourceVersion) []atc.ResourceVersion {

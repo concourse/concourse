@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/fly/ui"
 	"github.com/fatih/color"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"

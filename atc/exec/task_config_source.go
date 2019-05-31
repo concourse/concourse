@@ -11,9 +11,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/exec/artifact"
-	"github.com/concourse/concourse/atc/template"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/exec/artifact"
+	"github.com/concourse/concourse/v5/atc/template"
 )
 
 //go:generate counterfeiter . TaskConfigSource

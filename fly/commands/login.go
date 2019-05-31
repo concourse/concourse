@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/fly/rc"
+	"github.com/concourse/concourse/v5/go-concourse/concourse"
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
 	"github.com/mitchellh/mapstructure"
 	"github.com/skratchdot/open-golang/open"

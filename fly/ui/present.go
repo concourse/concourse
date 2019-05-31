@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v5/atc"
 )
 
 func PresentVersion(version atc.Version) string {

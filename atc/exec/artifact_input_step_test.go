@@ -5,11 +5,11 @@ import (
 	"errors"
 	"io/ioutil"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/db/dbfakes"
+	"github.com/concourse/concourse/v5/atc/exec"
+	"github.com/concourse/concourse/v5/atc/exec/execfakes"
+	"github.com/concourse/concourse/v5/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

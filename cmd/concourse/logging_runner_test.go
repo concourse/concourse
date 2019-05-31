@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/concourse/concourse/cmd/concourse"
+	. "github.com/concourse/concourse/v5/cmd/concourse"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"

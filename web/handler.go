@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/web/indexhandler"
-	"github.com/concourse/concourse/web/publichandler"
-	"github.com/concourse/concourse/web/robotshandler"
+	"github.com/concourse/concourse/v5/web/indexhandler"
+	"github.com/concourse/concourse/v5/web/publichandler"
+	"github.com/concourse/concourse/v5/web/robotshandler"
 )
 
 func NewHandler(logger lager.Logger) (http.Handler, error) {

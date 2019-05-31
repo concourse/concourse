@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/v5/fly/rc"
 )
 
 type EditTargetCommand struct {

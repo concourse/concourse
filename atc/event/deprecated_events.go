@@ -1,6 +1,6 @@
 package event
 
-import "github.com/concourse/concourse/atc"
+import "github.com/concourse/concourse/v5/atc"
 
 // move events here as they cease to be emitted by new code.
 //

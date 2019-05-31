@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v5/atc"
 )
 
 type WorkerConfig struct {

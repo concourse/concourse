@@ -3,7 +3,7 @@ package exec
 import (
 	"errors"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v5/atc"
 )
 
 func NewVersionSourceFromPlan(getPlan *atc.GetPlan) VersionSource {

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/api/present"
+	"github.com/concourse/concourse/v5/atc/api/accessor"
+	"github.com/concourse/concourse/v5/atc/api/present"
 )
 
 // show all public pipelines and team private pipelines if authorized

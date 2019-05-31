@@ -2,7 +2,7 @@ package template_test
 
 import (
 	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/concourse/atc/template"
+	"github.com/concourse/concourse/v5/atc/template"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"

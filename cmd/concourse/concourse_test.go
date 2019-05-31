@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/concourse/concourse/atc/postgresrunner"
+	"github.com/concourse/concourse/v5/atc/postgresrunner"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

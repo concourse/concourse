@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/v5/atc/metric"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/creds"
+	"github.com/concourse/concourse/v5/atc/db"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 

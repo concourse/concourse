@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/exec/artifact"
 )
 
 type runState struct {

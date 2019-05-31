@@ -20,7 +20,7 @@ import (
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
 	yaml "gopkg.in/yaml.v2"
 
-	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/v5/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

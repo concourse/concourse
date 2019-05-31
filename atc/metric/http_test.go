@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/metric/metricfakes"
+	"github.com/concourse/concourse/v5/atc/metric"
+	"github.com/concourse/concourse/v5/atc/metric/metricfakes"
 
-	. "github.com/concourse/concourse/atc/metric"
+	. "github.com/concourse/concourse/v5/atc/metric"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

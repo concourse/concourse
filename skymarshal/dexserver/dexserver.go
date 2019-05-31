@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/skymarshal/logger"
-	"github.com/concourse/concourse/skymarshal/skycmd"
-	s "github.com/concourse/concourse/skymarshal/storage"
+	"github.com/concourse/concourse/v5/skymarshal/logger"
+	"github.com/concourse/concourse/v5/skymarshal/skycmd"
+	s "github.com/concourse/concourse/v5/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/storage"
 	"github.com/gobuffalo/packr"

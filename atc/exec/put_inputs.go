@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/exec/artifact"
-	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/v5/atc/exec/artifact"
+	"github.com/concourse/concourse/v5/atc/resource"
+	"github.com/concourse/concourse/v5/atc/worker"
 )
 
 type PutInputNotFoundError struct {

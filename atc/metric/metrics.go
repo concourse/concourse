@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/v5/atc/db/lock"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc/db"
 )
 
 var Databases []db.Conn

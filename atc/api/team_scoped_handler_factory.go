@@ -6,8 +6,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc/api/accessor"
+	"github.com/concourse/concourse/v5/atc/db"
 )
 
 type TeamScopedHandlerFactory struct {

@@ -17,7 +17,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v5/go-concourse/concourse"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/oauth2"
@@ -57,7 +57,7 @@ func TestTestflight(t *testing.T) {
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	var err error
-	config.FlyBin, err = gexec.Build("github.com/concourse/concourse/fly")
+	config.FlyBin, err = gexec.Build("github.com/concourse/concourse/v5/fly")
 	Expect(err).ToNot(HaveOccurred())
 
 	atcURL := os.Getenv("ATC_URL")

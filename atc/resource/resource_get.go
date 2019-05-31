@@ -3,8 +3,8 @@ package resource
 import (
 	"context"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/worker"
 )
 
 type getRequest struct {

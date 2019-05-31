@@ -3,10 +3,10 @@ package inputconfig_test
 import (
 	"errors"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/algorithm"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/db/algorithm"
+	"github.com/concourse/concourse/v5/atc/db/dbfakes"
+	"github.com/concourse/concourse/v5/atc/scheduler/inputmapper/inputconfig"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

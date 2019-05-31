@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	command "github.com/concourse/concourse/atc/db/migration/cli/command"
+	command "github.com/concourse/concourse/v5/atc/db/migration/cli/command"
 	flags "github.com/jessevdk/go-flags"
 )
 

@@ -2,7 +2,7 @@ package syslog_test
 
 import (
 	"crypto/tls"
-	"github.com/concourse/concourse/atc/syslog"
+	"github.com/concourse/concourse/v5/atc/syslog"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/square/certstrap/pkix"

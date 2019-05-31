@@ -3,7 +3,7 @@ package vault
 import (
 	"time"
 
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v5/atc/creds"
 )
 
 // The vaultFactory will return a vault implementation of creds.Variables.

@@ -1,7 +1,7 @@
 package noop_test
 
 import (
-	. "github.com/concourse/concourse/atc/creds/noop"
+	. "github.com/concourse/concourse/v5/atc/creds/noop"
 	"time"
 
 	. "github.com/onsi/ginkgo"

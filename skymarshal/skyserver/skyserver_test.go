@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/concourse/v5/skymarshal/token"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"

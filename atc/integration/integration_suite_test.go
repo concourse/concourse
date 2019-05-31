@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/concourse/concourse/atc/atccmd"
-	"github.com/concourse/concourse/atc/postgresrunner"
+	"github.com/concourse/concourse/v5/atc/atccmd"
+	"github.com/concourse/concourse/v5/atc/postgresrunner"
 	flags "github.com/jessevdk/go-flags"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

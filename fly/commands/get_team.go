@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v5/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/v5/fly/rc"
+	"github.com/concourse/concourse/v5/fly/ui"
 	"github.com/fatih/color"
 )
 

@@ -3,8 +3,8 @@ package gc_test
 import (
 	"context"
 
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/gc"
+	"github.com/concourse/concourse/v5/atc/db/dbfakes"
+	"github.com/concourse/concourse/v5/atc/gc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

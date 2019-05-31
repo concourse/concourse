@@ -9,13 +9,13 @@ import (
 	"net/url"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/skymarshal/dexserver"
-	"github.com/concourse/concourse/skymarshal/legacyserver"
-	"github.com/concourse/concourse/skymarshal/skycmd"
-	"github.com/concourse/concourse/skymarshal/skyserver"
-	"github.com/concourse/concourse/skymarshal/storage"
-	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/skymarshal/dexserver"
+	"github.com/concourse/concourse/v5/skymarshal/legacyserver"
+	"github.com/concourse/concourse/v5/skymarshal/skycmd"
+	"github.com/concourse/concourse/v5/skymarshal/skyserver"
+	"github.com/concourse/concourse/v5/skymarshal/storage"
+	"github.com/concourse/concourse/v5/skymarshal/token"
 	"github.com/concourse/flag"
 )
 

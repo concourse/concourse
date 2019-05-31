@@ -1,9 +1,9 @@
 package factory_test
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/scheduler/factory"
-	"github.com/concourse/concourse/atc/testhelpers"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/scheduler/factory"
+	"github.com/concourse/concourse/v5/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

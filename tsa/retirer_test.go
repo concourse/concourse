@@ -3,12 +3,12 @@ package tsa_test
 import (
 	"context"
 
-	"github.com/concourse/concourse/tsa"
+	"github.com/concourse/concourse/v5/tsa"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/tsa/tsafakes"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/tsa/tsafakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"

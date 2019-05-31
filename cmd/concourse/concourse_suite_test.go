@@ -16,7 +16,7 @@ func TestConcourse(t *testing.T) {
 var concoursePath string
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	buildPath, err := gexec.Build("github.com/concourse/concourse/cmd/concourse")
+	buildPath, err := gexec.Build("github.com/concourse/concourse/v5/cmd/concourse")
 	Expect(err).NotTo(HaveOccurred())
 	return []byte(buildPath)
 }, func(data []byte) {

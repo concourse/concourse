@@ -3,10 +3,10 @@ package radar
 import (
 	"time"
 
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/v5/atc/creds"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/atc/resource"
+	"github.com/concourse/concourse/v5/atc/worker"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"

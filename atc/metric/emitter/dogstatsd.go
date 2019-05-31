@@ -8,7 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/datadog-go/statsd"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/v5/atc/metric"
 	"github.com/pkg/errors"
 )
 

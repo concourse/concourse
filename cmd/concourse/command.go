@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/concourse/concourse/atc/atccmd"
-	"github.com/concourse/concourse/worker/land"
-	"github.com/concourse/concourse/worker/retire"
+	"github.com/concourse/concourse/v5/atc/atccmd"
+	"github.com/concourse/concourse/v5/worker/land"
+	"github.com/concourse/concourse/v5/worker/retire"
 	flags "github.com/jessevdk/go-flags"
 )
 

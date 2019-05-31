@@ -3,9 +3,9 @@ package templatehelpers
 import (
 	"fmt"
 	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/template"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/template"
+	"github.com/concourse/concourse/v5/fly/commands/internal/flaghelpers"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )

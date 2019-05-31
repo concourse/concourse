@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/v5/atc/api/auth"
 )
 
 var _ = Describe("CookieSetHandler", func() {

@@ -2,7 +2,7 @@ package worker
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc/db"
 )
 
 //go:generate counterfeiter . Client

@@ -10,8 +10,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 
-	. "github.com/concourse/concourse/atc/builds"
-	"github.com/concourse/concourse/atc/builds/buildsfakes"
+	. "github.com/concourse/concourse/v5/atc/builds"
+	"github.com/concourse/concourse/v5/atc/builds/buildsfakes"
 )
 
 var _ = Describe("TrackerRunner", func() {

@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/api/present"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/atc/api/accessor"
+	"github.com/concourse/concourse/v5/atc/api/present"
+	"github.com/concourse/concourse/v5/atc/db"
 )
 
 func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {

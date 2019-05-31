@@ -3,7 +3,7 @@ package artifact
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/v5/atc/worker"
 )
 
 // Name is just a string, with its own type to make interfaces using it

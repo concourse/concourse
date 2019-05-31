@@ -14,8 +14,8 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/version"
+	"github.com/concourse/concourse/v5/atc"
+	"github.com/concourse/concourse/v5/fly/version"
 )
 
 var _ = Describe("login Command", func() {
@@ -562,8 +562,8 @@ var _ = Describe("login Command", func() {
 
 				flyVersion = fmt.Sprintf("%d.%d.%d", major+1, minor, patch)
 				flyPath, err := gexec.Build(
-					"github.com/concourse/concourse/fly",
-					"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse.Version=%s", flyVersion),
+					"github.com/concourse/concourse/v5/fly",
+					"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse/v5.Version=%s", flyVersion),
 				)
 				Expect(err).NotTo(HaveOccurred())
 				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "user", "-p", "pass")

@@ -1,7 +1,7 @@
 package vault_test
 
 import (
-	"github.com/concourse/concourse/atc/creds/vault"
+	"github.com/concourse/concourse/v5/atc/creds/vault"
 	"github.com/jessevdk/go-flags"
 
 	. "github.com/onsi/ginkgo"

@@ -2,8 +2,8 @@ package creds_test
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
+	"github.com/concourse/concourse/v5/atc/creds"
+	"github.com/concourse/concourse/v5/atc/creds/credsfakes"
 	"time"
 
 	. "github.com/onsi/ginkgo"

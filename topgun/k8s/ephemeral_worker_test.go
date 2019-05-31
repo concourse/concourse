@@ -6,7 +6,7 @@ import (
 
 	"github.com/onsi/gomega/gexec"
 
-	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/v5/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,7 +21,7 @@ var _ = Describe("Ephemeral workers", func() {
 		setReleaseNameAndNamespace("ew")
 
 		deployConcourseChart(releaseName,
-			// TODO: https://github.com/concourse/concourse/issues/2827
+			// TODO: https://github.com/concourse/concourse/v5/issues/2827
 			"--set=concourse.web.gc.interval=300ms",
 			"--set=concourse.web.tsa.heartbeatInterval=300ms",
 			"--set=worker.replicas=1",

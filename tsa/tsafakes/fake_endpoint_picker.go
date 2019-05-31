@@ -4,7 +4,7 @@ package tsafakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/tsa"
+	"github.com/concourse/concourse/v5/tsa"
 	"github.com/tedsuo/rata"
 )
 

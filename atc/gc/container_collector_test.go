@@ -5,17 +5,17 @@ import (
 	"errors"
 	"time"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/gc"
-	"github.com/concourse/concourse/atc/gc/gcfakes"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/v5/atc/db"
+	"github.com/concourse/concourse/v5/atc/gc"
+	"github.com/concourse/concourse/v5/atc/gc/gcfakes"
+	"github.com/concourse/concourse/v5/atc/worker"
+	"github.com/concourse/concourse/v5/atc/worker/workerfakes"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/v5/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

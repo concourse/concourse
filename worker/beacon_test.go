@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/tsa"
-	"github.com/concourse/concourse/worker"
-	"github.com/concourse/concourse/worker/workerfakes"
+	"github.com/concourse/concourse/v5/tsa"
+	"github.com/concourse/concourse/v5/worker"
+	"github.com/concourse/concourse/v5/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"

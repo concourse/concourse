@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	concourse "github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v5/atc"
+	concourse "github.com/concourse/concourse/v5/go-concourse/concourse"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"

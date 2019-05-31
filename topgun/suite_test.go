@@ -21,11 +21,11 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
 	bclient "github.com/concourse/baggageclaim/client"
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v5/go-concourse/concourse"
 	"github.com/onsi/gomega/gexec"
 	"golang.org/x/oauth2"
 
-	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/v5/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

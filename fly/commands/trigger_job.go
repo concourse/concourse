@@ -6,10 +6,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/eventstream"
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v5/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/v5/fly/eventstream"
+	"github.com/concourse/concourse/v5/fly/rc"
+	"github.com/concourse/concourse/v5/fly/ui"
 )
 
 type TriggerJobCommand struct {
