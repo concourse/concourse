@@ -461,6 +461,13 @@ jobs:
     - put: darwin-rc
       params: {file: concourse-darwin/concourse-*.tgz}
       inputs: [concourse-darwin]
+  # this tag is depended on by an automated internal process that scans for
+  # open source licenses
+  - put: concourse
+    params:
+      repository: concourse
+      tag: version/version
+      tag_prefix: v
 
 - name: build-rc-image
   public: true
