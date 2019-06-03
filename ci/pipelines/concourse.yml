@@ -213,7 +213,6 @@ jobs:
     - get: postgres-image
       params: {format: oci}
     - get: ci
-      passed: [unit, dev-image]
   - task: testflight
     image: unit-image
     privileged: true
@@ -238,7 +237,6 @@ jobs:
     - get: postgres-image
       params: {format: oci}
     - get: ci
-      passed: [unit, dev-image]
   - task: watsjs
     image: unit-image
     privileged: true
@@ -264,7 +262,6 @@ jobs:
     - get: postgres-image
       params: {format: oci}
     - get: ci
-      passed: [unit, dev-image]
   - task: upgrade-test
     privileged: true
     image: unit-image
@@ -289,7 +286,6 @@ jobs:
     - get: postgres-image
       params: {format: oci}
     - get: ci
-      passed: [unit, dev-image]
   - task: downgrade-test
     privileged: true
     image: unit-image
@@ -315,7 +311,6 @@ jobs:
     - get: unit-image
       passed: [build-rc-image]
     - get: ci
-      passed: [build-rc-image]
   - try:
       task: try-delete
       image: unit-image
@@ -369,7 +364,6 @@ jobs:
       trigger: true
       passed: [k8s-smoke]
     - get: ci
-      passed: [k8s-smoke]
   - task: k8s-topgun
     file: ci/tasks/k8s-topgun.yml
     image: unit-image
@@ -400,7 +394,6 @@ jobs:
     - get: charts
       trigger: true
     - get: ci
-      passed: [build-rc-image]
   - task: check-params
     file: ci/tasks/check-distribution-env.yml
     image: unit-image
@@ -422,7 +415,6 @@ jobs:
       passed: [testflight, watsjs, upgrade, downgrade]
       trigger: true
     - get: ci
-      passed: [testflight, watsjs, upgrade, downgrade]
   - put: version
     params: {pre: rc}
 
@@ -448,7 +440,6 @@ jobs:
       passed: [rc]
       params: {bump: final}
     - get: ci
-      passed: [rc]
   - in_parallel:
     - task: fly-linux
       file: ci/tasks/fly-build-linux.yml
@@ -504,7 +495,6 @@ jobs:
       trigger: true
     - get: builder
     - get: ci
-      passed: [build-rc]
   - task: build
     image: builder
     privileged: true
@@ -532,7 +522,6 @@ jobs:
       passed: [build-rc]
       trigger: true
     - get: ci
-      passed: [build-rc]
   - task: terraform-smoke
     image: unit-image
     file: ci/tasks/terraform-smoke.yml
@@ -566,7 +555,6 @@ jobs:
     - get: concourse-release-repo
       trigger: true
     - get: ci
-      passed: [bin-smoke]
   - task: check-props
     file: ci/tasks/check-distribution-env.yml
     image: unit-image
@@ -637,7 +625,6 @@ jobs:
       passed: [dev-image]
       trigger: true
     - get: ci
-      passed: [bosh-check-props]
   - task: ubuntu-image-replace
     file: ci/tasks/ubuntu-image-replace.yml
   - task: bump-concourse-blobs
@@ -670,7 +657,6 @@ jobs:
     - get: gcp-xenial-stemcell
       trigger: true
     - get: ci
-      passed: [bosh-bump]
   - put: smoke-deployment
     params:
       manifest: ci/deployments/bosh-smoke.yml
@@ -727,7 +713,6 @@ jobs:
     - get: bbr
       trigger: true
     - get: ci
-      passed: [bosh-bump]
   - task: bosh-topgun
     file: ci/tasks/topgun.yml
     image: unit-image
@@ -773,7 +758,6 @@ jobs:
     - get: bbr-sdk-release
     - get: prod
     - get: ci
-      passed: [bosh-smoke, bosh-topgun]
   - put: prod-deployment
     params:
       manifest: cbd/cluster/concourse.yml
@@ -867,7 +851,6 @@ jobs:
       passed: [bosh-prod-deploy]
     - get: prod
     - get: ci
-      passed: [bosh-prod-deploy]
   - put: wings-deployment
     params:
       manifest: cbd/cluster/concourse.yml
@@ -929,13 +912,6 @@ jobs:
     - k8s-check-helm-params
     - bosh-smoke
     - bosh-topgun
-  - get: ci
-    passed:
-    - build-rc
-    - k8s-topgun
-    - k8s-check-helm-params
-    - bosh-smoke
-    - bosh-topgun
   - get: linux-rc
     passed: [build-rc]
   - get: windows-rc
@@ -972,8 +948,6 @@ jobs:
       passed: [shipit]
     - get: release-notes
     - get: docs
-    - get: ci
-      passed: [shipit]
   - in_parallel:
     - task: prep-release-assets
       file: release-notes/ci/prep-release-assets.yml
@@ -1072,8 +1046,6 @@ jobs:
       passed: [shipit]
       params: {format: oci}
     - get: latest-version
-    - get: ci
-      passed: [shipit]
   - task: docker-semver-tags
     file: ci/tasks/docker-semver-tags.yml
     input_mapping:
