@@ -20,6 +20,7 @@ import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
 import SideBar.Styles as Styles
 import SideBar.Team as Team
+import SideBar.Views as Views
 import Views.Icon as Icon
 
 
@@ -103,11 +104,13 @@ view model currentPipeline =
                     (\( p, ps ) ->
                         Team.team
                             { hovered = model.hovered
-                            , isExpanded = Set.member p.teamName model.expandedTeams
-                            , teamName = p.teamName
                             , pipelines = p :: ps
                             , currentPipeline = currentPipeline
                             }
+                            { name = p.teamName
+                            , isExpanded = Set.member p.teamName model.expandedTeams
+                            }
+                            |> Views.viewTeam
                     )
             )
 

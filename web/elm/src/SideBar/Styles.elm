@@ -1,5 +1,9 @@
 module SideBar.Styles exposing
-    ( arrow
+    ( Arrow(..)
+    , Opacity(..)
+    , PipelineBackingRectangle(..)
+    , TeamBackingRectangle(..)
+    , arrow
     , column
     , hamburgerIcon
     , hamburgerMenu
@@ -61,8 +65,28 @@ iconGroup =
     ]
 
 
-teamIcon : { isExpanded : Bool, isCurrent : Bool, isHovered : Bool } -> Html.Html msg
-teamIcon { isExpanded, isCurrent, isHovered } =
+type Opacity
+    = Dim
+    | GreyedOut
+    | Bright
+
+
+opacityAttr : Opacity -> Html.Attribute msg
+opacityAttr opacity =
+    style "opacity" <|
+        case opacity of
+            Dim ->
+                "0.2"
+
+            GreyedOut ->
+                "0.5"
+
+            Bright ->
+                "1"
+
+
+teamIcon : Opacity -> Html.Html msg
+teamIcon opacity =
     Icon.icon
         { sizePx = 20
         , image = "baseline-people-24px.svg"
@@ -70,50 +94,45 @@ teamIcon { isExpanded, isCurrent, isHovered } =
         [ style "margin-left" "10px"
         , style "background-size" "contain"
         , style "flex-shrink" "0"
-        , style "opacity" <|
-            if isCurrent then
-                "1"
-
-            else if isHovered || isExpanded then
-                "0.5"
-
-            else
-                "0.2"
+        , opacityAttr opacity
         ]
 
 
-arrow : { isExpanded : Bool, isHovered : Bool } -> Html.Html msg
-arrow { isExpanded, isHovered } =
+type Arrow
+    = Right
+    | Down
+
+
+arrow : { opacity : Opacity, icon : Arrow } -> Html.Html msg
+arrow { opacity, icon } =
     Icon.icon
         { sizePx = 12
         , image =
             "baseline-keyboard-arrow-"
-                ++ (if isExpanded then
-                        "down"
+                ++ (case icon of
+                        Right ->
+                            "right"
 
-                    else
-                        "right"
+                        Down ->
+                            "down"
                    )
                 ++ "-24px.svg"
         }
         [ style "margin-left" "10px"
         , style "flex-shrink" "0"
-        , style "opacity" <|
-            if isExpanded then
-                "1"
-
-            else if isHovered then
-                "0.5"
-
-            else
-                "0.2"
+        , opacityAttr opacity
         ]
 
 
+type TeamBackingRectangle
+    = TeamInvisible
+    | GreyWithLightBorder
+
+
 teamName :
-    { isHovered : Bool, isCurrent : Bool }
+    { a | opacity : Opacity, rectangle : TeamBackingRectangle }
     -> List (Html.Attribute msg)
-teamName { isHovered, isCurrent } =
+teamName { opacity, rectangle } =
     [ style "font-size" "14px"
     , style "padding" "2.5px"
     , style "margin-left" "7.5px"
@@ -121,66 +140,51 @@ teamName { isHovered, isCurrent } =
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
     , style "flex-grow" "1"
-    , style "border" <|
-        "1px solid "
-            ++ (if isHovered then
-                    "#525151"
-
-                else
-                    Colors.sideBar
-               )
-    , style "opacity" <|
-        if isCurrent || isHovered then
-            "1"
-
-        else
-            "0.5"
+    , opacityAttr opacity
     ]
-        ++ (if isHovered then
-                [ style "background-color" "#302F2F"
-                ]
+        ++ (case rectangle of
+                TeamInvisible ->
+                    [ style "border" <| "1px solid " ++ Colors.sideBar
+                    ]
 
-            else
-                []
+                GreyWithLightBorder ->
+                    [ style "border" "1px solid #525151"
+                    , style "background-color" "#3A3A3A"
+                    ]
            )
 
 
+type PipelineBackingRectangle
+    = Dark
+    | Light
+    | PipelineInvisible
+
+
 pipelineLink :
-    { isHovered : Bool, isCurrent : Bool }
+    { a | opacity : Opacity, rectangle : PipelineBackingRectangle }
     -> List (Html.Attribute msg)
-pipelineLink { isHovered, isCurrent } =
+pipelineLink { opacity, rectangle } =
     [ style "font-size" "14px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
     , style "padding" "2.5px"
     , style "flex-grow" "1"
-    , style "border" <|
-        "1px solid "
-            ++ (if isCurrent then
-                    Colors.groupBorderSelected
-
-                else if isHovered then
-                    "#525151"
-
-                else
-                    Colors.sideBar
-               )
-    , style "opacity" <|
-        if isCurrent || isHovered then
-            "1"
-
-        else
-            "0.5"
+    , opacityAttr opacity
     ]
-        ++ (if isCurrent then
-                [ style "background-color" "#272727" ]
+        ++ (case rectangle of
+                Dark ->
+                    [ style "border" <| "1px solid " ++ Colors.groupBorderSelected
+                    , style "background-color" "#272727"
+                    ]
 
-            else if isHovered then
-                [ style "background-color" "#3A3A3A" ]
+                Light ->
+                    [ style "border" "1px solid #525151"
+                    , style "background-color" "#3A3A3A"
+                    ]
 
-            else
-                []
+                PipelineInvisible ->
+                    [ style "border" <| "1px solid " ++ Colors.sideBar ]
            )
 
 
@@ -228,8 +232,8 @@ pipeline =
     ]
 
 
-pipelineIcon : { isCurrent : Bool, isHovered : Bool } -> List (Html.Attribute msg)
-pipelineIcon { isCurrent, isHovered } =
+pipelineIcon : Opacity -> List (Html.Attribute msg)
+pipelineIcon opacity =
     [ style "background-image"
         "url(/public/images/ic-breadcrumb-pipeline.svg)"
     , style "background-repeat" "no-repeat"
@@ -239,9 +243,13 @@ pipelineIcon { isCurrent, isHovered } =
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
     , style "opacity" <|
-        if isCurrent || isHovered then
-            "1"
+        case opacity of
+            Bright ->
+                "1"
 
-        else
-            "0.2"
+            GreyedOut ->
+                "0.5"
+
+            Dim ->
+                "0.2"
     ]

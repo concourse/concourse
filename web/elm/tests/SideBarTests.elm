@@ -308,34 +308,6 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamHeader
                 >> then_ (itIsClickable <| Message.SideBarTeam "team")
-        , DashboardTests.defineHoverBehaviour
-            { name = "team header"
-            , setup =
-                iAmViewingTheDashboardOnANonPhoneScreen ()
-                    |> iClickedTheHamburgerIcon
-                    |> Tuple.first
-            , query = (\a -> ( a, [] )) >> iAmLookingAtTheTeamHeader
-            , unhoveredSelector =
-                { description = "grey text, invisible border"
-                , selector =
-                    [ containing
-                        [ style "opacity" "0.5"
-                        , style "border" <| "1px solid " ++ Colors.sideBar
-                        ]
-                    ]
-                }
-            , hoverable = Message.SideBarTeam "team"
-            , hoveredSelector =
-                { description = "white text, dark background, grey border"
-                , selector =
-                    [ containing
-                        [ style "opacity" "1"
-                        , style "background-color" "#302F2F"
-                        , style "border" "1px solid #525151"
-                        ]
-                    ]
-                }
-            }
         , test "arrow points down when group is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup

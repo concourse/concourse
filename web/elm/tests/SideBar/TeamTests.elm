@@ -1,9 +1,12 @@
 module SideBar.TeamTests exposing (all)
 
 import Common
+import Expect
 import Html exposing (Html)
 import Message.Message exposing (DomID(..), Message)
+import SideBar.Styles as Styles
 import SideBar.Team as Team
+import SideBar.Views as Views
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (style)
@@ -22,8 +25,9 @@ all =
                                 , expanded = True
                                 , hovered = True
                                 }
-                                |> arrow
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .arrow
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -31,8 +35,19 @@ all =
                                 , expanded = True
                                 , hovered = True
                                 }
-                                |> teamName
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .name
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
+                    , test "team name has light rectangle" <|
+                        \_ ->
+                            team
+                                { active = True
+                                , expanded = True
+                                , hovered = True
+                                }
+                                |> .name
+                                |> .rectangle
+                                |> Expect.equal Styles.GreyWithLightBorder
                     , test "team icon is bright" <|
                         \_ ->
                             team
@@ -40,8 +55,8 @@ all =
                                 , expanded = True
                                 , hovered = True
                                 }
-                                |> teamIcon
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .icon
+                                |> Expect.equal Styles.Bright
                     ]
                 , describe "when unhovered"
                     [ test "arrow is bright" <|
@@ -51,8 +66,9 @@ all =
                                 , expanded = True
                                 , hovered = False
                                 }
-                                |> arrow
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .arrow
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -60,8 +76,9 @@ all =
                                 , expanded = True
                                 , hovered = False
                                 }
-                                |> teamName
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .name
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
                     , test "team icon is bright" <|
                         \_ ->
                             team
@@ -69,8 +86,8 @@ all =
                                 , expanded = True
                                 , hovered = False
                                 }
-                                |> teamIcon
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .icon
+                                |> Expect.equal Styles.Bright
                     ]
                 ]
             , describe "when collapsed"
@@ -82,8 +99,9 @@ all =
                                 , expanded = False
                                 , hovered = True
                                 }
-                                |> arrow
-                                |> Query.has [ style "opacity" "0.5" ]
+                                |> .arrow
+                                |> .opacity
+                                |> Expect.equal Styles.GreyedOut
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -91,8 +109,9 @@ all =
                                 , expanded = False
                                 , hovered = True
                                 }
-                                |> teamName
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .name
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
                     , test "team icon is bright" <|
                         \_ ->
                             team
@@ -100,8 +119,8 @@ all =
                                 , expanded = False
                                 , hovered = True
                                 }
-                                |> teamIcon
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .icon
+                                |> Expect.equal Styles.Bright
                     ]
                 , describe "when unhovered"
                     [ test "arrow is dim" <|
@@ -111,8 +130,9 @@ all =
                                 , expanded = False
                                 , hovered = False
                                 }
-                                |> arrow
-                                |> Query.has [ style "opacity" "0.2" ]
+                                |> .arrow
+                                |> .opacity
+                                |> Expect.equal Styles.Dim
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -120,8 +140,9 @@ all =
                                 , expanded = False
                                 , hovered = False
                                 }
-                                |> teamName
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .name
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
                     , test "team icon is bright" <|
                         \_ ->
                             team
@@ -129,8 +150,8 @@ all =
                                 , expanded = False
                                 , hovered = False
                                 }
-                                |> teamIcon
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .icon
+                                |> Expect.equal Styles.Bright
                     ]
                 ]
             ]
@@ -144,8 +165,9 @@ all =
                                 , expanded = True
                                 , hovered = True
                                 }
-                                |> arrow
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .arrow
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -153,17 +175,18 @@ all =
                                 , expanded = True
                                 , hovered = True
                                 }
-                                |> teamName
-                                |> Query.has [ style "opacity" "1" ]
-                    , test "team icon is bright" <|
+                                |> .name
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
+                    , test "team icon is greyed out" <|
                         \_ ->
                             team
                                 { active = False
                                 , expanded = True
                                 , hovered = True
                                 }
-                                |> teamIcon
-                                |> Query.has [ style "opacity" "0.5" ]
+                                |> .icon
+                                |> Expect.equal Styles.GreyedOut
                     ]
                 , describe "when unhovered"
                     [ test "arrow is bright" <|
@@ -173,8 +196,9 @@ all =
                                 , expanded = True
                                 , hovered = False
                                 }
-                                |> arrow
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .arrow
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
                     , test "team name is greyed out" <|
                         \_ ->
                             team
@@ -182,8 +206,9 @@ all =
                                 , expanded = True
                                 , hovered = False
                                 }
-                                |> teamName
-                                |> Query.has [ style "opacity" "0.5" ]
+                                |> .name
+                                |> .opacity
+                                |> Expect.equal Styles.GreyedOut
                     , test "team icon is greyed out" <|
                         \_ ->
                             team
@@ -191,8 +216,8 @@ all =
                                 , expanded = True
                                 , hovered = False
                                 }
-                                |> teamIcon
-                                |> Query.has [ style "opacity" "0.5" ]
+                                |> .icon
+                                |> Expect.equal Styles.GreyedOut
                     ]
                 ]
             , describe "when collapsed"
@@ -204,8 +229,9 @@ all =
                                 , expanded = False
                                 , hovered = True
                                 }
-                                |> arrow
-                                |> Query.has [ style "opacity" "0.5" ]
+                                |> .arrow
+                                |> .opacity
+                                |> Expect.equal Styles.GreyedOut
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -213,8 +239,9 @@ all =
                                 , expanded = False
                                 , hovered = True
                                 }
-                                |> teamName
-                                |> Query.has [ style "opacity" "1" ]
+                                |> .name
+                                |> .opacity
+                                |> Expect.equal Styles.Bright
                     , test "team icon is greyed out" <|
                         \_ ->
                             team
@@ -222,8 +249,8 @@ all =
                                 , expanded = False
                                 , hovered = True
                                 }
-                                |> teamIcon
-                                |> Query.has [ style "opacity" "0.5" ]
+                                |> .icon
+                                |> Expect.equal Styles.GreyedOut
                     ]
                 , describe "when unhovered"
                     [ test "arrow is dim" <|
@@ -233,8 +260,9 @@ all =
                                 , expanded = False
                                 , hovered = False
                                 }
-                                |> arrow
-                                |> Query.has [ style "opacity" "0.2" ]
+                                |> .arrow
+                                |> .opacity
+                                |> Expect.equal Styles.Dim
                     , test "team name is greyed out" <|
                         \_ ->
                             team
@@ -242,24 +270,25 @@ all =
                                 , expanded = False
                                 , hovered = False
                                 }
-                                |> teamName
-                                |> Query.has [ style "opacity" "0.5" ]
-                    , test "team icon is greyed out" <|
+                                |> .name
+                                |> .opacity
+                                |> Expect.equal Styles.GreyedOut
+                    , test "team icon is dim" <|
                         \_ ->
                             team
                                 { active = False
                                 , expanded = False
                                 , hovered = False
                                 }
-                                |> teamIcon
-                                |> Query.has [ style "opacity" "0.2" ]
+                                |> .icon
+                                |> Expect.equal Styles.Dim
                     ]
                 ]
             ]
         ]
 
 
-team : { active : Bool, expanded : Bool, hovered : Bool } -> Html Message
+team : { active : Bool, expanded : Bool, hovered : Bool } -> Views.Team
 team { active, expanded, hovered } =
     let
         hoveredDomId =
@@ -288,10 +317,11 @@ team { active, expanded, hovered } =
     in
     Team.team
         { hovered = hoveredDomId
-        , isExpanded = expanded
-        , teamName = "team"
         , pipelines = pipelines
         , currentPipeline = activePipeline
+        }
+        { name = "team"
+        , isExpanded = expanded
         }
 
 

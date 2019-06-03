@@ -1,12 +1,10 @@
 module SideBar.Pipeline exposing (pipeline)
 
 import Concourse
-import Html exposing (Html)
-import Html.Attributes exposing (href, title)
-import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Message exposing (DomID(..), Message(..))
 import Routes
 import SideBar.Styles as Styles
+import SideBar.Views as Views
 
 
 type alias PipelineScoped a =
@@ -19,49 +17,52 @@ type alias PipelineScoped a =
 pipeline :
     { a
         | hovered : Maybe DomID
-        , teamName : String
         , currentPipeline : Maybe (PipelineScoped b)
     }
     -> Concourse.Pipeline
-    -> Html Message
-pipeline { hovered, teamName, currentPipeline } p =
+    -> Views.Pipeline
+pipeline session p =
     let
-        pipelineId =
-            { pipelineName = p.name
-            , teamName = teamName
-            }
-
         isCurrent =
-            case currentPipeline of
+            case session.currentPipeline of
                 Just cp ->
-                    cp.pipelineName == p.name && cp.teamName == teamName
+                    cp.pipelineName == p.name && cp.teamName == p.teamName
 
                 Nothing ->
                     False
 
+        pipelineId =
+            { pipelineName = p.name, teamName = p.teamName }
+
         isHovered =
-            hovered == Just (SideBarPipeline pipelineId)
+            session.hovered == Just (SideBarPipeline pipelineId)
     in
-    Html.div Styles.pipeline
-        [ Html.div
-            (Styles.pipelineIcon
-                { isCurrent = isCurrent
-                , isHovered = isHovered
-                }
-            )
-            []
-        , Html.a
-            (Styles.pipelineLink
-                { isHovered = isHovered
-                , isCurrent = isCurrent
-                }
-                ++ [ href <|
-                        Routes.toString <|
-                            Routes.Pipeline { id = pipelineId, groups = [] }
-                   , title p.name
-                   , onMouseEnter <| Hover <| Just <| SideBarPipeline pipelineId
-                   , onMouseLeave <| Hover Nothing
-                   ]
-            )
-            [ Html.text p.name ]
-        ]
+    { icon =
+        if isCurrent || isHovered then
+            Styles.Bright
+
+        else
+            Styles.Dim
+    , link =
+        { opacity =
+            if isCurrent || isHovered then
+                Styles.Bright
+
+            else
+                Styles.GreyedOut
+        , rectangle =
+            if isCurrent then
+                Styles.Dark
+
+            else if isHovered then
+                Styles.Light
+
+            else
+                Styles.PipelineInvisible
+        , href =
+            Routes.toString <|
+                Routes.Pipeline { id = pipelineId, groups = [] }
+        , text = p.name
+        , domID = SideBarPipeline pipelineId
+        }
+    }
