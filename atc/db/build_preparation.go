@@ -15,6 +15,7 @@ type MissingInputReasons map[string]string
 const (
 	NoVersionsSatisfiedPassedConstraints string = "no versions satisfy passed constraints"
 	NoVersionsAvailable                  string = "no versions available"
+	NoResourceCheckFinished              string = "no resource check finished after build triggered"
 	PinnedVersionUnavailable             string = "pinned version %s is not available"
 )
 
@@ -24,6 +25,10 @@ func (mir MissingInputReasons) RegisterPassedConstraint(inputName string) {
 
 func (mir MissingInputReasons) RegisterNoVersions(inputName string) {
 	mir[inputName] = NoVersionsAvailable
+}
+
+func (mir MissingInputReasons) RegisterNoResourceCheckFinished(inputName string) {
+	mir[inputName] = NoResourceCheckFinished
 }
 
 func (mir MissingInputReasons) RegisterPinnedVersionUnavailable(inputName string, version string) {

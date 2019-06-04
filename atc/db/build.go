@@ -634,9 +634,29 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 	missingInputReasons := MissingInputReasons{}
 
 	if found {
+
 		inputsSatisfiedStatus = BuildPreparationStatusNotBlocking
-		for _, buildInput := range nextBuildInputs {
-			inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
+
+		if b.IsManuallyTriggered() {
+			for _, buildInput := range nextBuildInputs {
+				resource, _, err := pipeline.ResourceByID(buildInput.ResourceID)
+				if err != nil {
+					return BuildPreparation{}, false, err
+				}
+
+				// input is blocking if its last check time is before build create time
+				if resource.LastCheckEndTime().Before(b.CreateTime()) {
+					inputs[buildInput.Name] = BuildPreparationStatusBlocking
+					missingInputReasons.RegisterNoResourceCheckFinished(buildInput.Name)
+					inputsSatisfiedStatus = BuildPreparationStatusBlocking
+				} else {
+					inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
+				}
+			}
+		} else {
+			for _, buildInput := range nextBuildInputs {
+				inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
+			}
 		}
 	} else {
 		buildInputs, err := job.GetIndependentBuildInputs()
