@@ -195,8 +195,8 @@ hasSideBar iAmLookingAtThePage =
                 >> then_ iSeeItLaysOutHorizontally
         , test "sidebar is separated from top bar by a thin line" <|
             given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheSideBar
-                >> then_ iSeeADividingLineAbove
+                >> when iAmLookingAtTheTopBar
+                >> then_ iSeeADividingLineBelow
         , test "sidebar is separated from page contents by a thin line" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
@@ -312,13 +312,13 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheArrow
-                >> then_ iSeeABrightDownPointingArrow
+                >> then_ iSeeADownPointingArrow
         , test "arrow still points down after data refreshes" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given dataRefreshes
                 >> when iAmLookingAtTheArrow
-                >> then_ iSeeABrightDownPointingArrow
+                >> then_ iSeeADownPointingArrow
         , test "pipeline list expands when header is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -369,11 +369,6 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineIcon
                 >> then_ iSeeItDoesNotShrink
-        , test "pipeline icon is dim" <|
-            given iHaveAnOpenSideBar_
-                >> given iClickedThePipelineGroup
-                >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeItIsDim
         , test "pipeline link has 2.5px padding" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -409,12 +404,6 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
                 >> then_ iSeeItEllipsizesLongText
-        , test "pipeline icon is bright when pipeline link is hovered" <|
-            given iHaveAnOpenSideBar_
-                >> given iClickedThePipelineGroup
-                >> given iHoveredThePipelineLink
-                >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeItIsBright
         , DashboardTests.defineHoverBehaviour
             { name = "pipeline link"
             , setup =
@@ -426,7 +415,7 @@ hasSideBar iAmLookingAtThePage =
             , unhoveredSelector =
                 { description = "grey"
                 , selector =
-                    [ style "opacity" "0.5"
+                    [ style "opacity" "0.3"
                     , style "border" <| "1px solid " ++ Colors.sideBar
                     ]
                 }
@@ -444,86 +433,6 @@ hasSideBar iAmLookingAtThePage =
                     ]
                 }
             }
-        , describe "hovering team header" <|
-            [ describe "team icon hover states"
-                [ describe "when pipeline group is collapsed"
-                    [ test "is dim when unhovered" <|
-                        given iHaveAnOpenSideBar_
-                            >> given iHoveredNothing
-                            >> when iAmLookingAtTheTeamIcon
-                            >> then_ iSeeItIsDim
-                    , test "is greyed out when hovered" <|
-                        given iHaveAnOpenSideBar_
-                            >> given iHoveredThePipelineGroup
-                            >> when iAmLookingAtTheTeamIcon
-                            >> then_ iSeeItIsGreyedOut
-                    ]
-                , describe "when pipeline group is expanded"
-                    [ test "is dim when unhovered" <|
-                        given iHaveAnExpandedTeam
-                            >> given iHoveredNothing
-                            >> when iAmLookingAtTheTeamIcon
-                            >> then_ iSeeItIsGreyedOut
-                    , test "is greyed out when hovered" <|
-                        given iHaveAnExpandedTeam
-                            >> given iHoveredThePipelineGroup
-                            >> when iAmLookingAtTheTeamIcon
-                            >> then_ iSeeItIsGreyedOut
-                    ]
-                ]
-            , describe "arrow hover states"
-                [ describe "when pipeline group is collapsed"
-                    [ test "is dim when unhovered" <|
-                        given iHaveAnOpenSideBar
-                            >> given iHoveredNothing
-                            >> when iAmLookingAtTheArrow
-                            >> then_ iSeeItIsDim
-                    , test "is greyed out when hovered" <|
-                        given iHaveAnOpenSideBar
-                            >> given iHoveredThePipelineGroup
-                            >> when iAmLookingAtTheArrow
-                            >> then_ iSeeItIsGreyedOut
-                    ]
-                , describe "when pipeline group is expanded"
-                    [ test "is bright when unhovered" <|
-                        given iHaveAnExpandedTeam
-                            >> given iHoveredNothing
-                            >> when iAmLookingAtTheArrow
-                            >> then_ iSeeItIsBright
-                    , test "is bright when hovered" <|
-                        given iHaveAnExpandedTeam
-                            >> given iHoveredThePipelineGroup
-                            >> when iAmLookingAtTheArrow
-                            >> then_ iSeeItIsBright
-                    ]
-                ]
-            , describe "team name hover states"
-                [ describe "when pipeline group is collapsed"
-                    [ test "is greyed out when unhovered" <|
-                        given iHaveAnOpenSideBar
-                            >> given iHoveredNothing
-                            >> when iAmLookingAtTheTeamName
-                            >> then_ iSeeItIsGreyedOut
-                    , test "is bright when hovered" <|
-                        given iHaveAnOpenSideBar
-                            >> given iHoveredThePipelineGroup
-                            >> when iAmLookingAtTheTeamName
-                            >> then_ iSeeItIsBright
-                    ]
-                , describe "when pipeline group is expanded"
-                    [ test "is bright when unhovered" <|
-                        given iHaveAnExpandedTeam
-                            >> given iHoveredNothing
-                            >> when iAmLookingAtTheTeamName
-                            >> then_ iSeeItIsGreyedOut
-                    , test "is bright when hovered" <|
-                        given iHaveAnExpandedTeam
-                            >> given iHoveredThePipelineGroup
-                            >> when iAmLookingAtTheTeamName
-                            >> then_ iSeeItIsBright
-                    ]
-                ]
-            ]
         , test "subscribes to 5-second tick" <|
             given iAmLookingAtThePage
                 >> then_ myBrowserNotifiesEveryFiveSeconds
@@ -575,21 +484,6 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> when iAmLookingAtTheOtherPipelineList
             >> then_ iSeeNoPipelineNames
-    , test "current team has bright team icon" <|
-        given iAmLookingAtThePage
-            >> given iAmOnANonPhoneScreen
-            >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheOtherTeamIcon
-            >> then_ iSeeItIsBright
-    , test "current team name is bright" <|
-        given iAmLookingAtThePage
-            >> given iAmOnANonPhoneScreen
-            >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
-            >> given iClickedTheOtherPipelineGroup
-            >> when iAmLookingAtTheOtherTeamName
-            >> then_ iSeeItIsBright
     , test "current pipeline name has a grey border" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
@@ -604,20 +498,6 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherPipelineName
             >> then_ iSeeADarkGreyBackground
-    , test "current pipeline has bright pipeline icon" <|
-        given iAmLookingAtThePage
-            >> given iAmOnANonPhoneScreen
-            >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheOtherPipelineIcon
-            >> then_ iSeeItIsBright
-    , test "current pipeline name is bright" <|
-        given iAmLookingAtThePage
-            >> given iAmOnANonPhoneScreen
-            >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheOtherPipelineName
-            >> then_ iSeeItIsBright
     , test "pipeline with same name on other team has invisible border" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
@@ -972,8 +852,8 @@ iAmLookingAtTheSideBar =
     iAmLookingAtThePageBelowTheTopBar >> Query.children [] >> Query.first
 
 
-iSeeADividingLineAbove =
-    Query.has [ style "border-top" <| "1px solid " ++ Colors.frame ]
+iSeeADividingLineBelow =
+    Query.has [ style "border-bottom" <| "1px solid " ++ Colors.frame ]
 
 
 iSeeADividingLineToTheRight =
@@ -1076,13 +956,12 @@ iClickedThePipelineGroup =
             (TopLevelMessage.Update <| Message.Click <| Message.SideBarTeam "team")
 
 
-iSeeABrightDownPointingArrow =
+iSeeADownPointingArrow =
     Query.has
-        (style "opacity" "1"
-            :: DashboardTests.iconSelector
-                { size = "12px"
-                , image = "baseline-keyboard-arrow-down-24px.svg"
-                }
+        (DashboardTests.iconSelector
+            { size = "12px"
+            , image = "baseline-keyboard-arrow-down-24px.svg"
+            }
         )
 
 
@@ -1181,10 +1060,6 @@ iSeeItCentersContents =
 
 iSeeItHasLeftMargin =
     Query.has [ style "margin-left" "28px" ]
-
-
-iSeeItIsDim =
-    Query.has [ style "opacity" "0.2" ]
 
 
 iSeeItHas2Point5PxPadding =
@@ -1822,10 +1697,6 @@ iOpenTheNotFoundPage =
                         , body = ""
                         }
             )
-
-
-iSeeItIsGreyedOut =
-    Query.has [ style "opacity" "0.5" ]
 
 
 iSeeAGreyBackground =

@@ -41,10 +41,10 @@ team session t =
             Styles.Dim
     , arrow =
         { opacity =
-            if t.isExpanded then
+            if isCurrent then
                 Styles.Bright
 
-            else if isHovered then
+            else if t.isExpanded then
                 Styles.GreyedOut
 
             else

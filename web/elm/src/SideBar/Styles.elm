@@ -26,8 +26,7 @@ import Views.Icon as Icon
 
 sideBar : List (Html.Attribute msg)
 sideBar =
-    [ style "border-top" <| "1px solid " ++ Colors.frame
-    , style "border-right" <| "1px solid " ++ Colors.frame
+    [ style "border-right" <| "1px solid " ++ Colors.frame
     , style "background-color" Colors.sideBar
     , style "width" "275px"
     , style "overflow-y" "auto"
@@ -76,10 +75,10 @@ opacityAttr opacity =
     style "opacity" <|
         case opacity of
             Dim ->
-                "0.2"
+                "0.3"
 
             GreyedOut ->
-                "0.5"
+                "0.7"
 
             Bright ->
                 "1"

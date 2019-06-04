@@ -49,7 +49,7 @@ pipeline session p =
                 Styles.Bright
 
             else
-                Styles.GreyedOut
+                Styles.Dim
         , rectangle =
             if isCurrent then
                 Styles.Dark

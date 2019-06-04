@@ -92,7 +92,7 @@ all =
                 ]
             , describe "when collapsed"
                 [ describe "when hovered"
-                    [ test "arrow is greyed out" <|
+                    [ test "arrow is bright" <|
                         \_ ->
                             team
                                 { active = True
@@ -101,7 +101,7 @@ all =
                                 }
                                 |> .arrow
                                 |> .opacity
-                                |> Expect.equal Styles.GreyedOut
+                                |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -123,7 +123,7 @@ all =
                                 |> Expect.equal Styles.Bright
                     ]
                 , describe "when unhovered"
-                    [ test "arrow is dim" <|
+                    [ test "arrow is bright" <|
                         \_ ->
                             team
                                 { active = True
@@ -132,7 +132,7 @@ all =
                                 }
                                 |> .arrow
                                 |> .opacity
-                                |> Expect.equal Styles.Dim
+                                |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -158,7 +158,7 @@ all =
         , describe "when inactive"
             [ describe "when expanded"
                 [ describe "when hovered"
-                    [ test "arrow is bright" <|
+                    [ test "arrow is greyed out" <|
                         \_ ->
                             team
                                 { active = False
@@ -167,7 +167,7 @@ all =
                                 }
                                 |> .arrow
                                 |> .opacity
-                                |> Expect.equal Styles.Bright
+                                |> Expect.equal Styles.GreyedOut
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -189,7 +189,7 @@ all =
                                 |> Expect.equal Styles.GreyedOut
                     ]
                 , describe "when unhovered"
-                    [ test "arrow is bright" <|
+                    [ test "arrow is greyed out" <|
                         \_ ->
                             team
                                 { active = False
@@ -198,7 +198,7 @@ all =
                                 }
                                 |> .arrow
                                 |> .opacity
-                                |> Expect.equal Styles.Bright
+                                |> Expect.equal Styles.GreyedOut
                     , test "team name is greyed out" <|
                         \_ ->
                             team
@@ -222,7 +222,7 @@ all =
                 ]
             , describe "when collapsed"
                 [ describe "when hovered"
-                    [ test "arrow is greyed out" <|
+                    [ test "arrow is dim" <|
                         \_ ->
                             team
                                 { active = False
@@ -231,7 +231,7 @@ all =
                                 }
                                 |> .arrow
                                 |> .opacity
-                                |> Expect.equal Styles.GreyedOut
+                                |> Expect.equal Styles.Dim
                     , test "team name is bright" <|
                         \_ ->
                             team

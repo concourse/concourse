@@ -59,12 +59,12 @@ all =
                             |> Expect.equal Styles.Bright
                 ]
             , describe "when unhovered"
-                [ test "pipeline name background is greyed out" <|
+                [ test "pipeline name is dim" <|
                     \_ ->
                         pipeline { active = False, hovered = False }
                             |> .link
                             |> .opacity
-                            |> Expect.equal Styles.GreyedOut
+                            |> Expect.equal Styles.Dim
                 , test "pipeline name has invisible border" <|
                     \_ ->
                         pipeline { active = False, hovered = False }
