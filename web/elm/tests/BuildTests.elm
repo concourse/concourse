@@ -664,6 +664,28 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "not-authorized" ]
+        , test "does not show loading when build plan request gives 404" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 1 <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 404
+                                        , message = "not found"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "loading" ]
         , test "shows passport officer when build prep request gives 401" <|
             \_ ->
                 initFromApplication

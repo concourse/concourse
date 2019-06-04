@@ -13,6 +13,10 @@ func (s *Server) GetBuildPlan(build db.Build) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		if !build.HasPlan() {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		err := json.NewEncoder(w).Encode(atc.PublicBuildPlan{
 			Schema: build.Schema(),
 			Plan:   build.PublicPlan(),

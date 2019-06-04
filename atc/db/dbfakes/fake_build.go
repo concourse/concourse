@@ -2,15 +2,15 @@
 package dbfakes
 
 import (
-	json "encoding/json"
-	sync "sync"
-	time "time"
+	"encoding/json"
+	"sync"
+	"time"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	creds "github.com/concourse/concourse/atc/creds"
-	db "github.com/concourse/concourse/atc/db"
-	lock "github.com/concourse/concourse/atc/db/lock"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeBuild struct {
@@ -122,6 +122,16 @@ type FakeBuild struct {
 	}
 	finishReturnsOnCall map[int]struct {
 		result1 error
+	}
+	HasPlanStub        func() bool
+	hasPlanMutex       sync.RWMutex
+	hasPlanArgsForCall []struct {
+	}
+	hasPlanReturns struct {
+		result1 bool
+	}
+	hasPlanReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
@@ -1020,6 +1030,58 @@ func (fake *FakeBuild) FinishReturnsOnCall(i int, result1 error) {
 	}
 	fake.finishReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) HasPlan() bool {
+	fake.hasPlanMutex.Lock()
+	ret, specificReturn := fake.hasPlanReturnsOnCall[len(fake.hasPlanArgsForCall)]
+	fake.hasPlanArgsForCall = append(fake.hasPlanArgsForCall, struct {
+	}{})
+	fake.recordInvocation("HasPlan", []interface{}{})
+	fake.hasPlanMutex.Unlock()
+	if fake.HasPlanStub != nil {
+		return fake.HasPlanStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.hasPlanReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) HasPlanCallCount() int {
+	fake.hasPlanMutex.RLock()
+	defer fake.hasPlanMutex.RUnlock()
+	return len(fake.hasPlanArgsForCall)
+}
+
+func (fake *FakeBuild) HasPlanCalls(stub func() bool) {
+	fake.hasPlanMutex.Lock()
+	defer fake.hasPlanMutex.Unlock()
+	fake.HasPlanStub = stub
+}
+
+func (fake *FakeBuild) HasPlanReturns(result1 bool) {
+	fake.hasPlanMutex.Lock()
+	defer fake.hasPlanMutex.Unlock()
+	fake.HasPlanStub = nil
+	fake.hasPlanReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) HasPlanReturnsOnCall(i int, result1 bool) {
+	fake.hasPlanMutex.Lock()
+	defer fake.hasPlanMutex.Unlock()
+	fake.HasPlanStub = nil
+	if fake.hasPlanReturnsOnCall == nil {
+		fake.hasPlanReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.hasPlanReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -2910,6 +2972,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.eventsMutex.RUnlock()
 	fake.finishMutex.RLock()
 	defer fake.finishMutex.RUnlock()
+	fake.hasPlanMutex.RLock()
+	defer fake.hasPlanMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.interceptibleMutex.RLock()

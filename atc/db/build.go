@@ -67,6 +67,7 @@ type Build interface {
 	Schema() string
 	PrivatePlan() atc.Plan
 	PublicPlan() *json.RawMessage
+	HasPlan() bool
 	Status() BuildStatus
 	StartTime() time.Time
 	CreateTime() time.Time
@@ -170,6 +171,7 @@ func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
 func (b *build) Schema() string               { return b.schema }
 func (b *build) PrivatePlan() atc.Plan        { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
+func (b *build) HasPlan() bool                { return string(*b.publicPlan) != "{}" }
 func (b *build) CreateTime() time.Time        { return b.createTime }
 func (b *build) StartTime() time.Time         { return b.startTime }
 func (b *build) EndTime() time.Time           { return b.endTime }

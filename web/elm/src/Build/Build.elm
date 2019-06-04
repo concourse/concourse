@@ -276,24 +276,17 @@ handleCallback action ( model, effects ) =
                        ]
                 )
 
-        PlanAndResourcesFetched buildId (Err err) ->
+        PlanAndResourcesFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
                         let
-                            url =
-                                "/api/v1/builds/"
-                                    ++ String.fromInt buildId
-                                    ++ "/events"
+                            newBuild =
+                                RemoteData.map
+                                    (\cb -> { cb | output = Nothing })
+                                    model.currentBuild
                         in
-                        updateOutput
-                            (\m ->
-                                ( { m | eventStreamUrlPath = Just url }
-                                , []
-                                , Build.Output.Output.OutNoop
-                                )
-                            )
-                            ( model, effects )
+                        ( { model | currentBuild = newBuild }, effects )
 
                     else if status.code == 401 then
                         ( { model | authorized = False }, effects )
