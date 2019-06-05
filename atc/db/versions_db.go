@@ -3,40 +3,22 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"sort"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	gocache "github.com/patrickmn/go-cache"
 )
 
 type VersionsDB struct {
 	Conn Conn
 
+	Cache *gocache.Cache
+
 	JobIDs             map[string]int
 	ResourceIDs        map[string]int
 	DisabledVersionIDs map[int]bool
-}
-
-func (versions VersionsDB) IsVersionFirstOccurrence(versionID int, jobID int, inputName string) (bool, error) {
-	var exists bool
-	err := versions.Conn.QueryRow(`
-	  SELECT EXISTS (
-	    SELECT 1
-	    FROM build_resource_config_version_inputs i
-	    JOIN builds b ON b.id = i.build_id AND b.job_id = $2
-	    WHERE version_md5 = (
-				SELECT version_md5
-				FROM resource_config_versions
-				WHERE id = $1
-			)
-	    AND i.name = $3
-	  )
-	`, versionID, jobID, inputName).Scan(&exists)
-	if err != nil {
-		return false, err
-	}
-
-	return !exists, nil
 }
 
 func (versions VersionsDB) LatestVersionOfResource(resourceID int) (int, bool, error) {
@@ -65,6 +47,13 @@ func (versions VersionsDB) LatestVersionOfResource(resourceID int) (int, bool, e
 }
 
 func (versions VersionsDB) SuccessfulBuilds(jobID int) ([]int, error) {
+	cacheKey := fmt.Sprintf("sb%d", jobID)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.([]int), nil
+	}
+
 	var buildIDs []int
 	rows, err := psql.Select("b.id").
 		From("builds b").
@@ -89,10 +78,18 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) ([]int, error) {
 		buildIDs = append(buildIDs, id)
 	}
 
+	versions.Cache.Set(cacheKey, buildIDs, gocache.DefaultExpiration)
 	return buildIDs, nil
 }
 
 func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, versionID int) ([]int, error) {
+	cacheKey := fmt.Sprintf("sbvc%d-%d", jobID, versionID)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.([]int), nil
+	}
+
 	var versionMD5 string
 	err := psql.Select("version_md5").
 		From("resource_config_versions").
@@ -144,13 +141,20 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, version
 		buildIDs = append(buildIDs, id)
 	}
 
+	versions.Cache.Set(cacheKey, buildIDs, gocache.DefaultExpiration)
 	return buildIDs, nil
 }
 
-func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmVersion, error) {
-	uniqOutputs := map[int]AlgorithmVersion{}
+func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) {
+	cacheKey := fmt.Sprintf("bo%d", buildID)
 
-	rows, err := psql.Select("r.id", "v.id").
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.([]AlgorithmOutput), nil
+	}
+
+	uniqOutputs := map[string]AlgorithmOutput{}
+	rows, err := psql.Select("i.name", "r.id", "v.id").
 		From("build_resource_config_version_inputs i").
 		Join("resources r ON r.id = i.resource_id").
 		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = i.version_md5").
@@ -163,16 +167,16 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmVersion, error)
 	}
 
 	for rows.Next() {
-		var output AlgorithmVersion
-		err := rows.Scan(&output.ResourceID, &output.VersionID)
+		var output AlgorithmOutput
+		err := rows.Scan(&output.InputName, &output.ResourceID, &output.VersionID)
 		if err != nil {
 			return nil, err
 		}
 
-		uniqOutputs[output.ResourceID] = output
+		uniqOutputs[output.InputName] = output
 	}
 
-	rows, err = psql.Select("r.id", "v.id").
+	rows, err = psql.Select("o.name", "r.id", "v.id").
 		From("build_resource_config_version_outputs o").
 		Join("resources r ON r.id = o.resource_id").
 		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = o.version_md5").
@@ -185,25 +189,26 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmVersion, error)
 	}
 
 	for rows.Next() {
-		var output AlgorithmVersion
-		err := rows.Scan(&output.ResourceID, &output.VersionID)
+		var output AlgorithmOutput
+		err := rows.Scan(&output.InputName, &output.ResourceID, &output.VersionID)
 		if err != nil {
 			return nil, err
 		}
 
-		uniqOutputs[output.ResourceID] = output
+		uniqOutputs[output.InputName] = output
 	}
 
-	outputs := []AlgorithmVersion{}
+	outputs := []AlgorithmOutput{}
 
 	for _, o := range uniqOutputs {
 		outputs = append(outputs, o)
 	}
 
 	sort.Slice(outputs, func(i, j int) bool {
-		return outputs[i].ResourceID > outputs[j].ResourceID
+		return outputs[i].InputName > outputs[j].InputName
 	})
 
+	versions.Cache.Set(cacheKey, outputs, gocache.DefaultExpiration)
 	return outputs, nil
 }
 
@@ -235,6 +240,13 @@ func (versions VersionsDB) FindVersionOfResource(resourceID int, version atc.Ver
 }
 
 func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
+	cacheKey := fmt.Sprintf("lb%d", jobID)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.(int), c.(int) != 0, nil
+	}
+
 	var buildID int
 	err := psql.Select("b.id").
 		From("builds b").
@@ -249,15 +261,25 @@ func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
 		Scan(&buildID)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			versions.Cache.Set(cacheKey, 0, gocache.DefaultExpiration)
 			return 0, false, nil
 		}
 		return 0, false, err
 	}
 
+	versions.Cache.Set(cacheKey, buildID, gocache.DefaultExpiration)
+
 	return buildID, true, nil
 }
 
 func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (int, bool, error) {
+	cacheKey := fmt.Sprintf("nev%d-%d", buildID, resourceID)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.(int), c.(int) != 0, nil
+	}
+
 	tx, err := versions.Conn.Begin()
 	if err != nil {
 		return 0, false, err
@@ -286,6 +308,7 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (int, b
 			}
 
 			if !found {
+				versions.Cache.Set(cacheKey, 0, gocache.DefaultExpiration)
 				return 0, false, nil
 			}
 
@@ -293,6 +316,8 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (int, b
 			if err != nil {
 				return 0, false, err
 			}
+
+			versions.Cache.Set(cacheKey, versionID, gocache.DefaultExpiration)
 
 			return versionID, true, nil
 		}
@@ -326,6 +351,7 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (int, b
 				Scan(&nextVersionID)
 			if err != nil {
 				if err == sql.ErrNoRows {
+					versions.Cache.Set(cacheKey, 0, gocache.DefaultExpiration)
 					return 0, false, nil
 				}
 				return 0, false, err
@@ -340,10 +366,18 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (int, b
 		return 0, false, err
 	}
 
+	versions.Cache.Set(cacheKey, nextVersionID, gocache.DefaultExpiration)
 	return nextVersionID, true, nil
 }
 
 func (versions VersionsDB) LatestConstraintBuildID(buildID int, passedJobID int) (int, bool, error) {
+	cacheKey := fmt.Sprintf("lcb%d-%d", buildID, passedJobID)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.(int), c.(int) != 0, nil
+	}
+
 	var latestBuildID int
 
 	err := psql.Select("p.from_build_id").
@@ -356,19 +390,27 @@ func (versions VersionsDB) LatestConstraintBuildID(buildID int, passedJobID int)
 		RunWith(versions.Conn).
 		QueryRow().
 		Scan(&latestBuildID)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
+			versions.Cache.Set(cacheKey, 0, gocache.DefaultExpiration)
 			return 0, false, nil
 		}
 
 		return 0, false, err
 	}
 
+	versions.Cache.Set(cacheKey, latestBuildID, gocache.DefaultExpiration)
 	return latestBuildID, true, nil
 }
 
 func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) ([]int, error) {
+	cacheKey := fmt.Sprintf("ub%d-%d", buildID, jobID)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.([]int), nil
+	}
+
 	var buildIDs []int
 	rows, err := psql.Select("id").
 		From("builds").
@@ -418,10 +460,18 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) ([]int, error) {
 		buildIDs = append(buildIDs, buildID)
 	}
 
+	versions.Cache.Set(cacheKey, buildIDs, gocache.DefaultExpiration)
 	return buildIDs, nil
 }
 
 func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int, versionID int) ([]int, error) {
+	cacheKey := fmt.Sprintf("ubvc%d-%d-%d", buildID, jobID, versionID)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.([]int), nil
+	}
+
 	var versionMD5 string
 	err := psql.Select("version_md5").
 		From("resource_config_versions").
@@ -512,6 +562,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		buildIDs = append(buildIDs, buildID)
 	}
 
+	versions.Cache.Set(cacheKey, buildIDs, gocache.DefaultExpiration)
 	return buildIDs, nil
 }
 
@@ -531,42 +582,58 @@ func (versions VersionsDB) OrderPassedJobs(currentJobID int, jobs JobSet) ([]int
 	buildPipeJobs := make(map[int]bool)
 
 	if found {
-		rows, err := psql.Select("b.job_id").
-			From("builds b").
-			Join("build_pipes bp ON bp.from_build_id = b.id").
-			Where(sq.Eq{"bp.to_build_id": latestBuildID}).
-			RunWith(versions.Conn).
-			Query()
-		if err != nil {
-			return nil, err
-		}
+		cacheKey := fmt.Sprintf("bpj%d", latestBuildID)
 
-		for rows.Next() {
-			var jobID int
-
-			err = rows.Scan(&jobID)
+		c, found := versions.Cache.Get(cacheKey)
+		if found {
+			buildPipeJobs = c.(map[int]bool)
+		} else {
+			rows, err := psql.Select("b.job_id").
+				From("builds b").
+				Join("build_pipes bp ON bp.from_build_id = b.id").
+				Where(sq.Eq{"bp.to_build_id": latestBuildID}).
+				RunWith(versions.Conn).
+				Query()
 			if err != nil {
 				return nil, err
 			}
 
-			buildPipeJobs[jobID] = true
+			for rows.Next() {
+				var jobID int
+
+				err = rows.Scan(&jobID)
+				if err != nil {
+					return nil, err
+				}
+
+				buildPipeJobs[jobID] = true
+			}
+
+			versions.Cache.Set(cacheKey, buildPipeJobs, gocache.DefaultExpiration)
 		}
 	}
 
 	jobToBuilds := map[int]int{}
 	for job, _ := range jobs {
-		var buildNum int
-		err := psql.Select("COUNT(id)").
-			From("builds").
-			Where(sq.Eq{"job_id": job}).
-			RunWith(versions.Conn).
-			QueryRow().
-			Scan(&buildNum)
-		if err != nil {
-			return nil, err
-		}
+		cacheKey := fmt.Sprintf("bj%d", job)
 
-		jobToBuilds[job] = buildNum
+		c, found := versions.Cache.Get(cacheKey)
+		if found {
+			jobToBuilds[job] = c.(int)
+		} else {
+			var buildNum int
+			err := psql.Select("COUNT(id)").
+				From("builds").
+				Where(sq.Eq{"job_id": job}).
+				RunWith(versions.Conn).
+				QueryRow().
+				Scan(&buildNum)
+			if err != nil {
+				return nil, err
+			}
+
+			jobToBuilds[job] = buildNum
+		}
 	}
 
 	type jobBuilds struct {
@@ -599,6 +666,13 @@ func (versions VersionsDB) OrderPassedJobs(currentJobID int, jobs JobSet) ([]int
 }
 
 func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (int, bool, error) {
+	cacheKey := fmt.Sprintf("lv%d", resourceID)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.(int), c.(int) != 0, nil
+	}
+
 	var scopeID int
 	err := psql.Select("resource_config_scope_id").
 		From("resources").
@@ -608,6 +682,7 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (int, 
 		Scan(&scopeID)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			versions.Cache.Set(cacheKey, 0, gocache.DefaultExpiration)
 			return 0, false, nil
 		}
 		return 0, false, err
@@ -624,10 +699,13 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (int, 
 		Scan(&versionID)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			versions.Cache.Set(cacheKey, 0, gocache.DefaultExpiration)
 			return 0, false, nil
 		}
 		return 0, false, err
 	}
+
+	versions.Cache.Set(cacheKey, versionID, gocache.DefaultExpiration)
 
 	return versionID, true, nil
 }

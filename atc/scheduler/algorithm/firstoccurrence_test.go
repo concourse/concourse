@@ -2,6 +2,7 @@ package algorithm_test
 
 import (
 	"encoding/json"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -9,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	gocache "github.com/patrickmn/go-cache"
 )
 
 var _ = Describe("Resolve", func() {
@@ -146,8 +148,10 @@ var _ = Describe("Resolve", func() {
 			Expect(err).ToNot(HaveOccurred())
 		}
 
+		schedulerCache := gocache.New(10*time.Second, 10*time.Second)
 		versionsDB = &db.VersionsDB{
 			Conn:        dbConn,
+			Cache:       schedulerCache,
 			JobIDs:      setup.jobIDs,
 			ResourceIDs: setup.resourceIDs,
 		}

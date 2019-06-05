@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
+	gocache "github.com/patrickmn/go-cache"
 )
 
 type ErrResourceNotFound struct {
@@ -89,8 +91,6 @@ type pipeline struct {
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
-
-	versionsDB *VersionsDB
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -694,9 +694,13 @@ func (p *pipeline) Destroy() error {
 	return err
 }
 
+var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
+
 func (p *pipeline) LoadVersionsDB() (*VersionsDB, error) {
 	db := &VersionsDB{
 		Conn: p.conn,
+
+		Cache: schedulerCache,
 
 		JobIDs:             map[string]int{},
 		ResourceIDs:        map[string]int{},
@@ -770,8 +774,6 @@ func (p *pipeline) LoadVersionsDB() (*VersionsDB, error) {
 
 		db.DisabledVersionIDs[versionID] = true
 	}
-
-	p.versionsDB = db
 
 	return db, nil
 }

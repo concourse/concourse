@@ -141,15 +141,30 @@ func (im *inputMapper) MapInputs(
 		inputConfigs = append(inputConfigs, inputConfig)
 	}
 
-	return im.computeNextInputs(inputConfigs, versions)
+	return im.computeNextInputs(inputConfigs, versions, job.ID())
 }
 
-func (im *inputMapper) computeNextInputs(configs InputConfigs, versionsDB *db.VersionsDB) (db.InputMapping, bool, error) {
+func (im *inputMapper) computeNextInputs(configs InputConfigs, versionsDB *db.VersionsDB, currentJobID int) (db.InputMapping, bool, error) {
 	mapping := db.InputMapping{}
 
 	versions, err := im.resolve(versionsDB, configs)
 	if err != nil {
 		return nil, false, err
+	}
+
+	latestBuildID, found, err := versionsDB.LatestBuildID(currentJobID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	outputs, err := versionsDB.BuildOutputs(latestBuildID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	latestBuildOutputs := map[string]int{}
+	for _, o := range outputs {
+		latestBuildOutputs[o.InputName] = o.VersionID
 	}
 
 	valid := true
@@ -165,18 +180,13 @@ func (im *inputMapper) computeNextInputs(configs InputConfigs, versionsDB *db.Ve
 			valid = false
 
 		} else {
-			firstOccurrence, err := versionsDB.IsVersionFirstOccurrence(versions[i].ID, config.JobID, config.Name)
-			if err != nil {
-				return nil, false, err
-			}
-
 			inputResult = db.InputResult{
 				Input: &db.AlgorithmInput{
 					AlgorithmVersion: db.AlgorithmVersion{
 						ResourceID: config.ResourceID,
 						VersionID:  versions[i].ID,
 					},
-					FirstOccurrence: firstOccurrence,
+					FirstOccurrence: !found || latestBuildOutputs[config.Name] != versions[i].ID,
 				},
 				PassedBuildIDs: versions[i].SourceBuildIds,
 			}

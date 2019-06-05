@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -15,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/lib/pq"
 	. "github.com/onsi/gomega"
+	gocache "github.com/patrickmn/go-cache"
 )
 
 type DB struct {
@@ -121,8 +123,11 @@ type LegacyBuildInput struct {
 const CurrentJobName = "current"
 
 func (example Example) Run() {
+	schedulerCache := gocache.New(10*time.Second, 10*time.Second)
+
 	versionsDB := &db.VersionsDB{
 		Conn:               dbConn,
+		Cache:              schedulerCache,
 		DisabledVersionIDs: map[int]bool{},
 	}
 
