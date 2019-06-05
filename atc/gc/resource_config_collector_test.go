@@ -40,7 +40,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 			Context("when the config is referenced in resource config check sessions", func() {
 				ownerExpiries := db.ContainerOwnerExpiries{
-					GraceTime: 1 * time.Minute,
 					Min:       5 * time.Minute,
 					Max:       10 * time.Minute,
 				}
@@ -85,7 +84,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 			Context("when the config is no longer referenced in resource config check sessions", func() {
 				ownerExpiries := db.ContainerOwnerExpiries{
-					GraceTime: 1 * time.Minute,
 					Min:       5 * time.Minute,
 					Max:       10 * time.Minute,
 				}
