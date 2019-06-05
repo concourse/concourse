@@ -72,6 +72,7 @@ jobs:
       resource: unit-dockerfile
       trigger: true
     - get: builder
+    - get: ci
   - task: build
     image: builder
     privileged: true
@@ -79,7 +80,7 @@ jobs:
       platform: linux
       params:
         REPOSITORY: concourse/unit
-        CONTEXT: concourse/ci/dockerfiles/unit
+        CONTEXT: ci/dockerfiles/unit
       inputs: [{name: concourse}]
       outputs: [{name: image}]
       caches: [{path: cache}]
@@ -98,10 +99,11 @@ jobs:
     - get: builder
     - get: golang-linux
       trigger: true
+    - get: ci
   - task: build
     image: builder
     privileged: true
-    file: concourse/ci/tasks/build-golang-builder-image.yml
+    file: ci/tasks/build-golang-builder-image.yml
   - put: golang-builder-image
     params: {image: image/image.tar}
 
@@ -114,20 +116,21 @@ jobs:
       trigger: true
     - get: unit-image
       trigger: true
+    - get: ci
   - task: yarn-test
     image: unit-image
-    file: concourse/ci/tasks/yarn-test.yml
+    file: ci/tasks/yarn-test.yml
   - in_parallel:
     - task: unit
       image: unit-image
-      file: concourse/ci/tasks/unit.yml
+      file: ci/tasks/unit.yml
       input_mapping: {concourse: built-concourse}
       timeout: 1h
     - task: fly-darwin
-      file: concourse/ci/tasks/fly-darwin.yml
+      file: ci/tasks/fly-darwin.yml
       timeout: 1h
     - task: fly-windows
-      file: concourse/ci/tasks/fly-windows.yml
+      file: ci/tasks/fly-windows.yml
       timeout: 1h
 
 - name: dev-image
@@ -172,21 +175,22 @@ jobs:
     - get: mock-resource
       trigger: true
     - get: builder
+    - get: ci
   - task: yarn-build
     image: unit-image
-    file: concourse/ci/tasks/yarn-build.yml
+    file: ci/tasks/yarn-build.yml
   - in_parallel:
     - task: fly-linux
-      file: concourse/ci/tasks/fly-build-linux.yml
+      file: ci/tasks/fly-build-linux.yml
     - task: fly-windows
-      file: concourse/ci/tasks/fly-build-windows.yml
+      file: ci/tasks/fly-build-windows.yml
     - task: fly-darwin
-      file: concourse/ci/tasks/fly-build-darwin.yml
+      file: ci/tasks/fly-build-darwin.yml
   - task: build
     image: builder
     privileged: true
     input_mapping: {concourse: built-concourse}
-    file: concourse/ci/tasks/build-dev-image.yml
+    file: ci/tasks/build-dev-image.yml
   - put: dev-image
     params: {image: image/image.tar}
     get_params: {format: oci}
@@ -208,11 +212,12 @@ jobs:
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
+    - get: ci
   - task: testflight
     image: unit-image
     privileged: true
     timeout: 1h
-    file: concourse/ci/tasks/docker-compose-testflight.yml
+    file: ci/tasks/docker-compose-testflight.yml
 
 - name: watsjs
   public: true
@@ -231,11 +236,12 @@ jobs:
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
+    - get: ci
   - task: watsjs
     image: unit-image
     privileged: true
     timeout: 1h
-    file: concourse/ci/tasks/docker-compose-watsjs.yml
+    file: ci/tasks/docker-compose-watsjs.yml
 
 - name: upgrade
   public: true
@@ -255,10 +261,11 @@ jobs:
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
+    - get: ci
   - task: upgrade-test
     privileged: true
     image: unit-image
-    file: concourse/ci/tasks/upgrade-test.yml
+    file: ci/tasks/upgrade-test.yml
 
 - name: downgrade
   public: true
@@ -278,11 +285,11 @@ jobs:
       params: {format: oci}
     - get: postgres-image
       params: {format: oci}
+    - get: ci
   - task: downgrade-test
     privileged: true
     image: unit-image
-    file: concourse/ci/tasks/downgrade-test.yml
-
+    file: ci/tasks/downgrade-test.yml
 
 - name: k8s-smoke
   public: true
@@ -303,10 +310,11 @@ jobs:
       trigger: true
     - get: unit-image
       passed: [build-rc-image]
+    - get: ci
   - try:
       task: try-delete
       image: unit-image
-      file: concourse/ci/tasks/k8s-delete.yml
+      file: ci/tasks/k8s-delete.yml
       params:
         KUBE_CONFIG: ((kube_config))
         RELEASE_NAME: concourse-smoke
@@ -314,21 +322,21 @@ jobs:
   - task: deploy
     image: unit-image
     input_mapping: {image-info: concourse-rc-image}
-    file: concourse/ci/tasks/k8s-deploy.yml
+    file: ci/tasks/k8s-deploy.yml
     params:
       KUBE_CONFIG: ((kube_config))
       RELEASE_NAME: concourse-smoke
       CONCOURSE_IMAGE: concourse/concourse-rc
   - task: k8s-smoke
     image: unit-image
-    file: concourse/ci/tasks/k8s-smoke.yml
+    file: ci/tasks/k8s-smoke.yml
     params:
       KUBE_CONFIG: ((kube_config))
       RELEASE_NAME: concourse-smoke
       MAX_TICKS: 180
   - task: delete
     image: unit-image
-    file: concourse/ci/tasks/k8s-delete.yml
+    file: ci/tasks/k8s-delete.yml
     params:
       KUBE_CONFIG: ((kube_config))
       RELEASE_NAME: concourse-smoke
@@ -355,8 +363,9 @@ jobs:
     - get: charts
       trigger: true
       passed: [k8s-smoke]
+    - get: ci
   - task: k8s-topgun
-    file: concourse/ci/tasks/k8s-topgun.yml
+    file: ci/tasks/k8s-topgun.yml
     image: unit-image
     params:
       KUBE_CONFIG: ((kube_config))
@@ -384,11 +393,13 @@ jobs:
       trigger: true
     - get: charts
       trigger: true
+    - get: ci
   - task: check-params
-    file: concourse/ci/tasks/check-distribution-env.yml
+    file: ci/tasks/check-distribution-env.yml
     image: unit-image
     input_mapping: {distribution: charts}
     params: {DISTRIBUTION: helm}
+
 - name: rc
   public: true
   serial_groups: [version]
@@ -403,6 +414,7 @@ jobs:
     - get: unit-image
       passed: [testflight, watsjs, upgrade, downgrade]
       trigger: true
+    - get: ci
   - put: version
     params: {pre: rc}
 
@@ -427,29 +439,30 @@ jobs:
       resource: version
       passed: [rc]
       params: {bump: final}
+    - get: ci
   - in_parallel:
     - task: fly-linux
-      file: concourse/ci/tasks/fly-build-linux.yml
+      file: ci/tasks/fly-build-linux.yml
     - task: fly-windows
-      file: concourse/ci/tasks/fly-build-windows.yml
+      file: ci/tasks/fly-build-windows.yml
     - task: fly-darwin
-      file: concourse/ci/tasks/fly-build-darwin.yml
+      file: ci/tasks/fly-build-darwin.yml
   - task: hoist-linux-dependencies
     image: dev-image
-    file: concourse/ci/tasks/hoist-linux-dependencies.yml
+    file: ci/tasks/hoist-linux-dependencies.yml
   - task: yarn-build
     image: unit-image
-    file: concourse/ci/tasks/yarn-build.yml
+    file: ci/tasks/yarn-build.yml
   - in_parallel:
     - task: concourse-linux
       image: unit-image
-      file: concourse/ci/tasks/concourse-build-linux.yml
+      file: ci/tasks/concourse-build-linux.yml
       input_mapping: {concourse: built-concourse}
     - task: concourse-windows
-      file: concourse/ci/tasks/concourse-build-windows.yml
+      file: ci/tasks/concourse-build-windows.yml
       input_mapping: {concourse: built-concourse}
     - task: concourse-darwin
-      file: concourse/ci/tasks/concourse-build-darwin.yml
+      file: ci/tasks/concourse-build-darwin.yml
       input_mapping: {concourse: built-concourse}
   - in_parallel:
     - put: linux-rc
@@ -481,6 +494,7 @@ jobs:
     - get: concourse-docker
       trigger: true
     - get: builder
+    - get: ci
   - task: build
     image: builder
     privileged: true
@@ -507,9 +521,10 @@ jobs:
     - get: unit-image
       passed: [build-rc]
       trigger: true
+    - get: ci
   - task: terraform-smoke
     image: unit-image
-    file: concourse/ci/tasks/terraform-smoke.yml
+    file: ci/tasks/terraform-smoke.yml
     params:
       GCP_PROJECT: cf-concourse-production
       GCP_KEY: ((concourse_smoke_gcp_key))
@@ -517,7 +532,7 @@ jobs:
       DEPLOYMENT: smoke
   - task: smoke
     image: unit-image
-    file: concourse/ci/tasks/smoke.yml
+    file: ci/tasks/smoke.yml
     input_mapping: {endpoint-info: outputs}
 
 - name: bosh-check-props
@@ -539,8 +554,9 @@ jobs:
       trigger: true
     - get: concourse-release-repo
       trigger: true
+    - get: ci
   - task: check-props
-    file: concourse/ci/tasks/check-distribution-env.yml
+    file: ci/tasks/check-distribution-env.yml
     image: unit-image
     input_mapping: {distribution: concourse-release-repo}
     params: {DISTRIBUTION: bosh}
@@ -608,10 +624,11 @@ jobs:
     - get: mock-resource
       passed: [dev-image]
       trigger: true
+    - get: ci
   - task: ubuntu-image-replace
-    file: concourse/ci/tasks/ubuntu-image-replace.yml
+    file: ci/tasks/ubuntu-image-replace.yml
   - task: bump-concourse-blobs
-    file: concourse/ci/tasks/bump-concourse-blobs.yml
+    file: ci/tasks/bump-concourse-blobs.yml
     image: unit-image
     params: {GCP_JSON_KEY: ((concourse_artifacts_json_key))}
   - put: concourse-release-repo
@@ -639,9 +656,10 @@ jobs:
       trigger: true
     - get: gcp-xenial-stemcell
       trigger: true
+    - get: ci
   - put: smoke-deployment
     params:
-      manifest: concourse/ci/deployments/bosh-smoke.yml
+      manifest: ci/deployments/bosh-smoke.yml
       releases:
       - concourse-release/*.tgz
       - postgres-release/*.tgz
@@ -651,7 +669,7 @@ jobs:
       vars:
         deployment_name: concourse-smoke
   - task: discover-bosh-endpoint-info
-    file: concourse/ci/tasks/discover-bosh-endpoint-info.yml
+    file: ci/tasks/discover-bosh-endpoint-info.yml
     image: unit-image
     params:
       BOSH_ENVIRONMENT: ((bosh_target))
@@ -661,7 +679,7 @@ jobs:
       BOSH_INSTANCE_GROUP: concourse
   - task: smoke
     image: unit-image
-    file: concourse/ci/tasks/smoke.yml
+    file: ci/tasks/smoke.yml
 
 - name: bosh-topgun
   public: true
@@ -694,8 +712,9 @@ jobs:
       trigger: true
     - get: bbr
       trigger: true
+    - get: ci
   - task: bosh-topgun
-    file: concourse/ci/tasks/topgun.yml
+    file: ci/tasks/topgun.yml
     image: unit-image
     input_mapping:
       stemcell: gcp-xenial-stemcell
@@ -738,6 +757,7 @@ jobs:
     - get: gcp-windows-stemcell
     - get: bbr-sdk-release
     - get: prod
+    - get: ci
   - put: prod-deployment
     params:
       manifest: cbd/cluster/concourse.yml
@@ -830,6 +850,7 @@ jobs:
     - get: cbd
       passed: [bosh-prod-deploy]
     - get: prod
+    - get: ci
   - put: wings-deployment
     params:
       manifest: cbd/cluster/concourse.yml
@@ -1026,7 +1047,7 @@ jobs:
       params: {format: oci}
     - get: latest-version
   - task: docker-semver-tags
-    file: concourse/ci/tasks/docker-semver-tags.yml
+    file: ci/tasks/docker-semver-tags.yml
     input_mapping:
       latest-of-same-major-version: latest-version
   - put: concourse-image
@@ -1068,13 +1089,14 @@ jobs:
     - get: concourse
       params: {submodules: none}
     - get: golang-windows
+    - get: ci
   - task: install-go
-    file: concourse/ci/tasks/install-go-windows.yml
+    file: ci/tasks/install-go-windows.yml
   - task: install-git
-    file: concourse/ci/tasks/choco-install.yml
+    file: ci/tasks/choco-install.yml
     params: {PACKAGE: git}
   - task: install-mingw
-    file: concourse/ci/tasks/choco-install.yml
+    file: ci/tasks/choco-install.yml
     params: {PACKAGE: mingw}
 
 - name: major
@@ -1097,6 +1119,13 @@ resources:
   icon: &git-icon github-circle
   source:
     uri: https://github.com/concourse/concourse.git
+    branch: master
+
+- name: ci
+  type: git
+  icon: &git-icon github-circle
+  source:
+    uri: https://github.com/concourse/ci.git
     branch: master
 
 - name: unit-dockerfile
