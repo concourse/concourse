@@ -33,7 +33,7 @@ type Callback
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))
     | ResourceFetched (Fetched Concourse.Resource)
     | VersionedResourcesFetched (Fetched ( Maybe Page, Paginated Concourse.VersionedResource ))
-    | VersionFetched (Fetched String)
+    | ClusterInfoFetched (Fetched Concourse.ClusterInfo)
     | PausedToggled (Fetched ())
     | InputToFetched (Fetched ( VersionId, List Concourse.Build ))
     | OutputOfFetched (Fetched ( VersionId, List Concourse.Build ))

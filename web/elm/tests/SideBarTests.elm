@@ -833,7 +833,6 @@ iVisitTheDashboard _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
-        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -1274,7 +1273,6 @@ iOpenedThePipelinePage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
-        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -1750,7 +1748,6 @@ iOpenTheJobPage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
-        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -1768,7 +1765,6 @@ iOpenTheResourcePage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
-        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""

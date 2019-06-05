@@ -29,7 +29,7 @@ remoteData =
                                                 (\resources ->
                                                     Network.Info.fetch
                                                         |> Task.andThen
-                                                            (\version ->
+                                                            (\clusterInfo ->
                                                                 Network.User.fetchUser
                                                                     |> Task.map Just
                                                                     |> Task.onError
@@ -42,7 +42,7 @@ remoteData =
                                                                                 , jobs = jobs
                                                                                 , resources = resources
                                                                                 , user = user
-                                                                                , version = version
+                                                                                , version = clusterInfo.version
                                                                                 }
                                                                         )
                                                             )

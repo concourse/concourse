@@ -48,7 +48,6 @@ import (
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/concourse/web"
-	"github.com/concourse/concourse/web/indexhandler"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -611,7 +610,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
-	indexhandler.ClusterName = cmd.Server.ClusterName
 	webHandler, err := webHandler(logger)
 	if err != nil {
 		return nil, err
