@@ -430,7 +430,6 @@ var _ = Describe("Team", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				expiries := db.ContainerOwnerExpiries{
-					GraceTime: 2 * time.Minute,
 					Min:       5 * time.Minute,
 					Max:       1 * time.Hour,
 				}
@@ -480,7 +479,6 @@ var _ = Describe("Team", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				expiries := db.ContainerOwnerExpiries{
-					GraceTime: 2 * time.Minute,
 					Min:       5 * time.Minute,
 					Max:       1 * time.Hour,
 				}
@@ -559,7 +557,6 @@ var _ = Describe("Team", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					expiries := db.ContainerOwnerExpiries{
-						GraceTime: 2 * time.Minute,
 						Min:       5 * time.Minute,
 						Max:       1 * time.Hour,
 					}
@@ -592,7 +589,6 @@ var _ = Describe("Team", func() {
 
 				BeforeEach(func() {
 					expiries := db.ContainerOwnerExpiries{
-						GraceTime: 2 * time.Minute,
 						Min:       5 * time.Minute,
 						Max:       1 * time.Hour,
 					}
@@ -624,7 +620,6 @@ var _ = Describe("Team", func() {
 
 			BeforeEach(func() {
 				expiries := db.ContainerOwnerExpiries{
-					GraceTime: 2 * time.Minute,
 					Min:       5 * time.Minute,
 					Max:       1 * time.Hour,
 				}
@@ -2588,7 +2583,6 @@ var _ = Describe("Team", func() {
 		)
 
 		expiries := db.ContainerOwnerExpiries{
-			GraceTime: 2 * time.Minute,
 			Min:       5 * time.Minute,
 			Max:       1 * time.Hour,
 		}
@@ -2719,7 +2713,6 @@ var _ = Describe("Team", func() {
 		Context("when the container is a check container", func() {
 			var resourceContainer db.Container
 			expiries := db.ContainerOwnerExpiries{
-				GraceTime: 2 * time.Minute,
 				Min:       5 * time.Minute,
 				Max:       1 * time.Hour,
 			}
