@@ -1,11 +1,14 @@
 package db_test
 
 import (
+	"time"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	gocache "github.com/patrickmn/go-cache"
 )
 
 var _ = Describe("Versions DB", func() {
@@ -88,6 +91,7 @@ var _ = Describe("Versions DB", func() {
 		JustBeforeEach(func() {
 			versionsDB = &db.VersionsDB{
 				Conn:   dbConn,
+				Cache:  gocache.New(10*time.Second, 10*time.Second),
 				JobIDs: jobIDs,
 			}
 
