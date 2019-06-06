@@ -82,6 +82,26 @@ A task's configuration specifies the following:
   doing.
 }{task-rootfs-uri}
 
+\define-attribute{container_limits: container-limits}{
+  Where \italic{\code{container-limits}} is:
+
+  \define-attribute{cpu: integer}{
+    \italic{Optional.} The maximum amount of CPU available to the task
+    container, measured in shares. 0 means unlimited.
+  }{task-container-limits-cpu}
+
+  \define-attribute{memory: integer}{
+    \italic{Optional.} The maximum amount of memory available to the task
+    container, measured in bytes. 0 means unlimited.
+  }{task-container-limits-memory}
+
+  \italic{Optional.} CPU and memory limits to enforce on the task container.
+
+  Note that these values, when specified, will override any limits set by
+  passing the \code{--default-task-cpu-limit} or
+  \code{--default-task-memory-limit} flags to the \code{concourse web} command.
+}{task-container-limits}
+
 \define-attribute{inputs: [input]}{
   Where \italic{\code{input}} is:
 
