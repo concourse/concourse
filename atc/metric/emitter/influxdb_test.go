@@ -64,44 +64,6 @@ var _ = Describe("InfluxDBEmitter", func() {
 				}
 				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 2))
 			})
-		})
-
-		Context("with batch duration 1 nanosecond", func() {
-			BeforeEach(func() {
-				influxDBEmitter = &emitter.InfluxDBEmitter{
-					Client:   influxDBClient,
-					BatchSize: 5000,
-					BatchDuration: 1 * time.Nanosecond,
-				}
-			})
-
-			It("should write no batches to InfluxDB", func() {
-				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 0))
-			})
-
-			It("should write 1 batch to InfluxDB", func() {
-				influxDBEmitter.Emit(testLogger, metric.Event{})
-				time.Sleep(2 * time.Nanosecond)
-				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 1))
-			})
-
-			It("should write 2 batches to InfluxDB", func() {
-				for i := 0; i < 2; i++ {
-					influxDBEmitter.Emit(testLogger, metric.Event{})
-					time.Sleep(2 * time.Nanosecond)
-				}
-				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 2))
-			})
-		})
-
-		Context("with populated events", func() {
-			BeforeEach(func() {
-				influxDBEmitter = &emitter.InfluxDBEmitter{
-					Client:   influxDBClient,
-					BatchSize: 2,
-					BatchDuration: 300 * time.Second,
-				}
-			})
 
 			It("should populate the batch points", func() {
 				influxDBEmitter.Emit(testLogger, metric.Event{
@@ -142,6 +104,32 @@ var _ = Describe("InfluxDBEmitter", func() {
 			})
 		})
 
+		Context("with batch duration 1 nanosecond", func() {
+			BeforeEach(func() {
+				influxDBEmitter = &emitter.InfluxDBEmitter{
+					Client:   influxDBClient,
+					BatchSize: 5000,
+					BatchDuration: 1 * time.Nanosecond,
+				}
+			})
 
+			It("should write no batches to InfluxDB", func() {
+				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 0))
+			})
+
+			It("should write 1 batch to InfluxDB", func() {
+				influxDBEmitter.Emit(testLogger, metric.Event{})
+				time.Sleep(2 * time.Nanosecond)
+				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 1))
+			})
+
+			It("should write 2 batches to InfluxDB", func() {
+				for i := 0; i < 2; i++ {
+					influxDBEmitter.Emit(testLogger, metric.Event{})
+					time.Sleep(2 * time.Nanosecond)
+				}
+				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 2))
+			})
+		})
 	})
 })
