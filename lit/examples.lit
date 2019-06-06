@@ -29,6 +29,6 @@ covered in the \reference{docs}.
 
 For a real-world example, check out \link{Concourse's own
 pipeline}{https://ci.concourse-ci.org/teams/main/pipelines/concourse} (and its
-\link{config}{https://github.com/concourse/concourse/blob/master/ci/pipelines/concourse.yml}):
+\link{config}{https://github.com/concourse/ci/blob/master/pipelines/concourse.yml}):
 
 \frame{https://ci.concourse-ci.org/teams/main/pipelines/concourse}{600px}
