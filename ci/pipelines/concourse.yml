@@ -81,7 +81,7 @@ jobs:
       params:
         REPOSITORY: concourse/unit
         CONTEXT: ci/dockerfiles/unit
-      inputs: [{name: concourse}]
+      inputs: [{name: concourse}, {name: ci}]
       outputs: [{name: image}]
       caches: [{path: cache}]
       run: {path: build}
