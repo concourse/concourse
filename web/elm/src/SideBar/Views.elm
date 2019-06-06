@@ -1,7 +1,8 @@
 module SideBar.Views exposing (Pipeline, Team, viewTeam)
 
+import Base64
 import Html exposing (Html)
-import Html.Attributes exposing (href, title)
+import Html.Attributes exposing (href, id, title)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (DomID(..), Message(..))
 import SideBar.Styles as Styles
@@ -17,6 +18,7 @@ type alias Team =
         { text : String
         , opacity : Styles.Opacity
         , rectangle : Styles.TeamBackingRectangle
+        , domID : DomID
         }
     , isExpanded : Bool
     , pipelines : List Pipeline
@@ -37,7 +39,11 @@ viewTeam team =
             [ Styles.teamIcon team.icon
             , Styles.arrow team.arrow
             , Html.div
-                (title team.name.text :: Styles.teamName team.name)
+                (Styles.teamName team.name
+                    ++ [ title team.name.text
+                       , id <| validSideBarId team.name.domID
+                       ]
+                )
                 [ Html.text team.name.text ]
             ]
         , if team.isExpanded then
@@ -72,7 +78,21 @@ viewPipeline p =
                    , title p.link.text
                    , onMouseEnter <| Hover <| Just <| p.link.domID
                    , onMouseLeave <| Hover Nothing
+                   , id <| validSideBarId p.link.domID
                    ]
             )
             [ Html.text p.link.text ]
         ]
+
+
+validSideBarId : DomID -> String
+validSideBarId domId =
+    case domId of
+        SideBarTeam t ->
+            "t-" ++ Base64.encode t
+
+        SideBarPipeline p ->
+            "p-" ++ Base64.encode p.pipelineName
+
+        _ ->
+            ""

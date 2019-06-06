@@ -70,6 +70,7 @@ team session t =
 
             else
                 Styles.TeamInvisible
+        , domID = SideBarTeam t.name
         }
     , isExpanded = t.isExpanded
     , pipelines = List.map (Pipeline.pipeline session) session.pipelines

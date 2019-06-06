@@ -1,6 +1,7 @@
 module SideBarTests exposing (all)
 
 import Application.Application as Application
+import Base64
 import Colors
 import Common
 import Concourse
@@ -304,6 +305,10 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
                 >> then_ iSeeItEllipsizesLongText
+        , test "team name will have an id" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheTeamName
+                >> then_ iSeeItHasAValidTeamId
         , test "team header is clickable" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamHeader
@@ -404,6 +409,11 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
                 >> then_ iSeeItEllipsizesLongText
+        , test "pipeline link will have a valid id" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> when iAmLookingAtTheFirstPipelineLink
+                >> then_ iSeeItHasAValidPipelineId
         , DashboardTests.defineHoverBehaviour
             { name = "pipeline link"
             , setup =
@@ -932,6 +942,14 @@ iSeeItEllipsizesLongText =
         , style "overflow" "hidden"
         , style "text-overflow" "ellipsis"
         ]
+
+
+iSeeItHasAValidTeamId =
+    Query.has [ id <| "t-" ++ Base64.encode "team" ]
+
+
+iSeeItHasAValidPipelineId =
+    Query.has [ id <| "p-" ++ Base64.encode "pipeline" ]
 
 
 iSeeItScrollsIndependently =
