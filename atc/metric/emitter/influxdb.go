@@ -11,10 +11,10 @@ import (
 )
 
 type InfluxDBEmitter struct {
-	client   influxclient.Client
-	database string
-	batchSize int
-	batchDuration time.Duration
+	Client   influxclient.Client
+	Database string
+	BatchSize int
+	BatchDuration time.Duration
 }
 
 type InfluxDBConfig struct {
@@ -61,10 +61,10 @@ func (config *InfluxDBConfig) NewEmitter() (metric.Emitter, error) {
 	}
 
 	return &InfluxDBEmitter{
-		client:   client,
-		database: config.Database,
-		batchSize: int(config.BatchSize),
-		batchDuration: config.BatchDuration,
+		Client:   client,
+		Database: config.Database,
+		BatchSize: int(config.BatchSize),
+		BatchDuration: config.BatchDuration,
 	}, nil
 }
 
@@ -74,7 +74,7 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 		"size": len(events),
 	})
 	bp, err := influxclient.NewBatchPoints(influxclient.BatchPointsConfig{
-		Database: emitter.database,
+		Database: emitter.Database,
 	})
 	if err != nil {
 		logger.Error("failed-to-construct-batch-points", err)
@@ -107,7 +107,7 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 		bp.AddPoint(point)
 	}
 
-	err = emitter.client.Write(bp)
+	err = emitter.Client.Write(bp)
 	if err != nil {
 		logger.Error("failed-to-send-points",
 			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
@@ -122,11 +122,11 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 func (emitter *InfluxDBEmitter) Emit(logger lager.Logger, event metric.Event) {
 	batch = append(batch, event)
 	duration := time.Since(lastBatchTime)
-	if len(batch) > emitter.batchSize || duration > emitter.batchDuration {
+	if len(batch) >= emitter.BatchSize || duration >= emitter.BatchDuration {
 		logger.Debug("influxdb-pre-emit-batch", lager.Data{
-			"influxdb-batch-size": emitter.batchSize,
+			"influxdb-batch-size": emitter.BatchSize,
 			"current-batch-size": len(batch),
-			"influxdb-batch-duration": emitter.batchDuration,
+			"influxdb-batch-duration": emitter.BatchDuration,
 			"current-duration": duration,
 		})
 		go emitBatch(emitter, logger, batch)
