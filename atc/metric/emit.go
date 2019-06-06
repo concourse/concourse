@@ -66,7 +66,7 @@ var (
 	emissions       chan eventEmission
 )
 
-func Initialize(logger lager.Logger, host string, attributes map[string]string, bufferSize int) error {
+func Initialize(logger lager.Logger, host string, attributes map[string]string, bufferSize uint32) error {
 	logger.Debug("metric-initialize", lager.Data{
 		"host": host,
 		"attributes": attributes,
@@ -103,7 +103,7 @@ func Initialize(logger lager.Logger, host string, attributes map[string]string, 
 	emitter = emitter
 	eventHost = host
 	eventAttributes = attributes
-	emissions = make(chan eventEmission, bufferSize)
+	emissions = make(chan eventEmission, int(bufferSize))
 
 	go emitLoop()
 
