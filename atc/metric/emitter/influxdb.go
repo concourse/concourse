@@ -58,10 +58,10 @@ func (config *InfluxDBConfig) NewEmitter() (metric.Emitter, error) {
 	}
 
 	return &InfluxDBEmitter{
-		Client:   client,
-		Database: config.Database,
-		BatchSize: int(config.BatchSize),
-		BatchDuration: config.BatchDuration,
+		Client:   	client,
+		Database: 	config.Database,
+		BatchSize: 	int(config.BatchSize),
+		BatchDuration: 	config.BatchDuration,
 	}, nil
 }
 
