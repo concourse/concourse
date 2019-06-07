@@ -217,7 +217,6 @@ var _ = Describe("Worker", func() {
 		)
 
 		expiries := ContainerOwnerExpiries{
-			GraceTime: 2 * time.Minute,
 			Min:       5 * time.Minute,
 			Max:       1 * time.Hour,
 		}

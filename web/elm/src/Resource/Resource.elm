@@ -116,7 +116,6 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = False
             , icon = Nothing
-            , timeZone = Time.utc
             }
     in
     ( model
@@ -206,9 +205,6 @@ subscriptions =
 handleCallback : Callback -> Session -> ET Model
 handleCallback callback session ( model, effects ) =
     case callback of
-        GotCurrentTimeZone zone ->
-            ( { model | timeZone = zone }, effects )
-
         ResourceFetched (Ok resource) ->
             ( { model
                 | pageStatus = Ok ()
@@ -358,7 +354,7 @@ handleCallback callback session ( model, effects ) =
                             "pinned by "
                                 ++ Login.userDisplayName user
                                 ++ " at "
-                                ++ formatDate model.timeZone time
+                                ++ formatDate session.timeZone time
                     in
                     ( { model
                         | pinnedVersion =
@@ -758,13 +754,13 @@ view session model =
         ]
 
 
-header : { a | hovered : Maybe DomID } -> Model -> Html Message
+header : Session -> Model -> Html Message
 header session model =
     let
         lastCheckedView =
             case ( model.now, model.lastChecked ) of
                 ( Just now, Just date ) ->
-                    viewLastChecked model.timeZone now date
+                    viewLastChecked session.timeZone now date
 
                 ( _, _ ) ->
                     Html.text ""

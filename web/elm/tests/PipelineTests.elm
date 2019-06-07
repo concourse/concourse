@@ -2,8 +2,8 @@ module PipelineTests exposing (all)
 
 import Application.Application as Application
 import Char
-import Common
-import DashboardTests exposing (defineHoverBehaviour)
+import Common exposing (defineHoverBehaviour)
+import DashboardTests
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode

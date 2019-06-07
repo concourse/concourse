@@ -25,7 +25,6 @@ var _ = Describe("ContainerOwner", func() {
 		)
 
 		ownerExpiries = db.ContainerOwnerExpiries{
-			GraceTime: 1 * time.Minute,
 			Min:       5 * time.Minute,
 			Max:       5 * time.Minute,
 		}

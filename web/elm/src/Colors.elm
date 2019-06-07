@@ -33,6 +33,7 @@ module Colors exposing
     , pinIconHover
     , pinned
     , resourceError
+    , retryTabText
     , secondaryTopBar
     , sectionHeader
     , sideBar
@@ -278,6 +279,11 @@ sideBar =
 errorLog : String
 errorLog =
     "#e74c3c"
+
+
+retryTabText : String
+retryTabText =
+    "#f5f5f5"
 
 
 statusColor : PipelineStatus -> String

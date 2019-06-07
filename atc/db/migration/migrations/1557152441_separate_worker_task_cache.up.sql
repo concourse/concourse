@@ -26,13 +26,13 @@ BEGIN;
     INSERT INTO task_caches (worker_name, job_id, step_name, path)
     SELECT DISTINCT wtc.worker_name, wtc.job_id, wtc.step_name, wtc.path
     FROM worker_task_caches wtc
+    ON CONFLICT DO NOTHING
     RETURNING *
   )
   UPDATE worker_task_caches wtc
   SET task_cache_id = ins.id
   FROM ins
-  WHERE ins.worker_name = wtc.worker_name
-    AND ins.job_id = wtc.job_id
+  WHERE ins.job_id = wtc.job_id
     AND ins.step_name = wtc.step_name
     AND ins.path = wtc.path;
 

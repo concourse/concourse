@@ -7,13 +7,12 @@ import Build.Models as Models
 import Build.StepTree.Models as STModels
 import Char
 import Colors
-import Common
+import Common exposing (defineHoverBehaviour)
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests
     exposing
-        ( defineHoverBehaviour
-        , iconSelector
+        ( iconSelector
         , isColorWithStripes
         , middleGrey
         )
