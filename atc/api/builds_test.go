@@ -1406,6 +1406,10 @@ var _ = Describe("Builds API", func() {
 						build.HasPlanReturns(false)
 					})
 
+					It("returns no Content-Type header", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal(""))
+					})
+
 					It("returns not found", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
