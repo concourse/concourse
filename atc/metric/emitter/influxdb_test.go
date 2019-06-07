@@ -33,9 +33,6 @@ var _ = Describe("InfluxDBEmitter", func() {
 		influxDBClient = &emitterfakes.FakeInfluxDBClient{}
 	})
 
-	AfterEach(func() {
-	})
-
 	Context("Emit", func() {
 		Context("with batch size 2", func() {
 			BeforeEach(func() {
@@ -44,6 +41,10 @@ var _ = Describe("InfluxDBEmitter", func() {
 					BatchSize: 2,
 					BatchDuration: 300 * time.Second,
 				}
+			})
+
+			AfterEach(func() {
+				influxDBEmitter.SubmitBatch(testLogger)
 			})
 
 			It("should write no batches to InfluxDB", func() {
@@ -55,7 +56,7 @@ var _ = Describe("InfluxDBEmitter", func() {
 				for i := 0; i < 3; i++ {
 					influxDBEmitter.Emit(testLogger, metric.Event{})
 				}
-				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 2))
+				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 1))
 			})
 
 			It("should write 2 batches to InfluxDB", func() {
@@ -111,6 +112,10 @@ var _ = Describe("InfluxDBEmitter", func() {
 					BatchSize: 5000,
 					BatchDuration: 1 * time.Nanosecond,
 				}
+			})
+
+			AfterEach(func() {
+				influxDBEmitter.SubmitBatch(testLogger)
 			})
 
 			It("should write no batches to InfluxDB", func() {

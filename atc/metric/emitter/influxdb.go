@@ -126,8 +126,15 @@ func (emitter *InfluxDBEmitter) Emit(logger lager.Logger, event metric.Event) {
 			"influxdb-batch-duration": emitter.BatchDuration,
 			"current-duration": duration,
 		})
-		go emitBatch(emitter, logger, batch)
-		batch = make([]metric.Event, 0)
-		lastBatchTime = time.Now()
+		emitter.SubmitBatch(logger)
 	}
 }
+
+func (emitter *InfluxDBEmitter) SubmitBatch(logger lager.Logger) {
+	batchToSubmit := make([]metric.Event, len(batch))
+	copy(batchToSubmit, batch)
+	batch = make([]metric.Event, 0)
+	lastBatchTime = time.Now()
+	go emitBatch(emitter, logger, batchToSubmit)
+}
+
