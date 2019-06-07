@@ -6,6 +6,7 @@ import Build.Build as Build
 import Build.Models as Models
 import Build.StepTree.Models as STModels
 import Char
+import Colors
 import Common
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.Pagination exposing (Direction(..))
@@ -664,11 +665,30 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "not-authorized" ]
-        , test "does not show loading when build plan request gives 404" <|
+        , test "shows 'cancelled' in red when aborted build's plan request gives 404" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job =
+                                        Just
+                                            { teamName = "team"
+                                            , pipelineName = "pipeline"
+                                            , jobName = "job"
+                                            }
+                                  , status = Concourse.BuildStatusAborted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Just <| Time.millisToPosix 0
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.PlanAndResourcesFetched 1 <|
@@ -685,7 +705,10 @@ all =
                         )
                     |> Tuple.first
                     |> Common.queryView
-                    |> Query.hasNot [ text "loading" ]
+                    |> Query.has
+                        [ style "color" Colors.errorLog
+                        , containing [ text "cancelled" ]
+                        ]
         , test "shows passport officer when build prep request gives 401" <|
             \_ ->
                 initFromApplication

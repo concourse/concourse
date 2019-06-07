@@ -12,6 +12,7 @@ module Colors exposing
     , dropdownFaded
     , dropdownUnselectedText
     , error
+    , errorLog
     , failure
     , failureFaded
     , flySuccessButtonHover
@@ -272,6 +273,11 @@ groupBackground =
 sideBar : String
 sideBar =
     "#333333"
+
+
+errorLog : String
+errorLog =
+    "#e74c3c"
 
 
 statusColor : PipelineStatus -> String
