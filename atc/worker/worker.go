@@ -11,6 +11,7 @@ import (
 
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/metric"
+	"golang.org/x/sync/errgroup"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -373,6 +374,21 @@ func (worker *gardenWorker) fetchImageForContainer(
 	return image.FetchForContainer(ctx, logger, creatingContainer)
 }
 
+type mountableLocalInput struct {
+	desiredCOWParent Volume
+	desiredMountPath string
+}
+
+type mountableRemoteInput struct {
+	desiredArtifact  ArtifactSource
+	desiredMountPath string
+}
+
+// creates volumes required to run any step:
+// * scratch
+// * working dir
+// * input
+// * output
 func (worker *gardenWorker) createVolumes(
 	logger lager.Logger,
 	isPrivileged bool,
@@ -429,63 +445,54 @@ func (worker *gardenWorker) createVolumes(
 
 	inputDestinationPaths := make(map[string]bool)
 
-	for _, inputSource := range spec.Inputs {
-		var inputVolume Volume
+	localInputs := make([]mountableLocalInput, 5)
+	nonlocalInputs := make([]mountableRemoteInput, 5)
 
-		localVolume, found, err := inputSource.Source().VolumeOn(logger, worker)
+	for _, inputSource := range spec.Inputs {
+		inputSourceVolume, found, err := inputSource.Source().VolumeOn(logger, worker)
 		if err != nil {
 			return nil, err
 		}
-
 		cleanedInputPath := filepath.Clean(inputSource.DestinationPath())
+		inputDestinationPaths[cleanedInputPath] = true
 
 		if found {
-			inputVolume, err = worker.volumeClient.FindOrCreateCOWVolumeForContainer(
-				logger,
-				VolumeSpec{
-					Strategy:   localVolume.COWStrategy(),
-					Privileged: isPrivileged,
-				},
-				creatingContainer,
-				localVolume,
-				spec.TeamID,
-				cleanedInputPath,
-			)
-			if err != nil {
-				return nil, err
-			}
+			localInputs = append(localInputs, mountableLocalInput{
+				desiredCOWParent: inputSourceVolume,
+				desiredMountPath: cleanedInputPath,
+			})
 		} else {
-			inputVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
-				logger,
-				VolumeSpec{
-					Strategy:   baggageclaim.EmptyStrategy{},
-					Privileged: isPrivileged,
-				},
-				creatingContainer,
-				spec.TeamID,
-				cleanedInputPath,
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			destData := lager.Data{
-				"dest-volume": inputVolume.Handle(),
-				"dest-worker": inputVolume.WorkerName(),
-			}
-			err = inputSource.Source().StreamTo(logger.Session("stream-to", destData), inputVolume)
-			if err != nil {
-				return nil, err
-			}
+			nonlocalInputs = append(nonlocalInputs, mountableRemoteInput{
+				desiredArtifact:  inputSource.Source(),
+				desiredMountPath: cleanedInputPath,
+			})
 		}
-
-		ioVolumeMounts = append(ioVolumeMounts, VolumeMount{
-			Volume:    inputVolume,
-			MountPath: cleanedInputPath,
-		})
-
-		inputDestinationPaths[cleanedInputPath] = true
 	}
+
+	cowMounts, err := worker.cloneLocalVolumes(
+		logger,
+		spec.TeamID,
+		isPrivileged,
+		creatingContainer,
+		localInputs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	streamedMounts, err := worker.cloneRemoteVolumes(
+		logger,
+		spec.TeamID,
+		isPrivileged,
+		creatingContainer,
+		nonlocalInputs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	ioVolumeMounts = append(ioVolumeMounts, cowMounts...)
+	ioVolumeMounts = append(ioVolumeMounts, streamedMounts...)
 
 	for _, outputPath := range spec.Outputs {
 		cleanedOutputPath := filepath.Clean(outputPath)
@@ -519,6 +526,92 @@ func (worker *gardenWorker) createVolumes(
 
 	volumeMounts = append(volumeMounts, ioVolumeMounts...)
 	return volumeMounts, nil
+}
+
+func (worker *gardenWorker) cloneLocalVolumes(
+	logger lager.Logger,
+	teamID int,
+	privileged bool,
+	container db.CreatingContainer,
+	locals []mountableLocalInput,
+) ([]VolumeMount, error) {
+	mounts := make([]VolumeMount, len(locals))
+
+	for i, localInput := range locals {
+		inputVolume, err := worker.volumeClient.FindOrCreateCOWVolumeForContainer(
+			logger,
+			VolumeSpec{
+				Strategy:   localInput.desiredCOWParent.COWStrategy(),
+				Privileged: privileged,
+			},
+			container,
+			localInput.desiredCOWParent,
+			teamID,
+			localInput.desiredMountPath,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		mounts[i] = VolumeMount{
+			Volume:    inputVolume,
+			MountPath: localInput.desiredMountPath,
+		}
+	}
+
+	return mounts, nil
+}
+
+func (worker *gardenWorker) cloneRemoteVolumes(
+	logger lager.Logger,
+	teamID int,
+	privileged bool,
+	container db.CreatingContainer,
+	nonLocals []mountableRemoteInput,
+) ([]VolumeMount, error) {
+	mounts := make([]VolumeMount, len(nonLocals))
+
+	var g errgroup.Group
+
+	for i, nonLocalInput := range nonLocals {
+		g.Go(func() error {
+			inputVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
+				logger,
+				VolumeSpec{
+					Strategy:   baggageclaim.EmptyStrategy{},
+					Privileged: privileged,
+				},
+				container,
+				teamID,
+				nonLocalInput.desiredMountPath,
+			)
+			if err != nil {
+				return err
+			}
+
+			destData := lager.Data{
+				"dest-volume": inputVolume.Handle(),
+				"dest-worker": inputVolume.WorkerName(),
+			}
+
+			err = nonLocalInput.desiredArtifact.StreamTo(logger.Session("stream-to", destData), inputVolume)
+			if err != nil {
+				return err
+			}
+
+			mounts[i] = VolumeMount{
+				Volume:    inputVolume,
+				MountPath: nonLocalInput.desiredMountPath,
+			}
+
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	return mounts, nil
 }
 
 func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
