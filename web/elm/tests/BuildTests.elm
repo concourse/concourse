@@ -9,11 +9,7 @@ import Char
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.Pagination exposing (Direction(..))
-import DashboardTests
-    exposing
-        ( iconSelector
-        , middleGrey
-        )
+import DashboardTests exposing (iconSelector, middleGrey)
 import Dict
 import Expect
 import Html.Attributes as Attr

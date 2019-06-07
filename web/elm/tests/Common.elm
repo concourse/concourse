@@ -1,14 +1,21 @@
 module Common exposing
     ( defineHoverBehaviour
+    , given
+    , iOpenTheBuildPage
     , init
     , isColorWithStripes
+    , myBrowserFetchedTheBuild
     , pipelineRunningKeyframes
     , queryView
+    , then_
+    , when
     )
 
 import Application.Application as Application
+import Concourse
 import Expect exposing (Expectation)
 import Html
+import Message.Callback as Callback
 import Message.Effects exposing (Effect)
 import Message.Message exposing (DomID, Message(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
@@ -54,6 +61,81 @@ isColorWithStripes { thick, thin } =
 pipelineRunningKeyframes : String
 pipelineRunningKeyframes =
     "pipeline-running"
+
+
+init : String -> Application.Model
+init path =
+    Application.init
+        { turbulenceImgSrc = ""
+        , notFoundImgSrc = "notfound.svg"
+        , csrfToken = "csrf_token"
+        , authToken = ""
+        , clusterName = ""
+        , pipelineRunningKeyframes = "pipeline-running"
+        }
+        { protocol = Url.Http
+        , host = ""
+        , port_ = Nothing
+        , path = path
+        , query = Nothing
+        , fragment = Nothing
+        }
+        |> Tuple.first
+
+
+given =
+    identity
+
+
+when =
+    identity
+
+
+then_ =
+    identity
+
+
+iOpenTheBuildPage _ =
+    Application.init
+        { turbulenceImgSrc = ""
+        , notFoundImgSrc = ""
+        , csrfToken = ""
+        , authToken = ""
+        , pipelineRunningKeyframes = ""
+        , clusterName = ""
+        }
+        { protocol = Url.Http
+        , host = ""
+        , port_ = Nothing
+        , path = "/builds/1"
+        , query = Nothing
+        , fragment = Nothing
+        }
+
+
+myBrowserFetchedTheBuild =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.BuildFetched <|
+                Ok
+                    ( 1
+                    , { id = 1
+                      , name = "1"
+                      , job =
+                            Just
+                                { teamName = "other-team"
+                                , pipelineName = "yet-another-pipeline"
+                                , jobName = "job"
+                                }
+                      , status = Concourse.BuildStatusStarted
+                      , duration =
+                            { startedAt = Nothing
+                            , finishedAt = Nothing
+                            }
+                      , reapTime = Nothing
+                      }
+                    )
+            )
 
 
 defineHoverBehaviour :
@@ -115,26 +197,6 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hovered
                     |> query
                     |> Query.has unhoveredSelector.selector
         ]
-
-
-init : String -> Application.Model
-init path =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = "notfound.svg"
-        , csrfToken = "csrf_token"
-        , authToken = ""
-        , clusterName = ""
-        , pipelineRunningKeyframes = "pipeline-running"
-        }
-        { protocol = Url.Http
-        , host = ""
-        , port_ = Nothing
-        , path = path
-        , query = Nothing
-        , fragment = Nothing
-        }
-        |> Tuple.first
 
 
 

@@ -17,7 +17,6 @@ var _ = Describe("Volume", func() {
 
 	BeforeEach(func() {
 		expiries := db.ContainerOwnerExpiries{
-			GraceTime: 2 * time.Minute,
 			Min:       5 * time.Minute,
 			Max:       1 * time.Hour,
 		}
