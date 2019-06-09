@@ -13,7 +13,7 @@ type InputResult struct {
 
 type AlgorithmVersion struct {
 	ResourceID int
-	VersionID  int
+	Version    ResourceVersion
 }
 
 type AlgorithmInput struct {

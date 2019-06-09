@@ -755,7 +755,7 @@ func (j *job) SaveNextInputMapping(inputMapping InputMapping, inputsDetermined b
 			}
 
 			firstOccurrence = sql.NullBool{Bool: inputResult.Input.FirstOccurrence, Valid: true}
-			versionID = sql.NullInt64{Int64: int64(inputResult.Input.VersionID), Valid: true}
+			versionID = sql.NullInt64{Int64: int64(inputResult.Input.Version.ID), Valid: true}
 			resourceID = sql.NullInt64{Int64: int64(inputResult.Input.ResourceID), Valid: true}
 		}
 

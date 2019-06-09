@@ -378,8 +378,8 @@ func (example Example) Run() {
 			versionJSON, err := json.Marshal(atc.Version{"ver": input.Version.Pinned})
 			Expect(err).ToNot(HaveOccurred())
 
-			var pinnedID int
-			rows, err := setup.psql.Select("rcv.id").
+			var pinnedVersion db.ResourceVersion
+			rows, err := setup.psql.Select("rcv.id", "rcv.version_md5").
 				From("resource_config_versions rcv").
 				Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
 				Where(sq.Eq{
@@ -390,17 +390,17 @@ func (example Example) Run() {
 			Expect(err).ToNot(HaveOccurred())
 
 			if rows.Next() {
-				err = rows.Scan(&pinnedID)
+				err = rows.Scan(&pinnedVersion.ID, &pinnedVersion.MD5)
 				Expect(err).ToNot(HaveOccurred())
 			}
 
 			rows.Close()
 
-			if pinnedID != 0 {
-				inputConfigs[i].PinnedVersionID = pinnedID
+			if pinnedVersion.ID != 0 {
+				inputConfigs[i].PinnedVersion = pinnedVersion
 			} else {
 				// Pinning to an inexistant version id
-				inputConfigs[i].PinnedVersionID = 123
+				inputConfigs[i].PinnedVersion = db.ResourceVersion{ID: 123}
 			}
 		}
 	}
@@ -410,7 +410,7 @@ func (example Example) Run() {
 		var version *atc.VersionConfig
 		if input.UseEveryVersion {
 			version = &atc.VersionConfig{Every: true}
-		} else if input.PinnedVersionID != 0 {
+		} else if input.PinnedVersion.ID != 0 {
 			version = &atc.VersionConfig{Pinned: atc.Version{"ver": example.Inputs[i].Version.Pinned}}
 		} else {
 			version = &atc.VersionConfig{Latest: true}
@@ -501,7 +501,7 @@ func (example Example) Run() {
 			} else if inputSource.ResolveError != nil {
 				erroredValues[name] = inputSource.ResolveError.Error()
 			} else {
-				prettyValues[name] = setup.versionIDs.Name(inputSource.Input.AlgorithmVersion.VersionID)
+				prettyValues[name] = setup.versionIDs.Name(inputSource.Input.AlgorithmVersion.Version.ID)
 			}
 		}
 

@@ -235,7 +235,7 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
 						FirstOccurrence:  false,
 					},
 					PassedBuildIDs: []int{},
@@ -262,7 +262,7 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
 						FirstOccurrence:  true,
 					},
 					PassedBuildIDs: []int{},
@@ -289,7 +289,7 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
 						FirstOccurrence:  true,
 					},
 					PassedBuildIDs: []int{},
@@ -316,7 +316,7 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
 						FirstOccurrence:  true,
 					},
 					PassedBuildIDs: []int{},
@@ -342,7 +342,7 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{VersionID: 2, ResourceID: 1},
+						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
 						FirstOccurrence:  true,
 					},
 					PassedBuildIDs: []int{},
