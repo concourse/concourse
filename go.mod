@@ -14,7 +14,7 @@ require (
 	github.com/Azure/go-autorest v11.2.8+incompatible // indirect
 	github.com/DataDog/datadog-go v0.0.0-20180702141236-ef3a9daf849d
 	github.com/Jeffail/gabs v1.1.0 // indirect
-	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
+	github.com/Masterminds/squirrel v1.1.0
 	github.com/Microsoft/go-winio v0.4.11 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
@@ -192,6 +192,7 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/square/certstrap v1.1.1
 	github.com/streadway/amqp v0.0.0-20190225234609-30f8ed68076e // indirect
+	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
