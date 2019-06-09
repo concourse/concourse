@@ -615,6 +615,8 @@ func (versions VersionsDB) OrderPassedJobs(currentJobID int, jobs JobSet) ([]int
 			}
 
 			jobToBuilds[job] = buildNum
+
+			versions.Cache.Set(cacheKey, buildNum, gocache.DefaultExpiration)
 		}
 	}
 
