@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -200,7 +201,8 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 		return outputs[i].InputName > outputs[j].InputName
 	})
 
-	versions.Cache.Set(cacheKey, outputs, gocache.DefaultExpiration)
+	versions.Cache.Set(cacheKey, outputs, time.Hour)
+
 	return outputs, nil
 }
 
