@@ -333,7 +333,7 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 		Scan(&nextVersion.ID, &nextVersion.MD5)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = psql.Select("rcv.id").
+			err = psql.Select("rcv.id", "rcv.version_md5").
 				From("resource_config_versions rcv").
 				Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
 				Where(sq.Expr("rcv.version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
