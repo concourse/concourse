@@ -558,97 +558,106 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 
 //TODO: turn this into a single query
 func (versions VersionsDB) OrderPassedJobs(currentJobID int, jobs JobSet) ([]int, error) {
-	latestBuildID, found, err := versions.LatestBuildID(currentJobID)
-	if err != nil {
-		return nil, err
+	var jobIDs []int
+	for id, _ := range jobs {
+		jobIDs = append(jobIDs, id)
 	}
 
-	buildPipeJobs := make(map[int]bool)
+	sort.Ints(jobIDs)
 
-	if found {
-		cacheKey := fmt.Sprintf("bpj%d", latestBuildID)
+	return jobIDs, nil
 
-		c, found := versions.Cache.Get(cacheKey)
-		if found {
-			buildPipeJobs = c.(map[int]bool)
-		} else {
-			rows, err := psql.Select("b.job_id").
-				From("builds b").
-				Join("build_pipes bp ON bp.from_build_id = b.id").
-				Where(sq.Eq{"bp.to_build_id": latestBuildID}).
-				RunWith(versions.Conn).
-				Query()
-			if err != nil {
-				return nil, err
-			}
+	// latestBuildID, found, err := versions.LatestBuildID(currentJobID)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-			for rows.Next() {
-				var jobID int
+	// buildPipeJobs := make(map[int]bool)
 
-				err = rows.Scan(&jobID)
-				if err != nil {
-					return nil, err
-				}
+	// if found {
+	// 	cacheKey := fmt.Sprintf("bpj%d", latestBuildID)
 
-				buildPipeJobs[jobID] = true
-			}
+	// 	c, found := versions.Cache.Get(cacheKey)
+	// 	if found {
+	// 		buildPipeJobs = c.(map[int]bool)
+	// 	} else {
+	// 		rows, err := psql.Select("b.job_id").
+	// 			From("builds b").
+	// 			Join("build_pipes bp ON bp.from_build_id = b.id").
+	// 			Where(sq.Eq{"bp.to_build_id": latestBuildID}).
+	// 			RunWith(versions.Conn).
+	// 			Query()
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
 
-			versions.Cache.Set(cacheKey, buildPipeJobs, gocache.DefaultExpiration)
-		}
-	}
+	// 		for rows.Next() {
+	// 			var jobID int
 
-	jobToBuilds := map[int]int{}
-	for job, _ := range jobs {
-		cacheKey := fmt.Sprintf("bj%d", job)
+	// 			err = rows.Scan(&jobID)
+	// 			if err != nil {
+	// 				return nil, err
+	// 			}
 
-		c, found := versions.Cache.Get(cacheKey)
-		if found {
-			jobToBuilds[job] = c.(int)
-		} else {
-			var buildNum int
-			err := psql.Select("COUNT(id)").
-				From("builds").
-				Where(sq.Eq{"job_id": job}).
-				RunWith(versions.Conn).
-				QueryRow().
-				Scan(&buildNum)
-			if err != nil {
-				return nil, err
-			}
+	// 			buildPipeJobs[jobID] = true
+	// 		}
 
-			jobToBuilds[job] = buildNum
+	// 		versions.Cache.Set(cacheKey, buildPipeJobs, gocache.DefaultExpiration)
+	// 	}
+	// }
 
-			versions.Cache.Set(cacheKey, buildNum, gocache.DefaultExpiration)
-		}
-	}
+	// jobToBuilds := map[int]int{}
+	// for job, _ := range jobs {
+	// 	cacheKey := fmt.Sprintf("bj%d", job)
 
-	type jobBuilds struct {
-		jobID    int
-		buildNum int
-	}
+	// 	c, found := versions.Cache.Get(cacheKey)
+	// 	if found {
+	// 		jobToBuilds[job] = c.(int)
+	// 	} else {
+	// 		var buildNum int
+	// 		err := psql.Select("COUNT(id)").
+	// 			From("builds").
+	// 			Where(sq.Eq{"job_id": job}).
+	// 			RunWith(versions.Conn).
+	// 			QueryRow().
+	// 			Scan(&buildNum)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
 
-	var orderedJobBuilds []jobBuilds
-	for j, b := range jobToBuilds {
-		orderedJobBuilds = append(orderedJobBuilds, jobBuilds{j, b})
-	}
+	// 		jobToBuilds[job] = buildNum
 
-	sort.Slice(orderedJobBuilds, func(i, j int) bool {
-		if buildPipeJobs[orderedJobBuilds[i].jobID] == buildPipeJobs[orderedJobBuilds[j].jobID] {
-			if orderedJobBuilds[i].buildNum == orderedJobBuilds[j].buildNum {
-				return orderedJobBuilds[i].jobID < orderedJobBuilds[j].jobID
-			}
-			return orderedJobBuilds[i].buildNum < orderedJobBuilds[j].buildNum
-		}
+	// 		versions.Cache.Set(cacheKey, buildNum, gocache.DefaultExpiration)
+	// 	}
+	// }
 
-		return buildPipeJobs[orderedJobBuilds[i].jobID]
-	})
+	// type jobBuilds struct {
+	// 	jobID    int
+	// 	buildNum int
+	// }
 
-	orderedJobs := []int{}
-	for _, jobBuild := range orderedJobBuilds {
-		orderedJobs = append(orderedJobs, jobBuild.jobID)
-	}
+	// var orderedJobBuilds []jobBuilds
+	// for j, b := range jobToBuilds {
+	// 	orderedJobBuilds = append(orderedJobBuilds, jobBuilds{j, b})
+	// }
 
-	return orderedJobs, nil
+	// sort.Slice(orderedJobBuilds, func(i, j int) bool {
+	// 	if buildPipeJobs[orderedJobBuilds[i].jobID] == buildPipeJobs[orderedJobBuilds[j].jobID] {
+	// 		if orderedJobBuilds[i].buildNum == orderedJobBuilds[j].buildNum {
+	// 			return orderedJobBuilds[i].jobID < orderedJobBuilds[j].jobID
+	// 		}
+	// 		return orderedJobBuilds[i].buildNum < orderedJobBuilds[j].buildNum
+	// 	}
+
+	// 	return buildPipeJobs[orderedJobBuilds[i].jobID]
+	// })
+
+	// orderedJobs := []int{}
+	// for _, jobBuild := range orderedJobBuilds {
+	// 	orderedJobs = append(orderedJobs, jobBuild.jobID)
+	// }
+
+	// return orderedJobs, nil
 }
 
 func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (ResourceVersion, bool, error) {
