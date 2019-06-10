@@ -6,13 +6,17 @@ module DashboardTests exposing
     , givenDataAndUser
     , givenDataUnauthenticated
     , iconSelector
-    , isColorWithStripes
     , middleGrey
     , white
     )
 
 import Application.Application as Application
-import Common exposing (defineHoverBehaviour)
+import Common
+    exposing
+        ( defineHoverBehaviour
+        , isColorWithStripes
+        , pipelineRunningKeyframes
+        )
 import Concourse
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
@@ -684,9 +688,7 @@ all =
                         , attribute <| Attr.attribute "data-team-name" "team"
                         ]
                     |> Query.find
-                        [ class "node"
-                        , attribute <| Attr.attribute "data-tooltip" "job"
-                        ]
+                        [ attribute <| Attr.attribute "data-tooltip" "job" ]
                     |> Query.find
                         [ tag "a" ]
                     |> Query.has
@@ -3928,23 +3930,3 @@ teamHeaderHasPill teamName pillText =
             [ Query.count (Expect.equal 2)
             , Query.index 1 >> Query.has [ text pillText ]
             ]
-
-
-isColorWithStripes : { thick : String, thin : String } -> Query.Single msg -> Expectation
-isColorWithStripes { thick, thin } =
-    Query.has
-        [ style "background-image" <|
-            "repeating-linear-gradient(-115deg,"
-                ++ thick
-                ++ " 0,"
-                ++ thick
-                ++ " 10px,"
-                ++ thin
-                ++ " 0,"
-                ++ thin
-                ++ " 16px)"
-        , style "background-size" "106px 114px"
-        , style "animation" <|
-            pipelineRunningKeyframes
-                ++ " 3s linear infinite"
-        ]

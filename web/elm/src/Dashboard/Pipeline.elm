@@ -93,7 +93,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState } =
             )
             []
         , headerView pipeline
-        , bodyView pipeline
+        , bodyView hovered pipeline
         , footerView userState pipeline now hovered
         ]
 
@@ -121,11 +121,11 @@ headerView pipeline =
         ]
 
 
-bodyView : Pipeline -> Html Message
-bodyView pipeline =
+bodyView : Maybe DomID -> Pipeline -> Html Message
+bodyView hovered pipeline =
     Html.div
         (class "card-body" :: Styles.pipelineCardBody)
-        [ DashboardPreview.view pipeline.jobs ]
+        [ DashboardPreview.view hovered pipeline.jobs ]
 
 
 footerView :

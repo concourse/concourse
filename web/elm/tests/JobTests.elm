@@ -4,12 +4,7 @@ import Application.Application as Application
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse exposing (Build, BuildId, BuildStatus(..), Job)
 import Concourse.Pagination exposing (Direction(..))
-import DashboardTests
-    exposing
-        ( darkGrey
-        , iconSelector
-        , middleGrey
-        )
+import DashboardTests exposing (darkGrey, iconSelector, middleGrey)
 import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
@@ -18,7 +13,11 @@ import Job.Job as Job exposing (update)
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
-import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.Subscription as Subscription
+    exposing
+        ( Delivery(..)
+        , Interval(..)
+        )
 import Message.TopLevelMessage as Msgs
 import RemoteData
 import Test exposing (..)
