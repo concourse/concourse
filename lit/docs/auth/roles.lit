@@ -2,8 +2,7 @@
 
 \use-plugin{concourse-docs}
 
-Concourse comes with four roles: Concourse Admin, Team Owner, Team Member,
-Team Viewer.
+Concourse comes with five roles: Concourse Admin, Team Owner, Team Member, Pipeline Operator, Team Viewer.
 
 \section{
   \title{Concourse Admin}{concourse-admin}
