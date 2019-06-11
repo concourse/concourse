@@ -19,7 +19,7 @@ var _ = Describe("Resolve", func() {
 
 	BeforeSuite(func() {
 		driverName := "postgres"
-		connString := "host=/var/run/postgresql dbname=alg"
+		connString := "host=/tmp dbname=alg"
 
 		logger := lagertest.NewTestLogger("test")
 
@@ -35,14 +35,14 @@ var _ = Describe("Resolve", func() {
 		dbConn, err := db.Open(logger, driverName, connString, nil, nil, "test", lockFactory)
 		Expect(err).NotTo(HaveOccurred())
 
-		dbConn = db.Log(logger.Session("log-conn"), dbConn)
+		// dbConn = db.Log(logger.Session("log-conn"), dbConn)
 
 		teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 
 		inputMapper = algorithm.NewInputMapper()
 	})
 
-	FIt("schedules all jobs", func() {
+	It("schedules all jobs", func() {
 		teams, err := teamFactory.GetTeams()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -70,6 +70,34 @@ var _ = Describe("Resolve", func() {
 					log.Printf("inputs: %#v\n", inputMapping)
 				}
 			}
+		}
+	})
+
+	FIt("schedules all jobs for a pipeline", func() {
+		teams, err := teamFactory.GetTeams()
+		Expect(err).NotTo(HaveOccurred())
+
+		pipelines, err := teams[1].Pipelines()
+		Expect(err).NotTo(HaveOccurred())
+
+		p := pipelines[0]
+		versionsDB, err := p.LoadVersionsDB()
+		Expect(err).NotTo(HaveOccurred())
+
+		resources, err := p.Resources()
+		Expect(err).NotTo(HaveOccurred())
+
+		jobs, err := p.Jobs()
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, j := range jobs {
+			log.Println("scheduling", teams[0].Name(), p.Name(), j.Name())
+
+			inputMapping, ok, err := inputMapper.MapInputs(versionsDB, j, resources)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+
+			log.Printf("inputs: %#v\n", inputMapping)
 		}
 	})
 })

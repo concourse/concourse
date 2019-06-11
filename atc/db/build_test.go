@@ -787,7 +787,7 @@ var _ = Describe("Build", func() {
 						"some-input": db.InputResult{
 							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
-									VersionID: rcv.ID(), ResourceID: resource.ID(),
+									Version: db.ResourceVersion{ID: rcv.ID(), ResourceID: resource.ID(),
 								},
 								FirstOccurrence: true,
 							},

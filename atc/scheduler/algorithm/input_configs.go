@@ -340,7 +340,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 
 					if found {
 						if candidates[i] != nil {
-							builds, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, candidates[i].Version)
+							builds, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, candidates[i].Version, inputConfig.ResourceID)
 						} else {
 							builds, err = vdb.UnusedBuilds(constraintBuildID, jobID)
 						}
@@ -354,7 +354,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 			var err error
 			if len(builds) == 0 {
 				if candidates[i] != nil {
-					builds, err = vdb.SuccessfulBuildsVersionConstrained(jobID, candidates[i].Version)
+					builds, err = vdb.SuccessfulBuildsVersionConstrained(jobID, candidates[i].Version, inputConfig.ResourceID)
 					debug("found", len(builds), "builds for candidate", candidates[i].Version.ID)
 				} else {
 					builds, err = vdb.SuccessfulBuilds(jobID)
@@ -366,7 +366,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 			}
 
 			for _, buildID := range builds {
-				outputs, err := vdb.BuildOutputs(buildID)
+				outputs, err := vdb.SuccessfulBuildOutputs(buildID)
 				if err != nil {
 					return false, err
 				}

@@ -88,7 +88,7 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) ([]int, error) {
 	return buildIDs, nil
 }
 
-func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, version ResourceVersion) ([]int, error) {
+func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, version ResourceVersion, resourceID int) ([]int, error) {
 	cacheKey := fmt.Sprintf("sbvc%d-%s", jobID, version.MD5)
 
 	c, found := versions.Cache.Get(cacheKey)
@@ -98,31 +98,41 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, version
 
 	var buildIDs []int
 	rows, err := versions.Conn.Query(`
-			WITH
-				succeeded_builds AS (
-					SELECT id
-					FROM builds
-					WHERE job_id = $1
-					AND status = 'succeeded'
-				)
-			SELECT b.id
-			FROM succeeded_builds b
-			WHERE EXISTS (
-				SELECT 1
-				FROM build_resource_config_version_inputs bi
-				WHERE bi.build_id = b.id
-				AND bi.version_md5 = $2
-			)
-			OR EXISTS (
-				SELECT 1
-				FROM build_resource_config_version_outputs bo
-				WHERE bo.build_id = b.id
-				AND bo.version_md5 = $2
-			)
-			ORDER BY b.id DESC`, jobID, version.MD5)
+			SELECT build_id
+			FROM successful_build_versions b
+			WHERE job_id = $1
+			AND version_md5 = $2
+			AND resource_id = $3
+			ORDER BY build_id DESC`, jobID, version.MD5, resourceID)
 	if err != nil {
 		return nil, err
 	}
+	// rows, err := versions.Conn.Query(`
+	// 		WITH
+	// 			succeeded_builds AS (
+	// 				SELECT id
+	// 				FROM builds
+	// 				WHERE job_id = $1
+	// 				AND status = 'succeeded'
+	// 			)
+	// 		SELECT b.id
+	// 		FROM succeeded_builds b
+	// 		WHERE EXISTS (
+	// 			SELECT 1
+	// 			FROM build_resource_config_version_inputs bi
+	// 			WHERE bi.build_id = b.id
+	// 			AND bi.version_md5 = $2
+	// 		)
+	// 		OR EXISTS (
+	// 			SELECT 1
+	// 			FROM build_resource_config_version_outputs bo
+	// 			WHERE bo.build_id = b.id
+	// 			AND bo.version_md5 = $2
+	// 		)
+	// 		ORDER BY b.id DESC`, jobID, version.MD5)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	for rows.Next() {
 		var id int
@@ -174,6 +184,52 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 		Join("resources r ON r.id = o.resource_id").
 		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = o.version_md5").
 		Where(sq.Eq{"o.build_id": buildID}).
+		OrderBy("v.check_order ASC").
+		RunWith(versions.Conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var output AlgorithmOutput
+		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version.ID, &output.Version.MD5)
+		if err != nil {
+			return nil, err
+		}
+
+		uniqOutputs[output.InputName] = output
+	}
+
+	outputs := []AlgorithmOutput{}
+
+	for _, o := range uniqOutputs {
+		outputs = append(outputs, o)
+	}
+
+	sort.Slice(outputs, func(i, j int) bool {
+		return outputs[i].InputName > outputs[j].InputName
+	})
+
+	versions.Cache.Set(cacheKey, outputs, time.Hour)
+
+	return outputs, nil
+}
+
+func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmOutput, error) {
+	cacheKey := fmt.Sprintf("sbo%d", buildID)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.([]AlgorithmOutput), nil
+	}
+
+	uniqOutputs := map[string]AlgorithmOutput{}
+	rows, err := psql.Select("b.name", "b.resource_id", "v.id", "v.version_md5").
+		From("successful_build_versions b").
+		Join("resources r ON r.id = b.resource_id").
+		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = b.version_md5").
+		Where(sq.Eq{"b.build_id": buildID}).
 		OrderBy("v.check_order ASC").
 		RunWith(versions.Conn).
 		Query()
@@ -412,7 +468,10 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) ([]int, error) {
 		From("builds").
 		Where(sq.And{
 			sq.Gt{"id": buildID},
-			sq.Eq{"job_id": jobID},
+			sq.Eq{
+				"job_id": jobID,
+				"status": "succeeded",
+			},
 		}).
 		OrderBy("id ASC").
 		RunWith(versions.Conn).
@@ -436,7 +495,10 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) ([]int, error) {
 		From("builds").
 		Where(sq.And{
 			sq.LtOrEq{"id": buildID},
-			sq.Eq{"job_id": jobID},
+			sq.Eq{
+				"job_id": jobID,
+				"status": "succeeded",
+			},
 		}).
 		OrderBy("id DESC").
 		RunWith(versions.Conn).
@@ -460,7 +522,7 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) ([]int, error) {
 	return buildIDs, nil
 }
 
-func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int, version ResourceVersion) ([]int, error) {
+func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int, version ResourceVersion, resourceID int) ([]int, error) {
 	cacheKey := fmt.Sprintf("ubvc%d-%d-%s", buildID, jobID, version.MD5)
 
 	c, found := versions.Cache.Get(cacheKey)
@@ -470,28 +532,36 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 
 	var buildIDs []int
 	rows, err := versions.Conn.Query(`
-			WITH
-				succeeded_builds AS (
-					SELECT id
-					FROM builds
-					WHERE job_id = $1
-					AND id > $3
-				)
-			SELECT b.id
-			FROM succeeded_builds b
-			WHERE EXISTS (
-				SELECT 1
-				FROM build_resource_config_version_inputs bi
-				WHERE bi.build_id = b.id
-				AND bi.version_md5 = $2
-			)
-			OR EXISTS (
-				SELECT 1
-				FROM build_resource_config_version_outputs bo
-				WHERE bo.build_id = b.id
-				AND bo.version_md5 = $2
-			)
-			ORDER BY b.id ASC`, jobID, version.MD5, buildID)
+			SELECT build_id
+			FROM successful_build_versions
+			WHERE job_id = $1
+			AND version_md5 = $2
+			AND resource_id = $3
+			AND build_id > $4
+			ORDER BY build_id ASC`, jobID, version.MD5, resourceID, buildID)
+	// rows, err := versions.Conn.Query(`
+	// 		WITH
+	// 			succeeded_builds AS (
+	// 				SELECT id
+	// 				FROM builds
+	// 				WHERE job_id = $1
+	// 				AND id > $3
+	// 			)
+	// 		SELECT b.id
+	// 		FROM succeeded_builds b
+	// 		WHERE EXISTS (
+	// 			SELECT 1
+	// 			FROM build_resource_config_version_inputs bi
+	// 			WHERE bi.build_id = b.id
+	// 			AND bi.version_md5 = $2
+	// 		)
+	// 		OR EXISTS (
+	// 			SELECT 1
+	// 			FROM build_resource_config_version_outputs bo
+	// 			WHERE bo.build_id = b.id
+	// 			AND bo.version_md5 = $2
+	// 		)
+	// 		ORDER BY b.id ASC`, jobID, version.MD5, buildID)
 	if err != nil {
 		return nil, err
 	}
@@ -508,28 +578,36 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 	}
 
 	rows, err = versions.Conn.Query(`
-			WITH
-				succeeded_builds AS (
-					SELECT id
-					FROM builds
-					WHERE job_id = $1
-					AND id <= $3
-				)
-			SELECT b.id
-			FROM succeeded_builds b
-			WHERE EXISTS (
-				SELECT 1
-				FROM build_resource_config_version_inputs bi
-				WHERE bi.build_id = b.id
-				AND bi.version_md5 = $2
-			)
-			OR EXISTS (
-				SELECT 1
-				FROM build_resource_config_version_outputs bo
-				WHERE bo.build_id = b.id
-				AND bo.version_md5 = $2
-			)
-			ORDER BY b.id DESC`, jobID, version.MD5, buildID)
+			SELECT build_id
+			FROM successful_build_versions
+			WHERE job_id = $1
+			AND version_md5 = $2
+			AND resource_id = $3
+			AND build_id <= $4
+			ORDER BY build_id DESC`, jobID, version.MD5, resourceID, buildID)
+	// rows, err = versions.Conn.Query(`
+	// 		WITH
+	// 			succeeded_builds AS (
+	// 				SELECT id
+	// 				FROM builds
+	// 				WHERE job_id = $1
+	// 				AND id <= $3
+	// 			)
+	// 		SELECT b.id
+	// 		FROM succeeded_builds b
+	// 		WHERE EXISTS (
+	// 			SELECT 1
+	// 			FROM build_resource_config_version_inputs bi
+	// 			WHERE bi.build_id = b.id
+	// 			AND bi.version_md5 = $2
+	// 		)
+	// 		OR EXISTS (
+	// 			SELECT 1
+	// 			FROM build_resource_config_version_outputs bo
+	// 			WHERE bo.build_id = b.id
+	// 			AND bo.version_md5 = $2
+	// 		)
+	// 		ORDER BY b.id DESC`, jobID, version.MD5, buildID)
 	if err != nil {
 		return nil, err
 	}

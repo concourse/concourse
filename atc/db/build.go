@@ -363,6 +363,32 @@ func (b *build) Finish(status BuildStatus) error {
 		if err != nil {
 			return err
 		}
+
+		_, err = psql.Insert("successful_build_versions").
+			Columns("build_id", "resource_id", "version_md5", "name", "job_id").
+			Select(psql.Select("i.build_id", "i.resource_id", "i.version_md5", "i.name").
+				Column("?", b.jobID).
+				From("build_resource_config_version_inputs i").
+				Where(sq.Eq{"i.build_id": b.id})).
+			Suffix("ON CONFLICT DO NOTHING").
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+
+		_, err = psql.Insert("successful_build_versions").
+			Columns("build_id", "resource_id", "version_md5", "name", "job_id").
+			Select(psql.Select("o.build_id", "o.resource_id", "o.version_md5", "o.name").
+				Column("?", b.jobID).
+				From("build_resource_config_version_outputs o").
+				Where(sq.Eq{"o.build_id": b.id})).
+			Suffix("ON CONFLICT DO NOTHING").
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
 	}
 
 	if b.jobID != 0 {
