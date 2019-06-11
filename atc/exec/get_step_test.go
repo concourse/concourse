@@ -55,9 +55,10 @@ var _ = Describe("GetStep", func() {
 		stepErr error
 
 		containerMetadata = db.ContainerMetadata{
-			PipelineID: 4567,
-			Type:       db.ContainerTypeGet,
-			StepName:   "some-step",
+			WorkingDirectory: resource.ResourcesDir("get"),
+			PipelineID:       4567,
+			Type:             db.ContainerTypeGet,
+			StepName:         "some-step",
 		}
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
@@ -115,8 +116,6 @@ var _ = Describe("GetStep", func() {
 			Version:                &atc.Version{"some-version": "some-value"},
 			VersionedResourceTypes: resourceTypes,
 		}
-
-		containerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 	})
 
 	AfterEach(func() {
@@ -129,32 +128,18 @@ var _ = Describe("GetStep", func() {
 			Get: getPlan,
 		}
 
-		variables := creds.NewVariables(fakeSecretManager, fakeBuild.TeamName(), fakeBuild.PipelineName())
-
 		getStep = exec.NewGetStep(
-			fakeBuild,
-
-			plan.Get.Name,
-			plan.Get.Type,
-			plan.Get.Resource,
-			creds.NewSource(variables, plan.Get.Source),
-			creds.NewParams(variables, plan.Get.Params),
-			exec.NewVersionSourceFromPlan(plan.Get),
-			plan.Get.Tags,
-
-			fakeDelegate,
-			fakeResourceFetcher,
-			fakeBuild.TeamID(),
-			fakeBuild.ID(),
 			plan.ID,
-			containerMetadata,
-			fakeResourceCacheFactory,
+			*plan.Get,
+			fakeBuild,
 			stepMetadata,
-
-			creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
-
+			containerMetadata,
+			fakeSecretManager,
+			fakeResourceFetcher,
+			fakeResourceCacheFactory,
 			fakeStrategy,
 			fakePool,
+			fakeDelegate,
 		)
 
 		stepErr = getStep.Run(ctx, state)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -59,32 +58,18 @@ func (factory *stepFactory) GetStep(
 ) exec.Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
-	variables := creds.NewVariables(factory.secretManager, build.TeamName(), build.PipelineName())
-
 	getStep := exec.NewGetStep(
-		build,
-
-		plan.Get.Name,
-		plan.Get.Type,
-		plan.Get.Resource,
-		creds.NewSource(variables, plan.Get.Source),
-		creds.NewParams(variables, plan.Get.Params),
-		exec.NewVersionSourceFromPlan(plan.Get),
-		plan.Get.Tags,
-
-		delegate,
-		factory.resourceFetcher,
-		build.TeamID(),
-		build.ID(),
 		plan.ID,
-		workerMetadata,
-		factory.resourceCacheFactory,
+		*plan.Get,
+		build,
 		stepMetadata,
-
-		creds.NewVersionedResourceTypes(variables, plan.Get.VersionedResourceTypes),
-
+		workerMetadata,
+		factory.secretManager,
+		factory.resourceFetcher,
+		factory.resourceCacheFactory,
 		factory.strategy,
 		factory.pool,
+		delegate,
 	)
 
 	return exec.LogError(getStep, delegate)
@@ -99,43 +84,18 @@ func (factory *stepFactory) PutStep(
 ) exec.Step {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
-	variables := creds.NewVariables(factory.secretManager, build.TeamName(), build.PipelineName())
-
-	var putInputs exec.PutInputs
-	if plan.Put.Inputs == nil {
-		// Put step defaults to all inputs if not specified
-		putInputs = exec.NewAllInputs()
-	} else if plan.Put.Inputs.All {
-		putInputs = exec.NewAllInputs()
-	} else {
-		// Covers both cases where inputs are specified and when there are no
-		// inputs specified and "all" field is given a false boolean, which will
-		// result in no inputs attached
-		putInputs = exec.NewSpecificInputs(plan.Put.Inputs.Specified)
-	}
-
 	putStep := exec.NewPutStep(
-		build,
-
-		plan.Put.Name,
-		plan.Put.Type,
-		plan.Put.Resource,
-		creds.NewSource(variables, plan.Put.Source),
-		creds.NewParams(variables, plan.Put.Params),
-		plan.Put.Tags,
-		putInputs,
-
-		delegate,
-		factory.pool,
-		factory.resourceConfigFactory,
 		plan.ID,
-		workerMetadata,
+		*plan.Put,
+		build,
 		stepMetadata,
-
-		creds.NewVersionedResourceTypes(variables, plan.Put.VersionedResourceTypes),
-
-		factory.strategy,
+		workerMetadata,
+		factory.secretManager,
 		factory.resourceFactory,
+		factory.resourceConfigFactory,
+		factory.strategy,
+		factory.pool,
+		delegate,
 	)
 
 	return exec.LogError(putStep, delegate)
@@ -148,61 +108,18 @@ func (factory *stepFactory) TaskStep(
 	delegate exec.TaskDelegate,
 ) exec.Step {
 	sum := sha1.Sum([]byte(plan.Task.Name))
-	workingDirectory := filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
-
-	containerMetadata.WorkingDirectory = workingDirectory
-
-	credMgrVariables := creds.NewVariables(factory.secretManager, build.TeamName(), build.PipelineName())
-
-	var taskConfigSource exec.TaskConfigSource
-	var taskVars []template.Variables
-
-	if plan.Task.ConfigPath != "" {
-		// external task - construct a source which reads it from file
-		taskConfigSource = exec.FileConfigSource{ConfigPath: plan.Task.ConfigPath}
-
-		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred mgr variables
-		taskVars = []template.Variables{template.StaticVariables(plan.Task.Vars), credMgrVariables}
-	} else {
-		// embedded task - first we take it
-		taskConfigSource = exec.StaticConfigSource{Config: plan.Task.Config}
-
-		// for interpolation - use just cred mgr variables
-		taskVars = []template.Variables{credMgrVariables}
-	}
-
-	// override params
-	taskConfigSource = &exec.OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: plan.Task.Params}
-
-	// interpolate template vars
-	taskConfigSource = exec.InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: taskVars}
-
-	// validate
-	taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}
+	containerMetadata.WorkingDirectory = filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
 
 	taskStep := exec.NewTaskStep(
-		exec.Privileged(plan.Task.Privileged),
-		taskConfigSource,
-		plan.Task.Tags,
-		plan.Task.InputMapping,
-		plan.Task.OutputMapping,
-
-		workingDirectory,
-		plan.Task.ImageArtifactName,
-
-		delegate,
-
-		factory.pool,
-		build.TeamID(),
-		build.ID(),
-		build.JobID(),
-		plan.Task.Name,
 		plan.ID,
-		containerMetadata,
-
-		creds.NewVersionedResourceTypes(credMgrVariables, plan.Task.VersionedResourceTypes),
+		*plan.Task,
+		build,
 		factory.defaultLimits,
+		containerMetadata,
+		factory.secretManager,
 		factory.strategy,
+		factory.pool,
+		delegate,
 	)
 
 	return exec.LogError(taskStep, delegate)

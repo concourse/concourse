@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
@@ -26,39 +26,37 @@ var _ = Describe("PutStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		fakeBuild *dbfakes.FakeBuild
-
-		pipelineResourceName string
-
-		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
-		fakePool                  *workerfakes.FakePool
 		fakeWorker                *workerfakes.FakeWorker
+		fakePool                  *workerfakes.FakePool
+		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+		fakeSecretManager         *credsfakes.FakeSecrets
+		variables                 creds.Variables
+		fakeBuild                 *dbfakes.FakeBuild
+		fakeDelegate              *execfakes.FakePutDelegate
+		putPlan                   *atc.PutPlan
 
-		variables creds.Variables
-
-		stepMetadata testMetadata = []string{"a=1", "b=2"}
+		resourceTypes atc.VersionedResourceTypes
 
 		containerMetadata = db.ContainerMetadata{
-			Type:     db.ContainerTypePut,
-			StepName: "some-step",
+			WorkingDirectory: resource.ResourcesDir("put"),
+			Type:             db.ContainerTypePut,
+			StepName:         "some-step",
 		}
-		planID       atc.PlanID
-		fakeDelegate *execfakes.FakePutDelegate
 
-		resourceTypes creds.VersionedResourceTypes
+		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
 		repo  *artifact.Repository
 		state *execfakes.FakeRunState
 
-		stdoutBuf *gbytes.Buffer
-		stderrBuf *gbytes.Buffer
-
 		putStep *exec.PutStep
 		stepErr error
 
-		putInputs exec.PutInputs
+		stdoutBuf *gbytes.Buffer
+		stderrBuf *gbytes.Buffer
+
+		planID atc.PlanID
 	)
 
 	BeforeEach(func() {
@@ -70,17 +68,16 @@ var _ = Describe("PutStep", func() {
 
 		planID = atc.PlanID("some-plan-id")
 
-		pipelineResourceName = "some-resource"
-
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakePool = new(workerfakes.FakePool)
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
-		variables = template.StaticVariables{
-			"custom-param": "source",
-			"source-param": "super-secret-source",
-		}
+
+		fakeSecretManager = new(credsfakes.FakeSecrets)
+		fakeSecretManager.GetReturnsOnCall(0, "super-secret-source", nil, true, nil)
+		fakeSecretManager.GetReturnsOnCall(1, "source", nil, true, nil)
+		variables = creds.NewVariables(fakeSecretManager, "team", "pipeline")
 
 		fakeDelegate = new(execfakes.FakePutDelegate)
 		stdoutBuf = gbytes.NewBuffer()
@@ -92,7 +89,7 @@ var _ = Describe("PutStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 
-		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+		resourceTypes = atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
@@ -101,11 +98,17 @@ var _ = Describe("PutStep", func() {
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
-		})
+		}
 
-		stepErr = nil
-
-		putInputs = exec.NewAllInputs()
+		putPlan = &atc.PutPlan{
+			Name:                   "some-name",
+			Resource:               "some-resource",
+			Type:                   "some-resource-type",
+			Source:                 atc.Source{"some": "((source-param))"},
+			Params:                 atc.Params{"some-param": "some-value"},
+			Tags:                   []string{"some", "tags"},
+			VersionedResourceTypes: resourceTypes,
+		}
 	})
 
 	AfterEach(func() {
@@ -113,24 +116,23 @@ var _ = Describe("PutStep", func() {
 	})
 
 	JustBeforeEach(func() {
+		plan := atc.Plan{
+			ID:  atc.PlanID(planID),
+			Put: putPlan,
+		}
+
 		putStep = exec.NewPutStep(
+			plan.ID,
+			*plan.Put,
 			fakeBuild,
-			"some-name",
-			"some-resource-type",
-			pipelineResourceName,
-			creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
-			creds.NewParams(variables, atc.Params{"some-param": "some-value"}),
-			[]string{"some", "tags"},
-			putInputs,
-			fakeDelegate,
-			fakePool,
-			fakeResourceConfigFactory,
-			planID,
-			containerMetadata,
 			stepMetadata,
-			resourceTypes,
-			fakeStrategy,
+			containerMetadata,
+			fakeSecretManager,
 			fakeResourceFactory,
+			fakeResourceConfigFactory,
+			fakeStrategy,
+			fakePool,
+			fakeDelegate,
 		)
 
 		stepErr = putStep.Run(ctx, state)
@@ -195,7 +197,7 @@ var _ = Describe("PutStep", func() {
 					TeamID:        123,
 					Tags:          []string{"some", "tags"},
 					ResourceType:  "some-resource-type",
-					ResourceTypes: resourceTypes,
+					ResourceTypes: creds.NewVersionedResourceTypes(variables, resourceTypes),
 				}))
 				Expect(strategy).To(Equal(fakeStrategy))
 
@@ -219,13 +221,15 @@ var _ = Describe("PutStep", func() {
 					exec.PutResourceSource{fakeOtherSource},
 					exec.PutResourceSource{fakeMountedSource},
 				))
-				Expect(actualResourceTypes).To(Equal(resourceTypes))
+				Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
 				Expect(delegate).To(Equal(fakeDelegate))
 			})
 
 			Context("when the inputs are specified", func() {
 				BeforeEach(func() {
-					putInputs = exec.NewSpecificInputs([]string{"some-source", "some-other-source"})
+					putPlan.Inputs = &atc.InputsConfig{
+						Specified: []string{"some-source", "some-other-source"},
+					}
 				})
 
 				It("initializes the container with specified inputs", func() {
@@ -267,12 +271,6 @@ var _ = Describe("PutStep", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 			})
 
-			It("reports the created version info", func() {
-				info := putStep.VersionInfo()
-				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
-			})
-
 			It("is successful", func() {
 				Expect(putStep.Succeeded()).To(BeTrue())
 			})
@@ -283,7 +281,7 @@ var _ = Describe("PutStep", func() {
 				_, actualResourceType, actualSource, actualResourceTypes, version, metadata, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
 				Expect(actualResourceType).To(Equal("some-resource-type"))
 				Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
-				Expect(actualResourceTypes).To(Equal(resourceTypes))
+				Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
 				Expect(version).To(Equal(atc.Version{"some": "version"}))
 				Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
 				Expect(outputName).To(Equal("some-name"))
@@ -292,7 +290,7 @@ var _ = Describe("PutStep", func() {
 
 			Context("when the resource is blank", func() {
 				BeforeEach(func() {
-					pipelineResourceName = ""
+					putPlan.Resource = ""
 				})
 
 				It("is successful", func() {
