@@ -1,5 +1,6 @@
 module Colors exposing
     ( aborted
+    , abortedFaded
     , asciiArt
     , background
     , bottomBarText
@@ -12,6 +13,7 @@ module Colors exposing
     , dropdownFaded
     , dropdownUnselectedText
     , error
+    , errorFaded
     , errorLog
     , failure
     , failureFaded
@@ -29,6 +31,7 @@ module Colors exposing
     , paused
     , pausedTopbarSeparator
     , pending
+    , pendingFaded
     , pinHighlight
     , pinIconHover
     , pinned

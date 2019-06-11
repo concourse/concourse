@@ -19,7 +19,11 @@ import Keyboard
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message
-import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
+import Message.Subscription as Subscription
+    exposing
+        ( Delivery(..)
+        , Interval(..)
+        )
 import Message.TopLevelMessage as Msgs
 import Resource.Models as Models
 import Routes
