@@ -664,7 +664,7 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "not-authorized" ]
-        , test "shows 'cancelled' in red when aborted build's plan request gives 404" <|
+        , test "shows 'build cancelled' in red when aborted build's plan request gives 404" <|
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
@@ -705,8 +705,10 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has
-                        [ style "color" Colors.errorLog
-                        , containing [ text "cancelled" ]
+                        [ style "background-color" Colors.frame
+                        , style "padding" "5px 10px"
+                        , style "color" Colors.errorLog
+                        , containing [ text "build cancelled" ]
                         ]
         , test "shows passport officer when build prep request gives 401" <|
             \_ ->

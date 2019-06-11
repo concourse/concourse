@@ -238,7 +238,10 @@ durationTooltipArrow =
 
 errorLog : List (Html.Attribute msg)
 errorLog =
-    [ style "color" Colors.errorLog ]
+    [ style "color" Colors.errorLog
+    , style "background-color" Colors.frame
+    , style "padding" "5px 10px"
+    ]
 
 
 retryTabList : List (Html.Attribute msg)

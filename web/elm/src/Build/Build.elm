@@ -1153,7 +1153,7 @@ viewBuildOutput session output =
         Cancelled ->
             Html.div
                 Styles.errorLog
-                [ Html.text "cancelled" ]
+                [ Html.text "build cancelled" ]
 
         Empty ->
             Html.div [] []
