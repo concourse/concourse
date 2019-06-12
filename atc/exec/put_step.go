@@ -123,7 +123,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		Tags:   step.plan.Tags,
 		TeamID: step.build.TeamID(),
 
-		Dir: resource.ResourcesDir("put"),
+		Dir: step.containerMetadata.WorkingDirectory,
 
 		Env: step.stepMetadata.Env(),
 

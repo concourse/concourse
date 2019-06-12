@@ -53,17 +53,17 @@ func (factory *stepFactory) GetStep(
 	plan atc.Plan,
 	build db.Build,
 	stepMetadata exec.StepMetadata,
-	workerMetadata db.ContainerMetadata,
+	containerMetadata db.ContainerMetadata,
 	delegate exec.GetDelegate,
 ) exec.Step {
-	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
+	containerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
 	getStep := exec.NewGetStep(
 		plan.ID,
 		*plan.Get,
 		build,
 		stepMetadata,
-		workerMetadata,
+		containerMetadata,
 		factory.secretManager,
 		factory.resourceFetcher,
 		factory.resourceCacheFactory,
@@ -79,17 +79,17 @@ func (factory *stepFactory) PutStep(
 	plan atc.Plan,
 	build db.Build,
 	stepMetadata exec.StepMetadata,
-	workerMetadata db.ContainerMetadata,
+	containerMetadata db.ContainerMetadata,
 	delegate exec.PutDelegate,
 ) exec.Step {
-	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
+	containerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
 	putStep := exec.NewPutStep(
 		plan.ID,
 		*plan.Put,
 		build,
 		stepMetadata,
-		workerMetadata,
+		containerMetadata,
 		factory.secretManager,
 		factory.resourceFactory,
 		factory.resourceConfigFactory,

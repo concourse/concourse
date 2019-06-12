@@ -120,11 +120,6 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 
 	step.delegate.Initializing(logger)
 
-	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
-	if err != nil {
-		return err
-	}
-
 	variables := creds.NewVariables(step.secrets, step.build.TeamName(), step.build.PipelineName())
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
@@ -138,6 +133,26 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	resourceTypes := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes)
+
+	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
+	if err != nil {
+		return err
+	}
+
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: step.plan.Type,
+		},
+		TeamID: step.build.TeamID(),
+		Env:    step.stepMetadata.Env(),
+	}
+
+	workerSpec := worker.WorkerSpec{
+		ResourceType:  step.plan.Type,
+		Tags:          step.plan.Tags,
+		TeamID:        step.build.TeamID(),
+		ResourceTypes: resourceTypes,
+	}
 
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
 		logger,
@@ -162,21 +177,6 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		resourceCache,
 		db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID()),
 	)
-
-	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: step.plan.Type,
-		},
-		TeamID: step.build.TeamID(),
-		Env:    step.stepMetadata.Env(),
-	}
-
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  step.plan.Type,
-		Tags:          step.plan.Tags,
-		TeamID:        step.build.TeamID(),
-		ResourceTypes: resourceTypes,
-	}
 
 	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(
 		ctx,
