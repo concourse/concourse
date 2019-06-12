@@ -3,7 +3,9 @@ module Common exposing
     , given
     , iOpenTheBuildPage
     , init
+    , isColorWithStripes
     , myBrowserFetchedTheBuild
+    , pipelineRunningKeyframes
     , queryView
     , then_
     , when
@@ -11,15 +13,16 @@ module Common exposing
 
 import Application.Application as Application
 import Concourse
+import Expect exposing (Expectation)
 import Html
 import Message.Callback as Callback
 import Message.Effects exposing (Effect)
-import Message.Message as Message exposing (DomID)
+import Message.Message exposing (DomID, Message(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector)
+import Test.Html.Selector exposing (Selector, style)
 import Url
 
 
@@ -30,6 +33,34 @@ queryView =
         >> List.head
         >> Maybe.withDefault (Html.text "")
         >> Query.fromHtml
+
+
+isColorWithStripes :
+    { thick : String, thin : String }
+    -> Query.Single msg
+    -> Expectation
+isColorWithStripes { thick, thin } =
+    Query.has
+        [ style "background-image" <|
+            "repeating-linear-gradient(-115deg,"
+                ++ thick
+                ++ " 0,"
+                ++ thick
+                ++ " 10px,"
+                ++ thin
+                ++ " 0,"
+                ++ thin
+                ++ " 16px)"
+        , style "background-size" "106px 114px"
+        , style "animation" <|
+            pipelineRunningKeyframes
+                ++ " 3s linear infinite"
+        ]
+
+
+pipelineRunningKeyframes : String
+pipelineRunningKeyframes =
+    "pipeline-running"
 
 
 init : String -> Application.Model
@@ -128,11 +159,7 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hovered
                 setup
                     |> query
                     |> Event.simulate Event.mouseEnter
-                    |> Event.expect
-                        (Update <|
-                            Message.Hover <|
-                                Just hoverable
-                        )
+                    |> Event.expect (Update <| Hover <| Just hoverable)
         , test
             ("Hover msg causes "
                 ++ name
@@ -142,26 +169,18 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hovered
           <|
             \_ ->
                 setup
-                    |> Application.update
-                        (Update <|
-                            Message.Hover <|
-                                Just hoverable
-                        )
+                    |> Application.update (Update <| Hover <| Just hoverable)
                     |> Tuple.first
                     |> query
                     |> Query.has hoveredSelector.selector
         , test ("mousing off " ++ name ++ " triggers unhover msg") <|
             \_ ->
                 setup
-                    |> Application.update
-                        (Update <|
-                            Message.Hover <|
-                                Just hoverable
-                        )
+                    |> Application.update (Update <| Hover <| Just hoverable)
                     |> Tuple.first
                     |> query
                     |> Event.simulate Event.mouseLeave
-                    |> Event.expect (Update <| Message.Hover Nothing)
+                    |> Event.expect (Update <| Hover Nothing)
         , test
             ("unhover msg causes "
                 ++ name
@@ -171,16 +190,9 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hovered
           <|
             \_ ->
                 setup
-                    |> Application.update
-                        (Update <|
-                            Message.Hover <|
-                                Just hoverable
-                        )
+                    |> Application.update (Update <| Hover <| Just hoverable)
                     |> Tuple.first
-                    |> Application.update
-                        (Update <|
-                            Message.Hover Nothing
-                        )
+                    |> Application.update (Update <| Hover Nothing)
                     |> Tuple.first
                     |> query
                     |> Query.has unhoveredSelector.selector

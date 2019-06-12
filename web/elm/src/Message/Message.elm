@@ -73,6 +73,7 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Concourse.Build
+    | JobPreview Concourse.JobIdentifier
     | HamburgerMenu
     | SideBarTeam String
     | SideBarPipeline Concourse.PipelineIdentifier

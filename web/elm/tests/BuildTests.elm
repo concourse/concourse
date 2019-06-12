@@ -6,15 +6,10 @@ import Build.Build as Build
 import Build.Models as Models
 import Build.StepTree.Models as STModels
 import Char
-import Common exposing (defineHoverBehaviour)
+import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.Pagination exposing (Direction(..))
-import DashboardTests
-    exposing
-        ( iconSelector
-        , isColorWithStripes
-        , middleGrey
-        )
+import DashboardTests exposing (iconSelector, middleGrey)
 import Dict
 import Expect
 import Html.Attributes as Attr
