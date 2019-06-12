@@ -54,3 +54,4 @@ type Callback
     | BuildAborted (Fetched ())
     | VisibilityChanged VisibilityAction Concourse.PipelineIdentifier (Fetched ())
     | PipelinesFetched (Fetched (List Concourse.Pipeline))
+    | GotViewport (Result Browser.Dom.Error Browser.Dom.Viewport)

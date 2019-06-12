@@ -63,6 +63,9 @@ update message model =
             , []
             )
 
+        Hover (Just (SideBarPipeline pipelineID)) ->
+            ( model, [ Effects.GetViewportOf <| SideBarPipeline pipelineID ] )
+
         _ ->
             ( model, [] )
 
