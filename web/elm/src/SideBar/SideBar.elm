@@ -101,6 +101,19 @@ handleCallback callback currentPipeline ( model, effects ) =
             , effects
             )
 
+        GotViewport (Ok { scene, viewport }) ->
+            case ( model.hovered, scene.width > viewport.width ) of
+                ( HoverState.Hovered (SideBarPipeline pipelineId), True ) ->
+                    ( { model
+                        | hovered =
+                            HoverState.Tooltip (SideBarPipeline pipelineId)
+                      }
+                    , effects
+                    )
+
+                _ ->
+                    ( model, effects )
+
         _ ->
             ( model, effects )
 
