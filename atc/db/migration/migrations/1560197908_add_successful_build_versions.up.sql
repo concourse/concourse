@@ -7,8 +7,6 @@ BEGIN;
       "name" text NOT NULL
   );
 
-  CREATE INDEX successful_build_versions_scheduler_constrained_build_idx ON successful_build_versions (job_id, resource_id, version_md5, build_id DESC);
-
   CREATE INDEX successful_build_versions_build_id_idx ON successful_build_versions (build_id);
 
   CREATE UNIQUE INDEX successful_build_versions_unique_idx ON successful_build_versions (resource_id, version_md5, job_id, build_id, name);

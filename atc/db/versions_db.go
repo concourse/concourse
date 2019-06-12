@@ -97,42 +97,19 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, version
 	}
 
 	var buildIDs []int
-	rows, err := versions.Conn.Query(`
-			SELECT build_id
-			FROM successful_build_versions b
-			WHERE job_id = $1
-			AND version_md5 = $2
-			AND resource_id = $3
-			ORDER BY build_id DESC`, jobID, version.MD5, resourceID)
+	rows, err := psql.Select("build_id").
+		From("successful_build_versions").
+		Where(sq.Eq{
+			"job_id":      jobID,
+			"version_md5": version.MD5,
+			"resource_id": resourceID,
+		}).
+		OrderBy("build_id DESC").
+		RunWith(versions.Conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
-	// rows, err := versions.Conn.Query(`
-	// 		WITH
-	// 			succeeded_builds AS (
-	// 				SELECT id
-	// 				FROM builds
-	// 				WHERE job_id = $1
-	// 				AND status = 'succeeded'
-	// 			)
-	// 		SELECT b.id
-	// 		FROM succeeded_builds b
-	// 		WHERE EXISTS (
-	// 			SELECT 1
-	// 			FROM build_resource_config_version_inputs bi
-	// 			WHERE bi.build_id = b.id
-	// 			AND bi.version_md5 = $2
-	// 		)
-	// 		OR EXISTS (
-	// 			SELECT 1
-	// 			FROM build_resource_config_version_outputs bo
-	// 			WHERE bo.build_id = b.id
-	// 			AND bo.version_md5 = $2
-	// 		)
-	// 		ORDER BY b.id DESC`, jobID, version.MD5)
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	for rows.Next() {
 		var id int
@@ -227,8 +204,7 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmOutpu
 	uniqOutputs := map[string]AlgorithmOutput{}
 	rows, err := psql.Select("b.name", "b.resource_id", "v.id", "v.version_md5").
 		From("successful_build_versions b").
-		Join("resources r ON r.id = b.resource_id").
-		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = b.version_md5").
+		Join("resource_config_versions v ON v.resource_config_scope_id = (SELECT resource_config_scope_id FROM resource WHERE id = b.resource_id) AND v.version_md5 = b.version_md5").
 		Where(sq.Eq{"b.build_id": buildID}).
 		OrderBy("v.check_order ASC").
 		RunWith(versions.Conn).
@@ -339,14 +315,10 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 
 	var checkOrder int
 	err = psql.Select("rcv.check_order").
-		From("resource_config_versions rcv, resources r, build_resource_config_version_inputs i").
-		Where(sq.Eq{
-			"i.build_id": buildID,
-			"r.id":       resourceID,
-		}).
-		Where(sq.Expr("r.resource_config_scope_id = rcv.resource_config_scope_id")).
+		From("build_resource_config_version_inputs i").
+		Join("resource_config_versions rcv ON rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID).
 		Where(sq.Expr("i.version_md5 = rcv.version_md5")).
-		Where(sq.Expr("i.resource_id = r.id")).
+		Where(sq.Eq{"i.build_id": buildID}).
 		RunWith(tx).
 		QueryRow().
 		Scan(&checkOrder)
@@ -378,9 +350,8 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 	var nextVersion ResourceVersion
 	err = psql.Select("rcv.id", "rcv.version_md5").
 		From("resource_config_versions rcv").
-		Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
-		Where(sq.Expr("rcv.version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
-		Where(sq.Eq{"r.id": resourceID}).
+		Where(sq.Expr("rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID)).
+		Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_md5 = rcv.version_md5)", resourceID)).
 		Where(sq.Gt{"rcv.check_order": checkOrder}).
 		OrderBy("rcv.check_order ASC").
 		Limit(1).
@@ -391,9 +362,8 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 		if err == sql.ErrNoRows {
 			err = psql.Select("rcv.id", "rcv.version_md5").
 				From("resource_config_versions rcv").
-				Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
-				Where(sq.Expr("rcv.version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
-				Where(sq.Eq{"r.id": resourceID}).
+				Where(sq.Expr("rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID)).
+				Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_md5 = rcv.version_md5)", resourceID)).
 				Where(sq.LtOrEq{"rcv.check_order": checkOrder}).
 				OrderBy("rcv.check_order DESC").
 				Limit(1).
@@ -531,37 +501,19 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 	}
 
 	var buildIDs []int
-	rows, err := versions.Conn.Query(`
-			SELECT build_id
-			FROM successful_build_versions
-			WHERE job_id = $1
-			AND version_md5 = $2
-			AND resource_id = $3
-			AND build_id > $4
-			ORDER BY build_id ASC`, jobID, version.MD5, resourceID, buildID)
-	// rows, err := versions.Conn.Query(`
-	// 		WITH
-	// 			succeeded_builds AS (
-	// 				SELECT id
-	// 				FROM builds
-	// 				WHERE job_id = $1
-	// 				AND id > $3
-	// 			)
-	// 		SELECT b.id
-	// 		FROM succeeded_builds b
-	// 		WHERE EXISTS (
-	// 			SELECT 1
-	// 			FROM build_resource_config_version_inputs bi
-	// 			WHERE bi.build_id = b.id
-	// 			AND bi.version_md5 = $2
-	// 		)
-	// 		OR EXISTS (
-	// 			SELECT 1
-	// 			FROM build_resource_config_version_outputs bo
-	// 			WHERE bo.build_id = b.id
-	// 			AND bo.version_md5 = $2
-	// 		)
-	// 		ORDER BY b.id ASC`, jobID, version.MD5, buildID)
+	rows, err := psql.Select("build_id").
+		From("successful_build_versions").
+		Where(sq.Eq{
+			"job_id":      jobID,
+			"version_md5": version.MD5,
+			"resource_id": resourceID,
+		}).
+		Where(sq.Gt{
+			"build_id": buildID,
+		}).
+		OrderBy("build_id ASC").
+		RunWith(versions.Conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
@@ -577,37 +529,19 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		buildIDs = append(buildIDs, buildID)
 	}
 
-	rows, err = versions.Conn.Query(`
-			SELECT build_id
-			FROM successful_build_versions
-			WHERE job_id = $1
-			AND version_md5 = $2
-			AND resource_id = $3
-			AND build_id <= $4
-			ORDER BY build_id DESC`, jobID, version.MD5, resourceID, buildID)
-	// rows, err = versions.Conn.Query(`
-	// 		WITH
-	// 			succeeded_builds AS (
-	// 				SELECT id
-	// 				FROM builds
-	// 				WHERE job_id = $1
-	// 				AND id <= $3
-	// 			)
-	// 		SELECT b.id
-	// 		FROM succeeded_builds b
-	// 		WHERE EXISTS (
-	// 			SELECT 1
-	// 			FROM build_resource_config_version_inputs bi
-	// 			WHERE bi.build_id = b.id
-	// 			AND bi.version_md5 = $2
-	// 		)
-	// 		OR EXISTS (
-	// 			SELECT 1
-	// 			FROM build_resource_config_version_outputs bo
-	// 			WHERE bo.build_id = b.id
-	// 			AND bo.version_md5 = $2
-	// 		)
-	// 		ORDER BY b.id DESC`, jobID, version.MD5, buildID)
+	rows, err = psql.Select("build_id").
+		From("successful_build_versions").
+		Where(sq.Eq{
+			"job_id":      jobID,
+			"version_md5": version.MD5,
+			"resource_id": resourceID,
+		}).
+		Where(sq.LtOrEq{
+			"build_id": buildID,
+		}).
+		OrderBy("build_id DESC").
+		RunWith(versions.Conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
@@ -767,6 +701,7 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (Resou
 		Where(sq.Eq{"v.resource_config_scope_id": scopeID}).
 		Where(sq.Expr("v.version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
 		OrderBy("check_order DESC").
+		Limit(1).
 		RunWith(tx).
 		QueryRow().
 		Scan(&version.ID, &version.MD5)

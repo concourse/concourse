@@ -1,6 +1,8 @@
 package algorithm_test
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"time"
 
@@ -121,6 +123,14 @@ var _ = Describe("Resolve", func() {
 				Values(buildInput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), buildInput.InputName, false).
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
+
+			jobID := setup.jobIDs.ID(buildInput.JobName)
+			_, err = setup.psql.Insert("successful_build_versions").
+				Columns("build_id", "resource_id", "version_md5", "job_id", "name").
+				Values(buildInput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), jobID, buildInput.InputName).
+				Suffix("ON CONFLICT DO NOTHING").
+				Exec()
+			Expect(err).ToNot(HaveOccurred())
 		}
 
 		// Set up build outputs
@@ -144,6 +154,14 @@ var _ = Describe("Resolve", func() {
 			_, err = setup.psql.Insert("build_resource_config_version_outputs").
 				Columns("build_id", "resource_id", "version_md5", "name").
 				Values(buildOutput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), buildOutput.ResourceName).
+				Exec()
+			Expect(err).ToNot(HaveOccurred())
+
+			jobID := setup.jobIDs.ID(buildOutput.JobName)
+			_, err = setup.psql.Insert("successful_build_versions").
+				Columns("build_id", "resource_id", "version_md5", "job_id", "name").
+				Values(buildOutput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), jobID, buildOutput.ResourceName).
+				Suffix("ON CONFLICT DO NOTHING").
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 		}
@@ -235,8 +253,12 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
-						FirstOccurrence:  false,
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version: db.ResourceVersion{
+								ID:  2,
+								MD5: convertToMD5("v2"),
+							}, ResourceID: 1},
+						FirstOccurrence: false,
 					},
 					PassedBuildIDs: []int{},
 				},
@@ -262,8 +284,12 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
-						FirstOccurrence:  true,
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version: db.ResourceVersion{
+								ID:  2,
+								MD5: convertToMD5("v2"),
+							}, ResourceID: 1},
+						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
 				},
@@ -289,8 +315,12 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
-						FirstOccurrence:  true,
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version: db.ResourceVersion{
+								ID:  2,
+								MD5: convertToMD5("v2"),
+							}, ResourceID: 1},
+						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
 				},
@@ -316,8 +346,12 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
-						FirstOccurrence:  true,
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version: db.ResourceVersion{
+								ID:  2,
+								MD5: convertToMD5("v2"),
+							}, ResourceID: 1},
+						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
 				},
@@ -342,8 +376,12 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{Version: db.ResourceVersion{ID: 2}, ResourceID: 1},
-						FirstOccurrence:  true,
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version: db.ResourceVersion{
+								ID:  2,
+								MD5: convertToMD5("v2"),
+							}, ResourceID: 1},
+						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
 				},
@@ -351,3 +389,12 @@ var _ = Describe("Resolve", func() {
 		})
 	})
 })
+
+func convertToMD5(version string) string {
+	versionJSON, err := json.Marshal(atc.Version{"ver": version})
+	Expect(err).ToNot(HaveOccurred())
+
+	hasher := md5.New()
+	hasher.Write([]byte(versionJSON))
+	return hex.EncodeToString(hasher.Sum(nil))
+}

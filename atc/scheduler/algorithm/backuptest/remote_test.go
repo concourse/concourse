@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Resolve", func() {
+var _ = XDescribe("Resolve", func() {
 	var teamFactory db.TeamFactory
 	var inputMapper algorithm.InputMapper
 

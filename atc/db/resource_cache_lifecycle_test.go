@@ -332,7 +332,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 					"some-resource": db.InputResult{
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
-								VersionID:  resourceConfigVersion.ID(),
+								Version:    db.ResourceVersion{ID: resourceConfigVersion.ID()},
 								ResourceID: defaultResource.ID(),
 							},
 						},

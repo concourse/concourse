@@ -840,11 +840,9 @@ func (j *job) finishedBuild() (Build, error) {
 func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version, i.resolve_error, i.resolve_skipped").
 		From("next_build_inputs i").
-		Join("jobs j ON i.job_id = j.id").
 		LeftJoin("resource_config_versions v ON v.id = i.resource_config_version_id").
 		Where(sq.Eq{
-			"j.name":        j.name,
-			"j.pipeline_id": j.pipelineID,
+			"i.id": j.id,
 		}).
 		RunWith(tx).
 		Query()

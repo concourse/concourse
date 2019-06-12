@@ -303,6 +303,62 @@ func (example Example) Run() {
 		err = tx.Commit()
 		Expect(err).ToNot(HaveOccurred())
 
+		log.Println("IMPORTING INPUTS TO SUCCESSFUL BUILD VERSIONS")
+
+		tx, err = dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err = tx.Prepare(pq.CopyIn("successful_build_versions", "build_id", "resource_id", "version_md5", "job_id", "name"))
+		Expect(err).ToNot(HaveOccurred())
+
+		importedInputs := map[string]bool{}
+		for i, row := range legacyDB.BuildInputs {
+			name := fmt.Sprintf("sbv%d-%d-%d-%d-%d", row.BuildID, row.ResourceID, row.VersionID, row.JobID, i)
+			if importedInputs[name] {
+				continue
+			}
+
+			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), row.JobID, strconv.Itoa(i))
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
+		log.Println("IMPORTING OUTPUTS TO SUCCESSFUL BUILD VERSIONS")
+
+		tx, err = dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err = tx.Prepare(pq.CopyIn("successful_build_versions", "build_id", "resource_id", "version_md5", "job_id", "name"))
+		Expect(err).ToNot(HaveOccurred())
+
+		importedOutputs := map[string]bool{}
+		for i, row := range legacyDB.BuildOutputs {
+			name := fmt.Sprintf("sbv%d-%d-%d-%d-%d", row.BuildID, row.ResourceID, row.VersionID, row.JobID, i)
+			if importedOutputs[name] {
+				continue
+			}
+
+			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), row.JobID, strconv.Itoa(i))
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
 		log.Println("DONE IMPORTING")
 	} else {
 		for _, row := range example.DB.Resources {
@@ -323,6 +379,14 @@ func (example Example) Run() {
 				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), row.Resource, false).
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
+
+			jobID := setup.jobIDs.ID(row.Job)
+			_, err = setup.psql.Insert("successful_build_versions").
+				Columns("build_id", "resource_id", "version_md5", "job_id", "name").
+				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), jobID, row.Resource).
+				Suffix("ON CONFLICT DO NOTHING").
+				Exec()
+			Expect(err).ToNot(HaveOccurred())
 		}
 
 		for _, row := range example.DB.BuildOutputs {
@@ -337,6 +401,14 @@ func (example Example) Run() {
 			_, err = setup.psql.Insert("build_resource_config_version_outputs").
 				Columns("build_id", "resource_id", "version_md5", "name").
 				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), row.Resource).
+				Exec()
+			Expect(err).ToNot(HaveOccurred())
+
+			jobID := setup.jobIDs.ID(row.Job)
+			_, err = setup.psql.Insert("successful_build_versions").
+				Columns("build_id", "resource_id", "version_md5", "job_id", "name").
+				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), jobID, row.Resource).
+				Suffix("ON CONFLICT DO NOTHING").
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 		}

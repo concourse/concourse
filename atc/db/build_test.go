@@ -161,6 +161,7 @@ var _ = Describe("Build", func() {
 		})
 	})
 
+	// XXX: ADD TEST FOR SUCCESSFUL BUILD VERSIONS
 	Describe("Finish", func() {
 		var build db.Build
 		BeforeEach(func() {
@@ -787,7 +788,8 @@ var _ = Describe("Build", func() {
 						"some-input": db.InputResult{
 							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
-									Version: db.ResourceVersion{ID: rcv.ID(), ResourceID: resource.ID(),
+									Version:    db.ResourceVersion{ID: rcv.ID()},
+									ResourceID: resource.ID(),
 								},
 								FirstOccurrence: true,
 							},
@@ -964,8 +966,9 @@ var _ = Describe("Build", func() {
 					err = job.SaveNextInputMapping(db.InputMapping{
 						"input1": db.InputResult{
 							Input: &db.AlgorithmInput{
-								AlgorithmVersion: db.AlgorithmVersion{VersionID: versions[0].ID, ResourceID: resource1.ID()},
-								FirstOccurrence:  true,
+								AlgorithmVersion: db.AlgorithmVersion{
+									Version: db.ResourceVersion{ID: versions[0].ID}, ResourceID: resource1.ID()},
+								FirstOccurrence: true,
 							},
 							PassedBuildIDs: []int{},
 						},

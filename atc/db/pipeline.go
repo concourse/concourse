@@ -751,15 +751,18 @@ func (p *pipeline) LoadVersionsDB() (*VersionsDB, error) {
 		db.ResourceIDs[name] = id
 	}
 
-	rows, err = psql.Select("rcv.id").
-		From("resource_config_versions rcv").
-		RightJoin("resource_disabled_versions rdv ON rdv.version_md5 = rcv.version_md5").
-		Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id AND r.id = rdv.resource_id").
-		Where(sq.Eq{
-			"r.pipeline_id": p.id,
-		}).
-		RunWith(p.conn).
-		Query()
+	rows, err = p.conn.Query(`
+		WITH pipeline_resources AS (
+			SELECT id, resource_config_scope_id
+			FROM resources
+			WHERE pipeline_id = $1
+		)
+
+		SELECT rcv.id
+		FROM resource_disabled_versions rdv
+		JOIN pipeline_resources r ON r.id = rdv.resource_id
+		JOIN resource_config_versions rcv ON rdv.version_md5 = rcv.version_md5
+		AND rcv.resource_config_scope_id = r.resource_config_scope_id`, p.id)
 	if err != nil {
 		return nil, err
 	}

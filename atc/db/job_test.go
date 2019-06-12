@@ -803,7 +803,7 @@ var _ = Describe("Job", func() {
 					"some-input-1": db.InputResult{
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
-								VersionID:  versions[0].ID,
+								Version:    db.ResourceVersion{ID: versions[0].ID},
 								ResourceID: resource.ID(),
 							},
 							FirstOccurrence: false,
@@ -849,7 +849,7 @@ var _ = Describe("Job", func() {
 					"some-input-1": db.InputResult{
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
-								VersionID:  versions[0].ID,
+								Version:    db.ResourceVersion{ID: versions[0].ID},
 								ResourceID: resource.ID(),
 							},
 							FirstOccurrence: false,
@@ -859,7 +859,7 @@ var _ = Describe("Job", func() {
 					"some-input-2": db.InputResult{
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
-								VersionID:  versions[1].ID,
+								Version:    db.ResourceVersion{ID: versions[1].ID},
 								ResourceID: resource.ID(),
 							},
 							FirstOccurrence: false,
@@ -869,7 +869,7 @@ var _ = Describe("Job", func() {
 					"some-input-3": db.InputResult{
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
-								VersionID:  versions[2].ID,
+								Version:    db.ResourceVersion{ID: versions[2].ID},
 								ResourceID: resource.ID(),
 							},
 							FirstOccurrence: false,
@@ -1001,7 +1001,7 @@ var _ = Describe("Job", func() {
 				"some-input-1": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							VersionID:  versions[0].ID,
+							Version:    db.ResourceVersion{ID: versions[0].ID},
 							ResourceID: resource.ID(),
 						},
 						FirstOccurrence: false,
@@ -1011,7 +1011,7 @@ var _ = Describe("Job", func() {
 				"some-input-2": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							VersionID:  versions[1].ID,
+							Version:    db.ResourceVersion{ID: versions[1].ID},
 							ResourceID: resource.ID(),
 						},
 						FirstOccurrence: true,
@@ -1026,7 +1026,7 @@ var _ = Describe("Job", func() {
 				"some-input-3": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							VersionID:  versions[2].ID,
+							Version:    db.ResourceVersion{ID: versions[2].ID},
 							ResourceID: resource2.ID(),
 						},
 						FirstOccurrence: false,
@@ -1063,7 +1063,7 @@ var _ = Describe("Job", func() {
 				"some-input-2": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							VersionID:  versions[2].ID,
+							Version:    db.ResourceVersion{ID: versions[2].ID},
 							ResourceID: resource.ID(),
 						},
 						FirstOccurrence: false,
@@ -1073,7 +1073,7 @@ var _ = Describe("Job", func() {
 				"some-input-3": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							VersionID:  versions[2].ID,
+							Version:    db.ResourceVersion{ID: versions[2].ID},
 							ResourceID: resource.ID(),
 						},
 						FirstOccurrence: true,
@@ -1135,7 +1135,7 @@ var _ = Describe("Job", func() {
 				"some-input-1": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							VersionID:  versions[0].ID,
+							Version:    db.ResourceVersion{ID: versions[0].ID},
 							ResourceID: resource.ID(),
 						},
 						FirstOccurrence: false,
@@ -1145,7 +1145,7 @@ var _ = Describe("Job", func() {
 				"some-input-2": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							VersionID:  versions[1].ID,
+							Version:    db.ResourceVersion{ID: versions[1].ID},
 							ResourceID: resource.ID(),
 						},
 						FirstOccurrence: true,
