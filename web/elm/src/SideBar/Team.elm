@@ -1,6 +1,7 @@
 module SideBar.Team exposing (team)
 
 import Concourse
+import HoverState
 import Message.Message exposing (DomID(..), Message(..))
 import SideBar.Pipeline as Pipeline
 import SideBar.Styles as Styles
@@ -16,7 +17,7 @@ type alias PipelineScoped a =
 
 team :
     { a
-        | hovered : Maybe DomID
+        | hovered : HoverState.HoverState
         , pipelines : List Concourse.Pipeline
         , currentPipeline : Maybe (PipelineScoped b)
     }
@@ -25,7 +26,8 @@ team :
 team session t =
     let
         isHovered =
-            session.hovered == Just (SideBarTeam t.name)
+            (session.hovered == HoverState.Hovered (SideBarTeam t.name))
+                || (session.hovered == HoverState.Tooltip (SideBarTeam t.name))
 
         isCurrent =
             (session.currentPipeline |> Maybe.map .teamName) == Just t.name

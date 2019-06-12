@@ -14,6 +14,7 @@ import Application.Models exposing (Session)
 import Browser
 import Concourse
 import EffectTransformer exposing (ET)
+import HoverState
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
@@ -62,7 +63,7 @@ init flags url =
 
         session =
             { userState = UserStateUnknown
-            , hovered = Nothing
+            , hovered = HoverState.NoHover
             , clusterName = flags.clusterName
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
@@ -289,8 +290,16 @@ update msg model =
                 session =
                     model.session
 
-                ( newSession, sessionEffects ) =
-                    { session | hovered = hovered }
+                newHovered =
+                    case hovered of
+                        Just h ->
+                            HoverState.Hovered h
+
+                        Nothing ->
+                            HoverState.NoHover
+
+                ( newSession, _ ) =
+                    { session | hovered = newHovered }
                         |> SideBar.update (Message.Hover hovered)
 
                 ( subModel, subEffects ) =

@@ -9,6 +9,7 @@ module SideBar.SideBar exposing
 
 import Concourse
 import EffectTransformer exposing (ET)
+import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -30,7 +31,7 @@ type alias Model m =
     { m
         | expandedTeams : Set String
         , pipelines : WebData (List Concourse.Pipeline)
-        , hovered : Maybe DomID
+        , hovered : HoverState.HoverState
         , isSideBarOpen : Bool
         , screenSize : ScreenSize.ScreenSize
     }
@@ -152,7 +153,7 @@ hamburgerMenu :
         | screenSize : ScreenSize
         , pipelines : WebData (List Concourse.Pipeline)
         , isSideBarOpen : Bool
-        , hovered : Maybe DomID
+        , hovered : HoverState.HoverState
     }
     -> Html Message
 hamburgerMenu model =
@@ -187,7 +188,7 @@ hamburgerMenu model =
                 (Styles.hamburgerIcon <|
                     { isHovered =
                         isHamburgerClickable
-                            && (model.hovered == Just HamburgerMenu)
+                            && HoverState.isHovered HamburgerMenu model.hovered
                     , isActive = model.isSideBarOpen
                     }
                 )

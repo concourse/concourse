@@ -3,6 +3,7 @@ module SideBar.PipelineTests exposing (all)
 import Colors
 import Common
 import Expect
+import HoverState
 import Html exposing (Html)
 import Message.Message exposing (DomID(..), Message)
 import SideBar.Pipeline as Pipeline
@@ -100,10 +101,10 @@ pipeline { active, hovered } =
 
         hoveredDomId =
             if hovered then
-                Just (SideBarPipeline pipelineIdentifier)
+                HoverState.Hovered (SideBarPipeline pipelineIdentifier)
 
             else
-                Nothing
+                HoverState.NoHover
 
         activePipeline =
             if active then

@@ -2,6 +2,7 @@ module SideBar.TeamTests exposing (all)
 
 import Common
 import Expect
+import HoverState
 import Html exposing (Html)
 import Message.Message exposing (DomID(..), Message)
 import SideBar.Styles as Styles
@@ -293,10 +294,10 @@ team { active, expanded, hovered } =
     let
         hoveredDomId =
             if hovered then
-                Just (SideBarTeam "team")
+                HoverState.Hovered (SideBarTeam "team")
 
             else
-                Nothing
+                HoverState.NoHover
 
         pipelines =
             [ { id = 1

@@ -29,6 +29,7 @@ import DateFormat
 import Dict
 import Duration
 import EffectTransformer exposing (ET)
+import HoverState
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -797,7 +798,7 @@ header session model =
 
 
 body :
-    { a | userState : UserState, hovered : Maybe DomID }
+    { a | userState : UserState, hovered : HoverState.HoverState }
     -> Model
     -> Html Message
 body session model =
@@ -819,7 +820,7 @@ body session model =
 
 
 paginationMenu :
-    { a | hovered : Maybe DomID }
+    { a | hovered : HoverState.HoverState }
     ->
         { b
             | versions : Paginated Models.Version
@@ -881,7 +882,7 @@ paginationMenu { hovered } { versions, resourceIdentifier } =
                             ++ chevron
                                 { direction = "left"
                                 , enabled = True
-                                , hovered = hovered == Just Message.PreviousPageButton
+                                , hovered = HoverState.isHovered PreviousPageButton hovered
                                 }
                         )
                         []
@@ -917,7 +918,7 @@ paginationMenu { hovered } { versions, resourceIdentifier } =
                             ++ chevron
                                 { direction = "right"
                                 , enabled = True
-                                , hovered = hovered == Just Message.NextPageButton
+                                , hovered = HoverState.isHovered NextPageButton hovered
                                 }
                         )
                         []
@@ -930,7 +931,7 @@ checkSection :
         | checkStatus : Models.CheckStatus
         , checkSetupError : String
         , checkError : String
-        , hovered : Maybe DomID
+        , hovered : HoverState.HoverState
         , userState : UserState
         , teamName : String
     }
@@ -1007,7 +1008,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
 
 checkButton :
     { a
-        | hovered : Maybe DomID
+        | hovered : HoverState.HoverState
         , userState : UserState
         , teamName : String
         , checkStatus : Models.CheckStatus
@@ -1019,7 +1020,7 @@ checkButton ({ hovered, userState, checkStatus } as params) =
             UserState.isMember params
 
         isHovered =
-            hovered == Just (CheckButton isMember)
+            HoverState.isHovered (CheckButton isMember) hovered
 
         isCurrentlyChecking =
             checkStatus == Models.CurrentlyChecking
@@ -1055,7 +1056,7 @@ checkButton ({ hovered, userState, checkStatus } as params) =
 
 
 commentBar :
-    { a | userState : UserState, hovered : Maybe DomID }
+    { a | userState : UserState, hovered : HoverState.HoverState }
     ->
         { b
             | pinnedVersion : Models.PinnedVersion
@@ -1126,8 +1127,7 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                                     { isHovered =
                                         not pinCommentLoading
                                             && commentChanged
-                                            && hovered
-                                            == Just SaveCommentButton
+                                            && HoverState.isHovered SaveCommentButton hovered
                                     , commentChanged = commentChanged
                                     }
                             )
@@ -1157,7 +1157,7 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
 
 
 pinBar :
-    { a | hovered : Maybe DomID }
+    { a | hovered : HoverState.HoverState }
     -> { b | pinnedVersion : Models.PinnedVersion }
     -> Html Message
 pinBar { hovered } { pinnedVersion } =
@@ -1214,7 +1214,7 @@ pinBar { hovered } { pinnedVersion } =
                 ]
                 ++ Resource.Styles.pinIcon
                     { isPinnedDynamically = isPinnedDynamically
-                    , hover = hovered == Just PinIcon
+                    , hover = HoverState.isHovered PinIcon hovered
                     }
             )
             :: (case pinBarVersion of
@@ -1224,7 +1224,7 @@ pinBar { hovered } { pinnedVersion } =
                     _ ->
                         []
                )
-            ++ (if hovered == Just PinBar then
+            ++ (if HoverState.isHovered PinBar hovered then
                     [ Html.div
                         (id "pin-bar-tooltip" :: Resource.Styles.pinBarTooltip)
                         [ Html.text "pinned in pipeline config" ]
@@ -1237,7 +1237,7 @@ pinBar { hovered } { pinnedVersion } =
 
 
 viewVersionedResources :
-    { a | hovered : Maybe DomID }
+    { a | hovered : HoverState.HoverState }
     ->
         { b
             | versions : Paginated Models.Version
@@ -1260,7 +1260,7 @@ viewVersionedResources { hovered } { versions, pinnedVersion } =
 viewVersionedResource :
     { version : Models.Version
     , pinnedVersion : Models.PinnedVersion
-    , hovered : Maybe DomID
+    , hovered : HoverState.HoverState
     }
     -> Html Message
 viewVersionedResource { version, pinnedVersion, hovered } =
@@ -1391,7 +1391,7 @@ viewEnabledCheckbox ({ enabled, id } as params) =
 viewPinButton :
     { versionID : Models.VersionId
     , pinState : VersionPinState
-    , hovered : Maybe DomID
+    , hovered : HoverState.HoverState
     }
     -> Html Message
 viewPinButton { versionID, pinState, hovered } =
@@ -1422,7 +1422,7 @@ viewPinButton { versionID, pinState, hovered } =
         )
         (case pinState of
             PinnedStatically _ ->
-                if hovered == Just (PinButton versionID) then
+                if HoverState.isHovered (PinButton versionID) hovered then
                     [ Html.div
                         Resource.Styles.pinButtonTooltip
                         [ Html.text "enable via pipeline config" ]

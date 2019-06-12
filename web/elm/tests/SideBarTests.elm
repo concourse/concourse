@@ -1,6 +1,7 @@
 module SideBarTests exposing (all)
 
 import Expect
+import HoverState
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import RemoteData
@@ -34,7 +35,7 @@ all =
                               , groups = []
                               }
                             ]
-                    , hovered = Nothing
+                    , hovered = HoverState.NoHover
                     , isSideBarOpen = True
                     , screenSize = ScreenSize.Desktop
                     }
@@ -55,7 +56,7 @@ all =
                               , groups = []
                               }
                             ]
-                    , hovered = Nothing
+                    , hovered = HoverState.NoHover
                     , isSideBarOpen = True
                     , screenSize = ScreenSize.Desktop
                     }

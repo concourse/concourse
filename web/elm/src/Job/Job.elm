@@ -25,6 +25,7 @@ import Concourse.Pagination
         )
 import Dict
 import EffectTransformer exposing (ET)
+import HoverState
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -444,10 +445,10 @@ viewMainJobsSection session model =
             Just job ->
                 let
                     toggleHovered =
-                        session.hovered == Just ToggleJobButton
+                        HoverState.isHovered ToggleJobButton session.hovered
 
                     triggerHovered =
-                        session.hovered == Just TriggerBuildButton
+                        HoverState.isHovered TriggerBuildButton session.hovered
                 in
                 Html.div [ class "fixed-header" ]
                     [ Html.div
@@ -563,7 +564,7 @@ headerBuildStatus finishedBuild =
             build.status
 
 
-viewPaginationBar : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewPaginationBar : { a | hovered : HoverState.HoverState } -> Model -> Html Message
 viewPaginationBar session model =
     Html.div
         [ id "pagination"
@@ -603,7 +604,10 @@ viewPaginationBar session model =
                             ++ chevron
                                 { direction = "left"
                                 , enabled = True
-                                , hovered = session.hovered == Just PreviousPageButton
+                                , hovered =
+                                    HoverState.isHovered
+                                        PreviousPageButton
+                                        session.hovered
                                 }
                         )
                         []
@@ -641,7 +645,10 @@ viewPaginationBar session model =
                             ++ chevron
                                 { direction = "right"
                                 , enabled = True
-                                , hovered = session.hovered == Just NextPageButton
+                                , hovered =
+                                    HoverState.isHovered
+                                        NextPageButton
+                                        session.hovered
                                 }
                         )
                         []

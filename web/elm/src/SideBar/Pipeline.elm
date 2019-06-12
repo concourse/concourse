@@ -1,6 +1,7 @@
 module SideBar.Pipeline exposing (pipeline)
 
 import Concourse
+import HoverState
 import Message.Message exposing (DomID(..), Message(..))
 import Routes
 import SideBar.Styles as Styles
@@ -16,7 +17,7 @@ type alias PipelineScoped a =
 
 pipeline :
     { a
-        | hovered : Maybe DomID
+        | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
     }
     -> Concourse.Pipeline
@@ -35,7 +36,7 @@ pipeline session p =
             { pipelineName = p.name, teamName = p.teamName }
 
         isHovered =
-            session.hovered == Just (SideBarPipeline pipelineId)
+            HoverState.isHovered (SideBarPipeline pipelineId) session.hovered
     in
     { icon =
         if isCurrent || isHovered then
