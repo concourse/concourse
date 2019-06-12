@@ -4,6 +4,14 @@ import Application.Application as Application
 import Base64
 import Colors
 import Common
+    exposing
+        ( defineHoverBehaviour
+        , given
+        , iOpenTheBuildPage
+        , myBrowserFetchedTheBuild
+        , then_
+        , when
+        )
 import Concourse
 import DashboardTests
 import Dict
@@ -83,7 +91,7 @@ hasSideBar iAmLookingAtThePage =
                 >> when iAmLookingAtTheHamburgerMenu
                 >> then_ (itIsClickable Message.HamburgerMenu)
         , describe "before pipelines are fetched"
-            [ DashboardTests.defineHoverBehaviour
+            [ defineHoverBehaviour
                 { name = "hamburger icon"
                 , setup =
                     iAmLookingAtThePage ()
@@ -118,7 +126,7 @@ hasSideBar iAmLookingAtThePage =
                 >> given iAmOnANonPhoneScreen
                 >> when iAmLookingAtTheHamburgerMenu
                 >> then_ iSeeADarkDividingLineToTheRight
-        , DashboardTests.defineHoverBehaviour
+        , defineHoverBehaviour
             { name = "hamburger icon"
             , setup =
                 iAmLookingAtThePage ()
@@ -292,7 +300,7 @@ hasSideBar iAmLookingAtThePage =
         , test "team name has large font" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
-                >> then_ iSeeLargeFont
+                >> then_ iSeeMediumFont
         , test "team name has padding and margin" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
@@ -398,7 +406,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
-                >> then_ iSeeLargeFont
+                >> then_ iSeeMediumFont
         , test "pipeline link stretches" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -414,7 +422,7 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
                 >> then_ iSeeItHasAValidPipelineId
-        , DashboardTests.defineHoverBehaviour
+        , defineHoverBehaviour
             { name = "pipeline link"
             , setup =
                 iAmViewingTheDashboardOnANonPhoneScreen ()
@@ -588,18 +596,6 @@ all =
             hasCurrentPipelineInSideBar (when iOpenTheResourcePage)
         , describe "on notfound page" <| hasSideBar (when iOpenTheNotFoundPage)
         ]
-
-
-given =
-    identity
-
-
-when =
-    identity
-
-
-then_ =
-    identity
 
 
 iAmViewingTheDashboardOnANonPhoneScreen =
@@ -932,7 +928,7 @@ iSeeItHasPaddingAndMargin =
     Query.has [ style "padding" "2.5px", style "margin" "2.5px" ]
 
 
-iSeeLargeFont =
+iSeeMediumFont =
     Query.has [ style "font-size" "14px" ]
 
 
@@ -1536,52 +1532,9 @@ myBrowserNotifiesEveryFiveSeconds =
         >> Expect.true "should tick every five seconds"
 
 
-iOpenTheBuildPage _ =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = ""
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        , clusterName = ""
-        }
-        { protocol = Url.Http
-        , host = ""
-        , port_ = Nothing
-        , path = "/builds/1"
-        , query = Nothing
-        , fragment = Nothing
-        }
-
-
 iOpenTheJobBuildPage =
     iOpenTheBuildPage
         >> myBrowserFetchedTheBuild
-
-
-myBrowserFetchedTheBuild =
-    Tuple.first
-        >> Application.handleCallback
-            (Callback.BuildFetched <|
-                Ok
-                    ( 1
-                    , { id = 1
-                      , name = "1"
-                      , job =
-                            Just
-                                { teamName = "other-team"
-                                , pipelineName = "yet-another-pipeline"
-                                , jobName = "job"
-                                }
-                      , status = Concourse.BuildStatusStarted
-                      , duration =
-                            { startedAt = Nothing
-                            , finishedAt = Nothing
-                            }
-                      , reapTime = Nothing
-                      }
-                    )
-            )
 
 
 iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =

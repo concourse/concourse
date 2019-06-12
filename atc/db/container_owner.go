@@ -140,7 +140,6 @@ type resourceConfigCheckSessionContainerOwner struct {
 }
 
 type ContainerOwnerExpiries struct {
-	GraceTime time.Duration
 	Min       time.Duration
 	Max       time.Duration
 }
@@ -151,7 +150,7 @@ func (c resourceConfigCheckSessionContainerOwner) Find(conn Conn) (sq.Eq, bool, 
 		From("resource_config_check_sessions").
 		Where(sq.And{
 			sq.Eq{"resource_config_id": c.resourceConfig.ID()},
-			sq.Expr(fmt.Sprintf("expires_at > NOW() + interval '%d seconds'", int(c.expiries.GraceTime.Seconds()))),
+			sq.Expr("expires_at > NOW()"),
 		}).
 		RunWith(conn).
 		Query()

@@ -14,6 +14,7 @@ module Resource.Resource exposing
     , viewVersionHeader
     )
 
+import Application.Models exposing (Session)
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -74,7 +75,6 @@ import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
-import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents
 import Svg
@@ -116,7 +116,6 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = False
             , icon = Nothing
-            , timeZone = Time.utc
             }
     in
     ( model
@@ -203,12 +202,9 @@ subscriptions =
     ]
 
 
-handleCallback : Callback -> ET Model
-handleCallback callback ( model, effects ) =
+handleCallback : Callback -> Session -> ET Model
+handleCallback callback session ( model, effects ) =
     case callback of
-        GotCurrentTimeZone zone ->
-            ( { model | timeZone = zone }, effects )
-
         ResourceFetched (Ok resource) ->
             ( { model
                 | pageStatus = Ok ()
@@ -351,17 +347,37 @@ handleCallback callback ( model, effects ) =
             )
 
         VersionPinned (Ok ()) ->
-            let
-                newPinnedVersion =
-                    Pinned.finishPinning
-                        (\pinningTo ->
+            case ( session.userState, model.now, model.pinnedVersion ) of
+                ( UserStateLoggedIn user, Just time, PinningTo pinningTo ) ->
+                    let
+                        commentText =
+                            "pinned by "
+                                ++ Login.userDisplayName user
+                                ++ " at "
+                                ++ formatDate session.timeZone time
+                    in
+                    ( { model
+                        | pinnedVersion =
                             model.versions.content
                                 |> List.Extra.find (\v -> v.id == pinningTo)
                                 |> Maybe.map .version
-                        )
-                        model.pinnedVersion
-            in
-            ( { model | pinnedVersion = newPinnedVersion }, effects )
+                                |> Maybe.map
+                                    (PinnedDynamicallyTo
+                                        { comment = commentText
+                                        , pristineComment = ""
+                                        }
+                                    )
+                                |> Maybe.withDefault NotPinned
+                      }
+                    , effects
+                        ++ [ SetPinComment
+                                model.resourceIdentifier
+                                commentText
+                           ]
+                    )
+
+                _ ->
+                    ( model, effects )
 
         VersionPinned (Err _) ->
             ( { model | pinnedVersion = NotPinned }
@@ -695,7 +711,7 @@ documentTitle model =
     model.resourceIdentifier.resourceName
 
 
-view : Session a -> Model -> Html Message
+view : Session -> Model -> Html Message
 view session model =
     let
         route =
@@ -738,13 +754,13 @@ view session model =
         ]
 
 
-header : { a | hovered : Maybe DomID } -> Model -> Html Message
+header : Session -> Model -> Html Message
 header session model =
     let
         lastCheckedView =
             case ( model.now, model.lastChecked ) of
                 ( Just now, Just date ) ->
-                    viewLastChecked model.timeZone now date
+                    viewLastChecked session.timeZone now date
 
                 ( _, _ ) ->
                     Html.text ""
@@ -1500,6 +1516,25 @@ viewBuilds buildDict =
     List.concatMap (viewBuildsByJob buildDict) <| Dict.keys buildDict
 
 
+formatDate : Time.Zone -> Time.Posix -> String
+formatDate =
+    DateFormat.format
+        [ DateFormat.monthNameAbbreviated
+        , DateFormat.text " "
+        , DateFormat.dayOfMonthNumber
+        , DateFormat.text " "
+        , DateFormat.yearNumber
+        , DateFormat.text " "
+        , DateFormat.hourFixed
+        , DateFormat.text ":"
+        , DateFormat.minuteFixed
+        , DateFormat.text ":"
+        , DateFormat.secondFixed
+        , DateFormat.text " "
+        , DateFormat.amPmUppercase
+        ]
+
+
 viewLastChecked : Time.Zone -> Time.Posix -> Time.Posix -> Html a
 viewLastChecked timeZone now date =
     let
@@ -1511,26 +1546,7 @@ viewLastChecked timeZone now date =
             []
             [ Html.td [] [ Html.text "checked" ]
             , Html.td
-                [ title
-                    (DateFormat.format
-                        [ DateFormat.monthNameAbbreviated
-                        , DateFormat.text " "
-                        , DateFormat.dayOfMonthNumber
-                        , DateFormat.text " "
-                        , DateFormat.yearNumber
-                        , DateFormat.text " "
-                        , DateFormat.hourFixed
-                        , DateFormat.text ":"
-                        , DateFormat.minuteFixed
-                        , DateFormat.text ":"
-                        , DateFormat.secondFixed
-                        , DateFormat.text " "
-                        , DateFormat.amPmUppercase
-                        ]
-                        timeZone
-                        date
-                    )
-                ]
+                [ title <| formatDate timeZone date ]
                 [ Html.span [] [ Html.text (Duration.format ago ++ " ago") ] ]
             ]
         ]

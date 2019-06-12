@@ -23,7 +23,6 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 	Describe("CleanInactiveResourceConfigCheckSessions", func() {
 		expiry := db.ContainerOwnerExpiries{
-			GraceTime: 5 * time.Second,
 			Min:       1 * time.Minute,
 			Max:       1 * time.Minute,
 		}

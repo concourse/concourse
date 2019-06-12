@@ -23,7 +23,8 @@ BEGIN;
   INSERT INTO resource_disabled_versions (resource_id, version_md5)
   SELECT vr.resource_id, md5(vr.version)
   FROM versioned_resources vr
-  WHERE NOT enabled;
+  WHERE NOT enabled
+  ON CONFLICT DO NOTHING;
 
   ALTER TABLE resource_configs
     ADD COLUMN last_checked timestamp with time zone NOT NULL DEFAULT '1970-01-01 00:00:00',

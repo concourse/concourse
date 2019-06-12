@@ -12,6 +12,7 @@ module Job.Job exposing
     , view
     )
 
+import Application.Models exposing (Session)
 import Colors
 import Concourse
 import Concourse.BuildStatus
@@ -49,7 +50,6 @@ import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(.
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
-import Session exposing (Session)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick)
 import Time
@@ -70,7 +70,6 @@ type alias Model =
         , buildsWithResources : Paginated BuildWithResources
         , currentPage : Maybe Page
         , now : Time.Posix
-        , timeZone : Time.Zone
         }
 
 
@@ -108,7 +107,6 @@ init flags =
             , now = Time.millisToPosix 0
             , currentPage = flags.paging
             , isUserMenuExpanded = False
-            , timeZone = Time.utc
             }
     in
     ( model
@@ -157,9 +155,6 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
-        GotCurrentTimeZone zone ->
-            ( { model | timeZone = zone }, effects )
-
         BuildTriggered (Ok build) ->
             ( model
             , case build.job of
@@ -397,7 +392,7 @@ documentTitle model =
     model.jobIdentifier.jobName
 
 
-view : Session a -> Model -> Html Message
+view : Session -> Model -> Html Message
 view session model =
     let
         route =
@@ -434,7 +429,7 @@ view session model =
         ]
 
 
-viewMainJobsSection : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewMainJobsSection : Session -> Model -> Html Message
 viewMainJobsSection session model =
     Html.div
         [ class "with-fixed-header"
@@ -553,7 +548,7 @@ viewMainJobsSection session model =
                     , style "overflow-y" "auto"
                     ]
                     [ Html.ul [ class "jobs-builds-list builds-list" ] <|
-                        List.map (viewBuildWithResources model) anyList
+                        List.map (viewBuildWithResources session model) anyList
                     ]
         ]
 
@@ -654,8 +649,12 @@ viewPaginationBar session model =
         ]
 
 
-viewBuildWithResources : Model -> BuildWithResources -> Html Message
-viewBuildWithResources model bwr =
+viewBuildWithResources :
+    Session
+    -> Model
+    -> BuildWithResources
+    -> Html Message
+viewBuildWithResources session model bwr =
     Html.li [ class "js-build" ] <|
         let
             buildResourcesView =
@@ -663,7 +662,7 @@ viewBuildWithResources model bwr =
         in
         [ viewBuildHeader bwr.build
         , Html.div [ class "pam clearfix" ] <|
-            BuildDuration.view model.timeZone bwr.build.duration model.now
+            BuildDuration.view session.timeZone bwr.build.duration model.now
                 :: buildResourcesView
         ]
 

@@ -125,64 +125,6 @@ var _ = Describe("Garbage collecting resource containers", func() {
 		})
 	})
 
-	Describe("container for resource when pipeline is paused", func() {
-		BeforeEach(func() {
-			Deploy("deployments/concourse.yml")
-		})
-
-		It("has its resource config, resource config uses and container removed", func() {
-			By("setting pipeline that creates resource config")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
-
-			By("unpausing the pipeline")
-			fly.Run("unpause-pipeline", "-p", "resource-gc-test")
-
-			By("checking resource")
-			fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
-
-			By("getting the resource config")
-			var resourceConfigsNum int
-			err := psql.Select("COUNT(id)").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&resourceConfigsNum)
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(resourceConfigsNum).To(Equal(1))
-
-			By("getting the resource config container")
-			containers := flyTable("containers")
-			var checkContainerHandle string
-			for _, container := range containers {
-				if container["type"] == "check" {
-					checkContainerHandle = container["handle"]
-					break
-				}
-			}
-			Expect(checkContainerHandle).NotTo(BeEmpty())
-
-			By("pausing the pipeline")
-			fly.Run("pause-pipeline", "-p", "resource-gc-test")
-
-			By("eventually expiring the resource config")
-			Eventually(func() int {
-				var resourceConfigsNum int
-				err := psql.Select("COUNT(id)").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&resourceConfigsNum)
-				Expect(err).ToNot(HaveOccurred())
-
-				return resourceConfigsNum
-			}, 5*time.Minute, 10*time.Second).Should(Equal(0))
-
-			By(fmt.Sprintf("eventually expiring the resource config container: %s", checkContainerHandle))
-			Eventually(func() bool {
-				containers := flyTable("containers")
-				for _, container := range containers {
-					if container["type"] == "check" && container["handle"] == checkContainerHandle {
-						return true
-					}
-				}
-				return false
-			}, 5*time.Minute, 10*time.Second).Should(BeFalse())
-		})
-	})
-
 	Describe("container for resource that is updated", func() {
 		BeforeEach(func() {
 			Deploy("deployments/concourse.yml")

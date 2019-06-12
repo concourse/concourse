@@ -5,22 +5,6 @@
 @name-padding: 25px;
 
 .dashboard {
-  .pending   { background: @grey-primary; &:hover { background: @grey-secondary; } }
-  .started   { background: @grey-secondary; }
-  .no-builds { background: @grey-secondary; }
-  .succeeded { background: @green-primary; &:hover { background: @green-secondary; } }
-  .failed    { background: @red-primary; &:hover { background: @red-secondary; } }
-  .errored   { background: @amber-primary; &:hover { background: @amber-secondary; } }
-  .aborted   { background: @brown-primary; &:hover { background: @brown-secondary; } }
-  .paused    { background: @blue-primary; &:hover { background: @blue-secondary; } }
-
-  .running { background-size: 500% 100%; }
-  .no-builds.running { .running-animation(@grey-primary,  @grey-secondary); }
-  .succeeded.running { .running-animation(@green-primary, @green-secondary); }
-  .failed.running    { .running-animation(@red-primary,   @red-secondary); }
-  .errored.running   { .running-animation(@amber-primary, @amber-secondary); }
-  .aborted.running   { .running-animation(@brown-primary, @brown-secondary); }
-
   .pipeline-grid {
     float: none;
     display: flex;

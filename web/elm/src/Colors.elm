@@ -1,5 +1,6 @@
 module Colors exposing
     ( aborted
+    , abortedFaded
     , asciiArt
     , background
     , bottomBarText
@@ -12,6 +13,7 @@ module Colors exposing
     , dropdownFaded
     , dropdownUnselectedText
     , error
+    , errorFaded
     , failure
     , failureFaded
     , flySuccessButtonHover
@@ -28,10 +30,12 @@ module Colors exposing
     , paused
     , pausedTopbarSeparator
     , pending
+    , pendingFaded
     , pinHighlight
     , pinIconHover
     , pinned
     , resourceError
+    , retryTabText
     , secondaryTopBar
     , sectionHeader
     , sideBar
@@ -272,6 +276,11 @@ groupBackground =
 sideBar : String
 sideBar =
     "#333333"
+
+
+retryTabText : String
+retryTabText =
+    "#f5f5f5"
 
 
 statusColor : PipelineStatus -> String
