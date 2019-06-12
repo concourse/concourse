@@ -3,6 +3,7 @@ module SideBar.SideBar exposing
     , hamburgerMenu
     , handleCallback
     , handleDelivery
+    , update
     , view
     )
 
@@ -13,6 +14,7 @@ import Html.Attributes exposing (id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
+import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
@@ -39,6 +41,30 @@ type alias PipelineScoped a =
         | teamName : String
         , pipelineName : String
     }
+
+
+update : Message -> Model m -> ( Model m, List Effects.Effect )
+update message model =
+    case message of
+        Click HamburgerMenu ->
+            ( { model | isSideBarOpen = not model.isSideBarOpen }
+            , [ Effects.SaveSideBarState <| not model.isSideBarOpen ]
+            )
+
+        Click (SideBarTeam teamName) ->
+            ( { model
+                | expandedTeams =
+                    if Set.member teamName model.expandedTeams then
+                        Set.remove teamName model.expandedTeams
+
+                    else
+                        Set.insert teamName model.expandedTeams
+              }
+            , []
+            )
+
+        _ ->
+            ( model, [] )
 
 
 handleCallback : Callback -> WebData (PipelineScoped a) -> ET (Model m)

@@ -284,25 +284,14 @@ subpageHandleCallback callback ( model, effects ) =
 update : TopLevelMessage -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
-        Update (Message.Click Message.HamburgerMenu) ->
-            let
-                session =
-                    model.session
-
-                newSession =
-                    { session | isSideBarOpen = not session.isSideBarOpen }
-            in
-            ( { model | session = newSession }
-            , [ SaveSideBarState <| not session.isSideBarOpen ]
-            )
-
         Update (Message.Hover hovered) ->
             let
                 session =
                     model.session
 
-                newSession =
+                ( newSession, sessionEffects ) =
                     { session | hovered = hovered }
+                        |> SideBar.update (Message.Hover hovered)
 
                 ( subModel, subEffects ) =
                     ( model.subModel, [] )
@@ -310,31 +299,19 @@ update msg model =
             in
             ( { model | subModel = subModel, session = newSession }, subEffects )
 
-        Update (Message.Click (Message.SideBarTeam teamName)) ->
-            let
-                session =
-                    model.session
-
-                newSession =
-                    { session
-                        | expandedTeams =
-                            if Set.member teamName session.expandedTeams then
-                                Set.remove teamName session.expandedTeams
-
-                            else
-                                Set.insert teamName session.expandedTeams
-                    }
-            in
-            ( { model | session = newSession }, [] )
-
         Update m ->
             let
                 ( subModel, subEffects ) =
                     ( model.subModel, [] )
                         |> SubPage.update model.session m
                         |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
+
+                ( session, sessionEffects ) =
+                    SideBar.update m model.session
             in
-            ( { model | subModel = subModel }, subEffects )
+            ( { model | subModel = subModel, session = session }
+            , subEffects ++ sessionEffects
+            )
 
         Callback callback ->
             handleCallback callback model
