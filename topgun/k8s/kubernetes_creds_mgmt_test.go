@@ -68,8 +68,6 @@ var _ = Describe("Kubernetes credential management", func() {
 		})
 	})
 
-
-
 	Context("Consuming k8s credentials", func() {
 		var cachingSetup = func() {
 			deployConcourseChart(releaseName, "--set=worker.replicas=1",
@@ -158,6 +156,29 @@ var _ = Describe("Kubernetes credential management", func() {
 					Run(nil, "kubectl", "delete", "namespace", releaseName+"-main", "--wait=false")
 				})
 			})
+		})
+	})
+
+	Context("one-off build", func() {
+		BeforeEach(func() {
+			deployConcourseChart(releaseName, "--set=worker.replicas=1")
+		})
+
+		It("runs the one-off build successfully", func() {
+			By("creating the secret in the main team")
+			createCredentialSecret(releaseName, "some-secret", "main", map[string]string{"value": "mysecret"})
+
+			By("successfully running the one-off build")
+			fly.Run("execute",
+				"-c", "../tasks/simple-secret.yml")
+		})
+
+		It("one-off build fails", func() {
+			By("not creating the secret")
+			sess := fly.Start("execute",
+				"-c", "../tasks/simple-secret.yml")
+			<-sess.Exited
+			Expect(sess.ExitCode()).NotTo(Equal(0))
 		})
 	})
 
