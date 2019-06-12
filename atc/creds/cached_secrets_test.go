@@ -24,16 +24,19 @@ func makeGetStub(name string, value interface{}, expiration *time.Time, found bo
 var _ = Describe("Caching of secrets", func() {
 
 	var secretManager *credsfakes.FakeSecrets
+	var cacheConfig creds.SecretCacheConfig
 	var cachedSecretManager *creds.CachedSecrets
 	var underlyingReads int
 	var underlyingMisses int
 
 	BeforeEach(func() {
 		secretManager = new(credsfakes.FakeSecrets)
-		cachedSecretManager = creds.NewCachedSecrets(secretManager, creds.SecretCacheConfig{
-			Duration:      2 * time.Second,
-			PurgeInterval: 100 * time.Millisecond,
-		})
+		cacheConfig = creds.SecretCacheConfig{
+			Duration:         2 * time.Second,
+			DurationNotFound: 1 * time.Second,
+			PurgeInterval:    100 * time.Millisecond,
+		}
+		cachedSecretManager = creds.NewCachedSecrets(secretManager, cacheConfig)
 		underlyingReads = 0
 		underlyingMisses = 0
 	})
@@ -123,13 +126,38 @@ var _ = Describe("Caching of secrets", func() {
 		Expect(underlyingMisses).To(BeIdenticalTo(2))
 
 		// sleep
-		time.Sleep(3 * time.Second)
+		time.Sleep(cacheConfig.Duration + time.Millisecond)
 
 		// check counters again and make sure the entries are re-retrieved
 		_, _, _, _ = cachedSecretManager.Get("foo")
 		_, _, _, _ = cachedSecretManager.Get("bar")
 		_, _, _, _ = cachedSecretManager.Get("baz")
 		Expect(underlyingReads).To(BeIdenticalTo(2))
+		Expect(underlyingMisses).To(BeIdenticalTo(4))
+	})
+
+	It("should cache negative responses for a separately specified duration", func() {
+		secretManager.GetStub = makeGetStub("foo", "value", nil, true, nil, &underlyingReads, &underlyingMisses)
+
+		// get few entries first
+		_, _, _, _ = cachedSecretManager.Get("foo")
+		_, _, _, _ = cachedSecretManager.Get("bar")
+		_, _, _, _ = cachedSecretManager.Get("baz")
+		Expect(underlyingReads).To(BeIdenticalTo(1))
+		Expect(underlyingMisses).To(BeIdenticalTo(2))
+
+		// sleep
+		time.Sleep(cacheConfig.DurationNotFound + time.Millisecond)
+
+		// existing secret should still be cached
+		_, _, _, _ = cachedSecretManager.Get("foo")
+		Expect(underlyingReads).To(BeIdenticalTo(1))
+		Expect(underlyingMisses).To(BeIdenticalTo(2))
+
+		// non-existing secrets should be attempted to be retrieved again
+		_, _, _, _ = cachedSecretManager.Get("bar")
+		_, _, _, _ = cachedSecretManager.Get("baz")
+		Expect(underlyingReads).To(BeIdenticalTo(1))
 		Expect(underlyingMisses).To(BeIdenticalTo(4))
 	})
 

@@ -6,9 +6,10 @@ import (
 )
 
 type SecretCacheConfig struct {
-	Enabled       bool          `long:"secret-cache-enabled" description:"Enable in-memory cache for secrets"`
-	Duration      time.Duration `long:"secret-cache-duration" default:"1m" description:"If the cache is enabled, secret values will be cached for not longer than this duration (it can be less, if underlying secret lease time is smaller)"`
-	PurgeInterval time.Duration `long:"secret-cache-purge-interval" default:"10m" description:"If the cache is enabled, expired items will be removed on this internal"`
+	Enabled          bool          `long:"secret-cache-enabled" description:"Enable in-memory cache for secrets"`
+	Duration         time.Duration `long:"secret-cache-duration" default:"1m" description:"If the cache is enabled, secret values will be cached for not longer than this duration (it can be less, if underlying secret lease time is smaller)"`
+	DurationNotFound time.Duration `long:"secret-cache-duration-notfound" default:"10s" description:"If the cache is enabled, secret not found responses will be cached for this duration"`
+	PurgeInterval    time.Duration `long:"secret-cache-purge-interval" default:"10m" description:"If the cache is enabled, expired items will be removed on this interval"`
 }
 
 type CachedSecrets struct {
@@ -54,17 +55,21 @@ func (cs *CachedSecrets) Get(secretPath string) (interface{}, *time.Time, bool, 
 	// meaning that "secret not found" responses will be cached too!
 	entry = CacheEntry{value: value, expiration: expiration, found: found}
 
-	// take default cache ttl
-	duration := cs.cacheConfig.Duration
-	if expiration != nil {
-		// if secret lease time expires sooner, make duration smaller than default duration
-		itemDuration := expiration.Sub(time.Now())
-		if itemDuration < duration {
-			duration = itemDuration
+	if found {
+		// take default cache ttl
+		duration := cs.cacheConfig.Duration
+		if expiration != nil {
+			// if secret lease time expires sooner, make duration smaller than default duration
+			itemDuration := expiration.Sub(time.Now())
+			if itemDuration < duration {
+				duration = itemDuration
+			}
 		}
+		cs.cache.Set(secretPath, entry, duration)
+	} else {
+		cs.cache.Set(secretPath, entry, cs.cacheConfig.DurationNotFound)
 	}
 
-	cs.cache.Set(secretPath, entry, duration)
 	return value, expiration, found, nil
 }
 
