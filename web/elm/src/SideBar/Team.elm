@@ -26,8 +26,7 @@ team :
 team session t =
     let
         isHovered =
-            (session.hovered == HoverState.Hovered (SideBarTeam t.name))
-                || (session.hovered == HoverState.Tooltip (SideBarTeam t.name))
+            HoverState.isHovered (SideBarTeam t.name) session.hovered
 
         isCurrent =
             (session.currentPipeline |> Maybe.map .teamName) == Just t.name
@@ -73,6 +72,9 @@ team session t =
             else
                 Styles.TeamInvisible
         , domID = SideBarTeam t.name
+        , tooltip =
+            HoverState.tooltip (SideBarTeam t.name)
+                session.hovered
         }
     , isExpanded = t.isExpanded
     , pipelines = List.map (Pipeline.pipeline session) session.pipelines

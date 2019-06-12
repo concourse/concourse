@@ -18,16 +18,47 @@ all : Test
 all =
     describe "sidebar pipeline"
         [ describe "when active"
-            [ describe "when hovered"
+            [ describe "when hovered with tooltip"
+                [ test "pipeline name has tooltip" <|
+                    \_ ->
+                        Pipeline.pipeline
+                            { hovered =
+                                HoverState.Tooltip
+                                    (SideBarPipeline
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        }
+                                    )
+                                    { x = 0
+                                    , y = 0
+                                    }
+                            , currentPipeline =
+                                Just
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                            }
+                            singlePipeline
+                            |> .link
+                            |> .tooltip
+                            |> Expect.equal (Just { x = 0, y = 0 })
+                ]
+            , describe "when hovered"
                 [ test "pipeline name background is dark with bright border" <|
                     \_ ->
-                        pipeline { active = True, hovered = False }
+                        pipeline { active = True, hovered = True }
                             |> .link
                             |> .rectangle
                             |> Expect.equal Styles.Dark
+                , test "pipeline name has no tooltip" <|
+                    \_ ->
+                        pipeline { active = True, hovered = True }
+                            |> .link
+                            |> .tooltip
+                            |> Expect.equal Nothing
                 , test "pipeline icon is bright" <|
                     \_ ->
-                        pipeline { active = False, hovered = True }
+                        pipeline { active = True, hovered = True }
                             |> .icon
                             |> Expect.equal Styles.Bright
                 ]
@@ -40,9 +71,15 @@ all =
                             |> Expect.equal Styles.Dark
                 , test "pipeline icon is bright" <|
                     \_ ->
-                        pipeline { active = False, hovered = True }
+                        pipeline { active = True, hovered = False }
                             |> .icon
                             |> Expect.equal Styles.Bright
+                , test "pipeline name has no tooltip" <|
+                    \_ ->
+                        pipeline { active = True, hovered = False }
+                            |> .link
+                            |> .tooltip
+                            |> Expect.equal Nothing
                 ]
             ]
         , describe "when inactive"
@@ -58,6 +95,12 @@ all =
                         pipeline { active = False, hovered = True }
                             |> .icon
                             |> Expect.equal Styles.Bright
+                , test "pipeline name has no tooltip" <|
+                    \_ ->
+                        pipeline { active = False, hovered = True }
+                            |> .link
+                            |> .tooltip
+                            |> Expect.equal Nothing
                 ]
             , describe "when unhovered"
                 [ test "pipeline name is dim" <|
@@ -77,6 +120,13 @@ all =
                         pipeline { active = False, hovered = False }
                             |> .icon
                             |> Expect.equal Styles.Dim
+                , test "pipeline name has no tooltip" <|
+                    \_ ->
+                        pipeline
+                            { active = False, hovered = False }
+                            |> .link
+                            |> .tooltip
+                            |> Expect.equal Nothing
                 ]
             ]
         ]
@@ -85,15 +135,6 @@ all =
 pipeline : { active : Bool, hovered : Bool } -> Views.Pipeline
 pipeline { active, hovered } =
     let
-        singlePipeline =
-            { id = 1
-            , name = "pipeline"
-            , paused = False
-            , public = True
-            , teamName = "team"
-            , groups = []
-            }
-
         pipelineIdentifier =
             { teamName = "team"
             , pipelineName = "pipeline"
@@ -118,6 +159,16 @@ pipeline { active, hovered } =
         , currentPipeline = activePipeline
         }
         singlePipeline
+
+
+singlePipeline =
+    { id = 1
+    , name = "pipeline"
+    , paused = False
+    , public = True
+    , teamName = "team"
+    , groups = []
+    }
 
 
 pipelineIcon : Html Message -> Query.Single Message

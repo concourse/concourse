@@ -272,7 +272,7 @@ hasSideBar iAmLookingAtThePage =
         , test "team header contains team icon, arrow, and team name" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamHeader
-                >> then_ iSeeThreeChildren
+                >> then_ iSeeThreeChildrenDivs
         , test "team icon is a picture of two people" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamIcon
@@ -293,10 +293,6 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
                 >> then_ iSeeTheTeamName
-        , test "team name tooltip title of team's name" <|
-            given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheTeamName
-                >> then_ iSeeTheTeamNameInATooltip
         , test "team name has large font" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
@@ -397,11 +393,6 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
                 >> then_ iSeeItIsALinkToTheFirstPipeline
-        , test "pipeline link has tooltip of pipeline name" <|
-            given iHaveAnOpenSideBar_
-                >> given iClickedThePipelineGroup
-                >> when iAmLookingAtTheFirstPipelineLink
-                >> then_ iSeeItHasATooltipOfThePipelineName
         , test "pipeline link has large font" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -422,6 +413,11 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
                 >> then_ iSeeItHasAValidPipelineId
+        , test "hovering the pipelink link checks its viewport" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> when iHoveredTheFirstPipelineLink
+                >> then_ myBrowserChecksAViewport
         , defineHoverBehaviour
             { name = "pipeline link"
             , setup =
@@ -941,11 +937,17 @@ iSeeItEllipsizesLongText =
 
 
 iSeeItHasAValidTeamId =
-    Query.has [ id <| "t-" ++ Base64.encode "team" ]
+    Query.has [ id <| Base64.encode "team" ]
 
 
 iSeeItHasAValidPipelineId =
-    Query.has [ id <| "p-" ++ Base64.encode "pipeline" ]
+    Query.has
+        [ id <|
+            (Base64.encode "team"
+                ++ "_"
+                ++ Base64.encode "pipeline"
+            )
+        ]
 
 
 iSeeItScrollsIndependently =
@@ -993,6 +995,54 @@ iAmLookingAtTheFirstPipeline =
 
 iAmLookingAtTheFirstPipelineLink =
     iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.index 1
+
+
+iHoveredTheFirstPipelineLink =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <|
+                Message.Hover <|
+                    Just <|
+                        Message.SideBarPipeline
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            }
+            )
+
+
+theFirstPipelineLinkWasOverflowing =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.GotViewport <|
+                Ok
+                    { scene = { width = 1, height = 0 }
+                    , viewport = { width = 0, height = 0, x = 0, y = 0 }
+                    , element = { width = 0, height = 0, x = 0, y = 0 }
+                    }
+            )
+
+
+
+-- iSeeATooltipOfTheTeamName =
+--    Query.has [ text "team" ]
+-- iHoveredTheTeamName =
+--     Tuple.first
+--         >> Application.update
+--             (TopLevelMessage.Update <|
+--                 Message.Hover <|
+--                     Just <|
+--                         Message.SideBarTeam "team"
+--             )
+-- theTeamNameWasOverflowing =
+--     Tuple.first
+--         >> Application.handleCallback
+--             (Callback.GotViewport <|
+--                 Ok
+--                     { scene = { width = 1, height = 0 }
+--                     , viewport = { width = 0, height = 0, x = 0, y = 0 }
+--                     , element = { width = 0, height = 0, x = 0, y = 0 }
+--                     }
+--             )
 
 
 iSeeItContainsThePipelineName =
@@ -1644,14 +1694,6 @@ iOpenTheResourcePage _ =
         }
 
 
-iSeeTheTeamNameInATooltip =
-    Query.has [ attribute <| Attr.title "team" ]
-
-
-iSeeItHasATooltipOfThePipelineName =
-    Query.has [ attribute <| Attr.title "pipeline" ]
-
-
 iOpenTheNotFoundPage =
     iOpenTheJobPage
         >> Tuple.first
@@ -1682,8 +1724,8 @@ iSeeItStretches =
     Query.has [ style "flex-grow" "1" ]
 
 
-iSeeThreeChildren =
-    Query.children [] >> Query.count (Expect.equal 3)
+iSeeThreeChildrenDivs =
+    Query.children [ tag "div" ] >> Query.count (Expect.equal 3)
 
 
 myBrowserListensForSideBarStates =
@@ -1709,3 +1751,17 @@ myBrowserSavesSideBarState isOpen =
     Tuple.second
         >> List.member (Effects.SaveSideBarState isOpen)
         >> Expect.true "should save sidebar state"
+
+
+myBrowserChecksAViewport =
+    Tuple.second
+        >> List.any
+            (\e ->
+                case e of
+                    Effects.GetViewportOf _ ->
+                        True
+
+                    _ ->
+                        False
+            )
+        >> Expect.true "should get viewport"

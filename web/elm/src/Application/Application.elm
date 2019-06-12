@@ -298,7 +298,7 @@ update msg model =
                         Nothing ->
                             HoverState.NoHover
 
-                ( newSession, _ ) =
+                ( newSession, sideBarEffects ) =
                     { session | hovered = newHovered }
                         |> SideBar.update (Message.Hover hovered)
 
@@ -306,7 +306,9 @@ update msg model =
                     ( model.subModel, [] )
                         |> SubPage.update model.session (Message.Hover hovered)
             in
-            ( { model | subModel = subModel, session = newSession }, subEffects )
+            ( { model | subModel = subModel, session = newSession }
+            , subEffects ++ sideBarEffects
+            )
 
         Update m ->
             let

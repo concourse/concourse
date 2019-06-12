@@ -57,11 +57,13 @@ all =
                         |> Tuple.first
                         |> .hovered
                         |> Expect.equal
-                            (HoverState.Tooltip <|
-                                SideBarPipeline
+                            (HoverState.Tooltip
+                                (SideBarPipeline
                                     { teamName = "team"
                                     , pipelineName = "pipeline"
                                     }
+                                )
+                                { x = 0, y = 0 }
                             )
             , test "callback with non-overflowing does nothing" <|
                 \_ ->
@@ -91,26 +93,44 @@ all =
         ]
 
 
-overflowingViewport : Browser.Dom.Viewport
+overflowingViewport : Browser.Dom.Element
 overflowingViewport =
-    { scene = { width = 1, height = 0 }
+    { scene =
+        { width = 1
+        , height = 0
+        }
     , viewport =
         { width = 0
         , height = 0
         , x = 0
         , y = 0
         }
+    , element =
+        { x = 0
+        , y = 0
+        , width = 0
+        , height = 0
+        }
     }
 
 
-nonOverflowingViewport : Browser.Dom.Viewport
+nonOverflowingViewport : Browser.Dom.Element
 nonOverflowingViewport =
-    { scene = { width = 1, height = 0 }
+    { scene =
+        { width = 1
+        , height = 0
+        }
     , viewport =
         { width = 1
         , height = 0
         , x = 0
         , y = 0
+        }
+    , element =
+        { x = 0
+        , y = 0
+        , width = 0
+        , height = 0
         }
     }
 

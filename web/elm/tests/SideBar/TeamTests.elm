@@ -18,7 +18,36 @@ all =
     describe "sidebar team"
         [ describe "when active"
             [ describe "when expanded"
-                [ describe "when hovered"
+                [ describe "when hovered with tooltip"
+                    [ test "team name has tooltip" <|
+                        \_ ->
+                            Team.team
+                                { hovered =
+                                    HoverState.Tooltip (SideBarTeam "team")
+                                        { x = 0, y = 0 }
+                                , pipelines =
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                                , currentPipeline =
+                                    Just
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        }
+                                }
+                                { name = "team"
+                                , isExpanded = True
+                                }
+                                |> .name
+                                |> .tooltip
+                                |> Expect.equal (Just { x = 0, y = 0 })
+                    ]
+                , describe "when hovered"
                     [ test "arrow is bright" <|
                         \_ ->
                             team
@@ -29,6 +58,16 @@ all =
                                 |> .arrow
                                 |> .opacity
                                 |> Expect.equal Styles.Bright
+                    , test "team name has no tooltip" <|
+                        \_ ->
+                            team
+                                { active = True
+                                , expanded = True
+                                , hovered = True
+                                }
+                                |> .name
+                                |> .tooltip
+                                |> Expect.equal Nothing
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -89,6 +128,16 @@ all =
                                 }
                                 |> .icon
                                 |> Expect.equal Styles.Bright
+                    , test "team name has no tooltip" <|
+                        \_ ->
+                            team
+                                { active = True
+                                , expanded = True
+                                , hovered = False
+                                }
+                                |> .name
+                                |> .tooltip
+                                |> Expect.equal Nothing
                     ]
                 ]
             , describe "when collapsed"
@@ -122,6 +171,16 @@ all =
                                 }
                                 |> .icon
                                 |> Expect.equal Styles.Bright
+                    , test "team name has no tooltip" <|
+                        \_ ->
+                            team
+                                { active = True
+                                , expanded = False
+                                , hovered = True
+                                }
+                                |> .name
+                                |> .tooltip
+                                |> Expect.equal Nothing
                     ]
                 , describe "when unhovered"
                     [ test "arrow is bright" <|
@@ -153,6 +212,16 @@ all =
                                 }
                                 |> .icon
                                 |> Expect.equal Styles.Bright
+                    , test "team name has no tooltip" <|
+                        \_ ->
+                            team
+                                { active = True
+                                , expanded = False
+                                , hovered = False
+                                }
+                                |> .name
+                                |> .tooltip
+                                |> Expect.equal Nothing
                     ]
                 ]
             ]
@@ -188,6 +257,16 @@ all =
                                 }
                                 |> .icon
                                 |> Expect.equal Styles.GreyedOut
+                    , test "team name has no tooltip" <|
+                        \_ ->
+                            team
+                                { active = False
+                                , expanded = True
+                                , hovered = True
+                                }
+                                |> .name
+                                |> .tooltip
+                                |> Expect.equal Nothing
                     ]
                 , describe "when unhovered"
                     [ test "arrow is greyed out" <|
@@ -219,6 +298,16 @@ all =
                                 }
                                 |> .icon
                                 |> Expect.equal Styles.GreyedOut
+                    , test "team name has no tooltip" <|
+                        \_ ->
+                            team
+                                { active = False
+                                , expanded = True
+                                , hovered = False
+                                }
+                                |> .name
+                                |> .tooltip
+                                |> Expect.equal Nothing
                     ]
                 ]
             , describe "when collapsed"
@@ -252,6 +341,16 @@ all =
                                 }
                                 |> .icon
                                 |> Expect.equal Styles.GreyedOut
+                    , test "team name has no tooltip" <|
+                        \_ ->
+                            team
+                                { active = False
+                                , expanded = False
+                                , hovered = True
+                                }
+                                |> .name
+                                |> .tooltip
+                                |> Expect.equal Nothing
                     ]
                 , describe "when unhovered"
                     [ test "arrow is dim" <|
@@ -283,6 +382,16 @@ all =
                                 }
                                 |> .icon
                                 |> Expect.equal Styles.Dim
+                    , test "team name has no tooltip" <|
+                        \_ ->
+                            team
+                                { active = False
+                                , expanded = False
+                                , hovered = False
+                                }
+                                |> .name
+                                |> .tooltip
+                                |> Expect.equal Nothing
                     ]
                 ]
             ]

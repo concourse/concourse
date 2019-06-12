@@ -431,7 +431,15 @@ runEffect effect key csrfToken =
             saveSideBarState isOpen
 
         GetViewportOf domID ->
-            Browser.Dom.getViewportOf (toHtmlID domID)
+            Task.map2
+                (\vp el ->
+                    { viewport = vp.viewport
+                    , scene = vp.scene
+                    , element = el.element
+                    }
+                )
+                (Browser.Dom.getViewportOf (toHtmlID domID))
+                (Browser.Dom.getElement (toHtmlID domID))
                 |> Task.attempt GotViewport
 
 
@@ -439,10 +447,10 @@ toHtmlID : DomID -> String
 toHtmlID domId =
     case domId of
         SideBarTeam t ->
-            "t-" ++ Base64.encode t
+            Base64.encode t
 
         SideBarPipeline p ->
-            "p-" ++ Base64.encode p.pipelineName
+            Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
         _ ->
             ""

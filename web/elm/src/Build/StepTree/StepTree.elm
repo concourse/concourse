@@ -388,7 +388,7 @@ updateTooltip { hovered } { hoveredCounter } model =
     let
         newTooltip =
             case hovered of
-                HoverState.Tooltip (FirstOccurrenceIcon x) ->
+                HoverState.Tooltip (FirstOccurrenceIcon x) _ ->
                     if hoveredCounter > 0 then
                         Just (FirstOccurrenceIcon x)
 
@@ -402,7 +402,7 @@ updateTooltip { hovered } { hoveredCounter } model =
                     else
                         Nothing
 
-                HoverState.Tooltip (StepState x) ->
+                HoverState.Tooltip (StepState x) _ ->
                     if hoveredCounter > 0 then
                         Just (StepState x)
 

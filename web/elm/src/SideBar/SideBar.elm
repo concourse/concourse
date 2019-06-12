@@ -67,6 +67,9 @@ update message model =
         Hover (Just (SideBarPipeline pipelineID)) ->
             ( model, [ Effects.GetViewportOf <| SideBarPipeline pipelineID ] )
 
+        Hover (Just (SideBarTeam teamName)) ->
+            ( model, [ Effects.GetViewportOf <| SideBarTeam teamName ] )
+
         _ ->
             ( model, [] )
 
@@ -101,12 +104,26 @@ handleCallback callback currentPipeline ( model, effects ) =
             , effects
             )
 
-        GotViewport (Ok { scene, viewport }) ->
+        GotViewport (Ok { scene, viewport, element }) ->
             case ( model.hovered, scene.width > viewport.width ) of
                 ( HoverState.Hovered (SideBarPipeline pipelineId), True ) ->
                     ( { model
                         | hovered =
                             HoverState.Tooltip (SideBarPipeline pipelineId)
+                                { x = element.x + element.width
+                                , y = element.y - (element.height / 6)
+                                }
+                      }
+                    , effects
+                    )
+
+                ( HoverState.Hovered (SideBarTeam teamName), True ) ->
+                    ( { model
+                        | hovered =
+                            HoverState.Tooltip (SideBarTeam teamName)
+                                { x = element.x + element.width
+                                , y = element.y - (element.height / 6)
+                                }
                       }
                     , effects
                     )
