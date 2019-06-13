@@ -72,14 +72,13 @@ var _ = Describe("Kubernetes credential management", func() {
 		})
 	})
 
-	Context("Consuming per-team k8s secrets", func() {
 
-		JustBeforeEach(func() {
-			// ((foo)) --> bar
-			createCredentialSecret(releaseName, "foo", "main", map[string]string{"value": "bar"})
 
-			// ((caz.baz)) --> zaz
-			createCredentialSecret(releaseName, "caz", "main", map[string]string{"baz": "zaz"})
+	Context("Consuming k8s credentials", func() {
+		var runsBuildWithCredentialsResolved = func(normalSecret string, specialKeySecret string) {
+			By("creating credentials in k8s credential manager")
+			createCredentialSecret(releaseName, normalSecret, "main", map[string]string{"value": "bar"})
+			createCredentialSecret(releaseName, specialKeySecret, "main", map[string]string{"baz": "zaz"})
 
 			fly.Run("set-pipeline", "-n",
 				"-c", "../pipelines/minimal-credential-management.yml",
@@ -88,48 +87,106 @@ var _ = Describe("Kubernetes credential management", func() {
 
 			fly.Run("unpause-pipeline", "-p", "pipeline")
 
-		})
-
-		var runsBuildWithCredentialsResolved = func() {
 			session := fly.Start("trigger-job", "-j", "pipeline/unit", "-w")
 			Wait(session)
 
+			By("seeing the credentials were resolved by concourse")
 			Expect(string(session.Out.Contents())).To(ContainSubstring("bar"))
 			Expect(string(session.Out.Contents())).To(ContainSubstring("zaz"))
 		}
 
-		Context("using the default namespace created by the chart", func() {
-			It("succeeds", runsBuildWithCredentialsResolved)
+		var runGetsCachedCredentials = func(normalSecret string, specialKeySecret string) {
+			runsBuildWithCredentialsResolved(normalSecret, specialKeySecret)
+			deleteSecret(releaseName, "main", normalSecret)
+			deleteSecret(releaseName, "main", specialKeySecret)
+			By("seeing that concourse uses the cached credentials")
+			runsBuildWithCredentialsResolved(normalSecret, specialKeySecret)
+		}
+
+		var cachingSetup = func() {
+			extraArgs = []string{
+				"--set=concourse.web.secretCacheEnabled=true",
+				"--set=concourse.web.secretCacheDuration=600",
+			}
+		}
+
+		var disableTeamNamspaces = func() {
+			By("creating a namespace made by the user instead of the chart")
+			Run(nil, "kubectl", "create", "namespace", releaseName+"-main")
+			extraArgs = []string{
+				"--set=concourse.web.kubernetes.createTeamNamespaces=false",
+			}
+		}
+
+		var resetExtraArgs = func() {
+			extraArgs = []string{}
+		}
+
+
+		Context("using per-team credentials", func() {
+			normalSecret := "foo"
+			specialKeySecret := "caz"
+
+			Context("using the default namespace created by the chart", func() {
+				BeforeEach(resetExtraArgs)
+
+				It("succeeds", func() {
+					runsBuildWithCredentialsResolved(normalSecret, specialKeySecret)
+				})
+			})
+
+			Context("with caching enabled", func() {
+				BeforeEach(cachingSetup)
+
+				It("gets cached credentials", func() {
+					runGetsCachedCredentials(normalSecret, specialKeySecret)
+				})
+			})
+
+			Context("using a user-provided namespace", func() {
+				BeforeEach(disableTeamNamspaces)
+
+				It("succeeds", func() {
+					runsBuildWithCredentialsResolved(normalSecret, specialKeySecret)
+				})
+
+				AfterEach(func() {
+					Run(nil, "kubectl", "delete", "namespace", releaseName+"-main", "--wait=false")
+				})
+			})
+
 		})
 
-		Context("with caching enabled", func() {
-			BeforeEach(func() {
-				extraArgs = []string{
-					"--set=concourse.web.secretCacheEnabled=true",
-					"--set=concourse.web.secretCacheDuration=600",
-				}
+		Context("using per-pipeline credentials", func() {
+			normalSecret := "pipeline.foo"
+			specialKeySecret := "pipeline.caz"
+
+			Context("using the default namespace created by the chart", func() {
+				BeforeEach(resetExtraArgs)
+
+				It("succeeds", func() {
+					runsBuildWithCredentialsResolved(normalSecret, specialKeySecret)
+				})
 			})
 
-			It("gets cached credentials", func() {
-				runsBuildWithCredentialsResolved()
-				deleteSecret(releaseName, "main", "foo")
-				deleteSecret(releaseName, "main", "caz")
-				runsBuildWithCredentialsResolved()
-			})
-		})
+			Context("with caching enabled", func() {
+				BeforeEach(cachingSetup)
 
-		Context("using a user-provided namespace", func() {
-			BeforeEach(func() {
-				Run(nil, "kubectl", "create", "namespace", releaseName+"-main")
-				extraArgs = []string{
-					"--set=concourse.web.kubernetes.createTeamNamespaces=false",
-				}
+				It("gets cached credentials", func() {
+					runGetsCachedCredentials(normalSecret, specialKeySecret)
+				})
 			})
 
-			It("succeeds", runsBuildWithCredentialsResolved)
+			Context("using a user-provided namespace", func() {
+				BeforeEach(disableTeamNamspaces)
 
-			AfterEach(func() {
-				Run(nil, "kubectl", "delete", "namespace", releaseName+"-main", "--wait=false")
+				It("succeeds", func() {
+					runsBuildWithCredentialsResolved(normalSecret, specialKeySecret)
+				})
+
+				AfterEach(func() {
+					Run(nil, "kubectl", "delete", "namespace", releaseName+"-main", "--wait=false")
+				})
 			})
 		})
 	})
