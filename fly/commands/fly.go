@@ -74,6 +74,8 @@ type FlyCommand struct {
 	PruneWorker PruneWorkerCommand `command:"prune-worker" alias:"pw" description:"Prune a stalled, landing, landed, or retiring worker"`
 
 	Curl CurlCommand `command:"curl" alias:"c" description:"curl the api"`
+
+	Completion CompletionCommand `command:"completion" description:"generate shell completion code"`
 }
 
 var Fly FlyCommand
