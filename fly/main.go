@@ -62,7 +62,7 @@ func handleError(helpParser *flags.Parser, err error) {
 			fmt.Fprintln(ui.Stderr, "")
 			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("%s", netErr))
 			fmt.Fprintln(ui.Stderr, "")
-			fmt.Fprintln(ui.Stderr, "is the targeted Concourse running? better go catch it lol")
+			fmt.Fprintln(ui.Stderr, "is the targeted Concourse running?")
 		} else if err == commands.ErrShowHelpMessage {
 			helpParser.ParseArgs([]string{"-h"})
 			helpParser.WriteHelp(os.Stdout)
