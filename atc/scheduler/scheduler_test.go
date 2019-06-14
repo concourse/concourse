@@ -99,7 +99,7 @@ var _ = Describe("Scheduler", func() {
 							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
 									ResourceID: 1,
-									VersionID:  1,
+									Version:    db.ResourceVersion{ID: 1},
 								},
 								FirstOccurrence: true,
 							},

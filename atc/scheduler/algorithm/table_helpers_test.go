@@ -320,6 +320,8 @@ func (example Example) Run() {
 
 			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), row.JobID, strconv.Itoa(i))
 			Expect(err).ToNot(HaveOccurred())
+
+			importedInputs[name] = true
 		}
 
 		_, err = stmt.Exec()
@@ -339,15 +341,16 @@ func (example Example) Run() {
 		stmt, err = tx.Prepare(pq.CopyIn("successful_build_versions", "build_id", "resource_id", "version_md5", "job_id", "name"))
 		Expect(err).ToNot(HaveOccurred())
 
-		importedOutputs := map[string]bool{}
 		for i, row := range legacyDB.BuildOutputs {
 			name := fmt.Sprintf("sbv%d-%d-%d-%d-%d", row.BuildID, row.ResourceID, row.VersionID, row.JobID, i)
-			if importedOutputs[name] {
+			if importedInputs[name] {
 				continue
 			}
 
 			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), row.JobID, strconv.Itoa(i))
 			Expect(err).ToNot(HaveOccurred())
+
+			importedInputs[name] = true
 		}
 
 		_, err = stmt.Exec()

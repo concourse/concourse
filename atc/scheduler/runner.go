@@ -26,6 +26,10 @@ type BuildScheduler interface {
 
 var errPipelineRemoved = errors.New("pipeline removed")
 
+const maxJobsInFlight = 32
+
+var guardJobScheduling = make(chan struct{}, maxJobsInFlight)
+
 type Runner struct {
 	Logger    lager.Logger
 	Pipeline  db.Pipeline
@@ -111,7 +115,11 @@ func (runner *Runner) tick(logger lager.Logger) error {
 			continue
 		}
 
-		go runner.scheduleJob(logger, schedulingLock, versions, job)
+		guardJobScheduling <- struct{}{} // would block if guard channel is already filled
+		go func(j db.Job) {
+			runner.scheduleJob(logger, schedulingLock, versions, j)
+			<-guardJobScheduling
+		}(job)
 	}
 
 	return err

@@ -126,32 +126,21 @@ func setupSuccessfulBuildsInputs(db *sql.DB) {
 
 	_, err = db.Exec(`
 				INSERT INTO build_resource_config_version_inputs(build_id, resource_id, version_md5, name) VALUES
-					(1, 1, 'build_input1'),
-					(1, 1, 'build_input2'),
-					(2, 1, 'build_input3'),
-					(3, 1, 'build_input4'),
-					(3, 1, 'build_input4'),
-					(4, 4, 'build_input5'),
-					(5, 2, 'build_input6'),
+					(1, 1, 'v1', 'build_input1'),
+					(1, 1, 'v1', 'build_input2'),
+					(2, 1, 'v2', 'build_input3'),
+					(3, 1, 'v3', 'build_input4'),
+					(4, 4, 'v1', 'build_input5'),
+					(5, 2, 'v1', 'build_input6'),
 			`)
 	Expect(err).NotTo(HaveOccurred())
 }
 
 func setupSuccessfulBuildsOutputs(db *sql.DB) {
-	_, err := db.Exec(`
-				INSERT INTO builds(id, name, status, job_id, team_id, pipeline_id) VALUES
-					(6, 'build1', 'succeeded', 1, 1, 1),
-					(7, 'build2', 'succeeded', 1, 1, 1),
-					(8, 'build3', 'started', 2, 1, 1),
-					(9, 'build4', 'pending', 4, 1, 2)
-			`)
-	Expect(err).NotTo(HaveOccurred())
-
 	_, err = db.Exec(`
 				INSERT INTO build_resource_config_version_outputs(build_id, resource_id, version_md5, name) VALUES
-					(1, 3, 'some-resource-2', 'build_output1'),
-					(2, 1),
-					(3, 1),
+					(1, 1, 'v1', 'build_output1'),
+					(2, 1, 'v),
 					(3, 1),
 					(4, 4)
 			`)

@@ -204,7 +204,7 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmOutpu
 	uniqOutputs := map[string]AlgorithmOutput{}
 	rows, err := psql.Select("b.name", "b.resource_id", "v.id", "v.version_md5").
 		From("successful_build_versions b").
-		Join("resource_config_versions v ON v.resource_config_scope_id = (SELECT resource_config_scope_id FROM resource WHERE id = b.resource_id) AND v.version_md5 = b.version_md5").
+		Join("resource_config_versions v ON v.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = b.resource_id) AND v.version_md5 = b.version_md5").
 		Where(sq.Eq{"b.build_id": buildID}).
 		OrderBy("v.check_order ASC").
 		RunWith(versions.Conn).

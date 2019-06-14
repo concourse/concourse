@@ -923,6 +923,7 @@ func (b *build) AdoptBuildPipes() error {
 		SELECT nbp.from_build_id, $1
 		FROM next_build_pipes nbp
 		WHERE nbp.to_job_id = $2
+		ON CONFLICT DO NOTHING
 		`, b.id, b.jobID)
 
 	return err
