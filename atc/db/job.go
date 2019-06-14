@@ -842,7 +842,7 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 		From("next_build_inputs i").
 		LeftJoin("resource_config_versions v ON v.id = i.resource_config_version_id").
 		Where(sq.Eq{
-			"i.id": j.id,
+			"i.job_id": j.id,
 		}).
 		RunWith(tx).
 		Query()
