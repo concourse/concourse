@@ -22,6 +22,8 @@ import (
 
 const userPropertyName = "user"
 
+var ResourceConfigCheckSessionExpiredError = errors.New("no db container was found for owner")
+
 //go:generate counterfeiter . Worker
 
 type Worker interface {
@@ -189,19 +191,17 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		err               error
 	)
 
-	fmt.Println("heres the owner ", owner)
 	creatingContainer, createdContainer, err = worker.dbWorker.FindContainer(owner)
 	if err != nil {
 		logger.Error("failed-to-find-container-in-db", err)
 		return nil, err
 	}
-	fmt.Println("thsee are the handles", creatingContainer, createdContainer)
 	if creatingContainer != nil {
 		containerHandle = creatingContainer.Handle()
 	} else if createdContainer != nil {
 		containerHandle = createdContainer.Handle()
 	} else {
-		return nil, errors.New("no db container was found for owner")
+		return nil, ResourceConfigCheckSessionExpiredError
 	}
 
 	gardenContainer, err = worker.gardenClient.Lookup(containerHandle)

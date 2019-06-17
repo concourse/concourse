@@ -337,7 +337,6 @@ func (scanner *resourceScanner) check(
 		}
 		return err
 	}
-	fmt.Println("heres the owner in scanner", owner)
 	container, err := chosenWorker.FindOrCreateContainer(
 		context.Background(),
 		logger,
@@ -347,6 +346,13 @@ func (scanner *resourceScanner) check(
 		resourceTypes,
 	)
 	if err != nil {
+		// TODO: remove this after ephemeral check containers.
+		// Sometimes we pass in a check session thats too close to
+		// expirey into FindOrCreateContainer such that the container
+		// gced before the call is completed
+		if err == worker.ResourceConfigCheckSessionExpiredError {
+			return nil
+		}
 		logger.Error("failed-to-create-or-find-container", err)
 		chkErr := resourceConfigScope.SetCheckError(err)
 		if chkErr != nil {
