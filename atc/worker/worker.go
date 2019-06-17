@@ -580,28 +580,25 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	for i, nonLocalInput := range nonLocals {
 		// this is to ensure each go func gets its own non changing copy of the iterator
 		i, nonLocalInput := i, nonLocalInput
+		inputVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
+			logger,
+			VolumeSpec{
+				Strategy:   baggageclaim.EmptyStrategy{},
+				Privileged: privileged,
+			},
+			container,
+			teamID,
+			nonLocalInput.desiredMountPath,
+		)
+		if err != nil {
+			return []VolumeMount{}, err
+		}
+		destData := lager.Data{
+			"dest-volume": inputVolume.Handle(),
+			"dest-worker": inputVolume.WorkerName(),
+		}
 
 		g.Go(func() error {
-
-			inputVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
-				logger,
-				VolumeSpec{
-					Strategy:   baggageclaim.EmptyStrategy{},
-					Privileged: privileged,
-				},
-				container,
-				teamID,
-				nonLocalInput.desiredMountPath,
-			)
-			if err != nil {
-				return err
-			}
-
-			destData := lager.Data{
-				"dest-volume": inputVolume.Handle(),
-				"dest-worker": inputVolume.WorkerName(),
-			}
-
 			err = nonLocalInput.desiredArtifact.StreamTo(logger.Session("stream-to", destData), inputVolume)
 			if err != nil {
 				return err
