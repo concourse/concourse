@@ -17,36 +17,36 @@ type VersionsDB struct {
 
 	Cache *gocache.Cache
 
-	JobIDs             map[string]int
-	ResourceIDs        map[string]int
-	DisabledVersionIDs map[int]bool
+	JobIDs           map[string]int
+	ResourceIDs      map[string]int
+	DisabledVersions map[int]map[string]bool
 }
 
-type ResourceVersion struct {
-	ID  int
-	MD5 string
+func (versions VersionsDB) VersionIsDisabled(resourceID int, versionMD5 string) bool {
+	md5s, found := versions.DisabledVersions[resourceID]
+	return found && md5s[versionMD5]
 }
 
 func (versions VersionsDB) LatestVersionOfResource(resourceID int) (ResourceVersion, bool, error) {
 	tx, err := versions.Conn.Begin()
 	if err != nil {
-		return ResourceVersion{}, false, err
+		return "", false, err
 	}
 
 	defer tx.Rollback()
 
 	version, found, err := versions.latestVersionOfResource(tx, resourceID)
 	if err != nil {
-		return ResourceVersion{}, false, err
+		return "", false, err
 	}
 
 	if !found {
-		return ResourceVersion{}, false, nil
+		return "", false, nil
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return ResourceVersion{}, false, err
+		return "", false, err
 	}
 
 	return version, true, nil
@@ -89,7 +89,7 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) ([]int, error) {
 }
 
 func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, version ResourceVersion, resourceID int) ([]int, error) {
-	cacheKey := fmt.Sprintf("sbvc%d-%s", jobID, version.MD5)
+	cacheKey := fmt.Sprintf("sbvc%d-%s", jobID, version)
 
 	c, found := versions.Cache.Get(cacheKey)
 	if found {
@@ -101,7 +101,7 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, version
 		From("successful_build_versions").
 		Where(sq.Eq{
 			"job_id":      jobID,
-			"version_md5": version.MD5,
+			"version_md5": version,
 			"resource_id": resourceID,
 		}).
 		OrderBy("build_id DESC").
@@ -134,12 +134,9 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 	}
 
 	uniqOutputs := map[string]AlgorithmOutput{}
-	rows, err := psql.Select("i.name", "r.id", "v.id", "v.version_md5").
-		From("build_resource_config_version_inputs i").
-		Join("resources r ON r.id = i.resource_id").
-		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = i.version_md5").
-		Where(sq.Eq{"i.build_id": buildID}).
-		OrderBy("v.check_order ASC").
+	rows, err := psql.Select("name", "resource_id", "version_md5").
+		From("build_resource_config_version_inputs").
+		Where(sq.Eq{"build_id": buildID}).
 		RunWith(versions.Conn).
 		Query()
 	if err != nil {
@@ -148,7 +145,7 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 
 	for rows.Next() {
 		var output AlgorithmOutput
-		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version.ID, &output.Version.MD5)
+		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -156,12 +153,9 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 		uniqOutputs[output.InputName] = output
 	}
 
-	rows, err = psql.Select("o.name", "r.id", "v.id", "v.version_md5").
-		From("build_resource_config_version_outputs o").
-		Join("resources r ON r.id = o.resource_id").
-		Join("resource_config_versions v ON v.resource_config_scope_id = r.resource_config_scope_id AND v.version_md5 = o.version_md5").
-		Where(sq.Eq{"o.build_id": buildID}).
-		OrderBy("v.check_order ASC").
+	rows, err = psql.Select("name", "resource_id", "version_md5").
+		From("build_resource_config_version_outputs").
+		Where(sq.Eq{"build_id": buildID}).
 		RunWith(versions.Conn).
 		Query()
 	if err != nil {
@@ -170,7 +164,7 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 
 	for rows.Next() {
 		var output AlgorithmOutput
-		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version.ID, &output.Version.MD5)
+		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -179,7 +173,6 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 	}
 
 	outputs := []AlgorithmOutput{}
-
 	for _, o := range uniqOutputs {
 		outputs = append(outputs, o)
 	}
@@ -202,11 +195,10 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmOutpu
 	}
 
 	uniqOutputs := map[string]AlgorithmOutput{}
-	rows, err := psql.Select("b.name", "b.resource_id", "v.id", "v.version_md5").
-		From("successful_build_versions b").
-		Join("resource_config_versions v ON v.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = b.resource_id) AND v.version_md5 = b.version_md5").
-		Where(sq.Eq{"b.build_id": buildID}).
-		OrderBy("v.check_order ASC").
+	// TODO: prefer outputs over inputs for the same name
+	rows, err := psql.Select("name", "resource_id", "version_md5").
+		From("successful_build_versions").
+		Where(sq.Eq{"build_id": buildID}).
 		RunWith(versions.Conn).
 		Query()
 	if err != nil {
@@ -215,7 +207,7 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmOutpu
 
 	for rows.Next() {
 		var output AlgorithmOutput
-		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version.ID, &output.Version.MD5)
+		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -224,7 +216,6 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmOutpu
 	}
 
 	outputs := []AlgorithmOutput{}
-
 	for _, o := range uniqOutputs {
 		outputs = append(outputs, o)
 	}
@@ -241,11 +232,11 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmOutpu
 func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) (ResourceVersion, bool, error) {
 	versionJSON, err := json.Marshal(v)
 	if err != nil {
-		return ResourceVersion{}, false, nil
+		return "", false, nil
 	}
 
 	var version ResourceVersion
-	err = psql.Select("rcv.id", "rcv.version_md5").
+	err = psql.Select("rcv.version_md5").
 		From("resource_config_versions rcv").
 		Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
 		Where(sq.Eq{
@@ -254,12 +245,12 @@ func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) 
 		Where(sq.Expr("rcv.version_md5 = md5(?)", versionJSON)).
 		RunWith(versions.Conn).
 		QueryRow().
-		Scan(&version.ID, &version.MD5)
+		Scan(&version)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return ResourceVersion{}, false, nil
+			return "", false, nil
 		}
-		return ResourceVersion{}, false, err
+		return "", false, err
 	}
 
 	return version, true, err
@@ -303,12 +294,12 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 
 	c, found := versions.Cache.Get(cacheKey)
 	if found {
-		return c.(ResourceVersion), c.(ResourceVersion).ID != 0, nil
+		return c.(ResourceVersion), c.(ResourceVersion) != "", nil
 	}
 
 	tx, err := versions.Conn.Begin()
 	if err != nil {
-		return ResourceVersion{}, false, err
+		return "", false, err
 	}
 
 	defer tx.Rollback()
@@ -326,17 +317,17 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 		if err == sql.ErrNoRows {
 			version, found, err := versions.latestVersionOfResource(tx, resourceID)
 			if err != nil {
-				return ResourceVersion{}, false, err
+				return "", false, err
 			}
 
 			if !found {
-				versions.Cache.Set(cacheKey, ResourceVersion{}, gocache.DefaultExpiration)
-				return ResourceVersion{}, false, nil
+				versions.Cache.Set(cacheKey, "", gocache.DefaultExpiration)
+				return "", false, nil
 			}
 
 			err = tx.Commit()
 			if err != nil {
-				return ResourceVersion{}, false, err
+				return "", false, err
 			}
 
 			versions.Cache.Set(cacheKey, version, gocache.DefaultExpiration)
@@ -344,11 +335,11 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 			return version, true, nil
 		}
 
-		return ResourceVersion{}, false, err
+		return "", false, err
 	}
 
 	var nextVersion ResourceVersion
-	err = psql.Select("rcv.id", "rcv.version_md5").
+	err = psql.Select("rcv.version_md5").
 		From("resource_config_versions rcv").
 		Where(sq.Expr("rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID)).
 		Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_md5 = rcv.version_md5)", resourceID)).
@@ -357,10 +348,10 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 		Limit(1).
 		RunWith(tx).
 		QueryRow().
-		Scan(&nextVersion.ID, &nextVersion.MD5)
+		Scan(&nextVersion)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = psql.Select("rcv.id", "rcv.version_md5").
+			err = psql.Select("rcv.version_md5").
 				From("resource_config_versions rcv").
 				Where(sq.Expr("rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID)).
 				Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_md5 = rcv.version_md5)", resourceID)).
@@ -369,22 +360,22 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 				Limit(1).
 				RunWith(tx).
 				QueryRow().
-				Scan(&nextVersion.ID, &nextVersion.MD5)
+				Scan(&nextVersion)
 			if err != nil {
 				if err == sql.ErrNoRows {
-					versions.Cache.Set(cacheKey, ResourceVersion{}, gocache.DefaultExpiration)
-					return ResourceVersion{}, false, nil
+					versions.Cache.Set(cacheKey, "", gocache.DefaultExpiration)
+					return "", false, nil
 				}
-				return ResourceVersion{}, false, err
+				return "", false, err
 			}
 		} else {
-			return ResourceVersion{}, false, err
+			return "", false, err
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return ResourceVersion{}, false, err
+		return "", false, err
 	}
 
 	versions.Cache.Set(cacheKey, nextVersion, gocache.DefaultExpiration)
@@ -493,7 +484,7 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) ([]int, error) {
 }
 
 func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int, version ResourceVersion, resourceID int) ([]int, error) {
-	cacheKey := fmt.Sprintf("ubvc%d-%d-%s", buildID, jobID, version.MD5)
+	cacheKey := fmt.Sprintf("ubvc%d-%d-%s", buildID, jobID, version)
 
 	c, found := versions.Cache.Get(cacheKey)
 	if found {
@@ -505,7 +496,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		From("successful_build_versions").
 		Where(sq.Eq{
 			"job_id":      jobID,
-			"version_md5": version.MD5,
+			"version_md5": version,
 			"resource_id": resourceID,
 		}).
 		Where(sq.Gt{
@@ -533,7 +524,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		From("successful_build_versions").
 		Where(sq.Eq{
 			"job_id":      jobID,
-			"version_md5": version.MD5,
+			"version_md5": version,
 			"resource_id": resourceID,
 		}).
 		Where(sq.LtOrEq{
@@ -677,7 +668,7 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (Resou
 
 	c, found := versions.Cache.Get(cacheKey)
 	if found {
-		return c.(ResourceVersion), c.(ResourceVersion).ID != 0, nil
+		return c.(ResourceVersion), c.(ResourceVersion) != "", nil
 	}
 
 	var scopeID int
@@ -690,27 +681,27 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (Resou
 	if err != nil {
 		if err == sql.ErrNoRows {
 			versions.Cache.Set(cacheKey, 0, gocache.DefaultExpiration)
-			return ResourceVersion{}, false, nil
+			return "", false, nil
 		}
-		return ResourceVersion{}, false, err
+		return "", false, err
 	}
 
 	var version ResourceVersion
-	err = psql.Select("v.id", "v.version_md5").
-		From("resource_config_versions v").
-		Where(sq.Eq{"v.resource_config_scope_id": scopeID}).
-		Where(sq.Expr("v.version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
+	err = psql.Select("version_md5").
+		From("resource_config_versions").
+		Where(sq.Eq{"resource_config_scope_id": scopeID}).
+		Where(sq.Expr("version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
 		OrderBy("check_order DESC").
 		Limit(1).
 		RunWith(tx).
 		QueryRow().
-		Scan(&version.ID, &version.MD5)
+		Scan(&version)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			versions.Cache.Set(cacheKey, version, gocache.DefaultExpiration)
-			return ResourceVersion{}, false, nil
+			return "", false, nil
 		}
-		return ResourceVersion{}, false, err
+		return "", false, err
 	}
 
 	versions.Cache.Set(cacheKey, version, gocache.DefaultExpiration)

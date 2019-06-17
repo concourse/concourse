@@ -11,6 +11,8 @@ type InputResult struct {
 	ResolveSkipped bool
 }
 
+type ResourceVersion string
+
 type AlgorithmVersion struct {
 	ResourceID int
 	Version    ResourceVersion

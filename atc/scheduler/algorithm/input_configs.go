@@ -74,7 +74,6 @@ func newCandidateVersion(version db.ResourceVersion) *versionCandidate {
 
 func newCandidateError(err error) *versionCandidate {
 	return &versionCandidate{
-		Version:        db.ResourceVersion{},
 		VouchedForBy:   map[int]bool{},
 		SourceBuildIds: []int{},
 		ResolveError:   err,
@@ -186,7 +185,7 @@ func (im *inputMapper) computeNextInputs(configs InputConfigs, versionsDB *db.Ve
 						ResourceID: config.ResourceID,
 						Version:    candidates[i].Version,
 					},
-					FirstOccurrence: !found || latestBuildOutputs[config.Name].ID != candidates[i].Version.ID,
+					FirstOccurrence: !found || latestBuildOutputs[config.Name] != candidates[i].Version,
 				},
 				PassedBuildIDs: candidates[i].SourceBuildIds,
 			}
@@ -243,10 +242,10 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 			}
 
 			var version db.ResourceVersion
-			if inputConfig.PinnedVersion.ID != 0 {
+			if inputConfig.PinnedVersion.MD5 != "" {
 				// pinned
 				version = inputConfig.PinnedVersion
-				debug("setting candidate", i, "to unconstrained version", version.ID)
+				debug("setting candidate", i, "to unconstrained version", version.MD5)
 			} else if inputConfig.UseEveryVersion {
 				buildID, found, err := vdb.LatestBuildID(inputConfig.JobID)
 				if err != nil {
@@ -275,7 +274,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 					}
 				}
 
-				debug("setting candidate", i, "to version for version every", version.ID, " resource ", inputConfig.ResourceID)
+				debug("setting candidate", i, "to version for version every", version.MD5, " resource ", inputConfig.ResourceID)
 			} else {
 				// there are no passed constraints, so just take the latest version
 				var err error
@@ -290,7 +289,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 					return false, nil
 				}
 
-				debug("setting candidate", i, "to version for latest", version.ID)
+				debug("setting candidate", i, "to version for latest", version.MD5)
 			}
 
 			candidates[i] = newCandidateVersion(version)
@@ -313,11 +312,11 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 
 				// coming from recursive call; we've already got a candidate
 				if candidates[i].VouchedForBy[jobID] {
-					debug("job", jobID, i, "already vouched for", candidates[i].Version.ID)
+					debug("job", jobID, i, "already vouched for", candidates[i].Version.MD5)
 					// we've already been here; continue to the next job
 					continue
 				} else {
-					debug("job", jobID, i, "has not vouched for", candidates[i].Version.ID)
+					debug("job", jobID, i, "has not vouched for", candidates[i].Version.MD5)
 				}
 			} else {
 				debug(i, "has no candidate yet")
@@ -355,7 +354,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 			if len(builds) == 0 {
 				if candidates[i] != nil {
 					builds, err = vdb.SuccessfulBuildsVersionConstrained(jobID, candidates[i].Version, inputConfig.ResourceID)
-					debug("found", len(builds), "builds for candidate", candidates[i].Version.ID)
+					debug("found", len(builds), "builds for candidate", candidates[i].Version.MD5)
 				} else {
 					builds, err = vdb.SuccessfulBuilds(jobID)
 					debug("found", len(builds), "builds no candidate")
@@ -380,7 +379,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 				// loop over the resource versions that came out of this build set
 			outputs:
 				for _, output := range outputs {
-					debug("build", buildID, "output", output.ResourceID, output.Version.ID)
+					debug("build", buildID, "output", output.ResourceID, output.Version.MD5)
 
 					// try to pin each candidate to the versions from this build
 					for c, candidate := range candidates {
@@ -395,19 +394,19 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 							continue
 						}
 
-						if vdb.DisabledVersionIDs[output.Version.ID] {
-							debug("disabled", output.Version.ID, jobID)
+						if vdb.VersionIsDisabled(output.ResourceID, output.Version.MD5) {
+							debug("disabled", output.Version.MD5, jobID)
 							mismatch = true
 							break outputs
 						}
 
-						if inputConfigs[c].PinnedVersion.ID != 0 && inputConfigs[c].PinnedVersion.ID != output.Version.ID {
-							debug("mismatch pinned version", output.Version.ID, jobID)
+						if inputConfigs[c].PinnedVersion.MD5 != "" && inputConfigs[c].PinnedVersion.MD5 != output.Version.MD5 {
+							debug("mismatch pinned version", output.Version.MD5, jobID)
 							mismatch = true
 							break outputs
 						}
 
-						if candidate != nil && candidate.Version.ID != output.Version.ID {
+						if candidate != nil && candidate.Version.MD5 != output.Version.MD5 {
 							// don't return here! just try the next output set. it's possible
 							// we just need to use an older output set.
 							debug("mismatch")
@@ -420,11 +419,11 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 						if candidate == nil {
 							restore[c] = candidate
 
-							debug("setting candidate", c, "to", output.Version.ID)
+							debug("setting candidate", c, "to", output.Version.MD5)
 							candidates[c] = newCandidateVersion(output.Version)
 						}
 
-						debug("job", jobID, "vouching for", output.ResourceID, "version", output.Version.ID)
+						debug("job", jobID, "vouching for", output.ResourceID, "version", output.Version.MD5)
 						candidates[c].VouchedForBy[jobID] = true
 						candidates[c].SourceBuildIds = append(candidates[c].SourceBuildIds, buildID)
 

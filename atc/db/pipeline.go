@@ -702,9 +702,9 @@ func (p *pipeline) LoadVersionsDB() (*VersionsDB, error) {
 
 		Cache: schedulerCache,
 
-		JobIDs:             map[string]int{},
-		ResourceIDs:        map[string]int{},
-		DisabledVersionIDs: map[int]bool{},
+		JobIDs:           map[string]int{},
+		ResourceIDs:      map[string]int{},
+		DisabledVersions: map[int]map[string]bool{},
 	}
 
 	rows, err := psql.Select("j.name, j.id").
@@ -751,31 +751,34 @@ func (p *pipeline) LoadVersionsDB() (*VersionsDB, error) {
 		db.ResourceIDs[name] = id
 	}
 
-	rows, err = p.conn.Query(`
-		WITH pipeline_resources AS (
-			SELECT id, resource_config_scope_id
-			FROM resources
-			WHERE pipeline_id = $1
-		)
-
-		SELECT rcv.id
-		FROM resource_disabled_versions rdv
-		JOIN pipeline_resources r ON r.id = rdv.resource_id
-		JOIN resource_config_versions rcv ON rdv.version_md5 = rcv.version_md5
-		AND rcv.resource_config_scope_id = r.resource_config_scope_id`, p.id)
+	rows, err = psql.Select("rdv.resource_id", "rdv.version_md5").
+		From("resource_disabled_versions rdv").
+		Join("resources r ON r.id = rdv.resource_id").
+		Where(sq.Eq{
+			"r.pipeline_id": p.id,
+		}).
+		RunWith(p.conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
 
 	for rows.Next() {
-		var versionID int
+		var resourceID int
+		var versionMD5 string
 
-		err = rows.Scan(&versionID)
+		err = rows.Scan(&resourceID, &versionMD5)
 		if err != nil {
 			return nil, err
 		}
 
-		db.DisabledVersionIDs[versionID] = true
+		md5s, found := db.DisabledVersions[resourceID]
+		if !found {
+			md5s = map[string]bool{}
+			db.DisabledVersions[resourceID] = md5s
+		}
+
+		md5s[versionMD5] = true
 	}
 
 	return db, nil

@@ -126,9 +126,9 @@ func (example Example) Run() {
 	schedulerCache := gocache.New(10*time.Second, 10*time.Second)
 
 	versionsDB := &db.VersionsDB{
-		Conn:               dbConn,
-		Cache:              schedulerCache,
-		DisabledVersionIDs: map[int]bool{},
+		Conn:             dbConn,
+		Cache:            schedulerCache,
+		DisabledVersions: map[int]map[string]bool{},
 	}
 
 	setup := setupDB{
@@ -454,7 +454,7 @@ func (example Example) Run() {
 			Expect(err).ToNot(HaveOccurred())
 
 			var pinnedVersion db.ResourceVersion
-			rows, err := setup.psql.Select("rcv.id", "rcv.version_md5").
+			rows, err := setup.psql.Select("rcv.version_md5").
 				From("resource_config_versions rcv").
 				Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
 				Where(sq.Eq{
@@ -465,7 +465,7 @@ func (example Example) Run() {
 			Expect(err).ToNot(HaveOccurred())
 
 			if rows.Next() {
-				err = rows.Scan(&pinnedVersion.ID, &pinnedVersion.MD5)
+				err = rows.Scan(&pinnedVersion)
 				Expect(err).ToNot(HaveOccurred())
 			}
 
@@ -474,8 +474,8 @@ func (example Example) Run() {
 			if pinnedVersion.ID != 0 {
 				inputConfigs[i].PinnedVersion = pinnedVersion
 			} else {
-				// Pinning to an inexistant version id
-				inputConfigs[i].PinnedVersion = db.ResourceVersion{ID: 123}
+				// Pinning to an non existant version id
+				inputConfigs[i].PinnedVersion = "non-existant-version"
 			}
 		}
 	}
