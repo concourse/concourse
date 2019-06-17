@@ -242,13 +242,12 @@ func (worker *gardenWorker) FindOrCreateContainer(
 			return nil, err
 		}
 
-		volumeMounts, err := worker.createVolumes(logger, fetchedImage.Privileged, creatingContainer, containerSpec)
+		volumeMounts, err := worker.createVolumes(ctx, logger, fetchedImage.Privileged, creatingContainer, containerSpec)
 		if err != nil {
 			creatingContainer.Failed()
 			logger.Error("failed-to-create-volume-mounts-for-container", err)
 			return nil, err
 		}
-
 		bindMounts, err := worker.getBindMounts(volumeMounts, containerSpec.BindMounts)
 		if err != nil {
 			creatingContainer.Failed()
@@ -390,6 +389,7 @@ type mountableRemoteInput struct {
 // * input
 // * output
 func (worker *gardenWorker) createVolumes(
+	ctx context.Context,
 	logger lager.Logger,
 	isPrivileged bool,
 	creatingContainer db.CreatingContainer,
@@ -445,8 +445,8 @@ func (worker *gardenWorker) createVolumes(
 
 	inputDestinationPaths := make(map[string]bool)
 
-	localInputs := make([]mountableLocalInput, 5)
-	nonlocalInputs := make([]mountableRemoteInput, 5)
+	localInputs := make([]mountableLocalInput, 0)
+	nonlocalInputs := make([]mountableRemoteInput, 0)
 
 	for _, inputSource := range spec.Inputs {
 		inputSourceVolume, found, err := inputSource.Source().VolumeOn(logger, worker)
@@ -481,6 +481,7 @@ func (worker *gardenWorker) createVolumes(
 	}
 
 	streamedMounts, err := worker.cloneRemoteVolumes(
+		ctx,
 		logger,
 		spec.TeamID,
 		isPrivileged,
@@ -563,6 +564,7 @@ func (worker *gardenWorker) cloneLocalVolumes(
 }
 
 func (worker *gardenWorker) cloneRemoteVolumes(
+	ctx context.Context,
 	logger lager.Logger,
 	teamID int,
 	privileged bool,
@@ -571,10 +573,16 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 ) ([]VolumeMount, error) {
 	mounts := make([]VolumeMount, len(nonLocals))
 
-	var g errgroup.Group
+	// TODO: use the ctx returned by WithContext for the actual client requests
+	// 		 this will only cancel the groups goroutines but not the requests.
+	g, _ := errgroup.WithContext(ctx)
 
 	for i, nonLocalInput := range nonLocals {
+		// this is to ensure each go func gets its own non changing copy of the iterator
+		i, nonLocalInput := i, nonLocalInput
+
 		g.Go(func() error {
+
 			inputVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 				logger,
 				VolumeSpec{
