@@ -3,11 +3,8 @@ package commands
 import "fmt"
 
 type CompletionCommand struct {
-	Bash BashCompletionCommand `command:"bash"`
-	// TODO: support more shells
+	Shell string `long:"shell" required:"true" choice:"bash"` // add more choices later
 }
-
-type BashCompletionCommand struct {}
 
 // credits:
 // https://godoc.org/github.com/jessevdk/go-flags#hdr-Completion
@@ -21,7 +18,7 @@ const bashCompletionSnippet = `_fly_compl() {
 complete -F _fly_compl fly
 `
 
-func (*BashCompletionCommand) Execute([]string) error {
+func (*CompletionCommand) Execute([]string) error {
 	_, err := fmt.Print(bashCompletionSnippet)
 	return err
 }
