@@ -3,7 +3,7 @@ package commands
 import "fmt"
 
 type CompletionCommand struct {
-	Shell string `long:"shell" required:"true" choice:"bash"` // add more choices later
+	Shell string `long:"shell" required:"true" choice:"bash" choice:"zsh"` // add more choices later
 }
 
 // credits:
@@ -18,7 +18,21 @@ const bashCompletionSnippet = `_fly_compl() {
 complete -F _fly_compl fly
 `
 
-func (*CompletionCommand) Execute([]string) error {
-	_, err := fmt.Print(bashCompletionSnippet)
-	return err
+// initial implemenation just using bashcompinit
+const zshCompletionSnippet = `autoload -Uz compinit && compinit
+autoload -Uz bashcompinit && bashcompinit
+` + bashCompletionSnippet
+
+func (command *CompletionCommand) Execute([]string) error {
+	switch command.Shell {
+	case "bash":
+		_, err := fmt.Print(bashCompletionSnippet)
+		return err
+	case "zsh":
+		_, err := fmt.Print(zshCompletionSnippet)
+		return err
+	default:
+		// this should be unreachable
+		return fmt.Errorf("unknown shell %s", command.Shell)
+	}
 }
