@@ -1339,8 +1339,21 @@ var _ = Describe("Builds API", func() {
 							BeforeEach(func() {
 								fakeJob.PublicReturns(true)
 							})
-							It("returns 200", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							Context("and the build has a plan", func() {
+								BeforeEach(func() {
+									build.HasPlanReturns(true)
+								})
+								It("returns 200", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusOK))
+								})
+							})
+							Context("and the build has no plan", func() {
+								BeforeEach(func() {
+									build.HasPlanReturns(false)
+								})
+								It("returns 404", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+								})
 							})
 						})
 
@@ -1364,6 +1377,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when the build returns a plan", func() {
 					BeforeEach(func() {
+						build.HasPlanReturns(true)
 						build.PublicPlanReturns(plan)
 						build.SchemaReturns("some-schema")
 					})
@@ -1384,6 +1398,20 @@ var _ = Describe("Builds API", func() {
 						"schema": "some-schema",
 						"plan": {"some":"plan"}
 					}`))
+					})
+				})
+
+				Context("when the build has no plan", func() {
+					BeforeEach(func() {
+						build.HasPlanReturns(false)
+					})
+
+					It("returns no Content-Type header", func() {
+						Expect(response.Header.Get("Content-Type")).To(Equal(""))
+					})
+
+					It("returns not found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 			})

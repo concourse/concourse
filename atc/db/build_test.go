@@ -24,6 +24,13 @@ var _ = Describe("Build", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
+	It("has no plan on creation", func() {
+		var err error
+		build, err := team.CreateOneOffBuild()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(build.HasPlan()).To(BeFalse())
+	})
+
 	Describe("Reload", func() {
 		It("updates the model", func() {
 			build, err := team.CreateOneOffBuild()
@@ -157,6 +164,7 @@ var _ = Describe("Build", func() {
 				found, err := build.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
+				Expect(build.HasPlan()).To(BeTrue())
 				Expect(build.PublicPlan()).To(Equal(plan.Public()))
 			})
 		})

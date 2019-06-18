@@ -3,6 +3,7 @@ module Build.Styles exposing
     , body
     , durationTooltip
     , durationTooltipArrow
+    , errorLog
     , firstOccurrenceTooltip
     , firstOccurrenceTooltipArrow
     , header
@@ -232,6 +233,14 @@ durationTooltipArrow =
     , style "border-left" "5px solid transparent"
     , style "border-right" "5px solid transparent"
     , style "position" "absolute"
+    ]
+
+
+errorLog : List (Html.Attribute msg)
+errorLog =
+    [ style "color" Colors.errorLog
+    , style "background-color" Colors.frame
+    , style "padding" "5px 10px"
     ]
 
 

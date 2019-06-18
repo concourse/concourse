@@ -14,6 +14,7 @@ module Colors exposing
     , dropdownUnselectedText
     , error
     , errorFaded
+    , errorLog
     , failure
     , failureFaded
     , flySuccessButtonHover
@@ -276,6 +277,11 @@ groupBackground =
 sideBar : String
 sideBar =
     "#333333"
+
+
+errorLog : String
+errorLog =
+    "#e74c3c"
 
 
 retryTabText : String

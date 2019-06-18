@@ -1,8 +1,10 @@
 module Build.Models exposing
     ( BuildPageType(..)
     , CurrentBuild
+    , CurrentOutput(..)
     , Model
     , StepHeaderType(..)
+    , toMaybe
     )
 
 import Build.Output.Models exposing (OutputModel)
@@ -44,8 +46,27 @@ type alias Model =
 type alias CurrentBuild =
     { build : Concourse.Build
     , prep : Maybe Concourse.BuildPrep
-    , output : Maybe OutputModel
+    , output : CurrentOutput
     }
+
+
+type CurrentOutput
+    = Empty
+    | Cancelled
+    | Output OutputModel
+
+
+toMaybe : CurrentOutput -> Maybe OutputModel
+toMaybe currentOutput =
+    case currentOutput of
+        Empty ->
+            Nothing
+
+        Cancelled ->
+            Nothing
+
+        Output outputModel ->
+            Just outputModel
 
 
 type BuildPageType

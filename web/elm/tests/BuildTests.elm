@@ -6,6 +6,7 @@ import Build.Build as Build
 import Build.Models as Models
 import Build.StepTree.Models as STModels
 import Char
+import Colors
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.Pagination exposing (Direction(..))
@@ -658,6 +659,52 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "not-authorized" ]
+        , test "shows 'build cancelled' in red when aborted build's plan request gives 404" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                ( 1
+                                , { id = 1
+                                  , name = "1"
+                                  , job =
+                                        Just
+                                            { teamName = "team"
+                                            , pipelineName = "pipeline"
+                                            , jobName = "job"
+                                            }
+                                  , status = Concourse.BuildStatusAborted
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Just <| Time.millisToPosix 0
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 1 <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 404
+                                        , message = "not found"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has
+                        [ style "background-color" Colors.frame
+                        , style "padding" "5px 10px"
+                        , style "color" Colors.errorLog
+                        , containing [ text "build cancelled" ]
+                        ]
         , test "shows passport officer when build prep request gives 401" <|
             \_ ->
                 initFromApplication
