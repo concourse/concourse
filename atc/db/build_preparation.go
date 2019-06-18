@@ -15,7 +15,7 @@ type MissingInputReasons map[string]string
 const (
 	NoVersionsSatisfiedPassedConstraints string = "no versions satisfy passed constraints"
 	NoVersionsAvailable                  string = "no versions available"
-	NoResourceCheckFinished              string = "no resource check finished after build triggered"
+	NoResourceCheckFinished              string = "checking for latest available versions"
 	PinnedVersionUnavailable             string = "pinned version %s is not available"
 )
 
