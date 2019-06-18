@@ -759,6 +759,14 @@ var _ = Describe("Build", func() {
 			})
 
 			Context("when inputs are satisfied", func() {
+				var (
+					resourceConfigScope db.ResourceConfigScope
+					resource            db.Resource
+					found               bool
+					rcv                 db.ResourceConfigVersion
+					err                 error
+				)
+
 				BeforeEach(func() {
 					setupTx, err := dbConn.Begin()
 					Expect(err).ToNot(HaveOccurred())
@@ -771,109 +779,148 @@ var _ = Describe("Build", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
-					resource, found, err := pipeline.Resource("some-resource")
+					resource, found, err = pipeline.Resource("some-resource")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					resourceConfigScope, err := resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+					resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
 					err = resourceConfigScope.SaveVersions([]atc.Version{{"version": "v5"}})
 					Expect(err).NotTo(HaveOccurred())
 
-					rcv, found, err := resourceConfigScope.FindVersion(atc.Version{"version": "v5"})
+					rcv, found, err = resourceConfigScope.FindVersion(atc.Version{"version": "v5"})
 					Expect(found).To(BeTrue())
 					Expect(err).NotTo(HaveOccurred())
-
-					err = job.SaveNextInputMapping(algorithm.InputMapping{
-						"some-input": {VersionID: rcv.ID(), ResourceID: resource.ID(), FirstOccurrence: true},
-					})
-					Expect(err).NotTo(HaveOccurred())
-
-					expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
-						"some-input": db.BuildPreparationStatusNotBlocking,
-					}
 				})
 
-				Context("when the build is started", func() {
+				Context("when resource check finished after build created", func() {
 					BeforeEach(func() {
-						started, err := build.Start(atc.Plan{})
-						Expect(started).To(BeTrue())
+						updated, err := resourceConfigScope.UpdateLastCheckEndTime()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(updated).To(BeTrue())
+
+						reloaded, err := resource.Reload()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(reloaded).To(BeTrue())
+
+						lastCheckEndTime := resource.LastCheckEndTime()
+						Expect(lastCheckEndTime.IsZero()).To(BeFalse())
+
+						err = job.SaveNextInputMapping(algorithm.InputMapping{
+							"some-input": {VersionID: rcv.ID(), ResourceID: resource.ID(), FirstOccurrence: true},
+						})
 						Expect(err).NotTo(HaveOccurred())
 
-						stillExists, err := build.Reload()
-						Expect(stillExists).To(BeTrue())
-						Expect(err).NotTo(HaveOccurred())
-
-						expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{}
+						expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
+							"some-input": db.BuildPreparationStatusNotBlocking,
+						}
 					})
 
-					It("returns build preparation", func() {
-						buildPrep, found, err := build.Preparation()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-						Expect(buildPrep).To(Equal(expectedBuildPrep))
+					Context("when the build is started", func() {
+						BeforeEach(func() {
+							started, err := build.Start(atc.Plan{})
+							Expect(started).To(BeTrue())
+							Expect(err).NotTo(HaveOccurred())
+
+							stillExists, err := build.Reload()
+							Expect(stillExists).To(BeTrue())
+							Expect(err).NotTo(HaveOccurred())
+
+							expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{}
+						})
+
+						It("returns build preparation", func() {
+							buildPrep, found, err := build.Preparation()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(found).To(BeTrue())
+							Expect(buildPrep).To(Equal(expectedBuildPrep))
+						})
+					})
+
+					Context("when pipeline is paused", func() {
+						BeforeEach(func() {
+							err := pipeline.Pause()
+							Expect(err).NotTo(HaveOccurred())
+
+							expectedBuildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
+						})
+
+						It("returns build preparation with paused pipeline", func() {
+							buildPrep, found, err := build.Preparation()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(found).To(BeTrue())
+							Expect(buildPrep).To(Equal(expectedBuildPrep))
+						})
+					})
+
+					Context("when job is paused", func() {
+						BeforeEach(func() {
+							err := job.Pause()
+							Expect(err).NotTo(HaveOccurred())
+
+							expectedBuildPrep.PausedJob = db.BuildPreparationStatusBlocking
+						})
+
+						It("returns build preparation with paused pipeline", func() {
+							buildPrep, found, err := build.Preparation()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(found).To(BeTrue())
+							Expect(buildPrep).To(Equal(expectedBuildPrep))
+						})
+					})
+
+					Context("when max running builds is reached", func() {
+						BeforeEach(func() {
+							err := job.SetMaxInFlightReached(true)
+							Expect(err).NotTo(HaveOccurred())
+
+							expectedBuildPrep.MaxRunningBuilds = db.BuildPreparationStatusBlocking
+						})
+
+						It("returns build preparation with max in flight reached", func() {
+							buildPrep, found, err := build.Preparation()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(found).To(BeTrue())
+							Expect(buildPrep).To(Equal(expectedBuildPrep))
+						})
+					})
+
+					Context("when max running builds is de-reached", func() {
+						BeforeEach(func() {
+							err := job.SetMaxInFlightReached(true)
+							Expect(err).NotTo(HaveOccurred())
+
+							err = job.SetMaxInFlightReached(false)
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("returns build preparation with max in flight not reached", func() {
+							buildPrep, found, err := build.Preparation()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(found).To(BeTrue())
+							Expect(buildPrep).To(Equal(expectedBuildPrep))
+						})
 					})
 				})
 
-				Context("when pipeline is paused", func() {
+				Context("when no resource check finished after build created", func() {
 					BeforeEach(func() {
-						err := pipeline.Pause()
+						err = job.SaveNextInputMapping(algorithm.InputMapping{
+							"some-input": {VersionID: rcv.ID(), ResourceID: resource.ID(), FirstOccurrence: true},
+						})
 						Expect(err).NotTo(HaveOccurred())
 
-						expectedBuildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
+						expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
+							"some-input": db.BuildPreparationStatusBlocking,
+						}
+						expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
+						expectedBuildPrep.MissingInputReasons = db.MissingInputReasons{
+							"some-input": db.NoResourceCheckFinished,
+						}
 					})
 
-					It("returns build preparation with paused pipeline", func() {
-						buildPrep, found, err := build.Preparation()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-						Expect(buildPrep).To(Equal(expectedBuildPrep))
-					})
-				})
-
-				Context("when job is paused", func() {
-					BeforeEach(func() {
-						err := job.Pause()
-						Expect(err).NotTo(HaveOccurred())
-
-						expectedBuildPrep.PausedJob = db.BuildPreparationStatusBlocking
-					})
-
-					It("returns build preparation with paused pipeline", func() {
-						buildPrep, found, err := build.Preparation()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-						Expect(buildPrep).To(Equal(expectedBuildPrep))
-					})
-				})
-
-				Context("when max running builds is reached", func() {
-					BeforeEach(func() {
-						err := job.SetMaxInFlightReached(true)
-						Expect(err).NotTo(HaveOccurred())
-
-						expectedBuildPrep.MaxRunningBuilds = db.BuildPreparationStatusBlocking
-					})
-
-					It("returns build preparation with max in flight reached", func() {
-						buildPrep, found, err := build.Preparation()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-						Expect(buildPrep).To(Equal(expectedBuildPrep))
-					})
-				})
-
-				Context("when max running builds is de-reached", func() {
-					BeforeEach(func() {
-						err := job.SetMaxInFlightReached(true)
-						Expect(err).NotTo(HaveOccurred())
-
-						err = job.SetMaxInFlightReached(false)
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("returns build preparation with max in flight not reached", func() {
+					It("returns build preparation with missing input reason", func() {
 						buildPrep, found, err := build.Preparation()
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
@@ -884,6 +931,23 @@ var _ = Describe("Build", func() {
 
 			Context("when inputs are not satisfied", func() {
 				BeforeEach(func() {
+					pipeline, _, err = team.SavePipeline("some-pipeline", atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+								Source: atc.Source{
+									"source-config": "some-value",
+								},
+							},
+						},
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+						},
+					}, db.ConfigVersion(2), db.PipelineUnpaused)
+					Expect(err).ToNot(HaveOccurred())
 					expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
 				})
 
