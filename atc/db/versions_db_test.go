@@ -140,7 +140,7 @@ var _ = XDescribe("Versions DB", func() {
 						"input": db.InputResult{
 							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
-									Version:    db.ResourceVersion{ID: version.ID()},
+									Version:    db.ResourceVersion(convertToMD5(atc.Version(version.Version()))),
 									ResourceID: resource.ID(),
 								},
 								FirstOccurrence: false,
@@ -233,7 +233,7 @@ var _ = XDescribe("Versions DB", func() {
 						"input": db.InputResult{
 							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
-									Version:    db.ResourceVersion{ID: version.ID()},
+									Version:    db.ResourceVersion(convertToMD5(atc.Version(version.Version()))),
 									ResourceID: resource.ID(),
 								},
 								FirstOccurrence: false,

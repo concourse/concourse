@@ -22,9 +22,9 @@ type VersionsDB struct {
 	DisabledVersions map[int]map[string]bool
 }
 
-func (versions VersionsDB) VersionIsDisabled(resourceID int, versionMD5 string) bool {
+func (versions VersionsDB) VersionIsDisabled(resourceID int, versionMD5 ResourceVersion) bool {
 	md5s, found := versions.DisabledVersions[resourceID]
-	return found && md5s[versionMD5]
+	return found && md5s[string(versionMD5)]
 }
 
 func (versions VersionsDB) LatestVersionOfResource(resourceID int) (ResourceVersion, bool, error) {

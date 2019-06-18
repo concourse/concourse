@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 
@@ -788,7 +790,7 @@ var _ = Describe("Build", func() {
 						"some-input": db.InputResult{
 							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
-									Version:    db.ResourceVersion{ID: rcv.ID()},
+									Version:    db.ResourceVersion(convertToMD5(atc.Version(rcv.Version()))),
 									ResourceID: resource.ID(),
 								},
 								FirstOccurrence: true,
@@ -967,7 +969,7 @@ var _ = Describe("Build", func() {
 						"input1": db.InputResult{
 							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
-									Version: db.ResourceVersion{ID: versions[0].ID}, ResourceID: resource1.ID()},
+									Version: db.ResourceVersion(convertToMD5(versions[0].Version)), ResourceID: resource1.ID()},
 								FirstOccurrence: true,
 							},
 							PassedBuildIDs: []int{},
@@ -1189,4 +1191,13 @@ func envelope(ev atc.Event) event.Envelope {
 		Version: ev.Version(),
 		Data:    &data,
 	}
+}
+
+func convertToMD5(version atc.Version) string {
+	versionJSON, err := json.Marshal(version)
+	Expect(err).ToNot(HaveOccurred())
+
+	hasher := md5.New()
+	hasher.Write([]byte(versionJSON))
+	return hex.EncodeToString(hasher.Sum(nil))
 }

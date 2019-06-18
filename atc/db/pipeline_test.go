@@ -508,9 +508,11 @@ var _ = Describe("Pipeline", func() {
 			versions, err = dbPipeline.LoadVersionsDB()
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(versions.DisabledVersionIDs).To(Equal(map[int]bool{
-				savedVR2.ID(): true,
-			}))
+			Expect(versions.DisabledVersions).To(Equal(map[int]map[string]bool{
+				resource.ID(): {
+					convertToMD5(atc.Version(savedVR2.Version())): true,
+				}}))
+
 			Expect(versions.ResourceIDs).To(Equal(map[string]int{
 				resource.Name():            resource.ID(),
 				otherResource.Name():       otherResource.ID(),
@@ -541,9 +543,10 @@ var _ = Describe("Pipeline", func() {
 			versions, err = dbPipeline.LoadVersionsDB()
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(versions.DisabledVersionIDs).To(Equal(map[int]bool{
-				savedVR2.ID(): true,
-			}))
+			Expect(versions.DisabledVersions).To(Equal(map[int]map[string]bool{
+				resource.ID(): {
+					convertToMD5(atc.Version(savedVR2.Version())): true,
+				}}))
 
 			Expect(versions.ResourceIDs).To(Equal(map[string]int{
 				resource.Name():            resource.ID(),

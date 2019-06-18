@@ -401,12 +401,17 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 32, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 16, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, 32, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, 44, "backend", lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 4, "gc", lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +426,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, secretManager)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +453,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	onExit := func() {
-		for _, closer := range []Closer{lockConn, apiConn, backendConn, storage} {
+		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage} {
 			closer.Close()
 		}
 	}
@@ -461,6 +466,7 @@ func (cmd *RunCommand) constructMembers(
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
 	backendConn db.Conn,
+	gcConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
@@ -485,7 +491,12 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	return append(apiMembers, backendMembers...), nil
+	gcMembers, err := cmd.constructGCMembers(logger, gcConn, lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(append(apiMembers, backendMembers...), gcMembers...), nil
 }
 
 func (cmd *RunCommand) constructAPIMembers(
@@ -773,11 +784,6 @@ func (cmd *RunCommand) constructBackendMembers(
 		checkContainerStrategy,
 	)
 
-	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
-	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
-	dbContainerRepository := db.NewContainerRepository(dbConn)
-	dbArtifactLifecycle := db.NewArtifactLifecycle(dbConn)
-	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	bus := dbConn.Bus()
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -804,37 +810,6 @@ func (cmd *RunCommand) constructBackendMembers(
 			Clock:         clock.NewClock(),
 			Logger:        logger.Session("tracker-runner"),
 		}},
-		{Name: "collector", Runner: lockrunner.NewRunner(
-			logger.Session("collector"),
-			gc.NewCollector(
-				gc.NewBuildCollector(dbBuildFactory),
-				gc.NewWorkerCollector(dbWorkerLifecycle),
-				gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
-				gc.NewResourceConfigCollector(dbResourceConfigFactory),
-				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
-				gc.NewArtifactCollector(dbArtifactLifecycle),
-				gc.NewVolumeCollector(
-					dbVolumeRepository,
-					cmd.GC.MissingGracePeriod,
-				),
-				gc.NewContainerCollector(
-					dbContainerRepository,
-					gc.NewWorkerJobRunner(
-						logger.Session("container-collector-worker-job-runner"),
-						workerProvider,
-						time.Minute,
-					),
-					cmd.GC.MissingGracePeriod,
-				),
-				gc.NewResourceConfigCheckSessionCollector(
-					resourceConfigCheckSessionLifecycle,
-				),
-			),
-			"collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)},
 		// run separately so as to not preempt critical GC
 		{Name: "build-log-collector", Runner: lockrunner.NewRunner(
 			logger.Session("build-log-collector"),
@@ -879,6 +854,94 @@ func (cmd *RunCommand) constructBackendMembers(
 	if cmd.Worker.GardenURL.URL != nil {
 		members = cmd.appendStaticWorker(logger, dbWorkerFactory, members)
 	}
+	return members, nil
+}
+
+func (cmd *RunCommand) constructGCMembers(
+	logger lager.Logger,
+	dbConn db.Conn,
+	lockFactory lock.LockFactory,
+) ([]grouper.Member, error) {
+	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
+
+	resourceFactory := resource.NewResourceFactory()
+	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
+	fetchSourceFactory := resource.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
+	resourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
+	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		resourceFetcher,
+		resourceFactory,
+	)
+
+	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
+	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
+	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
+	dbVolumeRepository := db.NewVolumeRepository(dbConn)
+	dbWorkerFactory := db.NewWorkerFactory(dbConn)
+	workerVersion, err := workerVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	workerProvider := worker.NewDBWorkerProvider(
+		lockFactory,
+		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		image.NewImageFactory(imageResourceFetcherFactory),
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		dbWorkerBaseResourceTypeFactory,
+		dbTaskCacheFactory,
+		dbWorkerTaskCacheFactory,
+		dbVolumeRepository,
+		teamFactory,
+		dbWorkerFactory,
+		workerVersion,
+		cmd.BaggageclaimResponseHeaderTimeout,
+	)
+
+	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
+	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
+	dbContainerRepository := db.NewContainerRepository(dbConn)
+	dbArtifactLifecycle := db.NewArtifactLifecycle(dbConn)
+	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	members := []grouper.Member{
+		{Name: "collector", Runner: lockrunner.NewRunner(
+			logger.Session("collector"),
+			gc.NewCollector(
+				gc.NewBuildCollector(dbBuildFactory),
+				gc.NewWorkerCollector(dbWorkerLifecycle),
+				gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
+				gc.NewResourceConfigCollector(dbResourceConfigFactory),
+				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
+				gc.NewArtifactCollector(dbArtifactLifecycle),
+				gc.NewVolumeCollector(
+					dbVolumeRepository,
+					cmd.GC.MissingGracePeriod,
+				),
+				gc.NewContainerCollector(
+					dbContainerRepository,
+					gc.NewWorkerJobRunner(
+						logger.Session("container-collector-worker-job-runner"),
+						workerProvider,
+						time.Minute,
+					),
+					cmd.GC.MissingGracePeriod,
+				),
+				gc.NewResourceConfigCheckSessionCollector(
+					resourceConfigCheckSessionLifecycle,
+				),
+			),
+			"collector",
+			lockFactory,
+			clock.NewClock(),
+			cmd.GC.Interval,
+		)},
+	}
+
 	return members, nil
 }
 

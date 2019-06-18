@@ -242,10 +242,10 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 			}
 
 			var version db.ResourceVersion
-			if inputConfig.PinnedVersion.MD5 != "" {
+			if inputConfig.PinnedVersion != "" {
 				// pinned
 				version = inputConfig.PinnedVersion
-				debug("setting candidate", i, "to unconstrained version", version.MD5)
+				debug("setting candidate", i, "to unconstrained version", version)
 			} else if inputConfig.UseEveryVersion {
 				buildID, found, err := vdb.LatestBuildID(inputConfig.JobID)
 				if err != nil {
@@ -274,7 +274,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 					}
 				}
 
-				debug("setting candidate", i, "to version for version every", version.MD5, " resource ", inputConfig.ResourceID)
+				debug("setting candidate", i, "to version for version every", version, " resource ", inputConfig.ResourceID)
 			} else {
 				// there are no passed constraints, so just take the latest version
 				var err error
@@ -289,7 +289,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 					return false, nil
 				}
 
-				debug("setting candidate", i, "to version for latest", version.MD5)
+				debug("setting candidate", i, "to version for latest", version)
 			}
 
 			candidates[i] = newCandidateVersion(version)
@@ -312,11 +312,11 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 
 				// coming from recursive call; we've already got a candidate
 				if candidates[i].VouchedForBy[jobID] {
-					debug("job", jobID, i, "already vouched for", candidates[i].Version.MD5)
+					debug("job", jobID, i, "already vouched for", candidates[i].Version)
 					// we've already been here; continue to the next job
 					continue
 				} else {
-					debug("job", jobID, i, "has not vouched for", candidates[i].Version.MD5)
+					debug("job", jobID, i, "has not vouched for", candidates[i].Version)
 				}
 			} else {
 				debug(i, "has no candidate yet")
@@ -354,7 +354,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 			if len(builds) == 0 {
 				if candidates[i] != nil {
 					builds, err = vdb.SuccessfulBuildsVersionConstrained(jobID, candidates[i].Version, inputConfig.ResourceID)
-					debug("found", len(builds), "builds for candidate", candidates[i].Version.MD5)
+					debug("found", len(builds), "builds for candidate", candidates[i].Version)
 				} else {
 					builds, err = vdb.SuccessfulBuilds(jobID)
 					debug("found", len(builds), "builds no candidate")
@@ -379,7 +379,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 				// loop over the resource versions that came out of this build set
 			outputs:
 				for _, output := range outputs {
-					debug("build", buildID, "output", output.ResourceID, output.Version.MD5)
+					debug("build", buildID, "output", output.ResourceID, output.Version)
 
 					// try to pin each candidate to the versions from this build
 					for c, candidate := range candidates {
@@ -394,19 +394,19 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 							continue
 						}
 
-						if vdb.VersionIsDisabled(output.ResourceID, output.Version.MD5) {
-							debug("disabled", output.Version.MD5, jobID)
+						if vdb.VersionIsDisabled(output.ResourceID, output.Version) {
+							debug("disabled", output.Version, jobID)
 							mismatch = true
 							break outputs
 						}
 
-						if inputConfigs[c].PinnedVersion.MD5 != "" && inputConfigs[c].PinnedVersion.MD5 != output.Version.MD5 {
-							debug("mismatch pinned version", output.Version.MD5, jobID)
+						if inputConfigs[c].PinnedVersion != "" && inputConfigs[c].PinnedVersion != output.Version {
+							debug("mismatch pinned version", output.Version, jobID)
 							mismatch = true
 							break outputs
 						}
 
-						if candidate != nil && candidate.Version.MD5 != output.Version.MD5 {
+						if candidate != nil && candidate.Version != output.Version {
 							// don't return here! just try the next output set. it's possible
 							// we just need to use an older output set.
 							debug("mismatch")
@@ -419,11 +419,11 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 						if candidate == nil {
 							restore[c] = candidate
 
-							debug("setting candidate", c, "to", output.Version.MD5)
+							debug("setting candidate", c, "to", output.Version)
 							candidates[c] = newCandidateVersion(output.Version)
 						}
 
-						debug("job", jobID, "vouching for", output.ResourceID, "version", output.Version.MD5)
+						debug("job", jobID, "vouching for", output.ResourceID, "version", output.Version)
 						candidates[c].VouchedForBy[jobID] = true
 						candidates[c].SourceBuildIds = append(candidates[c].SourceBuildIds, buildID)
 

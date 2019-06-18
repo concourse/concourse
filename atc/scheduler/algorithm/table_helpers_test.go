@@ -471,7 +471,7 @@ func (example Example) Run() {
 
 			rows.Close()
 
-			if pinnedVersion.ID != 0 {
+			if pinnedVersion != "" {
 				inputConfigs[i].PinnedVersion = pinnedVersion
 			} else {
 				// Pinning to an non existant version id
@@ -485,7 +485,7 @@ func (example Example) Run() {
 		var version *atc.VersionConfig
 		if input.UseEveryVersion {
 			version = &atc.VersionConfig{Every: true}
-		} else if input.PinnedVersion.ID != 0 {
+		} else if input.PinnedVersion != "" {
 			version = &atc.VersionConfig{Pinned: atc.Version{"ver": example.Inputs[i].Version.Pinned}}
 		} else {
 			version = &atc.VersionConfig{Latest: true}
@@ -504,10 +504,9 @@ func (example Example) Run() {
 		})
 	}
 
-	rows, err := setup.psql.Select("rcv.id").
-		From("resource_config_versions rcv").
-		RightJoin("resource_disabled_versions rdv ON rdv.version_md5 = rcv.version_md5").
-		Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id AND r.id = rdv.resource_id").
+	rows, err := setup.psql.Select("rdv.resource_id, rdv.version_md5").
+		From("resource_disabled_versions rdv").
+		Join("resources r ON r.id = rdv.resource_id").
 		Where(sq.Eq{
 			"r.pipeline_id": 1,
 		}).
@@ -515,12 +514,19 @@ func (example Example) Run() {
 	Expect(err).ToNot(HaveOccurred())
 
 	for rows.Next() {
-		var versionID int
+		var versionMD5 string
+		var resourceID int
 
-		err = rows.Scan(&versionID)
+		err = rows.Scan(&resourceID, &versionMD5)
 		Expect(err).ToNot(HaveOccurred())
 
-		versionsDB.DisabledVersionIDs[versionID] = true
+		md5s, found := versionsDB.DisabledVersions[resourceID]
+		if !found {
+			md5s = map[string]bool{}
+			versionsDB.DisabledVersions[resourceID] = md5s
+		}
+
+		md5s[versionMD5] = true
 	}
 
 	resourceConfigs := atc.ResourceConfigs{}
@@ -576,7 +582,19 @@ func (example Example) Run() {
 			} else if inputSource.ResolveError != nil {
 				erroredValues[name] = inputSource.ResolveError.Error()
 			} else {
-				prettyValues[name] = setup.versionIDs.Name(inputSource.Input.AlgorithmVersion.Version.ID)
+				var versionID int
+				err := setup.psql.Select("v.id").
+					From("resource_config_versions v").
+					Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
+					Where(sq.Eq{
+						"v.version_md5": inputSource.Input.AlgorithmVersion.Version,
+						"r.id":          inputSource.Input.ResourceID,
+					}).
+					QueryRow().
+					Scan(&versionID)
+				Expect(err).ToNot(HaveOccurred())
+
+				prettyValues[name] = setup.versionIDs.Name(versionID)
 			}
 		}
 
