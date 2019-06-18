@@ -66,11 +66,5 @@ type ExitStatus int
 // special privileges (i.e. as an administrator user).
 type Privileged bool
 
-// StepMetadata is used to inject metadata to make available to the step when
-// it's running.
-type StepMetadata interface {
-	Env() []string
-}
-
 type InputHandler func(io.ReadCloser) error
 type OutputHandler func(io.Writer) error

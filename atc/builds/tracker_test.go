@@ -1,7 +1,6 @@
 package builds_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,7 +36,7 @@ var _ = Describe("Tracker", func() {
 
 	Describe("Track", func() {
 		var inFlightBuilds []*dbfakes.FakeBuild
-		var engineBuilds []*enginefakes.FakeBuild
+		var engineBuilds []*enginefakes.FakeRunnable
 
 		BeforeEach(func() {
 			inFlightBuilds = []*dbfakes.FakeBuild{
@@ -53,9 +52,9 @@ var _ = Describe("Tracker", func() {
 
 			fakeBuildFactory.GetAllStartedBuildsReturns(returnedBuilds, nil)
 
-			engineBuilds = []*enginefakes.FakeBuild{}
-			fakeEngine.LookupBuildStub = func(logger lager.Logger, build db.Build) engine.Build {
-				engineBuild := new(enginefakes.FakeBuild)
+			engineBuilds = []*enginefakes.FakeRunnable{}
+			fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
+				engineBuild := new(enginefakes.FakeRunnable)
 				engineBuilds = append(engineBuilds, engineBuild)
 				return engineBuild
 			}
@@ -64,9 +63,9 @@ var _ = Describe("Tracker", func() {
 		It("resumes all currently in-flight builds", func() {
 			tracker.Track()
 
-			Eventually(engineBuilds[0].ResumeCallCount).Should(Equal(1))
-			Eventually(engineBuilds[1].ResumeCallCount).Should(Equal(1))
-			Eventually(engineBuilds[2].ResumeCallCount).Should(Equal(1))
+			Eventually(engineBuilds[0].RunCallCount).Should(Equal(1))
+			Eventually(engineBuilds[1].RunCallCount).Should(Equal(1))
+			Eventually(engineBuilds[2].RunCallCount).Should(Equal(1))
 		})
 	})
 

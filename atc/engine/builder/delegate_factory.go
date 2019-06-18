@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
@@ -95,6 +96,44 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
+func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
+	logger := log.WithData(lager.Data{
+		"pipeline-name": d.build.PipelineName(),
+		"pipeline-id":   d.build.PipelineID()},
+	)
+
+	pipeline, found, err := d.build.Pipeline()
+	if err != nil {
+		logger.Error("failed-to-find-pipeline", err)
+		return
+	}
+
+	if !found {
+		logger.Debug("pipeline-not-found")
+		return
+	}
+
+	resource, found, err := pipeline.Resource(plan.Resource)
+	if err != nil {
+		logger.Error("failed-to-find-resource", err)
+		return
+	}
+
+	if !found {
+		logger.Debug("resource-not-found")
+		return
+	}
+
+	_, err = resource.UpdateMetadata(
+		info.Version,
+		db.NewResourceConfigMetadataFields(info.Metadata),
+	)
+	if err != nil {
+		logger.Error("failed-to-save-resource-config-version-metadata", err)
+		return
+	}
+}
+
 func NewPutDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.PutDelegate {
 	return &putDelegate{
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, clock),
@@ -153,6 +192,30 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus, "version-info": info})
+}
+
+func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, resourceTypes creds.VersionedResourceTypes, info exec.VersionInfo) {
+	logger := log.WithData(lager.Data{
+		"step":          plan.Name,
+		"resource":      plan.Resource,
+		"resource-type": plan.Type,
+		"version":       info.Version,
+	})
+
+	err := d.build.SaveOutput(
+		logger,
+		plan.Type,
+		source,
+		resourceTypes,
+		info.Version,
+		db.NewResourceConfigMetadataFields(info.Metadata),
+		plan.Name,
+		plan.Resource,
+	)
+	if err != nil {
+		logger.Error("failed-to-save-output", err)
+		return
+	}
 }
 
 func NewTaskDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.TaskDelegate {

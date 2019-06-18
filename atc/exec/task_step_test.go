@@ -18,7 +18,6 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -44,7 +43,6 @@ var _ = Describe("TaskStep", func() {
 
 		fakeSecretManager *credsfakes.FakeSecrets
 		variables         creds.Variables
-		fakeBuild         *dbfakes.FakeBuild
 		fakeDelegate      *execfakes.FakeTaskDelegate
 		taskPlan          *atc.TaskPlan
 
@@ -62,10 +60,13 @@ var _ = Describe("TaskStep", func() {
 			StepName:         "some-step",
 		}
 
-		teamID  = 123
-		buildID = 1234
-		jobID   = 12345
-		planID  = atc.PlanID(42)
+		stepMetadata = exec.StepMetadata{
+			TeamID:  123,
+			BuildID: 1234,
+			JobID:   12345,
+		}
+
+		planID = atc.PlanID(42)
 	)
 
 	BeforeEach(func() {
@@ -86,11 +87,6 @@ var _ = Describe("TaskStep", func() {
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
-
-		fakeBuild = new(dbfakes.FakeBuild)
-		fakeBuild.IDReturns(buildID)
-		fakeBuild.TeamIDReturns(teamID)
-		fakeBuild.PipelineNameReturns("pipeline")
 
 		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -125,8 +121,8 @@ var _ = Describe("TaskStep", func() {
 		taskStep = exec.NewTaskStep(
 			plan.ID,
 			*plan.Task,
-			fakeBuild,
 			atc.ContainerLimits{},
+			stepMetadata,
 			containerMetadata,
 			fakeSecretManager,
 			fakeStrategy,
@@ -177,10 +173,10 @@ var _ = Describe("TaskStep", func() {
 			It("finds or chooses a worker", func() {
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
 				_, _, owner, containerSpec, createdMetadata, workerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
-				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID, teamID)))
+				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)))
 				Expect(createdMetadata).To(Equal(db.ContainerMetadata{
-					Type:             db.ContainerTypeTask,
 					WorkingDirectory: "some-artifact-root",
+					Type:             db.ContainerTypeTask,
 					StepName:         "some-step",
 				}))
 
@@ -189,7 +185,7 @@ var _ = Describe("TaskStep", func() {
 				Expect(containerSpec).To(Equal(worker.ContainerSpec{
 					Platform: "some-platform",
 					Tags:     []string{"step", "tags"},
-					TeamID:   teamID,
+					TeamID:   stepMetadata.TeamID,
 					ImageSpec: worker.ImageSpec{
 						ImageResource: &worker.ImageResource{
 							Type:    "docker",
@@ -212,7 +208,7 @@ var _ = Describe("TaskStep", func() {
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					Platform:      "some-platform",
 					Tags:          []string{"step", "tags"},
-					TeamID:        teamID,
+					TeamID:        stepMetadata.TeamID,
 					ResourceType:  "docker",
 					ResourceTypes: creds.NewVersionedResourceTypes(variables, resourceTypes),
 				}))
@@ -247,7 +243,7 @@ var _ = Describe("TaskStep", func() {
 					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 					_, cancel, delegate, owner, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(cancel).ToNot(BeNil())
-					Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID, teamID)))
+					Expect(owner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)))
 					Expect(delegate).To(Equal(fakeDelegate))
 
 					cpu := uint64(1024)
@@ -255,7 +251,7 @@ var _ = Describe("TaskStep", func() {
 					Expect(containerSpec).To(Equal(worker.ContainerSpec{
 						Platform: "some-platform",
 						Tags:     []string{"step", "tags"},
-						TeamID:   teamID,
+						TeamID:   stepMetadata.TeamID,
 						ImageSpec: worker.ImageSpec{
 							ImageResource: &worker.ImageResource{
 								Type:    "docker",
@@ -294,13 +290,13 @@ var _ = Describe("TaskStep", func() {
 						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 						_, cancel, delegate, owner, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
 						Expect(cancel).ToNot(BeNil())
-						Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID, teamID)))
+						Expect(owner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)))
 						Expect(delegate).To(Equal(fakeDelegate))
 
 						Expect(containerSpec).To(Equal(worker.ContainerSpec{
 							Platform: "some-platform",
 							Tags:     []string{"step", "tags"},
-							TeamID:   teamID,
+							TeamID:   stepMetadata.TeamID,
 							ImageSpec: worker.ImageSpec{
 								ImageURL:   "some-image",
 								Privileged: false,
@@ -725,7 +721,7 @@ var _ = Describe("TaskStep", func() {
 
 						Context("when task belongs to a job", func() {
 							BeforeEach(func() {
-								fakeBuild.JobIDReturns(jobID)
+								stepMetadata.JobID = 12
 							})
 
 							It("registers cache volumes as task caches", func() {
@@ -733,14 +729,14 @@ var _ = Describe("TaskStep", func() {
 
 								Expect(fakeVolume1.InitializeTaskCacheCallCount()).To(Equal(1))
 								_, jID, stepName, cachePath, p := fakeVolume1.InitializeTaskCacheArgsForCall(0)
-								Expect(jID).To(Equal(jobID))
+								Expect(jID).To(Equal(stepMetadata.JobID))
 								Expect(stepName).To(Equal("some-task"))
 								Expect(cachePath).To(Equal("some-path-1"))
 								Expect(p).To(Equal(bool(taskPlan.Privileged)))
 
 								Expect(fakeVolume2.InitializeTaskCacheCallCount()).To(Equal(1))
 								_, jID, stepName, cachePath, p = fakeVolume2.InitializeTaskCacheArgsForCall(0)
-								Expect(jID).To(Equal(jobID))
+								Expect(jID).To(Equal(stepMetadata.JobID))
 								Expect(stepName).To(Equal("some-task"))
 								Expect(cachePath).To(Equal("some-path-2"))
 								Expect(p).To(Equal(bool(taskPlan.Privileged)))
@@ -749,7 +745,7 @@ var _ = Describe("TaskStep", func() {
 
 						Context("when task does not belong to job (one-off build)", func() {
 							BeforeEach(func() {
-								fakeBuild.JobIDReturns(0)
+								stepMetadata.JobID = 0
 							})
 
 							It("does not initialize caches", func() {

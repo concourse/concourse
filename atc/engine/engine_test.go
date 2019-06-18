@@ -22,26 +22,20 @@ import (
 
 var _ = Describe("Engine", func() {
 	var (
-		logger lager.Logger
-
 		fakeBuild       *dbfakes.FakeBuild
 		fakeStepBuilder *enginefakes.FakeStepBuilder
 	)
 
 	BeforeEach(func() {
-		logger = lagertest.NewTestLogger("test")
-
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(128)
 
 		fakeStepBuilder = new(enginefakes.FakeStepBuilder)
 	})
 
-	Describe("LookupBuild", func() {
+	Describe("NewBuild", func() {
 		var (
-			build Build
-			err   error
-
+			build  Runnable
 			engine Engine
 		)
 
@@ -50,12 +44,12 @@ var _ = Describe("Engine", func() {
 		})
 
 		JustBeforeEach(func() {
-			build = engine.LookupBuild(logger, fakeBuild)
+			build = engine.NewBuild(fakeBuild)
 		})
 
-		It("succeeds", func() {
-			Expect(err).NotTo(HaveOccurred())
-		})
+		// It("succeeds", func() {
+		// 	Expect(err).NotTo(HaveOccurred())
+		// })
 
 		It("returns a build", func() {
 			Expect(build).NotTo(BeNil())
@@ -64,7 +58,7 @@ var _ = Describe("Engine", func() {
 
 	Describe("Build", func() {
 		var (
-			build     Build
+			build     Runnable
 			release   chan bool
 			cancel    chan bool
 			waitGroup *sync.WaitGroup
@@ -89,7 +83,7 @@ var _ = Describe("Engine", func() {
 			)
 		})
 
-		Describe("Resume", func() {
+		Describe("Run", func() {
 			var logger lager.Logger
 
 			BeforeEach(func() {
@@ -97,7 +91,7 @@ var _ = Describe("Engine", func() {
 			})
 
 			JustBeforeEach(func() {
-				build.Resume(logger)
+				build.Run(logger)
 			})
 
 			Context("when acquiring the lock succeeds", func() {

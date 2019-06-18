@@ -48,6 +48,7 @@ type Resource interface {
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
 	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, creds.VersionedResourceTypes) (bool, error)
+	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
 	EnableVersion(rcvID int) error
 	DisableVersion(rcvID int) error
@@ -294,6 +295,35 @@ func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceCo
 	}
 
 	return newVersion, tx.Commit()
+}
+
+func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
+	versionJSON, err := json.Marshal(version)
+	if err != nil {
+		return false, err
+	}
+
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = psql.Update("resource_config_versions").
+		Set("metadata", string(metadataJSON)).
+		Where(sq.Eq{
+			"resource_config_scope_id": r.ResourceConfigScopeID(),
+			"version":                  string(versionJSON),
+		}).
+		RunWith(r.conn).
+		Exec()
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, error) {

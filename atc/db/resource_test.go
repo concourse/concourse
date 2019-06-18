@@ -789,6 +789,10 @@ var _ = Describe("Resource", func() {
 
 					resourceVersions = append(resourceVersions, resourceVersion)
 				}
+
+				reloaded, err := resource.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(reloaded).To(BeTrue())
 			})
 
 			Context("with no since/until", func() {
@@ -887,6 +891,27 @@ var _ = Describe("Resource", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(historyPage).To(ConsistOf([]atc.ResourceVersion{resourceVersions[9]}))
+				})
+			})
+
+			Context("when the version metadata is updated", func() {
+				var metadata db.ResourceConfigMetadataFields
+
+				BeforeEach(func() {
+					metadata = []db.ResourceConfigMetadataField{{Name: "name1", Value: "value1"}}
+
+					updated, err := resource.UpdateMetadata(resourceVersions[9].Version, metadata)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).To(BeTrue())
+				})
+
+				It("returns a version with metadata updated", func() {
+					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(len(historyPage)).To(Equal(1))
+					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
+					Expect(historyPage[0].Metadata).To(Equal([]atc.MetadataField{{Name: "name1", Value: "value1"}}))
 				})
 			})
 		})

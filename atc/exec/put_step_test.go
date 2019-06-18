@@ -33,7 +33,6 @@ var _ = Describe("PutStep", func() {
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeSecretManager         *credsfakes.FakeSecrets
 		variables                 creds.Variables
-		fakeBuild                 *dbfakes.FakeBuild
 		fakeDelegate              *execfakes.FakePutDelegate
 		putPlan                   *atc.PutPlan
 
@@ -45,7 +44,14 @@ var _ = Describe("PutStep", func() {
 			StepName:         "some-step",
 		}
 
-		stepMetadata testMetadata = []string{"a=1", "b=2"}
+		stepMetadata = exec.StepMetadata{
+			TeamID:       123,
+			TeamName:     "some-team",
+			BuildID:      42,
+			BuildName:    "some-build",
+			PipelineID:   4567,
+			PipelineName: "some-pipeline",
+		}
 
 		repo  *artifact.Repository
 		state *execfakes.FakeRunState
@@ -61,10 +67,6 @@ var _ = Describe("PutStep", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
-
-		fakeBuild = new(dbfakes.FakeBuild)
-		fakeBuild.IDReturns(42)
-		fakeBuild.TeamIDReturns(123)
 
 		planID = atc.PlanID("some-plan-id")
 
@@ -124,7 +126,6 @@ var _ = Describe("PutStep", func() {
 		putStep = exec.NewPutStep(
 			plan.ID,
 			*plan.Put,
-			fakeBuild,
 			stepMetadata,
 			containerMetadata,
 			fakeSecretManager,
@@ -189,7 +190,7 @@ var _ = Describe("PutStep", func() {
 				}))
 				Expect(actualContainerSpec.Tags).To(Equal([]string{"some", "tags"}))
 				Expect(actualContainerSpec.TeamID).To(Equal(123))
-				Expect(actualContainerSpec.Env).To(Equal([]string{"a=1", "b=2"}))
+				Expect(actualContainerSpec.Env).To(Equal(stepMetadata.Env()))
 				Expect(actualContainerSpec.Dir).To(Equal("/tmp/build/put"))
 				Expect(actualContainerSpec.Inputs).To(HaveLen(3))
 				Expect(actualContainerMetadata).To(Equal(containerMetadata))
@@ -208,7 +209,7 @@ var _ = Describe("PutStep", func() {
 				}))
 				Expect(containerSpec.Tags).To(Equal([]string{"some", "tags"}))
 				Expect(containerSpec.TeamID).To(Equal(123))
-				Expect(containerSpec.Env).To(Equal([]string{"a=1", "b=2"}))
+				Expect(containerSpec.Env).To(Equal(stepMetadata.Env()))
 				Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
 				Expect(containerSpec.Inputs).To(HaveLen(3))
 
@@ -276,16 +277,16 @@ var _ = Describe("PutStep", func() {
 			})
 
 			It("saves the build output", func() {
-				Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
+				Expect(fakeDelegate.SaveOutputCallCount()).To(Equal(1))
 
-				_, actualResourceType, actualSource, actualResourceTypes, version, metadata, outputName, resourceName := fakeBuild.SaveOutputArgsForCall(0)
-				Expect(actualResourceType).To(Equal("some-resource-type"))
+				_, plan, actualSource, actualResourceTypes, info := fakeDelegate.SaveOutputArgsForCall(0)
+				Expect(plan.Name).To(Equal("some-name"))
+				Expect(plan.Type).To(Equal("some-resource-type"))
+				Expect(plan.Resource).To(Equal("some-resource"))
 				Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
 				Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
-				Expect(version).To(Equal(atc.Version{"some": "version"}))
-				Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields([]atc.MetadataField{{"some", "metadata"}})))
-				Expect(outputName).To(Equal("some-name"))
-				Expect(resourceName).To(Equal("some-resource"))
+				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 			})
 
 			Context("when the resource is blank", func() {
@@ -298,7 +299,7 @@ var _ = Describe("PutStep", func() {
 				})
 
 				It("does not save the build output", func() {
-					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(0))
+					Expect(fakeDelegate.SaveOutputCallCount()).To(Equal(0))
 				})
 			})
 
@@ -318,18 +319,6 @@ var _ = Describe("PutStep", func() {
 					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{"some", "metadata"}},
 				}))
-			})
-
-			Context("when saving the build output fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeBuild.SaveOutputReturns(disaster)
-				})
-
-				It("returns the error", func() {
-					Expect(stepErr).To(Equal(disaster))
-				})
 			})
 
 			Context("when performing the put exits unsuccessfully", func() {

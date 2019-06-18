@@ -69,8 +69,8 @@ type TaskDelegate interface {
 type TaskStep struct {
 	planID            atc.PlanID
 	plan              atc.TaskPlan
-	build             db.Build
 	defaultLimits     atc.ContainerLimits
+	metadata          StepMetadata
 	containerMetadata db.ContainerMetadata
 	secrets           creds.Secrets
 	strategy          worker.ContainerPlacementStrategy
@@ -82,8 +82,8 @@ type TaskStep struct {
 func NewTaskStep(
 	planID atc.PlanID,
 	plan atc.TaskPlan,
-	build db.Build,
 	defaultLimits atc.ContainerLimits,
+	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	secrets creds.Secrets,
 	strategy worker.ContainerPlacementStrategy,
@@ -93,8 +93,8 @@ func NewTaskStep(
 	return &TaskStep{
 		planID:            planID,
 		plan:              plan,
-		build:             build,
 		defaultLimits:     defaultLimits,
+		metadata:          metadata,
 		containerMetadata: containerMetadata,
 		secrets:           secrets,
 		strategy:          strategy,
@@ -122,10 +122,10 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("task-step", lager.Data{
 		"step-name": step.plan.Name,
-		"job-id":    step.build.JobID(),
+		"job-id":    step.metadata.JobID,
 	})
 
-	variables := creds.NewVariables(step.secrets, step.build.TeamName(), step.build.PipelineName())
+	variables := creds.NewVariables(step.secrets, step.metadata.TeamName, step.metadata.PipelineName)
 	resourceTypes := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes)
 
 	var taskConfigSource TaskConfigSource
@@ -185,7 +185,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	owner := db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID())
+	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
 	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(
 		ctx,
@@ -381,7 +381,7 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *artifact.
 	}
 
 	for _, cacheConfig := range config.Caches {
-		source := newTaskCacheSource(logger, step.build.TeamID(), step.build.JobID(), step.plan.Name, cacheConfig.Path)
+		source := newTaskCacheSource(logger, step.metadata.TeamID, step.metadata.JobID, step.plan.Name, cacheConfig.Path)
 		inputs = append(inputs, &taskCacheInputSource{
 			source:        source,
 			artifactsRoot: metadata.WorkingDirectory,
@@ -401,7 +401,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *artifact.Re
 	containerSpec := worker.ContainerSpec{
 		Platform:  config.Platform,
 		Tags:      step.plan.Tags,
-		TeamID:    step.build.TeamID(),
+		TeamID:    step.metadata.TeamID,
 		ImageSpec: imageSpec,
 		Limits:    worker.ContainerLimits(config.Limits),
 		User:      config.Run.User,
@@ -429,7 +429,7 @@ func (step *TaskStep) workerSpec(logger lager.Logger, resourceTypes creds.Versio
 	workerSpec := worker.WorkerSpec{
 		Platform:      config.Platform,
 		Tags:          step.plan.Tags,
-		TeamID:        step.build.TeamID(),
+		TeamID:        step.metadata.TeamID,
 		ResourceTypes: resourceTypes,
 	}
 
@@ -467,7 +467,7 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.
 	}
 
 	// Do not initialize caches for one-off builds
-	if step.build.JobID() != 0 {
+	if step.metadata.JobID != 0 {
 		logger.Debug("initializing-caches", lager.Data{"caches": config.Caches})
 
 		for _, cacheConfig := range config.Caches {
@@ -477,7 +477,7 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.
 
 					err := volumeMount.Volume.InitializeTaskCache(
 						logger,
-						step.build.JobID(),
+						step.metadata.JobID,
 						step.plan.Name,
 						cacheConfig.Path,
 						bool(step.plan.Privileged))

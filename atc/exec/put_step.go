@@ -20,6 +20,7 @@ type PutDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, VersionInfo)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, creds.VersionedResourceTypes, VersionInfo)
 }
 
 // PutStep produces a resource version using preconfigured params and any data
@@ -27,8 +28,7 @@ type PutDelegate interface {
 type PutStep struct {
 	planID                atc.PlanID
 	plan                  atc.PutPlan
-	build                 db.Build
-	stepMetadata          StepMetadata
+	metadata              StepMetadata
 	containerMetadata     db.ContainerMetadata
 	secrets               creds.Secrets
 	resourceFactory       resource.ResourceFactory
@@ -42,8 +42,7 @@ type PutStep struct {
 func NewPutStep(
 	planID atc.PlanID,
 	plan atc.PutPlan,
-	build db.Build,
-	stepMetadata StepMetadata,
+	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	secrets creds.Secrets,
 	resourceFactory resource.ResourceFactory,
@@ -55,8 +54,7 @@ func NewPutStep(
 	return &PutStep{
 		planID:                planID,
 		plan:                  plan,
-		build:                 build,
-		stepMetadata:          stepMetadata,
+		metadata:              metadata,
 		containerMetadata:     containerMetadata,
 		secrets:               secrets,
 		resourceFactory:       resourceFactory,
@@ -79,12 +77,12 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("put-step", lager.Data{
 		"step-name": step.plan.Name,
-		"job-id":    step.build.JobID(),
+		"job-id":    step.metadata.JobID,
 	})
 
 	step.delegate.Initializing(logger)
 
-	variables := creds.NewVariables(step.secrets, step.build.TeamName(), step.build.PipelineName())
+	variables := creds.NewVariables(step.secrets, step.metadata.TeamName, step.metadata.PipelineName)
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
 	if err != nil {
@@ -121,11 +119,11 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 			ResourceType: step.plan.Type,
 		},
 		Tags:   step.plan.Tags,
-		TeamID: step.build.TeamID(),
+		TeamID: step.metadata.TeamID,
 
 		Dir: step.containerMetadata.WorkingDirectory,
 
-		Env: step.stepMetadata.Env(),
+		Env: step.metadata.Env(),
 
 		Inputs: containerInputs,
 	}
@@ -133,11 +131,11 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	workerSpec := worker.WorkerSpec{
 		ResourceType:  step.plan.Type,
 		Tags:          step.plan.Tags,
-		TeamID:        step.build.TeamID(),
+		TeamID:        step.metadata.TeamID,
 		ResourceTypes: resourceTypes,
 	}
 
-	owner := db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID())
+	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
 	chosenWorker, err := step.pool.FindOrChooseWorkerForContainer(
 		ctx,
@@ -198,12 +196,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	if step.plan.Resource != "" {
-		logger = logger.WithData(lager.Data{"step": step.plan.Name, "resource": step.plan.Resource, "resource-type": step.plan.Type, "version": versionInfo.Version})
-		err = step.build.SaveOutput(logger, step.plan.Type, source, resourceTypes, versionInfo.Version, db.NewResourceConfigMetadataFields(versionInfo.Metadata), step.plan.Name, step.plan.Resource)
-		if err != nil {
-			logger.Error("failed-to-save-output", err)
-			return err
-		}
+		step.delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionInfo)
 	}
 
 	state.StoreResult(step.planID, versionInfo)

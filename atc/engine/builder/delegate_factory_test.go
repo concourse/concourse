@@ -9,6 +9,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/event"
@@ -20,15 +22,19 @@ import (
 
 var _ = Describe("DelegateFactory", func() {
 	var (
-		logger    *lagertest.TestLogger
-		fakeBuild *dbfakes.FakeBuild
-		fakeClock *fakeclock.FakeClock
+		logger       *lagertest.TestLogger
+		fakeBuild    *dbfakes.FakeBuild
+		fakePipeline *dbfakes.FakePipeline
+		fakeResource *dbfakes.FakeResource
+		fakeClock    *fakeclock.FakeClock
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 
 		fakeBuild = new(dbfakes.FakeBuild)
+		fakePipeline = new(dbfakes.FakePipeline)
+		fakeResource = new(dbfakes.FakeResource)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
 	})
 
@@ -64,6 +70,82 @@ var _ = Describe("DelegateFactory", func() {
 				}))
 			})
 		})
+
+		Describe("UpdateVersion", func() {
+			JustBeforeEach(func() {
+				plan := atc.GetPlan{Resource: "some-resource"}
+				delegate.UpdateVersion(logger, plan, info)
+			})
+
+			Context("when retrieving the pipeline fails", func() {
+				BeforeEach(func() {
+					fakeBuild.PipelineReturns(nil, false, errors.New("nope"))
+				})
+
+				It("doesn't update the metadata", func() {
+					Expect(fakeResource.UpdateMetadataCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when retrieving the pipeline succeeds", func() {
+
+				Context("when the pipeline is not found", func() {
+					BeforeEach(func() {
+						fakeBuild.PipelineReturns(nil, false, nil)
+					})
+
+					It("doesn't update the metadata", func() {
+						Expect(fakeResource.UpdateMetadataCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when the pipeline is found", func() {
+					BeforeEach(func() {
+						fakeBuild.PipelineReturns(fakePipeline, true, nil)
+					})
+
+					Context("when retrieving the resource fails", func() {
+						BeforeEach(func() {
+							fakePipeline.ResourceReturns(nil, false, errors.New("nope"))
+						})
+
+						It("doesn't update the metadata", func() {
+							Expect(fakeResource.UpdateMetadataCallCount()).To(Equal(0))
+						})
+					})
+
+					Context("when retrieving the resource succeeds", func() {
+
+						It("retrives the resource by name", func() {
+							Expect(fakePipeline.ResourceArgsForCall(0)).To(Equal("some-resource"))
+						})
+
+						Context("when the resource is not found", func() {
+							BeforeEach(func() {
+								fakePipeline.ResourceReturns(nil, false, nil)
+							})
+
+							It("doesn't update the metadata", func() {
+								Expect(fakeResource.UpdateMetadataCallCount()).To(Equal(0))
+							})
+						})
+
+						Context("when the resource is found", func() {
+							BeforeEach(func() {
+								fakePipeline.ResourceReturns(fakeResource, true, nil)
+							})
+
+							It("updates the metadata", func() {
+								Expect(fakeResource.UpdateMetadataCallCount()).To(Equal(1))
+								version, metadata := fakeResource.UpdateMetadataArgsForCall(0)
+								Expect(version).To(Equal(info.Version))
+								Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields(info.Metadata)))
+							})
+						})
+					})
+				})
+			})
+		})
 	})
 
 	Describe("PutDelegate", func() {
@@ -96,6 +178,36 @@ var _ = Describe("DelegateFactory", func() {
 					CreatedVersion:  info.Version,
 					CreatedMetadata: info.Metadata,
 				}))
+			})
+		})
+
+		Describe("SaveOutput", func() {
+			var plan atc.PutPlan
+			var source atc.Source
+			var resourceTypes creds.VersionedResourceTypes
+
+			JustBeforeEach(func() {
+				plan = atc.PutPlan{
+					Name:     "some-name",
+					Type:     "some-type",
+					Resource: "some-resource",
+				}
+				source = atc.Source{"some": "source"}
+				resourceTypes = creds.VersionedResourceTypes{}
+
+				delegate.SaveOutput(logger, plan, source, resourceTypes, info)
+			})
+
+			It("saves the build output", func() {
+				Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
+				_, resourceType, sourceArg, resourceTypesArg, version, metadata, name, resource := fakeBuild.SaveOutputArgsForCall(0)
+				Expect(resourceType).To(Equal(plan.Type))
+				Expect(sourceArg).To(Equal(source))
+				Expect(resourceTypesArg).To(Equal(resourceTypes))
+				Expect(version).To(Equal(info.Version))
+				Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields(info.Metadata)))
+				Expect(name).To(Equal(plan.Name))
+				Expect(resource).To(Equal(plan.Resource))
 			})
 		})
 	})

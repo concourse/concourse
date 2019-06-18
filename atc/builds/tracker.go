@@ -43,8 +43,8 @@ func (bt *Tracker) Track() {
 			"job":      build.JobName(),
 		})
 
-		engineBuild := bt.engine.LookupBuild(btLog, build)
-		go engineBuild.Resume(btLog)
+		engineBuild := bt.engine.NewBuild(build)
+		go engineBuild.Run(btLog)
 	}
 }
 

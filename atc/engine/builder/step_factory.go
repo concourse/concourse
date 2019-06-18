@@ -51,7 +51,6 @@ func NewStepFactory(
 
 func (factory *stepFactory) GetStep(
 	plan atc.Plan,
-	build db.Build,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.GetDelegate,
@@ -61,7 +60,6 @@ func (factory *stepFactory) GetStep(
 	getStep := exec.NewGetStep(
 		plan.ID,
 		*plan.Get,
-		build,
 		stepMetadata,
 		containerMetadata,
 		factory.secretManager,
@@ -77,7 +75,6 @@ func (factory *stepFactory) GetStep(
 
 func (factory *stepFactory) PutStep(
 	plan atc.Plan,
-	build db.Build,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.PutDelegate,
@@ -87,7 +84,6 @@ func (factory *stepFactory) PutStep(
 	putStep := exec.NewPutStep(
 		plan.ID,
 		*plan.Put,
-		build,
 		stepMetadata,
 		containerMetadata,
 		factory.secretManager,
@@ -103,7 +99,7 @@ func (factory *stepFactory) PutStep(
 
 func (factory *stepFactory) TaskStep(
 	plan atc.Plan,
-	build db.Build,
+	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.TaskDelegate,
 ) exec.Step {
@@ -113,8 +109,8 @@ func (factory *stepFactory) TaskStep(
 	taskStep := exec.NewTaskStep(
 		plan.ID,
 		*plan.Task,
-		build,
 		factory.defaultLimits,
+		stepMetadata,
 		containerMetadata,
 		factory.secretManager,
 		factory.strategy,
