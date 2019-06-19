@@ -1,4 +1,4 @@
-# use non-default credentials to ensure concourse_db bosh links are used
+# use non-default values to ensure concourse_db bosh links are used
 - type: replace
   path: /instance_groups/name=web/jobs/name=web/properties/postgresql/role
   value:
@@ -10,6 +10,23 @@
   value:
     name: concourse
     password: dummy-password
+
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/postgresql/database
+  value: atcdb
+
+- type: replace
+  path: /instance_groups/name=db/jobs/name=postgres/properties/databases/databases/0
+  value:
+    name: atcdb
+
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/postgresql/port?
+  value: 5433
+
+- type: replace
+  path: /instance_groups/name=db/jobs/name=postgres/properties/databases/port
+  value: 5433
 
 - type: replace
   path: /releases/-
