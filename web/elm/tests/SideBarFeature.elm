@@ -1017,32 +1017,10 @@ theFirstPipelineLinkWasOverflowing =
                 Ok
                     { scene = { width = 1, height = 0 }
                     , viewport = { width = 0, height = 0, x = 0, y = 0 }
-                    , element = { width = 0, height = 0, x = 0, y = 0 }
+
+                    -- , element = { width = 0, height = 0, x = 0, y = 0 }
                     }
             )
-
-
-
--- iSeeATooltipOfTheTeamName =
---    Query.has [ text "team" ]
--- iHoveredTheTeamName =
---     Tuple.first
---         >> Application.update
---             (TopLevelMessage.Update <|
---                 Message.Hover <|
---                     Just <|
---                         Message.SideBarTeam "team"
---             )
--- theTeamNameWasOverflowing =
---     Tuple.first
---         >> Application.handleCallback
---             (Callback.GotViewport <|
---                 Ok
---                     { scene = { width = 1, height = 0 }
---                     , viewport = { width = 0, height = 0, x = 0, y = 0 }
---                     , element = { width = 0, height = 0, x = 0, y = 0 }
---                     }
---             )
 
 
 iSeeItContainsThePipelineName =

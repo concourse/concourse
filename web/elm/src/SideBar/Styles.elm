@@ -16,9 +16,13 @@ module SideBar.Styles exposing
     , teamHeader
     , teamIcon
     , teamName
+    , tooltip
+    , tooltipArrow
+    , tooltipBody
     )
 
 import Colors
+import HoverState exposing (TooltipPosition)
 import Html
 import Html.Attributes exposing (style)
 import Views.Icon as Icon
@@ -251,4 +255,33 @@ pipelineIcon opacity =
 
             Dim ->
                 "0.2"
+    ]
+
+
+tooltip : TooltipPosition -> List (Html.Attribute msg)
+tooltip { left, top, marginTop } =
+    [ style "position" "fixed"
+    , style "left" <| String.fromFloat left ++ "px"
+    , style "top" <| String.fromFloat top ++ "px"
+    , style "margin-top" <| String.fromFloat marginTop ++ "px"
+    , style "z-index" "1"
+    , style "display" "flex"
+    ]
+
+
+tooltipArrow : TooltipPosition -> List (Html.Attribute msg)
+tooltipArrow { arrowSize } =
+    [ style "border-right" <| String.fromFloat arrowSize ++ "px solid " ++ Colors.frame
+    , style "border-top" <| String.fromFloat arrowSize ++ "px solid transparent"
+    , style "border-bottom" <| String.fromFloat arrowSize ++ "px solid transparent"
+    ]
+
+
+tooltipBody : List (Html.Attribute msg)
+tooltipBody =
+    [ style "background-color" Colors.frame
+    , style "padding-right" "10px"
+    , style "font-size" "12px"
+    , style "display" "flex"
+    , style "align-items" "center"
     ]

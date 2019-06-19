@@ -29,8 +29,10 @@ all =
                                         , pipelineName = "pipeline"
                                         }
                                     )
-                                    { x = 0
-                                    , y = 0
+                                    { left = 0
+                                    , top = 0
+                                    , arrowSize = 15
+                                    , marginTop = -15
                                     }
                             , currentPipeline =
                                 Just
@@ -41,7 +43,14 @@ all =
                             singlePipeline
                             |> .link
                             |> .tooltip
-                            |> Expect.equal (Just { x = 0, y = 0 })
+                            |> Expect.equal
+                                (Just
+                                    { left = 0
+                                    , top = 0
+                                    , arrowSize = 15
+                                    , marginTop = -15
+                                    }
+                                )
                 ]
             , describe "when hovered"
                 [ test "pipeline name background is dark with bright border" <|

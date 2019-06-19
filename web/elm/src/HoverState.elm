@@ -4,14 +4,17 @@ import Message.Message exposing (DomID)
 
 
 type alias TooltipPosition =
-    { x : Float
-    , y : Float
+    { top : Float
+    , left : Float
+    , marginTop : Float
+    , arrowSize : Float
     }
 
 
 type HoverState
     = NoHover
     | Hovered DomID
+    | TooltipPending DomID
     | Tooltip DomID TooltipPosition
 
 
@@ -22,6 +25,9 @@ isHovered domID hoverState =
             False
 
         Hovered d ->
+            d == domID
+
+        TooltipPending d ->
             d == domID
 
         Tooltip d _ ->
@@ -35,6 +41,9 @@ tooltip domID hoverState =
             Nothing
 
         Hovered _ ->
+            Nothing
+
+        TooltipPending _ ->
             Nothing
 
         Tooltip d t ->

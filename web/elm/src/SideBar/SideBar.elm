@@ -104,25 +104,29 @@ handleCallback callback currentPipeline ( model, effects ) =
             , effects
             )
 
-        GotViewport (Ok { scene, viewport, element }) ->
+        GotViewport (Ok { scene, viewport }) ->
             case ( model.hovered, scene.width > viewport.width ) of
-                ( HoverState.Hovered (SideBarPipeline pipelineId), True ) ->
+                ( HoverState.Hovered domID, True ) ->
                     ( { model
                         | hovered =
-                            HoverState.Tooltip (SideBarPipeline pipelineId)
-                                { x = element.x + element.width
-                                , y = element.y - (element.height / 6)
-                                }
+                            HoverState.TooltipPending domID
                       }
-                    , effects
+                    , effects ++ [ Effects.GetElement domID ]
                     )
 
-                ( HoverState.Hovered (SideBarTeam teamName), True ) ->
+                _ ->
+                    ( model, effects )
+
+        GotElement (Ok { element }) ->
+            case model.hovered of
+                HoverState.TooltipPending domID ->
                     ( { model
                         | hovered =
-                            HoverState.Tooltip (SideBarTeam teamName)
-                                { x = element.x + element.width
-                                , y = element.y - (element.height / 6)
+                            HoverState.Tooltip domID
+                                { top = element.y + (element.height / 2)
+                                , left = element.x + element.width
+                                , arrowSize = 15
+                                , marginTop = -15
                                 }
                       }
                     , effects

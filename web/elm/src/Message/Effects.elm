@@ -165,6 +165,7 @@ type Effect
     | LoadSideBarState
     | SaveSideBarState Bool
     | GetViewportOf DomID
+    | GetElement DomID
 
 
 type alias VersionId =
@@ -431,16 +432,12 @@ runEffect effect key csrfToken =
             saveSideBarState isOpen
 
         GetViewportOf domID ->
-            Task.map2
-                (\vp el ->
-                    { viewport = vp.viewport
-                    , scene = vp.scene
-                    , element = el.element
-                    }
-                )
-                (Browser.Dom.getViewportOf (toHtmlID domID))
-                (Browser.Dom.getElement (toHtmlID domID))
+            Browser.Dom.getViewportOf (toHtmlID domID)
                 |> Task.attempt GotViewport
+
+        GetElement domID ->
+            Browser.Dom.getElement (toHtmlID domID)
+                |> Task.attempt GotElement
 
 
 toHtmlID : DomID -> String

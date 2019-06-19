@@ -24,7 +24,11 @@ all =
                             Team.team
                                 { hovered =
                                     HoverState.Tooltip (SideBarTeam "team")
-                                        { x = 0, y = 0 }
+                                        { left = 0
+                                        , top = 0
+                                        , arrowSize = 15
+                                        , marginTop = -15
+                                        }
                                 , pipelines =
                                     [ { id = 0
                                       , name = "pipeline"
@@ -45,7 +49,14 @@ all =
                                 }
                                 |> .name
                                 |> .tooltip
-                                |> Expect.equal (Just { x = 0, y = 0 })
+                                |> Expect.equal
+                                    (Just
+                                        { left = 0
+                                        , top = 0
+                                        , arrowSize = 15
+                                        , marginTop = -15
+                                        }
+                                    )
                     ]
                 , describe "when hovered"
                     [ test "arrow is bright" <|

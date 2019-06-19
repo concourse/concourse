@@ -1,6 +1,5 @@
 module SideBar.Views exposing (Pipeline, Team, viewTeam)
 
-import Colors
 import HoverState exposing (TooltipPosition)
 import Html exposing (Html)
 import Html.Attributes exposing (href, id)
@@ -95,26 +94,9 @@ tooltip tp text =
         Nothing ->
             Html.text ""
 
-        Just { x, y } ->
+        Just tooltipPosition ->
             Html.div
-                [ Html.Attributes.style "position" "fixed"
-                , Html.Attributes.style "left" <| String.fromFloat x ++ "px"
-                , Html.Attributes.style "top" <| String.fromFloat y ++ "px"
-                , Html.Attributes.style "pointer-events" "none"
-                , Html.Attributes.style "z-index" "1"
-                , Html.Attributes.style "display" "flex"
-                ]
-                [ Html.div
-                    [ Html.Attributes.style "border-right" <| "15px solid " ++ Colors.frame
-                    , Html.Attributes.style "border-top" "15px solid transparent"
-                    , Html.Attributes.style "border-bottom" "15px solid transparent"
-                    ]
-                    []
-                , Html.div
-                    [ Html.Attributes.style "background-color" Colors.frame
-                    , Html.Attributes.style "line-height" "28px"
-                    , Html.Attributes.style "padding-right" "10px"
-                    , Html.Attributes.style "font-size" "12px"
-                    ]
-                    [ Html.text text ]
+                (Styles.tooltip tooltipPosition)
+                [ Html.div (Styles.tooltipArrow tooltipPosition) []
+                , Html.div Styles.tooltipBody [ Html.text text ]
                 ]

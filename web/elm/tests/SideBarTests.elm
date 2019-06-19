@@ -19,13 +19,6 @@ all =
         [ describe ".update"
             [ test "asks browser for viewport when hovering a pipeline link" <|
                 \_ ->
-                    let
-                        domID =
-                            SideBarPipeline
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                    in
                     model
                         |> SideBar.update (Hover <| Just domID)
                         |> Tuple.second
@@ -39,7 +32,7 @@ all =
                         |> Expect.equal []
             ]
         , describe ".handleCallback"
-            [ test "callback with overflowing viewport turns hover -> tooltip" <|
+            [ test "callback with overflowing viewport turns hover -> pending" <|
                 \_ ->
                     ( { model
                         | hovered =
@@ -57,14 +50,31 @@ all =
                         |> Tuple.first
                         |> .hovered
                         |> Expect.equal
-                            (HoverState.Tooltip
+                            (HoverState.TooltipPending
                                 (SideBarPipeline
                                     { teamName = "team"
                                     , pipelineName = "pipeline"
                                     }
                                 )
-                                { x = 0, y = 0 }
                             )
+            , test "callback with overflowing viewport gets element position" <|
+                \_ ->
+                    ( { model
+                        | hovered =
+                            HoverState.Hovered <|
+                                SideBarPipeline
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                      }
+                    , []
+                    )
+                        |> SideBar.handleCallback
+                            (Callback.GotViewport <| Ok overflowingViewport)
+                            RemoteData.NotAsked
+                        |> Tuple.second
+                        |> List.member (Effects.GetElement domID)
+                        |> Expect.true "should get element position"
             , test "callback with non-overflowing does nothing" <|
                 \_ ->
                     ( { model
@@ -89,11 +99,42 @@ all =
                                     , pipelineName = "pipeline"
                                     }
                             )
+            , test "callback with tooltip position turns pending -> tooltip" <|
+                \_ ->
+                    ( { model
+                        | hovered =
+                            HoverState.TooltipPending
+                                (SideBarPipeline
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                                )
+                      }
+                    , []
+                    )
+                        |> SideBar.handleCallback
+                            (Callback.GotElement <| Ok elementPosition)
+                            RemoteData.NotAsked
+                        |> Tuple.first
+                        |> .hovered
+                        |> Expect.equal
+                            (HoverState.Tooltip
+                                (SideBarPipeline
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                                )
+                                { left = 1
+                                , top = 0.5
+                                , arrowSize = 15
+                                , marginTop = -15
+                                }
+                            )
             ]
         ]
 
 
-overflowingViewport : Browser.Dom.Element
+overflowingViewport : Browser.Dom.Viewport
 overflowingViewport =
     { scene =
         { width = 1
@@ -105,16 +146,10 @@ overflowingViewport =
         , x = 0
         , y = 0
         }
-    , element =
-        { x = 0
-        , y = 0
-        , width = 0
-        , height = 0
-        }
     }
 
 
-nonOverflowingViewport : Browser.Dom.Element
+nonOverflowingViewport : Browser.Dom.Viewport
 nonOverflowingViewport =
     { scene =
         { width = 1
@@ -126,11 +161,26 @@ nonOverflowingViewport =
         , x = 0
         , y = 0
         }
+    }
+
+
+elementPosition : Browser.Dom.Element
+elementPosition =
+    { scene =
+        { width = 0
+        , height = 0
+        }
+    , viewport =
+        { width = 0
+        , height = 0
+        , x = 0
+        , y = 0
+        }
     , element =
         { x = 0
         , y = 0
-        , width = 0
-        , height = 0
+        , width = 1
+        , height = 1
         }
     }
 
@@ -152,3 +202,11 @@ model =
     , isSideBarOpen = True
     , screenSize = ScreenSize.Desktop
     }
+
+
+domID : DomID
+domID =
+    SideBarPipeline
+        { teamName = "team"
+        , pipelineName = "pipeline"
+        }
