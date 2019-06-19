@@ -312,8 +312,10 @@ func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMe
 		Set("metadata", string(metadataJSON)).
 		Where(sq.Eq{
 			"resource_config_scope_id": r.ResourceConfigScopeID(),
-			"version":                  string(versionJSON),
 		}).
+		Where(sq.Expr(
+			"version_md5 = md5(?)", versionJSON,
+		)).
 		RunWith(r.conn).
 		Exec()
 
