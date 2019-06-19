@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -36,7 +35,7 @@ type ResourceType interface {
 	CheckError() error
 	UniqueVersionHistory() bool
 
-	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
+	SetResourceConfig(lager.Logger, atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
 
 	Version() atc.Version
@@ -146,7 +145,7 @@ func (t *resourceType) Reload() (bool, error) {
 	return true, nil
 }
 
-func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfigScope, error) {
+func (t *resourceType) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(t.type_, source, resourceTypes)
 	if err != nil {
 		return nil, err

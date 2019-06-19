@@ -14,7 +14,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -126,7 +125,11 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	})
 
 	variables := creds.NewVariables(step.secrets, step.metadata.TeamName, step.metadata.PipelineName)
-	resourceTypes := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes)
+
+	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	if err != nil {
+		return err
+	}
 
 	var taskConfigSource TaskConfigSource
 	var taskVars []template.Variables
@@ -339,7 +342,7 @@ func (step *TaskStep) imageSpec(logger lager.Logger, repository *artifact.Reposi
 	} else if config.ImageResource != nil {
 		imageSpec.ImageResource = &worker.ImageResource{
 			Type:    config.ImageResource.Type,
-			Source:  creds.NewSource(boshtemplate.StaticVariables{}, config.ImageResource.Source),
+			Source:  config.ImageResource.Source,
 			Params:  config.ImageResource.Params,
 			Version: config.ImageResource.Version,
 		}
@@ -425,7 +428,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *artifact.Re
 	return containerSpec, nil
 }
 
-func (step *TaskStep) workerSpec(logger lager.Logger, resourceTypes creds.VersionedResourceTypes, repository *artifact.Repository, config atc.TaskConfig) (worker.WorkerSpec, error) {
+func (step *TaskStep) workerSpec(logger lager.Logger, resourceTypes atc.VersionedResourceTypes, repository *artifact.Repository, config atc.TaskConfig) (worker.WorkerSpec, error) {
 	workerSpec := worker.WorkerSpec{
 		Platform:      config.Platform,
 		Tags:          step.plan.Tags,

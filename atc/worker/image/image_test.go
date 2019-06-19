@@ -6,11 +6,9 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
@@ -32,7 +30,6 @@ var _ = Describe("Image", func() {
 		fakeImageFetchingDelegate       *workerfakes.FakeImageFetchingDelegate
 		fakeImageResourceFetcherFactory *imagefakes.FakeImageResourceFetcherFactory
 		fakeImageResourceFetcher        *imagefakes.FakeImageResourceFetcher
-		variables                       creds.Variables
 	)
 
 	BeforeEach(func() {
@@ -49,10 +46,6 @@ var _ = Describe("Image", func() {
 		fakeImageResourceFetcher = new(imagefakes.FakeImageResourceFetcher)
 		fakeImageResourceFetcherFactory.NewImageResourceFetcherReturns(fakeImageResourceFetcher)
 		imageFactory = image.NewImageFactory(fakeImageResourceFetcherFactory)
-
-		variables = template.StaticVariables{
-			"source-secret": "super-secret-sauce",
-		}
 	})
 
 	Describe("imageProvidedByPreviousStepOnSameWorker", func() {
@@ -88,7 +81,7 @@ var _ = Describe("Image", func() {
 				},
 				42,
 				fakeImageFetchingDelegate,
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -154,7 +147,7 @@ var _ = Describe("Image", func() {
 				},
 				42,
 				fakeImageFetchingDelegate,
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -237,13 +230,13 @@ var _ = Describe("Image", func() {
 					worker.ImageSpec{
 						ImageResource: &worker.ImageResource{
 							Type:   "some-image-resource-type",
-							Source: creds.NewSource(variables, atc.Source{"some": "source"}),
+							Source: atc.Source{"some": "source"},
 						},
 						Privileged: true,
 					},
 					42,
 					fakeImageFetchingDelegate,
-					creds.VersionedResourceTypes{},
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -252,10 +245,10 @@ var _ = Describe("Image", func() {
 				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-image-resource-type"))
-				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{"some": "source"})))
+				Expect(imageResource.Source).To(Equal(atc.Source{"some": "source"}))
 				Expect(version).To(BeNil())
 				Expect(teamID).To(Equal(42))
-				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 			})
 
@@ -302,7 +295,7 @@ var _ = Describe("Image", func() {
 					},
 					42,
 					fakeImageFetchingDelegate,
-					creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+					atc.VersionedResourceTypes{
 						{
 							ResourceType: atc.ResourceType{
 								Name: "some-custom-resource-type",
@@ -324,7 +317,7 @@ var _ = Describe("Image", func() {
 							},
 							Version: atc.Version{"some": "custom-image-resource-type-version"},
 						},
-					}),
+					},
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -333,12 +326,12 @@ var _ = Describe("Image", func() {
 				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-base-resource-type"))
-				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{
+				Expect(imageResource.Source).To(Equal(atc.Source{
 					"some": "custom-resource-type-source",
-				})))
+				}))
 				Expect(version).To(Equal(atc.Version{"some": "custom-resource-type-version"}))
 				Expect(teamID).To(Equal(42))
-				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{
 					{
 						ResourceType: atc.ResourceType{
 							Name: "some-custom-image-resource-type",
@@ -350,7 +343,7 @@ var _ = Describe("Image", func() {
 						},
 						Version: atc.Version{"some": "custom-image-resource-type-version"},
 					},
-				})))
+				}))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 			})
 
@@ -397,7 +390,7 @@ var _ = Describe("Image", func() {
 					},
 					42,
 					fakeImageFetchingDelegate,
-					creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+					atc.VersionedResourceTypes{
 						{
 							ResourceType: atc.ResourceType{
 								Name: "some-custom-resource-type",
@@ -419,7 +412,7 @@ var _ = Describe("Image", func() {
 							},
 							Version: atc.Version{"some": "custom-image-resource-type-version"},
 						},
-					}),
+					},
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -428,12 +421,12 @@ var _ = Describe("Image", func() {
 				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-base-image-resource-type"))
-				Expect(imageResource.Source).To(Equal(creds.NewSource(variables, atc.Source{
+				Expect(imageResource.Source).To(Equal(atc.Source{
 					"some": "custom-image-resource-type-source",
-				})))
+				}))
 				Expect(version).To(Equal(atc.Version{"some": "custom-image-resource-type-version"}))
 				Expect(teamID).To(Equal(42))
-				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{
 					{
 						ResourceType: atc.ResourceType{
 							Name: "some-custom-resource-type",
@@ -444,7 +437,7 @@ var _ = Describe("Image", func() {
 						},
 						Version: atc.Version{"some": "custom-resource-type-version"},
 					},
-				})))
+				}))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 			})
 
@@ -519,7 +512,7 @@ var _ = Describe("Image", func() {
 				},
 				42,
 				fakeImageFetchingDelegate,
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -628,7 +621,7 @@ var _ = Describe("Image", func() {
 				},
 				42,
 				fakeImageFetchingDelegate,
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})

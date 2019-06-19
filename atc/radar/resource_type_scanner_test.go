@@ -42,8 +42,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 		interval                  time.Duration
 		variables                 creds.Variables
 
-		fakeResourceType      *dbfakes.FakeResourceType
-		versionedResourceType atc.VersionedResourceType
+		fakeResourceType          *dbfakes.FakeResourceType
+		interpolatedResourceTypes atc.VersionedResourceTypes
 
 		scanner Scanner
 
@@ -58,14 +58,16 @@ var _ = Describe("ResourceTypeScanner", func() {
 			"source-params": "some-secret-sauce",
 		}
 
-		versionedResourceType = atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name:   "some-custom-resource",
-				Type:   "registry-image",
-				Source: atc.Source{"custom": "((source-params))"},
-				Tags:   atc.Tags{"some-tag"},
+		interpolatedResourceTypes = atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-custom-resource",
+					Type:   "registry-image",
+					Source: atc.Source{"custom": "some-secret-sauce"},
+					Tags:   atc.Tags{"some-tag"},
+				},
+				Version: atc.Version{"custom": "version"},
 			},
-			Version: atc.Version{"custom": "version"},
 		}
 
 		fakeClock = fakeclock.NewFakeClock(epoch)
@@ -182,7 +184,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
 					_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-					Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 
 					_, _, owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
@@ -197,7 +199,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "registry-image",
 						Tags:          []string{"some-tag"},
-						ResourceTypes: creds.VersionedResourceTypes{},
+						ResourceTypes: atc.VersionedResourceTypes{},
 						TeamID:        123,
 					}))
 
@@ -209,7 +211,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					}))
 					Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
 					Expect(containerSpec.TeamID).To(Equal(123))
-					Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 				})
 
 				Context("when the resource type overrides a base resource type", func() {
@@ -235,9 +237,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
 						_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 						Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-						Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-							versionedResourceType,
-						})))
+						Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
 						Expect(fakeResourceType.SetCheckSetupErrorCallCount()).To(Equal(1))
 						err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
@@ -254,7 +254,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						}))
 						Expect(workerSpec).To(Equal(worker.WorkerSpec{
 							ResourceType:  "registry-image",
-							ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+							ResourceTypes: interpolatedResourceTypes,
 							TeamID:        123,
 						}))
 
@@ -265,9 +265,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 							ResourceType: "registry-image",
 						}))
 						Expect(containerSpec.TeamID).To(Equal(123))
-						Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-							versionedResourceType,
-						})))
+						Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 					})
 				})
 
@@ -471,7 +469,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
 				_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 
 				Expect(fakeResourceType.SetCheckSetupErrorCallCount()).To(Equal(1))
 				err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
@@ -490,7 +488,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					ResourceType:  "registry-image",
 					Tags:          []string{"some-tag"},
-					ResourceTypes: creds.VersionedResourceTypes{},
+					ResourceTypes: atc.VersionedResourceTypes{},
 					TeamID:        123,
 				}))
 
@@ -502,7 +500,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				}))
 				Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
 				Expect(containerSpec.TeamID).To(Equal(123))
-				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 			})
 
 			Context("when the resource type depends on another custom type", func() {
@@ -599,9 +597,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
 					_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-						versionedResourceType,
-					})))
+					Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
 					_, _,  owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
@@ -611,7 +607,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(containerSpec.TeamID).To(Equal(123))
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "registry-image",
-						ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+						ResourceTypes: interpolatedResourceTypes,
 						TeamID:        123,
 					}))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
@@ -625,9 +621,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						ResourceType: "registry-image",
 					}))
 					Expect(containerSpec.TeamID).To(Equal(123))
-					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-						versionedResourceType,
-					})))
+					Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 				})
 			})
 

@@ -130,7 +130,10 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	resourceTypes := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes)
+	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	if err != nil {
+		return err
+	}
 
 	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
@@ -47,7 +46,7 @@ type Resource interface {
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
-	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, creds.VersionedResourceTypes) (bool, error)
+	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, atc.VersionedResourceTypes) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
 	EnableVersion(rcvID int) error
@@ -56,7 +55,7 @@ type Resource interface {
 	PinVersion(rcvID int) error
 	UnpinVersion() error
 
-	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
+	SetResourceConfig(lager.Logger, atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
 	NotifyScan() error
 
@@ -178,7 +177,7 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
-func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfigScope, error) {
+func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
 	if err != nil {
 		return nil, err
@@ -276,7 +275,7 @@ func (r *resource) SetCheckSetupError(cause error) error {
 // index for the pipeline because we want to ignore these versions until the
 // check orders get updated. The bumping of the index will be done in
 // SaveOutput for the put step.
-func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes creds.VersionedResourceTypes) (bool, error) {
+func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes atc.VersionedResourceTypes) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err

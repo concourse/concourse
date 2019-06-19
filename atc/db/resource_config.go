@@ -10,7 +10,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -284,7 +283,7 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName stri
 	return id, true, nil
 }
 
-func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFactory, resourceConfig ResourceConfig, resource Resource, resourceTypes creds.VersionedResourceTypes) (ResourceConfigScope, error) {
+func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFactory, resourceConfig ResourceConfig, resource Resource, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
 	var unique bool
 	var uniqueResource Resource
 	var resourceID *int

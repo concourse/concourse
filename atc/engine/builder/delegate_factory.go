@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
@@ -194,7 +193,7 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus, "version-info": info})
 }
 
-func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, resourceTypes creds.VersionedResourceTypes, info exec.VersionInfo) {
+func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, resourceTypes atc.VersionedResourceTypes, info exec.VersionInfo) {
 	logger := log.WithData(lager.Data{
 		"step":          plan.Name,
 		"resource":      plan.Resource,

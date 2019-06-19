@@ -2,21 +2,20 @@ package worker_test
 
 import (
 	"bytes"
-	"code.cloudfoundry.org/garden"
-	"code.cloudfoundry.org/lager"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"io/ioutil"
 	"time"
 
+	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/baggageclaim"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
+
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
@@ -69,9 +68,9 @@ var _ = Describe("Worker", func() {
 		fakeContainerOwner *dbfakes.FakeContainerOwner
 		containerMetadata  db.ContainerMetadata
 
-		stubbedVolumes     map[string]*workerfakes.FakeVolume
-		volumeSpecs        map[string]VolumeSpec
-		credsResourceTypes creds.VersionedResourceTypes
+		stubbedVolumes   map[string]*workerfakes.FakeVolume
+		volumeSpecs      map[string]VolumeSpec
+		atcResourceTypes atc.VersionedResourceTypes
 
 		findOrCreateErr       error
 		findOrCreateContainer Container
@@ -203,11 +202,6 @@ var _ = Describe("Worker", func() {
 			StepName: "some-step",
 		}
 
-		variables := template.StaticVariables{
-			"secret-image":  "super-secret-image",
-			"secret-source": "super-secret-source",
-		}
-
 		cpu := uint64(1024)
 		memory := uint64(1024)
 		containerSpec = ContainerSpec{
@@ -216,7 +210,7 @@ var _ = Describe("Worker", func() {
 			ImageSpec: ImageSpec{
 				ImageResource: &ImageResource{
 					Type:   "registry-image",
-					Source: creds.NewSource(variables, atc.Source{"some": "((secret-image))"}),
+					Source: atc.Source{"some": "super-secret-image"},
 				},
 			},
 
@@ -242,15 +236,15 @@ var _ = Describe("Worker", func() {
 			},
 		}
 
-		credsResourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+		atcResourceTypes = atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Type:   "some-type",
-					Source: atc.Source{"some": "((secret-source))"},
+					Source: atc.Source{"some": "super-secret-source"},
 				},
 				Version: atc.Version{"some": "version"},
 			},
-		})
+		}
 
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
@@ -589,13 +583,12 @@ var _ = Describe("Worker", func() {
 
 			satisfies bool
 
-			customTypes creds.VersionedResourceTypes
+			customTypes atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
-			variables := template.StaticVariables{}
 
-			customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+			customTypes = atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "custom-type-b",
@@ -636,7 +629,7 @@ var _ = Describe("Worker", func() {
 					},
 					Version: atc.Version{"some": "version"},
 				},
-			})
+			}
 
 			spec = WorkerSpec{
 				Tags:          []string{"some", "tags"},
@@ -764,9 +757,8 @@ var _ = Describe("Worker", func() {
 
 		Context("when the resource type is a custom type that overrides one supported by the worker", func() {
 			BeforeEach(func() {
-				variables := template.StaticVariables{}
 
-				customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+				customTypes = atc.VersionedResourceTypes{
 					{
 						ResourceType: atc.ResourceType{
 							Name:   "some-resource",
@@ -775,7 +767,7 @@ var _ = Describe("Worker", func() {
 						},
 						Version: atc.Version{"some": "version"},
 					},
-				})
+				}
 
 				spec.ResourceType = "some-resource"
 			})
@@ -787,9 +779,8 @@ var _ = Describe("Worker", func() {
 
 		Context("when the resource type is a custom type that results in a circular dependency", func() {
 			BeforeEach(func() {
-				variables := template.StaticVariables{}
 
-				customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+				customTypes = atc.VersionedResourceTypes{
 					atc.VersionedResourceType{
 						ResourceType: atc.ResourceType{
 							Name:   "circle-a",
@@ -812,7 +803,7 @@ var _ = Describe("Worker", func() {
 						},
 						Version: atc.Version{"some": "version"},
 					},
-				})
+				}
 
 				spec.ResourceType = "circle-a"
 			})
@@ -953,7 +944,7 @@ var _ = Describe("Worker", func() {
 				fakeImageFetchingDelegate,
 				fakeContainerOwner,
 				containerSpec,
-				credsResourceTypes,
+				atcResourceTypes,
 			)
 		})
 		disasterErr := errors.New("disaster")

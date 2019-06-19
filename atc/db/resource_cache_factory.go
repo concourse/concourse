@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -21,7 +20,7 @@ type ResourceCacheFactory interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		resourceTypes creds.VersionedResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 	) (UsedResourceCache, error)
 
 	// changing resource cache to interface to allow updates on object is not feasible.
@@ -51,7 +50,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (UsedResourceCache, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceTypeName, source, resourceTypes)
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
@@ -184,7 +183,7 @@ var _ = Describe("DelegateFactory", func() {
 		Describe("SaveOutput", func() {
 			var plan atc.PutPlan
 			var source atc.Source
-			var resourceTypes creds.VersionedResourceTypes
+			var resourceTypes atc.VersionedResourceTypes
 
 			JustBeforeEach(func() {
 				plan = atc.PutPlan{
@@ -193,7 +192,7 @@ var _ = Describe("DelegateFactory", func() {
 					Resource: "some-resource",
 				}
 				source = atc.Source{"some": "source"}
-				resourceTypes = creds.VersionedResourceTypes{}
+				resourceTypes = atc.VersionedResourceTypes{}
 
 				delegate.SaveOutput(logger, plan, source, resourceTypes, info)
 			})

@@ -5,7 +5,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/worker"
 	w "github.com/concourse/concourse/atc/worker"
 )
@@ -31,7 +30,7 @@ func (f *imageFactory) GetImage(
 	imageSpec worker.ImageSpec,
 	teamID int,
 	delegate worker.ImageFetchingDelegate,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
 		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(logger, worker)

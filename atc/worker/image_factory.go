@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -21,7 +20,7 @@ type ImageFactory interface {
 		imageSpec ImageSpec,
 		teamID int,
 		delegate ImageFetchingDelegate,
-		resourceTypes creds.VersionedResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 	) (Image, error)
 }
 

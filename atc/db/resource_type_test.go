@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -202,7 +201,7 @@ var _ = Describe("ResourceType", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceTypeScope, err = resourceType.SetResourceConfig(logger, atc.Source{"some": "repository"}, creds.VersionedResourceTypes{})
+			resourceTypeScope, err = resourceType.SetResourceConfig(logger, atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 		})
 

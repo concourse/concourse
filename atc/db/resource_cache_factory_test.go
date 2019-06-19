@@ -8,9 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -71,7 +69,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				Name: "some-type-type",
 				Type: "some-base-type",
 				Source: atc.Source{
-					"some-type-type": "((source-param))",
+					"some-type-type": "some-secret-sauce",
 				},
 			},
 			Version: atc.Version{"some-type-type": "version"},
@@ -127,14 +125,11 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				creds.NewVersionedResourceTypes(
-					template.StaticVariables{"source-param": "some-secret-sauce"},
-					atc.VersionedResourceTypes{
-						resourceType1,
-						resourceType2,
-						resourceType3,
-					},
-				),
+				atc.VersionedResourceTypes{
+					resourceType1,
+					resourceType2,
+					resourceType3,
+				},
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(usedResourceCache.Version()).To(Equal(atc.Version{"some": "version"}))
@@ -208,13 +203,10 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				creds.NewVersionedResourceTypes(
-					template.StaticVariables{"source-param": "some-secret-sauce"},
-					atc.VersionedResourceTypes{
-						resourceType1,
-						resourceTypeUsingBogusBaseType,
-					},
-				),
+				atc.VersionedResourceTypes{
+					resourceType1,
+					resourceTypeUsingBogusBaseType,
+				},
 			)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(db.BaseResourceTypeNotFoundError{Name: "some-bogus-base-type"}))
@@ -230,12 +222,9 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				creds.NewVersionedResourceTypes(
-					template.StaticVariables{"source-param": "some-secret-sauce"},
-					atc.VersionedResourceTypes{
-						resourceTypeOverridingBaseType,
-					},
-				),
+				atc.VersionedResourceTypes{
+					resourceTypeOverridingBaseType,
+				},
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -292,7 +281,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 							atc.Version{"some": "version"},
 							atc.Source{"some": "source"},
 							atc.Params{"some": "params"},
-							creds.VersionedResourceTypes{},
+							atc.VersionedResourceTypes{},
 						)
 						Expect(err).ToNot(HaveOccurred())
 					}

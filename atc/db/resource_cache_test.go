@@ -2,9 +2,7 @@ package db_test
 
 import (
 	sq "github.com/Masterminds/squirrel"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
@@ -50,10 +48,7 @@ var _ = Describe("ResourceCache", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				creds.NewVersionedResourceTypes(
-					template.StaticVariables{"source-param": "some-secret-sauce"},
-					atc.VersionedResourceTypes{},
-				),
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID()).ToNot(BeZero())
@@ -78,10 +73,7 @@ var _ = Describe("ResourceCache", func() {
 						"some": "source",
 					},
 					atc.Params{"some": "params"},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{},
-					),
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -96,10 +88,7 @@ var _ = Describe("ResourceCache", func() {
 						"some": "source",
 					},
 					atc.Params{"some": "params"},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{},
-					),
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID()).To(Equal(existingResourceCache.ID()))
@@ -135,9 +124,7 @@ var _ = Describe("ResourceCache", func() {
 					"cache": "source",
 				},
 				atc.Params{"some": "params"},
-				creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
-					atc.VersionedResourceTypes{},
-				),
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -164,9 +151,7 @@ var _ = Describe("ResourceCache", func() {
 						"cache": "source",
 					},
 					atc.Params{"some": "params"},
-					creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{},
-					),
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})

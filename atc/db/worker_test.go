@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	. "github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -217,8 +216,8 @@ var _ = Describe("Worker", func() {
 		)
 
 		expiries := ContainerOwnerExpiries{
-			Min:       5 * time.Minute,
-			Max:       1 * time.Hour,
+			Min: 5 * time.Minute,
+			Max: 1 * time.Hour,
 		}
 
 		BeforeEach(func() {
@@ -240,7 +239,7 @@ var _ = Describe("Worker", func() {
 				logger,
 				"some-resource-type",
 				atc.Source{"some": "source"},
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).ToNot(HaveOccurred())
 

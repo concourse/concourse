@@ -20,7 +20,7 @@ type PutDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, VersionInfo)
-	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, creds.VersionedResourceTypes, VersionInfo)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, VersionInfo)
 }
 
 // PutStep produces a resource version using preconfigured params and any data
@@ -94,7 +94,10 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	resourceTypes := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes)
+	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	if err != nil {
+		return err
+	}
 
 	var putInputs PutInputs
 	if step.plan.Inputs == nil {

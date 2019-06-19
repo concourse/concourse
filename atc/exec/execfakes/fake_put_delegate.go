@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 )
@@ -42,13 +41,13 @@ type FakePutDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	SaveOutputStub        func(lager.Logger, atc.PutPlan, atc.Source, creds.VersionedResourceTypes, exec.VersionInfo)
+	SaveOutputStub        func(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, exec.VersionInfo)
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
 		arg3 atc.Source
-		arg4 creds.VersionedResourceTypes
+		arg4 atc.VersionedResourceTypes
 		arg5 exec.VersionInfo
 	}
 	StartingStub        func(lager.Logger)
@@ -236,13 +235,13 @@ func (fake *FakePutDelegate) InitializingArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
-func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg3 atc.Source, arg4 creds.VersionedResourceTypes, arg5 exec.VersionInfo) {
+func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg3 atc.Source, arg4 atc.VersionedResourceTypes, arg5 exec.VersionInfo) {
 	fake.saveOutputMutex.Lock()
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
 		arg3 atc.Source
-		arg4 creds.VersionedResourceTypes
+		arg4 atc.VersionedResourceTypes
 		arg5 exec.VersionInfo
 	}{arg1, arg2, arg3, arg4, arg5})
 	fake.recordInvocation("SaveOutput", []interface{}{arg1, arg2, arg3, arg4, arg5})
@@ -258,13 +257,13 @@ func (fake *FakePutDelegate) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakePutDelegate) SaveOutputCalls(stub func(lager.Logger, atc.PutPlan, atc.Source, creds.VersionedResourceTypes, exec.VersionInfo)) {
+func (fake *FakePutDelegate) SaveOutputCalls(stub func(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, exec.VersionInfo)) {
 	fake.saveOutputMutex.Lock()
 	defer fake.saveOutputMutex.Unlock()
 	fake.SaveOutputStub = stub
 }
 
-func (fake *FakePutDelegate) SaveOutputArgsForCall(i int) (lager.Logger, atc.PutPlan, atc.Source, creds.VersionedResourceTypes, exec.VersionInfo) {
+func (fake *FakePutDelegate) SaveOutputArgsForCall(i int) (lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, exec.VersionInfo) {
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
 	argsForCall := fake.saveOutputArgsForCall[i]

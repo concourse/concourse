@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -32,11 +31,10 @@ var _ = Describe("PutStep", func() {
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeSecretManager         *credsfakes.FakeSecrets
-		variables                 creds.Variables
 		fakeDelegate              *execfakes.FakePutDelegate
 		putPlan                   *atc.PutPlan
 
-		resourceTypes atc.VersionedResourceTypes
+		interpolatedResourceTypes atc.VersionedResourceTypes
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: resource.ResourcesDir("put"),
@@ -79,7 +77,6 @@ var _ = Describe("PutStep", func() {
 		fakeSecretManager = new(credsfakes.FakeSecrets)
 		fakeSecretManager.GetReturnsOnCall(0, "super-secret-source", nil, true, nil)
 		fakeSecretManager.GetReturnsOnCall(1, "source", nil, true, nil)
-		variables = creds.NewVariables(fakeSecretManager, "team", "pipeline")
 
 		fakeDelegate = new(execfakes.FakePutDelegate)
 		stdoutBuf = gbytes.NewBuffer()
@@ -91,12 +88,23 @@ var _ = Describe("PutStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 
-		resourceTypes = atc.VersionedResourceTypes{
+		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
 					Type:   "custom-type",
 					Source: atc.Source{"some-custom": "((custom-param))"},
+				},
+				Version: atc.Version{"some-custom": "version"},
+			},
+		}
+
+		interpolatedResourceTypes = atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "source"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
@@ -109,7 +117,7 @@ var _ = Describe("PutStep", func() {
 			Source:                 atc.Source{"some": "((source-param))"},
 			Params:                 atc.Params{"some-param": "some-value"},
 			Tags:                   []string{"some", "tags"},
-			VersionedResourceTypes: resourceTypes,
+			VersionedResourceTypes: uninterpolatedResourceTypes,
 		}
 	})
 
@@ -171,7 +179,7 @@ var _ = Describe("PutStep", func() {
 
 				fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
-				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
+				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{Name: "some", Value: "metadata"}})
 
 				fakeWorker.NameReturns("some-worker")
 				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
@@ -198,7 +206,7 @@ var _ = Describe("PutStep", func() {
 					TeamID:        123,
 					Tags:          []string{"some", "tags"},
 					ResourceType:  "some-resource-type",
-					ResourceTypes: creds.NewVersionedResourceTypes(variables, resourceTypes),
+					ResourceTypes: interpolatedResourceTypes,
 				}))
 				Expect(strategy).To(Equal(fakeStrategy))
 
@@ -222,7 +230,7 @@ var _ = Describe("PutStep", func() {
 					exec.PutResourceSource{fakeOtherSource},
 					exec.PutResourceSource{fakeMountedSource},
 				))
-				Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
+				Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 				Expect(delegate).To(Equal(fakeDelegate))
 			})
 
@@ -284,7 +292,7 @@ var _ = Describe("PutStep", func() {
 				Expect(plan.Type).To(Equal("some-resource-type"))
 				Expect(plan.Resource).To(Equal("some-resource"))
 				Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
-				Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
+				Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
 				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
 			})
@@ -308,7 +316,7 @@ var _ = Describe("PutStep", func() {
 				_, status, info := fakeDelegate.FinishedArgsForCall(0)
 				Expect(status).To(Equal(exec.ExitStatus(0)))
 				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+				Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
 			})
 
 			It("stores the version info as the step result", func() {
@@ -317,7 +325,7 @@ var _ = Describe("PutStep", func() {
 				Expect(sID).To(Equal(planID))
 				Expect(sVal).To(Equal(exec.VersionInfo{
 					Version:  atc.Version{"some": "version"},
-					Metadata: []atc.MetadataField{{"some", "metadata"}},
+					Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
 				}))
 			})
 

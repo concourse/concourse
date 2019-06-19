@@ -12,9 +12,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/resource"
@@ -46,7 +44,7 @@ var _ = Describe("Image", func() {
 	var fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 	var fakeWorker *workerfakes.FakeWorker
 
-	var customTypes creds.VersionedResourceTypes
+	var customTypes atc.VersionedResourceTypes
 	var privileged bool
 
 	var fetchedVolume worker.Volume
@@ -54,7 +52,6 @@ var _ = Describe("Image", func() {
 	var fetchedVersion atc.Version
 	var fetchErr error
 	var teamID int
-	var variables template.StaticVariables
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -63,16 +60,10 @@ var _ = Describe("Image", func() {
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		stderrBuf = gbytes.NewBuffer()
 
-		variables = template.StaticVariables{
-			"source-param":   "super-secret-sauce",
-			"a-source-param": "super-secret-a-source",
-			"b-source-param": "super-secret-b-source",
-		}
-
 		logger = lagertest.NewTestLogger("test")
 		imageResource = worker.ImageResource{
 			Type:   "docker",
-			Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
+			Source: atc.Source{"some": "super-secret-sauce"},
 			Params: &atc.Params{"some": "params"},
 		}
 		version = nil
@@ -84,12 +75,12 @@ var _ = Describe("Image", func() {
 		fakeWorker.TagsReturns(atc.Tags{"worker", "tags"})
 		teamID = 123
 
-		customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+		customTypes = atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-type-a",
 					Type:   "base-type",
-					Source: atc.Source{"some": "((a-source-param))"},
+					Source: atc.Source{"some": "a-source-param"},
 				},
 				Version: atc.Version{"some": "a-version"},
 			},
@@ -97,11 +88,11 @@ var _ = Describe("Image", func() {
 				ResourceType: atc.ResourceType{
 					Name:   "custom-type-b",
 					Type:   "custom-type-a",
-					Source: atc.Source{"some": "((b-source-param))"},
+					Source: atc.Source{"some": "b-source-param"},
 				},
 				Version: atc.Version{"some": "b-version"},
 			},
-		})
+		}
 
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 	})
@@ -158,7 +149,7 @@ var _ = Describe("Image", func() {
 				BeforeEach(func() {
 					imageResource = worker.ImageResource{
 						Type:   customResourceTypeName,
-						Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
+						Source: atc.Source{"some": "source-param"},
 						Params: &atc.Params{"some": "params"},
 					}
 
@@ -172,7 +163,7 @@ var _ = Describe("Image", func() {
 
 				Context("and the custom type does not have a version", func() {
 					BeforeEach(func() {
-						customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+						customTypes = atc.VersionedResourceTypes{
 							{
 								ResourceType: atc.ResourceType{
 									Name:   "custom-type-a",
@@ -181,7 +172,7 @@ var _ = Describe("Image", func() {
 								},
 								Version: nil,
 							},
-						})
+						}
 
 						fakeCheckResourceType = new(resourcefakes.FakeResource)
 						fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)

@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
 
@@ -180,10 +178,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 					atc.Source{
 						"some": "source",
 					},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{},
-					),
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -235,21 +230,18 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 					atc.Source{
 						"some": "source",
 					},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{
-							atc.VersionedResourceType{
-								ResourceType: atc.ResourceType{
-									Name: "some-type",
-									Type: "some-base-resource-type",
-									Source: atc.Source{
-										"some": "source",
-									},
+					atc.VersionedResourceTypes{
+						atc.VersionedResourceType{
+							ResourceType: atc.ResourceType{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "source",
 								},
-								Version: atc.Version{"showme": "whatyougot"},
 							},
+							Version: atc.Version{"showme": "whatyougot"},
 						},
-					),
+					},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -267,21 +259,18 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 					atc.Source{
 						"some": "source",
 					},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{
-							atc.VersionedResourceType{
-								ResourceType: atc.ResourceType{
-									Name: "some-type",
-									Type: "some-base-resource-type",
-									Source: atc.Source{
-										"some": "source",
-									},
+					atc.VersionedResourceTypes{
+						atc.VersionedResourceType{
+							ResourceType: atc.ResourceType{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "source",
 								},
-								Version: atc.Version{"showme": "whatyougot"},
 							},
+							Version: atc.Version{"showme": "whatyougot"},
 						},
-					),
+					},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -308,10 +297,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				resourceConfigScope, err := defaultResource.SetResourceConfig(
 					logger,
 					atc.Source{"some": "source"},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{},
-					),
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -380,10 +366,7 @@ func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.Used
 			"some": "source",
 		},
 		atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
-		creds.NewVersionedResourceTypes(
-			template.StaticVariables{"source-param": "some-secret-sauce"},
-			atc.VersionedResourceTypes{},
-		),
+		atc.VersionedResourceTypes{},
 	)
 	Expect(err).ToNot(HaveOccurred())
 

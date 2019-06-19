@@ -13,9 +13,7 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
@@ -42,11 +40,10 @@ var _ = Describe("TaskStep", func() {
 		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
 
 		fakeSecretManager *credsfakes.FakeSecrets
-		variables         creds.Variables
 		fakeDelegate      *execfakes.FakeTaskDelegate
 		taskPlan          *atc.TaskPlan
 
-		resourceTypes atc.VersionedResourceTypes
+		interpolatedResourceTypes atc.VersionedResourceTypes
 
 		repo  *artifact.Repository
 		state *execfakes.FakeRunState
@@ -82,7 +79,6 @@ var _ = Describe("TaskStep", func() {
 
 		fakeSecretManager = new(credsfakes.FakeSecrets)
 		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
-		variables = creds.NewVariables(fakeSecretManager, "team", "pipeline")
 
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
 		fakeDelegate.StdoutReturns(stdoutBuf)
@@ -92,12 +88,24 @@ var _ = Describe("TaskStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 
-		resourceTypes = atc.VersionedResourceTypes{
+		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
 					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "source"},
+					Source: atc.Source{"some-custom": "((source-param))"},
+					Params: atc.Params{"some-custom": "param"},
+				},
+				Version: atc.Version{"some-custom": "version"},
+			},
+		}
+
+		interpolatedResourceTypes = atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "super-secret-source"},
 					Params: atc.Params{"some-custom": "param"},
 				},
 				Version: atc.Version{"some-custom": "version"},
@@ -108,7 +116,7 @@ var _ = Describe("TaskStep", func() {
 			Name:                   "some-task",
 			Privileged:             false,
 			Tags:                   []string{"step", "tags"},
-			VersionedResourceTypes: resourceTypes,
+			VersionedResourceTypes: uninterpolatedResourceTypes,
 		}
 	})
 
@@ -189,7 +197,7 @@ var _ = Describe("TaskStep", func() {
 					ImageSpec: worker.ImageSpec{
 						ImageResource: &worker.ImageResource{
 							Type:    "docker",
-							Source:  creds.NewSource(template.StaticVariables{}, atc.Source{"some": "secret-source-param"}),
+							Source:  atc.Source{"some": "secret-source-param"},
 							Params:  &atc.Params{"some": "params"},
 							Version: &atc.Version{"some": "version"},
 						},
@@ -210,7 +218,7 @@ var _ = Describe("TaskStep", func() {
 					Tags:          []string{"step", "tags"},
 					TeamID:        stepMetadata.TeamID,
 					ResourceType:  "docker",
-					ResourceTypes: creds.NewVersionedResourceTypes(variables, resourceTypes),
+					ResourceTypes: interpolatedResourceTypes,
 				}))
 				Expect(strategy).To(Equal(fakeStrategy))
 			})
@@ -255,7 +263,7 @@ var _ = Describe("TaskStep", func() {
 						ImageSpec: worker.ImageSpec{
 							ImageResource: &worker.ImageResource{
 								Type:    "docker",
-								Source:  creds.NewSource(template.StaticVariables{}, atc.Source{"some": "secret-source-param"}),
+								Source:  atc.Source{"some": "secret-source-param"},
 								Params:  &atc.Params{"some": "params"},
 								Version: &atc.Version{"some": "version"},
 							},
@@ -270,7 +278,7 @@ var _ = Describe("TaskStep", func() {
 						Inputs:  []worker.InputSource{},
 						Outputs: worker.OutputPaths{},
 					}))
-					Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
+					Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 				})
 
 				Context("when rootfs uri is set instead of image resource", func() {
@@ -307,7 +315,7 @@ var _ = Describe("TaskStep", func() {
 							Outputs: worker.OutputPaths{},
 						}))
 
-						Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
+						Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 					})
 				})
 
@@ -1325,7 +1333,7 @@ var _ = Describe("TaskStep", func() {
 							_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 							Expect(containerSpec.ImageSpec.ImageResource).To(Equal(&worker.ImageResource{
 								Type:    "docker",
-								Source:  creds.NewSource(template.StaticVariables{}, atc.Source{"some": "super-secret-source"}),
+								Source:  atc.Source{"some": "super-secret-source"},
 								Params:  &atc.Params{"some": "params"},
 								Version: &atc.Version{"some": "version"},
 							}))
@@ -1333,7 +1341,7 @@ var _ = Describe("TaskStep", func() {
 							Expect(workerSpec).To(Equal(worker.WorkerSpec{
 								TeamID:        123,
 								Platform:      "some-platform",
-								ResourceTypes: creds.NewVersionedResourceTypes(variables, resourceTypes),
+								ResourceTypes: interpolatedResourceTypes,
 								Tags:          []string{"step", "tags"},
 								ResourceType:  "docker",
 							}))
@@ -1360,7 +1368,7 @@ var _ = Describe("TaskStep", func() {
 							Expect(workerSpec).To(Equal(worker.WorkerSpec{
 								TeamID:        123,
 								Platform:      "some-platform",
-								ResourceTypes: creds.NewVersionedResourceTypes(variables, resourceTypes),
+								ResourceTypes: interpolatedResourceTypes,
 								Tags:          []string{"step", "tags"},
 							}))
 						})

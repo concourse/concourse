@@ -12,7 +12,6 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -40,12 +39,11 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFetcher      *resourcefakes.FakeFetcher
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeSecretManager        *credsfakes.FakeSecrets
-		variables                creds.Variables
 		fakeDelegate             *execfakes.FakeGetDelegate
 		getPlan                  *atc.GetPlan
 
-		fakeVersionedSource *resourcefakes.FakeVersionedSource
-		resourceTypes       atc.VersionedResourceTypes
+		fakeVersionedSource       *resourcefakes.FakeVersionedSource
+		interpolatedResourceTypes atc.VersionedResourceTypes
 
 		artifactRepository *artifact.Repository
 		state              *execfakes.FakeRunState
@@ -84,7 +82,6 @@ var _ = Describe("GetStep", func() {
 
 		fakeSecretManager = new(credsfakes.FakeSecrets)
 		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
-		variables = creds.NewVariables(fakeSecretManager, "some-team", "some-pipeline")
 
 		artifactRepository = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -95,12 +92,23 @@ var _ = Describe("GetStep", func() {
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 
-		resourceTypes = atc.VersionedResourceTypes{
+		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
 					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "source"},
+					Source: atc.Source{"some-custom": "((source-param))"},
+				},
+				Version: atc.Version{"some-custom": "version"},
+			},
+		}
+
+		interpolatedResourceTypes = atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "super-secret-source"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
@@ -113,7 +121,7 @@ var _ = Describe("GetStep", func() {
 			Params:                 atc.Params{"some-param": "some-value"},
 			Tags:                   []string{"some", "tags"},
 			Version:                &atc.Version{"some-version": "some-value"},
-			VersionedResourceTypes: resourceTypes,
+			VersionedResourceTypes: uninterpolatedResourceTypes,
 		}
 	})
 
@@ -159,7 +167,7 @@ var _ = Describe("GetStep", func() {
 			ResourceType:  "some-resource-type",
 			Tags:          atc.Tags{"some", "tags"},
 			TeamID:        stepMetadata.TeamID,
-			ResourceTypes: creds.NewVersionedResourceTypes(variables, resourceTypes),
+			ResourceTypes: interpolatedResourceTypes,
 		}))
 		Expect(strategy).To(Equal(fakeStrategy))
 	})
@@ -197,11 +205,11 @@ var _ = Describe("GetStep", func() {
 				atc.Version{"some-version": "some-value"},
 				atc.Source{"some": "super-secret-source"},
 				atc.Params{"some-param": "some-value"},
-				creds.NewVersionedResourceTypes(variables, resourceTypes),
+				interpolatedResourceTypes,
 				nil,
 				db.NewBuildStepContainerOwner(stepMetadata.BuildID, atc.PlanID(planID), stepMetadata.TeamID),
 			)))
-			Expect(actualResourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, resourceTypes)))
+			Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 			Expect(delegate).To(Equal(fakeDelegate))
 			expectedLockName := fmt.Sprintf("%x",
 				sha256.Sum256([]byte(
