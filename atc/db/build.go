@@ -11,7 +11,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
@@ -96,7 +95,7 @@ type Build interface {
 	Artifacts() ([]WorkerArtifact, error)
 	Artifact(artifactID int) (WorkerArtifact, error)
 
-	SaveOutput(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
+	SaveOutput(lager.Logger, string, atc.Source, atc.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
@@ -833,7 +832,7 @@ func (b *build) SaveOutput(
 	logger lager.Logger,
 	resourceType string,
 	source atc.Source,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	version atc.Version,
 	metadata ResourceConfigMetadataFields,
 	outputName string,

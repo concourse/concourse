@@ -42,8 +42,8 @@ var _ = Describe("ResourceScanner", func() {
 		interval                  time.Duration
 		variables                 creds.Variables
 
-		fakeResourceType      *dbfakes.FakeResourceType
-		versionedResourceType atc.VersionedResourceType
+		fakeResourceType          *dbfakes.FakeResourceType
+		interpolatedResourceTypes atc.VersionedResourceTypes
 
 		scanner Scanner
 
@@ -73,13 +73,15 @@ var _ = Describe("ResourceScanner", func() {
 			Tags:   atc.Tags{"some-tag"},
 		}
 
-		versionedResourceType = atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name:   "some-custom-resource",
-				Type:   "registry-image",
-				Source: atc.Source{"custom": "((source-params))"},
+		interpolatedResourceTypes = atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-custom-resource",
+					Type:   "registry-image",
+					Source: atc.Source{"custom": "some-secret-sauce"},
+				},
+				Version: atc.Version{"custom": "version"},
 			},
-			Version: atc.Version{"custom": "version"},
 		}
 
 		fakeContainer = new(workerfakes.FakeContainer)
@@ -240,9 +242,7 @@ var _ = Describe("ResourceScanner", func() {
 					Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
 					_, resourceSource, resourceTypes := fakeDBResource.SetResourceConfigArgsForCall(0)
 					Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
-					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-						versionedResourceType,
-					})))
+					Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
 					Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 					err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
@@ -266,7 +266,7 @@ var _ = Describe("ResourceScanner", func() {
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "git",
 						Tags:          atc.Tags{"some-tag"},
-						ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+						ResourceTypes: interpolatedResourceTypes,
 						TeamID:        123,
 					}))
 
@@ -283,9 +283,7 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_PIPELINE_NAME=some-pipeline",
 						"RESOURCE_NAME=some-resource",
 					}))
-					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-						versionedResourceType,
-					})))
+					Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 				})
 
 				Context("when the resource config has a specified check interval", func() {
@@ -672,9 +670,7 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(fakeDBResource.SetResourceConfigCallCount()).To(Equal(1))
 				_, resourceSource, resourceTypes := fakeDBResource.SetResourceConfigArgsForCall(0)
 				Expect(resourceSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
-				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-					versionedResourceType,
-				})))
+				Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
 				Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 				err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
@@ -698,7 +694,7 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					ResourceType:  "git",
 					Tags:          atc.Tags{"some-tag"},
-					ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+					ResourceTypes: interpolatedResourceTypes,
 					TeamID:        123,
 				}))
 
@@ -714,9 +710,7 @@ var _ = Describe("ResourceScanner", func() {
 					"RESOURCE_PIPELINE_NAME=some-pipeline",
 					"RESOURCE_NAME=some-resource",
 				}))
-				Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-					versionedResourceType,
-				})))
+				Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {

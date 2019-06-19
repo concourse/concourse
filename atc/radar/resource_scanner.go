@@ -154,10 +154,15 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 		return 0, err
 	}
 
-	versionedResourceTypes := creds.NewVersionedResourceTypes(
+	versionedResourceTypes, err := creds.NewVersionedResourceTypes(
 		scanner.variables,
 		resourceTypes.Deserialize(),
-	)
+	).Evaluate()
+	if err != nil {
+		logger.Error("failed-to-evaluate-resource-types", err)
+		scanner.setResourceCheckError(logger, savedResource, err)
+		return 0, err
+	}
 
 	source, err := creds.NewSource(scanner.variables, savedResource.Source()).Evaluate()
 	if err != nil {
@@ -265,7 +270,7 @@ func (scanner *resourceScanner) check(
 	savedResource db.Resource,
 	resourceConfigScope db.ResourceConfigScope,
 	fromVersion atc.Version,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	source atc.Source,
 	saveGiven bool,
 	timeout time.Duration,

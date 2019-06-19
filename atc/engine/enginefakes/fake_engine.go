@@ -10,17 +10,16 @@ import (
 )
 
 type FakeEngine struct {
-	LookupBuildStub        func(lager.Logger, db.Build) engine.Build
-	lookupBuildMutex       sync.RWMutex
-	lookupBuildArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 db.Build
+	NewBuildStub        func(db.Build) engine.Runnable
+	newBuildMutex       sync.RWMutex
+	newBuildArgsForCall []struct {
+		arg1 db.Build
 	}
-	lookupBuildReturns struct {
-		result1 engine.Build
+	newBuildReturns struct {
+		result1 engine.Runnable
 	}
-	lookupBuildReturnsOnCall map[int]struct {
-		result1 engine.Build
+	newBuildReturnsOnCall map[int]struct {
+		result1 engine.Runnable
 	}
 	ReleaseAllStub        func(lager.Logger)
 	releaseAllMutex       sync.RWMutex
@@ -31,64 +30,63 @@ type FakeEngine struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.Build) engine.Build {
-	fake.lookupBuildMutex.Lock()
-	ret, specificReturn := fake.lookupBuildReturnsOnCall[len(fake.lookupBuildArgsForCall)]
-	fake.lookupBuildArgsForCall = append(fake.lookupBuildArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 db.Build
-	}{arg1, arg2})
-	fake.recordInvocation("LookupBuild", []interface{}{arg1, arg2})
-	fake.lookupBuildMutex.Unlock()
-	if fake.LookupBuildStub != nil {
-		return fake.LookupBuildStub(arg1, arg2)
+func (fake *FakeEngine) NewBuild(arg1 db.Build) engine.Runnable {
+	fake.newBuildMutex.Lock()
+	ret, specificReturn := fake.newBuildReturnsOnCall[len(fake.newBuildArgsForCall)]
+	fake.newBuildArgsForCall = append(fake.newBuildArgsForCall, struct {
+		arg1 db.Build
+	}{arg1})
+	fake.recordInvocation("NewBuild", []interface{}{arg1})
+	fake.newBuildMutex.Unlock()
+	if fake.NewBuildStub != nil {
+		return fake.NewBuildStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.lookupBuildReturns
+	fakeReturns := fake.newBuildReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeEngine) LookupBuildCallCount() int {
-	fake.lookupBuildMutex.RLock()
-	defer fake.lookupBuildMutex.RUnlock()
-	return len(fake.lookupBuildArgsForCall)
+func (fake *FakeEngine) NewBuildCallCount() int {
+	fake.newBuildMutex.RLock()
+	defer fake.newBuildMutex.RUnlock()
+	return len(fake.newBuildArgsForCall)
 }
 
-func (fake *FakeEngine) LookupBuildCalls(stub func(lager.Logger, db.Build) engine.Build) {
-	fake.lookupBuildMutex.Lock()
-	defer fake.lookupBuildMutex.Unlock()
-	fake.LookupBuildStub = stub
+func (fake *FakeEngine) NewBuildCalls(stub func(db.Build) engine.Runnable) {
+	fake.newBuildMutex.Lock()
+	defer fake.newBuildMutex.Unlock()
+	fake.NewBuildStub = stub
 }
 
-func (fake *FakeEngine) LookupBuildArgsForCall(i int) (lager.Logger, db.Build) {
-	fake.lookupBuildMutex.RLock()
-	defer fake.lookupBuildMutex.RUnlock()
-	argsForCall := fake.lookupBuildArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+func (fake *FakeEngine) NewBuildArgsForCall(i int) db.Build {
+	fake.newBuildMutex.RLock()
+	defer fake.newBuildMutex.RUnlock()
+	argsForCall := fake.newBuildArgsForCall[i]
+	return argsForCall.arg1
 }
 
-func (fake *FakeEngine) LookupBuildReturns(result1 engine.Build) {
-	fake.lookupBuildMutex.Lock()
-	defer fake.lookupBuildMutex.Unlock()
-	fake.LookupBuildStub = nil
-	fake.lookupBuildReturns = struct {
-		result1 engine.Build
+func (fake *FakeEngine) NewBuildReturns(result1 engine.Runnable) {
+	fake.newBuildMutex.Lock()
+	defer fake.newBuildMutex.Unlock()
+	fake.NewBuildStub = nil
+	fake.newBuildReturns = struct {
+		result1 engine.Runnable
 	}{result1}
 }
 
-func (fake *FakeEngine) LookupBuildReturnsOnCall(i int, result1 engine.Build) {
-	fake.lookupBuildMutex.Lock()
-	defer fake.lookupBuildMutex.Unlock()
-	fake.LookupBuildStub = nil
-	if fake.lookupBuildReturnsOnCall == nil {
-		fake.lookupBuildReturnsOnCall = make(map[int]struct {
-			result1 engine.Build
+func (fake *FakeEngine) NewBuildReturnsOnCall(i int, result1 engine.Runnable) {
+	fake.newBuildMutex.Lock()
+	defer fake.newBuildMutex.Unlock()
+	fake.NewBuildStub = nil
+	if fake.newBuildReturnsOnCall == nil {
+		fake.newBuildReturnsOnCall = make(map[int]struct {
+			result1 engine.Runnable
 		})
 	}
-	fake.lookupBuildReturnsOnCall[i] = struct {
-		result1 engine.Build
+	fake.newBuildReturnsOnCall[i] = struct {
+		result1 engine.Runnable
 	}{result1}
 }
 
@@ -126,8 +124,8 @@ func (fake *FakeEngine) ReleaseAllArgsForCall(i int) lager.Logger {
 func (fake *FakeEngine) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.lookupBuildMutex.RLock()
-	defer fake.lookupBuildMutex.RUnlock()
+	fake.newBuildMutex.RLock()
+	defer fake.newBuildMutex.RUnlock()
 	fake.releaseAllMutex.RLock()
 	defer fake.releaseAllMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

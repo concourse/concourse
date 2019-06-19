@@ -3,9 +3,7 @@ package db_test
 import (
 	"time"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	. "github.com/onsi/ginkgo"
@@ -44,7 +42,7 @@ var _ = Describe("Resource Config Scope", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		resourceScope, err = resource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+		resourceScope, err = resource.SetResourceConfig(logger, atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -204,7 +202,7 @@ var _ = Describe("Resource Config Scope", func() {
 			resourceConfigScope, err = someResource.SetResourceConfig(
 				logger,
 				someResource.Source(),
-				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
+				pipelineResourceTypes.Deserialize(),
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -284,7 +282,7 @@ var _ = Describe("Resource Config Scope", func() {
 			resourceConfigScope, err = someResource.SetResourceConfig(
 				logger,
 				someResource.Source(),
-				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
+				pipelineResourceTypes.Deserialize(),
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -319,7 +317,7 @@ var _ = Describe("Resource Config Scope", func() {
 			resourceConfigScope, err = someResource.SetResourceConfig(
 				logger,
 				someResource.Source(),
-				creds.NewVersionedResourceTypes(template.StaticVariables{}, pipelineResourceTypes.Deserialize()),
+				pipelineResourceTypes.Deserialize(),
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 )
@@ -40,6 +41,13 @@ type FakeGetDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
+	SaveVersionStub        func(lager.Logger, string, exec.VersionInfo)
+	saveVersionMutex       sync.RWMutex
+	saveVersionArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 exec.VersionInfo
+	}
 	StartingStub        func(lager.Logger)
 	startingMutex       sync.RWMutex
 	startingArgsForCall []struct {
@@ -64,6 +72,13 @@ type FakeGetDelegate struct {
 	}
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
+	}
+	UpdateVersionStub        func(lager.Logger, atc.GetPlan, exec.VersionInfo)
+	updateVersionMutex       sync.RWMutex
+	updateVersionArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 atc.GetPlan
+		arg3 exec.VersionInfo
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -225,6 +240,39 @@ func (fake *FakeGetDelegate) InitializingArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
+func (fake *FakeGetDelegate) SaveVersion(arg1 lager.Logger, arg2 string, arg3 exec.VersionInfo) {
+	fake.saveVersionMutex.Lock()
+	fake.saveVersionArgsForCall = append(fake.saveVersionArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 exec.VersionInfo
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SaveVersion", []interface{}{arg1, arg2, arg3})
+	fake.saveVersionMutex.Unlock()
+	if fake.SaveVersionStub != nil {
+		fake.SaveVersionStub(arg1, arg2, arg3)
+	}
+}
+
+func (fake *FakeGetDelegate) SaveVersionCallCount() int {
+	fake.saveVersionMutex.RLock()
+	defer fake.saveVersionMutex.RUnlock()
+	return len(fake.saveVersionArgsForCall)
+}
+
+func (fake *FakeGetDelegate) SaveVersionCalls(stub func(lager.Logger, string, exec.VersionInfo)) {
+	fake.saveVersionMutex.Lock()
+	defer fake.saveVersionMutex.Unlock()
+	fake.SaveVersionStub = stub
+}
+
+func (fake *FakeGetDelegate) SaveVersionArgsForCall(i int) (lager.Logger, string, exec.VersionInfo) {
+	fake.saveVersionMutex.RLock()
+	defer fake.saveVersionMutex.RUnlock()
+	argsForCall := fake.saveVersionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
 func (fake *FakeGetDelegate) Starting(arg1 lager.Logger) {
 	fake.startingMutex.Lock()
 	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
@@ -360,6 +408,39 @@ func (fake *FakeGetDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
+func (fake *FakeGetDelegate) UpdateVersion(arg1 lager.Logger, arg2 atc.GetPlan, arg3 exec.VersionInfo) {
+	fake.updateVersionMutex.Lock()
+	fake.updateVersionArgsForCall = append(fake.updateVersionArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 atc.GetPlan
+		arg3 exec.VersionInfo
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("UpdateVersion", []interface{}{arg1, arg2, arg3})
+	fake.updateVersionMutex.Unlock()
+	if fake.UpdateVersionStub != nil {
+		fake.UpdateVersionStub(arg1, arg2, arg3)
+	}
+}
+
+func (fake *FakeGetDelegate) UpdateVersionCallCount() int {
+	fake.updateVersionMutex.RLock()
+	defer fake.updateVersionMutex.RUnlock()
+	return len(fake.updateVersionArgsForCall)
+}
+
+func (fake *FakeGetDelegate) UpdateVersionCalls(stub func(lager.Logger, atc.GetPlan, exec.VersionInfo)) {
+	fake.updateVersionMutex.Lock()
+	defer fake.updateVersionMutex.Unlock()
+	fake.UpdateVersionStub = stub
+}
+
+func (fake *FakeGetDelegate) UpdateVersionArgsForCall(i int) (lager.Logger, atc.GetPlan, exec.VersionInfo) {
+	fake.updateVersionMutex.RLock()
+	defer fake.updateVersionMutex.RUnlock()
+	argsForCall := fake.updateVersionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
 func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -371,12 +452,16 @@ func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
+	fake.saveVersionMutex.RLock()
+	defer fake.saveVersionMutex.RUnlock()
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
+	fake.updateVersionMutex.RLock()
+	defer fake.updateVersionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

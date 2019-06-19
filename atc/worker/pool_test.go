@@ -8,9 +8,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -43,7 +41,7 @@ var _ = Describe("Pool", func() {
 		var (
 			spec          ContainerSpec
 			workerSpec    WorkerSpec
-			resourceTypes creds.VersionedResourceTypes
+			resourceTypes atc.VersionedResourceTypes
 			fakeOwner     *dbfakes.FakeContainerOwner
 			fakeLock      *lockfakes.FakeLock
 
@@ -95,20 +93,16 @@ var _ = Describe("Pool", func() {
 				},
 			}
 
-			variables := template.StaticVariables{
-				"secret-source": "super-secret-source",
-			}
-
-			resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+			resourceTypes = atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "custom-type-b",
 						Type:   "custom-type-a",
-						Source: atc.Source{"some": "((secret-source))"},
+						Source: atc.Source{"some": "super-secret-source"},
 					},
 					Version: atc.Version{"some": "version"},
 				},
-			})
+			}
 
 			workerSpec = WorkerSpec{
 				ResourceType:  "some-type",

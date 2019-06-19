@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 )
@@ -381,13 +380,13 @@ type FakeBuild struct {
 	saveImageResourceVersionReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SaveOutputStub        func(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) error
+	SaveOutputStub        func(lager.Logger, string, atc.Source, atc.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) error
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
 		arg3 atc.Source
-		arg4 creds.VersionedResourceTypes
+		arg4 atc.VersionedResourceTypes
 		arg5 atc.Version
 		arg6 db.ResourceConfigMetadataFields
 		arg7 string
@@ -2321,14 +2320,14 @@ func (fake *FakeBuild) SaveImageResourceVersionReturnsOnCall(i int, result1 erro
 	}{result1}
 }
 
-func (fake *FakeBuild) SaveOutput(arg1 lager.Logger, arg2 string, arg3 atc.Source, arg4 creds.VersionedResourceTypes, arg5 atc.Version, arg6 db.ResourceConfigMetadataFields, arg7 string, arg8 string) error {
+func (fake *FakeBuild) SaveOutput(arg1 lager.Logger, arg2 string, arg3 atc.Source, arg4 atc.VersionedResourceTypes, arg5 atc.Version, arg6 db.ResourceConfigMetadataFields, arg7 string, arg8 string) error {
 	fake.saveOutputMutex.Lock()
 	ret, specificReturn := fake.saveOutputReturnsOnCall[len(fake.saveOutputArgsForCall)]
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
 		arg3 atc.Source
-		arg4 creds.VersionedResourceTypes
+		arg4 atc.VersionedResourceTypes
 		arg5 atc.Version
 		arg6 db.ResourceConfigMetadataFields
 		arg7 string
@@ -2352,13 +2351,13 @@ func (fake *FakeBuild) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakeBuild) SaveOutputCalls(stub func(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) error) {
+func (fake *FakeBuild) SaveOutputCalls(stub func(lager.Logger, string, atc.Source, atc.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) error) {
 	fake.saveOutputMutex.Lock()
 	defer fake.saveOutputMutex.Unlock()
 	fake.SaveOutputStub = stub
 }
 
-func (fake *FakeBuild) SaveOutputArgsForCall(i int) (lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) {
+func (fake *FakeBuild) SaveOutputArgsForCall(i int) (lager.Logger, string, atc.Source, atc.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) {
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
 	argsForCall := fake.saveOutputArgsForCall[i]

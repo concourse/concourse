@@ -5,7 +5,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -25,8 +24,8 @@ var _ = Describe("ContainerOwner", func() {
 		)
 
 		ownerExpiries = db.ContainerOwnerExpiries{
-			Min:       5 * time.Minute,
-			Max:       5 * time.Minute,
+			Min: 5 * time.Minute,
+			Max: 5 * time.Minute,
 		}
 
 		BeforeEach(func() {
@@ -46,7 +45,7 @@ var _ = Describe("ContainerOwner", func() {
 				atc.Source{
 					"some-type": "source",
 				},
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})

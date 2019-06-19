@@ -6,13 +6,13 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeFetcher struct {
-	FetchStub        func(context.Context, lager.Logger, resource.Session, worker.Worker, worker.ContainerSpec, creds.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) (resource.VersionedSource, error)
+	FetchStub        func(context.Context, lager.Logger, resource.Session, worker.Worker, worker.ContainerSpec, atc.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) (resource.VersionedSource, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
 		arg1 context.Context
@@ -20,7 +20,7 @@ type FakeFetcher struct {
 		arg3 resource.Session
 		arg4 worker.Worker
 		arg5 worker.ContainerSpec
-		arg6 creds.VersionedResourceTypes
+		arg6 atc.VersionedResourceTypes
 		arg7 resource.ResourceInstance
 		arg8 worker.ImageFetchingDelegate
 	}
@@ -36,7 +36,7 @@ type FakeFetcher struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetcher) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 resource.Session, arg4 worker.Worker, arg5 worker.ContainerSpec, arg6 creds.VersionedResourceTypes, arg7 resource.ResourceInstance, arg8 worker.ImageFetchingDelegate) (resource.VersionedSource, error) {
+func (fake *FakeFetcher) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 resource.Session, arg4 worker.Worker, arg5 worker.ContainerSpec, arg6 atc.VersionedResourceTypes, arg7 resource.ResourceInstance, arg8 worker.ImageFetchingDelegate) (resource.VersionedSource, error) {
 	fake.fetchMutex.Lock()
 	ret, specificReturn := fake.fetchReturnsOnCall[len(fake.fetchArgsForCall)]
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
@@ -45,7 +45,7 @@ func (fake *FakeFetcher) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 res
 		arg3 resource.Session
 		arg4 worker.Worker
 		arg5 worker.ContainerSpec
-		arg6 creds.VersionedResourceTypes
+		arg6 atc.VersionedResourceTypes
 		arg7 resource.ResourceInstance
 		arg8 worker.ImageFetchingDelegate
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
@@ -67,13 +67,13 @@ func (fake *FakeFetcher) FetchCallCount() int {
 	return len(fake.fetchArgsForCall)
 }
 
-func (fake *FakeFetcher) FetchCalls(stub func(context.Context, lager.Logger, resource.Session, worker.Worker, worker.ContainerSpec, creds.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) (resource.VersionedSource, error)) {
+func (fake *FakeFetcher) FetchCalls(stub func(context.Context, lager.Logger, resource.Session, worker.Worker, worker.ContainerSpec, atc.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) (resource.VersionedSource, error)) {
 	fake.fetchMutex.Lock()
 	defer fake.fetchMutex.Unlock()
 	fake.FetchStub = stub
 }
 
-func (fake *FakeFetcher) FetchArgsForCall(i int) (context.Context, lager.Logger, resource.Session, worker.Worker, worker.ContainerSpec, creds.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) {
+func (fake *FakeFetcher) FetchArgsForCall(i int) (context.Context, lager.Logger, resource.Session, worker.Worker, worker.ContainerSpec, atc.VersionedResourceTypes, resource.ResourceInstance, worker.ImageFetchingDelegate) {
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
 	argsForCall := fake.fetchArgsForCall[i]

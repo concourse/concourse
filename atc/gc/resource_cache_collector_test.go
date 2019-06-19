@@ -6,7 +6,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/gc"
@@ -51,7 +50,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						"some": "source",
 					},
 					nil,
-					creds.VersionedResourceTypes{},
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -67,7 +66,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						"some": "source",
 					},
 					nil,
-					creds.VersionedResourceTypes{},
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -81,7 +80,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 					atc.Source{
 						"some": "source",
 					},
-					creds.VersionedResourceTypes{})
+					atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -181,7 +180,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									"some": "source",
 								},
 								nil,
-								creds.VersionedResourceTypes{},
+								atc.VersionedResourceTypes{},
 							)
 							Expect(err).NotTo(HaveOccurred())
 
@@ -232,7 +231,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									"some": "source",
 								},
 								nil,
-								creds.VersionedResourceTypes{},
+								atc.VersionedResourceTypes{},
 							)
 							Expect(err).NotTo(HaveOccurred())
 

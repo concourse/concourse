@@ -15,7 +15,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
@@ -53,7 +52,7 @@ type Worker interface {
 		ImageFetchingDelegate,
 		db.ContainerOwner,
 		ContainerSpec,
-		creds.VersionedResourceTypes,
+		atc.VersionedResourceTypes,
 	) (Container, error)
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
@@ -180,7 +179,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	delegate ImageFetchingDelegate,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
 
 	var (
@@ -354,7 +353,7 @@ func (worker *gardenWorker) fetchImageForContainer(
 	spec ImageSpec,
 	teamID int,
 	delegate ImageFetchingDelegate,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	creatingContainer db.CreatingContainer,
 ) (FetchedImage, error) {
 	image, err := worker.imageFactory.GetImage(
@@ -609,8 +608,8 @@ func (worker *gardenWorker) Satisfies(logger lager.Logger, spec WorkerSpec) bool
 	return true
 }
 
-func determineUnderlyingTypeName(typeName string, resourceTypes creds.VersionedResourceTypes) string {
-	resourceTypesMap := make(map[string]creds.VersionedResourceType)
+func determineUnderlyingTypeName(typeName string, resourceTypes atc.VersionedResourceTypes) string {
+	resourceTypesMap := make(map[string]atc.VersionedResourceType)
 	for _, resourceType := range resourceTypes {
 		resourceTypesMap[resourceType.Name] = resourceType
 	}

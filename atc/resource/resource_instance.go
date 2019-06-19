@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -34,7 +33,7 @@ type resourceInstance struct {
 	version          atc.Version
 	source           atc.Source
 	params           atc.Params
-	resourceTypes    creds.VersionedResourceTypes
+	resourceTypes    atc.VersionedResourceTypes
 
 	resourceCache  db.UsedResourceCache
 	containerOwner db.ContainerOwner
@@ -45,7 +44,7 @@ func NewResourceInstance(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 
 	resourceCache db.UsedResourceCache,
 	containerOwner db.ContainerOwner,
