@@ -130,12 +130,21 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		&worker.CertsVolumeMount{Logger: s.logger},
 	}
 
+	err = s.worker.EnsureDBContainerExists(
+		ctx,
+		s.logger,
+		s.resourceInstance.ContainerOwner(),
+		s.session.Metadata,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	container, err := s.worker.FindOrCreateContainer(
 		ctx,
 		s.logger,
 		s.imageFetchingDelegate,
 		s.resourceInstance.ContainerOwner(),
-		s.session.Metadata,
 		s.containerSpec,
 		s.resourceTypes,
 	)

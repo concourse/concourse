@@ -17,49 +17,6 @@ type workerHelper struct {
 	dbWorker      db.Worker
 }
 
-func (w workerHelper) findOrInitializeContainer(
-	logger lager.Logger,
-	owner db.ContainerOwner,
-	metadata db.ContainerMetadata,
-) (db.CreatingContainer, db.CreatedContainer, string, error) {
-
-	creatingContainer, createdContainer, err := w.dbWorker.FindContainerOnWorker(owner)
-	if err != nil {
-		return nil, nil, "", err
-	}
-
-	var foundHandle string
-	switch {
-	case creatingContainer != nil:
-		foundHandle = creatingContainer.Handle()
-	case createdContainer != nil:
-		foundHandle = createdContainer.Handle()
-	}
-
-	if foundHandle != "" {
-		logger = logger.WithData(lager.Data{"container": foundHandle})
-		logger.Debug("found-container-in-db")
-		return creatingContainer, createdContainer, foundHandle, nil
-	}
-
-	// No foundHandle means no container in db
-	logger.Debug("creating-container-in-db")
-	creatingContainer, err = w.dbWorker.CreateContainer(
-		owner,
-		metadata,
-	)
-	if err != nil {
-		logger.Error("failed-to-create-container-in-db", err)
-		return nil, nil, "", err
-	}
-
-	foundHandle = creatingContainer.Handle()
-	logger = logger.WithData(lager.Data{"container": foundHandle})
-	logger.Debug("created-creating-container-in-db")
-
-	return creatingContainer, nil, foundHandle, nil
-}
-
 func (w workerHelper) createGardenContainer(
 	containerSpec ContainerSpec,
 	fetchedImage FetchedImage,
@@ -99,7 +56,6 @@ func (w workerHelper) createGardenContainer(
 		Properties: gardenProperties,
 	})
 }
-
 
 func (w workerHelper) constructGardenWorkerContainer(
 	logger lager.Logger,
@@ -143,7 +99,7 @@ func getDestinationPathsFromInputs(inputs []InputSource) []string {
 }
 
 func getDestinationPathsFromOutputs(outputs OutputPaths) []string {
-	idx              := 0
+	idx := 0
 	destinationPaths := make([]string, len(outputs))
 
 	for _, destinationPath := range outputs {

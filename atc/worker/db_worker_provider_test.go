@@ -424,7 +424,14 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, nil)
+					container, err := workers[0].FindOrCreateContainer(
+						context.TODO(),
+						logger,
+						fakeImageFetchingDelegate,
+						db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
+						containerSpec,
+						nil,
+					)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -463,6 +470,7 @@ var _ = Describe("DBProvider", func() {
 					fakeCreatedContainer = new(dbfakes.FakeCreatedContainer)
 					fakeCreatingContainer.CreatedReturns(fakeCreatedContainer, nil)
 					fakeWorker1.CreateContainerReturns(fakeCreatingContainer, nil)
+					fakeWorker1.FindContainerReturns(fakeCreatingContainer, nil, nil)
 
 					workerBaseResourceType := &db.UsedWorkerBaseResourceType{ID: 42}
 					fakeDBWorkerBaseResourceTypeFactory.FindReturns(workerBaseResourceType, true, nil)
@@ -481,7 +489,22 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateContainer(context.TODO(), logger, fakeImageFetchingDelegate, db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1), db.ContainerMetadata{}, containerSpec, nil)
+					err := workers[0].EnsureDBContainerExists(
+						context.TODO(),
+						logger,
+						db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
+						db.ContainerMetadata{},
+					)
+					Expect(err).NotTo(HaveOccurred())
+
+					container, err := workers[0].FindOrCreateContainer(
+						context.TODO(),
+						logger,
+						fakeImageFetchingDelegate,
+						db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
+						containerSpec,
+						nil,
+					)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(container.Handle()).To(Equal("created-handle"))

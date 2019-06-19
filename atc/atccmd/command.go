@@ -562,7 +562,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		cmd.BaggageclaimResponseHeaderTimeout,
 	)
 
-	pool := worker.NewPool(workerProvider)
+	pool := worker.NewPool(clock.NewClock(), lockFactory, workerProvider)
 	workerClient := worker.NewClient(pool, workerProvider)
 
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
@@ -741,7 +741,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		cmd.BaggageclaimResponseHeaderTimeout,
 	)
 
-	pool := worker.NewPool(workerProvider)
+	pool := worker.NewPool(clock.NewClock(), lockFactory, workerProvider)
 	workerClient := worker.NewClient(pool, workerProvider)
 
 	defaultLimits, err := cmd.parseDefaultLimits()

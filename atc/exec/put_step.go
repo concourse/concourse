@@ -136,7 +136,16 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	owner := db.NewBuildStepContainerOwner(step.build.ID(), step.planID, step.build.TeamID())
-	chosenWorker, err := step.pool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, step.strategy)
+
+	chosenWorker, err := step.pool.FindOrChooseWorkerForContainer(
+		ctx,
+		logger,
+		owner,
+		containerSpec,
+		step.containerMetadata,
+		workerSpec,
+		step.strategy,
+	)
 	if err != nil {
 		return err
 	}
@@ -150,7 +159,6 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		logger,
 		step.delegate,
 		owner,
-		step.containerMetadata,
 		containerSpec,
 		step.resourceTypes,
 	)

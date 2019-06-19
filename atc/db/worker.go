@@ -67,7 +67,7 @@ type Worker interface {
 	Prune() error
 	Delete() error
 
-	FindContainerOnWorker(owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
+	FindContainer(owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
 	CreateContainer(owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
 }
 
@@ -255,7 +255,7 @@ func (worker *worker) ResourceCerts() (*UsedWorkerResourceCerts, bool, error) {
 	return nil, false, nil
 }
 
-func (worker *worker) FindContainerOnWorker(owner ContainerOwner) (CreatingContainer, CreatedContainer, error) {
+func (worker *worker) FindContainer(owner ContainerOwner) (CreatingContainer, CreatedContainer, error) {
 	ownerQuery, found, err := owner.Find(worker.conn)
 	if err != nil {
 		return nil, nil, err

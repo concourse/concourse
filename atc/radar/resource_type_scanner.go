@@ -253,7 +253,17 @@ func (scanner *resourceTypeScanner) check(
 
 	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
 
-	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, scanner.strategy)
+	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(
+		context.Background(),
+		logger,
+		owner,
+		containerSpec,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
+		workerSpec,
+		scanner.strategy,
+	)
 	if err != nil {
 		chkErr := resourceConfigScope.SetCheckError(err)
 		if chkErr != nil {
@@ -268,9 +278,6 @@ func (scanner *resourceTypeScanner) check(
 		logger,
 		worker.NoopImageFetchingDelegate{},
 		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries),
-		db.ContainerMetadata{
-			Type: db.ContainerTypeCheck,
-		},
 		containerSpec,
 		versionedResourceTypes.Without(savedResourceType.Name()),
 	)

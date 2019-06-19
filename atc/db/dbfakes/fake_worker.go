@@ -94,17 +94,17 @@ type FakeWorker struct {
 	expiresAtReturnsOnCall map[int]struct {
 		result1 time.Time
 	}
-	FindContainerOnWorkerStub        func(db.ContainerOwner) (db.CreatingContainer, db.CreatedContainer, error)
-	findContainerOnWorkerMutex       sync.RWMutex
-	findContainerOnWorkerArgsForCall []struct {
+	FindContainerStub        func(db.ContainerOwner) (db.CreatingContainer, db.CreatedContainer, error)
+	findContainerMutex       sync.RWMutex
+	findContainerArgsForCall []struct {
 		arg1 db.ContainerOwner
 	}
-	findContainerOnWorkerReturns struct {
+	findContainerReturns struct {
 		result1 db.CreatingContainer
 		result2 db.CreatedContainer
 		result3 error
 	}
-	findContainerOnWorkerReturnsOnCall map[int]struct {
+	findContainerReturnsOnCall map[int]struct {
 		result1 db.CreatingContainer
 		result2 db.CreatedContainer
 		result3 error
@@ -727,66 +727,66 @@ func (fake *FakeWorker) ExpiresAtReturnsOnCall(i int, result1 time.Time) {
 	}{result1}
 }
 
-func (fake *FakeWorker) FindContainerOnWorker(arg1 db.ContainerOwner) (db.CreatingContainer, db.CreatedContainer, error) {
-	fake.findContainerOnWorkerMutex.Lock()
-	ret, specificReturn := fake.findContainerOnWorkerReturnsOnCall[len(fake.findContainerOnWorkerArgsForCall)]
-	fake.findContainerOnWorkerArgsForCall = append(fake.findContainerOnWorkerArgsForCall, struct {
+func (fake *FakeWorker) FindContainer(arg1 db.ContainerOwner) (db.CreatingContainer, db.CreatedContainer, error) {
+	fake.findContainerMutex.Lock()
+	ret, specificReturn := fake.findContainerReturnsOnCall[len(fake.findContainerArgsForCall)]
+	fake.findContainerArgsForCall = append(fake.findContainerArgsForCall, struct {
 		arg1 db.ContainerOwner
 	}{arg1})
-	fake.recordInvocation("FindContainerOnWorker", []interface{}{arg1})
-	fake.findContainerOnWorkerMutex.Unlock()
-	if fake.FindContainerOnWorkerStub != nil {
-		return fake.FindContainerOnWorkerStub(arg1)
+	fake.recordInvocation("FindContainer", []interface{}{arg1})
+	fake.findContainerMutex.Unlock()
+	if fake.FindContainerStub != nil {
+		return fake.FindContainerStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findContainerOnWorkerReturns
+	fakeReturns := fake.findContainerReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
-func (fake *FakeWorker) FindContainerOnWorkerCallCount() int {
-	fake.findContainerOnWorkerMutex.RLock()
-	defer fake.findContainerOnWorkerMutex.RUnlock()
-	return len(fake.findContainerOnWorkerArgsForCall)
+func (fake *FakeWorker) FindContainerCallCount() int {
+	fake.findContainerMutex.RLock()
+	defer fake.findContainerMutex.RUnlock()
+	return len(fake.findContainerArgsForCall)
 }
 
-func (fake *FakeWorker) FindContainerOnWorkerCalls(stub func(db.ContainerOwner) (db.CreatingContainer, db.CreatedContainer, error)) {
-	fake.findContainerOnWorkerMutex.Lock()
-	defer fake.findContainerOnWorkerMutex.Unlock()
-	fake.FindContainerOnWorkerStub = stub
+func (fake *FakeWorker) FindContainerCalls(stub func(db.ContainerOwner) (db.CreatingContainer, db.CreatedContainer, error)) {
+	fake.findContainerMutex.Lock()
+	defer fake.findContainerMutex.Unlock()
+	fake.FindContainerStub = stub
 }
 
-func (fake *FakeWorker) FindContainerOnWorkerArgsForCall(i int) db.ContainerOwner {
-	fake.findContainerOnWorkerMutex.RLock()
-	defer fake.findContainerOnWorkerMutex.RUnlock()
-	argsForCall := fake.findContainerOnWorkerArgsForCall[i]
+func (fake *FakeWorker) FindContainerArgsForCall(i int) db.ContainerOwner {
+	fake.findContainerMutex.RLock()
+	defer fake.findContainerMutex.RUnlock()
+	argsForCall := fake.findContainerArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *FakeWorker) FindContainerOnWorkerReturns(result1 db.CreatingContainer, result2 db.CreatedContainer, result3 error) {
-	fake.findContainerOnWorkerMutex.Lock()
-	defer fake.findContainerOnWorkerMutex.Unlock()
-	fake.FindContainerOnWorkerStub = nil
-	fake.findContainerOnWorkerReturns = struct {
+func (fake *FakeWorker) FindContainerReturns(result1 db.CreatingContainer, result2 db.CreatedContainer, result3 error) {
+	fake.findContainerMutex.Lock()
+	defer fake.findContainerMutex.Unlock()
+	fake.FindContainerStub = nil
+	fake.findContainerReturns = struct {
 		result1 db.CreatingContainer
 		result2 db.CreatedContainer
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) FindContainerOnWorkerReturnsOnCall(i int, result1 db.CreatingContainer, result2 db.CreatedContainer, result3 error) {
-	fake.findContainerOnWorkerMutex.Lock()
-	defer fake.findContainerOnWorkerMutex.Unlock()
-	fake.FindContainerOnWorkerStub = nil
-	if fake.findContainerOnWorkerReturnsOnCall == nil {
-		fake.findContainerOnWorkerReturnsOnCall = make(map[int]struct {
+func (fake *FakeWorker) FindContainerReturnsOnCall(i int, result1 db.CreatingContainer, result2 db.CreatedContainer, result3 error) {
+	fake.findContainerMutex.Lock()
+	defer fake.findContainerMutex.Unlock()
+	fake.FindContainerStub = nil
+	if fake.findContainerReturnsOnCall == nil {
+		fake.findContainerReturnsOnCall = make(map[int]struct {
 			result1 db.CreatingContainer
 			result2 db.CreatedContainer
 			result3 error
 		})
 	}
-	fake.findContainerOnWorkerReturnsOnCall[i] = struct {
+	fake.findContainerReturnsOnCall[i] = struct {
 		result1 db.CreatingContainer
 		result2 db.CreatedContainer
 		result3 error
@@ -1757,8 +1757,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.ephemeralMutex.RUnlock()
 	fake.expiresAtMutex.RLock()
 	defer fake.expiresAtMutex.RUnlock()
-	fake.findContainerOnWorkerMutex.RLock()
-	defer fake.findContainerOnWorkerMutex.RUnlock()
+	fake.findContainerMutex.RLock()
+	defer fake.findContainerMutex.RUnlock()
 	fake.gardenAddrMutex.RLock()
 	defer fake.gardenAddrMutex.RUnlock()
 	fake.hTTPProxyURLMutex.RLock()

@@ -2661,7 +2661,7 @@ var _ = Describe("Team", func() {
 							)
 							Expect(err).ToNot(HaveOccurred())
 
-							otherResourceContainer, _, err = defaultWorker.FindContainerOnWorker(
+							otherResourceContainer, _, err = defaultWorker.FindContainer(
 								db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiries),
 							)
 							Expect(err).ToNot(HaveOccurred())
