@@ -201,7 +201,7 @@ var _ = Describe("ResourceType", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceTypeScope, err = resourceType.SetResourceConfig(logger, atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
+			resourceTypeScope, err = resourceType.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 		})
 

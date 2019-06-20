@@ -60,7 +60,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 			Describe("for one-off builds", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						logger,
 						db.ForBuild(defaultBuild.ID()),
 						"some-type",
 						atc.Version{"some": "version"},
@@ -125,7 +124,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						logger,
 						db.ForBuild(jobBuild.ID()),
 						"some-type",
 						atc.Version{"some": "version"},
@@ -159,7 +157,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
-							logger,
 							db.ForBuild(secondJobBuild.ID()),
 							"some-type",
 							atc.Version{"some": "version"},
@@ -206,7 +203,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						logger,
 						db.ForContainer(container.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},

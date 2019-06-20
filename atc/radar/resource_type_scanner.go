@@ -133,7 +133,6 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 	}
 
 	resourceConfigScope, err := savedResourceType.SetResourceConfig(
-		logger,
 		source,
 		versionedResourceTypes.Without(savedResourceType.Name()),
 	)
@@ -151,7 +150,6 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		reattempt = mustComplete
 		lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(
 			logger,
-			interval,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{

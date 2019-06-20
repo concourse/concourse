@@ -746,7 +746,7 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, atc.VersionedResourceTypes{})
+			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceConfigScope.SaveVersions([]atc.Version{
@@ -926,7 +926,7 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, atc.VersionedResourceTypes{})
+			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceConfigScope.SaveVersions([]atc.Version{

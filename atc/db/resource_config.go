@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"code.cloudfoundry.org/lager"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -125,7 +123,7 @@ func (r *resourceConfig) FindResourceConfigScopeByID(resourceConfigScopeID int, 
 		lockFactory:    r.lockFactory}, true, nil
 }
 
-func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, error) {
+func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, error) {
 	rc := &resourceConfig{
 		lockFactory: lockFactory,
 		conn:        conn,
@@ -136,7 +134,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(logger lager.Logger, tx Tx, lock
 	if r.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
 
-		resourceCache, err := r.CreatedByResourceCache.findOrCreate(logger, tx, lockFactory, conn)
+		resourceCache, err := r.CreatedByResourceCache.findOrCreate(tx, lockFactory, conn)
 		if err != nil {
 			return nil, err
 		}

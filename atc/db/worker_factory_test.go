@@ -623,7 +623,7 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
+					rcs, err := otherResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
 					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)

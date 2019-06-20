@@ -63,7 +63,7 @@ var _ = Describe("ResourceConfig", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				scope, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, resourceTypes)
+				scope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -100,7 +100,7 @@ var _ = Describe("ResourceConfig", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				scope, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, resourceTypes)
+				scope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -132,7 +132,7 @@ var _ = Describe("ResourceConfig", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "repository"}, resourceTypes)
+				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig("some-type", atc.Source{"some": "repository"}, resourceTypes)
 				Expect(err).ToNot(HaveOccurred())
 
 				var found bool

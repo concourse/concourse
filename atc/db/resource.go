@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -55,7 +54,7 @@ type Resource interface {
 	PinVersion(rcvID int) error
 	UnpinVersion() error
 
-	SetResourceConfig(lager.Logger, atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
+	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
 	NotifyScan() error
 
@@ -177,7 +176,7 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
-func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
+func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
 	if err != nil {
 		return nil, err
@@ -190,7 +189,7 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 
 	defer Rollback(tx)
 
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, r.lockFactory, r.conn)
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, r.lockFactory, r.conn)
 	if err != nil {
 		return nil, err
 	}

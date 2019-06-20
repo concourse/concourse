@@ -12,11 +12,10 @@ import (
 )
 
 type FakeResourceConfigScope struct {
-	AcquireResourceCheckingLockStub        func(lager.Logger, time.Duration) (lock.Lock, bool, error)
+	AcquireResourceCheckingLockStub        func(lager.Logger) (lock.Lock, bool, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 time.Duration
 	}
 	acquireResourceCheckingLockReturns struct {
 		result1 lock.Lock
@@ -149,17 +148,16 @@ type FakeResourceConfigScope struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceConfigScope) AcquireResourceCheckingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
+func (fake *FakeResourceConfigScope) AcquireResourceCheckingLock(arg1 lager.Logger) (lock.Lock, bool, error) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	ret, specificReturn := fake.acquireResourceCheckingLockReturnsOnCall[len(fake.acquireResourceCheckingLockArgsForCall)]
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 time.Duration
-	}{arg1, arg2})
-	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{arg1, arg2})
+	}{arg1})
+	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{arg1})
 	fake.acquireResourceCheckingLockMutex.Unlock()
 	if fake.AcquireResourceCheckingLockStub != nil {
-		return fake.AcquireResourceCheckingLockStub(arg1, arg2)
+		return fake.AcquireResourceCheckingLockStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -174,17 +172,17 @@ func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockCallCount() int 
 	return len(fake.acquireResourceCheckingLockArgsForCall)
 }
 
-func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockCalls(stub func(lager.Logger, time.Duration) (lock.Lock, bool, error)) {
+func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockCalls(stub func(lager.Logger) (lock.Lock, bool, error)) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	defer fake.acquireResourceCheckingLockMutex.Unlock()
 	fake.AcquireResourceCheckingLockStub = stub
 }
 
-func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, time.Duration) {
+func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockArgsForCall(i int) lager.Logger {
 	fake.acquireResourceCheckingLockMutex.RLock()
 	defer fake.acquireResourceCheckingLockMutex.RUnlock()
 	argsForCall := fake.acquireResourceCheckingLockArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {

@@ -182,7 +182,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("constructs the resource of the correct type", func() {
 					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-					_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
+					resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 
@@ -235,7 +235,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					It("constructs the resource of the correct type", func() {
 						Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-						_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
+						resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 						Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 						Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
@@ -279,9 +279,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 						Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
 
-						_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
-
 						leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 						Expect(immediate).To(BeFalse())
@@ -315,9 +312,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 				It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
 					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 					Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
-
-					_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-					Expect(leaseInterval).To(Equal(interval))
 
 					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 					Expect(leaseInterval).To(Equal(interval))
@@ -467,7 +461,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-				_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
+				resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 
@@ -595,7 +589,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("constructs the resource of the correct type", func() {
 					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-					_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
+					resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
@@ -628,9 +622,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
 				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 				Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
-
-				_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-				Expect(leaseInterval).To(Equal(interval))
 
 				leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 				Expect(leaseInterval).To(Equal(interval))
@@ -770,7 +761,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					results <- true
 					close(results)
 
-					fakeResourceConfigScope.AcquireResourceCheckingLockStub = func(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
+					fakeResourceConfigScope.AcquireResourceCheckingLockStub = func(logger lager.Logger) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {
@@ -783,16 +774,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("retries every second until it is", func() {
 					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(3))
-
-					_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-					Expect(leaseInterval).To(Equal(interval))
-
-					_, leaseInterval = fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(1)
-					Expect(leaseInterval).To(Equal(interval))
-
-					_, leaseInterval = fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(2)
-					Expect(leaseInterval).To(Equal(interval))
-
 					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
 			})

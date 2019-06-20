@@ -45,7 +45,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				BeforeEach(func() {
 					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-						logger,
 						"some-base-type",
 						atc.Source{
 							"some": "source",
@@ -89,7 +88,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				BeforeEach(func() {
 					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-						logger,
 						"some-base-type",
 						atc.Source{
 							"some": "source",
@@ -136,7 +134,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 			Context("when config is referenced in resource caches", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						logger,
 						db.ForBuild(defaultBuild.ID()),
 						"some-base-type",
 						atc.Version{"some": "version"},
@@ -159,7 +156,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 			Context("when config is not referenced in resource caches", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						logger,
 						db.ForBuild(defaultBuild.ID()),
 						"some-base-type",
 						atc.Version{"some": "version"},
@@ -192,7 +188,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 			Context("when config is referenced in resources", func() {
 				BeforeEach(func() {
 					_, err := usedResource.SetResourceConfig(
-						logger,
 						atc.Source{"some": "source"},
 						atc.VersionedResourceTypes{},
 					)
@@ -209,7 +204,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 			Context("when config is not referenced in resources", func() {
 				BeforeEach(func() {
 					_, err := resourceConfigFactory.FindOrCreateResourceConfig(
-						logger,
 						"some-base-type",
 						atc.Source{"some": "source"},
 						atc.VersionedResourceTypes{},
@@ -230,7 +224,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 			Context("when config is referenced in resource types", func() {
 				BeforeEach(func() {
 					_, err := usedResourceType.SetResourceConfig(
-						logger,
 						atc.Source{"some": "source-type"},
 						atc.VersionedResourceTypes{},
 					)
@@ -247,7 +240,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 			Context("when config is not referenced in resource types", func() {
 				BeforeEach(func() {
 					_, err := resourceConfigFactory.FindOrCreateResourceConfig(
-						logger,
 						"some-base-type",
 						atc.Source{"some": "source-type"},
 						atc.VersionedResourceTypes{},

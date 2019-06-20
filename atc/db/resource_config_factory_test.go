@@ -60,7 +60,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 					defer wg.Done()
 
 					for i := 0; i < 100; i++ {
-						_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
+						_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
 						Expect(err).ToNot(HaveOccurred())
 					}
 				}()
@@ -98,7 +98,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
-					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "base-resource-type-name", atc.Source{}, atc.VersionedResourceTypes{})
+					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig("base-resource-type-name", atc.Source{}, atc.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 					Expect(createdResourceConfig).ToNot(BeNil())
 
@@ -118,7 +118,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 					pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 					Expect(err).ToNot(HaveOccurred())
 
-					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{}, pipelineResourceTypes.Deserialize())
+					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig("some-type", atc.Source{}, pipelineResourceTypes.Deserialize())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(createdResourceConfig).ToNot(BeNil())
 
