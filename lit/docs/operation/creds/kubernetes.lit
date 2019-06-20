@@ -128,30 +128,28 @@ CONCOURSE_KUBERNETES_CONFIG_PATH=~/.kube/config
 		myprefix-team-b
 	}
 
-  As an example, the following sample RBAC Kubernetes could be created to allow
-  \code{web} to interpolate credentials for "team-a" and "team-b":
+  To allow \code{web} to interpolate credentials for "team-a" and "team-b",
+  we'd then need to create a few Kubernetes RBAC objects.
 
+  Starting with identifying the \code{web} service as an actor, we can
+  use a \link{ServiceAccount}{https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/}
+  for that:
 
   \codeblock{yaml}{{{
-  ---
-  # Identifies the `web` service as an actor.
-  #
-  # ref: https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/
-  #
   apiVersion: v1
   kind: ServiceAccount
   metadata:
     name: web
     labels:
       app: web
+  }}}
 
+  To allow actors to do something, in this case, retrieve secrets from a given
+  namespace, a
+  \link{ClusterRole}{https://kubernetes.io/docs/reference/access-authn-authz/rbac/#api-overview}
+  is then needed.
 
-  ---
-  # Describes the rules that represents the set of permissions
-  # that an actor can perform in any namespace within the cluster.
-  #
-  # ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#api-overview
-  #
+  \codeblock{yaml}{{{
   apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
@@ -162,22 +160,28 @@ CONCOURSE_KUBERNETES_CONFIG_PATH=~/.kube/config
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get"]
+  }}}
 
+  As that role is useless if not bound to an actor, the next step is creating
+  the the object that represents binding the role to the \code{web}
+  \code{ServiceAccount} that we had created before.
 
+  This is accomplished through the
+  \link{RoleBinding}{https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding}
+  object, which is per-namespace (thus, per-team).
+
+  \aside{
+    Even though in this example we're binding to a \code{ClusterRole}
+    (which is not tied to any namespace), the use of such cluster
+    role is (see \code{metadata.namespace}), making the effective 
+    permissions restricted to the namespace applied in the
+    \code{RoleBinding}.
+  }
+
+  \codeblock{yaml}{{{
   ---
-  # Grants the permissions defined in a role to one or more 
-  # users (subjects) represented as `ServiceAccount`s.
-  #
-  # Even though in this example we're binding to a ClusterRole
-  # (which is not tied to any namespace), the use of such cluster
-  # role is (see `metadata.namespace`), making the effective 
-  # permissions restricted to the namespace applied in the
-  # `roleBinding`.
-  #
-  # To have access to multiple namespaces, multiple RoleBindings
-  # would then be created (one for each namespace).
-  #
-  # ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding
+  # Role binding for the first team (`team-b`), allowing `web`
+  # to consume secrets from it.
   #
   apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: RoleBinding
@@ -214,15 +218,14 @@ CONCOURSE_KUBERNETES_CONFIG_PATH=~/.kube/config
   - kind: ServiceAccount
     name: web
     namespace: concourse
+  }}}
 
-  ---
-  # The deployment that creates the `web` pods.
-  # Note how it ties the pods to the `ServiceAccount`
-  # previously created.
-  #
-  # ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
-  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
-  #
+  To finish the example, we need to associate the \code{web}
+  \link{Pod}{https://kubernetes.io/docs/concepts/workloads/pods/pod/} with the
+  service, granting the pod access to those namespaces through the roles that
+  have been bound to it.
+
+  \codeblock{yaml}{{{
   apiVersion: extensions/v1beta1
   kind: Deployment
   metadata:
@@ -239,7 +242,7 @@ CONCOURSE_KUBERNETES_CONFIG_PATH=~/.kube/config
         serviceAccountName: web
         containers:
           - name: web
-            image: "concourse/concourse:5.2.0"
+            image: "concourse/concourse:5.3.0"
             args: [ web ]
             env:
               - name: CONCOURSE_KUBERNETES_NAMESPACE_PREFIX
