@@ -27,77 +27,83 @@ var _ = Describe("Add successful build versions", func() {
 
 			db = postgresRunner.OpenDBAtVersion(postMigrationVersion)
 
-			rows, err := db.Query(`SELECT build_id, version_md5, resource_id, name FROM build_resource_config_version_inputs`)
+			rows, err := db.Query(`SELECT build_id, version_md5, resource_id, job_id, name FROM successful_build_versions`)
 			Expect(err).NotTo(HaveOccurred())
 
-			type buildInput struct {
+			type successfulBuildVersion struct {
 				buildID    int
 				versionMD5 string
 				resourceID int
+				jobID      int
 				name       string
 			}
 
-			buildInputs := []buildInput{}
+			successfulBuildVersions := []successfulBuildVersion{}
 			for rows.Next() {
-				bi := buildInput{}
+				sb := successfulBuildVersion{}
 
-				err := rows.Scan(&bi.buildID, &bi.versionMD5, &bi.resourceID, &bi.name)
+				err := rows.Scan(&sb.buildID, &sb.versionMD5, &sb.resourceID, &sb.jobID, &sb.name)
 				Expect(err).NotTo(HaveOccurred())
 
-				buildInputs = append(buildInputs, bi)
-			}
-
-			rows, err = db.Query(`SELECT id, md5(version) FROM versioned_resources`)
-			Expect(err).NotTo(HaveOccurred())
-
-			versions := map[int]string{}
-			for rows.Next() {
-				var id int
-				var version string
-
-				err := rows.Scan(&id, &version)
-				Expect(err).NotTo(HaveOccurred())
-
-				versions[id] = version
+				successfulBuildVersions = append(successfulBuildVersions, sb)
 			}
 
 			_ = db.Close()
 
-			actualBuildInputs := []buildInput{
+			actualSuccessfulBuildVersions := []successfulBuildVersion{
 				{
 					buildID:    1,
-					versionMD5: versions[1],
+					versionMD5: "v1",
 					resourceID: 1,
+					jobID:      1,
 					name:       "build_input1",
 				},
 				{
 					buildID:    1,
-					versionMD5: versions[2],
+					versionMD5: "v1",
 					resourceID: 1,
+					jobID:      1,
 					name:       "build_input2",
 				},
 				{
 					buildID:    2,
-					versionMD5: versions[1],
+					versionMD5: "v2",
 					resourceID: 1,
-					name:       "build_input3",
+					jobID:      1,
+					name:       "build_input1",
 				},
 				{
-					buildID:    3,
-					versionMD5: versions[1],
-					resourceID: 1,
+					buildID:    5,
+					versionMD5: "v2",
+					resourceID: 2,
+					jobID:      1,
 					name:       "build_input4",
 				},
 				{
-					buildID:    4,
-					versionMD5: versions[4],
-					resourceID: 2,
-					name:       "build_input5",
+					buildID:    1,
+					versionMD5: "v1",
+					resourceID: 1,
+					jobID:      1,
+					name:       "build_output1",
+				},
+				{
+					buildID:    2,
+					versionMD5: "v3",
+					resourceID: 1,
+					jobID:      1,
+					name:       "build_output1",
+				},
+				{
+					buildID:    2,
+					versionMD5: "v2",
+					resourceID: 3,
+					jobID:      1,
+					name:       "build_output1",
 				},
 			}
 
-			Expect(buildInputs).To(HaveLen(5))
-			Expect(buildInputs).To(ConsistOf(actualBuildInputs))
+			Expect(len(successfulBuildVersions)).To(Equal(len(actualSuccessfulBuildVersions)))
+			Expect(successfulBuildVersions).To(ConsistOf(actualSuccessfulBuildVersions))
 		})
 	})
 })
@@ -127,22 +133,24 @@ func setupSuccessfulBuildsInputs(db *sql.DB) {
 	_, err = db.Exec(`
 				INSERT INTO build_resource_config_version_inputs(build_id, resource_id, version_md5, name) VALUES
 					(1, 1, 'v1', 'build_input1'),
+					(1, 1, 'v1', 'build_input1'),
 					(1, 1, 'v1', 'build_input2'),
-					(2, 1, 'v2', 'build_input3'),
-					(3, 1, 'v3', 'build_input4'),
-					(4, 4, 'v1', 'build_input5'),
-					(5, 2, 'v1', 'build_input6'),
+					(2, 1, 'v2', 'build_input1'),
+					(3, 1, 'v3', 'build_input1'),
+					(4, 3, 'v1', 'build_input3'),
+					(5, 2, 'v1', 'build_input4'),
 			`)
 	Expect(err).NotTo(HaveOccurred())
 }
 
 func setupSuccessfulBuildsOutputs(db *sql.DB) {
-	_, err = db.Exec(`
+	_, err := db.Exec(`
 				INSERT INTO build_resource_config_version_outputs(build_id, resource_id, version_md5, name) VALUES
 					(1, 1, 'v1', 'build_output1'),
-					(2, 1, 'v),
-					(3, 1),
-					(4, 4)
+					(2, 1, 'v3', 'build_output1'),
+					(2, 3, 'v2', 'build_output2'),
+					(3, 1, 'v3', 'build_output1'),
+					(4, 2, 'v1', 'build_output3'),
 			`)
 	Expect(err).NotTo(HaveOccurred())
 }

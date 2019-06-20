@@ -401,17 +401,17 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 16, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 10, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, 44, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, 50, "backend", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 4, "gc", lockFactory)
+	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "gc", lockFactory)
 	if err != nil {
 		return nil, err
 	}

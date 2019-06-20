@@ -365,6 +365,7 @@ var _ = Describe("Resolve", func() {
 			}
 		})
 
+		// XXX: FLAKY
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{

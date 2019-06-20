@@ -3,6 +3,8 @@ package algorithm
 import (
 	"errors"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -225,14 +227,14 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 
 	for i, inputConfig := range inputConfigs {
 		debug := func(messages ...interface{}) {
-			// 	log.Println(
-			// 		append(
-			// 			[]interface{}{
-			// 				strings.Repeat("-", depth) + fmt.Sprintf("[%s]", inputConfig.Name),
-			// 			},
-			// 			messages...,
-			// 		)...,
-			// 	)
+			log.Println(
+				append(
+					[]interface{}{
+						strings.Repeat("-", depth) + fmt.Sprintf("[%s]", inputConfig.Name),
+					},
+					messages...,
+				)...,
+			)
 		}
 
 		if len(inputConfig.Passed) == 0 {
@@ -324,142 +326,157 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 
 			// loop over previous output sets, latest first
 			var builds []int
+			var buildsIDCursor int
 
-			if inputConfig.UseEveryVersion {
-				buildID, found, err := vdb.LatestBuildID(inputConfig.JobID)
-				if err != nil {
-					return false, err
-				}
+			for {
+				var found bool
+				if inputConfig.UseEveryVersion {
+					var err error
+					var buildID int
 
-				if found {
-					constraintBuildID, found, err := vdb.LatestConstraintBuildID(buildID, jobID)
+					buildID, found, err = vdb.LatestBuildID(inputConfig.JobID)
 					if err != nil {
 						return false, err
 					}
 
 					if found {
-						if candidates[i] != nil {
-							builds, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, candidates[i].Version, inputConfig.ResourceID)
-						} else {
-							builds, err = vdb.UnusedBuilds(constraintBuildID, jobID)
-						}
+						var constraintBuildID int
+						constraintBuildID, found, err = vdb.LatestConstraintBuildID(buildID, jobID)
 						if err != nil {
 							return false, err
 						}
-					}
-				}
-			}
 
-			var err error
-			if len(builds) == 0 {
-				if candidates[i] != nil {
-					builds, err = vdb.SuccessfulBuildsVersionConstrained(jobID, candidates[i].Version, inputConfig.ResourceID)
-					debug("found", len(builds), "builds for candidate", candidates[i].Version)
-				} else {
-					builds, err = vdb.SuccessfulBuilds(jobID)
-					debug("found", len(builds), "builds no candidate")
-				}
-				if err != nil {
-					return false, err
-				}
-			}
-
-			for _, buildID := range builds {
-				outputs, err := vdb.SuccessfulBuildOutputs(buildID)
-				if err != nil {
-					return false, err
-				}
-
-				debug("job", jobID, "trying build", jobID, buildID)
-
-				restore := map[int]*versionCandidate{}
-
-				var mismatch bool
-
-				// loop over the resource versions that came out of this build set
-			outputs:
-				for _, output := range outputs {
-					debug("build", buildID, "output", output.ResourceID, output.Version)
-
-					// try to pin each candidate to the versions from this build
-					for c, candidate := range candidates {
-						if inputConfigs[c].ResourceID != output.ResourceID {
-							// unrelated to this output
-							continue
-						}
-
-						if !inputConfigs[c].Passed[jobID] {
-							// this candidate is unaffected by the current job
-							debug("independent", inputConfigs[c].Passed, jobID)
-							continue
-						}
-
-						if vdb.VersionIsDisabled(output.ResourceID, output.Version) {
-							debug("disabled", output.Version, jobID)
-							mismatch = true
-							break outputs
-						}
-
-						if inputConfigs[c].PinnedVersion != "" && inputConfigs[c].PinnedVersion != output.Version {
-							debug("mismatch pinned version", output.Version, jobID)
-							mismatch = true
-							break outputs
-						}
-
-						if candidate != nil && candidate.Version != output.Version {
-							// don't return here! just try the next output set. it's possible
-							// we just need to use an older output set.
-							debug("mismatch")
-							mismatch = true
-							break outputs
-						}
-
-						// if this doesn't work out, restore it to either nil or the
-						// candidate *without* the job vouching for it
-						if candidate == nil {
-							restore[c] = candidate
-
-							debug("setting candidate", c, "to", output.Version)
-							candidates[c] = newCandidateVersion(output.Version)
-						}
-
-						debug("job", jobID, "vouching for", output.ResourceID, "version", output.Version)
-						candidates[c].VouchedForBy[jobID] = true
-						candidates[c].SourceBuildIds = append(candidates[c].SourceBuildIds, buildID)
-
-						allVouchedFor := true
-						for passedJobID, _ := range inputConfigs[c].Passed {
-							allVouchedFor = allVouchedFor && candidates[c].VouchedForBy[passedJobID]
-						}
-
-						if allVouchedFor && (unresolvedCandidates[i] == nil || (unresolvedCandidates[i] != nil && unresolvedCandidates[i].ResolveError != nil)) {
-							unresolvedCandidates[i] = newCandidateVersion(output.Version)
+						if found {
+							if candidates[i] != nil {
+								builds, buildsIDCursor, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, candidates[i].Version, inputConfig.ResourceID, buildsIDCursor)
+								debug("found", len(builds), "unused builds for candidate", candidates[i].Version)
+							} else {
+								builds, buildsIDCursor, err = vdb.UnusedBuilds(constraintBuildID, jobID, buildsIDCursor)
+								debug("found", len(builds), "unused builds no candidate")
+							}
+							if err != nil {
+								return false, err
+							}
 						}
 					}
 				}
 
-				// we found a candidate for ourselves and the rest are OK too - recurse
-				if candidates[i] != nil && candidates[i].VouchedForBy[jobID] && !mismatch {
-					debug("recursing")
+				if !inputConfig.UseEveryVersion || !found {
+					var err error
+					if candidates[i] != nil {
+						builds, buildsIDCursor, err = vdb.SuccessfulBuildsVersionConstrained(jobID, candidates[i].Version, inputConfig.ResourceID, buildsIDCursor)
+						debug("found", len(builds), "successful builds for candidate", candidates[i].Version)
+					} else {
+						builds, buildsIDCursor, err = vdb.SuccessfulBuilds(jobID, buildsIDCursor)
+						debug("found", len(builds), "successful builds no candidate")
+					}
+					if err != nil {
+						return false, err
+					}
+				}
 
-					resolved, err := im.tryResolve(depth+1, vdb, inputConfigs, candidates, unresolvedCandidates)
+				if len(builds) == 0 {
+					// reached the end of the builds
+					break
+				}
+
+				for _, buildID := range builds {
+					outputs, err := vdb.SuccessfulBuildOutputs(buildID)
 					if err != nil {
 						return false, err
 					}
 
-					if resolved {
-						// we've attempted to resolve all of the inputs!
-						return true, nil
+					debug("job", jobID, "trying build", jobID, buildID)
+
+					restore := map[int]*versionCandidate{}
+
+					var mismatch bool
+
+					// loop over the resource versions that came out of this build set
+				outputs:
+					for _, output := range outputs {
+						debug("build", buildID, "output", output.ResourceID, output.Version)
+
+						// try to pin each candidate to the versions from this build
+						for c, candidate := range candidates {
+							if inputConfigs[c].ResourceID != output.ResourceID {
+								// unrelated to this output
+								continue
+							}
+
+							if !inputConfigs[c].Passed[jobID] {
+								// this candidate is unaffected by the current job
+								debug("independent", inputConfigs[c].Passed, jobID)
+								continue
+							}
+
+							if vdb.VersionIsDisabled(output.ResourceID, output.Version) {
+								debug("disabled", output.Version, jobID)
+								mismatch = true
+								break outputs
+							}
+
+							if inputConfigs[c].PinnedVersion != "" && inputConfigs[c].PinnedVersion != output.Version {
+								debug("mismatch pinned version", output.Version, jobID)
+								mismatch = true
+								break outputs
+							}
+
+							if candidate != nil && candidate.Version != output.Version {
+								// don't return here! just try the next output set. it's possible
+								// we just need to use an older output set.
+								debug("mismatch")
+								mismatch = true
+								break outputs
+							}
+
+							// if this doesn't work out, restore it to either nil or the
+							// candidate *without* the job vouching for it
+							if candidate == nil {
+								restore[c] = candidate
+
+								debug("setting candidate", c, "to", output.Version)
+								candidates[c] = newCandidateVersion(output.Version)
+							}
+
+							debug("job", jobID, "vouching for", output.ResourceID, "version", output.Version)
+							candidates[c].VouchedForBy[jobID] = true
+							candidates[c].SourceBuildIds = append(candidates[c].SourceBuildIds, buildID)
+
+							allVouchedFor := true
+							for passedJobID, _ := range inputConfigs[c].Passed {
+								allVouchedFor = allVouchedFor && candidates[c].VouchedForBy[passedJobID]
+							}
+
+							if allVouchedFor && (unresolvedCandidates[i] == nil || (unresolvedCandidates[i] != nil && unresolvedCandidates[i].ResolveError != nil)) {
+								unresolvedCandidates[i] = newCandidateVersion(output.Version)
+							}
+						}
 					}
-				}
 
-				debug("restoring")
+					// we found a candidate for ourselves and the rest are OK too - recurse
+					if candidates[i] != nil && candidates[i].VouchedForBy[jobID] && !mismatch {
+						debug("recursing")
 
-				for c, candidate := range restore {
-					// either there was a mismatch or resolving didn't work; go on to the
-					// next output set
-					debug("restoring candidate", c, "to", candidate)
-					candidates[c] = candidate
+						resolved, err := im.tryResolve(depth+1, vdb, inputConfigs, candidates, unresolvedCandidates)
+						if err != nil {
+							return false, err
+						}
+
+						if resolved {
+							// we've attempted to resolve all of the inputs!
+							return true, nil
+						}
+					}
+
+					debug("restoring")
+
+					for c, candidate := range restore {
+						// either there was a mismatch or resolving didn't work; go on to the
+						// next output set
+						debug("restoring candidate", c, "to", candidate)
+						candidates[c] = candidate
+					}
 				}
 			}
 
