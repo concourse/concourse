@@ -234,6 +234,10 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItHasRightPadding
+        , test "sidebar has bottom padding" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasBottomPadding
         , test "toggles away" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -964,6 +968,10 @@ iSeeItDoesNotShrink =
 
 iSeeItHasRightPadding =
     Query.has [ style "padding-right" "10px" ]
+
+
+iSeeItHasBottomPadding =
+    Query.has [ style "padding-bottom" "10px" ]
 
 
 iClickedThePipelineGroup =

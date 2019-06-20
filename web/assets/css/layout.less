@@ -15,7 +15,6 @@ body,
 @pagination-header-height: 64px;
 
 @user-menu-z-index: 100;
-@fixed-header-z-index: @user-menu-z-index - 1;
 
 .content-frame {
   display: flex;
@@ -33,7 +32,7 @@ body,
 
 .with-fixed-header {
   .fixed-header {
-    z-index: @fixed-header-z-index;
+    z-index: 0;
     background: @base01;
   }
 
