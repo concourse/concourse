@@ -92,8 +92,8 @@ CONCOURSE_KUBERNETES_CONFIG_PATH=~/.kube/config
 \section{
   \title{Configuring Kubernetes RBAC}
 
-  As the Web nodes need to retrieve secrets from namespaces that are not its
-  own, it needs extra permissions to do so.
+  As the Web nodes need to retrieve secrets from namespaces that are not their
+  own, they needs extra permissions to do so.
 
   If you have \link{RBAC}{https://kubernetes.io/docs/reference/access-authn-authz/rbac/}
   enabled, that means creating the necessary Kubernetes objects to identify the
