@@ -16,7 +16,7 @@ module Concourse exposing
     , BuildStep(..)
     , CSRFToken
     , Cause
-    , ConcourseVersion
+    , ClusterInfo
     , HookedPlan
     , Job
     , JobBuildIdentifier
@@ -523,13 +523,17 @@ decodeBuildStepTimeout =
 -- Info
 
 
-type alias ConcourseVersion =
-    String
+type alias ClusterInfo =
+    { version : String
+    , clusterName : String
+    }
 
 
-decodeInfo : Json.Decode.Decoder ConcourseVersion
+decodeInfo : Json.Decode.Decoder ClusterInfo
 decodeInfo =
-    Json.Decode.field "version" Json.Decode.string
+    Json.Decode.succeed ClusterInfo
+        |> andMap (Json.Decode.field "version" Json.Decode.string)
+        |> andMap (defaultTo "" <| Json.Decode.field "cluster_name" Json.Decode.string)
 
 
 

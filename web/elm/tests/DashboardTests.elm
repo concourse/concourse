@@ -127,7 +127,6 @@ flags =
     , notFoundImgSrc = ""
     , csrfToken = csrfToken
     , authToken = ""
-    , clusterName = ""
     , pipelineRunningKeyframes = pipelineRunningKeyframes
     }
 
@@ -142,7 +141,6 @@ all =
                     , notFoundImgSrc = "notfound.svg"
                     , csrfToken = "csrf_token"
                     , authToken = ""
-                    , clusterName = ""
                     , pipelineRunningKeyframes = "pipeline-running"
                     }
                     { protocol = Url.Http
@@ -155,6 +153,25 @@ all =
                     |> Tuple.second
                     |> List.member Effects.GetScreenSize
                     |> Expect.true "should request screen size"
+        , test "requests cluster info on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , pipelineRunningKeyframes = "pipeline-running"
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> List.member Effects.FetchClusterInfo
+                    |> Expect.true "should request cluster info"
         , test "redirects to login if any data call gives a 401" <|
             \_ ->
                 Common.init "/"
@@ -181,21 +198,8 @@ all =
                     |> Expect.equal "Dashboard - Concourse"
         , test "renders cluster name at top left" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
-                    , authToken = ""
-                    , clusterName = "foobar"
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
+                Common.init "/"
+                    |> givenClusterInfo "0.0.0-dev" "foobar"
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "top-bar-app" ]
@@ -3564,6 +3568,18 @@ givenDataUnauthenticated data =
     Application.handleCallback
         (Callback.APIDataFetched <|
             Ok ( Time.millisToPosix 0, data Nothing )
+        )
+
+
+givenClusterInfo :
+    String
+    -> String
+    -> Application.Model
+    -> ( Application.Model, List Effects.Effect )
+givenClusterInfo version clusterName =
+    Application.handleCallback
+        (Callback.ClusterInfoFetched <|
+            Ok { version = version, clusterName = clusterName }
         )
 
 

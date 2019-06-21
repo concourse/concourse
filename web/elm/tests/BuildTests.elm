@@ -57,7 +57,6 @@ all =
                 , notFoundImgSrc = ""
                 , csrfToken = csrfToken
                 , authToken = ""
-                , clusterName = ""
                 , pipelineRunningKeyframes = ""
                 }
 
@@ -1148,7 +1147,6 @@ all =
                     , notFoundImgSrc = "notfound.svg"
                     , csrfToken = "csrf_token"
                     , authToken = ""
-                    , clusterName = ""
                     , pipelineRunningKeyframes = "pipeline-running"
                     }
                     { protocol = Url.Http
@@ -1175,7 +1173,6 @@ all =
                     , notFoundImgSrc = "notfound.svg"
                     , csrfToken = "csrf_token"
                     , authToken = ""
-                    , clusterName = ""
                     , pipelineRunningKeyframes = "pipeline-running"
                     }
                     { protocol = Url.Http
