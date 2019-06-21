@@ -44,7 +44,7 @@ type Resource interface {
 	CurrentPinnedVersion() atc.Version
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
-	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
+	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
 	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, atc.VersionedResourceTypes) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
@@ -370,7 +370,7 @@ func (r *resource) CurrentPinnedVersion() atc.Version {
 	return nil
 }
 
-func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error) {
+func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
 	query := `
 		SELECT v.id, v.version, v.metadata, v.check_order,
 			NOT EXISTS (
@@ -383,6 +383,14 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 		FROM resource_config_versions v, resources r
 		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id AND v.check_order != 0
 	`
+
+	if len(versionFilter) != 0 {
+		filterJSON, err := json.Marshal(versionFilter)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+		query += fmt.Sprintf(` AND version @> '%s'`, string(filterJSON))
+	}
 
 	var rows *sql.Rows
 	var err error

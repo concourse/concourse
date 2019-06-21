@@ -885,7 +885,7 @@ var _ = Describe("Pipeline", func() {
 				err = build.SaveOutput("some-type", atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{}, atc.Version(beforeVR.Version()), nil, "some-output-name", "some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
-				versions, _, found, err := resource.Versions(db.Page{Limit: 10})
+				versions, _, found, err := resource.Versions(db.Page{Limit: 10}, nil)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(HaveLen(5))
