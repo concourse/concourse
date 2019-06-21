@@ -19,6 +19,9 @@
     "puppeteer": "^1.12.2",
     "uglify-js": "^3.3.22"
   },
+  "resolutions": {
+    "less/request": "^2.86.0"
+  },
   "scripts": {
     "format": "elm-format --elm-version=0.19 web/elm --yes",
     "analyse": "cd web/elm && elm-analyse",
