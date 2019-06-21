@@ -1262,6 +1262,12 @@ all =
                     >> Common.queryView
                     >> Query.find [ id "build-body" ]
                     >> Query.has [ style "overflow-y" "auto" ]
+            , test "build body has momentum based scroll enabled" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> Common.queryView
+                    >> Query.find [ id "build-body" ]
+                    >> Query.has [ style "-webkit-overflow-scrolling" "touch" ]
             , test "fetches build history and job details after build is fetched" <|
                 givenBuildFetched
                     >> Tuple.second

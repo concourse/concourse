@@ -996,6 +996,17 @@ all =
                         |> Query.find teamHeaderSelector
                         |> Query.find [ containing [ text "OWNER" ] ]
                         |> Query.has [ style "margin-bottom" "" ]
+            , test "has momentum based scrolling" <|
+                \_ ->
+                    whenOnDashboard { highDensity = True }
+                        |> givenDataAndUser
+                            (apiData [ ( "team", [ "pipeline" ] ) ])
+                            (userWithRoles [])
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "page-below-top-bar" ]
+                        |> Query.find [ class "dashboard" ]
+                        |> Query.has [ style "-webkit-overflow-scrolling" "touch" ]
             ]
         , describe "pipeline cards" <|
             let

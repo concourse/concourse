@@ -217,6 +217,10 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItFillsHeight
+        , test "sidebar has momentum based scrolling" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheSideBar
+                >> then_ itHasMomentumScrolling
         , test "sidebar does not shrink" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
@@ -1083,6 +1087,10 @@ iSeeItScrollsIndependently =
 
 iSeeItFillsHeight =
     Query.has [ style "height" "100%", style "box-sizing" "border-box" ]
+
+
+itHasMomentumScrolling =
+    Query.has [ style "-webkit-overflow-scrolling" "touch" ]
 
 
 iSeeItDoesNotShrink =

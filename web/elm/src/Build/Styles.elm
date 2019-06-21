@@ -55,7 +55,10 @@ header status =
 
 body : List (Html.Attribute msg)
 body =
-    [ style "overflow-y" "auto", style "outline" "none" ]
+    [ style "overflow-y" "auto"
+    , style "outline" "none"
+    , style "-webkit-overflow-scrolling" "touch"
+    ]
 
 
 historyItem : Concourse.BuildStatus -> List (Html.Attribute msg)
