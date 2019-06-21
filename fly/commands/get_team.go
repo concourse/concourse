@@ -15,7 +15,7 @@ import (
 
 type GetTeamCommand struct {
 	Team string `short:"n" long:"team" required:"true" description:"Get configuration of this team"`
-	Json bool   `short:"j" long:"json" description:"Print config as json instead of yaml"`
+	JSON bool   `short:"j" long:"json" description:"Print command result as JSON"`
 }
 
 func (command *GetTeamCommand) Execute(args []string) error {
@@ -37,7 +37,7 @@ func (command *GetTeamCommand) Execute(args []string) error {
 		return errors.New("team not found")
 	}
 
-	if command.Json {
+	if command.JSON {
 		if err := displayhelpers.JsonPrint(team); err != nil {
 			return err
 		}
