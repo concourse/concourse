@@ -30,7 +30,7 @@
   target your local Concourse as the \code{test} user:
 
   \codeblock{bash}{{
-  $ fly -t tutorial login -c http://localhost:8080
+  $ fly -t tutorial login -c http://localhost:8080 -u test -p test
   logging in to team 'main'
 
   target saved
