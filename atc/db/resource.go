@@ -384,12 +384,14 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id AND v.check_order != 0
 	`
 
+	filterJSON := "{}"
 	if len(versionFilter) != 0 {
-		filterJSON, err := json.Marshal(versionFilter)
+		filterBytes, err := json.Marshal(versionFilter)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
-		query += fmt.Sprintf(` AND version @> '%s'`, string(filterJSON))
+
+		filterJSON = string(filterBytes)
 	}
 
 	var rows *sql.Rows
@@ -399,22 +401,24 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 			SELECT sub.*
 				FROM (
 						%s
+					AND version @> $4
 					AND v.check_order > (SELECT check_order FROM resource_config_versions WHERE id = $2)
 				ORDER BY v.check_order ASC
 				LIMIT $3
 			) sub
 			ORDER BY sub.check_order DESC
-		`, query), r.id, page.Until, page.Limit)
+		`, query), r.id, page.Until, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else if page.Since != 0 {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
+				AND version @> $4
 				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
-		`, query), r.id, page.Since, page.Limit)
+		`, query), r.id, page.Since, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
@@ -423,31 +427,34 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 			SELECT sub.*
 				FROM (
 						%s
+					AND version @> $4
 					AND v.check_order >= (SELECT check_order FROM resource_config_versions WHERE id = $2)
 				ORDER BY v.check_order ASC
 				LIMIT $3
 			) sub
 			ORDER BY sub.check_order DESC
-		`, query), r.id, page.To, page.Limit)
+		`, query), r.id, page.To, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else if page.From != 0 {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
+				AND version @> $4
 				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
-		`, query), r.id, page.From, page.Limit)
+		`, query), r.id, page.From, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
+			AND version @> $3
 			ORDER BY v.check_order DESC
 			LIMIT $2
-		`, query), r.id, page.Limit)
+		`, query), r.id, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
