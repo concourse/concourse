@@ -87,7 +87,7 @@ permission model.
   \section{
     \title{Configuring \code{main} Team Authorization}
 
-    GitHub users, teams, and organizations can be added to the
+    BitBucket users and teams can be added to the
     \reference{main-team} authorization config by setting the following env on
     the \reference{web-node}:
 
