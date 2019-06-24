@@ -14,6 +14,7 @@ type WorkerSpec struct {
 	Tags          []string
 	TeamID        int
 	ResourceTypes atc.VersionedResourceTypes
+	MaxTasks      int
 }
 
 type ContainerSpec struct {

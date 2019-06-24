@@ -434,6 +434,7 @@ func (step *TaskStep) workerSpec(logger lager.Logger, resourceTypes atc.Versione
 		Tags:          step.plan.Tags,
 		TeamID:        step.metadata.TeamID,
 		ResourceTypes: resourceTypes,
+		MaxTasks:      1,
 	}
 
 	imageSpec, err := step.imageSpec(logger, repository, config)
