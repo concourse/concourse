@@ -31,6 +31,7 @@ sideBar =
     , style "flex-shrink" "0"
     , style "padding-right" "10px"
     , style "box-sizing" "border-box"
+    , style "-webkit-overflow-scrolling" "touch"
     ]
 
 
