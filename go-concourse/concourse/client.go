@@ -31,6 +31,7 @@ type Client interface {
 	ListTeams() ([]atc.Team, error)
 	Team(teamName string) Team
 	UserInfo() (map[string]interface{}, error)
+	ListActiveUsersSince(since time.Time) ([]atc.User, error)
 }
 
 type client struct {

@@ -112,6 +112,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			newHandler = auth.CheckAuthenticationIfProvidedHandler(handler, rejector)
 
 		case atc.GetLogLevel,
+			atc.ListActiveUsersSince,
 			atc.SetLogLevel,
 			atc.GetInfoCreds:
 			newHandler = auth.CheckAdminHandler(handler, rejector)
