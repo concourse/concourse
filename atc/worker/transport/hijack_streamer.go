@@ -3,6 +3,7 @@ package transport
 // WorkerHijackStreamer implements Stream that is using our httpClient,
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -40,7 +41,7 @@ type WorkerHijackStreamer struct {
 	Req              RequestGenerator
 }
 
-func (h *WorkerHijackStreamer) Stream(handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (io.ReadCloser, error) {
+func (h *WorkerHijackStreamer) Stream(ctx context.Context, handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (io.ReadCloser, error) {
 	request, err := h.Req.CreateRequest(handler, params, body)
 	if err != nil {
 		return nil, err
@@ -53,6 +54,8 @@ func (h *WorkerHijackStreamer) Stream(handler string, body io.Reader, params rat
 	if query != nil {
 		request.URL.RawQuery = query.Encode()
 	}
+
+	request = request.WithContext(ctx)
 
 	httpResp, err := h.HttpClient.Do(request)
 	if err != nil {
@@ -74,7 +77,7 @@ func (h *WorkerHijackStreamer) Stream(handler string, body io.Reader, params rat
 	return httpResp.Body, nil
 }
 
-func (h *WorkerHijackStreamer) Hijack(handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (net.Conn, *bufio.Reader, error) {
+func (h *WorkerHijackStreamer) Hijack(ctx context.Context, handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (net.Conn, *bufio.Reader, error) {
 	request, err := h.Req.CreateRequest(handler, params, body)
 	if err != nil {
 		return nil, nil, err
@@ -87,6 +90,8 @@ func (h *WorkerHijackStreamer) Hijack(handler string, body io.Reader, params rat
 	if query != nil {
 		request.URL.RawQuery = query.Encode()
 	}
+
+	request = request.WithContext(ctx)
 
 	httpResp, hijackCloser, err := h.HijackableClient.Do(request)
 	if err != nil {

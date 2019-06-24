@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/concourse/concourse/atc/worker/transport"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -170,7 +171,7 @@ func (provider *dbWorkerProvider) FindWorkerForVolume(
 }
 
 func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker, buildContainersCount int) Worker {
-	gcf := NewGardenClientFactory(
+	gcf := gclient.NewGardenClientFactory(
 		provider.dbWorkerFactory,
 		logger.Session("garden-connection"),
 		savedWorker.Name(),
