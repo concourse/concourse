@@ -159,21 +159,21 @@ initBottom hl create id name =
             , expanded =
                 case hl of
                     HighlightNothing ->
-                        Nothing
+                        False
 
                     HighlightLine stepID _ ->
                         if id == stepID then
-                            Just True
+                            True
 
                         else
-                            Nothing
+                            False
 
                     HighlightRange stepID _ _ ->
                         if id == stepID then
-                            Just True
+                            True
 
                         else
-                            Nothing
+                            False
             , version = Nothing
             , metadata = []
             , firstOccurrence = False
@@ -318,10 +318,7 @@ finished root =
 
 toggleStep : StepID -> StepTreeModel -> ( StepTreeModel, List Effect )
 toggleStep id root =
-    ( updateAt
-        id
-        (map (\step -> { step | expanded = toggleExpanded step }))
-        root
+    ( updateAt id (map (\step -> { step | expanded = not step.expanded })) root
     , []
     )
 
@@ -371,11 +368,6 @@ extendHighlight id line root =
                         HighlightLine id line
     in
     ( { root | highlight = hl }, [ ModifyUrl (showHighlight hl) ] )
-
-
-toggleExpanded : Step -> Maybe Bool
-toggleExpanded { expanded, state } =
-    Just <| not <| Maybe.withDefault (autoExpanded state) expanded
 
 
 updateTooltip :
@@ -535,11 +527,6 @@ isActive state =
     state /= StepStatePending && state /= StepStateCancelled
 
 
-autoExpanded : StepState -> Bool
-autoExpanded state =
-    isActive state && state /= StepStateSucceeded
-
-
 viewStep : StepTreeModel -> Session -> Step -> StepHeaderType -> Html Message
 viewStep model session { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
     Html.div
@@ -566,15 +553,11 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
                 , viewStepState state id (viewDurationTooltip initialize start finish (model.tooltip == Just (StepState id)))
                 ]
             ]
-        , Html.div
-            [ classList
-                [ ( "step-body", True )
-                , ( "clearfix", True )
-                , ( "step-collapsed", not <| Maybe.withDefault (autoExpanded state) expanded )
+        , if expanded then
+            Html.div
+                [ class "step-body"
+                , class "clearfix"
                 ]
-            ]
-          <|
-            if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
                 [ viewMetadata metadata
                 , Html.pre [ class "timestamped-logs" ] <|
                     viewLogs log timestamps model.highlight session.timeZone id
@@ -586,8 +569,8 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
                         Html.span [ class "error" ] [ Html.pre [] [ Html.text msg ] ]
                 ]
 
-            else
-                []
+          else
+            Html.text ""
         ]
 
 
