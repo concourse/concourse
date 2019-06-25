@@ -100,3 +100,10 @@ test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
   let newBackground = await t.context.web.computedStyle(newBanner, 'backgroundColor');
   t.deepEqual(color(newBackground), palette.red);
 });
+
+test('picks up cluster name from configuration', async t => {
+  await t.context.web.page.goto(t.context.web.route('/'));
+  const clusterName = await t.context.web.page.$eval(`#top-bar-app > div:nth-child(1)`, el => el.innerText);
+
+  t.is(clusterName, 'dev');
+});

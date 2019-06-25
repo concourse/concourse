@@ -113,7 +113,7 @@ type Effect
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
-    | FetchVersion
+    | FetchClusterInfo
     | FetchInputTo Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
     | FetchData
@@ -218,9 +218,9 @@ runEffect effect key csrfToken =
             Network.Pipeline.fetchPipeline id
                 |> Task.attempt PipelineFetched
 
-        FetchVersion ->
+        FetchClusterInfo ->
             Network.Info.fetch
-                |> Task.attempt VersionFetched
+                |> Task.attempt ClusterInfoFetched
 
         FetchInputTo id ->
             Network.Resource.fetchInputTo id

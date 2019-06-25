@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/resource"
@@ -67,7 +67,7 @@ var _ = Describe("Fetcher", func() {
 			worker.ContainerSpec{
 				TeamID: teamID,
 			},
-			creds.VersionedResourceTypes{},
+			atc.VersionedResourceTypes{},
 			new(resourcefakes.FakeResourceInstance),
 			fakeBuildStepDelegate,
 		)

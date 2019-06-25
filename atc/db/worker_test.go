@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	. "github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -206,7 +205,7 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
-	Describe("FindContainerOnWorker/CreateContainer", func() {
+	Describe("FindContainer/CreateContainer", func() {
 		var (
 			containerMetadata ContainerMetadata
 			containerOwner    ContainerOwner
@@ -217,8 +216,8 @@ var _ = Describe("Worker", func() {
 		)
 
 		expiries := ContainerOwnerExpiries{
-			Min:       5 * time.Minute,
-			Max:       1 * time.Hour,
+			Min: 5 * time.Minute,
+			Max: 1 * time.Hour,
 		}
 
 		BeforeEach(func() {
@@ -237,10 +236,9 @@ var _ = Describe("Worker", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-				logger,
 				"some-resource-type",
 				atc.Source{"some": "source"},
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -249,7 +247,7 @@ var _ = Describe("Worker", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			foundCreatingContainer, foundCreatedContainer, err = worker.FindContainerOnWorker(containerOwner)
+			foundCreatingContainer, foundCreatedContainer, err = worker.FindContainer(containerOwner)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

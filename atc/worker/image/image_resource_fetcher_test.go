@@ -12,9 +12,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/resource"
@@ -46,7 +44,7 @@ var _ = Describe("Image", func() {
 	var fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 	var fakeWorker *workerfakes.FakeWorker
 
-	var customTypes creds.VersionedResourceTypes
+	var customTypes atc.VersionedResourceTypes
 	var privileged bool
 
 	var fetchedVolume worker.Volume
@@ -54,7 +52,6 @@ var _ = Describe("Image", func() {
 	var fetchedVersion atc.Version
 	var fetchErr error
 	var teamID int
-	var variables template.StaticVariables
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -63,16 +60,10 @@ var _ = Describe("Image", func() {
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		stderrBuf = gbytes.NewBuffer()
 
-		variables = template.StaticVariables{
-			"source-param":   "super-secret-sauce",
-			"a-source-param": "super-secret-a-source",
-			"b-source-param": "super-secret-b-source",
-		}
-
 		logger = lagertest.NewTestLogger("test")
 		imageResource = worker.ImageResource{
 			Type:   "docker",
-			Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
+			Source: atc.Source{"some": "super-secret-sauce"},
 			Params: &atc.Params{"some": "params"},
 		}
 		version = nil
@@ -84,12 +75,12 @@ var _ = Describe("Image", func() {
 		fakeWorker.TagsReturns(atc.Tags{"worker", "tags"})
 		teamID = 123
 
-		customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+		customTypes = atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-type-a",
 					Type:   "base-type",
-					Source: atc.Source{"some": "((a-source-param))"},
+					Source: atc.Source{"some": "a-source-param"},
 				},
 				Version: atc.Version{"some": "a-version"},
 			},
@@ -97,11 +88,11 @@ var _ = Describe("Image", func() {
 				ResourceType: atc.ResourceType{
 					Name:   "custom-type-b",
 					Type:   "custom-type-a",
-					Source: atc.Source{"some": "((b-source-param))"},
+					Source: atc.Source{"some": "b-source-param"},
 				},
 				Version: atc.Version{"some": "b-version"},
 			},
-		})
+		}
 
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 	})
@@ -158,7 +149,7 @@ var _ = Describe("Image", func() {
 				BeforeEach(func() {
 					imageResource = worker.ImageResource{
 						Type:   customResourceTypeName,
-						Source: creds.NewSource(variables, atc.Source{"some": "((source-param))"}),
+						Source: atc.Source{"some": "source-param"},
 						Params: &atc.Params{"some": "params"},
 					}
 
@@ -172,7 +163,7 @@ var _ = Describe("Image", func() {
 
 				Context("and the custom type does not have a version", func() {
 					BeforeEach(func() {
-						customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+						customTypes = atc.VersionedResourceTypes{
 							{
 								ResourceType: atc.ResourceType{
 									Name:   "custom-type-a",
@@ -181,7 +172,7 @@ var _ = Describe("Image", func() {
 								},
 								Version: nil,
 							},
-						})
+						}
 
 						fakeCheckResourceType = new(resourcefakes.FakeResource)
 						fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
@@ -192,7 +183,7 @@ var _ = Describe("Image", func() {
 
 					It("checks for the latest version of the resource type", func() {
 						By("find or create a resource container")
-						_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+						_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 						Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
 
 						By("calling the resource type's check script")
@@ -205,8 +196,9 @@ var _ = Describe("Image", func() {
 						})
 
 						It("uses the version of the custom type when checking for the original resource", func() {
+							Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(2))
 							Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(2))
-							_, _, _, _, _, containerSpec, customTypes := fakeWorker.FindOrCreateContainerArgsForCall(1)
+							_, _, _, _, containerSpec, customTypes := fakeWorker.FindOrCreateContainerArgsForCall(1)
 							Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
 							Expect(customTypes[0].Version).To(Equal(atc.Version{"some": "version"}))
 						})
@@ -277,13 +269,17 @@ var _ = Describe("Image", func() {
 								})
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-									Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-									cctx, _, delegate, owner, metadata, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-									Expect(cctx).To(Equal(ctx))
-									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
+									Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(1))
+									_, _, owner, metadata := fakeWorker.EnsureDBContainerExistsArgsForCall(0)
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
+									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
+
+									Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+									cctx, _, delegate, owner, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+									Expect(cctx).To(Equal(ctx))
+									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 									Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 										ResourceType: "docker",
 									}))
@@ -318,13 +314,17 @@ var _ = Describe("Image", func() {
 							})
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-								Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-								cctx, _, delegate, owner, metadata, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-								Expect(cctx).To(Equal(ctx))
-								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
+								Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(1))
+								_, _, owner, metadata := fakeWorker.EnsureDBContainerExistsArgsForCall(0)
 								Expect(metadata).To(Equal(db.ContainerMetadata{
 									Type: db.ContainerTypeCheck,
 								}))
+								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
+
+								Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+								cctx, _, delegate, owner, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+								Expect(cctx).To(Equal(ctx))
+								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ResourceType: "docker",
 								}))
@@ -537,6 +537,7 @@ var _ = Describe("Image", func() {
 					})
 
 					It("does not construct a new resource for checking", func() {
+						Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(BeZero())
 						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(BeZero())
 						Expect(fakeResourceFactory.NewResourceForContainerCallCount()).To(BeZero())
 					})

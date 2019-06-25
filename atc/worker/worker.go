@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -14,12 +15,13 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
 const userPropertyName = "user"
+
+var ResourceConfigCheckSessionExpiredError = errors.New("no db container was found for owner")
 
 //go:generate counterfeiter . Worker
 
@@ -36,15 +38,21 @@ type Worker interface {
 	IsVersionCompatible(lager.Logger, version.Version) bool
 	Satisfies(lager.Logger, WorkerSpec) bool
 
+	EnsureDBContainerExists(
+		context.Context,
+		lager.Logger,
+		db.ContainerOwner,
+		db.ContainerMetadata,
+	) error
+
 	FindContainerByHandle(lager.Logger, int, string) (Container, bool, error)
 	FindOrCreateContainer(
 		context.Context,
 		lager.Logger,
 		ImageFetchingDelegate,
 		db.ContainerOwner,
-		db.ContainerMetadata,
 		ContainerSpec,
-		creds.VersionedResourceTypes,
+		atc.VersionedResourceTypes,
 	) (Container, error)
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
@@ -170,9 +178,8 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	logger lager.Logger,
 	delegate ImageFetchingDelegate,
 	owner db.ContainerOwner,
-	metadata db.ContainerMetadata,
 	containerSpec ContainerSpec,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
 
 	var (
@@ -183,10 +190,17 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		err               error
 	)
 
-	creatingContainer, createdContainer, containerHandle, err = worker.helper.findOrInitializeContainer(logger, owner, metadata)
+	creatingContainer, createdContainer, err = worker.dbWorker.FindContainer(owner)
 	if err != nil {
 		logger.Error("failed-to-find-container-in-db", err)
 		return nil, err
+	}
+	if creatingContainer != nil {
+		containerHandle = creatingContainer.Handle()
+	} else if createdContainer != nil {
+		containerHandle = createdContainer.Handle()
+	} else {
+		return nil, ResourceConfigCheckSessionExpiredError
 	}
 
 	gardenContainer, err = worker.gardenClient.Lookup(containerHandle)
@@ -202,7 +216,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		logger.Debug("found-created-container-in-db")
 
 		if gardenContainer == nil {
-			return nil, garden.ContainerNotFoundError{containerHandle}
+			return nil, garden.ContainerNotFoundError{Handle: containerHandle}
 		}
 		return worker.helper.constructGardenWorkerContainer(
 			logger,
@@ -212,8 +226,15 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	}
 
 	if gardenContainer == nil {
-
-		fetchedImage, err := worker.fetchImageForContainer(ctx, logger, containerSpec.ImageSpec, containerSpec.TeamID, delegate, resourceTypes, creatingContainer)
+		fetchedImage, err := worker.fetchImageForContainer(
+			ctx,
+			logger,
+			containerSpec.ImageSpec,
+			containerSpec.TeamID,
+			delegate,
+			resourceTypes,
+			creatingContainer,
+		)
 		if err != nil {
 			creatingContainer.Failed()
 			logger.Error("failed-to-fetch-image-for-container", err)
@@ -294,13 +315,45 @@ func (worker *gardenWorker) getBindMounts(volumeMounts []VolumeMount, bindMountS
 	return bindMounts, nil
 }
 
+func (worker *gardenWorker) EnsureDBContainerExists(
+	ctx context.Context,
+	logger lager.Logger,
+	owner db.ContainerOwner,
+	metadata db.ContainerMetadata,
+) error {
+
+	creatingContainer, createdContainer, err := worker.dbWorker.FindContainer(owner)
+	if err != nil {
+		return err
+	}
+
+	if creatingContainer != nil || createdContainer != nil {
+		return nil
+	}
+
+	logger.Debug("creating-container-in-db")
+	creatingContainer, err = worker.dbWorker.CreateContainer(
+		owner,
+		metadata,
+	)
+	if err != nil {
+		logger.Error("failed-to-create-container-in-db", err)
+		return err
+	}
+
+	logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
+	logger.Debug("created-creating-container-in-db")
+
+	return nil
+}
+
 func (worker *gardenWorker) fetchImageForContainer(
 	ctx context.Context,
 	logger lager.Logger,
 	spec ImageSpec,
 	teamID int,
 	delegate ImageFetchingDelegate,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	creatingContainer db.CreatingContainer,
 ) (FetchedImage, error) {
 	image, err := worker.imageFactory.GetImage(
@@ -320,7 +373,12 @@ func (worker *gardenWorker) fetchImageForContainer(
 	return image.FetchForContainer(ctx, logger, creatingContainer)
 }
 
-func (worker *gardenWorker) createVolumes(logger lager.Logger, isPrivileged bool, creatingContainer db.CreatingContainer, spec ContainerSpec) ([]VolumeMount, error) {
+func (worker *gardenWorker) createVolumes(
+	logger lager.Logger,
+	isPrivileged bool,
+	creatingContainer db.CreatingContainer,
+	spec ContainerSpec,
+) ([]VolumeMount, error) {
 	var volumeMounts []VolumeMount
 	var ioVolumeMounts []VolumeMount
 
@@ -550,8 +608,8 @@ func (worker *gardenWorker) Satisfies(logger lager.Logger, spec WorkerSpec) bool
 	return true
 }
 
-func determineUnderlyingTypeName(typeName string, resourceTypes creds.VersionedResourceTypes) string {
-	resourceTypesMap := make(map[string]creds.VersionedResourceType)
+func determineUnderlyingTypeName(typeName string, resourceTypes atc.VersionedResourceTypes) string {
+	resourceTypesMap := make(map[string]atc.VersionedResourceType)
 	for _, resourceType := range resourceTypes {
 		resourceTypesMap[resourceType.Name] = resourceType
 	}

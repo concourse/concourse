@@ -154,10 +154,15 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 		return 0, err
 	}
 
-	versionedResourceTypes := creds.NewVersionedResourceTypes(
+	versionedResourceTypes, err := creds.NewVersionedResourceTypes(
 		scanner.variables,
 		resourceTypes.Deserialize(),
-	)
+	).Evaluate()
+	if err != nil {
+		logger.Error("failed-to-evaluate-resource-types", err)
+		scanner.setResourceCheckError(logger, savedResource, err)
+		return 0, err
+	}
 
 	source, err := creds.NewSource(scanner.variables, savedResource.Source()).Evaluate()
 	if err != nil {
@@ -167,7 +172,6 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 	}
 
 	resourceConfigScope, err := savedResource.SetResourceConfig(
-		logger,
 		source,
 		versionedResourceTypes,
 	)
@@ -203,7 +207,6 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 	for {
 		lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(
 			logger,
-			interval,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
@@ -265,7 +268,7 @@ func (scanner *resourceScanner) check(
 	savedResource db.Resource,
 	resourceConfigScope db.ResourceConfigScope,
 	fromVersion atc.Version,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	source atc.Source,
 	saveGiven bool,
 	timeout time.Duration,
@@ -317,11 +320,18 @@ func (scanner *resourceScanner) check(
 	}
 
 	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
-	containerMetadata := db.ContainerMetadata{
-		Type: db.ContainerTypeCheck,
-	}
 
-	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, scanner.strategy)
+	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(
+		context.Background(),
+		logger,
+		owner,
+		containerSpec,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
+		workerSpec,
+		scanner.strategy,
+	)
 	if err != nil {
 		logger.Error("failed-to-choose-a-worker", err)
 		chkErr := resourceConfigScope.SetCheckError(err)
@@ -330,17 +340,22 @@ func (scanner *resourceScanner) check(
 		}
 		return err
 	}
-
 	container, err := chosenWorker.FindOrCreateContainer(
 		context.Background(),
 		logger,
 		worker.NoopImageFetchingDelegate{},
 		owner,
-		containerMetadata,
 		containerSpec,
 		resourceTypes,
 	)
 	if err != nil {
+		// TODO: remove this after ephemeral check containers.
+		// Sometimes we pass in a check session thats too close to
+		// expirey into FindOrCreateContainer such that the container
+		// gced before the call is completed
+		if err == worker.ResourceConfigCheckSessionExpiredError {
+			return nil
+		}
 		logger.Error("failed-to-create-or-find-container", err)
 		chkErr := resourceConfigScope.SetCheckError(err)
 		if chkErr != nil {

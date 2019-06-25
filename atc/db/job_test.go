@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	. "github.com/onsi/ginkgo"
@@ -747,7 +746,7 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceConfigScope.SaveVersions([]atc.Version{
@@ -763,7 +762,7 @@ var _ = Describe("Job", func() {
 					Name:  "name1",
 					Value: "value1",
 				},
-			}, resourceConfigScope.ResourceConfig(), creds.VersionedResourceTypes{})
+			}, resourceConfigScope.ResourceConfig(), atc.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
@@ -927,7 +926,7 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceConfigScope.SaveVersions([]atc.Version{
@@ -943,7 +942,7 @@ var _ = Describe("Job", func() {
 					Name:  "name1",
 					Value: "value1",
 				},
-			}, resourceConfigScope.ResourceConfig(), creds.VersionedResourceTypes{})
+			}, resourceConfigScope.ResourceConfig(), atc.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})

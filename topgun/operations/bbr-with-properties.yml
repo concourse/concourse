@@ -17,13 +17,43 @@
     properties: {}
 
 - type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/postgresql/role
+  value:
+    name: concourse
+    password: dummy-password
+
+- type: replace
+  path: /instance_groups/name=db/jobs/name=postgres/properties/databases/roles/0
+  value:
+    name: concourse
+    password: dummy-password
+
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/postgresql/database
+  value: atcdb
+
+- type: replace
+  path: /instance_groups/name=db/jobs/name=postgres/properties/databases/databases/0
+  value:
+    name: atcdb
+
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/postgresql/port?
+  value: 5433
+
+- type: replace
+  path: /instance_groups/name=db/jobs/name=postgres/properties/databases/port
+  value: 5433
+
+- type: replace
   path: /instance_groups/name=db/jobs/-
   value:
     release: concourse
     name: bbr-atcdb
     properties:
       postgresql:
-        database: atc
+        database: atcdb
+        port: 5433
         role:
-          name: atc
+          name: concourse
           password: dummy-password

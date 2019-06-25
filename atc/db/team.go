@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -54,12 +53,12 @@ type Team interface {
 	Workers() ([]Worker, error)
 	FindVolumeForWorkerArtifact(int) (CreatedVolume, bool, error)
 
-	Containers(lager.Logger) ([]Container, error)
+	Containers() ([]Container, error)
 	IsCheckContainer(string) (bool, error)
 	IsContainerWithinTeam(string, bool) (bool, error)
 
 	FindContainerByHandle(string) (Container, bool, error)
-	FindCheckContainers(lager.Logger, string, string, creds.Secrets) ([]Container, map[int]time.Time, error)
+	FindCheckContainers(string, string, creds.Secrets) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
@@ -152,9 +151,7 @@ func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
 	}))
 }
 
-func (t *team) Containers(
-	logger lager.Logger,
-) ([]Container, error) {
+func (t *team) Containers() ([]Container, error) {
 	rows, err := selectContainers("c").
 		Join("workers w ON c.worker_name = w.name").
 		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
@@ -808,7 +805,7 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 	return tx.Commit()
 }
 
-func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets) ([]Container, map[int]time.Time, error) {
+func (t *team) FindCheckContainers(pipelineName string, resourceName string, secretManager creds.Secrets) ([]Container, map[int]time.Time, error) {
 	pipeline, found, err := t.Pipeline(pipelineName)
 	if err != nil {
 		return nil, nil, err
@@ -839,12 +836,16 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		return nil, nil, err
 	}
 
+	resourceTypes, err := creds.NewVersionedResourceTypes(variables, versionedResourceTypes).Evaluate()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	resourceConfigFactory := NewResourceConfigFactory(t.conn, t.lockFactory)
 	resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-		logger,
 		resource.Type(),
 		source,
-		creds.NewVersionedResourceTypes(variables, versionedResourceTypes),
+		resourceTypes,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -903,8 +904,8 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 }
 
 type UpdateName struct {
-	OldName  string
-	NewName  string
+	OldName string
+	NewName string
 }
 
 func (t *team) updateName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
@@ -916,7 +917,7 @@ func (t *team) updateName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
 			err := psql.Select("COUNT(*) as count").
 				From("jobs").
 				Where(sq.Eq{
-					"name": job.OldName,
+					"name":        job.OldName,
 					"pipeline_id": pipelineID}).
 				RunWith(tx).
 				QueryRow().
@@ -947,9 +948,9 @@ func (t *team) updateName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
 	for _, updateName := range jobsToUpdate {
 		_, err := psql.Delete("jobs").
 			Where(sq.Eq{
-				"name": updateName.NewName,
+				"name":        updateName.NewName,
 				"pipeline_id": pipelineID,
-				"active": false}).
+				"active":      false}).
 			RunWith(tx).
 			Exec()
 		if err != nil {
@@ -985,10 +986,10 @@ func checkCyclic(jobNames []UpdateName, curr string, visited map[int]bool) bool 
 func sortUpdateNames(jobNames []UpdateName) []UpdateName {
 	newMap := make(map[string]int)
 	for i, job := range jobNames {
-		newMap[job.NewName] = i+1
+		newMap[job.NewName] = i + 1
 
 		if newMap[job.OldName] != 0 {
-			index := newMap[job.OldName]-1
+			index := newMap[job.OldName] - 1
 
 			tempJob := jobNames[index]
 			jobNames[index] = job

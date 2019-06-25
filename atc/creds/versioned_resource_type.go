@@ -43,3 +43,24 @@ func (types VersionedResourceTypes) Without(name string) VersionedResourceTypes 
 
 	return newTypes
 }
+
+func (types VersionedResourceTypes) Evaluate() (atc.VersionedResourceTypes, error) {
+
+	var rawTypes atc.VersionedResourceTypes
+	for _, t := range types {
+		source, err := t.Source.Evaluate()
+		if err != nil {
+			return nil, err
+		}
+
+		resourceType := t.ResourceType
+		resourceType.Source = source
+
+		rawTypes = append(rawTypes, atc.VersionedResourceType{
+			ResourceType: resourceType,
+			Version:      t.Version,
+		})
+	}
+
+	return rawTypes, nil
+}

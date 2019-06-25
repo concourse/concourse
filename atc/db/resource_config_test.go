@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -12,7 +11,7 @@ import (
 var _ = Describe("ResourceConfig", func() {
 	Describe("FindResourceConfigScopeByID", func() {
 		var pipeline db.Pipeline
-		var resourceTypes creds.VersionedResourceTypes
+		var resourceTypes atc.VersionedResourceTypes
 
 		BeforeEach(func() {
 			atc.EnableGlobalResources = true
@@ -38,7 +37,7 @@ var _ = Describe("ResourceConfig", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 
-			resourceTypes = creds.VersionedResourceTypes{}
+			resourceTypes = atc.VersionedResourceTypes{}
 		})
 
 		Context("when a shared resource config scope exists", func() {
@@ -64,7 +63,7 @@ var _ = Describe("ResourceConfig", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				scope, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, resourceTypes)
+				scope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -101,7 +100,7 @@ var _ = Describe("ResourceConfig", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				scope, err = resource.SetResourceConfig(logger, atc.Source{"some": "repository"}, resourceTypes)
+				scope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -133,7 +132,7 @@ var _ = Describe("ResourceConfig", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, "some-type", atc.Source{"some": "repository"}, resourceTypes)
+				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig("some-type", atc.Source{"some": "repository"}, resourceTypes)
 				Expect(err).ToNot(HaveOccurred())
 
 				var found bool

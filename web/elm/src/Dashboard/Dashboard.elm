@@ -78,7 +78,6 @@ type alias Flags =
     { turbulencePath : String
     , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
-    , clusterName : String
     }
 
 
@@ -102,7 +101,6 @@ init flags =
       , query = Routes.extractQuery flags.searchType
       , isUserMenuExpanded = False
       , dropdown = Hidden
-      , clusterName = flags.clusterName
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -492,7 +490,7 @@ topBar session model =
         [ Html.div [ style "display" "flex", style "align-items" "center" ]
             [ SideBar.hamburgerMenu session
             , Html.a (href "/" :: Views.Styles.concourseLogo) []
-            , clusterName model
+            , clusterNameView session
             ]
         ]
             ++ (let
@@ -519,11 +517,11 @@ topBar session model =
                )
 
 
-clusterName : Model -> Html Message
-clusterName model =
+clusterNameView : Session -> Html Message
+clusterNameView session =
     Html.div
         Styles.clusterName
-        [ Html.text model.clusterName ]
+        [ Html.text session.clusterName ]
 
 
 dashboardView :

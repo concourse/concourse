@@ -34,7 +34,6 @@ type ResourceConfigScope interface {
 
 	AcquireResourceCheckingLock(
 		logger lager.Logger,
-		interval time.Duration,
 	) (lock.Lock, bool, error)
 
 	UpdateLastCheckStartTime(
@@ -181,7 +180,6 @@ func (r *resourceConfigScope) SetCheckError(cause error) error {
 
 func (r *resourceConfigScope) AcquireResourceCheckingLock(
 	logger lager.Logger,
-	interval time.Duration,
 ) (lock.Lock, bool, error) {
 	return r.lockFactory.Acquire(
 		logger,

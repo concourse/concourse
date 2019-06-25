@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -18,13 +17,12 @@ var _ = Describe("WorkerResourceCache", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
-				logger,
 				db.ForBuild(build.ID()),
 				"some-base-resource-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{},
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -82,13 +80,12 @@ var _ = Describe("WorkerResourceCache", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
-				logger,
 				db.ForBuild(build.ID()),
 				"some-base-resource-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{},
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -133,13 +130,12 @@ var _ = Describe("WorkerResourceCache", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
-					logger,
 					db.ForBuild(build.ID()),
 					"some-bogus-resource-type",
 					atc.Version{"some": "version"},
 					atc.Source{"some": "source"},
 					atc.Params{},
-					creds.VersionedResourceTypes{},
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 

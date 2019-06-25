@@ -7,9 +7,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/resource"
@@ -33,7 +31,8 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeUsedResourceCache    *dbfakes.FakeUsedResourceCache
 		fakeDelegate             *workerfakes.FakeImageFetchingDelegate
-		resourceTypes            creds.VersionedResourceTypes
+		resourceTypes            atc.VersionedResourceTypes
+		metadata                 db.ContainerMetadata
 
 		ctx    context.Context
 		cancel func()
@@ -88,23 +87,20 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 		fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
-		variables := template.StaticVariables{
-			"secret-custom": "source",
-		}
-
-		resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+		resourceTypes = atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
 					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "((secret-custom))"},
+					Source: atc.Source{"some-custom": "source"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
-		})
+		}
 
 		resourceFactory := resource.NewResourceFactory()
 		fetchSourceFactory = resource.NewFetchSourceFactory(fakeResourceCacheFactory, resourceFactory)
+		metadata = db.ContainerMetadata{Type: db.ContainerTypeGet}
 		fetchSource = fetchSourceFactory.NewFetchSource(
 			logger,
 			fakeWorker,
@@ -120,7 +116,9 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 					"resource": resource.ResourcesDir("get"),
 				},
 			},
-			resource.Session{},
+			resource.Session{
+				Metadata: metadata,
+			},
 			fakeDelegate,
 		)
 	})
@@ -204,11 +202,15 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 			It("creates container with volume and worker", func() {
 				Expect(initErr).NotTo(HaveOccurred())
+				Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(1))
+				_, _, owner, actualMetadata := fakeWorker.EnsureDBContainerExistsArgsForCall(0)
+				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
+				Expect(actualMetadata).To(Equal(metadata))
+
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, logger, delegate, owner, metadata, containerSpec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, logger, delegate, owner, containerSpec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(delegate).To(Equal(fakeDelegate))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
-				Expect(metadata).To(BeZero())
 				Expect(containerSpec).To(Equal(worker.ContainerSpec{
 					TeamID: 42,
 					Tags:   []string{},

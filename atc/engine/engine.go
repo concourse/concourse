@@ -16,14 +16,14 @@ import (
 //go:generate counterfeiter . Engine
 
 type Engine interface {
-	LookupBuild(lager.Logger, db.Build) Build
+	NewBuild(db.Build) Runnable
 	ReleaseAll(lager.Logger)
 }
 
-//go:generate counterfeiter . Build
+//go:generate counterfeiter . Runnable
 
-type Build interface {
-	Resume(lager.Logger)
+type Runnable interface {
+	Run(logger lager.Logger)
 }
 
 //go:generate counterfeiter . StepBuilder
@@ -50,7 +50,19 @@ type engine struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (engine *engine) LookupBuild(logger lager.Logger, build db.Build) Build {
+func (engine *engine) ReleaseAll(logger lager.Logger) {
+	logger.Info("calling-release-on-builds")
+
+	close(engine.release)
+
+	logger.Info("waiting-on-builds")
+
+	engine.waitGroup.Wait()
+
+	logger.Info("finished-waiting-on-builds")
+}
+
+func (engine *engine) NewBuild(build db.Build) Runnable {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -65,18 +77,6 @@ func (engine *engine) LookupBuild(logger lager.Logger, build db.Build) Build {
 	)
 }
 
-func (engine *engine) ReleaseAll(logger lager.Logger) {
-	logger.Info("calling-release-on-builds")
-
-	close(engine.release)
-
-	logger.Info("waiting-on-builds")
-
-	engine.waitGroup.Wait()
-
-	logger.Info("finished-waiting-on-builds")
-}
-
 func NewBuild(
 	ctx context.Context,
 	cancel func(),
@@ -85,8 +85,8 @@ func NewBuild(
 	release chan bool,
 	trackedStates *sync.Map,
 	waitGroup *sync.WaitGroup,
-) Build {
-	return &execBuild{
+) Runnable {
+	return &engineBuild{
 		ctx:    ctx,
 		cancel: cancel,
 
@@ -99,7 +99,7 @@ func NewBuild(
 	}
 }
 
-type execBuild struct {
+type engineBuild struct {
 	ctx    context.Context
 	cancel func()
 
@@ -111,17 +111,17 @@ type execBuild struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (build *execBuild) Resume(logger lager.Logger) {
-	build.waitGroup.Add(1)
-	defer build.waitGroup.Done()
+func (b *engineBuild) Run(logger lager.Logger) {
+	b.waitGroup.Add(1)
+	defer b.waitGroup.Done()
 
 	logger = logger.WithData(lager.Data{
-		"build":    build.build.ID(),
-		"pipeline": build.build.PipelineName(),
-		"job":      build.build.JobName(),
+		"build":    b.build.ID(),
+		"pipeline": b.build.PipelineName(),
+		"job":      b.build.JobName(),
 	})
 
-	lock, acquired, err := build.build.AcquireTrackingLock(logger, time.Minute)
+	lock, acquired, err := b.build.AcquireTrackingLock(logger, time.Minute)
 	if err != nil {
 		logger.Error("failed-to-get-lock", err)
 		return
@@ -134,7 +134,7 @@ func (build *execBuild) Resume(logger lager.Logger) {
 
 	defer lock.Release()
 
-	found, err := build.build.Reload()
+	found, err := b.build.Reload()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return
@@ -145,12 +145,12 @@ func (build *execBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	if !build.build.IsRunning() {
+	if !b.build.IsRunning() {
 		logger.Info("build-already-finished")
 		return
 	}
 
-	notifier, err := build.build.AbortNotifier()
+	notifier, err := b.build.AbortNotifier()
 	if err != nil {
 		logger.Error("failed-to-listen-for-aborts", err)
 		return
@@ -158,19 +158,19 @@ func (build *execBuild) Resume(logger lager.Logger) {
 
 	defer notifier.Close()
 
-	step, err := build.builder.BuildStep(build.build)
+	step, err := b.builder.BuildStep(b.build)
 	if err != nil {
 		logger.Error("failed-to-build-step", err)
 		return
 	}
 
-	build.trackStarted(logger)
-	defer build.trackFinished(logger)
+	b.trackStarted(logger)
+	defer b.trackFinished(logger)
 
 	logger.Info("running")
 
-	state := build.runState()
-	defer build.clearRunState()
+	state := b.runState()
+	defer b.clearRunState()
 
 	noleak := make(chan bool)
 	defer close(noleak)
@@ -180,62 +180,62 @@ func (build *execBuild) Resume(logger lager.Logger) {
 		case <-noleak:
 		case <-notifier.Notify():
 			logger.Info("aborting")
-			build.cancel()
+			b.cancel()
 		}
 	}()
 
 	done := make(chan error)
 	go func() {
-		ctx := lagerctx.NewContext(build.ctx, logger)
+		ctx := lagerctx.NewContext(b.ctx, logger)
 		done <- step.Run(ctx, state)
 	}()
 
 	select {
-	case <-build.release:
+	case <-b.release:
 		logger.Info("releasing")
 
 	case err = <-done:
-		build.finish(logger.Session("finish"), err, step.Succeeded())
+		b.finish(logger.Session("finish"), err, step.Succeeded())
 	}
 }
 
-func (build *execBuild) finish(logger lager.Logger, err error, succeeded bool) {
+func (b *engineBuild) finish(logger lager.Logger, err error, succeeded bool) {
 	if err == context.Canceled {
-		build.saveStatus(logger, atc.StatusAborted)
+		b.saveStatus(logger, atc.StatusAborted)
 		logger.Info("aborted")
 
 	} else if err != nil {
-		build.saveStatus(logger, atc.StatusErrored)
+		b.saveStatus(logger, atc.StatusErrored)
 		logger.Info("errored", lager.Data{"error": err.Error()})
 
 	} else if succeeded {
-		build.saveStatus(logger, atc.StatusSucceeded)
+		b.saveStatus(logger, atc.StatusSucceeded)
 		logger.Info("succeeded")
 
 	} else {
-		build.saveStatus(logger, atc.StatusFailed)
+		b.saveStatus(logger, atc.StatusFailed)
 		logger.Info("failed")
 	}
 }
 
-func (build *execBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
-	if err := build.build.Finish(db.BuildStatus(status)); err != nil {
+func (b *engineBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
+	if err := b.build.Finish(db.BuildStatus(status)); err != nil {
 		logger.Error("failed-to-finish-build", err)
 	}
 }
 
-func (build *execBuild) trackStarted(logger lager.Logger) {
+func (b *engineBuild) trackStarted(logger lager.Logger) {
 	metric.BuildStarted{
-		PipelineName: build.build.PipelineName(),
-		JobName:      build.build.JobName(),
-		BuildName:    build.build.Name(),
-		BuildID:      build.build.ID(),
-		TeamName:     build.build.TeamName(),
+		PipelineName: b.build.PipelineName(),
+		JobName:      b.build.JobName(),
+		BuildName:    b.build.Name(),
+		BuildID:      b.build.ID(),
+		TeamName:     b.build.TeamName(),
 	}.Emit(logger)
 }
 
-func (build *execBuild) trackFinished(logger lager.Logger) {
-	found, err := build.build.Reload()
+func (b *engineBuild) trackFinished(logger lager.Logger) {
+	found, err := b.build.Reload()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return
@@ -246,24 +246,24 @@ func (build *execBuild) trackFinished(logger lager.Logger) {
 		return
 	}
 
-	if !build.build.IsRunning() {
+	if !b.build.IsRunning() {
 		metric.BuildFinished{
-			PipelineName:  build.build.PipelineName(),
-			JobName:       build.build.JobName(),
-			BuildName:     build.build.Name(),
-			BuildID:       build.build.ID(),
-			BuildStatus:   build.build.Status(),
-			BuildDuration: build.build.EndTime().Sub(build.build.StartTime()),
-			TeamName:      build.build.TeamName(),
+			PipelineName:  b.build.PipelineName(),
+			JobName:       b.build.JobName(),
+			BuildName:     b.build.Name(),
+			BuildID:       b.build.ID(),
+			BuildStatus:   b.build.Status(),
+			BuildDuration: b.build.EndTime().Sub(b.build.StartTime()),
+			TeamName:      b.build.TeamName(),
 		}.Emit(logger)
 	}
 }
 
-func (build *execBuild) runState() exec.RunState {
+func (build *engineBuild) runState() exec.RunState {
 	existingState, _ := build.trackedStates.LoadOrStore(build.build.ID(), exec.NewRunState())
 	return existingState.(exec.RunState)
 }
 
-func (build *execBuild) clearRunState() {
+func (build *engineBuild) clearRunState() {
 	build.trackedStates.Delete(build.build.ID())
 }

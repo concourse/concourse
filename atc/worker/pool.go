@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -9,6 +10,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . WorkerProvider
@@ -42,7 +44,8 @@ type WorkerProvider interface {
 }
 
 var (
-	ErrNoWorkers = errors.New("no workers")
+	ErrNoWorkers             = errors.New("no workers")
+	ErrFailedAcquirePoolLock = errors.New("failed to acquire pool lock")
 )
 
 type NoCompatibleWorkersError struct {
@@ -57,9 +60,11 @@ func (err NoCompatibleWorkersError) Error() string {
 
 type Pool interface {
 	FindOrChooseWorkerForContainer(
+		context.Context,
 		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
+		db.ContainerMetadata,
 		WorkerSpec,
 		ContainerPlacementStrategy,
 	) (Worker, error)
@@ -68,18 +73,30 @@ type Pool interface {
 		lager.Logger,
 		WorkerSpec,
 	) (Worker, error)
+
+	AcquireContainerCreatingLock(
+		logger lager.Logger,
+	) (lock.Lock, bool, error)
 }
 
 type pool struct {
-	provider WorkerProvider
+	clock       clock.Clock
+	lockFactory lock.LockFactory
+	provider    WorkerProvider
 
 	rand *rand.Rand
 }
 
-func NewPool(provider WorkerProvider) Pool {
+func NewPool(
+	clock clock.Clock,
+	lockFactory lock.LockFactory,
+	provider WorkerProvider,
+) Pool {
 	return &pool{
-		provider: provider,
-		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+		clock:       clock,
+		lockFactory: lockFactory,
+		provider:    provider,
+		rand:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -120,9 +137,11 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 }
 
 func (pool *pool) FindOrChooseWorkerForContainer(
+	ctx context.Context,
 	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
+	metadata db.ContainerMetadata,
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 ) (Worker, error) {
@@ -150,14 +169,41 @@ dance:
 		}
 	}
 
-	if worker == nil {
-		worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
+	// pool is shared by all steps running in the system,
+	// lock around worker placement strategies so decisions
+	// are serialized and valid at the time of creating
+	// containers in garden
+	for {
+		lock, acquired, err := pool.AcquireContainerCreatingLock(logger)
+		if err != nil {
+			return nil, ErrFailedAcquirePoolLock
+		}
+
+		if !acquired {
+			pool.clock.Sleep(time.Second)
+			continue
+		}
+		defer lock.Release()
+
+		if worker == nil {
+			worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		err = worker.EnsureDBContainerExists(nil, logger, owner, metadata)
 		if err != nil {
 			return nil, err
 		}
+		break
 	}
 
 	return worker, nil
+}
+
+func (pool *pool) AcquireContainerCreatingLock(logger lager.Logger) (lock.Lock, bool, error) {
+	return pool.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID())
 }
 
 func (pool *pool) FindOrChooseWorker(

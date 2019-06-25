@@ -382,6 +382,11 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineIcon
                 >> then_ iSeeItDoesNotShrink
+        , test "pipeline icon is dim" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> when iAmLookingAtTheFirstPipelineIcon
+                >> then_ iSeeItIsDim
         , test "pipeline link has 2.5px padding" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -417,6 +422,12 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
                 >> then_ iSeeItHasAValidPipelineId
+        , test "pipeline icon is bright when pipeline link is hovered" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> given iHoveredThePipelineLink
+                >> when iAmLookingAtTheFirstPipelineIcon
+                >> then_ iSeeItIsBright
         , test "hovering the pipelink link checks its viewport" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -502,6 +513,21 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> when iAmLookingAtTheOtherPipelineList
             >> then_ iSeeNoPipelineNames
+    , test "current team has bright team icon" <|
+        given iAmLookingAtThePage
+            >> given iAmOnANonPhoneScreen
+            >> given myBrowserFetchedPipelinesFromMultipleTeams
+            >> given iClickedTheHamburgerIcon
+            >> when iAmLookingAtTheOtherTeamIcon
+            >> then_ iSeeItIsBright
+    , test "current team name is bright" <|
+        given iAmLookingAtThePage
+            >> given iAmOnANonPhoneScreen
+            >> given myBrowserFetchedPipelinesFromMultipleTeams
+            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheOtherPipelineGroup
+            >> when iAmLookingAtTheOtherTeamName
+            >> then_ iSeeItIsBright
     , test "current pipeline name has a grey border" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
@@ -516,6 +542,20 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherPipelineName
             >> then_ iSeeADarkGreyBackground
+    , test "current pipeline has bright pipeline icon" <|
+        given iAmLookingAtThePage
+            >> given iAmOnANonPhoneScreen
+            >> given myBrowserFetchedPipelinesFromMultipleTeams
+            >> given iClickedTheHamburgerIcon
+            >> when iAmLookingAtTheOtherPipelineIcon
+            >> then_ iSeeItIsBright
+    , test "current pipeline name is bright" <|
+        given iAmLookingAtThePage
+            >> given iAmOnANonPhoneScreen
+            >> given myBrowserFetchedPipelinesFromMultipleTeams
+            >> given iClickedTheHamburgerIcon
+            >> when iAmLookingAtTheOtherPipelineName
+            >> then_ iSeeItIsBright
     , test "pipeline with same name on other team has invisible border" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
@@ -695,7 +735,6 @@ iVisitTheDashboard _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
-        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -993,6 +1032,14 @@ iSeeItIsBright =
     Query.has [ style "opacity" "1" ]
 
 
+iSeeItIsGreyedOut =
+    Query.has [ style "opacity" "0.7" ]
+
+
+iSeeItIsDim =
+    Query.has [ style "opacity" "0.3" ]
+
+
 iAmLookingAtThePipelineList =
     iAmLookingAtTheTeam >> Query.children [] >> Query.index 1
 
@@ -1175,7 +1222,6 @@ iOpenedThePipelinePage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
-        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -1651,7 +1697,6 @@ iOpenTheJobPage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
-        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""
@@ -1669,7 +1714,6 @@ iOpenTheResourcePage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
-        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""

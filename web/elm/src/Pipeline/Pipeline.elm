@@ -106,7 +106,7 @@ init flags =
     in
     ( model
     , [ FetchPipeline flags.pipelineLocator
-      , FetchVersion
+      , FetchClusterInfo
       , ResetPipelineFocus
       , FetchPipelines
       ]
@@ -256,7 +256,7 @@ handleCallback callback ( model, effects ) =
                         , effects
                         )
 
-        VersionFetched (Ok version) ->
+        ClusterInfoFetched (Ok { version }) ->
             ( { model
                 | concourseVersion = version
                 , experiencingTurbulence = False
@@ -264,7 +264,7 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        VersionFetched (Err _) ->
+        ClusterInfoFetched (Err _) ->
             ( { model | experiencingTurbulence = True }, effects )
 
         PipelinesFetched (Err _) ->
@@ -307,7 +307,7 @@ handleDelivery delivery ( model, effects ) =
             )
 
         ClockTicked OneMinute _ ->
-            ( model, effects ++ [ FetchVersion ] )
+            ( model, effects ++ [ FetchClusterInfo ] )
 
         _ ->
             ( model, effects )

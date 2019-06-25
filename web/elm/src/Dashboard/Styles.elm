@@ -79,6 +79,7 @@ content highDensity =
     , style "height" "100%"
     , style "width" "100%"
     , style "box-sizing" "border-box"
+    , style "-webkit-overflow-scrolling" "touch"
     , style "flex-direction" <|
         if highDensity then
             "column"

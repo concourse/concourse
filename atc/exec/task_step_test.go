@@ -13,9 +13,8 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
@@ -30,124 +29,125 @@ import (
 var _ = Describe("TaskStep", func() {
 	var (
 		ctx    context.Context
+		cancel func()
 		logger *lagertest.TestLogger
 
-		cancel func()
+		stdoutBuf *gbytes.Buffer
+		stderrBuf *gbytes.Buffer
 
 		fakePool     *workerfakes.FakePool
 		fakeWorker   *workerfakes.FakeWorker
 		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
 
-		stdoutBuf *gbytes.Buffer
-		stderrBuf *gbytes.Buffer
+		fakeSecretManager *credsfakes.FakeSecrets
+		fakeDelegate      *execfakes.FakeTaskDelegate
+		taskPlan          *atc.TaskPlan
 
-		imageArtifactName string
-		containerMetadata db.ContainerMetadata
-
-		fakeDelegate *execfakes.FakeTaskDelegate
-
-		privileged    exec.Privileged
-		tags          []string
-		teamID        int
-		buildID       int
-		planID        atc.PlanID
-		jobID         int
-		configSource  *execfakes.FakeTaskConfigSource
-		resourceTypes creds.VersionedResourceTypes
-		inputMapping  map[string]string
-		outputMapping map[string]string
+		interpolatedResourceTypes atc.VersionedResourceTypes
 
 		repo  *artifact.Repository
 		state *execfakes.FakeRunState
 
 		taskStep exec.Step
+		stepErr  error
 
-		stepErr error
+		containerMetadata = db.ContainerMetadata{
+			WorkingDirectory: "some-artifact-root",
+			Type:             db.ContainerTypeTask,
+			StepName:         "some-step",
+		}
+
+		stepMetadata = exec.StepMetadata{
+			TeamID:  123,
+			BuildID: 1234,
+			JobID:   12345,
+		}
+
+		planID = atc.PlanID(42)
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 		logger = lagertest.NewTestLogger("task-action-test")
 
+		stdoutBuf = gbytes.NewBuffer()
+		stderrBuf = gbytes.NewBuffer()
+
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakePool = new(workerfakes.FakePool)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
-		stdoutBuf = gbytes.NewBuffer()
-		stderrBuf = gbytes.NewBuffer()
+		fakeSecretManager = new(credsfakes.FakeSecrets)
+		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
 
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
-		privileged = false
-		tags = []string{"step", "tags"}
-		teamID = 123
-		planID = atc.PlanID(42)
-		buildID = 1234
-		jobID = 12345
-		configSource = new(execfakes.FakeTaskConfigSource)
-
 		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 
-		resourceTypes = creds.NewVersionedResourceTypes(template.StaticVariables{}, atc.VersionedResourceTypes{
+		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "custom-resource",
 					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "source"},
+					Source: atc.Source{"some-custom": "((source-param))"},
 					Params: atc.Params{"some-custom": "param"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
-		})
-
-		inputMapping = nil
-		outputMapping = nil
-		imageArtifactName = ""
-
-		containerMetadata = db.ContainerMetadata{
-			Type:     db.ContainerTypeTask,
-			StepName: "some-step",
 		}
 
-		stepErr = nil
+		interpolatedResourceTypes = atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "super-secret-source"},
+					Params: atc.Params{"some-custom": "param"},
+				},
+				Version: atc.Version{"some-custom": "version"},
+			},
+		}
+
+		taskPlan = &atc.TaskPlan{
+			Name:                   "some-task",
+			Privileged:             false,
+			Tags:                   []string{"step", "tags"},
+			VersionedResourceTypes: uninterpolatedResourceTypes,
+		}
 	})
 
 	JustBeforeEach(func() {
+		plan := atc.Plan{
+			ID:   atc.PlanID(planID),
+			Task: taskPlan,
+		}
+
 		taskStep = exec.NewTaskStep(
-			privileged,
-			configSource,
-			tags,
-			inputMapping,
-			outputMapping,
-			"some-artifact-root",
-			imageArtifactName,
-			fakeDelegate,
-			fakePool,
-			teamID,
-			buildID,
-			jobID,
-			"some-task",
-			planID,
-			containerMetadata,
-			resourceTypes,
+			plan.ID,
+			*plan.Task,
 			atc.ContainerLimits{},
+			stepMetadata,
+			containerMetadata,
+			fakeSecretManager,
 			fakeStrategy,
+			fakePool,
+			fakeDelegate,
 		)
 
 		stepErr = taskStep.Run(ctx, state)
 	})
 
-	Context("when getting the config works", func() {
-		var fetchedConfig atc.TaskConfig
+	Context("when the plan has a config", func() {
 
 		BeforeEach(func() {
 			cpu := uint64(1024)
 			memory := uint64(1024)
-			fetchedConfig = atc.TaskConfig{
+
+			taskPlan.Config = &atc.TaskConfig{
 				Platform: "some-platform",
 				ImageResource: &atc.ImageResource{
 					Type:    "docker",
@@ -167,8 +167,6 @@ var _ = Describe("TaskStep", func() {
 					Args: []string{"some", "args"},
 				},
 			}
-
-			configSource.FetchConfigReturns(fetchedConfig, nil)
 		})
 
 		Context("when the worker is either found or chosen", func() {
@@ -182,19 +180,24 @@ var _ = Describe("TaskStep", func() {
 
 			It("finds or chooses a worker", func() {
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-				_, owner, containerSpec, workerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
-				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID, teamID)))
+				_, _, owner, containerSpec, createdMetadata, workerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)))
+				Expect(createdMetadata).To(Equal(db.ContainerMetadata{
+					WorkingDirectory: "some-artifact-root",
+					Type:             db.ContainerTypeTask,
+					StepName:         "some-step",
+				}))
 
 				cpu := uint64(1024)
 				memory := uint64(1024)
 				Expect(containerSpec).To(Equal(worker.ContainerSpec{
 					Platform: "some-platform",
 					Tags:     []string{"step", "tags"},
-					TeamID:   teamID,
+					TeamID:   stepMetadata.TeamID,
 					ImageSpec: worker.ImageSpec{
 						ImageResource: &worker.ImageResource{
 							Type:    "docker",
-							Source:  creds.NewSource(template.StaticVariables{}, atc.Source{"some": "secret-source-param"}),
+							Source:  atc.Source{"some": "secret-source-param"},
 							Params:  &atc.Params{"some": "params"},
 							Version: &atc.Version{"some": "version"},
 						},
@@ -213,9 +216,9 @@ var _ = Describe("TaskStep", func() {
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					Platform:      "some-platform",
 					Tags:          []string{"step", "tags"},
-					TeamID:        teamID,
+					TeamID:        stepMetadata.TeamID,
 					ResourceType:  "docker",
-					ResourceTypes: resourceTypes,
+					ResourceTypes: interpolatedResourceTypes,
 				}))
 				Expect(strategy).To(Equal(fakeStrategy))
 			})
@@ -246,14 +249,9 @@ var _ = Describe("TaskStep", func() {
 
 				It("finds or creates a container", func() {
 					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-					_, cancel, delegate, owner, createdMetadata, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+					_, cancel, delegate, owner, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(cancel).ToNot(BeNil())
-					Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID, teamID)))
-					Expect(createdMetadata).To(Equal(db.ContainerMetadata{
-						Type:     db.ContainerTypeTask,
-						StepName: "some-step",
-					}))
-
+					Expect(owner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)))
 					Expect(delegate).To(Equal(fakeDelegate))
 
 					cpu := uint64(1024)
@@ -261,11 +259,11 @@ var _ = Describe("TaskStep", func() {
 					Expect(containerSpec).To(Equal(worker.ContainerSpec{
 						Platform: "some-platform",
 						Tags:     []string{"step", "tags"},
-						TeamID:   teamID,
+						TeamID:   stepMetadata.TeamID,
 						ImageSpec: worker.ImageSpec{
 							ImageResource: &worker.ImageResource{
 								Type:    "docker",
-								Source:  creds.NewSource(template.StaticVariables{}, atc.Source{"some": "secret-source-param"}),
+								Source:  atc.Source{"some": "secret-source-param"},
 								Params:  &atc.Params{"some": "params"},
 								Version: &atc.Version{"some": "version"},
 							},
@@ -280,12 +278,12 @@ var _ = Describe("TaskStep", func() {
 						Inputs:  []worker.InputSource{},
 						Outputs: worker.OutputPaths{},
 					}))
-					Expect(actualResourceTypes).To(Equal(resourceTypes))
+					Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 				})
 
 				Context("when rootfs uri is set instead of image resource", func() {
 					BeforeEach(func() {
-						fetchedConfig = atc.TaskConfig{
+						taskPlan.Config = &atc.TaskConfig{
 							Platform:  "some-platform",
 							RootfsURI: "some-image",
 							Params:    map[string]string{"SOME": "params"},
@@ -294,26 +292,19 @@ var _ = Describe("TaskStep", func() {
 								Args: []string{"some", "args"},
 							},
 						}
-
-						configSource.FetchConfigReturns(fetchedConfig, nil)
 					})
 
 					It("finds or creates a container", func() {
 						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-						_, cancel, delegate, owner, createdMetadata, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+						_, cancel, delegate, owner, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
 						Expect(cancel).ToNot(BeNil())
-						Expect(owner).To(Equal(db.NewBuildStepContainerOwner(buildID, planID, teamID)))
-						Expect(createdMetadata).To(Equal(db.ContainerMetadata{
-							Type:     db.ContainerTypeTask,
-							StepName: "some-step",
-						}))
-
+						Expect(owner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)))
 						Expect(delegate).To(Equal(fakeDelegate))
 
 						Expect(containerSpec).To(Equal(worker.ContainerSpec{
 							Platform: "some-platform",
 							Tags:     []string{"step", "tags"},
-							TeamID:   teamID,
+							TeamID:   stepMetadata.TeamID,
 							ImageSpec: worker.ImageSpec{
 								ImageURL:   "some-image",
 								Privileged: false,
@@ -324,7 +315,7 @@ var _ = Describe("TaskStep", func() {
 							Outputs: worker.OutputPaths{},
 						}))
 
-						Expect(actualResourceTypes).To(Equal(resourceTypes))
+						Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 					})
 				})
 
@@ -370,7 +361,7 @@ var _ = Describe("TaskStep", func() {
 						)
 
 						BeforeEach(func() {
-							configSource.FetchConfigReturns(atc.TaskConfig{
+							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
 								Params:    map[string]string{"SOME": "params"},
@@ -383,7 +374,7 @@ var _ = Describe("TaskStep", func() {
 									{Name: "some-other-output"},
 									{Name: "some-trailing-slash-output", Path: "some-output-configured-path-with-trailing-slash/"},
 								},
-							}, nil)
+							}
 
 							fakeNewlyCreatedVolume1 = new(workerfakes.FakeVolume)
 							fakeNewlyCreatedVolume1.HandleReturns("some-handle-1")
@@ -518,12 +509,12 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when privileged", func() {
 						BeforeEach(func() {
-							privileged = true
+							taskPlan.Privileged = true
 						})
 
 						It("creates the container privileged", func() {
 							Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-							_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+							_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 							Expect(containerSpec.ImageSpec.Privileged).To(BeTrue())
 						})
 
@@ -549,7 +540,7 @@ var _ = Describe("TaskStep", func() {
 							inputSource = new(workerfakes.FakeArtifactSource)
 							otherInputSource = new(workerfakes.FakeArtifactSource)
 
-							configSource.FetchConfigReturns(atc.TaskConfig{
+							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
 								Params:    map[string]string{"SOME": "params"},
@@ -561,7 +552,7 @@ var _ = Describe("TaskStep", func() {
 									{Name: "some-input", Path: "some-input-configured-path"},
 									{Name: "some-other-input"},
 								},
-							}, nil)
+							}
 						})
 
 						Context("when all inputs are present", func() {
@@ -571,7 +562,7 @@ var _ = Describe("TaskStep", func() {
 							})
 
 							It("creates the container with the inputs configured correctly", func() {
-								_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+								_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 								Expect(containerSpec.Inputs).To(HaveLen(2))
 								for _, input := range containerSpec.Inputs {
 									switch input.DestinationPath() {
@@ -603,16 +594,17 @@ var _ = Describe("TaskStep", func() {
 
 						BeforeEach(func() {
 							remappedInputSource = new(workerfakes.FakeArtifactSource)
-							inputMapping = map[string]string{"remapped-input": "remapped-input-src"}
-							configSource.FetchConfigReturns(atc.TaskConfig{
+							taskPlan.InputMapping = map[string]string{"remapped-input": "remapped-input-src"}
+							taskPlan.Config = &atc.TaskConfig{
+								Platform: "some-platform",
 								Run: atc.TaskRunConfig{
 									Path: "ls",
+									Args: []string{"some", "args"},
 								},
 								Inputs: []atc.TaskInputConfig{
 									{Name: "remapped-input"},
 								},
-							}, nil)
-
+							}
 						})
 
 						Context("when all inputs are present in the in source repository", func() {
@@ -621,7 +613,8 @@ var _ = Describe("TaskStep", func() {
 							})
 
 							It("uses remapped input", func() {
-								_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+								Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+								_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 								Expect(containerSpec.Inputs).To(HaveLen(1))
 								Expect(containerSpec.Inputs[0].Source()).To(Equal(remappedInputSource))
 								Expect(containerSpec.Inputs[0].DestinationPath()).To(Equal("some-artifact-root/remapped-input"))
@@ -646,7 +639,8 @@ var _ = Describe("TaskStep", func() {
 							optionalInputSource = new(workerfakes.FakeArtifactSource)
 							optionalInput2Source = new(workerfakes.FakeArtifactSource)
 							requiredInputSource = new(workerfakes.FakeArtifactSource)
-							configSource.FetchConfigReturns(atc.TaskConfig{
+							taskPlan.Config = &atc.TaskConfig{
+								Platform: "some-platform",
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 								},
@@ -655,7 +649,7 @@ var _ = Describe("TaskStep", func() {
 									{Name: "optional-input-2", Optional: true},
 									{Name: "required-input"},
 								},
-							}, nil)
+							}
 						})
 
 						Context("when an optional input is missing", func() {
@@ -666,7 +660,7 @@ var _ = Describe("TaskStep", func() {
 
 							It("runs successfully without the optional input", func() {
 								Expect(stepErr).ToNot(HaveOccurred())
-								_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+								_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 								Expect(containerSpec.Inputs).To(HaveLen(2))
 								Expect(containerSpec.Inputs[0].Source()).To(Equal(optionalInput2Source))
 								Expect(containerSpec.Inputs[0].DestinationPath()).To(Equal("some-artifact-root/optional-input-2"))
@@ -695,15 +689,17 @@ var _ = Describe("TaskStep", func() {
 						)
 
 						BeforeEach(func() {
-							configSource.FetchConfigReturns(atc.TaskConfig{
+							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
-								Run:       atc.TaskRunConfig{},
+								Run: atc.TaskRunConfig{
+									Path: "ls",
+								},
 								Caches: []atc.CacheConfig{
 									{Path: "some-path-1"},
 									{Path: "some-path-2"},
 								},
-							}, nil)
+							}
 
 							fakeVolume1 = new(workerfakes.FakeVolume)
 							fakeVolume2 = new(workerfakes.FakeVolume)
@@ -720,7 +716,7 @@ var _ = Describe("TaskStep", func() {
 						})
 
 						It("creates the container with the caches in the inputs", func() {
-							_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+							_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 							Expect(containerSpec.Inputs).To(HaveLen(2))
 							Expect([]string{
 								containerSpec.Inputs[0].DestinationPath(),
@@ -731,27 +727,33 @@ var _ = Describe("TaskStep", func() {
 							))
 						})
 
-						It("registers cache volumes as task caches", func() {
-							Expect(stepErr).ToNot(HaveOccurred())
+						Context("when task belongs to a job", func() {
+							BeforeEach(func() {
+								stepMetadata.JobID = 12
+							})
 
-							Expect(fakeVolume1.InitializeTaskCacheCallCount()).To(Equal(1))
-							_, jID, stepName, cachePath, p := fakeVolume1.InitializeTaskCacheArgsForCall(0)
-							Expect(jID).To(Equal(jobID))
-							Expect(stepName).To(Equal("some-task"))
-							Expect(cachePath).To(Equal("some-path-1"))
-							Expect(p).To(Equal(bool(privileged)))
+							It("registers cache volumes as task caches", func() {
+								Expect(stepErr).ToNot(HaveOccurred())
 
-							Expect(fakeVolume2.InitializeTaskCacheCallCount()).To(Equal(1))
-							_, jID, stepName, cachePath, p = fakeVolume2.InitializeTaskCacheArgsForCall(0)
-							Expect(jID).To(Equal(jobID))
-							Expect(stepName).To(Equal("some-task"))
-							Expect(cachePath).To(Equal("some-path-2"))
-							Expect(p).To(Equal(bool(privileged)))
+								Expect(fakeVolume1.InitializeTaskCacheCallCount()).To(Equal(1))
+								_, jID, stepName, cachePath, p := fakeVolume1.InitializeTaskCacheArgsForCall(0)
+								Expect(jID).To(Equal(stepMetadata.JobID))
+								Expect(stepName).To(Equal("some-task"))
+								Expect(cachePath).To(Equal("some-path-1"))
+								Expect(p).To(Equal(bool(taskPlan.Privileged)))
+
+								Expect(fakeVolume2.InitializeTaskCacheCallCount()).To(Equal(1))
+								_, jID, stepName, cachePath, p = fakeVolume2.InitializeTaskCacheArgsForCall(0)
+								Expect(jID).To(Equal(stepMetadata.JobID))
+								Expect(stepName).To(Equal("some-task"))
+								Expect(cachePath).To(Equal("some-path-2"))
+								Expect(p).To(Equal(bool(taskPlan.Privileged)))
+							})
 						})
 
 						Context("when task does not belong to job (one-off build)", func() {
 							BeforeEach(func() {
-								jobID = 0
+								stepMetadata.JobID = 0
 							})
 
 							It("does not initialize caches", func() {
@@ -764,7 +766,7 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when the configuration specifies paths for outputs", func() {
 						BeforeEach(func() {
-							configSource.FetchConfigReturns(atc.TaskConfig{
+							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
 								Params:    map[string]string{"SOME": "params"},
@@ -777,11 +779,11 @@ var _ = Describe("TaskStep", func() {
 									{Name: "some-other-output"},
 									{Name: "some-trailing-slash-output", Path: "some-output-configured-path-with-trailing-slash/"},
 								},
-							}, nil)
+							}
 						})
 
 						It("configures them appropriately in the container spec", func() {
-							_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+							_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 							Expect(containerSpec.Outputs).To(Equal(worker.OutputPaths{
 								"some-output":                "some-artifact-root/some-output-configured-path/",
 								"some-other-output":          "some-artifact-root/some-other-output/",
@@ -881,7 +883,7 @@ var _ = Describe("TaskStep", func() {
 									})
 
 									It("passes existing output volumes to the resource", func() {
-										_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+										_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 										Expect(containerSpec.Outputs).To(Equal(worker.OutputPaths{
 											"some-output":                "some-artifact-root/some-output-configured-path/",
 											"some-other-output":          "some-artifact-root/some-other-output/",
@@ -1142,15 +1144,16 @@ var _ = Describe("TaskStep", func() {
 						)
 
 						BeforeEach(func() {
-							outputMapping = map[string]string{"generic-remapped-output": "specific-remapped-output"}
-							configSource.FetchConfigReturns(atc.TaskConfig{
+							taskPlan.OutputMapping = map[string]string{"generic-remapped-output": "specific-remapped-output"}
+							taskPlan.Config = &atc.TaskConfig{
+								Platform: "some-platform",
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 								},
 								Outputs: []atc.TaskOutputConfig{
 									{Name: "generic-remapped-output"},
 								},
-							}, nil)
+							}
 
 							fakeProcess.WaitReturns(0, nil)
 
@@ -1180,7 +1183,7 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when an image artifact name is specified", func() {
 						BeforeEach(func() {
-							imageArtifactName = "some-image-artifact"
+							taskPlan.ImageArtifactName = "some-image-artifact"
 
 							fakeProcess.WaitReturns(0, nil)
 						})
@@ -1194,7 +1197,7 @@ var _ = Describe("TaskStep", func() {
 							})
 
 							It("chooses a worker and creates the container with the image artifact source", func() {
-								_, _, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+								_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ImageArtifactSource: imageArtifactSource,
 								}))
@@ -1216,7 +1219,7 @@ var _ = Describe("TaskStep", func() {
 
 									Context("when the task config also specifies image", func() {
 										BeforeEach(func() {
-											configWithImage := atc.TaskConfig{
+											taskPlan.Config = &atc.TaskConfig{
 												Platform:  "some-platform",
 												RootfsURI: "some-image",
 												Params:    map[string]string{"SOME": "params"},
@@ -1225,12 +1228,10 @@ var _ = Describe("TaskStep", func() {
 													Args: []string{"some", "args"},
 												},
 											}
-
-											configSource.FetchConfigReturns(configWithImage, nil)
 										})
 
 										It("still chooses a worker and creates the container with the volume and a metadata stream", func() {
-											_, _, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+											_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 											Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageArtifactSource: imageArtifactSource,
 											}))
@@ -1241,7 +1242,7 @@ var _ = Describe("TaskStep", func() {
 
 									Context("when the task config also specifies image_resource", func() {
 										BeforeEach(func() {
-											configWithImageResource := atc.TaskConfig{
+											taskPlan.Config = &atc.TaskConfig{
 												Platform: "some-platform",
 												ImageResource: &atc.ImageResource{
 													Type:    "docker",
@@ -1255,12 +1256,10 @@ var _ = Describe("TaskStep", func() {
 													Args: []string{"some", "args"},
 												},
 											}
-
-											configSource.FetchConfigReturns(configWithImageResource, nil)
 										})
 
 										It("still chooses a worker and creates the container with the volume and a metadata stream", func() {
-											_, _, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+											_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 											Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageArtifactSource: imageArtifactSource,
 											}))
@@ -1271,7 +1270,7 @@ var _ = Describe("TaskStep", func() {
 
 									Context("when the task config also specifies image and image_resource", func() {
 										BeforeEach(func() {
-											configWithImageAndImageResource := atc.TaskConfig{
+											taskPlan.Config = &atc.TaskConfig{
 												Platform:  "some-platform",
 												RootfsURI: "some-image",
 												ImageResource: &atc.ImageResource{
@@ -1286,12 +1285,10 @@ var _ = Describe("TaskStep", func() {
 													Args: []string{"some", "args"},
 												},
 											}
-
-											configSource.FetchConfigReturns(configWithImageAndImageResource, nil)
 										})
 
 										It("still chooses a worker and creates the container with the volume and a metadata stream", func() {
-											_, _, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+											_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 											Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageArtifactSource: imageArtifactSource,
 											}))
@@ -1315,7 +1312,7 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when the image_resource is specified (even if RootfsURI is configured)", func() {
 						BeforeEach(func() {
-							configWithImageResource := atc.TaskConfig{
+							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
 								ImageResource: &atc.ImageResource{
@@ -1330,15 +1327,13 @@ var _ = Describe("TaskStep", func() {
 									Args: []string{"some", "args"},
 								},
 							}
-
-							configSource.FetchConfigReturns(configWithImageResource, nil)
 						})
 
 						It("creates the specs with the image resource", func() {
-							_, _, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+							_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 							Expect(containerSpec.ImageSpec.ImageResource).To(Equal(&worker.ImageResource{
 								Type:    "docker",
-								Source:  creds.NewSource(template.StaticVariables{}, atc.Source{"some": "super-secret-source"}),
+								Source:  atc.Source{"some": "super-secret-source"},
 								Params:  &atc.Params{"some": "params"},
 								Version: &atc.Version{"some": "version"},
 							}))
@@ -1346,7 +1341,7 @@ var _ = Describe("TaskStep", func() {
 							Expect(workerSpec).To(Equal(worker.WorkerSpec{
 								TeamID:        123,
 								Platform:      "some-platform",
-								ResourceTypes: resourceTypes,
+								ResourceTypes: interpolatedResourceTypes,
 								Tags:          []string{"step", "tags"},
 								ResourceType:  "docker",
 							}))
@@ -1355,7 +1350,7 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when the RootfsURI is configured", func() {
 						BeforeEach(func() {
-							configWithRootfs := atc.TaskConfig{
+							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
 								Params:    map[string]string{"SOME": "params"},
@@ -1364,18 +1359,16 @@ var _ = Describe("TaskStep", func() {
 									Args: []string{"some", "args"},
 								},
 							}
-
-							configSource.FetchConfigReturns(configWithRootfs, nil)
 						})
 
 						It("creates the specs with the image resource", func() {
-							_, _, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+							_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 							Expect(containerSpec.ImageSpec.ImageURL).To(Equal("some-image"))
 
 							Expect(workerSpec).To(Equal(worker.WorkerSpec{
 								TeamID:        123,
 								Platform:      "some-platform",
-								ResourceTypes: resourceTypes,
+								ResourceTypes: interpolatedResourceTypes,
 								Tags:          []string{"step", "tags"},
 							}))
 						})
@@ -1383,8 +1376,7 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when a run dir is specified", func() {
 						BeforeEach(func() {
-							fetchedConfig.Run.Dir = "/some/dir"
-							configSource.FetchConfigReturns(fetchedConfig, nil)
+							taskPlan.Config.Run.Dir = "/some/dir"
 						})
 
 						It("runs a process in the specified (custom) directory", func() {
@@ -1395,12 +1387,11 @@ var _ = Describe("TaskStep", func() {
 
 					Context("when a run user is specified", func() {
 						BeforeEach(func() {
-							fetchedConfig.Run.User = "some-user"
-							configSource.FetchConfigReturns(fetchedConfig, nil)
+							taskPlan.Config.Run.User = "some-user"
 						})
 
 						It("adds the user to the container spec", func() {
-							_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+							_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 							Expect(containerSpec.User).To(Equal("some-user"))
 						})
 
@@ -1656,15 +1647,29 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
-		Context("when getting the config fails", func() {
-			disaster := errors.New("nope")
+		Context("when missing the platform", func() {
 
 			BeforeEach(func() {
-				configSource.FetchConfigReturns(atc.TaskConfig{}, disaster)
+				taskPlan.Config.Platform = ""
 			})
 
 			It("returns the error", func() {
-				Expect(stepErr).To(Equal(disaster))
+				Expect(stepErr).To(HaveOccurred())
+			})
+
+			It("is not successful", func() {
+				Expect(taskStep.Succeeded()).To(BeFalse())
+			})
+		})
+
+		Context("when missing the path to the executable", func() {
+
+			BeforeEach(func() {
+				taskPlan.Config.Run.Path = ""
+			})
+
+			It("returns the error", func() {
+				Expect(stepErr).To(HaveOccurred())
 			})
 
 			It("is not successful", func() {

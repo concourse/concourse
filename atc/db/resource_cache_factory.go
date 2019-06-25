@@ -4,10 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -15,13 +13,12 @@ import (
 
 type ResourceCacheFactory interface {
 	FindOrCreateResourceCache(
-		logger lager.Logger,
 		resourceCacheUser ResourceCacheUser,
 		resourceTypeName string,
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		resourceTypes creds.VersionedResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 	) (UsedResourceCache, error)
 
 	// changing resource cache to interface to allow updates on object is not feasible.
@@ -45,13 +42,12 @@ func NewResourceCacheFactory(conn Conn, lockFactory lock.LockFactory) ResourceCa
 }
 
 func (f *resourceCacheFactory) FindOrCreateResourceCache(
-	logger lager.Logger,
 	resourceCacheUser ResourceCacheUser,
 	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (UsedResourceCache, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceTypeName, source, resourceTypes)
 	if err != nil {
@@ -71,12 +67,12 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 
 	defer Rollback(tx)
 
-	usedResourceCache, err := resourceCache.findOrCreate(logger, tx, f.lockFactory, f.conn)
+	usedResourceCache, err := resourceCache.findOrCreate(tx, f.lockFactory, f.conn)
 	if err != nil {
 		return nil, err
 	}
 
-	err = resourceCache.use(logger, tx, usedResourceCache, resourceCacheUser)
+	err = resourceCache.use(tx, usedResourceCache, resourceCacheUser)
 	if err != nil {
 		return nil, err
 	}

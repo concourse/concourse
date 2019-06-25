@@ -115,10 +115,15 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		return 0, err
 	}
 
-	versionedResourceTypes := creds.NewVersionedResourceTypes(
+	versionedResourceTypes, err := creds.NewVersionedResourceTypes(
 		scanner.variables,
 		resourceTypes.Deserialize(),
-	)
+	).Evaluate()
+	if err != nil {
+		logger.Error("failed-to-evaluate-resource-types", err)
+		scanner.setCheckError(logger, savedResourceType, err)
+		return 0, err
+	}
 
 	source, err := creds.NewSource(scanner.variables, savedResourceType.Source()).Evaluate()
 	if err != nil {
@@ -128,7 +133,6 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 	}
 
 	resourceConfigScope, err := savedResourceType.SetResourceConfig(
-		logger,
 		source,
 		versionedResourceTypes.Without(savedResourceType.Name()),
 	)
@@ -146,7 +150,6 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		reattempt = mustComplete
 		lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(
 			logger,
-			interval,
 		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
@@ -218,7 +221,7 @@ func (scanner *resourceTypeScanner) check(
 	savedResourceType db.ResourceType,
 	resourceConfigScope db.ResourceConfigScope,
 	fromVersion atc.Version,
-	versionedResourceTypes creds.VersionedResourceTypes,
+	versionedResourceTypes atc.VersionedResourceTypes,
 	source atc.Source,
 	saveGiven bool,
 ) error {
@@ -253,7 +256,17 @@ func (scanner *resourceTypeScanner) check(
 
 	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
 
-	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(logger, owner, containerSpec, workerSpec, scanner.strategy)
+	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(
+		context.Background(),
+		logger,
+		owner,
+		containerSpec,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
+		workerSpec,
+		scanner.strategy,
+	)
 	if err != nil {
 		chkErr := resourceConfigScope.SetCheckError(err)
 		if chkErr != nil {
@@ -268,9 +281,6 @@ func (scanner *resourceTypeScanner) check(
 		logger,
 		worker.NoopImageFetchingDelegate{},
 		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries),
-		db.ContainerMetadata{
-			Type: db.ContainerTypeCheck,
-		},
 		containerSpec,
 		versionedResourceTypes.Without(savedResourceType.Name()),
 	)

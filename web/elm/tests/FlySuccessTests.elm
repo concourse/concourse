@@ -60,7 +60,6 @@ flags =
     , notFoundImgSrc = ""
     , csrfToken = ""
     , authToken = authToken
-    , clusterName = ""
     , pipelineRunningKeyframes = ""
     }
 

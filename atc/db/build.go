@@ -11,7 +11,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
@@ -67,6 +66,7 @@ type Build interface {
 	Schema() string
 	PrivatePlan() atc.Plan
 	PublicPlan() *json.RawMessage
+	HasPlan() bool
 	Status() BuildStatus
 	StartTime() time.Time
 	CreateTime() time.Time
@@ -95,7 +95,7 @@ type Build interface {
 	Artifacts() ([]WorkerArtifact, error)
 	Artifact(artifactID int) (WorkerArtifact, error)
 
-	SaveOutput(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
+	SaveOutput(string, atc.Source, atc.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
 	UseInputs(inputs []BuildInput) error
 
 	Resources() ([]BuildInput, []BuildOutput, error)
@@ -170,6 +170,7 @@ func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
 func (b *build) Schema() string               { return b.schema }
 func (b *build) PrivatePlan() atc.Plan        { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
+func (b *build) HasPlan() bool                { return string(*b.publicPlan) != "{}" }
 func (b *build) CreateTime() time.Time        { return b.createTime }
 func (b *build) StartTime() time.Time         { return b.startTime }
 func (b *build) EndTime() time.Time           { return b.endTime }
@@ -634,9 +635,29 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 	missingInputReasons := MissingInputReasons{}
 
 	if found {
+
 		inputsSatisfiedStatus = BuildPreparationStatusNotBlocking
-		for _, buildInput := range nextBuildInputs {
-			inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
+
+		if b.IsManuallyTriggered() {
+			for _, buildInput := range nextBuildInputs {
+				resource, _, err := pipeline.ResourceByID(buildInput.ResourceID)
+				if err != nil {
+					return BuildPreparation{}, false, err
+				}
+
+				// input is blocking if its last check time is before build create time
+				if resource.LastCheckEndTime().Before(b.CreateTime()) {
+					inputs[buildInput.Name] = BuildPreparationStatusBlocking
+					missingInputReasons.RegisterNoResourceCheckFinished(buildInput.Name)
+					inputsSatisfiedStatus = BuildPreparationStatusBlocking
+				} else {
+					inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
+				}
+			}
+		} else {
+			for _, buildInput := range nextBuildInputs {
+				inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
+			}
 		}
 	} else {
 		buildInputs, err := job.GetIndependentBuildInputs()
@@ -808,10 +829,9 @@ func (b *build) Artifacts() ([]WorkerArtifact, error) {
 }
 
 func (b *build) SaveOutput(
-	logger lager.Logger,
 	resourceType string,
 	source atc.Source,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	version atc.Version,
 	metadata ResourceConfigMetadataFields,
 	outputName string,
@@ -854,7 +874,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, b.lockFactory, b.conn)
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, b.lockFactory, b.conn)
 	if err != nil {
 		return err
 	}

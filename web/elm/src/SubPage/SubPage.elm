@@ -91,7 +91,6 @@ init session route =
                 { turbulencePath = session.turbulenceImgSrc
                 , searchType = searchType
                 , pipelineRunningKeyframes = session.pipelineRunningKeyframes
-                , clusterName = session.clusterName
                 }
                 |> Tuple.mapFirst DashboardModel
 

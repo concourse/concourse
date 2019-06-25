@@ -14,7 +14,14 @@ module Build.Build exposing
     )
 
 import Application.Models exposing (Session)
-import Build.Models exposing (BuildPageType(..), CurrentBuild, Model)
+import Build.Models
+    exposing
+        ( BuildPageType(..)
+        , CurrentBuild
+        , CurrentOutput(..)
+        , Model
+        , toMaybe
+        )
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.Models as STModels
@@ -122,7 +129,7 @@ subscriptions model =
         buildEventsUrl =
             model.currentBuild
                 |> RemoteData.toMaybe
-                |> Maybe.andThen .output
+                |> Maybe.andThen (.output >> toMaybe)
                 |> Maybe.andThen .eventStreamUrlPath
     in
     [ OnClockTick OneSecond
@@ -152,7 +159,7 @@ changeToBuild { highlight, pageType } ( model, effects ) =
 
             newBuild =
                 RemoteData.map
-                    (\cb -> { cb | prep = Nothing, output = Nothing })
+                    (\cb -> { cb | prep = Nothing, output = Empty })
                     model.currentBuild
         in
         ( { model
@@ -273,24 +280,28 @@ handleCallback action ( model, effects ) =
                        ]
                 )
 
-        PlanAndResourcesFetched buildId (Err err) ->
+        PlanAndResourcesFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    if status.code == 404 then
-                        let
-                            url =
-                                "/api/v1/builds/"
-                                    ++ String.fromInt buildId
-                                    ++ "/events"
-                        in
-                        updateOutput
-                            (\m ->
-                                ( { m | eventStreamUrlPath = Just url }
-                                , []
-                                , Build.Output.Output.OutNoop
-                                )
-                            )
-                            ( model, effects )
+                    let
+                        isAborted =
+                            model.currentBuild
+                                |> RemoteData.map
+                                    (.build
+                                        >> .status
+                                        >> (==) Concourse.BuildStatusAborted
+                                    )
+                                |> RemoteData.withDefault False
+                    in
+                    if status.code == 404 && isAborted then
+                        ( { model
+                            | currentBuild =
+                                RemoteData.map
+                                    (\cb -> { cb | output = Cancelled })
+                                    model.currentBuild
+                          }
+                        , effects
+                        )
 
                     else if status.code == 401 then
                         ( { model | authorized = False }, effects )
@@ -357,7 +368,7 @@ handleDelivery session delivery ( model, effects ) =
                 eventSourceClosed =
                     model.currentBuild
                         |> RemoteData.toMaybe
-                        |> Maybe.andThen .output
+                        |> Maybe.andThen (.output >> toMaybe)
                         |> Maybe.map (.eventSourceOpened >> not)
                         |> Maybe.withDefault False
 
@@ -580,14 +591,14 @@ updateOutput updater ( model, effects ) =
         currentBuild =
             model.currentBuild |> RemoteData.toMaybe
     in
-    case ( currentBuild, currentBuild |> Maybe.andThen .output ) of
+    case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
         ( Just cb, Just output ) ->
             let
                 ( newOutput, outputEffects, outMsg ) =
                     updater output
             in
             handleOutMsg outMsg
-                ( { model | currentBuild = RemoteData.Success { cb | output = Just newOutput } }
+                ( { model | currentBuild = RemoteData.Success { cb | output = Output newOutput } }
                 , effects ++ outputEffects
                 )
 
@@ -730,7 +741,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                     Nothing ->
                         { build = build
                         , prep = Nothing
-                        , output = Nothing
+                        , output = Empty
                         }
 
                     Just cb ->
@@ -806,7 +817,7 @@ initBuildOutput build ( model, effects ) =
     ( { model
         | currentBuild =
             RemoteData.map
-                (\info -> { info | output = Just output })
+                (\info -> { info | output = Output output })
                 model.currentBuild
       }
     , effects ++ outputCmd
@@ -1134,13 +1145,18 @@ mmDDYY =
         ]
 
 
-viewBuildOutput : Session -> Maybe OutputModel -> Html Message
+viewBuildOutput : Session -> CurrentOutput -> Html Message
 viewBuildOutput session output =
     case output of
-        Just o ->
+        Output o ->
             Build.Output.Output.view session o
 
-        Nothing ->
+        Cancelled ->
+            Html.div
+                Styles.errorLog
+                [ Html.text "build cancelled" ]
+
+        Empty ->
             Html.div [] []
 
 

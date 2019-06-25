@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
@@ -25,10 +23,9 @@ func (e ErrCustomResourceTypeVersionNotFound) Error() string {
 
 type ResourceConfigFactory interface {
 	FindOrCreateResourceConfig(
-		logger lager.Logger,
 		resourceType string,
 		source atc.Source,
-		resourceTypes creds.VersionedResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 	) (ResourceConfig, error)
 
 	FindResourceConfigByID(int) (ResourceConfig, bool, error)
@@ -73,10 +70,9 @@ func (f *resourceConfigFactory) FindResourceConfigByID(resourceConfigID int) (Re
 }
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfig(
-	logger lager.Logger,
 	resourceType string,
 	source atc.Source,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (ResourceConfig, error) {
 
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
@@ -90,7 +86,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	}
 	defer Rollback(tx)
 
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, f.lockFactory, f.conn)
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, f.lockFactory, f.conn)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +105,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 func constructResourceConfigDescriptor(
 	resourceTypeName string,
 	source atc.Source,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (ResourceConfigDescriptor, error) {
 	resourceConfigDescriptor := ResourceConfigDescriptor{
 		Source: source,
@@ -117,14 +113,9 @@ func constructResourceConfigDescriptor(
 
 	customType, found := resourceTypes.Lookup(resourceTypeName)
 	if found {
-		source, err := customType.Source.Evaluate()
-		if err != nil {
-			return ResourceConfigDescriptor{}, err
-		}
-
 		customTypeResourceConfig, err := constructResourceConfigDescriptor(
 			customType.Type,
-			source,
+			customType.Source,
 			resourceTypes.Without(customType.Name),
 		)
 		if err != nil {

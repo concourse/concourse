@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -24,7 +24,7 @@ type FetchSourceFactory interface {
 		logger lager.Logger,
 		worker worker.Worker,
 		resourceInstance ResourceInstance,
-		resourceTypes creds.VersionedResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		containerSpec worker.ContainerSpec,
 		session Session,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -50,7 +50,7 @@ func (r *fetchSourceFactory) NewFetchSource(
 	logger lager.Logger,
 	worker worker.Worker,
 	resourceInstance ResourceInstance,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	containerSpec worker.ContainerSpec,
 	session Session,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -72,7 +72,7 @@ type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
 	worker                 worker.Worker
 	resourceInstance       ResourceInstance
-	resourceTypes          creds.VersionedResourceTypes
+	resourceTypes          atc.VersionedResourceTypes
 	containerSpec          worker.ContainerSpec
 	session                Session
 	imageFetchingDelegate  worker.ImageFetchingDelegate
@@ -130,12 +130,21 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		&worker.CertsVolumeMount{Logger: s.logger},
 	}
 
+	err = s.worker.EnsureDBContainerExists(
+		ctx,
+		s.logger,
+		s.resourceInstance.ContainerOwner(),
+		s.session.Metadata,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	container, err := s.worker.FindOrCreateContainer(
 		ctx,
 		s.logger,
 		s.imageFetchingDelegate,
 		s.resourceInstance.ContainerOwner(),
-		s.session.Metadata,
 		s.containerSpec,
 		s.resourceTypes,
 	)

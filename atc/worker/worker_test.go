@@ -2,21 +2,20 @@ package worker_test
 
 import (
 	"bytes"
-	"code.cloudfoundry.org/garden"
-	"code.cloudfoundry.org/lager"
-	"fmt"
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/baggageclaim/baggageclaimfakes"
-	"io/ioutil"
-	"time"
 	"context"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"time"
+
+	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/baggageclaim"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
 
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
@@ -28,7 +27,7 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		logger *lagertest.TestLogger
+		logger                    *lagertest.TestLogger
 		fakeVolumeClient          *workerfakes.FakeVolumeClient
 		activeContainers          int
 		resourceTypes             []atc.WorkerResourceType
@@ -43,7 +42,7 @@ var _ = Describe("Worker", func() {
 		fakeGardenClient          *gardenfakes.FakeClient
 		fakeImageFactory          *workerfakes.FakeImageFactory
 		fakeImage                 *workerfakes.FakeImage
-		dbWorker                  *dbfakes.FakeWorker
+		fakeDBWorker              *dbfakes.FakeWorker
 		fakeDBVolumeRepository    *dbfakes.FakeVolumeRepository
 		fakeDBTeamFactory         *dbfakes.FakeTeamFactory
 		fakeDBTeam                *dbfakes.FakeTeam
@@ -69,9 +68,9 @@ var _ = Describe("Worker", func() {
 		fakeContainerOwner *dbfakes.FakeContainerOwner
 		containerMetadata  db.ContainerMetadata
 
-		stubbedVolumes     map[string]*workerfakes.FakeVolume
-		volumeSpecs        map[string]VolumeSpec
-		credsResourceTypes creds.VersionedResourceTypes
+		stubbedVolumes   map[string]*workerfakes.FakeVolume
+		volumeSpecs      map[string]VolumeSpec
+		atcResourceTypes atc.VersionedResourceTypes
 
 		findOrCreateErr       error
 		findOrCreateContainer Container
@@ -95,7 +94,7 @@ var _ = Describe("Worker", func() {
 		workerName = "some-worker"
 		workerStartTime = time.Now().Unix()
 		workerVersion = "1.2.3"
-		dbWorker = new(dbfakes.FakeWorker)
+		fakeDBWorker = new(dbfakes.FakeWorker)
 
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
@@ -108,7 +107,6 @@ var _ = Describe("Worker", func() {
 		fakeCreatedContainer.HandleReturns("some-handle")
 
 		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
-
 
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
@@ -204,11 +202,6 @@ var _ = Describe("Worker", func() {
 			StepName: "some-step",
 		}
 
-		variables := template.StaticVariables{
-			"secret-image":  "super-secret-image",
-			"secret-source": "super-secret-source",
-		}
-
 		cpu := uint64(1024)
 		memory := uint64(1024)
 		containerSpec = ContainerSpec{
@@ -217,7 +210,7 @@ var _ = Describe("Worker", func() {
 			ImageSpec: ImageSpec{
 				ImageResource: &ImageResource{
 					Type:   "registry-image",
-					Source: creds.NewSource(variables, atc.Source{"some": "((secret-image))"}),
+					Source: atc.Source{"some": "super-secret-image"},
 				},
 			},
 
@@ -243,34 +236,34 @@ var _ = Describe("Worker", func() {
 			},
 		}
 
-		credsResourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+		atcResourceTypes = atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Type:   "some-type",
-					Source: atc.Source{"some": "((secret-source))"},
+					Source: atc.Source{"some": "super-secret-source"},
 				},
 				Version: atc.Version{"some": "version"},
 			},
-		})
+		}
 
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 	})
 
 	JustBeforeEach(func() {
-		dbWorker.ActiveContainersReturns(activeContainers)
-		dbWorker.ResourceTypesReturns(resourceTypes)
-		dbWorker.PlatformReturns(platform)
-		dbWorker.TagsReturns(tags)
-		dbWorker.EphemeralReturns(ephemeral)
-		dbWorker.TeamIDReturns(teamID)
-		dbWorker.NameReturns(workerName)
-		dbWorker.StartTimeReturns(workerStartTime)
-		dbWorker.VersionReturns(&workerVersion)
-		dbWorker.HTTPProxyURLReturns("http://proxy.com")
-		dbWorker.HTTPSProxyURLReturns("https://proxy.com")
-		dbWorker.NoProxyReturns("http://noproxy.com")
-		dbWorker.CreateContainerReturns(fakeCreatingContainer, nil)
+		fakeDBWorker.ActiveContainersReturns(activeContainers)
+		fakeDBWorker.ResourceTypesReturns(resourceTypes)
+		fakeDBWorker.PlatformReturns(platform)
+		fakeDBWorker.TagsReturns(tags)
+		fakeDBWorker.EphemeralReturns(ephemeral)
+		fakeDBWorker.TeamIDReturns(teamID)
+		fakeDBWorker.NameReturns(workerName)
+		fakeDBWorker.StartTimeReturns(workerStartTime)
+		fakeDBWorker.VersionReturns(&workerVersion)
+		fakeDBWorker.HTTPProxyURLReturns("http://proxy.com")
+		fakeDBWorker.HTTPSProxyURLReturns("https://proxy.com")
+		fakeDBWorker.NoProxyReturns("http://noproxy.com")
+		fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
@@ -278,7 +271,7 @@ var _ = Describe("Worker", func() {
 			fakeVolumeClient,
 			fakeImageFactory,
 			fakeDBTeamFactory,
-			dbWorker,
+			fakeDBWorker,
 			0,
 		)
 	})
@@ -590,13 +583,12 @@ var _ = Describe("Worker", func() {
 
 			satisfies bool
 
-			customTypes creds.VersionedResourceTypes
+			customTypes atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
-			variables := template.StaticVariables{}
 
-			customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+			customTypes = atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "custom-type-b",
@@ -637,7 +629,7 @@ var _ = Describe("Worker", func() {
 					},
 					Version: atc.Version{"some": "version"},
 				},
-			})
+			}
 
 			spec = WorkerSpec{
 				Tags:          []string{"some", "tags"},
@@ -765,9 +757,8 @@ var _ = Describe("Worker", func() {
 
 		Context("when the resource type is a custom type that overrides one supported by the worker", func() {
 			BeforeEach(func() {
-				variables := template.StaticVariables{}
 
-				customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+				customTypes = atc.VersionedResourceTypes{
 					{
 						ResourceType: atc.ResourceType{
 							Name:   "some-resource",
@@ -776,7 +767,7 @@ var _ = Describe("Worker", func() {
 						},
 						Version: atc.Version{"some": "version"},
 					},
-				})
+				}
 
 				spec.ResourceType = "some-resource"
 			})
@@ -788,9 +779,8 @@ var _ = Describe("Worker", func() {
 
 		Context("when the resource type is a custom type that results in a circular dependency", func() {
 			BeforeEach(func() {
-				variables := template.StaticVariables{}
 
-				customTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+				customTypes = atc.VersionedResourceTypes{
 					atc.VersionedResourceType{
 						ResourceType: atc.ResourceType{
 							Name:   "circle-a",
@@ -813,7 +803,7 @@ var _ = Describe("Worker", func() {
 						},
 						Version: atc.Version{"some": "version"},
 					},
-				})
+				}
 
 				spec.ResourceType = "circle-a"
 			})
@@ -895,6 +885,52 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
+	Describe("EnsureDBContainerExists", func() {
+		var err error
+
+		JustBeforeEach(func() {
+			err = gardenWorker.EnsureDBContainerExists(
+				ctx,
+				logger,
+				fakeContainerOwner,
+				containerMetadata,
+			)
+			Expect(err).ToNot(HaveOccurred())
+		})
+		Context("when neither a creating/created container exists", func() {
+			BeforeEach(func() {
+				fakeDBWorker.FindContainerReturns(nil, nil, nil)
+				fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
+			})
+			It("creates a creating container", func() {
+				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(1))
+				owner, metadata := fakeDBWorker.CreateContainerArgsForCall(0)
+				Expect(owner).To(Equal(fakeContainerOwner))
+				Expect(metadata).To(Equal(containerMetadata))
+			})
+
+		})
+
+		Context("when a creating container exists", func() {
+			BeforeEach(func() {
+				fakeDBWorker.FindContainerReturns(fakeCreatingContainer, nil, nil)
+			})
+			It("does not create a new db container", func() {
+				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when a created container exists", func() {
+			BeforeEach(func() {
+				fakeDBWorker.FindContainerReturns(nil, fakeCreatedContainer, nil)
+			})
+			It("does not create a new db container", func() {
+				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
+			})
+
+		})
+	})
+
 	Describe("FindOrCreateContainer", func() {
 		CertsVolumeExists := func() {
 			fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
@@ -907,16 +943,15 @@ var _ = Describe("Worker", func() {
 				logger,
 				fakeImageFetchingDelegate,
 				fakeContainerOwner,
-				containerMetadata,
 				containerSpec,
-				credsResourceTypes,
+				atcResourceTypes,
 			)
 		})
 		disasterErr := errors.New("disaster")
 
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
-				dbWorker.FindContainerOnWorkerReturns(fakeCreatingContainer, nil, nil)
+				fakeDBWorker.FindContainerReturns(fakeCreatingContainer, nil, nil)
 			})
 
 			Context("when container exists in garden", func() {
@@ -951,6 +986,532 @@ var _ = Describe("Worker", func() {
 					Expect(findOrCreateContainer).ToNot(BeNil())
 				})
 
+				It("creates the container in garden with the input and output volumes in alphabetical order", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+					actualSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualSpec).To(Equal(garden.ContainerSpec{
+						Handle:     "some-handle",
+						RootFSPath: "some-image-url",
+						Properties: garden.Properties{"user": "some-user"},
+						BindMounts: []garden.BindMount{
+							{
+								SrcPath: "some/source",
+								DstPath: "some/destination",
+								Mode:    garden.BindMountModeRO,
+							},
+							{
+								SrcPath: "/fake/scratch/volume",
+								DstPath: "/scratch",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/fake/work-dir/volume",
+								DstPath: "/some/work-dir",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/fake/local/cow/volume",
+								DstPath: "/some/work-dir/local-input",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/fake/output/volume",
+								DstPath: "/some/work-dir/output",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/fake/remote/input/container/volume",
+								DstPath: "/some/work-dir/remote-input",
+								Mode:    garden.BindMountModeRW,
+							},
+						},
+						Limits: garden.Limits{
+							CPU:    garden.CPULimits{LimitInShares: 1024},
+							Memory: garden.MemoryLimits{LimitInBytes: 1024},
+						},
+						Env: []string{
+							"IMAGE=ENV",
+							"SOME=ENV",
+							"http_proxy=http://proxy.com",
+							"https_proxy=https://proxy.com",
+							"no_proxy=http://noproxy.com",
+						},
+					}))
+				})
+
+				Context("when the input and output destination paths overlap", func() {
+					var (
+						fakeRemoteInputUnderInput    *workerfakes.FakeInputSource
+						fakeRemoteInputUnderInputAS  *workerfakes.FakeArtifactSource
+						fakeRemoteInputUnderOutput   *workerfakes.FakeInputSource
+						fakeRemoteInputUnderOutputAS *workerfakes.FakeArtifactSource
+
+						fakeOutputUnderInputVolume                *workerfakes.FakeVolume
+						fakeOutputUnderOutputVolume               *workerfakes.FakeVolume
+						fakeRemoteInputUnderInputContainerVolume  *workerfakes.FakeVolume
+						fakeRemoteInputUnderOutputContainerVolume *workerfakes.FakeVolume
+					)
+
+					BeforeEach(func() {
+						fakeRemoteInputUnderInput = new(workerfakes.FakeInputSource)
+						fakeRemoteInputUnderInput.DestinationPathReturns("/some/work-dir/remote-input/other-input")
+						fakeRemoteInputUnderInputAS = new(workerfakes.FakeArtifactSource)
+						fakeRemoteInputUnderInputAS.VolumeOnReturns(nil, false, nil)
+						fakeRemoteInputUnderInput.SourceReturns(fakeRemoteInputUnderInputAS)
+
+						fakeRemoteInputUnderOutput = new(workerfakes.FakeInputSource)
+						fakeRemoteInputUnderOutput.DestinationPathReturns("/some/work-dir/output/input")
+						fakeRemoteInputUnderOutputAS = new(workerfakes.FakeArtifactSource)
+						fakeRemoteInputUnderOutputAS.VolumeOnReturns(nil, false, nil)
+						fakeRemoteInputUnderOutput.SourceReturns(fakeRemoteInputUnderOutputAS)
+
+						fakeOutputUnderInputVolume = new(workerfakes.FakeVolume)
+						fakeOutputUnderInputVolume.PathReturns("/fake/output/under/input/volume")
+						fakeOutputUnderOutputVolume = new(workerfakes.FakeVolume)
+						fakeOutputUnderOutputVolume.PathReturns("/fake/output/other-output/volume")
+
+						fakeRemoteInputUnderInputContainerVolume = new(workerfakes.FakeVolume)
+						fakeRemoteInputUnderInputContainerVolume.PathReturns("/fake/remote/input/other-input/container/volume")
+						fakeRemoteInputUnderOutputContainerVolume = new(workerfakes.FakeVolume)
+						fakeRemoteInputUnderOutputContainerVolume.PathReturns("/fake/output/input/container/volume")
+
+						stubbedVolumes["/some/work-dir/remote-input/other-input"] = fakeRemoteInputUnderInputContainerVolume
+						stubbedVolumes["/some/work-dir/output/input"] = fakeRemoteInputUnderOutputContainerVolume
+						stubbedVolumes["/some/work-dir/output/other-output"] = fakeOutputUnderOutputVolume
+						stubbedVolumes["/some/work-dir/local-input/output"] = fakeOutputUnderInputVolume
+					})
+
+					Context("outputs are nested under inputs", func() {
+						BeforeEach(func() {
+							containerSpec.Inputs = []InputSource{
+								fakeLocalInput,
+							}
+							containerSpec.Outputs = OutputPaths{
+								"some-output-under-input": "/some/work-dir/local-input/output",
+							}
+						})
+
+						It("creates the container with correct bind mounts", func() {
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+							actualSpec := fakeGardenClient.CreateArgsForCall(0)
+							Expect(actualSpec).To(Equal(garden.ContainerSpec{
+								Handle:     "some-handle",
+								RootFSPath: "some-image-url",
+								Properties: garden.Properties{"user": "some-user"},
+								BindMounts: []garden.BindMount{
+									{
+										SrcPath: "some/source",
+										DstPath: "some/destination",
+										Mode:    garden.BindMountModeRO,
+									},
+									{
+										SrcPath: "/fake/scratch/volume",
+										DstPath: "/scratch",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/work-dir/volume",
+										DstPath: "/some/work-dir",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/local/cow/volume",
+										DstPath: "/some/work-dir/local-input",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/output/under/input/volume",
+										DstPath: "/some/work-dir/local-input/output",
+										Mode:    garden.BindMountModeRW,
+									},
+								},
+								Limits: garden.Limits{
+									CPU:    garden.CPULimits{LimitInShares: 1024},
+									Memory: garden.MemoryLimits{LimitInBytes: 1024},
+								},
+								Env: []string{
+									"IMAGE=ENV",
+									"SOME=ENV",
+									"http_proxy=http://proxy.com",
+									"https_proxy=https://proxy.com",
+									"no_proxy=http://noproxy.com",
+								},
+							}))
+						})
+					})
+
+					Context("inputs are nested under inputs", func() {
+						BeforeEach(func() {
+							containerSpec.Inputs = []InputSource{
+								fakeRemoteInput,
+								fakeRemoteInputUnderInput,
+							}
+							containerSpec.Outputs = OutputPaths{}
+						})
+
+						It("creates the container with correct bind mounts", func() {
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+							actualSpec := fakeGardenClient.CreateArgsForCall(0)
+							Expect(actualSpec).To(Equal(garden.ContainerSpec{
+								Handle:     "some-handle",
+								RootFSPath: "some-image-url",
+								Properties: garden.Properties{"user": "some-user"},
+								BindMounts: []garden.BindMount{
+									{
+										SrcPath: "some/source",
+										DstPath: "some/destination",
+										Mode:    garden.BindMountModeRO,
+									},
+									{
+										SrcPath: "/fake/scratch/volume",
+										DstPath: "/scratch",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/work-dir/volume",
+										DstPath: "/some/work-dir",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/remote/input/container/volume",
+										DstPath: "/some/work-dir/remote-input",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/remote/input/other-input/container/volume",
+										DstPath: "/some/work-dir/remote-input/other-input",
+										Mode:    garden.BindMountModeRW,
+									},
+								},
+								Limits: garden.Limits{
+									CPU:    garden.CPULimits{LimitInShares: 1024},
+									Memory: garden.MemoryLimits{LimitInBytes: 1024},
+								},
+								Env: []string{
+									"IMAGE=ENV",
+									"SOME=ENV",
+									"http_proxy=http://proxy.com",
+									"https_proxy=https://proxy.com",
+									"no_proxy=http://noproxy.com",
+								},
+							}))
+						})
+					})
+
+					Context("outputs are nested under outputs", func() {
+						BeforeEach(func() {
+							containerSpec.Inputs = []InputSource{}
+							containerSpec.Outputs = OutputPaths{
+								"some-output":              "/some/work-dir/output",
+								"some-output-under-output": "/some/work-dir/output/other-output",
+							}
+						})
+
+						It("creates the container with correct bind mounts", func() {
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+							actualSpec := fakeGardenClient.CreateArgsForCall(0)
+							Expect(actualSpec).To(Equal(garden.ContainerSpec{
+								Handle:     "some-handle",
+								RootFSPath: "some-image-url",
+								Properties: garden.Properties{"user": "some-user"},
+								BindMounts: []garden.BindMount{
+									{
+										SrcPath: "some/source",
+										DstPath: "some/destination",
+										Mode:    garden.BindMountModeRO,
+									},
+									{
+										SrcPath: "/fake/scratch/volume",
+										DstPath: "/scratch",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/work-dir/volume",
+										DstPath: "/some/work-dir",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/output/volume",
+										DstPath: "/some/work-dir/output",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/output/other-output/volume",
+										DstPath: "/some/work-dir/output/other-output",
+										Mode:    garden.BindMountModeRW,
+									},
+								},
+								Limits: garden.Limits{
+									CPU:    garden.CPULimits{LimitInShares: 1024},
+									Memory: garden.MemoryLimits{LimitInBytes: 1024},
+								},
+								Env: []string{
+									"IMAGE=ENV",
+									"SOME=ENV",
+									"http_proxy=http://proxy.com",
+									"https_proxy=https://proxy.com",
+									"no_proxy=http://noproxy.com",
+								},
+							}))
+						})
+					})
+
+					Context("inputs are nested under outputs", func() {
+						BeforeEach(func() {
+							containerSpec.Inputs = []InputSource{
+								fakeRemoteInputUnderOutput,
+							}
+							containerSpec.Outputs = OutputPaths{
+								"some-output": "/some/work-dir/output",
+							}
+						})
+
+						It("creates the container with correct bind mounts", func() {
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+							actualSpec := fakeGardenClient.CreateArgsForCall(0)
+							Expect(actualSpec).To(Equal(garden.ContainerSpec{
+								Handle:     "some-handle",
+								RootFSPath: "some-image-url",
+								Properties: garden.Properties{"user": "some-user"},
+								BindMounts: []garden.BindMount{
+									{
+										SrcPath: "some/source",
+										DstPath: "some/destination",
+										Mode:    garden.BindMountModeRO,
+									},
+									{
+										SrcPath: "/fake/scratch/volume",
+										DstPath: "/scratch",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/work-dir/volume",
+										DstPath: "/some/work-dir",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/output/volume",
+										DstPath: "/some/work-dir/output",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/output/input/container/volume",
+										DstPath: "/some/work-dir/output/input",
+										Mode:    garden.BindMountModeRW,
+									},
+								},
+								Limits: garden.Limits{
+									CPU:    garden.CPULimits{LimitInShares: 1024},
+									Memory: garden.MemoryLimits{LimitInBytes: 1024},
+								},
+								Env: []string{
+									"IMAGE=ENV",
+									"SOME=ENV",
+									"http_proxy=http://proxy.com",
+									"https_proxy=https://proxy.com",
+									"no_proxy=http://noproxy.com",
+								},
+							}))
+
+						})
+					})
+
+					Context("input and output share the same destination path", func() {
+						BeforeEach(func() {
+							containerSpec.Inputs = []InputSource{
+								fakeRemoteInput,
+							}
+							containerSpec.Outputs = OutputPaths{
+								"some-output": "/some/work-dir/remote-input",
+							}
+						})
+
+						It("creates the container with correct bind mounts", func() {
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+							actualSpec := fakeGardenClient.CreateArgsForCall(0)
+							Expect(actualSpec).To(Equal(garden.ContainerSpec{
+								Handle:     "some-handle",
+								RootFSPath: "some-image-url",
+								Properties: garden.Properties{"user": "some-user"},
+								BindMounts: []garden.BindMount{
+									{
+										SrcPath: "some/source",
+										DstPath: "some/destination",
+										Mode:    garden.BindMountModeRO,
+									},
+									{
+										SrcPath: "/fake/scratch/volume",
+										DstPath: "/scratch",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/work-dir/volume",
+										DstPath: "/some/work-dir",
+										Mode:    garden.BindMountModeRW,
+									},
+									{
+										SrcPath: "/fake/remote/input/container/volume",
+										DstPath: "/some/work-dir/remote-input",
+										Mode:    garden.BindMountModeRW,
+									},
+								},
+								Limits: garden.Limits{
+									CPU:    garden.CPULimits{LimitInShares: 1024},
+									Memory: garden.MemoryLimits{LimitInBytes: 1024},
+								},
+								Env: []string{
+									"IMAGE=ENV",
+									"SOME=ENV",
+									"http_proxy=http://proxy.com",
+									"https_proxy=https://proxy.com",
+									"no_proxy=http://noproxy.com",
+								},
+							}))
+						})
+
+					})
+				})
+
+				Context("when the certs volume does not exist on the worker", func() {
+					BeforeEach(func() {
+						fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
+					})
+					It("creates the container in garden, but does not bind mount any certs", func() {
+						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+						actualSpec := fakeGardenClient.CreateArgsForCall(0)
+						Expect(actualSpec.BindMounts).ToNot(ContainElement(
+							garden.BindMount{
+								SrcPath: "/the/certs/volume/path",
+								DstPath: "/etc/ssl/certs",
+								Mode:    garden.BindMountModeRO,
+							},
+						))
+					})
+				})
+
+				It("creates each volume unprivileged", func() {
+					Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
+						"/scratch":                    VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir":              VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir/output":       VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir/local-input":  VolumeSpec{Strategy: fakeLocalVolume.COWStrategy()},
+						"/some/work-dir/remote-input": VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+					}))
+				})
+
+				It("streams remote inputs into newly created container volumes", func() {
+					Expect(fakeRemoteInputAS.StreamToCallCount()).To(Equal(1))
+					_, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
+
+					err := ad.StreamIn(".", bytes.NewBufferString("some-stream"))
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(fakeRemoteInputContainerVolume.StreamInCallCount()).To(Equal(1))
+
+					dst, from := fakeRemoteInputContainerVolume.StreamInArgsForCall(0)
+					Expect(dst).To(Equal("."))
+					Expect(ioutil.ReadAll(from)).To(Equal([]byte("some-stream")))
+				})
+
+				It("marks container as created", func() {
+					Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(1))
+				})
+
+				Context("when the fetched image was privileged", func() {
+					BeforeEach(func() {
+						fakeImage.FetchForContainerReturns(FetchedImage{
+							Privileged: true,
+							Metadata: ImageMetadata{
+								Env: []string{"IMAGE=ENV"},
+							},
+							URL: "some-image-url",
+						}, nil)
+					})
+
+					It("creates the container privileged", func() {
+						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+						actualSpec := fakeGardenClient.CreateArgsForCall(0)
+						Expect(actualSpec.Privileged).To(BeTrue())
+					})
+
+					It("creates each volume privileged", func() {
+						Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
+							"/scratch":                    VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir":              VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir/output":       VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir/local-input":  VolumeSpec{Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
+							"/some/work-dir/remote-input": VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+						}))
+					})
+
+				})
+
+				Context("when an input has the path set to the workdir itself", func() {
+					BeforeEach(func() {
+						fakeLocalInput.DestinationPathReturns("/some/work-dir")
+						delete(stubbedVolumes, "/some/work-dir/local-input")
+						stubbedVolumes["/some/work-dir"] = fakeLocalCOWVolume
+					})
+
+					It("does not create or mount a work-dir, as we support this for backwards-compatibility", func() {
+						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+						actualSpec := fakeGardenClient.CreateArgsForCall(0)
+						Expect(actualSpec.BindMounts).To(Equal([]garden.BindMount{
+							{
+								SrcPath: "some/source",
+								DstPath: "some/destination",
+								Mode:    garden.BindMountModeRO,
+							},
+							{
+								SrcPath: "/fake/scratch/volume",
+								DstPath: "/scratch",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/fake/local/cow/volume",
+								DstPath: "/some/work-dir",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/fake/output/volume",
+								DstPath: "/some/work-dir/output",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/fake/remote/input/container/volume",
+								DstPath: "/some/work-dir/remote-input",
+								Mode:    garden.BindMountModeRW,
+							},
+						}))
+					})
+				})
+
+				Context("when failing to create container in garden", func() {
+					BeforeEach(func() {
+						fakeGardenClient.CreateReturns(nil, disasterErr)
+					})
+
+					It("returns an error", func() {
+						Expect(findOrCreateErr).To(Equal(disasterErr))
+					})
+
+					It("does not mark container as created", func() {
+						Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(0))
+					})
+
+					It("marks the container as failed", func() {
+						Expect(fakeCreatingContainer.FailedCallCount()).To(Equal(1))
+					})
+				})
+
 				Context("when failing to create container in garden", func() {
 					BeforeEach(func() {
 						fakeGardenClient.CreateReturns(nil, disasterErr)
@@ -970,7 +1531,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when container exists in database in created state", func() {
 			BeforeEach(func() {
-				dbWorker.FindContainerOnWorkerReturns(nil, fakeCreatedContainer, nil)
+				fakeDBWorker.FindContainerReturns(nil, fakeCreatedContainer, nil)
 			})
 
 			Context("when container exists in garden", func() {
@@ -1000,544 +1561,20 @@ var _ = Describe("Worker", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
-				dbWorker.FindContainerOnWorkerReturns(nil, nil, nil)
+				fakeDBWorker.FindContainerReturns(nil, nil, nil)
 			})
 
-			Context("when the certs volume does not exist on the worker", func() {
-				BeforeEach(func() {
-					fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
-				})
-				It("creates the container in garden, but does not bind mount any certs", func() {
-					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-					actualSpec := fakeGardenClient.CreateArgsForCall(0)
-					Expect(actualSpec.BindMounts).ToNot(ContainElement(
-						garden.BindMount{
-							SrcPath: "/the/certs/volume/path",
-							DstPath: "/etc/ssl/certs",
-							Mode:    garden.BindMountModeRO,
-						},
-					))
-				})
-			})
-
-			BeforeEach(func() {
-				fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
-				fakeCertsVolume.PathReturns("/the/certs/volume/path")
-				fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
-			})
+			// BeforeEach(func() {
+			// 	fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
+			// 	fakeCertsVolume.PathReturns("/the/certs/volume/path")
+			// 	fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
+			// })
 
 			It("creates container in database", func() {
-				Expect(dbWorker.CreateContainerCallCount()).To(Equal(1))
+				Expect(findOrCreateErr).To(HaveOccurred())
+				Expect(findOrCreateErr.Error()).To(Equal("no db container was found for owner"))
 			})
 
-			It("creates the container in garden with the input and output volumes in alphabetical order", func() {
-				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-				actualSpec := fakeGardenClient.CreateArgsForCall(0)
-				Expect(actualSpec).To(Equal(garden.ContainerSpec{
-					Handle:     "some-handle",
-					RootFSPath: "some-image-url",
-					Properties: garden.Properties{"user": "some-user"},
-					BindMounts: []garden.BindMount{
-						{
-							SrcPath: "some/source",
-							DstPath: "some/destination",
-							Mode:    garden.BindMountModeRO,
-						},
-						{
-							SrcPath: "/fake/scratch/volume",
-							DstPath: "/scratch",
-							Mode:    garden.BindMountModeRW,
-						},
-						{
-							SrcPath: "/fake/work-dir/volume",
-							DstPath: "/some/work-dir",
-							Mode:    garden.BindMountModeRW,
-						},
-						{
-							SrcPath: "/fake/local/cow/volume",
-							DstPath: "/some/work-dir/local-input",
-							Mode:    garden.BindMountModeRW,
-						},
-						{
-							SrcPath: "/fake/output/volume",
-							DstPath: "/some/work-dir/output",
-							Mode:    garden.BindMountModeRW,
-						},
-						{
-							SrcPath: "/fake/remote/input/container/volume",
-							DstPath: "/some/work-dir/remote-input",
-							Mode:    garden.BindMountModeRW,
-						},
-					},
-					Limits: garden.Limits{
-						CPU:    garden.CPULimits{LimitInShares: 1024},
-						Memory: garden.MemoryLimits{LimitInBytes: 1024},
-					},
-					Env: []string{
-						"IMAGE=ENV",
-						"SOME=ENV",
-						"http_proxy=http://proxy.com",
-						"https_proxy=https://proxy.com",
-						"no_proxy=http://noproxy.com",
-					},
-				}))
-			})
-
-			Context("when the input and output destination paths overlap", func() {
-				var (
-					fakeRemoteInputUnderInput    *workerfakes.FakeInputSource
-					fakeRemoteInputUnderInputAS  *workerfakes.FakeArtifactSource
-					fakeRemoteInputUnderOutput   *workerfakes.FakeInputSource
-					fakeRemoteInputUnderOutputAS *workerfakes.FakeArtifactSource
-
-					fakeOutputUnderInputVolume                *workerfakes.FakeVolume
-					fakeOutputUnderOutputVolume               *workerfakes.FakeVolume
-					fakeRemoteInputUnderInputContainerVolume  *workerfakes.FakeVolume
-					fakeRemoteInputUnderOutputContainerVolume *workerfakes.FakeVolume
-				)
-
-				BeforeEach(func() {
-					fakeRemoteInputUnderInput = new(workerfakes.FakeInputSource)
-					fakeRemoteInputUnderInput.DestinationPathReturns("/some/work-dir/remote-input/other-input")
-					fakeRemoteInputUnderInputAS = new(workerfakes.FakeArtifactSource)
-					fakeRemoteInputUnderInputAS.VolumeOnReturns(nil, false, nil)
-					fakeRemoteInputUnderInput.SourceReturns(fakeRemoteInputUnderInputAS)
-
-					fakeRemoteInputUnderOutput = new(workerfakes.FakeInputSource)
-					fakeRemoteInputUnderOutput.DestinationPathReturns("/some/work-dir/output/input")
-					fakeRemoteInputUnderOutputAS = new(workerfakes.FakeArtifactSource)
-					fakeRemoteInputUnderOutputAS.VolumeOnReturns(nil, false, nil)
-					fakeRemoteInputUnderOutput.SourceReturns(fakeRemoteInputUnderOutputAS)
-
-					fakeOutputUnderInputVolume = new(workerfakes.FakeVolume)
-					fakeOutputUnderInputVolume.PathReturns("/fake/output/under/input/volume")
-					fakeOutputUnderOutputVolume = new(workerfakes.FakeVolume)
-					fakeOutputUnderOutputVolume.PathReturns("/fake/output/other-output/volume")
-
-					fakeRemoteInputUnderInputContainerVolume = new(workerfakes.FakeVolume)
-					fakeRemoteInputUnderInputContainerVolume.PathReturns("/fake/remote/input/other-input/container/volume")
-					fakeRemoteInputUnderOutputContainerVolume = new(workerfakes.FakeVolume)
-					fakeRemoteInputUnderOutputContainerVolume.PathReturns("/fake/output/input/container/volume")
-
-					stubbedVolumes["/some/work-dir/remote-input/other-input"] = fakeRemoteInputUnderInputContainerVolume
-					stubbedVolumes["/some/work-dir/output/input"] = fakeRemoteInputUnderOutputContainerVolume
-					stubbedVolumes["/some/work-dir/output/other-output"] = fakeOutputUnderOutputVolume
-					stubbedVolumes["/some/work-dir/local-input/output"] = fakeOutputUnderInputVolume
-				})
-
-				Context("outputs are nested under inputs", func() {
-					BeforeEach(func() {
-						containerSpec.Inputs = []InputSource{
-							fakeLocalInput,
-						}
-						containerSpec.Outputs = OutputPaths{
-							"some-output-under-input": "/some/work-dir/local-input/output",
-						}
-					})
-
-					It("creates the container with correct bind mounts", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-						actualSpec := fakeGardenClient.CreateArgsForCall(0)
-						Expect(actualSpec).To(Equal(garden.ContainerSpec{
-							Handle:     "some-handle",
-							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
-							BindMounts: []garden.BindMount{
-								{
-									SrcPath: "some/source",
-									DstPath: "some/destination",
-									Mode:    garden.BindMountModeRO,
-								},
-								{
-									SrcPath: "/fake/scratch/volume",
-									DstPath: "/scratch",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/work-dir/volume",
-									DstPath: "/some/work-dir",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/local/cow/volume",
-									DstPath: "/some/work-dir/local-input",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/output/under/input/volume",
-									DstPath: "/some/work-dir/local-input/output",
-									Mode:    garden.BindMountModeRW,
-								},
-							},
-							Limits: garden.Limits{
-								CPU:    garden.CPULimits{LimitInShares: 1024},
-								Memory: garden.MemoryLimits{LimitInBytes: 1024},
-							},
-							Env: []string{
-								"IMAGE=ENV",
-								"SOME=ENV",
-								"http_proxy=http://proxy.com",
-								"https_proxy=https://proxy.com",
-								"no_proxy=http://noproxy.com",
-							},
-						}))
-					})
-				})
-
-				Context("inputs are nested under inputs", func() {
-					BeforeEach(func() {
-						containerSpec.Inputs = []InputSource{
-							fakeRemoteInput,
-							fakeRemoteInputUnderInput,
-						}
-						containerSpec.Outputs = OutputPaths{}
-					})
-
-					It("creates the container with correct bind mounts", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-						actualSpec := fakeGardenClient.CreateArgsForCall(0)
-						Expect(actualSpec).To(Equal(garden.ContainerSpec{
-							Handle:     "some-handle",
-							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
-							BindMounts: []garden.BindMount{
-								{
-									SrcPath: "some/source",
-									DstPath: "some/destination",
-									Mode:    garden.BindMountModeRO,
-								},
-								{
-									SrcPath: "/fake/scratch/volume",
-									DstPath: "/scratch",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/work-dir/volume",
-									DstPath: "/some/work-dir",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/remote/input/container/volume",
-									DstPath: "/some/work-dir/remote-input",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/remote/input/other-input/container/volume",
-									DstPath: "/some/work-dir/remote-input/other-input",
-									Mode:    garden.BindMountModeRW,
-								},
-							},
-							Limits: garden.Limits{
-								CPU:    garden.CPULimits{LimitInShares: 1024},
-								Memory: garden.MemoryLimits{LimitInBytes: 1024},
-							},
-							Env: []string{
-								"IMAGE=ENV",
-								"SOME=ENV",
-								"http_proxy=http://proxy.com",
-								"https_proxy=https://proxy.com",
-								"no_proxy=http://noproxy.com",
-							},
-						}))
-					})
-				})
-
-				Context("outputs are nested under outputs", func() {
-					BeforeEach(func() {
-						containerSpec.Inputs = []InputSource{}
-						containerSpec.Outputs = OutputPaths{
-							"some-output":              "/some/work-dir/output",
-							"some-output-under-output": "/some/work-dir/output/other-output",
-						}
-					})
-
-					It("creates the container with correct bind mounts", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-						actualSpec := fakeGardenClient.CreateArgsForCall(0)
-						Expect(actualSpec).To(Equal(garden.ContainerSpec{
-							Handle:     "some-handle",
-							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
-							BindMounts: []garden.BindMount{
-								{
-									SrcPath: "some/source",
-									DstPath: "some/destination",
-									Mode:    garden.BindMountModeRO,
-								},
-								{
-									SrcPath: "/fake/scratch/volume",
-									DstPath: "/scratch",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/work-dir/volume",
-									DstPath: "/some/work-dir",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/output/volume",
-									DstPath: "/some/work-dir/output",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/output/other-output/volume",
-									DstPath: "/some/work-dir/output/other-output",
-									Mode:    garden.BindMountModeRW,
-								},
-							},
-							Limits: garden.Limits{
-								CPU:    garden.CPULimits{LimitInShares: 1024},
-								Memory: garden.MemoryLimits{LimitInBytes: 1024},
-							},
-							Env: []string{
-								"IMAGE=ENV",
-								"SOME=ENV",
-								"http_proxy=http://proxy.com",
-								"https_proxy=https://proxy.com",
-								"no_proxy=http://noproxy.com",
-							},
-						}))
-					})
-				})
-
-				Context("inputs are nested under outputs", func() {
-					BeforeEach(func() {
-						containerSpec.Inputs = []InputSource{
-							fakeRemoteInputUnderOutput,
-						}
-						containerSpec.Outputs = OutputPaths{
-							"some-output": "/some/work-dir/output",
-						}
-					})
-
-					It("creates the container with correct bind mounts", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-						actualSpec := fakeGardenClient.CreateArgsForCall(0)
-						Expect(actualSpec).To(Equal(garden.ContainerSpec{
-							Handle:     "some-handle",
-							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
-							BindMounts: []garden.BindMount{
-								{
-									SrcPath: "some/source",
-									DstPath: "some/destination",
-									Mode:    garden.BindMountModeRO,
-								},
-								{
-									SrcPath: "/fake/scratch/volume",
-									DstPath: "/scratch",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/work-dir/volume",
-									DstPath: "/some/work-dir",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/output/volume",
-									DstPath: "/some/work-dir/output",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/output/input/container/volume",
-									DstPath: "/some/work-dir/output/input",
-									Mode:    garden.BindMountModeRW,
-								},
-							},
-							Limits: garden.Limits{
-								CPU:    garden.CPULimits{LimitInShares: 1024},
-								Memory: garden.MemoryLimits{LimitInBytes: 1024},
-							},
-							Env: []string{
-								"IMAGE=ENV",
-								"SOME=ENV",
-								"http_proxy=http://proxy.com",
-								"https_proxy=https://proxy.com",
-								"no_proxy=http://noproxy.com",
-							},
-						}))
-
-					})
-				})
-
-				Context("input and output share the same destination path", func() {
-					BeforeEach(func() {
-						containerSpec.Inputs = []InputSource{
-							fakeRemoteInput,
-						}
-						containerSpec.Outputs = OutputPaths{
-							"some-output": "/some/work-dir/remote-input",
-						}
-					})
-
-					It("creates the container with correct bind mounts", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-						actualSpec := fakeGardenClient.CreateArgsForCall(0)
-						Expect(actualSpec).To(Equal(garden.ContainerSpec{
-							Handle:     "some-handle",
-							RootFSPath: "some-image-url",
-							Properties: garden.Properties{"user": "some-user"},
-							BindMounts: []garden.BindMount{
-								{
-									SrcPath: "some/source",
-									DstPath: "some/destination",
-									Mode:    garden.BindMountModeRO,
-								},
-								{
-									SrcPath: "/fake/scratch/volume",
-									DstPath: "/scratch",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/work-dir/volume",
-									DstPath: "/some/work-dir",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/fake/remote/input/container/volume",
-									DstPath: "/some/work-dir/remote-input",
-									Mode:    garden.BindMountModeRW,
-								},
-							},
-							Limits: garden.Limits{
-								CPU:    garden.CPULimits{LimitInShares: 1024},
-								Memory: garden.MemoryLimits{LimitInBytes: 1024},
-							},
-							Env: []string{
-								"IMAGE=ENV",
-								"SOME=ENV",
-								"http_proxy=http://proxy.com",
-								"https_proxy=https://proxy.com",
-								"no_proxy=http://noproxy.com",
-							},
-						}))
-					})
-
-				})
-			})
-
-			It("creates each volume unprivileged", func() {
-				Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
-					"/scratch":                    VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-					"/some/work-dir":              VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-					"/some/work-dir/output":       VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-					"/some/work-dir/local-input":  VolumeSpec{Strategy: fakeLocalVolume.COWStrategy()},
-					"/some/work-dir/remote-input": VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-				}))
-			})
-
-			It("streams remote inputs into newly created container volumes", func() {
-				Expect(fakeRemoteInputAS.StreamToCallCount()).To(Equal(1))
-				_, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
-
-				err := ad.StreamIn(".", bytes.NewBufferString("some-stream"))
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(fakeRemoteInputContainerVolume.StreamInCallCount()).To(Equal(1))
-
-				dst, from := fakeRemoteInputContainerVolume.StreamInArgsForCall(0)
-				Expect(dst).To(Equal("."))
-				Expect(ioutil.ReadAll(from)).To(Equal([]byte("some-stream")))
-			})
-
-			It("marks container as created", func() {
-				Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(1))
-			})
-
-			Context("when the fetched image was privileged", func() {
-				BeforeEach(func() {
-					fakeImage.FetchForContainerReturns(FetchedImage{
-						Privileged: true,
-						Metadata: ImageMetadata{
-							Env: []string{"IMAGE=ENV"},
-						},
-						URL: "some-image-url",
-					}, nil)
-				})
-
-				It("creates the container privileged", func() {
-					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-					actualSpec := fakeGardenClient.CreateArgsForCall(0)
-					Expect(actualSpec.Privileged).To(BeTrue())
-				})
-
-				It("creates each volume privileged", func() {
-					Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
-						"/scratch":                    VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir":              VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir/output":       VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir/local-input":  VolumeSpec{Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
-						"/some/work-dir/remote-input": VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-					}))
-				})
-
-			})
-
-			Context("when an input has the path set to the workdir itself", func() {
-				BeforeEach(func() {
-					fakeLocalInput.DestinationPathReturns("/some/work-dir")
-					delete(stubbedVolumes, "/some/work-dir/local-input")
-					stubbedVolumes["/some/work-dir"] = fakeLocalCOWVolume
-				})
-
-				It("does not create or mount a work-dir, as we support this for backwards-compatibility", func() {
-					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-					actualSpec := fakeGardenClient.CreateArgsForCall(0)
-					Expect(actualSpec.BindMounts).To(Equal([]garden.BindMount{
-						{
-							SrcPath: "some/source",
-							DstPath: "some/destination",
-							Mode:    garden.BindMountModeRO,
-						},
-						{
-							SrcPath: "/fake/scratch/volume",
-							DstPath: "/scratch",
-							Mode:    garden.BindMountModeRW,
-						},
-						{
-							SrcPath: "/fake/local/cow/volume",
-							DstPath: "/some/work-dir",
-							Mode:    garden.BindMountModeRW,
-						},
-						{
-							SrcPath: "/fake/output/volume",
-							DstPath: "/some/work-dir/output",
-							Mode:    garden.BindMountModeRW,
-						},
-						{
-							SrcPath: "/fake/remote/input/container/volume",
-							DstPath: "/some/work-dir/remote-input",
-							Mode:    garden.BindMountModeRW,
-						},
-					}))
-				})
-			})
-
-			Context("when failing to create container in garden", func() {
-				BeforeEach(func() {
-					fakeGardenClient.CreateReturns(nil, disasterErr)
-				})
-
-				It("returns an error", func() {
-					Expect(findOrCreateErr).To(Equal(disasterErr))
-				})
-
-				It("does not mark container as created", func() {
-					Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(0))
-				})
-
-				It("marks the container as failed", func() {
-					Expect(fakeCreatingContainer.FailedCallCount()).To(Equal(1))
-				})
-			})
 		})
 	})
 })

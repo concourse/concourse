@@ -3,9 +3,7 @@ package gc_test
 import (
 	"context"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 
@@ -52,7 +50,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						Name: "some-type",
 						Type: "some-base-type",
 						Source: atc.Source{
-							"some-type": "((source-param))",
+							"some-type": "source-param",
 						},
 					},
 					Version: atc.Version{"some-type": "version"},
@@ -62,7 +60,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 			Describe("for one-off builds", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						logger,
 						db.ForBuild(defaultBuild.ID()),
 						"some-type",
 						atc.Version{"some": "version"},
@@ -70,11 +67,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
-							atc.VersionedResourceTypes{
-								versionedResourceType,
-							},
-						),
+						atc.VersionedResourceTypes{
+							versionedResourceType,
+						},
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -129,7 +124,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						logger,
 						db.ForBuild(jobBuild.ID()),
 						"some-type",
 						atc.Version{"some": "version"},
@@ -137,11 +131,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
-							atc.VersionedResourceTypes{
-								versionedResourceType,
-							},
-						),
+						atc.VersionedResourceTypes{
+							versionedResourceType,
+						},
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -165,7 +157,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
-							logger,
 							db.ForBuild(secondJobBuild.ID()),
 							"some-type",
 							atc.Version{"some": "version"},
@@ -173,11 +164,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								"some": "source",
 							},
 							atc.Params{"some": "params"},
-							creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
-								atc.VersionedResourceTypes{
-									versionedResourceType,
-								},
-							),
+							atc.VersionedResourceTypes{
+								versionedResourceType,
+							},
 						)
 						Expect(err).NotTo(HaveOccurred())
 					})
@@ -214,7 +203,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						logger,
 						db.ForContainer(container.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},
@@ -222,11 +210,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						creds.NewVersionedResourceTypes(template.StaticVariables{"source-param": "some-secret-sauce"},
-							atc.VersionedResourceTypes{
-								versionedResourceType,
-							},
-						),
+						atc.VersionedResourceTypes{
+							versionedResourceType,
+						},
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})

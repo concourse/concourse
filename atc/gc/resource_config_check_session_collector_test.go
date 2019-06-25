@@ -6,7 +6,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 
@@ -34,8 +33,8 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 		var owner db.ContainerOwner
 
 		ownerExpiries = db.ContainerOwnerExpiries{
-			Min:       10 * time.Second,
-			Max:       10 * time.Second,
+			Min: 10 * time.Second,
+			Max: 10 * time.Second,
 		}
 
 		BeforeEach(func() {
@@ -46,11 +45,10 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 			Expect(found).To(BeTrue())
 
 			resourceConfigScope, err = resource.SetResourceConfig(
-				logger,
 				atc.Source{
 					"some": "source",
 				},
-				creds.VersionedResourceTypes{})
+				atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			owner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ownerExpiries)

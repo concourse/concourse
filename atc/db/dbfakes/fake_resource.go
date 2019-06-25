@@ -5,9 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -262,13 +260,13 @@ type FakeResource struct {
 		result2 bool
 		result3 error
 	}
-	SaveUncheckedVersionStub        func(atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, creds.VersionedResourceTypes) (bool, error)
+	SaveUncheckedVersionStub        func(atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, atc.VersionedResourceTypes) (bool, error)
 	saveUncheckedVersionMutex       sync.RWMutex
 	saveUncheckedVersionArgsForCall []struct {
 		arg1 atc.Version
 		arg2 db.ResourceConfigMetadataFields
 		arg3 db.ResourceConfig
-		arg4 creds.VersionedResourceTypes
+		arg4 atc.VersionedResourceTypes
 	}
 	saveUncheckedVersionReturns struct {
 		result1 bool
@@ -300,12 +298,11 @@ type FakeResource struct {
 	setPinCommentReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetResourceConfigStub        func(lager.Logger, atc.Source, creds.VersionedResourceTypes) (db.ResourceConfigScope, error)
+	SetResourceConfigStub        func(atc.Source, atc.VersionedResourceTypes) (db.ResourceConfigScope, error)
 	setResourceConfigMutex       sync.RWMutex
 	setResourceConfigArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 atc.Source
-		arg3 creds.VersionedResourceTypes
+		arg1 atc.Source
+		arg2 atc.VersionedResourceTypes
 	}
 	setResourceConfigReturns struct {
 		result1 db.ResourceConfigScope
@@ -364,6 +361,20 @@ type FakeResource struct {
 	}
 	unpinVersionReturnsOnCall map[int]struct {
 		result1 error
+	}
+	UpdateMetadataStub        func(atc.Version, db.ResourceConfigMetadataFields) (bool, error)
+	updateMetadataMutex       sync.RWMutex
+	updateMetadataArgsForCall []struct {
+		arg1 atc.Version
+		arg2 db.ResourceConfigMetadataFields
+	}
+	updateMetadataReturns struct {
+		result1 bool
+		result2 error
+	}
+	updateMetadataReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
 	}
 	VersionsStub        func(db.Page) ([]atc.ResourceVersion, db.Pagination, bool, error)
 	versionsMutex       sync.RWMutex
@@ -1685,14 +1696,14 @@ func (fake *FakeResource) ResourceConfigVersionIDReturnsOnCall(i int, result1 in
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResource) SaveUncheckedVersion(arg1 atc.Version, arg2 db.ResourceConfigMetadataFields, arg3 db.ResourceConfig, arg4 creds.VersionedResourceTypes) (bool, error) {
+func (fake *FakeResource) SaveUncheckedVersion(arg1 atc.Version, arg2 db.ResourceConfigMetadataFields, arg3 db.ResourceConfig, arg4 atc.VersionedResourceTypes) (bool, error) {
 	fake.saveUncheckedVersionMutex.Lock()
 	ret, specificReturn := fake.saveUncheckedVersionReturnsOnCall[len(fake.saveUncheckedVersionArgsForCall)]
 	fake.saveUncheckedVersionArgsForCall = append(fake.saveUncheckedVersionArgsForCall, struct {
 		arg1 atc.Version
 		arg2 db.ResourceConfigMetadataFields
 		arg3 db.ResourceConfig
-		arg4 creds.VersionedResourceTypes
+		arg4 atc.VersionedResourceTypes
 	}{arg1, arg2, arg3, arg4})
 	fake.recordInvocation("SaveUncheckedVersion", []interface{}{arg1, arg2, arg3, arg4})
 	fake.saveUncheckedVersionMutex.Unlock()
@@ -1712,13 +1723,13 @@ func (fake *FakeResource) SaveUncheckedVersionCallCount() int {
 	return len(fake.saveUncheckedVersionArgsForCall)
 }
 
-func (fake *FakeResource) SaveUncheckedVersionCalls(stub func(atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, creds.VersionedResourceTypes) (bool, error)) {
+func (fake *FakeResource) SaveUncheckedVersionCalls(stub func(atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, atc.VersionedResourceTypes) (bool, error)) {
 	fake.saveUncheckedVersionMutex.Lock()
 	defer fake.saveUncheckedVersionMutex.Unlock()
 	fake.SaveUncheckedVersionStub = stub
 }
 
-func (fake *FakeResource) SaveUncheckedVersionArgsForCall(i int) (atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, creds.VersionedResourceTypes) {
+func (fake *FakeResource) SaveUncheckedVersionArgsForCall(i int) (atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig, atc.VersionedResourceTypes) {
 	fake.saveUncheckedVersionMutex.RLock()
 	defer fake.saveUncheckedVersionMutex.RUnlock()
 	argsForCall := fake.saveUncheckedVersionArgsForCall[i]
@@ -1871,18 +1882,17 @@ func (fake *FakeResource) SetPinCommentReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeResource) SetResourceConfig(arg1 lager.Logger, arg2 atc.Source, arg3 creds.VersionedResourceTypes) (db.ResourceConfigScope, error) {
+func (fake *FakeResource) SetResourceConfig(arg1 atc.Source, arg2 atc.VersionedResourceTypes) (db.ResourceConfigScope, error) {
 	fake.setResourceConfigMutex.Lock()
 	ret, specificReturn := fake.setResourceConfigReturnsOnCall[len(fake.setResourceConfigArgsForCall)]
 	fake.setResourceConfigArgsForCall = append(fake.setResourceConfigArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 atc.Source
-		arg3 creds.VersionedResourceTypes
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("SetResourceConfig", []interface{}{arg1, arg2, arg3})
+		arg1 atc.Source
+		arg2 atc.VersionedResourceTypes
+	}{arg1, arg2})
+	fake.recordInvocation("SetResourceConfig", []interface{}{arg1, arg2})
 	fake.setResourceConfigMutex.Unlock()
 	if fake.SetResourceConfigStub != nil {
-		return fake.SetResourceConfigStub(arg1, arg2, arg3)
+		return fake.SetResourceConfigStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1897,17 +1907,17 @@ func (fake *FakeResource) SetResourceConfigCallCount() int {
 	return len(fake.setResourceConfigArgsForCall)
 }
 
-func (fake *FakeResource) SetResourceConfigCalls(stub func(lager.Logger, atc.Source, creds.VersionedResourceTypes) (db.ResourceConfigScope, error)) {
+func (fake *FakeResource) SetResourceConfigCalls(stub func(atc.Source, atc.VersionedResourceTypes) (db.ResourceConfigScope, error)) {
 	fake.setResourceConfigMutex.Lock()
 	defer fake.setResourceConfigMutex.Unlock()
 	fake.SetResourceConfigStub = stub
 }
 
-func (fake *FakeResource) SetResourceConfigArgsForCall(i int) (lager.Logger, atc.Source, creds.VersionedResourceTypes) {
+func (fake *FakeResource) SetResourceConfigArgsForCall(i int) (atc.Source, atc.VersionedResourceTypes) {
 	fake.setResourceConfigMutex.RLock()
 	defer fake.setResourceConfigMutex.RUnlock()
 	argsForCall := fake.setResourceConfigArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResource) SetResourceConfigReturns(result1 db.ResourceConfigScope, result2 error) {
@@ -2196,6 +2206,70 @@ func (fake *FakeResource) UnpinVersionReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeResource) UpdateMetadata(arg1 atc.Version, arg2 db.ResourceConfigMetadataFields) (bool, error) {
+	fake.updateMetadataMutex.Lock()
+	ret, specificReturn := fake.updateMetadataReturnsOnCall[len(fake.updateMetadataArgsForCall)]
+	fake.updateMetadataArgsForCall = append(fake.updateMetadataArgsForCall, struct {
+		arg1 atc.Version
+		arg2 db.ResourceConfigMetadataFields
+	}{arg1, arg2})
+	fake.recordInvocation("UpdateMetadata", []interface{}{arg1, arg2})
+	fake.updateMetadataMutex.Unlock()
+	if fake.UpdateMetadataStub != nil {
+		return fake.UpdateMetadataStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.updateMetadataReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResource) UpdateMetadataCallCount() int {
+	fake.updateMetadataMutex.RLock()
+	defer fake.updateMetadataMutex.RUnlock()
+	return len(fake.updateMetadataArgsForCall)
+}
+
+func (fake *FakeResource) UpdateMetadataCalls(stub func(atc.Version, db.ResourceConfigMetadataFields) (bool, error)) {
+	fake.updateMetadataMutex.Lock()
+	defer fake.updateMetadataMutex.Unlock()
+	fake.UpdateMetadataStub = stub
+}
+
+func (fake *FakeResource) UpdateMetadataArgsForCall(i int) (atc.Version, db.ResourceConfigMetadataFields) {
+	fake.updateMetadataMutex.RLock()
+	defer fake.updateMetadataMutex.RUnlock()
+	argsForCall := fake.updateMetadataArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeResource) UpdateMetadataReturns(result1 bool, result2 error) {
+	fake.updateMetadataMutex.Lock()
+	defer fake.updateMetadataMutex.Unlock()
+	fake.UpdateMetadataStub = nil
+	fake.updateMetadataReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) UpdateMetadataReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.updateMetadataMutex.Lock()
+	defer fake.updateMetadataMutex.Unlock()
+	fake.UpdateMetadataStub = nil
+	if fake.updateMetadataReturnsOnCall == nil {
+		fake.updateMetadataReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.updateMetadataReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResource) Versions(arg1 db.Page) ([]atc.ResourceVersion, db.Pagination, bool, error) {
 	fake.versionsMutex.Lock()
 	ret, specificReturn := fake.versionsReturnsOnCall[len(fake.versionsArgsForCall)]
@@ -2386,6 +2460,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.typeMutex.RUnlock()
 	fake.unpinVersionMutex.RLock()
 	defer fake.unpinVersionMutex.RUnlock()
+	fake.updateMetadataMutex.RLock()
+	defer fake.updateMetadataMutex.RUnlock()
 	fake.versionsMutex.RLock()
 	defer fake.versionsMutex.RUnlock()
 	fake.webhookTokenMutex.RLock()

@@ -42,7 +42,6 @@ type alias Flags =
     , notFoundImgSrc : String
     , csrfToken : Concourse.CSRFToken
     , authToken : String
-    , clusterName : String
     , pipelineRunningKeyframes : String
     }
 
@@ -64,7 +63,7 @@ init flags url =
         session =
             { userState = UserStateUnknown
             , hovered = HoverState.NoHover
-            , clusterName = flags.clusterName
+            , clusterName = ""
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
@@ -98,7 +97,7 @@ init flags url =
                 ]
     in
     ( model
-    , [ FetchUser, GetScreenSize, LoadSideBarState ]
+    , [ FetchUser, GetScreenSize, LoadSideBarState, FetchClusterInfo ]
         ++ handleTokenEffect
         ++ subEffects
     )
@@ -196,6 +195,16 @@ handleCallback callback model =
 
                 newSession =
                     { session | userState = UserStateLoggedOut }
+            in
+            subpageHandleCallback callback ( { model | session = newSession }, [] )
+
+        ClusterInfoFetched (Ok { clusterName }) ->
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session | clusterName = clusterName }
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 

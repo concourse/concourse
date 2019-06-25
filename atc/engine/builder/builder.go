@@ -2,7 +2,6 @@ package builder
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -16,9 +15,9 @@ const supportedSchema = "exec.v2"
 //go:generate counterfeiter . StepFactory
 
 type StepFactory interface {
-	GetStep(atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.Step
-	PutStep(atc.Plan, db.Build, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step
-	TaskStep(atc.Plan, db.Build, db.ContainerMetadata, exec.TaskDelegate) exec.Step
+	GetStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.Step
+	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step
+	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
 	ArtifactInputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 	ArtifactOutputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 }
@@ -254,7 +253,6 @@ func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan) exec.Ste
 
 	return builder.stepFactory.GetStep(
 		plan,
-		build,
 		stepMetadata,
 		containerMetadata,
 		builder.delegateFactory.GetDelegate(build, plan.ID),
@@ -277,7 +275,6 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan) exec.Ste
 
 	return builder.stepFactory.PutStep(
 		plan,
-		build,
 		stepMetadata,
 		containerMetadata,
 		builder.delegateFactory.PutDelegate(build, plan.ID),
@@ -293,9 +290,14 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.St
 		plan.Attempts,
 	)
 
+	stepMetadata := builder.stepMetadata(
+		build,
+		builder.externalURL,
+	)
+
 	return builder.stepFactory.TaskStep(
 		plan,
-		build,
+		stepMetadata,
 		containerMetadata,
 		builder.delegateFactory.TaskDelegate(build, plan.ID),
 	)
@@ -349,49 +351,16 @@ func (builder *stepBuilder) containerMetadata(
 func (builder *stepBuilder) stepMetadata(
 	build db.Build,
 	externalURL string,
-) StepMetadata {
-	return StepMetadata{
+) exec.StepMetadata {
+	return exec.StepMetadata{
 		BuildID:      build.ID(),
 		BuildName:    build.Name(),
-		JobName:      build.JobName(),
-		PipelineName: build.PipelineName(),
+		TeamID:       build.TeamID(),
 		TeamName:     build.TeamName(),
+		JobID:        build.JobID(),
+		JobName:      build.JobName(),
+		PipelineID:   build.PipelineID(),
+		PipelineName: build.PipelineName(),
 		ExternalURL:  externalURL,
 	}
-}
-
-type StepMetadata struct {
-	BuildID int
-
-	PipelineName string
-	JobName      string
-	BuildName    string
-	ExternalURL  string
-	TeamName     string
-}
-
-func (metadata StepMetadata) Env() []string {
-	env := []string{fmt.Sprintf("BUILD_ID=%d", metadata.BuildID)}
-
-	if metadata.PipelineName != "" {
-		env = append(env, "BUILD_PIPELINE_NAME="+metadata.PipelineName)
-	}
-
-	if metadata.JobName != "" {
-		env = append(env, "BUILD_JOB_NAME="+metadata.JobName)
-	}
-
-	if metadata.BuildName != "" {
-		env = append(env, "BUILD_NAME="+metadata.BuildName)
-	}
-
-	if metadata.ExternalURL != "" {
-		env = append(env, "ATC_EXTERNAL_URL="+metadata.ExternalURL)
-	}
-
-	if metadata.TeamName != "" {
-		env = append(env, "BUILD_TEAM_NAME="+metadata.TeamName)
-	}
-
-	return env
 }

@@ -39,6 +39,7 @@ sideBar =
     , style "padding-right" "10px"
     , style "box-sizing" "border-box"
     , style "padding-bottom" "10px"
+    , style "-webkit-overflow-scrolling" "touch"
     ]
 
 
@@ -246,16 +247,7 @@ pipelineIcon opacity =
     , style "background-size" "contain"
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
-    , style "opacity" <|
-        case opacity of
-            Bright ->
-                "1"
-
-            GreyedOut ->
-                "0.5"
-
-            Dim ->
-                "0.2"
+    , opacityAttr opacity
     ]
 
 

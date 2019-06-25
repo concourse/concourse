@@ -5,7 +5,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -23,13 +22,13 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 	Describe("CleanInactiveResourceConfigCheckSessions", func() {
 		expiry := db.ContainerOwnerExpiries{
-			Min:       1 * time.Minute,
-			Max:       1 * time.Minute,
+			Min: 1 * time.Minute,
+			Max: 1 * time.Minute,
 		}
 
 		Context("for resources", func() {
 			findOrCreateSessionForDefaultResource := func() int {
-				resourceConfigScope, err := defaultResource.SetResourceConfig(logger, defaultResource.Source(), creds.VersionedResourceTypes{})
+				resourceConfigScope, err := defaultResource.SetResourceConfig(defaultResource.Source(), atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
 				owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiry)
@@ -123,9 +122,9 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 		Context("for resource types", func() {
 			findOrCreateSessionForDefaultResourceType := func() int {
-				resourceConfigScope, err := defaultResourceType.SetResourceConfig(logger,
+				resourceConfigScope, err := defaultResourceType.SetResourceConfig(
 					defaultResourceType.Source(),
-					creds.VersionedResourceTypes{},
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
