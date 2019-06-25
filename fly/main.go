@@ -71,6 +71,10 @@ func handleError(helpParser *flags.Parser, err error) {
 			helpParser.ParseArgs([]string{"-h"})
 			helpParser.WriteHelp(os.Stdout)
 			os.Exit(0)
+		} else if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			helpParser.ParseArgs([]string{"-h"})
+			helpParser.WriteHelp(os.Stdout)
+			os.Exit(0)
 		} else {
 			fmt.Fprintf(ui.Stderr, "error: %s\n", err)
 		}
