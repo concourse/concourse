@@ -67,7 +67,7 @@ type alias Step =
     , state : StepState
     , log : Ansi.Log.Model
     , error : Maybe String
-    , expanded : Maybe Bool
+    , expanded : Bool
     , version : Maybe Version
     , metadata : List MetadataField
     , firstOccurrence : Bool

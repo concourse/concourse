@@ -883,6 +883,12 @@ all =
                             Time.customZone (5 * 60) []
                         )
                     |> Tuple.first
+                    |> Application.update
+                        (Msgs.Update <|
+                            Message.Message.Click <|
+                                Message.Message.StepHeader "stepid"
+                        )
+                    |> Tuple.first
                     |> Common.queryView
                     |> Query.findAll [ class "timestamped-line" ]
                     |> Query.first
@@ -2476,7 +2482,82 @@ all =
                                 )
                             >> Tuple.first
                 in
-                [ test "build step header lays out horizontally" <|
+                [ test "step is collapsed by default" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url =
+                                            eventsUrl
+                                      , data =
+                                            STModels.InitializeGet
+                                                { source = ""
+                                                , id = "plan"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.hasNot [ class "step-body" ]
+                , test "step expands on click" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url =
+                                            eventsUrl
+                                      , data =
+                                            STModels.InitializeGet
+                                                { source = ""
+                                                , id = "plan"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Click <|
+                                    Message.Message.StepHeader "plan"
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.has [ class "step-body" ]
+                , test "expanded step collapses on click" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url =
+                                            eventsUrl
+                                      , data =
+                                            STModels.InitializeGet
+                                                { source = ""
+                                                , id = "plan"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Click <|
+                                    Message.Message.StepHeader "plan"
+                            )
+                        >> Tuple.first
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Click <|
+                                    Message.Message.StepHeader "plan"
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.hasNot [ class "step-body" ]
+                , test "build step header lays out horizontally" <|
                     fetchPlanWithGetStep
                         >> Common.queryView
                         >> Query.find [ class "header" ]
