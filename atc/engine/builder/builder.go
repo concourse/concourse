@@ -306,9 +306,12 @@ func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan) exec.S
 		Type: db.ContainerTypeCheck,
 	}
 
+	resourceConfigScope, _ := check.ResourceConfigScope()
+
 	stepMetadata := exec.StepMetadata{
-		ResourceConfigScopeID: check.ResourceConfigScopeID,
-		ExternalURL:           externalURL,
+		ResourceConfigScopeID: resourceConfigScope.ID(),
+		BaseResourceTypeID:    resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		ExternalURL:           builder.externalURL,
 	}
 
 	return builder.stepFactory.CheckStep(

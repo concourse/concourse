@@ -52,7 +52,8 @@ var _ = Describe("ContainerOwner", func() {
 
 		JustBeforeEach(func() {
 			owner = db.NewResourceConfigCheckSessionContainerOwner(
-				resourceConfig,
+				resourceConfig.ID(),
+				resourceConfig.OriginBaseResourceType().ID,
 				ownerExpiries,
 			)
 		})
@@ -71,7 +72,8 @@ var _ = Describe("ContainerOwner", func() {
 
 				BeforeEach(func() {
 					existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
-						resourceConfig,
+						resourceConfig.ID(),
+						resourceConfig.OriginBaseResourceType().ID,
 						ownerExpiries,
 					)
 
@@ -97,7 +99,8 @@ var _ = Describe("ContainerOwner", func() {
 
 				BeforeEach(func() {
 					existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
-						resourceConfig,
+						resourceConfig.ID(),
+						resourceConfig.OriginBaseResourceType().ID,
 						ownerExpiries,
 					)
 

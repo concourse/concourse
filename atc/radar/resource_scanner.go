@@ -321,7 +321,8 @@ func (scanner *resourceScanner) check(
 	}
 
 	owner := db.NewResourceConfigCheckSessionContainerOwner(
-		resourceConfigScope.ResourceConfig(),
+		resourceConfigScope.ResourceConfig().ID(),
+		resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
 		ContainerExpiries,
 	)
 

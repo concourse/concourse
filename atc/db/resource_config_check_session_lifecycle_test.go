@@ -31,7 +31,11 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				resourceConfigScope, err := defaultResource.SetResourceConfig(defaultResource.Source(), atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiry)
+				owner := db.NewResourceConfigCheckSessionContainerOwner(
+					resourceConfigScope.ResourceConfig().ID(),
+					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					expiry,
+				)
 
 				var query sq.Eq
 				var found bool
@@ -128,7 +132,11 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), expiry)
+				owner := db.NewResourceConfigCheckSessionContainerOwner(
+					resourceConfigScope.ResourceConfig().ID(),
+					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					expiry,
+				)
 
 				var query sq.Eq
 				var found bool
