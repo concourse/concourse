@@ -2,7 +2,6 @@ package exec_test
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -11,6 +10,7 @@ import (
 	"io/ioutil"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
@@ -359,10 +359,10 @@ var _ = Describe("GetStep", func() {
 
 						Context("when the file exists", func() {
 							BeforeEach(func() {
-								gzWriter := gzip.NewWriter(tgzBuffer)
-								defer gzWriter.Close()
+								zstdWriter := zstd.NewWriter(tgzBuffer)
+								defer zstdWriter.Close()
 
-								tarWriter := tar.NewWriter(gzWriter)
+								tarWriter := tar.NewWriter(zstdWriter)
 								defer tarWriter.Close()
 
 								err := tarWriter.WriteHeader(&tar.Header{

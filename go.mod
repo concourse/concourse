@@ -13,6 +13,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest v11.2.8+incompatible // indirect
 	github.com/DataDog/datadog-go v0.0.0-20180702141236-ef3a9daf849d
+	github.com/DataDog/zstd v1.4.0
 	github.com/Jeffail/gabs v1.1.0 // indirect
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/Microsoft/go-winio v0.4.11 // indirect
@@ -45,7 +46,7 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.0-20181224171034-c2cf699102bd // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.4.0
+	github.com/concourse/baggageclaim v1.6.0
 	github.com/concourse/dex v0.0.0-20190417202333-2202f4ef4172
 	github.com/concourse/flag v1.0.0
 	github.com/concourse/go-archive v1.0.1

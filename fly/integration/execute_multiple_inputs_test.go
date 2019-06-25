@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
@@ -131,10 +131,7 @@ run:
 		atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 			ghttp.CombineHandlers(
 				func(w http.ResponseWriter, req *http.Request) {
-					gr, err := gzip.NewReader(req.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					tr := tar.NewReader(gr)
+					tr := tar.NewReader(zstd.NewReader(req.Body))
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())

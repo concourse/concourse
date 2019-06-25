@@ -2,13 +2,13 @@ package image
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
@@ -194,12 +194,8 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	gzReader, err := gzip.NewReader(reader)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	tarReader := tar.NewReader(gzReader)
+	zstdReader := zstd.NewReader(reader)
+	tarReader := tar.NewReader(zstdReader)
 
 	_, err = tarReader.Next()
 	if err != nil {

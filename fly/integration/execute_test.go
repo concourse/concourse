@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
@@ -132,10 +132,7 @@ run:
 				func(w http.ResponseWriter, req *http.Request) {
 					close(uploading)
 
-					gr, err := gzip.NewReader(req.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					tr := tar.NewReader(gr)
+					tr := tar.NewReader(zstd.NewReader(req.Body))
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())
@@ -375,10 +372,7 @@ run: {}
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
 
-								gr, err := gzip.NewReader(req.Body)
-								Expect(err).NotTo(HaveOccurred())
-
-								tr := tar.NewReader(gr)
+								tr := tar.NewReader(zstd.NewReader(req.Body))
 
 								var matchFound = false
 								for {
@@ -425,10 +419,7 @@ run: {}
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
 
-								gr, err := gzip.NewReader(req.Body)
-								Expect(err).NotTo(HaveOccurred())
-
-								tr := tar.NewReader(gr)
+								tr := tar.NewReader(zstd.NewReader(req.Body))
 
 								var matchFound = false
 								for {
