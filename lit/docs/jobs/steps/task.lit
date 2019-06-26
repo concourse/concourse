@@ -101,9 +101,12 @@ of a task.
 
 \define-attribute{vars: object}{
   \italic{Optional.} A map of template variables to pass to an external task.
-  Only works with external tasks defined in \reference{task-step-file}.
+  Not to be confused with \reference{task-step-params}, which provides
+  \italic{environment variables} to the task.
 
-  For example:
+  This is to be used with external tasks defined in \reference{task-step-file}.
+
+  For example, a var may be statically passed like so:
 
   \codeblock{yaml}{{
   plan:
@@ -115,7 +118,8 @@ of a task.
   }}
 
   This is often used in combination with
-  \reference{pipeline-vars}{\code{((vars))}} in the pipeline.
+  \reference{pipeline-vars}{\code{((vars))}} in the pipeline (note the
+  replacement of the string literal with the \code{((text))} pipeline var):
 
   \codeblock{yaml}{{
   plan:
@@ -126,7 +130,7 @@ of a task.
       text: ((text))
   }}
 
-  And \code{task.yml}:
+  When run with the following \code{task.yml}:
 
   \codeblock{yaml}{{{
     ---
@@ -144,14 +148,14 @@ of a task.
       args: ["((text))"]
   }}}
 
-  This will resolve \code{"((text))"} to \code{{"Hello World!"}}, while
+  ...this will resolve \code{"((text))"} to \code{{"Hello World!"}}, while
   \code{((myuser))} and \code{((mypass))}  will be resolved in runtime via a
   \reference{creds}{credential manager}, if it has been configured.
 }{task-step-vars}
 
 \define-attribute{params: object}{
-  \italic{Optional.} A map of task parameters to set, overriding those
-  configured in \code{config} or \code{file}.
+  \italic{Optional.} A map of task environment variable parameters to set,
+  overriding those configured in the task's \code{config} or \code{file}.
 
   The difference between \reference{task-step-params} and
   \reference{task-step-vars} is that \reference{task-step-vars} allows you to
