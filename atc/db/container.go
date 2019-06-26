@@ -139,6 +139,8 @@ type CreatedContainer interface {
 	Destroying() (DestroyingContainer, error)
 	IsHijacked() bool
 	MarkAsHijacked() error
+	SetRunningTask(bool) error
+	RunningTask() (bool, error)
 }
 
 type createdContainer struct {
@@ -255,6 +257,50 @@ func (container *createdContainer) MarkAsHijacked() error {
 
 	rows, err := psql.Update("containers").
 		Set("hijacked", true).
+		Where(sq.Eq{
+			"id":    container.id,
+			"state": atc.ContainerStateCreated,
+		}).
+		RunWith(container.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		return ErrContainerDisappeared
+	}
+
+	return nil
+}
+
+func (container *createdContainer) RunningTask() (bool, error) {
+	var runningtask bool
+
+	err := psql.Select("running_task").
+		From("containers").
+		Where(sq.Eq{
+			"id":    container.id,
+			"state": atc.ContainerStateCreated,
+		}).
+		RunWith(container.conn).
+		QueryRow().Scan(&runningtask)
+
+	if err != nil {
+		return false, err
+	}
+
+	return runningtask, nil
+}
+
+func (container *createdContainer) SetRunningTask(set bool) error {
+	rows, err := psql.Update("containers").
+		Set("running_task", set).
 		Where(sq.Eq{
 			"id":    container.id,
 			"state": atc.ContainerStateCreated,

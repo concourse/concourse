@@ -179,6 +179,7 @@ BEGIN;
       team_id integer,
       state container_state DEFAULT 'creating'::container_state NOT NULL,
       hijacked boolean DEFAULT false NOT NULL,
+      running_task boolean DEFAULT false NOT NULL,
       discontinued boolean DEFAULT false NOT NULL,
       meta_type text DEFAULT ''::text NOT NULL,
       meta_step_name text DEFAULT ''::text NOT NULL,

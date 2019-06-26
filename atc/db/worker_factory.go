@@ -342,7 +342,7 @@ func (f *workerFactory) FindWorkersForContainerByOwner(owner ContainerOwner) ([]
 func (f *workerFactory) BuildContainersCountPerWorker() (map[string]int, error) {
 	rows, err := psql.Select("worker_name, COUNT(*)").
 		From("containers").
-		Where("build_id IS NOT NULL").
+		Where("build_id IS NOT NULL AND running_task='true'").
 		GroupBy("worker_name").
 		RunWith(f.conn).
 		Query()

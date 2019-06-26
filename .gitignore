@@ -1,6 +1,3 @@
-.DS_Store
-.idea
-*.iml
 node_modules
 *-packr.go
 tags
@@ -13,3 +10,9 @@ ci/deployments/*/.terraform/
 ci/deployments/*/keys/gcp.json
 ci/deployments/*/keys/id_rsa
 ci/deployments/*/keys/id_rsa.pub
+
+# Editors
+.DS_Store
+.idea
+.vscode
+*.iml

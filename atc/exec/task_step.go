@@ -270,6 +270,9 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	logger.Info("attached")
+	container.SetRunningTask(true)
+	running, err := container.RunningTask()
+	logger.Info(fmt.Sprintf("Process started. Running task? %t", running))
 
 	exited := make(chan struct{})
 	var processStatus int
@@ -277,6 +280,9 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	go func() {
 		processStatus, processErr = process.Wait()
+		container.SetRunningTask(false)
+		running, err = container.RunningTask()
+		logger.Info(fmt.Sprintf("Process stopped. Running task? %t", running))
 		close(exited)
 	}()
 

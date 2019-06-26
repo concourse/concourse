@@ -112,9 +112,16 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 
 	compatibleTeamWorkers := []Worker{}
 	compatibleGeneralWorkers := []Worker{}
+	busyWorkers := 0
+	compatibleWorkers := 0
 	for _, worker := range workers {
 		compatible := worker.Satisfies(logger, spec)
 		if compatible {
+			compatibleWorkers += 1
+			if worker.BuildContainers() >= 1 { // TODO: from configuration
+				busyWorkers += 1
+				continue
+			}
 			if worker.IsOwnedByTeam() {
 				compatibleTeamWorkers = append(compatibleTeamWorkers, worker)
 			} else {
@@ -129,6 +136,12 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 
 	if len(compatibleGeneralWorkers) != 0 {
 		return compatibleGeneralWorkers, nil
+	}
+
+	if busyWorkers == compatibleWorkers {
+		logger.Info(fmt.Sprintf("All the %d workers satisfying the task criteria are busy, please stand-by.", compatibleWorkers))
+		pool.clock.Sleep(10 * time.Second)
+		return pool.allSatisfying(logger, spec)
 	}
 
 	return nil, NoCompatibleWorkersError{

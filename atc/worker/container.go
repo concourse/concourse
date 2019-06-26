@@ -22,6 +22,10 @@ type Container interface {
 	WorkerName() string
 
 	MarkAsHijacked() error
+
+	RunningTask() (bool, error)
+
+	SetRunningTask(bool) error
 }
 
 type gardenWorkerContainer struct {
@@ -87,6 +91,14 @@ func (container *gardenWorkerContainer) WorkerName() string {
 
 func (container *gardenWorkerContainer) MarkAsHijacked() error {
 	return container.dbContainer.MarkAsHijacked()
+}
+
+func (container *gardenWorkerContainer) RunningTask() (bool, error) {
+	return container.dbContainer.RunningTask()
+}
+
+func (container *gardenWorkerContainer) SetRunningTask(set bool) error {
+	return container.dbContainer.SetRunningTask(set)
 }
 
 func (container *gardenWorkerContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
