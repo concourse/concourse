@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
@@ -46,38 +45,26 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		go func() {
-			var fromVersion atc.Version
-			resourceConfigID := pipelineResource.ResourceConfigID()
-			resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigID)
-			if err != nil {
-				logger.Error("failed-to-get-resource-config", err, lager.Data{"resource-config-id": resourceConfigID})
-				return
+		dbResourceTypes, err := dbPipeline.ResourceTypes()
+		if err != nil {
+			logger.Error("failed-to-get-resource-types", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		created, err := s.check(pipelineResource, dbResourceTypes, nil)
+		if err != nil {
+			s.logger.Error("failed-to-create-check", err)
+			setErr := pipelineResource.SetCheckSetupError(err)
+			if setErr != nil {
+				logger.Error("failed-to-set-check-error", setErr)
 			}
+		}
 
-			if found {
-				resourceConfigScope, found, err := resourceConfig.FindResourceConfigScopeByID(pipelineResource.ResourceConfigScopeID(), pipelineResource)
-				if err != nil {
-					logger.Error("failed-to-get-resource-config-scope", err, lager.Data{"resource-config-scope-id": pipelineResource.ResourceConfigScopeID()})
-					return
-				}
-
-				if found {
-					latestVersion, found, err := resourceConfigScope.LatestVersion()
-					if err != nil {
-						logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigID})
-						return
-					}
-					if found {
-						fromVersion = atc.Version(latestVersion.Version())
-					}
-				}
-			}
-
-			scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
-			scanner.ScanFromVersion(logger, pipelineResource.ID(), fromVersion)
-		}()
-
-		w.WriteHeader(http.StatusOK)
+		if created {
+			w.WriteHeader(http.StatusCreated)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
 	})
 }

@@ -37,16 +37,25 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		scanner := s.scannerFactory.NewResourceTypeScanner(dbPipeline)
-
-		err = scanner.ScanFromVersion(logger, dbResourceType.ID(), reqBody.From)
-		switch err.(type) {
-		case db.ResourceTypeNotFoundError:
-			w.WriteHeader(http.StatusNotFound)
-		case error:
+		dbResourceTypes, err := dbPipeline.ResourceTypes()
+		if err != nil {
+			logger.Error("failed-to-get-resource-types", err)
 			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(err.Error()))
-		default:
+			return
+		}
+
+		created, err := s.check(dbResourceType, dbResourceTypes, reqBody.From)
+		if err != nil {
+			s.logger.Error("failed-to-create-check", err)
+			setErr := dbResourceType.SetCheckSetupError(err)
+			if setErr != nil {
+				logger.Error("failed-to-set-check-error", setErr)
+			}
+		}
+
+		if created {
+			w.WriteHeader(http.StatusCreated)
+		} else {
 			w.WriteHeader(http.StatusOK)
 		}
 	})

@@ -59,7 +59,6 @@ var _ = Describe("Plan", func() {
 							Type:   "type",
 							Name:   "name",
 							Source: atc.Source{"some": "source"},
-							Params: atc.Params{"some": "params"},
 							Tags:   atc.Tags{"tags"},
 						},
 					},

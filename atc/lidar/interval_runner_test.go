@@ -20,10 +20,11 @@ var _ = Describe("IntervalRunner", func() {
 		intervalRunner ifrit.Runner
 		process        ifrit.Process
 
-		logger     *lagertest.TestLogger
-		interval   time.Duration
-		notifier   chan bool
-		fakeRunner *lidarfakes.FakeRunner
+		logger            *lagertest.TestLogger
+		interval          time.Duration
+		notifier          chan bool
+		fakeRunner        *lidarfakes.FakeRunner
+		fakeNotifications *lidarfakes.FakeNotifications
 
 		runAt     time.Time
 		runTimes  chan time.Time
@@ -35,6 +36,8 @@ var _ = Describe("IntervalRunner", func() {
 		interval = time.Minute
 		notifier = make(chan bool)
 		fakeRunner = new(lidarfakes.FakeRunner)
+		fakeNotifications = new(lidarfakes.FakeNotifications)
+		fakeNotifications.ListenReturns(notifier, nil)
 
 		runAt = time.Unix(111, 111).UTC()
 		runTimes = make(chan time.Time, 100)
@@ -50,7 +53,8 @@ var _ = Describe("IntervalRunner", func() {
 			fakeClock,
 			fakeRunner,
 			interval,
-			notifier,
+			fakeNotifications,
+			"some-channel",
 		)
 	})
 

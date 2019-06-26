@@ -79,7 +79,6 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline) scheduler
 			pipeline,
 			maxinflight.NewUpdater(pipeline),
 			factory.NewBuildFactory(
-				pipeline.ID(),
 				atc.NewPlanFactory(time.Now().Unix()),
 			),
 			inputMapper,

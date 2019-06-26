@@ -22,7 +22,6 @@ type Resource interface {
 	Public() bool
 	PipelineID() int
 	PipelineName() string
-	ResourceTypes() (ResourceTypes, error)
 	TeamID() int
 	TeamName() string
 	Type() string
@@ -61,10 +60,27 @@ type Resource interface {
 	NotifyScan() error
 
 	Reload() (bool, error)
-	ParentResourceType() (ResourceType, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.type, r.config, r.check_error, rs.last_check_start_time, rs.last_check_end_time, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.id, t.name, rs.check_error, rp.version, rp.comment_text").
+var resourcesQuery = psql.Select(
+	"r.id",
+	"r.name",
+	"r.type",
+	"r.config",
+	"r.check_error",
+	"rs.last_check_start_time",
+	"rs.last_check_end_time",
+	"r.pipeline_id",
+	"r.nonce",
+	"r.resource_config_id",
+	"r.resource_config_scope_id",
+	"p.name",
+	"t.id",
+	"t.name",
+	"rs.check_error",
+	"rp.version",
+	"rp.comment_text",
+).
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -181,32 +197,6 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
-func (r *resource) ResourceTypes() (ResourceTypes, error) {
-	rows, err := resourceTypesQuery.
-		Where(sq.Eq{"r.pipeline_id": r.pipelineID}).
-		OrderBy("r.name").
-		RunWith(r.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-	defer Close(rows)
-
-	resourceTypes := []ResourceType{}
-
-	for rows.Next() {
-		resourceType := &resourceType{conn: r.conn, lockFactory: r.lockFactory}
-		err := scanResourceType(resourceType, rows)
-		if err != nil {
-			return nil, err
-		}
-
-		resourceTypes = append(resourceTypes, resourceType)
-	}
-
-	return resourceTypes, nil
-}
-
 func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
 	if err != nil {
@@ -276,10 +266,6 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 	return resourceConfigScope, nil
 }
 
-func (r *resource) ParentResourceType() (ResourceType, error) {
-	return nil, errors.New("nope")
-}
-
 func (r *resource) SetCheckSetupError(cause error) error {
 	var err error
 
@@ -300,15 +286,7 @@ func (r *resource) SetCheckSetupError(cause error) error {
 	return err
 }
 
-// SaveUncheckedVersion is used by the "get" and "put" step to find or create of a
-// resource config version. We want to do an upsert because there will be cases
-// where resource config versions can become outdated while the versions
-// associated to it are still valid. This will be special case where we save
-// the version with a check order of 0 in order to avoid using this version
-// until we do a proper check. Note that this method will not bump the cache
-// index for the pipeline because we want to ignore these versions until the
-// check orders get updated. The bumping of the index will be done in
-// SaveOutput for the put step.
+// XXX: only used for tests
 func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes atc.VersionedResourceTypes) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -322,7 +300,7 @@ func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceCo
 		return false, err
 	}
 
-	newVersion, err := saveResourceVersion(tx, resourceConfigScope, version, metadata)
+	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata)
 	if err != nil {
 		return false, err
 	}

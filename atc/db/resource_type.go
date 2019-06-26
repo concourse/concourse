@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/lib/pq"
 )
 
 type ResourceTypeNotFoundError struct {
@@ -23,6 +25,10 @@ func (e ResourceTypeNotFoundError) Error() string {
 
 type ResourceType interface {
 	ID() int
+	PipelineID() int
+	PipelineName() string
+	TeamID() int
+	TeamName() string
 	Name() string
 	Type() string
 	Privileged() bool
@@ -30,6 +36,9 @@ type ResourceType interface {
 	Params() atc.Params
 	Tags() atc.Tags
 	CheckEvery() string
+	CheckTimeout() string
+	LastCheckStartTime() time.Time
+	LastCheckEndTime() time.Time
 	CheckSetupError() error
 	CheckError() error
 	UniqueVersionHistory() bool
@@ -43,6 +52,18 @@ type ResourceType interface {
 }
 
 type ResourceTypes []ResourceType
+
+func (resourceTypes ResourceTypes) Filter(resourceType string) ResourceTypes {
+	var result ResourceTypes
+
+	for _, t := range resourceTypes {
+		if t.Name() == resourceType {
+			result = append(resourceTypes.Filter(t.Type()), t)
+		}
+	}
+
+	return result
+}
 
 func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 	var versionedResourceTypes atc.VersionedResourceTypes
@@ -85,8 +106,25 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 	return configs
 }
 
-var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rcv.version, r.nonce, r.check_error, ro.check_error").
+var resourceTypesQuery = psql.Select(
+	"r.id",
+	"r.pipeline_id",
+	"r.name",
+	"r.type",
+	"r.config",
+	"rcv.version",
+	"r.nonce",
+	"r.check_error",
+	"p.name",
+	"t.id",
+	"t.name",
+	"ro.check_error",
+	"ro.last_check_start_time",
+	"ro.last_check_end_time",
+).
 	From("resource_types r").
+	Join("pipelines p ON p.id = r.pipeline_id").
+	Join("teams t ON t.id = p.team_id").
 	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
 	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
 	LeftJoin(`LATERAL (
@@ -100,6 +138,10 @@ var resourceTypesQuery = psql.Select("r.id, r.name, r.type, r.config, rcv.versio
 
 type resourceType struct {
 	id                   int
+	pipelineID           int
+	pipelineName         string
+	teamID               int
+	teamName             string
 	name                 string
 	type_                string
 	privileged           bool
@@ -108,6 +150,8 @@ type resourceType struct {
 	tags                 atc.Tags
 	version              atc.Version
 	checkEvery           string
+	lastCheckStartTime   time.Time
+	lastCheckEndTime     time.Time
 	checkSetupError      error
 	checkError           error
 	uniqueVersionHistory bool
@@ -116,17 +160,24 @@ type resourceType struct {
 	lockFactory lock.LockFactory
 }
 
-func (t *resourceType) ID() int                    { return t.id }
-func (t *resourceType) Name() string               { return t.name }
-func (t *resourceType) Type() string               { return t.type_ }
-func (t *resourceType) Privileged() bool           { return t.privileged }
-func (t *resourceType) CheckEvery() string         { return t.checkEvery }
-func (t *resourceType) Source() atc.Source         { return t.source }
-func (t *resourceType) Params() atc.Params         { return t.params }
-func (t *resourceType) Tags() atc.Tags             { return t.tags }
-func (t *resourceType) CheckSetupError() error     { return t.checkSetupError }
-func (t *resourceType) CheckError() error          { return t.checkError }
-func (t *resourceType) UniqueVersionHistory() bool { return t.uniqueVersionHistory }
+func (t *resourceType) ID() int                       { return t.id }
+func (t *resourceType) PipelineID() int               { return t.pipelineID }
+func (t *resourceType) PipelineName() string          { return t.pipelineName }
+func (t *resourceType) TeamID() int                   { return t.teamID }
+func (t *resourceType) TeamName() string              { return t.teamName }
+func (t *resourceType) Name() string                  { return t.name }
+func (t *resourceType) Type() string                  { return t.type_ }
+func (t *resourceType) Privileged() bool              { return t.privileged }
+func (t *resourceType) CheckEvery() string            { return t.checkEvery }
+func (t *resourceType) CheckTimeout() string          { return "" }
+func (r *resourceType) LastCheckStartTime() time.Time { return r.lastCheckStartTime }
+func (r *resourceType) LastCheckEndTime() time.Time   { return r.lastCheckEndTime }
+func (t *resourceType) Source() atc.Source            { return t.source }
+func (t *resourceType) Params() atc.Params            { return t.params }
+func (t *resourceType) Tags() atc.Tags                { return t.tags }
+func (t *resourceType) CheckSetupError() error        { return t.checkSetupError }
+func (t *resourceType) CheckError() error             { return t.checkError }
+func (t *resourceType) UniqueVersionHistory() bool    { return t.uniqueVersionHistory }
 
 func (t *resourceType) Version() atc.Version { return t.version }
 
@@ -211,12 +262,16 @@ func scanResourceType(t *resourceType, row scannable) error {
 	var (
 		configJSON                            []byte
 		checkErr, rcsCheckErr, version, nonce sql.NullString
+		lastCheckStartTime, lastCheckEndTime  pq.NullTime
 	)
 
-	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &rcsCheckErr)
+	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &t.pipelineName, &t.teamID, &t.teamName, &rcsCheckErr, &lastCheckStartTime, &lastCheckEndTime)
 	if err != nil {
 		return err
 	}
+
+	t.lastCheckStartTime = lastCheckStartTime.Time
+	t.lastCheckEndTime = lastCheckEndTime.Time
 
 	if version.Valid {
 		err = json.Unmarshal([]byte(version.String), &t.version)

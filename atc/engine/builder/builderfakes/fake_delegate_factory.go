@@ -23,6 +23,18 @@ type FakeDelegateFactory struct {
 	buildStepDelegateReturnsOnCall map[int]struct {
 		result1 exec.BuildStepDelegate
 	}
+	CheckDelegateStub        func(db.Check, atc.PlanID) exec.CheckDelegate
+	checkDelegateMutex       sync.RWMutex
+	checkDelegateArgsForCall []struct {
+		arg1 db.Check
+		arg2 atc.PlanID
+	}
+	checkDelegateReturns struct {
+		result1 exec.CheckDelegate
+	}
+	checkDelegateReturnsOnCall map[int]struct {
+		result1 exec.CheckDelegate
+	}
 	GetDelegateStub        func(db.Build, atc.PlanID) exec.GetDelegate
 	getDelegateMutex       sync.RWMutex
 	getDelegateArgsForCall []struct {
@@ -121,6 +133,67 @@ func (fake *FakeDelegateFactory) BuildStepDelegateReturnsOnCall(i int, result1 e
 	}
 	fake.buildStepDelegateReturnsOnCall[i] = struct {
 		result1 exec.BuildStepDelegate
+	}{result1}
+}
+
+func (fake *FakeDelegateFactory) CheckDelegate(arg1 db.Check, arg2 atc.PlanID) exec.CheckDelegate {
+	fake.checkDelegateMutex.Lock()
+	ret, specificReturn := fake.checkDelegateReturnsOnCall[len(fake.checkDelegateArgsForCall)]
+	fake.checkDelegateArgsForCall = append(fake.checkDelegateArgsForCall, struct {
+		arg1 db.Check
+		arg2 atc.PlanID
+	}{arg1, arg2})
+	fake.recordInvocation("CheckDelegate", []interface{}{arg1, arg2})
+	fake.checkDelegateMutex.Unlock()
+	if fake.CheckDelegateStub != nil {
+		return fake.CheckDelegateStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.checkDelegateReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeDelegateFactory) CheckDelegateCallCount() int {
+	fake.checkDelegateMutex.RLock()
+	defer fake.checkDelegateMutex.RUnlock()
+	return len(fake.checkDelegateArgsForCall)
+}
+
+func (fake *FakeDelegateFactory) CheckDelegateCalls(stub func(db.Check, atc.PlanID) exec.CheckDelegate) {
+	fake.checkDelegateMutex.Lock()
+	defer fake.checkDelegateMutex.Unlock()
+	fake.CheckDelegateStub = stub
+}
+
+func (fake *FakeDelegateFactory) CheckDelegateArgsForCall(i int) (db.Check, atc.PlanID) {
+	fake.checkDelegateMutex.RLock()
+	defer fake.checkDelegateMutex.RUnlock()
+	argsForCall := fake.checkDelegateArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeDelegateFactory) CheckDelegateReturns(result1 exec.CheckDelegate) {
+	fake.checkDelegateMutex.Lock()
+	defer fake.checkDelegateMutex.Unlock()
+	fake.CheckDelegateStub = nil
+	fake.checkDelegateReturns = struct {
+		result1 exec.CheckDelegate
+	}{result1}
+}
+
+func (fake *FakeDelegateFactory) CheckDelegateReturnsOnCall(i int, result1 exec.CheckDelegate) {
+	fake.checkDelegateMutex.Lock()
+	defer fake.checkDelegateMutex.Unlock()
+	fake.CheckDelegateStub = nil
+	if fake.checkDelegateReturnsOnCall == nil {
+		fake.checkDelegateReturnsOnCall = make(map[int]struct {
+			result1 exec.CheckDelegate
+		})
+	}
+	fake.checkDelegateReturnsOnCall[i] = struct {
+		result1 exec.CheckDelegate
 	}{result1}
 }
 
@@ -312,6 +385,8 @@ func (fake *FakeDelegateFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.buildStepDelegateMutex.RLock()
 	defer fake.buildStepDelegateMutex.RUnlock()
+	fake.checkDelegateMutex.RLock()
+	defer fake.checkDelegateMutex.RUnlock()
 	fake.getDelegateMutex.RLock()
 	defer fake.getDelegateMutex.RUnlock()
 	fake.putDelegateMutex.RLock()

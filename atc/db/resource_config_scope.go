@@ -67,7 +67,11 @@ func (r *resourceConfigScope) CheckError() error              { return r.checkEr
 // that already exist in the DB will be re-ordered using
 // incrementCheckOrderWhenNewerVersion to input the correct check order
 func (r *resourceConfigScope) SaveVersions(versions []atc.Version) error {
-	tx, err := r.conn.Begin()
+	return saveVersions(r.conn, r.ID(), versions)
+}
+
+func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
+	tx, err := conn.Begin()
 	if err != nil {
 		return err
 	}
@@ -75,7 +79,7 @@ func (r *resourceConfigScope) SaveVersions(versions []atc.Version) error {
 	defer Rollback(tx)
 
 	for _, version := range versions {
-		_, err = saveResourceVersion(tx, r, version, nil)
+		_, err = saveResourceVersion(tx, rcsID, version, nil)
 		if err != nil {
 			return err
 		}
@@ -85,7 +89,7 @@ func (r *resourceConfigScope) SaveVersions(versions []atc.Version) error {
 			return err
 		}
 
-		err = incrementCheckOrder(tx, r, string(versionJSON))
+		err = incrementCheckOrder(tx, rcsID, string(versionJSON))
 		if err != nil {
 			return err
 		}
@@ -96,7 +100,7 @@ func (r *resourceConfigScope) SaveVersions(versions []atc.Version) error {
 		return err
 	}
 
-	err = bumpCacheIndexForPipelinesUsingResourceConfigScope(r.conn, r.id)
+	err = bumpCacheIndexForPipelinesUsingResourceConfigScope(conn, rcsID)
 	if err != nil {
 		return err
 	}
@@ -256,7 +260,7 @@ func (r *resourceConfigScope) UpdateLastCheckEndTime() (bool, error) {
 	return true, nil
 }
 
-func saveResourceVersion(tx Tx, r ResourceConfigScope, version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
+func saveResourceVersion(tx Tx, rcsID int, version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
 	versionJSON, err := json.Marshal(version)
 	if err != nil {
 		return false, err
@@ -274,7 +278,7 @@ func saveResourceVersion(tx Tx, r ResourceConfigScope, version atc.Version, meta
 		ON CONFLICT (resource_config_scope_id, version_md5)
 		DO UPDATE SET metadata = COALESCE(NULLIF(excluded.metadata, 'null'::jsonb), resource_config_versions.metadata)
 		RETURNING check_order
-		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON)).Scan(&checkOrder)
+		`, rcsID, string(versionJSON), string(versionJSON), string(metadataJSON)).Scan(&checkOrder)
 	if err != nil {
 		return false, err
 	}
@@ -286,7 +290,7 @@ func saveResourceVersion(tx Tx, r ResourceConfigScope, version atc.Version, meta
 // current max. This will fix the case of a check from an old version causing
 // the desired order to change; existing versions will be re-ordered since
 // we add them in the desired order.
-func incrementCheckOrder(tx Tx, r ResourceConfigScope, version string) error {
+func incrementCheckOrder(tx Tx, rcsID int, version string) error {
 	_, err := tx.Exec(`
 		WITH max_checkorder AS (
 			SELECT max(check_order) co
@@ -299,7 +303,7 @@ func incrementCheckOrder(tx Tx, r ResourceConfigScope, version string) error {
 		FROM max_checkorder mc
 		WHERE resource_config_scope_id = $1
 		AND version = $2
-		AND check_order <= mc.co;`, r.ID(), version)
+		AND check_order <= mc.co;`, rcsID, version)
 	return err
 }
 

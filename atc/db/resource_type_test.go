@@ -55,7 +55,7 @@ var _ = Describe("ResourceType", func() {
 	})
 
 	Describe("(Pipeline).ResourceTypes", func() {
-		var resourceTypes []db.ResourceType
+		var resourceTypes db.ResourceTypes
 
 		JustBeforeEach(func() {
 			var err error
@@ -127,6 +127,73 @@ var _ = Describe("ResourceType", func() {
 			It("does not return inactive resource types", func() {
 				Expect(resourceTypes).To(HaveLen(1))
 				Expect(resourceTypes[0].Name()).To(Equal("some-type"))
+			})
+		})
+
+		Context("when building the dependency tree from resource types list", func() {
+			BeforeEach(func() {
+				var (
+					created bool
+					err     error
+				)
+
+				pipeline, created, err = defaultTeam.SavePipeline(
+					"pipeline-with-types",
+					atc.Config{
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:   "some-type",
+								Type:   "registry-image",
+								Source: atc.Source{"some": "repository"},
+							},
+							{
+								Name:       "some-other-type",
+								Type:       "registry-image-ng",
+								Privileged: true,
+								Source:     atc.Source{"some": "other-repository"},
+							},
+							{
+								Name:   "some-type-with-params",
+								Type:   "s3",
+								Source: atc.Source{"some": "repository"},
+								Params: atc.Params{"unpack": "true"},
+							},
+							{
+								Name:       "some-type-with-custom-check",
+								Type:       "registry-image",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: "10ms",
+							},
+							{
+								Name:       "some-custom-type",
+								Type:       "some-other-foo-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: "10ms",
+							},
+							{
+								Name:       "some-other-foo-type",
+								Type:       "some-other-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: "10ms",
+							},
+						},
+					},
+					pipeline.ConfigVersion(),
+					db.PipelineUnpaused,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeFalse())
+			})
+
+			It("returns the resource types tree given type name", func() {
+				tree := resourceTypes.Filter("some-custom-type")
+				Expect(len(tree)).To(Equal(3))
+				Expect(tree[0].Name()).To(Equal("some-other-type"))
+				Expect(tree[0].Type()).To(Equal("registry-image-ng"))
+				Expect(tree[1].Name()).To(Equal("some-other-foo-type"))
+				Expect(tree[1].Type()).To(Equal("some-other-type"))
+				Expect(tree[2].Name()).To(Equal("some-custom-type"))
+				Expect(tree[2].Type()).To(Equal("some-other-foo-type"))
 			})
 		})
 	})

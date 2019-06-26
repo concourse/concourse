@@ -15,21 +15,20 @@ func NewRunner(
 	clock clock.Clock,
 	scanRunner Runner,
 	scanInterval time.Duration,
-	scanNotifier chan bool,
 	checkRunner Runner,
 	checkInterval time.Duration,
-	checkNotifier chan bool,
+	notifications Notifications,
 ) ifrit.Runner {
 	return grouper.NewParallel(
 		os.Interrupt,
 		[]grouper.Member{
 			{
 				Name:   "scanner",
-				Runner: NewIntervalRunner(logger, clock, scanRunner, scanInterval, scanNotifier),
+				Runner: NewIntervalRunner(logger, clock, scanRunner, scanInterval, notifications, "scanner"),
 			},
 			{
 				Name:   "checker",
-				Runner: NewIntervalRunner(logger, clock, checkRunner, checkInterval, checkNotifier),
+				Runner: NewIntervalRunner(logger, clock, checkRunner, checkInterval, notifications, "checker"),
 			},
 		},
 	)

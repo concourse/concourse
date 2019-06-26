@@ -7,8 +7,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource"
-	"github.com/google/jsonapi"
 	"github.com/tedsuo/rata"
 )
 
@@ -39,38 +37,25 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
-
-		err = scanner.ScanFromVersion(logger, dbResource.ID(), reqBody.From)
-		switch scanErr := err.(type) {
-		case resource.ErrResourceScriptFailed:
-			checkResponseBody := atc.CheckResponseBody{
-				ExitStatus: scanErr.ExitStatus,
-				Stderr:     scanErr.Stderr,
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			err = json.NewEncoder(w).Encode(checkResponseBody)
-			if err != nil {
-				logger.Error("failed-to-encode-check-response-body", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				_, _ = w.Write([]byte(err.Error()))
-			}
-		case db.ResourceNotFoundError:
-			w.WriteHeader(http.StatusNotFound)
-		case db.ResourceTypeNotFoundError:
-			w.Header().Set("Content-Type", jsonapi.MediaType)
-			w.WriteHeader(http.StatusBadRequest)
-			_ = jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
-				Title:  "Resource Type Not Found Error",
-				Detail: err.Error(),
-				Status: "400",
-			}})
-		case error:
+		dbResourceTypes, err := dbPipeline.ResourceTypes()
+		if err != nil {
+			logger.Error("failed-to-get-resource-types", err)
 			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(err.Error()))
-		default:
+			return
+		}
+
+		created, err := s.check(dbResource, dbResourceTypes, reqBody.From)
+		if err != nil {
+			s.logger.Error("failed-to-create-check", err)
+			setErr := dbResource.SetCheckSetupError(err)
+			if setErr != nil {
+				logger.Error("failed-to-set-check-error", setErr)
+			}
+		}
+
+		if created {
+			w.WriteHeader(http.StatusCreated)
+		} else {
 			w.WriteHeader(http.StatusOK)
 		}
 	})

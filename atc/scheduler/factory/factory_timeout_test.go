@@ -20,7 +20,7 @@ var _ = Describe("Factory Timeout Step", func() {
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(321)
 		expectedPlanFactory = atc.NewPlanFactory(321)
-		buildFactory = factory.NewBuildFactory(42, actualPlanFactory)
+		buildFactory = factory.NewBuildFactory(actualPlanFactory)
 
 		resourceTypes = atc.VersionedResourceTypes{
 			{

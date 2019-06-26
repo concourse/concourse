@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
@@ -18,6 +19,7 @@ type CheckStep struct {
 	plan              atc.CheckPlan
 	metadata          StepMetadata
 	containerMetadata db.ContainerMetadata
+	secrets           creds.Secrets
 	resourceFactory   resource.ResourceFactory
 	strategy          worker.ContainerPlacementStrategy
 	pool              worker.Pool
@@ -26,6 +28,9 @@ type CheckStep struct {
 }
 
 type CheckDelegate interface {
+	BuildStepDelegate
+
+	SaveVersions([]atc.Version) error
 }
 
 func NewCheckStep(
@@ -33,6 +38,7 @@ func NewCheckStep(
 	plan atc.CheckPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
+	secrets creds.Secrets,
 	resourceFactory resource.ResourceFactory,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
@@ -42,6 +48,7 @@ func NewCheckStep(
 		planID:            planID,
 		plan:              plan,
 		metadata:          metadata,
+		secrets:           secrets,
 		containerMetadata: containerMetadata,
 		resourceFactory:   resourceFactory,
 		pool:              pool,
@@ -55,6 +62,8 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 	logger = logger.Session("check-step", lager.Data{
 		"step-name": step.plan.Name,
 	})
+
+	resourceTypes := step.plan.VersionedResourceTypes
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
@@ -71,50 +80,51 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 	workerSpec := worker.WorkerSpec{
 		ResourceType:  step.plan.Type,
 		Tags:          step.plan.Tags,
-		ResourceTypes: step.plan.VersionedResourceTypes,
+		ResourceTypes: resourceTypes,
 		TeamID:        step.metadata.TeamID,
+	}
+
+	expires := db.ContainerOwnerExpiries{
+		Min: 5 * time.Minute,
+		Max: 1 * time.Hour,
 	}
 
 	owner := db.NewResourceConfigCheckSessionContainerOwner(
 		step.metadata.ResourceConfigID,
 		step.metadata.BaseResourceTypeID,
-		db.ContainerOwnerExpiries{
-			Min: 5 * time.Minute,
-			Max: 1 * time.Hour,
-		},
+		expires,
 	)
-
-	containerMetadata := db.ContainerMetadata{
-		Type: db.ContainerTypeCheck,
-	}
 
 	chosenWorker, err := step.pool.FindOrChooseWorkerForContainer(
 		ctx,
 		logger,
 		owner,
 		containerSpec,
-		containerMetadata,
 		workerSpec,
-		worker.NewRandomPlacementStrategy(),
+		step.strategy,
 	)
 	if err != nil {
+		logger.Error("failed-to-find-or-choose-worker", err)
 		return err
 	}
 
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
 		logger,
-		worker.NoopImageFetchingDelegate{},
+		step.delegate,
 		owner,
+		step.containerMetadata,
 		containerSpec,
-		step.plan.VersionedResourceTypes,
+		resourceTypes,
 	)
 	if err != nil {
+		logger.Error("failed-to-find-or-create-container", err)
 		return err
 	}
 
 	timeout, err := time.ParseDuration(step.plan.Timeout)
 	if err != nil {
+		logger.Error("failed-to-parse-timeout", err)
 		return err
 	}
 
@@ -123,11 +133,17 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 
 	checkable := step.resourceFactory.NewResourceForContainer(container)
 
-	versions, err := checkable.Check(deadline, step.plan.Source, *step.plan.FromVersion)
+	versions, err := checkable.Check(deadline, step.plan.Source, step.plan.FromVersion)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			return fmt.Errorf("Timed out after %v while checking for new versions", timeout)
 		}
+		return err
+	}
+
+	err = step.delegate.SaveVersions(versions)
+	if err != nil {
+		logger.Error("failed-to-save-versions", err)
 		return err
 	}
 
