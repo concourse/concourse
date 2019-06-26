@@ -44,6 +44,7 @@ Concourse currently supports the following credential managers:
 \include-section{creds/credhub.lit}
 \include-section{creds/aws-ssm.lit}
 \include-section{creds/aws-secretsmanager.lit}
+\include-section{creds/kubernetes.lit}
 
 \inline-header{Common Configuration Parameters}
 
