@@ -21,7 +21,7 @@ type BuildScheduler interface {
 		job db.Job,
 		resources db.Resources,
 		resourceTypes atc.VersionedResourceTypes,
-	) (map[string]time.Duration, error)
+	) error
 }
 
 var errPipelineRemoved = errors.New("pipeline removed")
@@ -159,8 +159,9 @@ func (runner *Runner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock,
 	}
 
 	sLog := logger.Session("scheduling")
+	jStart := time.Now()
 
-	schedulingTimes, err := runner.Scheduler.Schedule(
+	err = runner.Scheduler.Schedule(
 		sLog,
 		versions,
 		job,
@@ -168,11 +169,10 @@ func (runner *Runner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock,
 		resourceTypes.Deserialize(),
 	)
 
-	for jobName, duration := range schedulingTimes {
-		metric.SchedulingJobDuration{
-			PipelineName: runner.Pipeline.Name(),
-			JobName:      jobName,
-			Duration:     duration,
-		}.Emit(sLog)
-	}
+	metric.SchedulingJobDuration{
+		PipelineName: runner.Pipeline.Name(),
+		JobName:      job.Name(),
+		JobID:        job.ID(),
+		Duration:     time.Since(jStart),
+	}.Emit(sLog)
 }

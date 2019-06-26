@@ -1,8 +1,6 @@
 package scheduler
 
 import (
-	"time"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -22,37 +20,29 @@ func (s *Scheduler) Schedule(
 	job db.Job,
 	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
-) (time.Duration, error) {
-	jobSchedulingTime := map[string]time.Duration{}
-
-	jStart := time.Now()
-
+) error {
 	inputMapping, resolved, err := s.InputMapper.MapInputs(versions, job, resources)
 	if err != nil {
-		return jobSchedulingTime, err
+		return err
 	}
 
 	err = job.SaveNextInputMapping(inputMapping, resolved)
 	if err != nil {
 		logger.Error("failed-to-save-next-input-mapping", err)
-		return jobSchedulingTime, err
+		return err
 	}
 
 	err = s.ensurePendingBuildExists(logger, job, resources)
-	jobSchedulingTime[job.Name()] = time.Since(jStart)
-
 	if err != nil {
-		return jobSchedulingTime, err
+		return err
 	}
 
 	err = s.BuildStarter.TryStartPendingBuildsForJob(logger, job, resources, resourceTypes)
-	jobSchedulingTime[job.Name()] = jobSchedulingTime[job.Name()] + time.Since(jStart)
-
 	if err != nil {
-		return jobSchedulingTime, err
+		return err
 	}
 
-	return jobSchedulingTime, nil
+	return nil
 }
 
 func (s *Scheduler) ensurePendingBuildExists(

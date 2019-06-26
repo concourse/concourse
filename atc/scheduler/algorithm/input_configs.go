@@ -347,15 +347,16 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 					}
 
 					if found {
-						vouchedVersions := []db.AlgorithmVersion{}
-						for ci, candidate := range candidates {
-							if candidate != nil && inputConfigs[ci].Passed[jobID] {
-								vouchedVersions = append(vouchedVersions, db.AlgorithmVersion{ResourceID: inputConfigs[ci].ResourceID, Version: db.ResourceVersion(candidate.Version)})
-							}
-						}
+						// vouchedVersions := []db.AlgorithmVersion{}
+						// for ci, candidate := range candidates {
+						// 	if candidate != nil && inputConfigs[ci].Passed[jobID] {
+						// 		vouchedVersions = append(vouchedVersions, db.AlgorithmVersion{ResourceID: inputConfigs[ci].ResourceID, Version: db.ResourceVersion(candidate.Version)})
+						// 	}
+						// }
 
-						if len(vouchedVersions) > 0 {
-							paginatedBuilds, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, vouchedVersions)
+						// if len(vouchedVersions) > 0 {
+						if candidates[i] != nil {
+							paginatedBuilds, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, candidates[i].Version, inputConfig.ResourceID)
 						} else {
 							paginatedBuilds, err = vdb.UnusedBuilds(constraintBuildID, jobID)
 						}
@@ -367,15 +368,16 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 			}
 
 			if !inputConfig.UseEveryVersion || !found {
-				vouchedVersions := []db.AlgorithmVersion{}
-				for ci, candidate := range candidates {
-					if candidate != nil && inputConfigs[ci].Passed[jobID] {
-						vouchedVersions = append(vouchedVersions, db.AlgorithmVersion{ResourceID: inputConfigs[ci].ResourceID, Version: db.ResourceVersion(candidate.Version)})
-					}
-				}
+				// vouchedVersions := []db.AlgorithmVersion{}
+				// for ci, candidate := range candidates {
+				// 	if candidate != nil && inputConfigs[ci].Passed[jobID] {
+				// 		vouchedVersions = append(vouchedVersions, db.AlgorithmVersion{ResourceID: inputConfigs[ci].ResourceID, Version: db.ResourceVersion(candidate.Version)})
+				// 	}
+				// }
 
-				if len(vouchedVersions) > 0 {
-					paginatedBuilds = vdb.SuccessfulBuildsVersionConstrained(jobID, vouchedVersions)
+				// if len(vouchedVersions) > 0 {
+				if candidates[i] != nil {
+					paginatedBuilds = vdb.SuccessfulBuildsVersionConstrained(jobID, candidates[i].Version, inputConfig.ResourceID)
 				} else {
 					paginatedBuilds = vdb.SuccessfulBuilds(jobID)
 				}

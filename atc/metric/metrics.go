@@ -83,6 +83,7 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 type SchedulingJobDuration struct {
 	PipelineName string
 	JobName      string
+	JobID        int
 	Duration     time.Duration
 }
 
@@ -106,6 +107,7 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 			Attributes: map[string]string{
 				"pipeline": event.PipelineName,
 				"job":      event.JobName,
+				"job_id":   strconv.Itoa(event.JobID),
 			},
 		},
 	)
