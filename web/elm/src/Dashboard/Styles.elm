@@ -12,6 +12,8 @@ module Dashboard.Styles exposing
     , infoBar
     , infoCliIcon
     , infoItem
+    , jobPreview
+    , jobPreviewLink
     , legend
     , legendItem
     , legendSeparator
@@ -48,6 +50,7 @@ module Dashboard.Styles exposing
 
 import Application.Styles
 import Colors
+import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Html
@@ -700,6 +703,55 @@ visibilityTooltip =
     , style "margin-bottom" "5px"
     , style "right" "-150%"
     ]
+
+
+jobPreview : Concourse.Job -> Bool -> List (Html.Attribute msg)
+jobPreview job isHovered =
+    [ style "flex-grow" "1"
+    , style "display" "flex"
+    , style "margin" "2px"
+    ]
+        ++ (if job.paused then
+                [ style "background-color" <|
+                    Colors.statusColor PipelineStatusPaused
+                ]
+
+            else
+                let
+                    finishedBuildStatus =
+                        job.finishedBuild
+                            |> Maybe.map .status
+                            |> Maybe.withDefault Concourse.BuildStatusPending
+
+                    isRunning =
+                        job.nextBuild /= Nothing
+
+                    color =
+                        Colors.buildStatusColor
+                            (not isHovered)
+                            finishedBuildStatus
+                in
+                if isRunning then
+                    striped
+                        { pipelineRunningKeyframes = "pipeline-running"
+                        , thickColor =
+                            Colors.buildStatusColor
+                                False
+                                finishedBuildStatus
+                        , thinColor =
+                            Colors.buildStatusColor
+                                True
+                                finishedBuildStatus
+                        }
+
+                else
+                    solid color
+           )
+
+
+jobPreviewLink : List (Html.Attribute msg)
+jobPreviewLink =
+    [ style "flex-grow" "1" ]
 
 
 clusterName : List (Html.Attribute msg)

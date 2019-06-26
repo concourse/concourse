@@ -34,7 +34,6 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 		var owner db.ContainerOwner
 
 		ownerExpiries = db.ContainerOwnerExpiries{
-			GraceTime: 5 * time.Second,
 			Min:       10 * time.Second,
 			Max:       10 * time.Second,
 		}

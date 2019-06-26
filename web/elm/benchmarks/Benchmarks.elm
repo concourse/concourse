@@ -16,7 +16,7 @@ main =
     program <|
         Benchmark.compare "view"
             "with uncertainty metric"
-            (\_ -> DP.view sampleJobs)
+            (\_ -> DP.view Nothing sampleJobs)
             "straight recursion"
             (\_ -> view sampleJobs)
 

@@ -619,18 +619,6 @@ func (p *pipeline) Pause() error {
 		}).
 		RunWith(p.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Update("resources").
-		Set("resource_config_id", nil).
-		Set("resource_config_scope_id", nil).
-		Where(sq.Eq{
-			"pipeline_id": p.id,
-		}).
-		RunWith(p.conn).
-		Exec()
 
 	return err
 }

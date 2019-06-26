@@ -1,16 +1,19 @@
 module Dashboard.DashboardPreview exposing (groupByRank, view)
 
 import Concourse
-import Concourse.BuildStatus
+import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
+import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href)
+import Html.Events exposing (onMouseEnter, onMouseLeave)
 import List.Extra
+import Message.Message exposing (DomID(..), Message(..))
 import Routes
 
 
-view : List Concourse.Job -> Html msg
-view jobs =
+view : Maybe DomID -> List Concourse.Job -> Html Message
+view hovered jobs =
     let
         layers : List (List Concourse.Job)
         layers =
@@ -36,24 +39,17 @@ view jobs =
             , ( "pipeline-grid-super-tall", height > 24 )
             ]
         ]
-        (List.map viewJobLayer layers)
+        (List.map (viewJobLayer hovered) layers)
 
 
-viewJobLayer : List Concourse.Job -> Html msg
-viewJobLayer jobs =
-    Html.div [ class "parallel-grid" ] (List.map viewJob jobs)
+viewJobLayer : Maybe DomID -> List Concourse.Job -> Html Message
+viewJobLayer hovered jobs =
+    Html.div [ class "parallel-grid" ] (List.map (viewJob hovered) jobs)
 
 
-viewJob : Concourse.Job -> Html msg
-viewJob job =
+viewJob : Maybe DomID -> Concourse.Job -> Html Message
+viewJob hovered job =
     let
-        jobStatus : String
-        jobStatus =
-            job.finishedBuild
-                |> Maybe.map .status
-                |> Maybe.map Concourse.BuildStatus.show
-                |> Maybe.withDefault "no-builds"
-
         latestBuild : Maybe Concourse.Build
         latestBuild =
             if job.nextBuild == Nothing then
@@ -70,16 +66,24 @@ viewJob job =
 
                 Just build ->
                     Routes.buildRoute build
+
+        jobId =
+            { jobName = job.name
+            , pipelineName = job.pipelineName
+            , teamName = job.teamName
+            }
     in
     Html.div
-        [ classList
-            [ ( "node " ++ jobStatus, True )
-            , ( "running", job.nextBuild /= Nothing )
-            , ( "paused", job.paused )
-            ]
-        , attribute "data-tooltip" job.name
+        (attribute "data-tooltip" job.name
+            :: Styles.jobPreview job (hovered == (Just <| JobPreview jobId))
+            ++ [ onMouseEnter <| Hover <| Just <| JobPreview jobId
+               , onMouseLeave <| Hover Nothing
+               ]
+        )
+        [ Html.a
+            (href (Routes.toString buildRoute) :: Styles.jobPreviewLink)
+            [ Html.text "" ]
         ]
-        [ Html.a [ href <| Routes.toString buildRoute ] [ Html.text "" ] ]
 
 
 type alias Job a b =
