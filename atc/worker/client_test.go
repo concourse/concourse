@@ -151,6 +151,7 @@ var _ = Describe("Client", func() {
 		var (
 			fakeWorker *workerfakes.FakeWorker
 			volumeSpec worker.VolumeSpec
+			workerSpec worker.WorkerSpec
 			volumeType db.VolumeType
 			err        error
 		)
@@ -160,11 +161,15 @@ var _ = Describe("Client", func() {
 				Strategy: baggageclaim.EmptyStrategy{},
 			}
 
+			workerSpec = worker.WorkerSpec{
+				TeamID: 1,
+			}
+
 			volumeType = db.VolumeTypeArtifact
 		})
 
 		JustBeforeEach(func() {
-			_, err = client.CreateVolume(logger, volumeSpec, 1, volumeType)
+			_, err = client.CreateVolume(logger, volumeSpec, workerSpec, volumeType)
 		})
 
 		Context("when no workers can be found", func() {

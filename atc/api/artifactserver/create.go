@@ -20,11 +20,16 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 		// which we can lookup in the checksum field
 		// that way we don't have to create another volume.
 
-		spec := worker.VolumeSpec{
+		workerSpec := worker.WorkerSpec{
+			TeamID:   team.ID(),
+			Platform: r.FormValue("platform"),
+		}
+
+		volumeSpec := worker.VolumeSpec{
 			Strategy: baggageclaim.EmptyStrategy{},
 		}
 
-		volume, err := s.workerClient.CreateVolume(hLog, spec, team.ID(), db.VolumeTypeArtifact)
+		volume, err := s.workerClient.CreateVolume(hLog, volumeSpec, workerSpec, db.VolumeTypeArtifact)
 		if err != nil {
 			hLog.Error("failed-to-create-volume", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -3,6 +3,7 @@ package concourse
 import (
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/concourse/concourse/atc"
@@ -10,7 +11,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) CreateArtifact(src io.Reader) (atc.WorkerArtifact, error) {
+func (team *team) CreateArtifact(src io.Reader, platform string) (atc.WorkerArtifact, error) {
 	var artifact atc.WorkerArtifact
 
 	params := rata.Params{
@@ -21,6 +22,7 @@ func (team *team) CreateArtifact(src io.Reader) (atc.WorkerArtifact, error) {
 		Header:      http.Header{"Content-Type": {"application/octet-stream"}},
 		RequestName: atc.CreateArtifact,
 		Params:      params,
+		Query:       url.Values{"platform": {platform}},
 		Body:        src,
 	}, &internal.Response{
 		Result: &artifact,
