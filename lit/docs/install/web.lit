@@ -158,13 +158,16 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     To run a cluster of \reference{web-node}s, you'll first need to ensure
     they're all pointing to the same PostgreSQL server.
 
-    Next, you'll need to configure a \italic{peer URL}. This is a URL that can be
-    used to reach this \code{web} node's web server from other \code{web} nodes.
-    Typically this uses a private IP, like so:
+    Next, you'll need to configure a \italic{peer address}. This is a DNS or IP
+    address that can be used to reach this \code{web} node from other
+    \code{web} nodes. Typically this uses a private IP, like so:
 
     \codeblock{bash}{{{
-    CONCOURSE_PEER_URL=http://10.10.0.1:8080
+    CONCOURSE_PEER_ADDRESS=10.10.0.1
     }}}
+
+    This address will be used for forwarded worker connections, which listen on
+    the ephemeral port range.
 
     Finally, if all of these nodes are going to be accessed through a load
     balancer, you'll need to configure the external URL that will be used to
