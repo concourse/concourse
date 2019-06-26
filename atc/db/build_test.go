@@ -163,16 +163,135 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	// XXX: ADD TEST FOR SUCCESSFUL BUILD VERSIONS
 	Describe("Finish", func() {
+		var pipeline db.Pipeline
 		var build db.Build
+		var expectedOutputs []db.AlgorithmOutput
+
 		BeforeEach(func() {
-			var err error
-			build, err = team.CreateOneOffBuild()
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "some-type",
+			}
+
+			_, err = brt.FindOrCreate(setupTx, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			pipelineConfig := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					},
+					{
+						Name:   "some-other-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "other-source"},
+					},
+				},
+			}
+
+			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resource1, found, err := pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resource2, found, err := pipeline.Resource("some-other-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			scheduled, err := build.Schedule([]db.BuildInput{
+				{
+					Name:       "input-1",
+					Version:    atc.Version{"ver": "1"},
+					ResourceID: resource1.ID(),
+
+					FirstOccurrence: true,
+				},
+				{
+					Name:       "input-2",
+					Version:    atc.Version{"ver": "3"},
+					ResourceID: resource2.ID(),
+
+					FirstOccurrence: true,
+				},
+				{
+					Name:       "input-3",
+					Version:    atc.Version{"ver": "2"},
+					ResourceID: resource1.ID(),
+
+					FirstOccurrence: true,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(scheduled).To(BeTrue())
+
+			// save explicit output from 'put'
+			err = build.SaveOutput(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{}, atc.Version{"ver": "2"}, nil, "output-1", "some-resource")
+			Expect(err).NotTo(HaveOccurred())
+
+			// save explicit output from 'put'
+			err = build.SaveOutput(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{}, atc.Version{"ver": "3"}, nil, "output-2", "some-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			err = build.Finish(db.BuildStatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
+
+			expectedOutputs = []db.AlgorithmOutput{
+				{
+					AlgorithmVersion: db.AlgorithmVersion{
+						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
+						ResourceID: resource1.ID(),
+					},
+					InputName: "input-1",
+				},
+				{
+					AlgorithmVersion: db.AlgorithmVersion{
+						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "3"})),
+						ResourceID: resource2.ID(),
+					},
+					InputName: "input-2",
+				},
+				{
+					AlgorithmVersion: db.AlgorithmVersion{
+						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "2"})),
+						ResourceID: resource1.ID(),
+					},
+					InputName: "input-3",
+				},
+				{
+					AlgorithmVersion: db.AlgorithmVersion{
+						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "2"})),
+						ResourceID: resource1.ID(),
+					},
+					InputName: "output-1",
+				},
+				{
+					AlgorithmVersion: db.AlgorithmVersion{
+						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "3"})),
+						ResourceID: resource1.ID(),
+					},
+					InputName: "output-2",
+				},
+			}
 		})
 
 		It("creates Finish event", func() {
@@ -215,6 +334,15 @@ var _ = Describe("Build", func() {
 			Expect(found).To(BeTrue())
 			Expect(build.IsCompleted()).To(BeTrue())
 			Expect(build.IsRunning()).To(BeFalse())
+		})
+
+		It("inserts inputs and outputs into successful build versions", func() {
+			versionsDB, err := pipeline.LoadVersionsDB()
+			Expect(err).NotTo(HaveOccurred())
+
+			outputs, err := versionsDB.SuccessfulBuildOutputs(build.ID())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(outputs).To(ConsistOf(expectedOutputs))
 		})
 	})
 

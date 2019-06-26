@@ -22,7 +22,7 @@ func (s *Scheduler) Schedule(
 	job db.Job,
 	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
-) (map[string]time.Duration, error) {
+) (time.Duration, error) {
 	jobSchedulingTime := map[string]time.Duration{}
 
 	jStart := time.Now()

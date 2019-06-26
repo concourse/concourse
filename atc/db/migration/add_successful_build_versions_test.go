@@ -74,7 +74,7 @@ var _ = Describe("Add successful build versions", func() {
 				},
 				{
 					buildID:    5,
-					versionMD5: "v2",
+					versionMD5: "v1",
 					resourceID: 2,
 					jobID:      1,
 					name:       "build_input4",
@@ -98,7 +98,7 @@ var _ = Describe("Add successful build versions", func() {
 					versionMD5: "v2",
 					resourceID: 3,
 					jobID:      1,
-					name:       "build_output1",
+					name:       "build_output2",
 				},
 			}
 
@@ -131,14 +131,13 @@ func setupSuccessfulBuildsInputs(db *sql.DB) {
 	Expect(err).NotTo(HaveOccurred())
 
 	_, err = db.Exec(`
-				INSERT INTO build_resource_config_version_inputs(build_id, resource_id, version_md5, name) VALUES
-					(1, 1, 'v1', 'build_input1'),
-					(1, 1, 'v1', 'build_input1'),
-					(1, 1, 'v1', 'build_input2'),
-					(2, 1, 'v2', 'build_input1'),
-					(3, 1, 'v3', 'build_input1'),
-					(4, 3, 'v1', 'build_input3'),
-					(5, 2, 'v1', 'build_input4'),
+				INSERT INTO build_resource_config_version_inputs(build_id, resource_id, version_md5, name, first_occurrence) VALUES
+					(1, 1, 'v1', 'build_input1', true),
+					(1, 1, 'v1', 'build_input2', true),
+					(2, 1, 'v2', 'build_input1', false),
+					(3, 1, 'v3', 'build_input1', true),
+					(4, 3, 'v1', 'build_input3', false),
+					(5, 2, 'v1', 'build_input4', true)
 			`)
 	Expect(err).NotTo(HaveOccurred())
 }
@@ -150,7 +149,7 @@ func setupSuccessfulBuildsOutputs(db *sql.DB) {
 					(2, 1, 'v3', 'build_output1'),
 					(2, 3, 'v2', 'build_output2'),
 					(3, 1, 'v3', 'build_output1'),
-					(4, 2, 'v1', 'build_output3'),
+					(4, 2, 'v1', 'build_output3')
 			`)
 	Expect(err).NotTo(HaveOccurred())
 }

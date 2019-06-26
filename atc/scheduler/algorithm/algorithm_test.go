@@ -848,7 +848,7 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	XEntry("does not find candidates when there are multiple passed constraints with version every, and one passed job has no builds", Example{
+	Entry("does not find candidates when there are multiple passed constraints with version every, and one passed job has no builds", Example{
 		DB: DB{
 			BuildInputs: []DBRow{
 				{Job: CurrentJobName, BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
