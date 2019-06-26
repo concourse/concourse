@@ -252,6 +252,40 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   }
 
   \section{
+    \title{TLS via Let's Encrypt}{lets-encrypt}
+
+    Concourse can be configured to automatically acquire a TLS certificate via
+    \link{Let's Encrypt}{https://letsencrypt.org}:
+
+    \codeblock{bash}{{{
+      # Enable TLS
+      CONCOURSE_TLS_BIND_PORT=443
+
+      # Enable Let's Encrypt
+      CONCOURSE_ENABLE_LETS_ENCRYPT=true
+    }}}
+
+    \warn{
+      Concourse's Let's Encrypt integration works by storing the TLS
+      certificate and key in the database, so it is imperative that you enable
+      \reference{encryption}{database encryption} as well.
+    }
+
+    By default, Concourse will reach out to \link{Let's Encrypt's ACME CA
+    directory}{https://acme-v01.api.letsencrypt.org/directory}. An alernative
+    URL can be configured like so:
+
+    \codeblock{bash}{{{
+      CONCOURSE_LETS_ENCRYPT_ACME_URL=https://acme.example.com/directory
+    }}}
+
+    In order to negotiate the certificate, your \code{web} node must be
+    reachable by the ACME server. There are intentionally \link{no publicly
+    listed IP addresses to whitelist}{https://letsencrypt.org/docs/faq/}, so
+    this typically means just making your \code{web} node publicly reachable.
+  }
+
+  \section{
     \title{Enabling audit logs}{audit-logs}
 
     A very simplistic form of audit logging can be enabled with the following
