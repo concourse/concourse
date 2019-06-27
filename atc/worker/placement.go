@@ -5,12 +5,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type ContainerPlacementStrategy interface {
 	//TODO: Don't pass around container metadata since it's not guaranteed to be deterministic.
 	// Change this after check containers stop being reused
 	Choose(lager.Logger, []Worker, ContainerSpec) (Worker, error)
+	ModifyActiveTasks() bool
 }
 
 type VolumeLocalityPlacementStrategy struct {
@@ -52,6 +54,10 @@ func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, wor
 	return highestLocalityWorkers[strategy.rand.Intn(len(highestLocalityWorkers))], nil
 }
 
+func (strategy *VolumeLocalityPlacementStrategy) ModifyActiveTasks() bool {
+	return false
+}
+
 type FewestBuildContainersPlacementStrategy struct {
 	rand *rand.Rand
 }
@@ -78,6 +84,56 @@ func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logg
 	return leastBusyWorkers[strategy.rand.Intn(len(leastBusyWorkers))], nil
 }
 
+func (strategy *FewestBuildContainersPlacementStrategy) ModifyActiveTasks() bool {
+	return false
+}
+
+type FewestActiveTasksPlacementStrategy struct {
+	rand     *rand.Rand
+	maxTasks int
+}
+
+func NewFewestActiveTasksPlacementStrategy(maxTasks int) ContainerPlacementStrategy {
+	return &FewestActiveTasksPlacementStrategy{
+		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+		maxTasks: maxTasks,
+	}
+}
+
+func (strategy *FewestActiveTasksPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+	workersByWork := map[int][]Worker{}
+	minActiveTasks := -1
+
+	for _, w := range workers {
+		activeTasks, err := w.ActiveTasks()
+		if err != nil {
+			logger.Error("Cannot retrive active tasks on worker. Skipping.", err)
+			continue
+		}
+
+		// If maxTasks == 0 or the step is not a task, ignore the number of active tasks and distribute the work evenly
+		if strategy.maxTasks > 0 && activeTasks >= strategy.maxTasks && spec.Type == db.ContainerTypeTask {
+			logger.Info("worker-busy")
+			continue
+		}
+
+		workersByWork[activeTasks] = append(workersByWork[activeTasks], w)
+		if minActiveTasks == -1 || activeTasks < minActiveTasks {
+			minActiveTasks = activeTasks
+		}
+	}
+
+	leastBusyWorkers := workersByWork[minActiveTasks]
+	if len(leastBusyWorkers) < 1 {
+		return nil, nil
+	}
+	return leastBusyWorkers[strategy.rand.Intn(len(leastBusyWorkers))], nil
+}
+
+func (strategy *FewestActiveTasksPlacementStrategy) ModifyActiveTasks() bool {
+	return true
+}
+
 type RandomPlacementStrategy struct {
 	rand *rand.Rand
 }
@@ -90,4 +146,8 @@ func NewRandomPlacementStrategy() ContainerPlacementStrategy {
 
 func (strategy *RandomPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
 	return workers[strategy.rand.Intn(len(workers))], nil
+}
+
+func (strategy *RandomPlacementStrategy) ModifyActiveTasks() bool {
+	return false
 }

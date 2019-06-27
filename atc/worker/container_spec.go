@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type WorkerSpec struct {
@@ -22,6 +23,7 @@ type ContainerSpec struct {
 	TeamID    int
 	ImageSpec ImageSpec
 	Env       []string
+	Type      db.ContainerType
 
 	// Working directory for processes run in the container.
 	Dir string

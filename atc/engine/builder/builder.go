@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 )
 
@@ -17,7 +18,7 @@ const supportedSchema = "exec.v2"
 type StepFactory interface {
 	GetStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.Step
 	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step
-	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
+	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate, lock.LockFactory) exec.Step
 	ArtifactInputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 	ArtifactOutputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 }
@@ -35,11 +36,13 @@ func NewStepBuilder(
 	stepFactory StepFactory,
 	delegateFactory DelegateFactory,
 	externalURL string,
+	lockFactory lock.LockFactory,
 ) *stepBuilder {
 	return &stepBuilder{
 		stepFactory:     stepFactory,
 		delegateFactory: delegateFactory,
 		externalURL:     externalURL,
+		lockFactory:     lockFactory,
 	}
 }
 
@@ -47,6 +50,7 @@ type stepBuilder struct {
 	stepFactory     StepFactory
 	delegateFactory DelegateFactory
 	externalURL     string
+	lockFactory     lock.LockFactory
 }
 
 func (builder *stepBuilder) BuildStep(build db.Build) (exec.Step, error) {
@@ -300,6 +304,7 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.St
 		stepMetadata,
 		containerMetadata,
 		builder.delegateFactory.TaskDelegate(build, plan.ID),
+		builder.lockFactory,
 	)
 }
 

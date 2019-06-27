@@ -67,6 +67,10 @@ type Worker interface {
 	Prune() error
 	Delete() error
 
+	ActiveTasks() (int, error)
+	IncreaseActiveTasks() error
+	DecreaseActiveTasks() error
+
 	FindContainer(owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
 	CreateContainer(owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
 }
@@ -84,6 +88,7 @@ type worker struct {
 	noProxy          string
 	activeContainers int
 	activeVolumes    int
+	activeTasks      int
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             []string
@@ -351,4 +356,59 @@ func (worker *worker) findContainer(whereClause sq.Sqlizer) (CreatingContainer, 
 	}
 
 	return creating, created, nil
+}
+
+func (worker *worker) ActiveTasks() (int, error) {
+	err := psql.Select("active_tasks").From("workers").Where(sq.Eq{"name": worker.name}).
+		RunWith(worker.conn).
+		QueryRow().
+		Scan(&worker.activeTasks)
+	if err != nil {
+		return 0, err
+	}
+	return worker.activeTasks, nil
+}
+
+func (worker *worker) IncreaseActiveTasks() error {
+	result, err := psql.Update("workers").
+		Set("active_tasks", sq.Expr("active_tasks+1")).
+		Where(sq.Eq{"name": worker.name}).
+		RunWith(worker.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return ErrWorkerNotPresent
+	}
+
+	return nil
+}
+
+func (worker *worker) DecreaseActiveTasks() error {
+	result, err := psql.Update("workers").
+		Set("active_tasks", sq.Expr("active_tasks-1")).
+		Where(sq.Eq{"name": worker.name}).
+		RunWith(worker.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return ErrWorkerNotPresent
+	}
+
+	return nil
 }
