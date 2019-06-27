@@ -238,7 +238,7 @@ var _ = Describe("ResourceScanner", func() {
 					err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 					Expect(err).To(BeNil())
 
-					_, _, owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+					_, _, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "git",
@@ -250,9 +250,6 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_PIPELINE_NAME=some-pipeline",
 						"RESOURCE_NAME=some-resource",
 					}))
-					Expect(metadata).To(Equal(db.ContainerMetadata{
-						Type: db.ContainerTypeCheck,
-					}))
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "git",
 						Tags:          atc.Tags{"some-tag"},
@@ -260,9 +257,13 @@ var _ = Describe("ResourceScanner", func() {
 						TeamID:        123,
 					}))
 
+					var metadata db.ContainerMetadata
 					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-					_, _, _, owner, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
+					_, _, _, owner, metadata, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
+					Expect(metadata).To(Equal(db.ContainerMetadata{
+						Type: db.ContainerTypeCheck,
+					}))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "git",
 					}))
@@ -660,7 +661,7 @@ var _ = Describe("ResourceScanner", func() {
 				err := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
-				_, _, owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+				_, _, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "git",
@@ -672,9 +673,6 @@ var _ = Describe("ResourceScanner", func() {
 					"RESOURCE_PIPELINE_NAME=some-pipeline",
 					"RESOURCE_NAME=some-resource",
 				}))
-				Expect(metadata).To(Equal(db.ContainerMetadata{
-					Type: db.ContainerTypeCheck,
-				}))
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					ResourceType:  "git",
 					Tags:          atc.Tags{"some-tag"},
@@ -682,8 +680,12 @@ var _ = Describe("ResourceScanner", func() {
 					TeamID:        123,
 				}))
 
-				_, _, _, owner, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
+				var metadata db.ContainerMetadata
+				_, _, _, owner, metadata, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
+				Expect(metadata).To(Equal(db.ContainerMetadata{
+					Type: db.ContainerTypeCheck,
+				}))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "git",
 				}))

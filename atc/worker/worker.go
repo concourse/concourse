@@ -51,6 +51,7 @@ type Worker interface {
 		lager.Logger,
 		ImageFetchingDelegate,
 		db.ContainerOwner,
+		db.ContainerMetadata,
 		ContainerSpec,
 		atc.VersionedResourceTypes,
 	) (Container, error)
@@ -178,6 +179,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	logger lager.Logger,
 	delegate ImageFetchingDelegate,
 	owner db.ContainerOwner,
+	metadata db.ContainerMetadata,
 	containerSpec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
@@ -189,6 +191,11 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		containerHandle   string
 		err               error
 	)
+
+	err = worker.EnsureDBContainerExists(ctx, logger, owner, metadata)
+	if err != nil {
+		return nil, err
+	}
 
 	creatingContainer, createdContainer, err = worker.dbWorker.FindContainer(owner)
 	if err != nil {

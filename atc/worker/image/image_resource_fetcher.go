@@ -227,23 +227,15 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	}
 
 	owner := db.NewImageCheckContainerOwner(container, i.teamID)
-	err := i.worker.EnsureDBContainerExists(
-		ctx,
-		logger,
-		owner,
-		db.ContainerMetadata{
-			Type: db.ContainerTypeCheck,
-		},
-	)
-	if err != nil {
-		return err
-	}
 
 	resourceTypeContainer, err := i.worker.FindOrCreateContainer(
 		ctx,
 		logger,
 		worker.NoopImageFetchingDelegate{},
 		owner,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
 		containerSpec,
 		i.customTypes,
 	)
@@ -293,23 +285,15 @@ func (i *imageResourceFetcher) getLatestVersion(
 	}
 
 	owner := db.NewImageCheckContainerOwner(container, i.teamID)
-	err := i.worker.EnsureDBContainerExists(
-		ctx,
-		logger,
-		owner,
-		db.ContainerMetadata{
-			Type: db.ContainerTypeCheck,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
 
 	imageContainer, err := i.worker.FindOrCreateContainer(
 		ctx,
 		logger,
 		i.imageFetchingDelegate,
 		owner,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
 		resourceSpec,
 		i.customTypes,
 	)

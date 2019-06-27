@@ -261,9 +261,6 @@ func (scanner *resourceTypeScanner) check(
 		logger,
 		owner,
 		containerSpec,
-		db.ContainerMetadata{
-			Type: db.ContainerTypeCheck,
-		},
 		workerSpec,
 		scanner.strategy,
 	)
@@ -281,6 +278,9 @@ func (scanner *resourceTypeScanner) check(
 		logger,
 		worker.NoopImageFetchingDelegate{},
 		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries),
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
 		containerSpec,
 		versionedResourceTypes.Without(savedResourceType.Name()),
 	)

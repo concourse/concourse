@@ -326,9 +326,6 @@ func (scanner *resourceScanner) check(
 		logger,
 		owner,
 		containerSpec,
-		db.ContainerMetadata{
-			Type: db.ContainerTypeCheck,
-		},
 		workerSpec,
 		scanner.strategy,
 	)
@@ -345,6 +342,9 @@ func (scanner *resourceScanner) check(
 		logger,
 		worker.NoopImageFetchingDelegate{},
 		owner,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
 		containerSpec,
 		resourceTypes,
 	)

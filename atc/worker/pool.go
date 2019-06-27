@@ -10,7 +10,6 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . WorkerProvider
@@ -64,7 +63,6 @@ type Pool interface {
 		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
-		db.ContainerMetadata,
 		WorkerSpec,
 		ContainerPlacementStrategy,
 	) (Worker, error)
@@ -73,28 +71,17 @@ type Pool interface {
 		lager.Logger,
 		WorkerSpec,
 	) (Worker, error)
-
-	AcquireContainerCreatingLock(
-		logger lager.Logger,
-	) (lock.Lock, bool, error)
 }
 
 type pool struct {
-	clock       clock.Clock
-	lockFactory lock.LockFactory
 	provider    WorkerProvider
-
 	rand *rand.Rand
 }
 
 func NewPool(
-	clock clock.Clock,
-	lockFactory lock.LockFactory,
 	provider WorkerProvider,
 ) Pool {
 	return &pool{
-		clock:       clock,
-		lockFactory: lockFactory,
 		provider:    provider,
 		rand:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
@@ -141,7 +128,6 @@ func (pool *pool) FindOrChooseWorkerForContainer(
 	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
-	metadata db.ContainerMetadata,
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 ) (Worker, error) {
@@ -169,22 +155,6 @@ dance:
 		}
 	}
 
-	// pool is shared by all steps running in the system,
-	// lock around worker placement strategies so decisions
-	// are serialized and valid at the time of creating
-	// containers in garden
-	for {
-		lock, acquired, err := pool.AcquireContainerCreatingLock(logger)
-		if err != nil {
-			return nil, ErrFailedAcquirePoolLock
-		}
-
-		if !acquired {
-			pool.clock.Sleep(time.Second)
-			continue
-		}
-		defer lock.Release()
-
 		if worker == nil {
 			worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
 			if err != nil {
@@ -192,18 +162,7 @@ dance:
 			}
 		}
 
-		err = worker.EnsureDBContainerExists(nil, logger, owner, metadata)
-		if err != nil {
-			return nil, err
-		}
-		break
-	}
-
 	return worker, nil
-}
-
-func (pool *pool) AcquireContainerCreatingLock(logger lager.Logger) (lock.Lock, bool, error) {
-	return pool.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID())
 }
 
 func (pool *pool) FindOrChooseWorker(

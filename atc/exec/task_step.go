@@ -195,7 +195,6 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		logger,
 		owner,
 		containerSpec,
-		step.containerMetadata,
 		workerSpec,
 		step.strategy,
 	)
@@ -208,6 +207,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		logger,
 		step.delegate,
 		owner,
+		step.containerMetadata,
 		containerSpec,
 		resourceTypes,
 	)

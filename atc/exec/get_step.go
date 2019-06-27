@@ -183,7 +183,6 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		logger,
 		resourceInstance.ContainerOwner(),
 		containerSpec,
-		step.containerMetadata,
 		workerSpec,
 		step.strategy,
 	)
