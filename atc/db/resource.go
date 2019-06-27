@@ -61,7 +61,7 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, rs.last_check_start_time, rs.last_check_end_time, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, rs.check_error, rp.version, rp.comment_text").
+var resourcesQuery = psql.Select("r.id, r.name, r.type, r.config, r.check_error, rs.last_check_start_time, rs.last_check_end_time, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, rs.check_error, rp.version, rp.comment_text").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -635,7 +635,7 @@ func scanResource(r *resource, row scannable) error {
 		lastCheckStartTime, lastCheckEndTime                                        pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
 	if err != nil {
 		return err
 	}
@@ -662,7 +662,6 @@ func scanResource(r *resource, row scannable) error {
 	}
 
 	r.public = config.Public
-	r.type_ = config.Type
 	r.source = config.Source
 	r.checkEvery = config.CheckEvery
 	r.checkTimeout = config.CheckTimeout

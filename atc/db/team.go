@@ -1065,9 +1065,9 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resources
-		SET config = $3, active = true, nonce = $4
+		SET config = $3, active = true, nonce = $4, type = $5
 		WHERE name = $1 AND pipeline_id = $2
-	`, resource.Name, pipelineID, encryptedPayload, nonce)
+	`, resource.Name, pipelineID, encryptedPayload, nonce, resource.Type)
 	if err != nil {
 		return err
 	}
@@ -1092,9 +1092,9 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO resources (name, pipeline_id, config, active, nonce)
-		VALUES ($1, $2, $3, true, $4)
-	`, resource.Name, pipelineID, encryptedPayload, nonce)
+		INSERT INTO resources (name, pipeline_id, config, active, nonce, type)
+		VALUES ($1, $2, $3, true, $4, $5)
+	`, resource.Name, pipelineID, encryptedPayload, nonce, resource.Type)
 
 	return swallowUniqueViolation(err)
 }
