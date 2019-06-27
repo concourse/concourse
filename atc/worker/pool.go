@@ -64,7 +64,6 @@ type Pool interface {
 		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
-		db.ContainerMetadata,
 		WorkerSpec,
 		ContainerPlacementStrategy,
 	) (Worker, error)
@@ -141,7 +140,6 @@ func (pool *pool) FindOrChooseWorkerForContainer(
 	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
-	metadata db.ContainerMetadata,
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 ) (Worker, error) {
@@ -169,35 +167,12 @@ dance:
 		}
 	}
 
-	// pool is shared by all steps running in the system,
-	// lock around worker placement strategies so decisions
-	// are serialized and valid at the time of creating
-	// containers in garden
-	for {
-		lock, acquired, err := pool.AcquireContainerCreatingLock(logger)
-		if err != nil {
-			return nil, ErrFailedAcquirePoolLock
-		}
-
-		if !acquired {
-			pool.clock.Sleep(time.Second)
-			continue
-		}
-		defer lock.Release()
-
 		if worker == nil {
 			worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
 			if err != nil {
 				return nil, err
 			}
 		}
-
-		err = worker.EnsureDBContainerExists(nil, logger, owner, metadata)
-		if err != nil {
-			return nil, err
-		}
-		break
-	}
 
 	return worker, nil
 }

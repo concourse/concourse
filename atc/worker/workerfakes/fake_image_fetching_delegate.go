@@ -2,11 +2,11 @@
 package workerfakes
 
 import (
-	"io"
-	"sync"
+	io "io"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker"
+	db "github.com/concourse/concourse/atc/db"
+	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakeImageFetchingDelegate struct {
@@ -69,12 +69,6 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedCallCount() int {
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedCalls(stub func(db.UsedResourceCache) error) {
-	fake.imageVersionDeterminedMutex.Lock()
-	defer fake.imageVersionDeterminedMutex.Unlock()
-	fake.ImageVersionDeterminedStub = stub
-}
-
 func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedArgsForCall(i int) db.UsedResourceCache {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
@@ -83,8 +77,6 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedArgsForCall(i int) 
 }
 
 func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturns(result1 error) {
-	fake.imageVersionDeterminedMutex.Lock()
-	defer fake.imageVersionDeterminedMutex.Unlock()
 	fake.ImageVersionDeterminedStub = nil
 	fake.imageVersionDeterminedReturns = struct {
 		result1 error
@@ -92,8 +84,6 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturns(result1 err
 }
 
 func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
-	fake.imageVersionDeterminedMutex.Lock()
-	defer fake.imageVersionDeterminedMutex.Unlock()
 	fake.ImageVersionDeterminedStub = nil
 	if fake.imageVersionDeterminedReturnsOnCall == nil {
 		fake.imageVersionDeterminedReturnsOnCall = make(map[int]struct {
@@ -128,15 +118,7 @@ func (fake *FakeImageFetchingDelegate) StderrCallCount() int {
 	return len(fake.stderrArgsForCall)
 }
 
-func (fake *FakeImageFetchingDelegate) StderrCalls(stub func() io.Writer) {
-	fake.stderrMutex.Lock()
-	defer fake.stderrMutex.Unlock()
-	fake.StderrStub = stub
-}
-
 func (fake *FakeImageFetchingDelegate) StderrReturns(result1 io.Writer) {
-	fake.stderrMutex.Lock()
-	defer fake.stderrMutex.Unlock()
 	fake.StderrStub = nil
 	fake.stderrReturns = struct {
 		result1 io.Writer
@@ -144,8 +126,6 @@ func (fake *FakeImageFetchingDelegate) StderrReturns(result1 io.Writer) {
 }
 
 func (fake *FakeImageFetchingDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
-	fake.stderrMutex.Lock()
-	defer fake.stderrMutex.Unlock()
 	fake.StderrStub = nil
 	if fake.stderrReturnsOnCall == nil {
 		fake.stderrReturnsOnCall = make(map[int]struct {
@@ -180,15 +160,7 @@ func (fake *FakeImageFetchingDelegate) StdoutCallCount() int {
 	return len(fake.stdoutArgsForCall)
 }
 
-func (fake *FakeImageFetchingDelegate) StdoutCalls(stub func() io.Writer) {
-	fake.stdoutMutex.Lock()
-	defer fake.stdoutMutex.Unlock()
-	fake.StdoutStub = stub
-}
-
 func (fake *FakeImageFetchingDelegate) StdoutReturns(result1 io.Writer) {
-	fake.stdoutMutex.Lock()
-	defer fake.stdoutMutex.Unlock()
 	fake.StdoutStub = nil
 	fake.stdoutReturns = struct {
 		result1 io.Writer
@@ -196,8 +168,6 @@ func (fake *FakeImageFetchingDelegate) StdoutReturns(result1 io.Writer) {
 }
 
 func (fake *FakeImageFetchingDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
-	fake.stdoutMutex.Lock()
-	defer fake.stdoutMutex.Unlock()
 	fake.StdoutStub = nil
 	if fake.stdoutReturnsOnCall == nil {
 		fake.stdoutReturnsOnCall = make(map[int]struct {

@@ -429,6 +429,7 @@ var _ = Describe("DBProvider", func() {
 						logger,
 						fakeImageFetchingDelegate,
 						db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
+						db.ContainerMetadata{},
 						containerSpec,
 						nil,
 					)
@@ -502,6 +503,7 @@ var _ = Describe("DBProvider", func() {
 						logger,
 						fakeImageFetchingDelegate,
 						db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
+						db.ContainerMetadata{},
 						containerSpec,
 						nil,
 					)

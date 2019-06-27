@@ -943,6 +943,7 @@ var _ = Describe("Worker", func() {
 				logger,
 				fakeImageFetchingDelegate,
 				fakeContainerOwner,
+				db.ContainerMetadata{},
 				containerSpec,
 				atcResourceTypes,
 			)

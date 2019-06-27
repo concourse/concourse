@@ -2,10 +2,10 @@
 package transportfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker/transport"
+	db "github.com/concourse/concourse/atc/db"
+	transport "github.com/concourse/concourse/atc/worker/transport"
 )
 
 type FakeTransportDB struct {
@@ -52,12 +52,6 @@ func (fake *FakeTransportDB) GetWorkerCallCount() int {
 	return len(fake.getWorkerArgsForCall)
 }
 
-func (fake *FakeTransportDB) GetWorkerCalls(stub func(string) (db.Worker, bool, error)) {
-	fake.getWorkerMutex.Lock()
-	defer fake.getWorkerMutex.Unlock()
-	fake.GetWorkerStub = stub
-}
-
 func (fake *FakeTransportDB) GetWorkerArgsForCall(i int) string {
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
@@ -66,8 +60,6 @@ func (fake *FakeTransportDB) GetWorkerArgsForCall(i int) string {
 }
 
 func (fake *FakeTransportDB) GetWorkerReturns(result1 db.Worker, result2 bool, result3 error) {
-	fake.getWorkerMutex.Lock()
-	defer fake.getWorkerMutex.Unlock()
 	fake.GetWorkerStub = nil
 	fake.getWorkerReturns = struct {
 		result1 db.Worker
@@ -77,8 +69,6 @@ func (fake *FakeTransportDB) GetWorkerReturns(result1 db.Worker, result2 bool, r
 }
 
 func (fake *FakeTransportDB) GetWorkerReturnsOnCall(i int, result1 db.Worker, result2 bool, result3 error) {
-	fake.getWorkerMutex.Lock()
-	defer fake.getWorkerMutex.Unlock()
 	fake.GetWorkerStub = nil
 	if fake.getWorkerReturnsOnCall == nil {
 		fake.getWorkerReturnsOnCall = make(map[int]struct {
