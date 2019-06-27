@@ -3,14 +3,11 @@ package worker_test
 import (
 	"context"
 	"errors"
-	"time"
 
-	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
@@ -19,20 +16,16 @@ import (
 
 var _ = Describe("Pool", func() {
 	var (
-		fakeClock       *fakeclock.FakeClock
 		logger          *lagertest.TestLogger
 		fakeProvider    *workerfakes.FakeWorkerProvider
-		fakeLockFactory *lockfakes.FakeLockFactory
 		pool            Pool
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeProvider = new(workerfakes.FakeWorkerProvider)
-		fakeLockFactory = new(lockfakes.FakeLockFactory)
-		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
-		pool = NewPool(fakeClock, fakeLockFactory, fakeProvider)
+		pool = NewPool(fakeProvider)
 	})
 
 	Describe("FindOrChooseWorkerForContainer", func() {
@@ -41,7 +34,6 @@ var _ = Describe("Pool", func() {
 			workerSpec    WorkerSpec
 			resourceTypes atc.VersionedResourceTypes
 			fakeOwner     *dbfakes.FakeContainerOwner
-			fakeLock      *lockfakes.FakeLock
 
 			chosenWorker Worker
 			chooseErr    error
@@ -114,9 +106,6 @@ var _ = Describe("Pool", func() {
 
 			compatibleWorker = new(workerfakes.FakeWorker)
 			compatibleWorker.SatisfiesReturns(true)
-
-			fakeLock = new(lockfakes.FakeLock)
-			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 		})
 
 		JustBeforeEach(func() {

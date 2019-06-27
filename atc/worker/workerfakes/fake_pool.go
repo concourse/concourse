@@ -7,26 +7,10 @@ import (
 
 	lager "code.cloudfoundry.org/lager"
 	db "github.com/concourse/concourse/atc/db"
-	lock "github.com/concourse/concourse/atc/db/lock"
 	worker "github.com/concourse/concourse/atc/worker"
 )
 
 type FakePool struct {
-	AcquireContainerCreatingLockStub        func(lager.Logger) (lock.Lock, bool, error)
-	acquireContainerCreatingLockMutex       sync.RWMutex
-	acquireContainerCreatingLockArgsForCall []struct {
-		arg1 lager.Logger
-	}
-	acquireContainerCreatingLockReturns struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
-	acquireContainerCreatingLockReturnsOnCall map[int]struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
 	FindOrChooseWorkerStub        func(lager.Logger, worker.WorkerSpec) (worker.Worker, error)
 	findOrChooseWorkerMutex       sync.RWMutex
 	findOrChooseWorkerArgsForCall []struct {
@@ -61,62 +45,6 @@ type FakePool struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakePool) AcquireContainerCreatingLock(arg1 lager.Logger) (lock.Lock, bool, error) {
-	fake.acquireContainerCreatingLockMutex.Lock()
-	ret, specificReturn := fake.acquireContainerCreatingLockReturnsOnCall[len(fake.acquireContainerCreatingLockArgsForCall)]
-	fake.acquireContainerCreatingLockArgsForCall = append(fake.acquireContainerCreatingLockArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("AcquireContainerCreatingLock", []interface{}{arg1})
-	fake.acquireContainerCreatingLockMutex.Unlock()
-	if fake.AcquireContainerCreatingLockStub != nil {
-		return fake.AcquireContainerCreatingLockStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.acquireContainerCreatingLockReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakePool) AcquireContainerCreatingLockCallCount() int {
-	fake.acquireContainerCreatingLockMutex.RLock()
-	defer fake.acquireContainerCreatingLockMutex.RUnlock()
-	return len(fake.acquireContainerCreatingLockArgsForCall)
-}
-
-func (fake *FakePool) AcquireContainerCreatingLockArgsForCall(i int) lager.Logger {
-	fake.acquireContainerCreatingLockMutex.RLock()
-	defer fake.acquireContainerCreatingLockMutex.RUnlock()
-	argsForCall := fake.acquireContainerCreatingLockArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePool) AcquireContainerCreatingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
-	fake.AcquireContainerCreatingLockStub = nil
-	fake.acquireContainerCreatingLockReturns = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePool) AcquireContainerCreatingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
-	fake.AcquireContainerCreatingLockStub = nil
-	if fake.acquireContainerCreatingLockReturnsOnCall == nil {
-		fake.acquireContainerCreatingLockReturnsOnCall = make(map[int]struct {
-			result1 lock.Lock
-			result2 bool
-			result3 error
-		})
-	}
-	fake.acquireContainerCreatingLockReturnsOnCall[i] = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakePool) FindOrChooseWorker(arg1 lager.Logger, arg2 worker.WorkerSpec) (worker.Worker, error) {
@@ -234,8 +162,6 @@ func (fake *FakePool) FindOrChooseWorkerForContainerReturnsOnCall(i int, result1
 func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.acquireContainerCreatingLockMutex.RLock()
-	defer fake.acquireContainerCreatingLockMutex.RUnlock()
 	fake.findOrChooseWorkerMutex.RLock()
 	defer fake.findOrChooseWorkerMutex.RUnlock()
 	fake.findOrChooseWorkerForContainerMutex.RLock()

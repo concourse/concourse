@@ -10,7 +10,6 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . WorkerProvider
@@ -72,28 +71,17 @@ type Pool interface {
 		lager.Logger,
 		WorkerSpec,
 	) (Worker, error)
-
-	AcquireContainerCreatingLock(
-		logger lager.Logger,
-	) (lock.Lock, bool, error)
 }
 
 type pool struct {
-	clock       clock.Clock
-	lockFactory lock.LockFactory
 	provider    WorkerProvider
-
 	rand *rand.Rand
 }
 
 func NewPool(
-	clock clock.Clock,
-	lockFactory lock.LockFactory,
 	provider WorkerProvider,
 ) Pool {
 	return &pool{
-		clock:       clock,
-		lockFactory: lockFactory,
 		provider:    provider,
 		rand:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
@@ -175,10 +163,6 @@ dance:
 		}
 
 	return worker, nil
-}
-
-func (pool *pool) AcquireContainerCreatingLock(logger lager.Logger) (lock.Lock, bool, error) {
-	return pool.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID())
 }
 
 func (pool *pool) FindOrChooseWorker(
