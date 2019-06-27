@@ -63,6 +63,10 @@ type Worker interface {
 	CreateVolume(logger lager.Logger, spec VolumeSpec, teamID int, volumeType db.VolumeType) (Volume, error)
 
 	GardenClient() garden.Client
+
+	ActiveTasks() (int, error)
+	IncreaseActiveTasks() error
+	DecreaseActiveTasks() error
 }
 
 type gardenWorker struct {
@@ -661,4 +665,14 @@ insert_coin:
 	}
 
 	return true
+}
+
+func (worker *gardenWorker) ActiveTasks() (int, error) {
+	return worker.dbWorker.ActiveTasks()
+}
+func (worker *gardenWorker) IncreaseActiveTasks() error {
+	return worker.dbWorker.IncreaseActiveTasks()
+}
+func (worker *gardenWorker) DecreaseActiveTasks() error {
+	return worker.dbWorker.DecreaseActiveTasks()
 }

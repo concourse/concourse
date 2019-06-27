@@ -277,6 +277,8 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	go func() {
 		processStatus, processErr = process.Wait()
+		logger.Info("Decreasing active tasks on worker.")
+		step.workerPool.DecreaseActiveTasks(chosenWorker, logger)
 		close(exited)
 	}()
 

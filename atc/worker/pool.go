@@ -77,6 +77,8 @@ type Pool interface {
 	AcquireContainerCreatingLock(
 		logger lager.Logger,
 	) (lock.Lock, bool, error)
+
+	DecreaseActiveTasks(worker Worker, logger lager.Logger) error
 }
 
 type pool struct {
@@ -192,6 +194,17 @@ dance:
 			}
 		}
 
+		if metadata.Type == db.ContainerTypeTask {
+			logger.Info("Increasing active tasks on worker.")
+			err = worker.IncreaseActiveTasks()
+			if err != nil {
+				logger.Error("Increase active tasks encountered an error:", err)
+			} else {
+				at, _ := worker.ActiveTasks()
+				logger.Info(fmt.Sprintf("Increased tasks, current value: %d", at))
+			}
+		}
+
 		err = worker.EnsureDBContainerExists(nil, logger, owner, metadata)
 		if err != nil {
 			return nil, err
@@ -204,6 +217,31 @@ dance:
 
 func (pool *pool) AcquireContainerCreatingLock(logger lager.Logger) (lock.Lock, bool, error) {
 	return pool.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID())
+}
+
+func (pool *pool) DecreaseActiveTasks(worker Worker, logger lager.Logger) error {
+	for {
+		lock, acquired, err := pool.AcquireContainerCreatingLock(logger)
+		if err != nil {
+			return ErrFailedAcquirePoolLock
+		}
+
+		if !acquired {
+			pool.clock.Sleep(time.Second)
+			continue
+		}
+		defer lock.Release()
+
+		err = worker.DecreaseActiveTasks()
+		if err != nil {
+			logger.Error("Decrease active tasks encountered an error:", err)
+			return err
+		} else {
+			at, _ := worker.ActiveTasks()
+			logger.Info(fmt.Sprintf("Decreased tasks, current value: %d", at))
+		}
+		return nil
+	}
 }
 
 func (pool *pool) FindOrChooseWorker(
