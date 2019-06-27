@@ -192,6 +192,15 @@ dance:
 			if err != nil {
 				return nil, err
 			}
+			if worker == nil { // No free workers at the time
+				logger.Info("No free workers at this time. Try again later.")
+				return nil, nil
+			}
+		}
+
+		err = worker.EnsureDBContainerExists(nil, logger, owner, metadata)
+		if err != nil {
+			return nil, err
 		}
 
 		if metadata.Type == db.ContainerTypeTask {
@@ -203,11 +212,6 @@ dance:
 				at, _ := worker.ActiveTasks()
 				logger.Info(fmt.Sprintf("Increased tasks, current value: %d", at))
 			}
-		}
-
-		err = worker.EnsureDBContainerExists(nil, logger, owner, metadata)
-		if err != nil {
-			return nil, err
 		}
 		break
 	}

@@ -1,6 +1,8 @@
+# Editors
 .DS_Store
 .idea
 *.iml
+.vscode
 node_modules
 *-packr.go
 tags

@@ -64,14 +64,27 @@ func NewFewestBuildContainersPlacementStrategy() ContainerPlacementStrategy {
 
 func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
 	workersByWork := map[int][]Worker{}
-	var minWork int
+	minWork := -1
 
-	for i, w := range workers {
+	for _, w := range workers {
+		at, err := w.ActiveTasks()
+		if err != nil {
+			logger.Error("Cannot retrive active_tasks on worker. Skipping.", err)
+			continue
+		}
+		if at >= 1 { // TODO parametrize me
+			logger.Info("Worker busy, skipping.")
+			continue
+		}
 		work := w.BuildContainers()
 		workersByWork[work] = append(workersByWork[work], w)
-		if i == 0 || work < minWork {
+		if minWork == -1 || work < minWork {
 			minWork = work
 		}
+	}
+
+	if len(workersByWork) == 0 { // No workers available at the time
+		return nil, nil
 	}
 
 	leastBusyWorkers := workersByWork[minWork]

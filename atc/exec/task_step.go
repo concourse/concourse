@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -190,17 +191,24 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(
-		ctx,
-		logger,
-		owner,
-		containerSpec,
-		step.containerMetadata,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return err
+	var chosenWorker worker.Worker
+	for {
+		chosenWorker, err = step.workerPool.FindOrChooseWorkerForContainer(
+			ctx,
+			logger,
+			owner,
+			containerSpec,
+			step.containerMetadata,
+			workerSpec,
+			step.strategy,
+		)
+		if err != nil {
+			return err
+		}
+		if chosenWorker != nil {
+			break
+		}
+		time.Sleep(10 * time.Second)
 	}
 
 	container, err := chosenWorker.FindOrCreateContainer(
