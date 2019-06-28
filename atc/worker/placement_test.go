@@ -40,7 +40,7 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-			strategy = NewFewestBuildContainersPlacementStrategy()
+			strategy = NewFewestBuildContainersPlacementStrategy(0)
 			compatibleWorker1 = new(workerfakes.FakeWorker)
 			compatibleWorker2 = new(workerfakes.FakeWorker)
 			compatibleWorker3 = new(workerfakes.FakeWorker)

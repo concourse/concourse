@@ -69,14 +69,16 @@ func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logg
 	minWork := -1
 
 	for _, w := range workers {
-		at, err := w.ActiveTasks()
-		if err != nil {
-			logger.Error("Cannot retrive active_tasks on worker. Skipping.", err)
-			continue
-		}
-		if at >= strategy.maxTasks {
-			logger.Info("Worker busy, skipping.")
-			continue
+		if strategy.maxTasks > 0 { // If maxTasks == 0 ignore the number of tasks and proceed as usual
+			at, err := w.ActiveTasks()
+			if err != nil {
+				logger.Error("Cannot retrive active_tasks on worker. Skipping.", err)
+				continue
+			}
+			if at >= strategy.maxTasks {
+				logger.Info("Worker busy, skipping.")
+				continue
+			}
 		}
 		work := w.BuildContainers()
 		workersByWork[work] = append(workersByWork[work], w)
