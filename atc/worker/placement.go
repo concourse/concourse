@@ -53,12 +53,14 @@ func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, wor
 }
 
 type FewestBuildContainersPlacementStrategy struct {
-	rand *rand.Rand
+	rand     *rand.Rand
+	maxTasks int
 }
 
-func NewFewestBuildContainersPlacementStrategy() ContainerPlacementStrategy {
+func NewFewestBuildContainersPlacementStrategy(maxTasks int) ContainerPlacementStrategy {
 	return &FewestBuildContainersPlacementStrategy{
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
+		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+		maxTasks: maxTasks,
 	}
 }
 
@@ -72,7 +74,7 @@ func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logg
 			logger.Error("Cannot retrive active_tasks on worker. Skipping.", err)
 			continue
 		}
-		if at >= 1 { // TODO parametrize me
+		if at >= strategy.maxTasks {
 			logger.Info("Worker busy, skipping.")
 			continue
 		}
