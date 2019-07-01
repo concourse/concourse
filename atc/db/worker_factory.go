@@ -397,10 +397,13 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		workerVersion = &atcWorker.Version
 	}
 
+	activeTasks := 0 // When a worker starts up by definition has no active tasks.
+
 	values := []interface{}{
 		atcWorker.GardenAddr,
 		atcWorker.ActiveContainers,
 		atcWorker.ActiveVolumes,
+		activeTasks,
 		resourceTypes,
 		tags,
 		atcWorker.Platform,
@@ -432,6 +435,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"addr",
 			"active_containers",
 			"active_volumes",
+			"active_tasks",
 			"resource_types",
 			"tags",
 			"platform",
@@ -454,6 +458,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				addr = ?,
 				active_containers = ?,
 				active_volumes = ?,
+				active_tasks = ?,
 				resource_types = ?,
 				tags = ?,
 				platform = ?,
@@ -503,6 +508,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		noProxy:          atcWorker.NoProxy,
 		activeContainers: atcWorker.ActiveContainers,
 		activeVolumes:    atcWorker.ActiveVolumes,
+		activeTasks:      activeTasks,
 		resourceTypes:    atcWorker.ResourceTypes,
 		platform:         atcWorker.Platform,
 		tags:             atcWorker.Tags,
