@@ -115,8 +115,8 @@ type RunCommand struct {
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
 
-	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" description:"Method by which a worker is selected during container placement."`
-	MaxBuildTasksWorker               int           `long:"max-build-tasks-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with fewest-build-containers placement strategy. 0 means no limit."`
+	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"fewest-active-tasks" description:"Method by which a worker is selected during container placement."`
+	MaxActiveTasksWorker              int           `long:"max-active-tasks-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with fewest-active-tasks placement strategy. 0 means no limit."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
@@ -1192,17 +1192,19 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 
 func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
 	var strategy worker.ContainerPlacementStrategy
-	if cmd.ContainerPlacementStrategy != "fewest-build-containers" && cmd.MaxBuildTasksWorker != 0 {
-		return nil, errors.New("max-build-tasks-worker has only effect with fewest-build-containers strategy")
+	if cmd.ContainerPlacementStrategy != "fewest-active-tasks" && cmd.MaxActiveTasksWorker != 0 {
+		return nil, errors.New("max-active-tasks-worker has only effect with fewest-active-tasks strategy")
 	}
-	if cmd.MaxBuildTasksWorker < 0 {
-		return nil, errors.New("max-build-tasks-worker must be greater or equal than 0")
+	if cmd.MaxActiveTasksWorker < 0 {
+		return nil, errors.New("max-active-tasks-worker must be greater or equal than 0")
 	}
 	switch cmd.ContainerPlacementStrategy {
 	case "random":
 		strategy = worker.NewRandomPlacementStrategy()
 	case "fewest-build-containers":
-		strategy = worker.NewFewestBuildContainersPlacementStrategy(cmd.MaxBuildTasksWorker)
+		strategy = worker.NewFewestBuildContainersPlacementStrategy()
+	case "fewest-active-tasks":
+		strategy = worker.NewFewestActiveTasksPlacementStrategy(cmd.MaxActiveTasksWorker)
 	default:
 		strategy = worker.NewVolumeLocalityPlacementStrategy()
 	}

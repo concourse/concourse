@@ -53,37 +53,62 @@ func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, wor
 }
 
 type FewestBuildContainersPlacementStrategy struct {
-	rand     *rand.Rand
-	maxTasks int
+	rand *rand.Rand
 }
 
-func NewFewestBuildContainersPlacementStrategy(maxTasks int) ContainerPlacementStrategy {
+func NewFewestBuildContainersPlacementStrategy() ContainerPlacementStrategy {
 	return &FewestBuildContainersPlacementStrategy{
-		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
-		maxTasks: maxTasks,
+		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
 func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
 	workersByWork := map[int][]Worker{}
+	var minWork int
+
+	for i, w := range workers {
+		work := w.BuildContainers()
+		workersByWork[work] = append(workersByWork[work], w)
+		if i == 0 || work < minWork {
+			minWork = work
+		}
+	}
+
+	leastBusyWorkers := workersByWork[minWork]
+	return leastBusyWorkers[strategy.rand.Intn(len(leastBusyWorkers))], nil
+}
+
+type FewestActiveTasksPlacementStrategy struct {
+	rand     *rand.Rand
+	maxTasks int
+}
+
+func NewFewestActiveTasksPlacementStrategy(maxTasks int) ContainerPlacementStrategy {
+	return &FewestActiveTasksPlacementStrategy{
+		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+		maxTasks: maxTasks,
+	}
+}
+
+func (strategy *FewestActiveTasksPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+	workersByWork := map[int][]Worker{}
 	minWork := -1
 
 	for _, w := range workers {
-		if strategy.maxTasks > 0 { // If maxTasks == 0 ignore the number of tasks and proceed as usual
-			at, err := w.ActiveTasks()
-			if err != nil {
-				logger.Error("Cannot retrive active_tasks on worker. Skipping.", err)
-				continue
-			}
-			if at >= strategy.maxTasks {
-				logger.Info("Worker busy, skipping.")
-				continue
-			}
+		active_tasks, err := w.ActiveTasks()
+		if err != nil {
+			logger.Error("Cannot retrive active_tasks on worker. Skipping.", err)
+			continue
 		}
-		work := w.BuildContainers()
-		workersByWork[work] = append(workersByWork[work], w)
-		if minWork == -1 || work < minWork {
-			minWork = work
+
+		if strategy.maxTasks > 0 && active_tasks >= strategy.maxTasks { // If maxTasks == 0 ignore the number of tasks and proceed as usual
+			logger.Info("Worker busy, skipping.")
+			continue
+		}
+
+		workersByWork[active_tasks] = append(workersByWork[active_tasks], w)
+		if minWork == -1 || active_tasks < minWork {
+			minWork = active_tasks
 		}
 	}
 

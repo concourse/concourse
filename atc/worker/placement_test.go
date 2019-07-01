@@ -40,7 +40,7 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-			strategy = NewFewestBuildContainersPlacementStrategy(0)
+			strategy = NewFewestBuildContainersPlacementStrategy()
 			compatibleWorker1 = new(workerfakes.FakeWorker)
 			compatibleWorker2 = new(workerfakes.FakeWorker)
 			compatibleWorker3 = new(workerfakes.FakeWorker)
@@ -61,7 +61,7 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 				compatibleWorker1.ActiveTasksReturns(100, nil)
 			})
 
-			It("picks that worker ignoring the active tasks", func() {
+			It("picks that worker", func() {
 				chosenWorker, chooseErr = strategy.Choose(
 					logger,
 					workers,
@@ -125,8 +125,8 @@ var _ = Describe("MaxActiveTasksPerWorker", func() {
 		var compatibleWorker3 *workerfakes.FakeWorker
 
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-			strategy = NewFewestBuildContainersPlacementStrategy(1)
+			logger = lagertest.NewTestLogger("active-tasks-equal-placement-test")
+			strategy = NewFewestActiveTasksPlacementStrategy(1)
 			compatibleWorker1 = new(workerfakes.FakeWorker)
 			compatibleWorker2 = new(workerfakes.FakeWorker)
 			compatibleWorker3 = new(workerfakes.FakeWorker)
@@ -143,7 +143,6 @@ var _ = Describe("MaxActiveTasksPerWorker", func() {
 		Context("when there is only one worker with no active tasks", func() {
 			BeforeEach(func() {
 				workers = []Worker{compatibleWorker1}
-				compatibleWorker1.BuildContainersReturns(20)
 				compatibleWorker1.ActiveTasksReturns(0, nil)
 			})
 
@@ -161,7 +160,6 @@ var _ = Describe("MaxActiveTasksPerWorker", func() {
 		Context("when there is only one worker with one active task", func() {
 			BeforeEach(func() {
 				workers = []Worker{compatibleWorker1}
-				compatibleWorker1.BuildContainersReturns(20)
 				compatibleWorker1.ActiveTasksReturns(1, nil)
 			})
 
@@ -180,26 +178,21 @@ var _ = Describe("MaxActiveTasksPerWorker", func() {
 			BeforeEach(func() {
 				workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
 
-				compatibleWorker1.BuildContainersReturns(1)
 				compatibleWorker1.ActiveTasksReturns(1, nil)
-				compatibleWorker2.BuildContainersReturns(0)
 				compatibleWorker2.ActiveTasksReturns(0, nil)
-				compatibleWorker3.BuildContainersReturns(1)
 				compatibleWorker3.ActiveTasksReturns(1, nil)
 			})
 
-			Context("when the container is not of type 'check'", func() {
-				It("picks the one with no active tasks", func() {
-					Consistently(func() Worker {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).ToNot(HaveOccurred())
-						return chosenWorker
-					}).Should(Equal(compatibleWorker2))
-				})
+			It("picks the one with no active tasks", func() {
+				Consistently(func() Worker {
+					chosenWorker, chooseErr = strategy.Choose(
+						logger,
+						workers,
+						spec,
+					)
+					Expect(chooseErr).ToNot(HaveOccurred())
+					return chosenWorker
+				}).Should(Equal(compatibleWorker2))
 			})
 		})
 	})
