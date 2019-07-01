@@ -201,6 +201,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 			step.containerMetadata,
 			workerSpec,
 			step.strategy,
+			true,
 		)
 		if err != nil {
 			return err

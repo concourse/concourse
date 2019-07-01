@@ -180,7 +180,7 @@ var _ = Describe("TaskStep", func() {
 
 			It("finds or chooses a worker", func() {
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-				_, _, owner, containerSpec, createdMetadata, workerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+				_, _, owner, containerSpec, createdMetadata, workerSpec, strategy, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)))
 				Expect(createdMetadata).To(Equal(db.ContainerMetadata{
 					WorkingDirectory: "some-artifact-root",
@@ -1197,7 +1197,7 @@ var _ = Describe("TaskStep", func() {
 							})
 
 							It("chooses a worker and creates the container with the image artifact source", func() {
-								_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+								_, _, _, containerSpec, _, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ImageArtifactSource: imageArtifactSource,
 								}))
@@ -1231,7 +1231,7 @@ var _ = Describe("TaskStep", func() {
 										})
 
 										It("still chooses a worker and creates the container with the volume and a metadata stream", func() {
-											_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+											_, _, _, containerSpec, _, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 											Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageArtifactSource: imageArtifactSource,
 											}))
@@ -1259,7 +1259,7 @@ var _ = Describe("TaskStep", func() {
 										})
 
 										It("still chooses a worker and creates the container with the volume and a metadata stream", func() {
-											_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+											_, _, _, containerSpec, _, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 											Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageArtifactSource: imageArtifactSource,
 											}))
@@ -1288,7 +1288,7 @@ var _ = Describe("TaskStep", func() {
 										})
 
 										It("still chooses a worker and creates the container with the volume and a metadata stream", func() {
-											_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+											_, _, _, containerSpec, _, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 											Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageArtifactSource: imageArtifactSource,
 											}))
@@ -1330,7 +1330,7 @@ var _ = Describe("TaskStep", func() {
 						})
 
 						It("creates the specs with the image resource", func() {
-							_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+							_, _, _, containerSpec, _, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 							Expect(containerSpec.ImageSpec.ImageResource).To(Equal(&worker.ImageResource{
 								Type:    "docker",
 								Source:  atc.Source{"some": "super-secret-source"},
@@ -1362,7 +1362,7 @@ var _ = Describe("TaskStep", func() {
 						})
 
 						It("creates the specs with the image resource", func() {
-							_, _, _, containerSpec, _, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+							_, _, _, containerSpec, _, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 							Expect(containerSpec.ImageSpec.ImageURL).To(Equal("some-image"))
 
 							Expect(workerSpec).To(Equal(worker.WorkerSpec{

@@ -191,7 +191,7 @@ var _ = Describe("PutStep", func() {
 
 			It("finds/chooses a worker and creates a container with the correct type, session, and sources with no inputs specified (meaning it takes all artifacts)", func() {
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-				_, _, actualOwner, actualContainerSpec, actualContainerMetadata, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+				_, _, actualOwner, actualContainerSpec, actualContainerMetadata, actualWorkerSpec, strategy, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
 				Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "some-resource-type",

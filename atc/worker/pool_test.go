@@ -130,6 +130,7 @@ var _ = Describe("Pool", func() {
 				db.ContainerMetadata{},
 				workerSpec,
 				fakeStrategy,
+				false,
 			)
 		})
 

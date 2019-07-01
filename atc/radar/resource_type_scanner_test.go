@@ -186,7 +186,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 
-					_, _, owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+					_, _, owner, containerSpec, metadata, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",
@@ -243,7 +243,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
 						Expect(err).To(BeNil())
 
-						_, _, owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+						_, _, owner, containerSpec, metadata, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 						Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 							ResourceType: "registry-image",
@@ -469,7 +469,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
-				_, _, owner, containerSpec, metadata,  workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+				_, _, owner, containerSpec, metadata, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "registry-image",
@@ -593,7 +593,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
-					_, _,  owner, containerSpec, metadata, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+					_, _, owner, containerSpec, metadata, workerSpec, _, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",

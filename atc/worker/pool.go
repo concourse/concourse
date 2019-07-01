@@ -67,6 +67,7 @@ type Pool interface {
 		db.ContainerMetadata,
 		WorkerSpec,
 		ContainerPlacementStrategy,
+		bool,
 	) (Worker, error)
 
 	FindOrChooseWorker(
@@ -146,6 +147,7 @@ func (pool *pool) FindOrChooseWorkerForContainer(
 	metadata db.ContainerMetadata,
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
+	increaseActiveTasks bool,
 ) (Worker, error) {
 	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
 		logger.Session("find-worker"),
@@ -203,11 +205,11 @@ dance:
 			return nil, err
 		}
 
-		if metadata.Type == db.ContainerTypeTask {
-			logger.Info("Increasing active tasks on worker.")
+		if increaseActiveTasks {
 			err = worker.IncreaseActiveTasks()
 			if err != nil {
 				logger.Error("Increase active tasks encountered an error:", err)
+				return nil, err
 			} else {
 				at, _ := worker.ActiveTasks()
 				logger.Info(fmt.Sprintf("Increased tasks, current value: %d", at))
@@ -215,7 +217,6 @@ dance:
 		}
 		break
 	}
-
 	return worker, nil
 }
 

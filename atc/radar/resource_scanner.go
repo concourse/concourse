@@ -331,6 +331,7 @@ func (scanner *resourceScanner) check(
 		},
 		workerSpec,
 		scanner.strategy,
+		false,
 	)
 	if err != nil {
 		logger.Error("failed-to-choose-a-worker", err)

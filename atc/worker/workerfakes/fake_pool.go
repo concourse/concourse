@@ -53,7 +53,7 @@ type FakePool struct {
 		result1 worker.Worker
 		result2 error
 	}
-	FindOrChooseWorkerForContainerStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, worker.WorkerSpec, worker.ContainerPlacementStrategy) (worker.Worker, error)
+	FindOrChooseWorkerForContainerStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, worker.WorkerSpec, worker.ContainerPlacementStrategy, bool) (worker.Worker, error)
 	findOrChooseWorkerForContainerMutex       sync.RWMutex
 	findOrChooseWorkerForContainerArgsForCall []struct {
 		arg1 context.Context
@@ -63,6 +63,7 @@ type FakePool struct {
 		arg5 db.ContainerMetadata
 		arg6 worker.WorkerSpec
 		arg7 worker.ContainerPlacementStrategy
+		arg8 bool
 	}
 	findOrChooseWorkerForContainerReturns struct {
 		result1 worker.Worker
@@ -267,7 +268,7 @@ func (fake *FakePool) FindOrChooseWorkerReturnsOnCall(i int, result1 worker.Work
 	}{result1, result2}
 }
 
-func (fake *FakePool) FindOrChooseWorkerForContainer(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 db.ContainerMetadata, arg6 worker.WorkerSpec, arg7 worker.ContainerPlacementStrategy) (worker.Worker, error) {
+func (fake *FakePool) FindOrChooseWorkerForContainer(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 db.ContainerMetadata, arg6 worker.WorkerSpec, arg7 worker.ContainerPlacementStrategy, arg8 bool) (worker.Worker, error) {
 	fake.findOrChooseWorkerForContainerMutex.Lock()
 	ret, specificReturn := fake.findOrChooseWorkerForContainerReturnsOnCall[len(fake.findOrChooseWorkerForContainerArgsForCall)]
 	fake.findOrChooseWorkerForContainerArgsForCall = append(fake.findOrChooseWorkerForContainerArgsForCall, struct {
@@ -278,11 +279,12 @@ func (fake *FakePool) FindOrChooseWorkerForContainer(arg1 context.Context, arg2 
 		arg5 db.ContainerMetadata
 		arg6 worker.WorkerSpec
 		arg7 worker.ContainerPlacementStrategy
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
-	fake.recordInvocation("FindOrChooseWorkerForContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+		arg8 bool
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("FindOrChooseWorkerForContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.findOrChooseWorkerForContainerMutex.Unlock()
 	if fake.FindOrChooseWorkerForContainerStub != nil {
-		return fake.FindOrChooseWorkerForContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return fake.FindOrChooseWorkerForContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -297,17 +299,17 @@ func (fake *FakePool) FindOrChooseWorkerForContainerCallCount() int {
 	return len(fake.findOrChooseWorkerForContainerArgsForCall)
 }
 
-func (fake *FakePool) FindOrChooseWorkerForContainerCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, worker.WorkerSpec, worker.ContainerPlacementStrategy) (worker.Worker, error)) {
+func (fake *FakePool) FindOrChooseWorkerForContainerCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, worker.WorkerSpec, worker.ContainerPlacementStrategy, bool) (worker.Worker, error)) {
 	fake.findOrChooseWorkerForContainerMutex.Lock()
 	defer fake.findOrChooseWorkerForContainerMutex.Unlock()
 	fake.FindOrChooseWorkerForContainerStub = stub
 }
 
-func (fake *FakePool) FindOrChooseWorkerForContainerArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, worker.WorkerSpec, worker.ContainerPlacementStrategy) {
+func (fake *FakePool) FindOrChooseWorkerForContainerArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, worker.WorkerSpec, worker.ContainerPlacementStrategy, bool) {
 	fake.findOrChooseWorkerForContainerMutex.RLock()
 	defer fake.findOrChooseWorkerForContainerMutex.RUnlock()
 	argsForCall := fake.findOrChooseWorkerForContainerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
 }
 
 func (fake *FakePool) FindOrChooseWorkerForContainerReturns(result1 worker.Worker, result2 error) {

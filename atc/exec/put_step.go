@@ -148,6 +148,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		workerSpec,
 		step.strategy,
+		false,
 	)
 	if err != nil {
 		return err

@@ -266,6 +266,7 @@ func (scanner *resourceTypeScanner) check(
 		},
 		workerSpec,
 		scanner.strategy,
+		false,
 	)
 	if err != nil {
 		chkErr := resourceConfigScope.SetCheckError(err)
