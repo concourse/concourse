@@ -316,6 +316,28 @@ all =
                         , containing [ text "log message" ]
                         ]
                     |> Query.has [ class "highlighted-line" ]
+        , test "has equal number of timestamps as build events" <|
+            \_ ->
+                threeBuildEvents
+                    |> Query.findAll [ class "timestamp" ]
+                    |> Query.count (Expect.equal 3)
+        , test "has equal number of build lines as build events" <|
+            \_ ->
+                threeBuildEvents
+                    |> Query.findAll [ class "timestamped-content" ]
+                    |> Query.count (Expect.equal 3)
+        , test "build log ids start at 1" <|
+            \_ ->
+                threeBuildEvents
+                    |> Query.find [ class "timestamped-logs" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ id "stepid:1" ]
+        , test "build log ids do not have contain a 0" <|
+            \_ ->
+                threeBuildEvents
+                    |> Query.findAll [ id "stepid:0" ]
+                    |> Query.count (Expect.equal 0)
         , test "scrolls to highlighted line" <|
             \_ ->
                 Application.init
@@ -3416,3 +3438,92 @@ receiveEvent :
     -> ( Application.Model, List Effects.Effect )
 receiveEvent envelope =
     Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])
+
+
+threeBuildEvents =
+    Common.init "/builds/1"
+        |> Application.handleCallback
+            (Callback.BuildFetched <|
+                Ok
+                    ( 1
+                    , { id = 1
+                      , name = "1"
+                      , job = Nothing
+                      , status = Concourse.BuildStatusStarted
+                      , duration =
+                            { startedAt =
+                                Just <| Time.millisToPosix 0
+                            , finishedAt = Nothing
+                            }
+                      , reapTime = Nothing
+                      }
+                    )
+            )
+        |> Tuple.first
+        |> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok <|
+                    ( { id = "stepid"
+                      , step =
+                            Concourse.BuildStepTask
+                                "step"
+                      }
+                    , { inputs = [], outputs = [] }
+                    )
+            )
+        |> Tuple.first
+        |> receiveEvent
+            { url = "http://localhost:8080/api/v1/builds/1/events"
+            , data =
+                STModels.StartTask
+                    { id = "stepid"
+                    , source = ""
+                    }
+                    (Time.millisToPosix 0)
+            }
+        |> Tuple.first
+        |> receiveEvent
+            { url = "http://localhost:8080/api/v1/builds/1/events"
+            , data =
+                STModels.Log
+                    { id = "stepid"
+                    , source = "stdout"
+                    }
+                    "log message\n"
+                    (Just <| Time.millisToPosix 0)
+            }
+        |> Tuple.first
+        |> receiveEvent
+            { url = "http://localhost:8080/api/v1/builds/1/events"
+            , data =
+                STModels.Log
+                    { id = "stepid"
+                    , source = "stdout"
+                    }
+                    "log message\n"
+                    (Just <| Time.millisToPosix 0)
+            }
+        |> Tuple.first
+        |> receiveEvent
+            { url = "http://localhost:8080/api/v1/builds/1/events"
+            , data =
+                STModels.Log
+                    { id = "stepid"
+                    , source = "stdout"
+                    }
+                    "log message\n"
+                    (Just <| Time.millisToPosix 0)
+            }
+        |> Tuple.first
+        |> Application.handleCallback
+            (Callback.GotCurrentTimeZone <|
+                Time.customZone (5 * 60) []
+            )
+        |> Tuple.first
+        |> Application.update
+            (Msgs.Update <|
+                Message.Message.Click <|
+                    Message.Message.StepHeader "stepid"
+            )
+        |> Tuple.first
+        |> Common.queryView
