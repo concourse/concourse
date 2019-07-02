@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 )
 
 type PruneWorkerCommand struct {
-	Worker     string `short:"w"  long:"worker" description:"Worker to prune"`
-	AllStalled bool   `short:"a" long:"all-stalled" description:"Prune all stalled workers"`
+	Worker     flaghelpers.WorkerFlag `short:"w"  long:"worker" description:"Worker to prune"`
+	AllStalled bool                   `short:"a" long:"all-stalled" description:"Prune all stalled workers"`
 }
 
 func (command *PruneWorkerCommand) Execute(args []string) error {
@@ -21,7 +22,7 @@ func (command *PruneWorkerCommand) Execute(args []string) error {
 	var workersNames []string
 
 	if command.Worker != "" {
-		workersNames = append(workersNames, command.Worker)
+		workersNames = append(workersNames, string(command.Worker))
 	}
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
