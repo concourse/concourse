@@ -16,15 +16,18 @@ var _ = Describe("team external workers through separate deployments", func() {
 		proxySession *gexec.Session
 		atcEndpoint  string
 		workerKey    string
+		tsaPort      string
 	)
 
 	JustBeforeEach(func() {
 		setReleaseNameAndNamespace("xw")
 
 		By("creating a web only deployment in one namespace")
+		tsaPort = "2222"
 		helmArgs := []string{
 			"--set=worker.enabled=false",
 
+			"--set=web.tsa.bindPort=" + tsaPort,
 			"--set=secrets.teamAuthorizedKeys[0].team=main",
 			"--set=secrets.teamAuthorizedKeys[0].key=" + workerKey,
 
@@ -37,11 +40,9 @@ var _ = Describe("team external workers through separate deployments", func() {
 		helmArgs = []string{
 			"--set=postgresql.enabled=false",
 			"--set=web.enabled=false",
-			"--set=concourse.worker.team=main",
-
 			"--set=worker.replicas=1",
-
-			"--set=concourse.worker.tsa.host=" + releaseName + "-web-web." + releaseName + "-web.svc.cluster.local",
+			"--set=concourse.worker.team=main",
+			"--set=concourse.worker.tsa.hosts[0]=" + releaseName + "-web-web." + releaseName + "-web.svc.cluster.local:" + tsaPort,
 		}
 		deployConcourseChart(releaseName+"-worker", helmArgs...)
 
