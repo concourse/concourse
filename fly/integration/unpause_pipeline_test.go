@@ -81,7 +81,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
-		Context("when the pipline name is not specified", func() {
+		Context("when the pipline name or --all is not specified", func() {
 			It("errors", func() {
 				Expect(func() {
 					flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline")
@@ -89,7 +89,25 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(`was not specified`))
+					Eventually(sess.Err).Should(gbytes.Say(`Either a pipeline name or --all are required`))
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(0))
+			})
+		})
+
+		Context("when both the pipline name and --all are specified", func() {
+			It("errors", func() {
+				Expect(func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline", "--all")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Err).Should(gbytes.Say(`A pipeline and --all can not both be specified`))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
@@ -111,6 +129,57 @@ var _ = Describe("Fly CLI", func() {
 
 				Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
 			})
+		})
+
+	})
+	Context("when the --all flag is passed", func() {
+		var (
+			somePath      string
+			someOtherPath string
+			err           error
+		)
+
+		BeforeEach(func() {
+			somePath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+			Expect(err).NotTo(HaveOccurred())
+
+			someOtherPath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "more-awesome-pipeline", "team_name": "main"})
+			Expect(err).NotTo(HaveOccurred())
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+						{Name: "awesome-pipeline", Paused: false, Public: false},
+						{Name: "more-awesome-pipeline", Paused: true, Public: false},
+					}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", somePath),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", someOtherPath),
+					ghttp.RespondWith(http.StatusOK, nil),
+				),
+			)
+		})
+
+		It("unpauses every pipeline", func() {
+			Expect(func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "--all")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gbytes.Say(`unpaused 'awesome-pipeline'`))
+				Eventually(sess).Should(gbytes.Say(`unpaused 'more-awesome-pipeline'`))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+			}).To(Change(func() int {
+				return len(atcServer.ReceivedRequests())
+			}).By(4))
 		})
 
 	})
