@@ -737,6 +737,14 @@ func (s setupDB) insertRowBuild(row DBRow) {
 	Expect(err).ToNot(HaveOccurred())
 
 	Expect(existingJobID).To(Equal(jobID), fmt.Sprintf("build ID %d already used by job other than %s", row.BuildID, row.Job))
+
+	_, err = s.psql.Update("jobs").
+		Set("latest_completed_build_id", row.BuildID).
+		Where(sq.Eq{
+			"id": jobID,
+		}).
+		Exec()
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s setupDB) insertBuildPipe(row DBRow) {

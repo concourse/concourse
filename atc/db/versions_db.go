@@ -9,10 +9,19 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	cache "github.com/patrickmn/go-cache"
 	gocache "github.com/patrickmn/go-cache"
 )
 
 const algorithmLimitRows = 100
+
+type JobNotFoundError struct {
+	ID int
+}
+
+func (e JobNotFoundError) Error() string {
+	return fmt.Sprintf("job ID %d is not found", e.ID)
+}
 
 type VersionsDB struct {
 	Conn Conn
@@ -439,14 +448,61 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 }
 
 func (versions VersionsDB) OrderPassedJobs(currentJobID int, jobs JobSet) ([]int, error) {
-	var jobIDs []int
-	for id, _ := range jobs {
-		jobIDs = append(jobIDs, id)
+	// var jobIDs []int
+	// for id, _ := range jobs {
+	// 	jobIDs = append(jobIDs, id)
+	// }
+
+	// sort.Ints(jobIDs)
+
+	// return jobIDs, nil
+
+	type jobLatestBuild struct {
+		jobID         int
+		latestBuildID int
 	}
 
-	sort.Ints(jobIDs)
+	jobsLatestBuilds := []jobLatestBuild{}
+	for id, _ := range jobs {
+		cacheKey := fmt.Sprintf("jlb%d", id)
 
-	return jobIDs, nil
+		var buildID sql.NullInt64
+		c, found := versions.Cache.Get(cacheKey)
+		if found {
+			buildID.Int64 = c.(int64)
+		} else {
+			err := psql.Select("latest_completed_build_id").
+				From("jobs").
+				Where(sq.Eq{"id": id}).
+				RunWith(versions.Conn).
+				QueryRow().
+				Scan(&buildID)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					return nil, JobNotFoundError{id}
+				}
+				return nil, err
+			}
+
+			versions.Cache.Set(cacheKey, buildID.Int64, cache.DefaultExpiration)
+		}
+
+		jobsLatestBuilds = append(jobsLatestBuilds, jobLatestBuild{
+			jobID:         id,
+			latestBuildID: int(buildID.Int64),
+		})
+	}
+
+	sort.Slice(jobsLatestBuilds, func(i, j int) bool {
+		return jobsLatestBuilds[i].latestBuildID < jobsLatestBuilds[j].latestBuildID
+	})
+
+	orderedJobs := []int{}
+	for _, jlb := range jobsLatestBuilds {
+		orderedJobs = append(orderedJobs, jlb.jobID)
+	}
+
+	return orderedJobs, nil
 }
 
 func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (ResourceVersion, bool, error) {
