@@ -7,22 +7,18 @@ import (
 	"io"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 
-	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/cloudfoundry/bosh-cli/director/template"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/worker"
 )
-
-const taskProcessID = "task"
-const taskExitStatusPropertyName = "concourse:exit-status"
 
 // MissingInputsError is returned when any of the task's required inputs are
 // missing.
@@ -73,7 +69,7 @@ type TaskStep struct {
 	containerMetadata db.ContainerMetadata
 	secrets           creds.Secrets
 	strategy          worker.ContainerPlacementStrategy
-	workerPool        worker.Pool
+	workerClient      worker.Client
 	delegate          TaskDelegate
 	succeeded         bool
 }
@@ -86,7 +82,7 @@ func NewTaskStep(
 	containerMetadata db.ContainerMetadata,
 	secrets creds.Secrets,
 	strategy worker.ContainerPlacementStrategy,
-	workerPool worker.Pool,
+	workerClient worker.Client,
 	delegate TaskDelegate,
 ) Step {
 	return &TaskStep{
@@ -97,7 +93,7 @@ func NewTaskStep(
 		containerMetadata: containerMetadata,
 		secrets:           secrets,
 		strategy:          strategy,
-		workerPool:        workerPool,
+		workerClient:      workerClient,
 		delegate:          delegate,
 	}
 }
@@ -188,135 +184,76 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	processSpec := worker.TaskProcessSpec{
+		Path:         config.Run.Path,
+		Args:         config.Run.Args,
+		Dir:          config.Run.Dir,
+		StdoutWriter: step.delegate.Stdout(),
+		StderrWriter: step.delegate.Stderr(),
+	}
+
+	imageSpec := worker.ImageFetcherSpec{
+		ResourceTypes: resourceTypes,
+		Delegate:      step.delegate,
+	}
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(
-		ctx,
-		logger,
-		owner,
-		containerSpec,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return err
-	}
+	results := make(chan worker.TaskResult)
+	events := make(chan string, 1)
 
-	container, err := chosenWorker.FindOrCreateContainer(
-		ctx,
-		logger,
-		step.delegate,
-		owner,
-		step.containerMetadata,
-		containerSpec,
-		resourceTypes,
-	)
-	if err != nil {
-		return err
-	}
-
-	exitStatusProp, err := container.Property(taskExitStatusPropertyName)
-	if err == nil {
-		logger.Info("already-exited", lager.Data{"status": exitStatusProp})
-
-		status, err := strconv.Atoi(exitStatusProp)
-		if err != nil {
-			return err
-		}
-
-		step.succeeded = (status == 0)
-
-		err = step.registerOutputs(logger, repository, config, container, step.containerMetadata)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	processIO := garden.ProcessIO{
-		Stdout: step.delegate.Stdout(),
-		Stderr: step.delegate.Stderr(),
-	}
-
-	process, err := container.Attach(taskProcessID, processIO)
-	if err == nil {
-		logger.Info("already-running")
-	} else {
-		logger.Info("spawning")
-
-		step.delegate.Starting(logger, config)
-
-		process, err = container.Run(
-			garden.ProcessSpec{
-				ID: taskProcessID,
-
-				Path: config.Run.Path,
-				Args: config.Run.Args,
-
-				Dir: path.Join(step.containerMetadata.WorkingDirectory, config.Run.Dir),
-
-				// Guardian sets the default TTY window size to width: 80, height: 24,
-				// which creates ANSI control sequences that do not work with other window sizes
-				TTY: &garden.TTYSpec{
-					WindowSize: &garden.WindowSize{Columns: 500, Rows: 500},
-				},
-			},
-			processIO,
+	go func(results chan worker.TaskResult) {
+		status, volumeMounts, err := step.workerClient.RunTaskStep(
+			ctx,
+			logger,
+			owner,
+			containerSpec,
+			workerSpec,
+			step.strategy,
+			step.containerMetadata,
+			imageSpec,
+			processSpec,
+			events,
 		)
+
+		results <- worker.TaskResult{
+			Status:       status,
+			VolumeMounts: volumeMounts,
+			Err:          err,
+		}
+
+	}(results)
+
+	for {
+		select {
+		case <-ctx.Done():
+			result := <-results
+			err = step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+			if err != nil {
+				return err
+			}
+
+			return ctx.Err()
+
+		case result := <-results:
+			if err = result.Err; err != nil {
+				return err
+			}
+
+			step.succeeded = (result.Status == 0)
+			step.delegate.Finished(logger, ExitStatus(result.Status))
+
+			err = step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+			if err != nil {
+				return err
+			}
+
+			return nil
+
+		case <-events:
+			step.delegate.Starting(logger, config)
+		}
 	}
-	if err != nil {
-		return err
-	}
 
-	logger.Info("attached")
-
-	exited := make(chan struct{})
-	var processStatus int
-	var processErr error
-
-	go func() {
-		processStatus, processErr = process.Wait()
-		close(exited)
-	}()
-
-	select {
-	case <-ctx.Done():
-		err = step.registerOutputs(logger, repository, config, container, step.containerMetadata)
-		if err != nil {
-			return err
-		}
-
-		err = container.Stop(false)
-		if err != nil {
-			logger.Error("stopping-container", err)
-		}
-
-		<-exited
-
-		return ctx.Err()
-
-	case <-exited:
-		if processErr != nil {
-			return processErr
-		}
-
-		err = step.registerOutputs(logger, repository, config, container, step.containerMetadata)
-		if err != nil {
-			return err
-		}
-
-		step.delegate.Finished(logger, ExitStatus(processStatus))
-
-		err = container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
-		if err != nil {
-			return err
-		}
-
-		step.succeeded = processStatus == 0
-
-		return nil
-	}
 }
 
 func (step *TaskStep) Succeeded() bool {
@@ -448,9 +385,7 @@ func (step *TaskStep) workerSpec(logger lager.Logger, resourceTypes atc.Versione
 	return workerSpec, nil
 }
 
-func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, container worker.Container, metadata db.ContainerMetadata) error {
-	volumeMounts := container.VolumeMounts()
-
+func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) error {
 	logger.Debug("registering-outputs", lager.Data{"outputs": config.Outputs})
 
 	for _, output := range config.Outputs {

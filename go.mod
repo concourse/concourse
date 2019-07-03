@@ -87,7 +87,6 @@ require (
 	github.com/gobuffalo/packr v1.13.7
 	github.com/gocql/gocql v0.0.0-20180920092337-799fb0373110 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
-	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
@@ -150,7 +149,7 @@ require (
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mattn/go-isatty v0.0.7
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.0.2
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.1
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/michaelklishin/rabbit-hole v1.4.0 // indirect
 	github.com/miekg/dns v1.1.6
@@ -208,9 +207,9 @@ require (
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
-	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890
-	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	google.golang.org/api v0.1.0 // indirect
 	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect
