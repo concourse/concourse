@@ -98,9 +98,8 @@ type Build interface {
 	Artifact(artifactID int) (WorkerArtifact, error)
 
 	SaveOutput(lager.Logger, string, atc.Source, creds.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
-	Schedule(inputs []BuildInput) (bool, error)
 
-	AdoptBuildPipes() error
+	AdoptInputsAndPipes() ([]BuildInput, bool, error)
 
 	Resources() ([]BuildInput, []BuildOutput, error)
 	SaveImageResourceVersion(UsedResourceCache) error
@@ -868,30 +867,29 @@ func (b *build) SaveOutput(
 	return nil
 }
 
-func (b *build) Schedule(inputs []BuildInput) (bool, error) {
+func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 
-	defer Rollback(tx)
+	defer tx.Rollback()
 
-	result, err := psql.Update("builds").
-		Set("scheduled", true).
-		Where(sq.Eq{"id": b.id}).
+	var found bool
+	err = psql.Select("inputs_determined").
+		From("jobs").
+		Where(sq.Eq{
+			"id": b.jobID,
+		}).
 		RunWith(tx).
-		Exec()
+		QueryRow().
+		Scan(&found)
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return false, err
-	}
-
-	if rows != 1 {
-		return false, nil
+	if !found {
+		return nil, false, nil
 	}
 
 	_, err = psql.Delete("build_resource_config_version_inputs").
@@ -899,34 +897,107 @@ func (b *build) Schedule(inputs []BuildInput) (bool, error) {
 		RunWith(tx).
 		Exec()
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 
-	for _, input := range inputs {
-		err = b.saveInputTx(tx, b.id, input)
+	rows, err := psql.Insert("build_resource_config_version_inputs").
+		Columns("resource_id", "version_md5", "name", "first_occurrence", "build_id").
+		Select(psql.Select("i.resource_id", "i.version_md5", "i.input_name", "i.first_occurrence").
+			Column("?", b.id).
+			From("next_build_inputs i").
+			Where(sq.Eq{"i.job_id": b.jobID})).
+		Suffix("ON CONFLICT (build_id, resource_id, version_md5, name) DO UPDATE SET first_occurrence = EXCLUDED.first_occurrence").
+		Suffix("RETURNING name, resource_id, version_md5, first_occurrence").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, false, err
+	}
+
+	inputs := InputMapping{}
+	for rows.Next() {
+		var (
+			inputName       string
+			firstOccurrence bool
+			versionMD5      string
+			resourceID      int
+		)
+
+		err := rows.Scan(&inputName, &resourceID, &versionMD5, &firstOccurrence)
 		if err != nil {
-			return false, err
+			return nil, false, err
 		}
+
+		inputs[inputName] = InputResult{
+			Input: &AlgorithmInput{
+				AlgorithmVersion: AlgorithmVersion{
+					ResourceID: resourceID,
+					Version:    ResourceVersion(versionMD5),
+				},
+				FirstOccurrence: firstOccurrence,
+			},
+		}
+	}
+
+	buildInputs := []BuildInput{}
+	for inputName, input := range inputs {
+		var versionBlob string
+
+		err = psql.Select("v.version").
+			From("resource_config_versions v").
+			Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
+			Where(sq.Eq{
+				"v.version_md5": input.Input.Version,
+				"r.id":          input.Input.ResourceID,
+			}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&versionBlob)
+		if err != nil {
+			return nil, false, err
+		}
+
+		var version atc.Version
+		err = json.Unmarshal([]byte(versionBlob), &version)
+		if err != nil {
+			return nil, false, err
+		}
+
+		buildInputs = append(buildInputs, BuildInput{
+			Name:            inputName,
+			ResourceID:      input.Input.ResourceID,
+			Version:         version,
+			FirstOccurrence: input.Input.FirstOccurrence,
+		})
+	}
+
+	_, err = psql.Delete("build_pipes").
+		Where(sq.Eq{"to_build_id": b.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = psql.Insert("build_pipes").
+		Columns("from_build_id", "to_build_id").
+		Select(psql.Select("nbp.from_build_id").
+			Column("?", b.id).
+			From("next_build_pipes nbp").
+			Where(sq.Eq{"nbp.to_job_id": b.jobID})).
+		Suffix("ON CONFLICT DO NOTHING").
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 
-	return true, nil
-}
-
-func (b *build) AdoptBuildPipes() error {
-	_, err := b.conn.Exec(`
-		INSERT INTO build_pipes (from_build_id, to_build_id)
-		SELECT nbp.from_build_id, $1
-		FROM next_build_pipes nbp
-		WHERE nbp.to_job_id = $2
-		ON CONFLICT DO NOTHING
-		`, b.id, b.jobID)
-
-	return err
+	return buildInputs, true, nil
 }
 
 func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
@@ -1025,22 +1096,6 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	}
 
 	return inputs, outputs, nil
-}
-
-func (p *build) saveInputTx(tx Tx, buildID int, input BuildInput) error {
-	versionJSON, err := json.Marshal(input.Version)
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Insert("build_resource_config_version_inputs").
-		Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
-		Values(buildID, input.ResourceID, sq.Expr("md5(?)", versionJSON), input.Name, input.FirstOccurrence).
-		Suffix("ON CONFLICT (build_id, resource_id, version_md5, name) DO UPDATE SET first_occurrence = ?", input.FirstOccurrence).
-		RunWith(tx).
-		Exec()
-
-	return err
 }
 
 func createBuildEventSeq(tx Tx, buildid int) error {

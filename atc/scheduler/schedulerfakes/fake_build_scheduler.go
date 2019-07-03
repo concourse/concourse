@@ -3,7 +3,6 @@ package schedulerfakes
 
 import (
 	"sync"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -12,7 +11,7 @@ import (
 )
 
 type FakeBuildScheduler struct {
-	ScheduleStub        func(lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)
+	ScheduleStub        func(lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) error
 	scheduleMutex       sync.RWMutex
 	scheduleArgsForCall []struct {
 		arg1 lager.Logger
@@ -22,18 +21,16 @@ type FakeBuildScheduler struct {
 		arg5 atc.VersionedResourceTypes
 	}
 	scheduleReturns struct {
-		result1 map[string]time.Duration
-		result2 error
+		result1 error
 	}
 	scheduleReturnsOnCall map[int]struct {
-		result1 map[string]time.Duration
-		result2 error
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *db.VersionsDB, arg3 db.Job, arg4 db.Resources, arg5 atc.VersionedResourceTypes) (map[string]time.Duration, error) {
+func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *db.VersionsDB, arg3 db.Job, arg4 db.Resources, arg5 atc.VersionedResourceTypes) error {
 	fake.scheduleMutex.Lock()
 	ret, specificReturn := fake.scheduleReturnsOnCall[len(fake.scheduleArgsForCall)]
 	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
@@ -49,10 +46,10 @@ func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *db.VersionsDB,
 		return fake.ScheduleStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
 	fakeReturns := fake.scheduleReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakeBuildScheduler) ScheduleCallCount() int {
@@ -61,7 +58,7 @@ func (fake *FakeBuildScheduler) ScheduleCallCount() int {
 	return len(fake.scheduleArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) ScheduleCalls(stub func(lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) (map[string]time.Duration, error)) {
+func (fake *FakeBuildScheduler) ScheduleCalls(stub func(lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) error) {
 	fake.scheduleMutex.Lock()
 	defer fake.scheduleMutex.Unlock()
 	fake.ScheduleStub = stub
@@ -74,30 +71,27 @@ func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *db.Ve
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
-func (fake *FakeBuildScheduler) ScheduleReturns(result1 map[string]time.Duration, result2 error) {
+func (fake *FakeBuildScheduler) ScheduleReturns(result1 error) {
 	fake.scheduleMutex.Lock()
 	defer fake.scheduleMutex.Unlock()
 	fake.ScheduleStub = nil
 	fake.scheduleReturns = struct {
-		result1 map[string]time.Duration
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeBuildScheduler) ScheduleReturnsOnCall(i int, result1 map[string]time.Duration, result2 error) {
+func (fake *FakeBuildScheduler) ScheduleReturnsOnCall(i int, result1 error) {
 	fake.scheduleMutex.Lock()
 	defer fake.scheduleMutex.Unlock()
 	fake.ScheduleStub = nil
 	if fake.scheduleReturnsOnCall == nil {
 		fake.scheduleReturnsOnCall = make(map[int]struct {
-			result1 map[string]time.Duration
-			result2 error
+			result1 error
 		})
 	}
 	fake.scheduleReturnsOnCall[i] = struct {
-		result1 map[string]time.Duration
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeBuildScheduler) Invocations() map[string][][]interface{} {

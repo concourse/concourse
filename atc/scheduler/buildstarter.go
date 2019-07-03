@@ -5,7 +5,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
-	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 )
 
 //go:generate counterfeiter . BuildStarter
@@ -27,23 +26,20 @@ type BuildFactory interface {
 
 func NewBuildStarter(
 	pipeline db.Pipeline,
-	maxInFlightUpdater maxinflight.Updater,
 	factory BuildFactory,
 	inputMapper algorithm.InputMapper,
 ) BuildStarter {
 	return &buildStarter{
-		pipeline:           pipeline,
-		maxInFlightUpdater: maxInFlightUpdater,
-		factory:            factory,
-		inputMapper:        inputMapper,
+		pipeline:    pipeline,
+		factory:     factory,
+		inputMapper: inputMapper,
 	}
 }
 
 type buildStarter struct {
-	pipeline           db.Pipeline
-	maxInFlightUpdater maxinflight.Updater
-	factory            BuildFactory
-	inputMapper        algorithm.InputMapper
+	pipeline    db.Pipeline
+	factory     BuildFactory
+	inputMapper algorithm.InputMapper
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
@@ -84,11 +80,27 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		"build-name": nextPendingBuild.Name(),
 	})
 
-	reachedMaxInFlight, err := s.maxInFlightUpdater.UpdateMaxInFlightReached(logger, job, nextPendingBuild.ID())
+	pipelinePaused, err := s.pipeline.CheckPaused()
 	if err != nil {
+		logger.Error("failed-to-check-if-pipeline-is-paused", err)
 		return false, err
 	}
-	if reachedMaxInFlight {
+	if pipelinePaused {
+		return false, nil
+	}
+
+	if job.Paused() {
+		return false, nil
+	}
+
+	scheduled, err := job.ScheduleBuild(nextPendingBuild)
+	if err != nil {
+		logger.Error("failed-to-use-inputs", err)
+		return false, err
+	}
+
+	if !scheduled {
+		logger.Debug("build-not-scheduled")
 		return false, nil
 	}
 
@@ -134,43 +146,14 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		resourceTypes = dbResourceTypes.Deserialize()
 	}
 
-	buildInputs, found, err := job.GetFullNextBuildInputs()
-	if err != nil {
-		logger.Error("failed-to-get-next-build-inputs", err)
-		return false, err
-	}
-	if !found {
-		return false, nil
-	}
-
-	pipelinePaused, err := s.pipeline.CheckPaused()
-	if err != nil {
-		logger.Error("failed-to-check-if-pipeline-is-paused", err)
-		return false, err
-	}
-	if pipelinePaused {
-		return false, nil
-	}
-
-	if job.Paused() {
-		return false, nil
-	}
-
-	updated, err := nextPendingBuild.Schedule(buildInputs)
-	if err != nil {
-		logger.Error("failed-to-use-inputs", err)
-		return false, err
-	}
-
-	if !updated {
-		logger.Debug("build-already-scheduled")
-		return false, nil
-	}
-
-	err = nextPendingBuild.AdoptBuildPipes()
+	buildInputs, found, err := nextPendingBuild.AdoptInputsAndPipes()
 	if err != nil {
 		logger.Error("failed-to-adopt-build-pipes", err)
 		return false, err
+	}
+
+	if !found {
+		return false, nil
 	}
 
 	resourceConfigs := atc.ResourceConfigs{}

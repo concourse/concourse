@@ -43,7 +43,9 @@ type Job interface {
 	Pause() error
 	Unpause() error
 
+	ScheduleBuild(Build) (bool, error)
 	CreateBuild() (Build, error)
+
 	Builds(page Page) ([]Build, Pagination, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 	Build(name string) (Build, bool, error)
@@ -55,10 +57,6 @@ type Job interface {
 	GetNextBuildInputs() ([]BuildInput, error)
 	GetFullNextBuildInputs() ([]BuildInput, bool, error)
 	SaveNextInputMapping(inputMapping InputMapping, inputsDetermined bool) error
-
-	SetMaxInFlightReached(bool) error
-	GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, error)
-	GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bool, error)
 
 	ClearTaskCache(string, string) (int64, error)
 
@@ -278,95 +276,72 @@ func (j *job) Build(name string) (Build, bool, error) {
 	return build, true, nil
 }
 
-func (j *job) GetNextPendingBuildBySerialGroup(serialGroups []string) (Build, bool, error) {
-	err := j.updateSerialGroups(serialGroups)
+func (j *job) ScheduleBuild(build Build) (bool, error) {
+	if build.IsScheduled() {
+		return true, nil
+	}
+
+	tx, err := j.conn.Begin()
 	if err != nil {
-		return nil, false, err
+		return false, err
 	}
 
-	row := buildsQuery.Options(`DISTINCT ON (b.id)`).
-		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
-		Where(sq.Eq{
-			"jsg.serial_group":    serialGroups,
-			"b.status":            BuildStatusPending,
-			"j.paused":            false,
-			"j.inputs_determined": true,
-			"j.pipeline_id":       j.pipelineID}).
-		OrderBy("b.id ASC").
-		Limit(1).
-		RunWith(j.conn).
-		QueryRow()
+	defer tx.Rollback()
 
-	build := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err = scanBuild(build, row, j.conn.EncryptionStrategy())
+	reached, err := j.isMaxInFlightReached(tx, build.ID())
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-		return nil, false, err
+		return false, err
 	}
 
-	return build, true, nil
-}
-
-func (j *job) GetRunningBuildsBySerialGroup(serialGroups []string) ([]Build, error) {
-	err := j.updateSerialGroups(serialGroups)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := buildsQuery.Options(`DISTINCT ON (b.id)`).
-		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
-		Where(sq.Eq{
-			"jsg.serial_group": serialGroups,
-			"j.pipeline_id":    j.pipelineID,
-		}).
-		Where(sq.Eq{"b.completed": false, "b.scheduled": true}).
-		RunWith(j.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	bs := []Build{}
-
-	for rows.Next() {
-		build := &build{conn: j.conn, lockFactory: j.lockFactory}
-		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
-		if err != nil {
-			return nil, err
-		}
-
-		bs = append(bs, build)
-	}
-
-	return bs, nil
-}
-
-func (j *job) SetMaxInFlightReached(reached bool) error {
 	result, err := psql.Update("jobs").
 		Set("max_in_flight_reached", reached).
 		Where(sq.Eq{
 			"id": j.id,
 		}).
-		RunWith(j.conn).
+		RunWith(tx).
 		Exec()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return false, nonOneRowAffectedError{rowsAffected}
 	}
 
-	return nil
+	var scheduled bool
+	if !reached {
+		result, err = psql.Update("builds").
+			Set("scheduled", true).
+			Where(sq.Eq{"id": build.ID()}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return false, err
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return false, err
+		}
+
+		if rowsAffected != 1 {
+			return false, nonOneRowAffectedError{rowsAffected}
+		}
+
+		scheduled = true
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	return scheduled, nil
 }
 
 func (j *job) GetFullNextBuildInputs() ([]BuildInput, bool, error) {
@@ -642,15 +617,105 @@ func (j *job) AcquireSchedulingLock(logger lager.Logger, interval time.Duration)
 	return lock, true, nil
 }
 
-func (j *job) updateSerialGroups(serialGroups []string) error {
-	tx, err := j.conn.Begin()
-	if err != nil {
-		return err
+func (j *job) isMaxInFlightReached(tx Tx, buildID int) (bool, error) {
+	maxInFlight := j.config.MaxInFlight()
+
+	if maxInFlight == 0 {
+		return false, nil
 	}
 
-	defer Rollback(tx)
+	builds, err := j.getRunningBuildsBySerialGroup(tx)
+	if err != nil {
+		return false, err
+	}
 
-	_, err = psql.Delete("jobs_serial_groups").
+	if len(builds) >= maxInFlight {
+		return true, nil
+	}
+
+	nextMostPendingBuild, found, err := j.getNextPendingBuildBySerialGroup(tx)
+	if err != nil {
+		return false, err
+	}
+
+	if !found {
+		return true, nil
+	}
+
+	return nextMostPendingBuild.ID() != buildID, nil
+}
+
+func (j *job) getRunningBuildsBySerialGroup(tx Tx) ([]Build, error) {
+	serialGroups := j.config.GetSerialGroups()
+	err := j.updateSerialGroups(tx, serialGroups)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := buildsQuery.Options(`DISTINCT ON (b.id)`).
+		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
+		Where(sq.Eq{
+			"jsg.serial_group": serialGroups,
+			"j.pipeline_id":    j.pipelineID,
+		}).
+		Where(sq.Eq{"b.completed": false, "b.scheduled": true}).
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	bs := []Build{}
+
+	for rows.Next() {
+		build := &build{conn: j.conn, lockFactory: j.lockFactory}
+		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
+		if err != nil {
+			return nil, err
+		}
+
+		bs = append(bs, build)
+	}
+
+	return bs, nil
+}
+
+func (j *job) getNextPendingBuildBySerialGroup(tx Tx) (Build, bool, error) {
+	serialGroups := j.config.GetSerialGroups()
+	err := j.updateSerialGroups(tx, serialGroups)
+	if err != nil {
+		return nil, false, err
+	}
+
+	row := buildsQuery.Options(`DISTINCT ON (b.id)`).
+		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
+		Where(sq.Eq{
+			"jsg.serial_group":    serialGroups,
+			"b.status":            BuildStatusPending,
+			"j.paused":            false,
+			"j.inputs_determined": true,
+			"j.pipeline_id":       j.pipelineID}).
+		OrderBy("b.id ASC").
+		Limit(1).
+		RunWith(tx).
+		QueryRow()
+
+	build := &build{conn: j.conn, lockFactory: j.lockFactory}
+	err = scanBuild(build, row, j.conn.EncryptionStrategy())
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return build, true, nil
+}
+
+func (j *job) updateSerialGroups(tx Tx, serialGroups []string) error {
+	_, err := psql.Delete("jobs_serial_groups").
 		Where(sq.Eq{
 			"job_id": j.id,
 		}).
@@ -670,7 +735,7 @@ func (j *job) updateSerialGroups(serialGroups []string) error {
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (j *job) updatePausedJob(pause bool) error {

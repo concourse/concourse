@@ -31,10 +31,6 @@ var _ = Describe("Job", func() {
 
 					Public: true,
 
-					Serial: true,
-
-					SerialGroups: []string{"serial-group"},
-
 					Plan: atc.PlanSequence{
 						{
 							Put: "some-resource",
@@ -69,12 +65,10 @@ var _ = Describe("Job", func() {
 					Public: false,
 				},
 				{
-					Name:         "other-serial-group-job",
-					SerialGroups: []string{"serial-group", "really-different-group"},
+					Name: "other-serial-group-job",
 				},
 				{
-					Name:         "different-serial-group-job",
-					SerialGroups: []string{"different-serial-group"},
+					Name: "different-serial-group-job",
 				},
 			},
 			Resources: atc.ResourceConfigs{
@@ -516,202 +510,556 @@ var _ = Describe("Job", func() {
 		})
 	})
 
-	Describe("GetRunningBuildsBySerialGroup", func() {
-		Describe("same job", func() {
-			var startedBuild, scheduledBuild db.Build
+	Describe("ScheduleBuild", func() {
+		var (
+			schedulingBuild            db.Build
+			scheduleFound, reloadFound bool
+			schedulingErr              error
+		)
 
+		saveMaxInFlightPipeline := func() {
 			BeforeEach(func() {
 				var err error
-				_, err = job.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
+				pipeline, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
 
-				startedBuild, err = job.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
-				_, err = startedBuild.Schedule([]db.BuildInput{})
-				Expect(err).NotTo(HaveOccurred())
-				_, err = startedBuild.Start(atc.Plan{})
-				Expect(err).NotTo(HaveOccurred())
+							Public: true,
 
-				scheduledBuild, err = job.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
+							RawMaxInFlight: 2,
 
-				scheduled, err := scheduledBuild.Schedule([]db.BuildInput{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(scheduled).To(BeTrue())
-
-				for _, s := range []db.BuildStatus{db.BuildStatusSucceeded, db.BuildStatusFailed, db.BuildStatusErrored, db.BuildStatusAborted} {
-					finishedBuild, err := job.CreateBuild()
-					Expect(err).NotTo(HaveOccurred())
-
-					scheduled, err = finishedBuild.Schedule([]db.BuildInput{})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(scheduled).To(BeTrue())
-
-					err = finishedBuild.Finish(s)
-					Expect(err).NotTo(HaveOccurred())
-				}
-
-				otherJob, found, err := pipeline.Job("some-other-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				_, err = otherJob.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
+							Plan: atc.PlanSequence{
+								{
+									Put: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+								},
+								{
+									Get:      "some-input",
+									Resource: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+									Passed:  []string{"job-1", "job-2"},
+									Trigger: true,
+								},
+								{
+									Task:           "some-task",
+									Privileged:     true,
+									TaskConfigPath: "some/config/path.yml",
+									TaskConfig: &atc.TaskConfig{
+										RootfsURI: "some-image",
+									},
+								},
+							},
+						},
+						{
+							Name: "some-other-job",
+						},
+						{
+							Name:   "some-private-job",
+							Public: false,
+						},
+						{
+							Name: "other-serial-group-job",
+						},
+						{
+							Name: "different-serial-group-job",
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+						},
+						{
+							Name: "some-other-resource",
+							Type: "some-type",
+						},
+					},
+				}, pipeline.ConfigVersion(), db.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
 			})
+		}
 
-			It("returns a list of running or schedule builds for said job", func() {
-				builds, err := job.GetRunningBuildsBySerialGroup([]string{"serial-group"})
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(len(builds)).To(Equal(2))
-				ids := []int{}
-				for _, build := range builds {
-					ids = append(ids, build.ID())
-				}
-				Expect(ids).To(ConsistOf([]int{startedBuild.ID(), scheduledBuild.ID()}))
-			})
-		})
-
-		Describe("multiple jobs with same serial group", func() {
-			var serialGroupBuild db.Build
-
+		saveSerialGroupsPipeline := func() {
 			BeforeEach(func() {
 				var err error
-				_, err = job.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
+				pipeline, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
 
-				otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
+							Public: true,
 
-				serialGroupBuild, err = otherSerialJob.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
+							Serial: true,
 
-				scheduled, err := serialGroupBuild.Schedule([]db.BuildInput{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(scheduled).To(BeTrue())
+							SerialGroups: []string{"serial-group"},
 
-				differentSerialJob, found, err := pipeline.Job("different-serial-group-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
+							RawMaxInFlight: 2,
 
-				differentSerialGroupBuild, err := differentSerialJob.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
-
-				scheduled, err = differentSerialGroupBuild.Schedule([]db.BuildInput{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(scheduled).To(BeTrue())
+							Plan: atc.PlanSequence{
+								{
+									Put: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+								},
+								{
+									Get:      "some-input",
+									Resource: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+									Passed:  []string{"job-1", "job-2"},
+									Trigger: true,
+								},
+								{
+									Task:           "some-task",
+									Privileged:     true,
+									TaskConfigPath: "some/config/path.yml",
+									TaskConfig: &atc.TaskConfig{
+										RootfsURI: "some-image",
+									},
+								},
+							},
+						},
+						{
+							Name: "some-other-job",
+						},
+						{
+							Name:   "some-private-job",
+							Public: false,
+						},
+						{
+							Name:         "other-serial-group-job",
+							SerialGroups: []string{"serial-group", "really-different-group"},
+						},
+						{
+							Name:         "different-serial-group-job",
+							SerialGroups: []string{"different-serial-group"},
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+						},
+						{
+							Name: "some-other-resource",
+							Type: "some-type",
+						},
+					},
+				}, pipeline.ConfigVersion(), db.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
 			})
+		}
 
-			It("returns a list of builds in the same serial group", func() {
-				builds, err := job.GetRunningBuildsBySerialGroup([]string{"serial-group"})
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(len(builds)).To(Equal(1))
-				Expect(builds[0].ID()).To(Equal(serialGroupBuild.ID()))
-			})
-		})
-	})
-
-	Describe("GetNextPendingBuildBySerialGroup", func() {
-		var job1, job2 db.Job
-
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			var found bool
 			var err error
-			job1, found, err = pipeline.Job("some-job")
+			job, found, err = pipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			job2, found, err = pipeline.Job("other-serial-group-job")
+			scheduleFound, schedulingErr = job.ScheduleBuild(schedulingBuild)
+
+			reloadFound, err = schedulingBuild.Reload()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
 		})
 
-		Context("when some jobs have builds with inputs determined as false", func() {
-			var actualBuild db.Build
-
+		Context("when the scheduling build is created first", func() {
 			BeforeEach(func() {
-				_, err := job1.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
-
-				actualBuild, err = job2.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
-
-				err = job2.SaveNextInputMapping(nil, true)
-				Expect(err).NotTo(HaveOccurred())
+				var err error
+				schedulingBuild, err = job.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("should return the next most pending build in a group of jobs", func() {
-				build, found, err := job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.ID()).To(Equal(actualBuild.ID()))
+			Context("when the job config doesn't specify max in flight", func() {
+				BeforeEach(func() {
+					pipeline, created, err := team.SavePipeline("other-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+						},
+					}, db.ConfigVersion(0), db.PipelineUnpaused)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(created).To(BeTrue())
+
+					var found bool
+					job, found, err = pipeline.Job("some-job")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+				})
+
+				It("schedules the build", func() {
+					Expect(schedulingErr).ToNot(HaveOccurred())
+					Expect(scheduleFound).To(BeTrue())
+				})
+
+				Context("when build exists", func() {
+					It("sets the build to scheduled", func() {
+						Expect(schedulingErr).ToNot(HaveOccurred())
+						Expect(scheduleFound).To(BeTrue())
+						Expect(reloadFound).To(BeTrue())
+						Expect(schedulingBuild.IsScheduled()).To(BeTrue())
+					})
+				})
+
+				Context("when the build does not exist", func() {
+					var deleteFound bool
+					BeforeEach(func() {
+						var err error
+						deleteFound, err = schedulingBuild.Delete()
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns false", func() {
+						Expect(schedulingErr).To(HaveOccurred())
+						Expect(scheduleFound).To(BeFalse())
+						Expect(reloadFound).To(BeFalse())
+						Expect(deleteFound).To(BeTrue())
+					})
+				})
+			})
+
+			Context("when the job config specifies max in flight = 2", func() {
+				Context("when there are 2 builds running", func() {
+					var startedBuild, scheduledBuild db.Build
+
+					BeforeEach(func() {
+						var err error
+						startedBuild, err = job.CreateBuild()
+						Expect(err).ToNot(HaveOccurred())
+						scheduled, err := job.ScheduleBuild(startedBuild)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(scheduled).To(BeTrue())
+						_, err = startedBuild.Start(atc.Plan{})
+						Expect(err).NotTo(HaveOccurred())
+
+						scheduledBuild, err = job.CreateBuild()
+						Expect(err).NotTo(HaveOccurred())
+						scheduled, err = job.ScheduleBuild(scheduledBuild)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(scheduled).To(BeTrue())
+						_, err = startedBuild.Start(atc.Plan{})
+						Expect(err).NotTo(HaveOccurred())
+
+						for _, s := range []db.BuildStatus{db.BuildStatusSucceeded, db.BuildStatusFailed, db.BuildStatusErrored, db.BuildStatusAborted} {
+							finishedBuild, err := job.CreateBuild()
+							Expect(err).NotTo(HaveOccurred())
+
+							scheduled, err = job.ScheduleBuild(finishedBuild)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(scheduled).To(BeTrue())
+
+							err = finishedBuild.Finish(s)
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						otherJob, found, err := pipeline.Job("some-other-job")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						_, err = otherJob.CreateBuild()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					saveMaxInFlightPipeline()
+
+					It("returns max in flight reached so it does not schedule", func() {
+						Expect(schedulingErr).ToNot(HaveOccurred())
+						Expect(scheduleFound).To(BeFalse())
+						Expect(reloadFound).To(BeTrue())
+					})
+				})
+
+				Context("when there is 1 build running", func() {
+					BeforeEach(func() {
+						startedBuild, err := job.CreateBuild()
+						Expect(err).NotTo(HaveOccurred())
+						scheduled, err := job.ScheduleBuild(startedBuild)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(scheduled).To(BeTrue())
+						_, err = startedBuild.Start(atc.Plan{})
+						Expect(err).NotTo(HaveOccurred())
+
+						for _, s := range []db.BuildStatus{db.BuildStatusSucceeded, db.BuildStatusFailed, db.BuildStatusErrored, db.BuildStatusAborted} {
+							finishedBuild, err := job.CreateBuild()
+							Expect(err).NotTo(HaveOccurred())
+
+							scheduled, err = job.ScheduleBuild(finishedBuild)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(scheduled).To(BeTrue())
+
+							err = finishedBuild.Finish(s)
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						err = job.SaveNextInputMapping(nil, true)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					saveMaxInFlightPipeline()
+
+					It("schedules the build", func() {
+						Expect(schedulingErr).ToNot(HaveOccurred())
+						Expect(scheduleFound).To(BeTrue())
+						Expect(reloadFound).To(BeTrue())
+					})
+				})
+			})
+
+			Context("when the job is in serial groups", func() {
+				Context("when multiple jobs in the serial group is running", func() {
+					BeforeEach(func() {
+						var err error
+						_, err = job.CreateBuild()
+						Expect(err).NotTo(HaveOccurred())
+
+						otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						serialGroupBuild, err := otherSerialJob.CreateBuild()
+						Expect(err).NotTo(HaveOccurred())
+
+						scheduled, err := otherSerialJob.ScheduleBuild(serialGroupBuild)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(scheduled).To(BeTrue())
+
+						differentSerialJob, found, err := pipeline.Job("different-serial-group-job")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						differentSerialGroupBuild, err := differentSerialJob.CreateBuild()
+						Expect(err).NotTo(HaveOccurred())
+
+						scheduled, err = differentSerialJob.ScheduleBuild(differentSerialGroupBuild)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(scheduled).To(BeTrue())
+					})
+
+					saveSerialGroupsPipeline()
+
+					It("does not schedule the build", func() {
+						Expect(schedulingErr).ToNot(HaveOccurred())
+						Expect(scheduleFound).To(BeFalse())
+					})
+				})
+
+				Context("when no jobs in the serial groups are running", func() {
+					BeforeEach(func() {
+						otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						serialGroupBuild, err := otherSerialJob.CreateBuild()
+						Expect(err).NotTo(HaveOccurred())
+
+						scheduled, err := otherSerialJob.ScheduleBuild(serialGroupBuild)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(scheduled).To(BeTrue())
+
+						err = serialGroupBuild.Finish(db.BuildStatusSucceeded)
+						Expect(err).NotTo(HaveOccurred())
+
+						differentSerialJob, found, err := pipeline.Job("different-serial-group-job")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						differentSerialGroupBuild, err := differentSerialJob.CreateBuild()
+						Expect(err).NotTo(HaveOccurred())
+
+						scheduled, err = differentSerialJob.ScheduleBuild(differentSerialGroupBuild)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(scheduled).To(BeTrue())
+
+						err = job.SaveNextInputMapping(nil, true)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					saveSerialGroupsPipeline()
+
+					It("does schedule the build", func() {
+						Expect(schedulingErr).ToNot(HaveOccurred())
+						Expect(scheduleFound).To(BeTrue())
+						Expect(reloadFound).To(BeTrue())
+					})
+				})
 			})
 		})
 
-		It("should return the next most pending build in a group of jobs", func() {
-			buildOne, err := job1.CreateBuild()
-			Expect(err).NotTo(HaveOccurred())
+		Context("when the scheduling build is not the first one created (with serial groups)", func() {
+			Context("when the scheduling build has inputs determined as false", func() {
+				BeforeEach(func() {
+					var err error
+					schedulingBuild, err = job.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
 
-			buildTwo, err := job1.CreateBuild()
-			Expect(err).NotTo(HaveOccurred())
+					err = job.SaveNextInputMapping(nil, false)
+					Expect(err).NotTo(HaveOccurred())
+				})
 
-			buildThree, err := job2.CreateBuild()
-			Expect(err).NotTo(HaveOccurred())
+				saveSerialGroupsPipeline()
 
-			err = job1.SaveNextInputMapping(nil, true)
-			Expect(err).NotTo(HaveOccurred())
-			err = job2.SaveNextInputMapping(nil, true)
-			Expect(err).NotTo(HaveOccurred())
+				It("does not schedule because the inputs determined is false", func() {
+					Expect(schedulingErr).ToNot(HaveOccurred())
+					Expect(scheduleFound).To(BeFalse())
+					Expect(reloadFound).To(BeTrue())
+				})
+			})
 
-			build, found, err := job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.ID()).To(Equal(buildOne.ID()))
+			Context("when another build within the serial group is scheduled first", func() {
+				BeforeEach(func() {
+					otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 
-			err = job1.Pause()
-			Expect(err).NotTo(HaveOccurred())
+					_, err = otherSerialJob.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
 
-			build, found, err = job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.ID()).To(Equal(buildThree.ID()))
+					err = otherSerialJob.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
 
-			err = job1.Unpause()
-			Expect(err).NotTo(HaveOccurred())
+					schedulingBuild, err = job.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
 
-			build, found, err = job2.GetNextPendingBuildBySerialGroup([]string{"serial-group", "really-different-group"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.ID()).To(Equal(buildOne.ID()))
+					err = job.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
+				})
 
-			Expect(buildOne.Finish(db.BuildStatusSucceeded)).To(Succeed())
+				saveSerialGroupsPipeline()
 
-			build, found, err = job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.ID()).To(Equal(buildTwo.ID()))
+				It("does not schedule because the build we are trying to schedule is not the next most pending build in the serial group", func() {
+					Expect(schedulingErr).ToNot(HaveOccurred())
+					Expect(scheduleFound).To(BeFalse())
+					Expect(reloadFound).To(BeTrue())
+				})
+			})
 
-			build, found, err = job2.GetNextPendingBuildBySerialGroup([]string{"serial-group", "really-different-group"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.ID()).To(Equal(buildTwo.ID()))
+			Context("when the scheduling build has it's inputs determined and created earlier", func() {
+				BeforeEach(func() {
+					var err error
+					schedulingBuild, err = job.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
 
-			scheduled, err := buildTwo.Schedule([]db.BuildInput{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(scheduled).To(BeTrue())
-			Expect(buildTwo.Finish(db.BuildStatusSucceeded)).To(Succeed())
+					otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 
-			build, found, err = job1.GetNextPendingBuildBySerialGroup([]string{"serial-group"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.ID()).To(Equal(buildThree.ID()))
+					_, err = otherSerialJob.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
 
-			build, found, err = job2.GetNextPendingBuildBySerialGroup([]string{"serial-group", "really-different-group"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.ID()).To(Equal(buildThree.ID()))
+					err = job.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
+					err = otherSerialJob.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				saveSerialGroupsPipeline()
+
+				It("does schedule the build", func() {
+					Expect(schedulingErr).ToNot(HaveOccurred())
+					Expect(scheduleFound).To(BeTrue())
+					Expect(reloadFound).To(BeTrue())
+				})
+			})
+
+			Context("when the job is paused but has inputs determined", func() {
+				BeforeEach(func() {
+					var err error
+					schedulingBuild, err = job.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					_, err = otherSerialJob.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = job.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
+					err = otherSerialJob.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = job.Pause()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				saveSerialGroupsPipeline()
+
+				It("does not schedule the build", func() {
+					Expect(schedulingErr).ToNot(HaveOccurred())
+					Expect(scheduleFound).To(BeFalse())
+					Expect(reloadFound).To(BeTrue())
+				})
+			})
+
+			Context("when there are other succeeded builds within the same serial group", func() {
+				BeforeEach(func() {
+					otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					succeededBuild, err := otherSerialJob.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = succeededBuild.Finish(db.BuildStatusSucceeded)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = job.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
+					err = otherSerialJob.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
+
+					schedulingBuild, err = job.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				saveSerialGroupsPipeline()
+
+				It("does schedule builds because we only care about running or pending builds", func() {
+					Expect(schedulingErr).ToNot(HaveOccurred())
+					Expect(scheduleFound).To(BeTrue())
+					Expect(reloadFound).To(BeTrue())
+				})
+			})
+
+			Context("when the job we are trying to schedule has multiple serial groups", func() {
+				BeforeEach(func() {
+					otherSerialJob, found, err := pipeline.Job("some-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					_, err = otherSerialJob.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					job, found, err = pipeline.Job("other-serial-group-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					schedulingBuild, err = job.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = job.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
+					err = otherSerialJob.SaveNextInputMapping(nil, true)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				saveSerialGroupsPipeline()
+
+				It("does not schedule a build because the a build within one of the serial groups was created earlier", func() {
+					Expect(schedulingErr).ToNot(HaveOccurred())
+					Expect(scheduleFound).To(BeFalse())
+					Expect(reloadFound).To(BeTrue())
+				})
+			})
 		})
 	})
 
@@ -1248,7 +1596,7 @@ var _ = Describe("Job", func() {
 			BeforeEach(func() {
 				var err error
 				var found bool
-				found, err = build1DB.Schedule([]db.BuildInput{})
+				found, err = job.ScheduleBuild(build1DB)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})

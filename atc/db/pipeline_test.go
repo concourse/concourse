@@ -641,14 +641,22 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating build inputs")
-			_, err = build.Schedule([]db.BuildInput{
-				db.BuildInput{
-					Name:       "build-input",
-					ResourceID: resource.ID(),
-					Version:    atc.Version{"key": "value"},
-				},
-			})
+			err = job.SaveNextInputMapping(db.InputMapping{
+				"build-input": db.InputResult{
+					Input: &db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version:    db.ResourceVersion(convertToMD5(atc.Version{"key": "value"})),
+							ResourceID: resource.ID(),
+						},
+						FirstOccurrence: true,
+					},
+					PassedBuildIDs: []int{},
+				}}, true)
 			Expect(err).ToNot(HaveOccurred())
+
+			_, found, err = build.AdoptInputsAndPipes()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			By("populating build outputs")
 			err = build.SaveOutput(logger, "some-type", atc.Source{"some": "source"}, creds.VersionedResourceTypes{}, atc.Version{"key": "value"}, nil, "some-output-name", "some-resource")
@@ -985,30 +993,26 @@ var _ = Describe("Pipeline", func() {
 			err = resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "v1"}})
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = dbBuild.Schedule([]db.BuildInput{
-				db.BuildInput{
-					Name: "some-input",
-					Version: atc.Version{
-						"version": "v1",
+			err = job.SaveNextInputMapping(db.InputMapping{
+				"some-input": db.InputResult{
+					Input: &db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version:    db.ResourceVersion(convertToMD5(atc.Version{"version": "v1"})),
+							ResourceID: resource.ID(),
+						},
+						FirstOccurrence: true,
 					},
-					ResourceID:      resource.ID(),
-					FirstOccurrence: true,
-				},
-			})
+					PassedBuildIDs: []int{},
+				}}, true)
 			Expect(err).ToNot(HaveOccurred())
+
+			_, found, err = dbBuild.AdoptInputsAndPipes()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			dbSecondBuild, found, err = buildFactory.Build(secondBuild.ID())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
-
-			inputs1 := db.BuildInput{
-				Name: "some-input",
-				Version: atc.Version{
-					"version": "v1",
-				},
-				ResourceID:      resource.ID(),
-				FirstOccurrence: true,
-			}
 
 			err = resourceConfigScope.SaveVersions([]atc.Version{
 				{"version": "v2"},
@@ -1017,18 +1021,33 @@ var _ = Describe("Pipeline", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = dbSecondBuild.Schedule([]db.BuildInput{
-				inputs1,
-				db.BuildInput{
-					Name: "some-input",
-					Version: atc.Version{
-						"version": "v3",
+			err = job.SaveNextInputMapping(db.InputMapping{
+				"some-input": db.InputResult{
+					Input: &db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version:    db.ResourceVersion(convertToMD5(atc.Version{"version": "v1"})),
+							ResourceID: resource.ID(),
+						},
+						FirstOccurrence: true,
 					},
-					ResourceID:      resource.ID(),
-					FirstOccurrence: true,
+					PassedBuildIDs: []int{},
 				},
-			})
+				"some-other-input": db.InputResult{
+					Input: &db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version:    db.ResourceVersion(convertToMD5(atc.Version{"version": "v3"})),
+							ResourceID: resource.ID(),
+						},
+						FirstOccurrence: true,
+					},
+					PassedBuildIDs: []int{},
+				},
+			}, true)
 			Expect(err).ToNot(HaveOccurred())
+
+			_, found, err = dbSecondBuild.AdoptInputsAndPipes()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			rcv1, found, err := resourceConfigScope.FindVersion(atc.Version{"version": "v1"})
 			Expect(err).ToNot(HaveOccurred())

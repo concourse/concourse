@@ -5,13 +5,11 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
-	cache "github.com/patrickmn/go-cache"
 )
 
 type Scheduler struct {
 	InputMapper  algorithm.InputMapper
 	BuildStarter BuildStarter
-	Cache        *cache.Cache
 }
 
 func (s *Scheduler) Schedule(

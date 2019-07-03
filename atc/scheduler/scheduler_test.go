@@ -62,7 +62,7 @@ var _ = Describe("Scheduler", func() {
 
 			var waiter interface{ Wait() }
 
-			_, scheduleErr = scheduler.Schedule(
+			scheduleErr = scheduler.Schedule(
 				lagertest.NewTestLogger("test"),
 				versionsDB,
 				fakeJob,
@@ -99,7 +99,7 @@ var _ = Describe("Scheduler", func() {
 							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
 									ResourceID: 1,
-									Version:    db.ResourceVersion{ID: 1},
+									Version:    db.ResourceVersion("1"),
 								},
 								FirstOccurrence: true,
 							},
