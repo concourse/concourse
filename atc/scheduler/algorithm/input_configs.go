@@ -306,6 +306,21 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 			}
 		}
 
+		jobToBuildPipes := map[int]int{}
+		if inputConfig.UseEveryVersion {
+			buildID, found, err := vdb.LatestBuildID(inputConfig.JobID)
+			if err != nil {
+				return false, err
+			}
+
+			if found {
+				jobToBuildPipes, err = vdb.LatestBuildPipes(buildID, inputConfig.Passed)
+				if err != nil {
+					return false, err
+				}
+			}
+		}
+
 		for _, jobID := range orderedJobs {
 			if candidates[i] != nil {
 				debug(i, "has a candidate")
@@ -324,54 +339,33 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 
 			// loop over previous output sets, latest first
 			var paginatedBuilds db.PaginatedBuilds
-
-			var found bool
-			if inputConfig.UseEveryVersion {
-				var err error
-				var buildID int
-
-				buildID, found, err = vdb.LatestBuildID(inputConfig.JobID)
-				if err != nil {
-					return false, err
-				}
-
-				if found {
-					var constraintBuildID int
-					constraintBuildID, found, err = vdb.LatestConstraintBuildID(buildID, jobID)
+			passedBuildFound := false
+			if inputConfig.UseEveryVersion && len(jobToBuildPipes) != 0 {
+				var constraintBuildID int
+				constraintBuildID, passedBuildFound = jobToBuildPipes[jobID]
+				if passedBuildFound {
+					var err error
+					if candidates[i] != nil {
+						paginatedBuilds, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, candidates[i].Version, inputConfig.ResourceID)
+					} else {
+						paginatedBuilds, err = vdb.UnusedBuilds(constraintBuildID, jobID)
+					}
 					if err != nil {
 						return false, err
 					}
-
-					if found {
-						// vouchedVersions := []db.AlgorithmVersion{}
-						// for ci, candidate := range candidates {
-						// 	if candidate != nil && inputConfigs[ci].Passed[jobID] {
-						// 		vouchedVersions = append(vouchedVersions, db.AlgorithmVersion{ResourceID: inputConfigs[ci].ResourceID, Version: db.ResourceVersion(candidate.Version)})
-						// 	}
-						// }
-
-						// if len(vouchedVersions) > 0 {
-						if candidates[i] != nil {
-							paginatedBuilds, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, candidates[i].Version, inputConfig.ResourceID)
-						} else {
-							paginatedBuilds, err = vdb.UnusedBuilds(constraintBuildID, jobID)
-						}
-						if err != nil {
-							return false, err
-						}
-					}
+				} else if candidates[i] == nil {
+					// we've run with version: every and passed: before, just not with
+					// this job, and there's no candidate yet, so skip it for now and let
+					// the algorithm continue from where the other jobs left off rather
+					// than starting from 'latest'
+					//
+					// this job will eventually vouch for it during the recursive resolve
+					// call
+					continue
 				}
 			}
 
-			if !inputConfig.UseEveryVersion || !found {
-				// vouchedVersions := []db.AlgorithmVersion{}
-				// for ci, candidate := range candidates {
-				// 	if candidate != nil && inputConfigs[ci].Passed[jobID] {
-				// 		vouchedVersions = append(vouchedVersions, db.AlgorithmVersion{ResourceID: inputConfigs[ci].ResourceID, Version: db.ResourceVersion(candidate.Version)})
-				// 	}
-				// }
-
-				// if len(vouchedVersions) > 0 {
+			if !inputConfig.UseEveryVersion || !passedBuildFound {
 				if candidates[i] != nil {
 					paginatedBuilds = vdb.SuccessfulBuildsVersionConstrained(jobID, candidates[i].Version, inputConfig.ResourceID)
 				} else {

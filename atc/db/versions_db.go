@@ -326,28 +326,35 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 	return nextVersion, true, nil
 }
 
-func (versions VersionsDB) LatestConstraintBuildID(buildID int, passedJobID int) (int, bool, error) {
-	var latestBuildID int
-
-	err := psql.Select("p.from_build_id").
+func (versions VersionsDB) LatestBuildPipes(buildID int, passedJobs map[int]bool) (map[int]int, error) {
+	rows, err := psql.Select("p.from_build_id", "b.job_id").
 		From("build_pipes p").
 		Join("builds b ON b.id = p.from_build_id").
 		Where(sq.Eq{
 			"p.to_build_id": buildID,
-			"b.job_id":      passedJobID,
 		}).
 		RunWith(versions.Conn).
-		QueryRow().
-		Scan(&latestBuildID)
+		Query()
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return 0, false, nil
-		}
-
-		return 0, false, err
+		return nil, err
 	}
 
-	return latestBuildID, true, nil
+	jobToBuildPipes := map[int]int{}
+	for rows.Next() {
+		var buildID int
+		var jobID int
+
+		err = rows.Scan(&buildID, &jobID)
+		if err != nil {
+			return nil, err
+		}
+
+		if passedJobs[jobID] {
+			jobToBuildPipes[jobID] = buildID
+		}
+	}
+
+	return jobToBuildPipes, nil
 }
 
 func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds, error) {

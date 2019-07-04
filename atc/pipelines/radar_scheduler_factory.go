@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/factory"
-	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -71,7 +70,6 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline) scheduler
 		InputMapper: inputMapper,
 		BuildStarter: scheduler.NewBuildStarter(
 			pipeline,
-			maxinflight.NewUpdater(pipeline),
 			factory.NewBuildFactory(
 				pipeline.ID(),
 				atc.NewPlanFactory(time.Now().Unix()),
