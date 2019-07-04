@@ -2,11 +2,11 @@ package radar
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
 )
 
 //go:generate counterfeiter . IntervalRunner
@@ -14,41 +14,42 @@ type IntervalRunner interface {
 	Run(context.Context) error
 }
 
+//go:generate counterfeiter . ResourceNotifier
+type ResourceNotifier interface {
+	ID() int
+	ScanNotifier() (db.Notifier, error)
+}
+
 type intervalRunner struct {
-	logger        lager.Logger
-	clock         clock.Clock
-	id            int
-	scanner       Scanner
-	notifications Notifications
+	logger   lager.Logger
+	clock    clock.Clock
+	notifier ResourceNotifier
+	scanner  Scanner
 }
 
 func NewIntervalRunner(
 	logger lager.Logger,
 	clock clock.Clock,
-	id int,
+	notifier ResourceNotifier,
 	scanner Scanner,
-	notifications Notifications,
 ) IntervalRunner {
 	return &intervalRunner{
-		logger:        logger,
-		clock:         clock,
-		id:            id,
-		scanner:       scanner,
-		notifications: notifications,
+		logger:   logger,
+		clock:    clock,
+		notifier: notifier,
+		scanner:  scanner,
 	}
 }
 
 func (r *intervalRunner) Run(ctx context.Context) error {
-
 	interval := time.Duration(0)
-	channel := fmt.Sprintf("resource_scan_%d", r.id)
 
-	notifier, err := r.notifications.Listen(channel)
+	notifier, err := r.notifier.ScanNotifier()
 	if err != nil {
 		return err
 	}
 
-	defer r.notifications.Unlisten(channel, notifier)
+	defer notifier.Close()
 
 	for {
 		timer := r.clock.NewTimer(interval)
@@ -57,15 +58,15 @@ func (r *intervalRunner) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			timer.Stop()
 			return nil
-		case <-notifier:
-			if err = r.scanner.Scan(r.logger, r.id); err != nil {
+		case <-notifier.Notify():
+			if err = r.scanner.Scan(r.logger, r.notifier.ID()); err != nil {
 				if err == ErrFailedToAcquireLock {
 					break
 				}
 				return err
 			}
 		case <-timer.C():
-			interval, err = r.scanner.Run(r.logger, r.id)
+			interval, err = r.scanner.Run(r.logger, r.notifier.ID())
 			if err != nil {
 				if err == ErrFailedToAcquireLock {
 					break

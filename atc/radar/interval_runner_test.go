@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/radar/radarfakes"
 
@@ -26,9 +27,10 @@ var _ = Describe("IntervalRunner", func() {
 		runTimes  chan time.Time
 		scanTimes chan time.Time
 
-		intervalRunner    IntervalRunner
-		fakeScanner       *radarfakes.FakeScanner
-		fakeNotifications *radarfakes.FakeNotifications
+		intervalRunner        IntervalRunner
+		fakeScanner           *radarfakes.FakeScanner
+		fakeConditionNotifier *radarfakes.FakeResourceNotifier
+		fakeNotifier          *dbfakes.FakeNotifier
 
 		ctx    context.Context
 		cancel context.CancelFunc
@@ -40,7 +42,8 @@ var _ = Describe("IntervalRunner", func() {
 		fakeClock = fakeclock.NewFakeClock(runAt)
 
 		fakeScanner = new(radarfakes.FakeScanner)
-		fakeNotifications = new(radarfakes.FakeNotifications)
+		fakeConditionNotifier = new(radarfakes.FakeResourceNotifier)
+		fakeNotifier = new(dbfakes.FakeNotifier)
 
 		runTimes = make(chan time.Time, 100)
 		scanTimes = make(chan time.Time, 100)
@@ -49,7 +52,7 @@ var _ = Describe("IntervalRunner", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		logger := lagertest.NewTestLogger("test")
-		intervalRunner = NewIntervalRunner(logger, fakeClock, 12, fakeScanner, fakeNotifications)
+		intervalRunner = NewIntervalRunner(logger, fakeClock, fakeConditionNotifier, fakeScanner)
 	})
 
 	Describe("RunFunc", func() {
@@ -75,9 +78,9 @@ var _ = Describe("IntervalRunner", func() {
 			}()
 		})
 
-		Context("when listening for notifications fails", func() {
+		Context("when scan notifier fails", func() {
 			BeforeEach(func() {
-				fakeNotifications.ListenReturns(nil, errors.New("nope"))
+				fakeConditionNotifier.ScanNotifierReturns(nil, errors.New("nope"))
 			})
 
 			It("errors", func() {
@@ -85,18 +88,19 @@ var _ = Describe("IntervalRunner", func() {
 			})
 		})
 
-		Context("when listening for notifications succeeds", func() {
-			var notify chan bool
+		Context("when scan notifier succeeds", func() {
+			var notify chan struct{}
 
 			BeforeEach(func() {
-				notify = make(chan bool)
-				fakeNotifications.ListenReturns(notify, nil)
+				notify = make(chan struct{}, 1)
+				fakeNotifier.NotifyReturns(notify)
+				fakeConditionNotifier.ScanNotifierReturns(fakeNotifier, nil)
 			})
 
 			AfterEach(func() {
 				cancel()
 				Expect(<-runErrs).To(BeNil())
-				Expect(fakeNotifications.UnlistenCallCount()).To(Equal(1))
+				Expect(fakeNotifier.CloseCallCount()).To(Equal(1))
 			})
 
 			Context("when scanner.Run() returns an error", func() {
@@ -152,7 +156,7 @@ var _ = Describe("IntervalRunner", func() {
 					It("triggers a Scan", func() {
 						Expect(<-runTimes).To(Equal(runAt))
 
-						notify <- true
+						notify <- struct{}{}
 						Expect(<-scanTimes).To(Equal(scanAt))
 					})
 				})

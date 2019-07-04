@@ -3,6 +3,7 @@ package db_test
 import (
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -1287,6 +1288,92 @@ var _ = Describe("Resource", func() {
 
 			It("returns false", func() {
 				Expect(resource.Public()).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("NotifyScan/ScanNotifier", func() {
+		var resource db.Resource
+		var notifier db.Notifier
+
+		BeforeEach(func() {
+			var err error
+			var found bool
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			notifier, err = resource.ScanNotifier()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the resource has a scope", func() {
+			var resourceScope db.ResourceConfigScope
+
+			BeforeEach(func() {
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "registry-image",
+				}
+
+				_, err = brt.FindOrCreate(setupTx, false)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+
+				resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("when a check is requested after the last check", func() {
+				BeforeEach(func() {
+					updated, err := resourceScope.UpdateLastCheckStartTime(time.Minute, true)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).To(BeTrue())
+
+					err = resource.NotifyScan()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("recieves a notification", func() {
+					Expect(<-notifier.Notify()).To(Equal(struct{}{}))
+				})
+			})
+
+			Context("when a check is requested before the last check", func() {
+				BeforeEach(func() {
+					err := resource.NotifyScan()
+					Expect(err).ToNot(HaveOccurred())
+
+					updated, err := resourceScope.UpdateLastCheckStartTime(time.Minute, true)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).To(BeTrue())
+				})
+
+				It("does not recieve a notification", func() {
+					Consistently(notifier.Notify()).ShouldNot(Receive())
+				})
+			})
+
+			Context("when a check is not requested", func() {
+				It("does not recieve a notification", func() {
+					Consistently(notifier.Notify()).ShouldNot(Receive())
+				})
+			})
+		})
+
+		Context("when the resource does not have a scope and a check is requested", func() {
+			BeforeEach(func() {
+				err := resource.NotifyScan()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("does not recieve a notification", func() {
+				Consistently(notifier.Notify()).ShouldNot(Receive())
 			})
 		})
 	})

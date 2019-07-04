@@ -59,6 +59,16 @@ type FakeResourceType struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	NotifyScanStub        func() error
+	notifyScanMutex       sync.RWMutex
+	notifyScanArgsForCall []struct {
+	}
+	notifyScanReturns struct {
+		result1 error
+	}
+	notifyScanReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ParamsStub        func() atc.Params
 	paramsMutex       sync.RWMutex
 	paramsArgsForCall []struct {
@@ -89,6 +99,18 @@ type FakeResourceType struct {
 	}
 	reloadReturnsOnCall map[int]struct {
 		result1 bool
+		result2 error
+	}
+	ScanNotifierStub        func() (db.Notifier, error)
+	scanNotifierMutex       sync.RWMutex
+	scanNotifierArgsForCall []struct {
+	}
+	scanNotifierReturns struct {
+		result1 db.Notifier
+		result2 error
+	}
+	scanNotifierReturnsOnCall map[int]struct {
+		result1 db.Notifier
 		result2 error
 	}
 	SetCheckSetupErrorStub        func(error) error
@@ -430,6 +452,58 @@ func (fake *FakeResourceType) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeResourceType) NotifyScan() error {
+	fake.notifyScanMutex.Lock()
+	ret, specificReturn := fake.notifyScanReturnsOnCall[len(fake.notifyScanArgsForCall)]
+	fake.notifyScanArgsForCall = append(fake.notifyScanArgsForCall, struct {
+	}{})
+	fake.recordInvocation("NotifyScan", []interface{}{})
+	fake.notifyScanMutex.Unlock()
+	if fake.NotifyScanStub != nil {
+		return fake.NotifyScanStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.notifyScanReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceType) NotifyScanCallCount() int {
+	fake.notifyScanMutex.RLock()
+	defer fake.notifyScanMutex.RUnlock()
+	return len(fake.notifyScanArgsForCall)
+}
+
+func (fake *FakeResourceType) NotifyScanCalls(stub func() error) {
+	fake.notifyScanMutex.Lock()
+	defer fake.notifyScanMutex.Unlock()
+	fake.NotifyScanStub = stub
+}
+
+func (fake *FakeResourceType) NotifyScanReturns(result1 error) {
+	fake.notifyScanMutex.Lock()
+	defer fake.notifyScanMutex.Unlock()
+	fake.NotifyScanStub = nil
+	fake.notifyScanReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceType) NotifyScanReturnsOnCall(i int, result1 error) {
+	fake.notifyScanMutex.Lock()
+	defer fake.notifyScanMutex.Unlock()
+	fake.NotifyScanStub = nil
+	if fake.notifyScanReturnsOnCall == nil {
+		fake.notifyScanReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.notifyScanReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceType) Params() atc.Params {
 	fake.paramsMutex.Lock()
 	ret, specificReturn := fake.paramsReturnsOnCall[len(fake.paramsArgsForCall)]
@@ -585,6 +659,61 @@ func (fake *FakeResourceType) ReloadReturnsOnCall(i int, result1 bool, result2 e
 	}
 	fake.reloadReturnsOnCall[i] = struct {
 		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceType) ScanNotifier() (db.Notifier, error) {
+	fake.scanNotifierMutex.Lock()
+	ret, specificReturn := fake.scanNotifierReturnsOnCall[len(fake.scanNotifierArgsForCall)]
+	fake.scanNotifierArgsForCall = append(fake.scanNotifierArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ScanNotifier", []interface{}{})
+	fake.scanNotifierMutex.Unlock()
+	if fake.ScanNotifierStub != nil {
+		return fake.ScanNotifierStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.scanNotifierReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResourceType) ScanNotifierCallCount() int {
+	fake.scanNotifierMutex.RLock()
+	defer fake.scanNotifierMutex.RUnlock()
+	return len(fake.scanNotifierArgsForCall)
+}
+
+func (fake *FakeResourceType) ScanNotifierCalls(stub func() (db.Notifier, error)) {
+	fake.scanNotifierMutex.Lock()
+	defer fake.scanNotifierMutex.Unlock()
+	fake.ScanNotifierStub = stub
+}
+
+func (fake *FakeResourceType) ScanNotifierReturns(result1 db.Notifier, result2 error) {
+	fake.scanNotifierMutex.Lock()
+	defer fake.scanNotifierMutex.Unlock()
+	fake.ScanNotifierStub = nil
+	fake.scanNotifierReturns = struct {
+		result1 db.Notifier
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceType) ScanNotifierReturnsOnCall(i int, result1 db.Notifier, result2 error) {
+	fake.scanNotifierMutex.Lock()
+	defer fake.scanNotifierMutex.Unlock()
+	fake.ScanNotifierStub = nil
+	if fake.scanNotifierReturnsOnCall == nil {
+		fake.scanNotifierReturnsOnCall = make(map[int]struct {
+			result1 db.Notifier
+			result2 error
+		})
+	}
+	fake.scanNotifierReturnsOnCall[i] = struct {
+		result1 db.Notifier
 		result2 error
 	}{result1, result2}
 }
@@ -986,12 +1115,16 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.iDMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
+	fake.notifyScanMutex.RLock()
+	defer fake.notifyScanMutex.RUnlock()
 	fake.paramsMutex.RLock()
 	defer fake.paramsMutex.RUnlock()
 	fake.privilegedMutex.RLock()
 	defer fake.privilegedMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
+	fake.scanNotifierMutex.RLock()
+	defer fake.scanNotifierMutex.RUnlock()
 	fake.setCheckSetupErrorMutex.RLock()
 	defer fake.setCheckSetupErrorMutex.RUnlock()
 	fake.setResourceConfigMutex.RLock()

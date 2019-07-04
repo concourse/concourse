@@ -74,9 +74,8 @@ func (sf *scanRunnerFactory) ScanResourceRunner(logger lager.Logger, resource db
 	return NewIntervalRunner(
 		logger.Session("interval-runner"),
 		sf.clock,
-		resource.ID(),
+		resource,
 		sf.resourceScanner,
-		sf.notifications,
 	)
 }
 
@@ -84,8 +83,7 @@ func (sf *scanRunnerFactory) ScanResourceTypeRunner(logger lager.Logger, resourc
 	return NewIntervalRunner(
 		logger.Session("interval-runner"),
 		sf.clock,
-		resourceType.ID(),
+		resourceType,
 		sf.resourceTypeScanner,
-		sf.notifications,
 	)
 }

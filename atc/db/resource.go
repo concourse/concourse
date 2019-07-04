@@ -56,7 +56,9 @@ type Resource interface {
 
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
+
 	NotifyScan() error
+	ScanNotifier() (Notifier, error)
 
 	Reload() (bool, error)
 }
@@ -625,7 +627,38 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 }
 
 func (r *resource) NotifyScan() error {
+	_, err := psql.Update("resources").
+		Set("check_requested_time", sq.Expr("now()")).
+		Where(sq.Eq{"id": r.id}).
+		RunWith(r.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
 	return r.conn.Bus().Notify(fmt.Sprintf("resource_scan_%d", r.id))
+}
+
+func (r *resource) ScanNotifier() (Notifier, error) {
+	return newConditionNotifier(r.conn.Bus(), fmt.Sprintf("resource_scan_%d", r.id), func() (bool, error) {
+		var checkRequested bool
+		err := psql.Select("r.check_requested_time > s.last_check_start_time").
+			From("resources r").
+			Join("resource_config_scopes s ON r.resource_config_scope_id = s.id").
+			Where(sq.Eq{"r.id": r.id}).
+			RunWith(r.conn).
+			QueryRow().
+			Scan(&checkRequested)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return false, nil
+			}
+
+			return false, err
+		}
+
+		return checkRequested, nil
+	})
 }
 
 func scanResource(r *resource, row scannable) error {

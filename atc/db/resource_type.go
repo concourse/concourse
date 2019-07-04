@@ -39,6 +39,9 @@ type ResourceType interface {
 
 	Version() atc.Version
 
+	NotifyScan() error
+	ScanNotifier() (Notifier, error)
+
 	Reload() (bool, error)
 }
 
@@ -205,6 +208,36 @@ func (t *resourceType) SetCheckSetupError(cause error) error {
 	}
 
 	return err
+}
+
+// XXX: This is not used anywhere, but we could use it for e.g. when a
+// resource's type has no version yet.
+func (t *resourceType) NotifyScan() error {
+	_, err := psql.Update("resource_types").
+		Set("check_requested_time", sq.Expr("now()")).
+		Where(sq.Eq{"id": t.id}).
+		RunWith(t.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return t.conn.Bus().Notify(fmt.Sprintf("resource_type_scan_%d", t.id))
+}
+
+func (t *resourceType) ScanNotifier() (Notifier, error) {
+	return newConditionNotifier(t.conn.Bus(), fmt.Sprintf("resource_type_scan_%d", t.id), func() (bool, error) {
+		var checkRequested bool
+		err := psql.Select("t.check_requested_time > s.last_check_start_time").
+			From("resource_types t").
+			Join("resource_config_scopes s ON t.resource_config_scope_id = s.id").
+			Where(sq.Eq{"t.id": t.id}).
+			RunWith(t.conn).
+			QueryRow().
+			Scan(&checkRequested)
+
+		return checkRequested, err
+	})
 }
 
 func scanResourceType(t *resourceType, row scannable) error {
