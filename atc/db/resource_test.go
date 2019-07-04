@@ -873,6 +873,34 @@ var _ = Describe("Resource", func() {
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
+					Expect(historyPage[0].Metadata).To(Equal([]atc.MetadataField{{Name: "name1", Value: "value1"}}))
+				})
+
+				It("maintains existing metadata after same version is saved with no metadata", func() {
+					resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+
+					err = resourceScope.SaveVersions([]atc.Version{resourceVersions[9].Version})
+					Expect(err).ToNot(HaveOccurred())
+
+					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(len(historyPage)).To(Equal(1))
+					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
+					Expect(historyPage[0].Metadata).To(Equal([]atc.MetadataField{{Name: "name1", Value: "value1"}}))
+				})
+
+				It("updates metadata after same version is saved with different metadata", func() {
+					newMetadata := []db.ResourceConfigMetadataField{{Name: "name-new", Value: "value-new"}}
+					_, err := resource.SaveUncheckedVersion(atc.Version(resourceVersions[9].Version), newMetadata, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
+
+					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(len(historyPage)).To(Equal(1))
+					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
+					Expect(historyPage[0].Metadata).To(Equal([]atc.MetadataField{{Name: "name-new", Value: "value-new"}}))
 				})
 			})
 
