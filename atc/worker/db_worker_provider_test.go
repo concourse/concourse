@@ -432,6 +432,7 @@ var _ = Describe("DBProvider", func() {
 						db.ContainerMetadata{},
 						containerSpec,
 						nil,
+						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -505,6 +506,7 @@ var _ = Describe("DBProvider", func() {
 						db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
 						db.ContainerMetadata{},
 						containerSpec,
+						nil,
 						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())

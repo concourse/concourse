@@ -259,7 +259,7 @@ var _ = Describe("ResourceScanner", func() {
 
 					var metadata db.ContainerMetadata
 					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-					_, _, _, owner, metadata, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
+					_, _, _, owner, metadata, containerSpec, resourceTypes, _ = fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
@@ -681,7 +681,7 @@ var _ = Describe("ResourceScanner", func() {
 				}))
 
 				var metadata db.ContainerMetadata
-				_, _, _, owner, metadata, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, _, _, owner, metadata, containerSpec, resourceTypes, _ = fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, radar.ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,

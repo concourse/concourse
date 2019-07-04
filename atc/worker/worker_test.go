@@ -946,6 +946,7 @@ var _ = Describe("Worker", func() {
 				db.ContainerMetadata{},
 				containerSpec,
 				atcResourceTypes,
+				nil,
 			)
 		})
 		disasterErr := errors.New("disaster")

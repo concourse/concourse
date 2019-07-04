@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -32,6 +33,8 @@ var _ = Describe("PutStep", func() {
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeSecretManager         *credsfakes.FakeSecrets
 		fakeDelegate              *execfakes.FakePutDelegate
+		fakeLock                  *lockfakes.FakeLock
+		fakeLockFactory           *lockfakes.FakeLockFactory
 		putPlan                   *atc.PutPlan
 
 		interpolatedResourceTypes atc.VersionedResourceTypes
@@ -83,6 +86,11 @@ var _ = Describe("PutStep", func() {
 		stderrBuf = gbytes.NewBuffer()
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+
+		fakeLock = new(lockfakes.FakeLock)
+
+		fakeLockFactory = new(lockfakes.FakeLockFactory)
+		fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
 		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -142,6 +150,7 @@ var _ = Describe("PutStep", func() {
 			fakeStrategy,
 			fakePool,
 			fakeDelegate,
+			fakeLockFactory,
 		)
 
 		stepErr = putStep.Run(ctx, state)
@@ -209,7 +218,7 @@ var _ = Describe("PutStep", func() {
 				}))
 				Expect(strategy).To(Equal(fakeStrategy))
 
-				_, _, delegate, owner, actualContainerMetadata, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, _, delegate, owner, actualContainerMetadata, containerSpec, actualResourceTypes, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
 				Expect(actualContainerMetadata).To(Equal(containerMetadata))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
@@ -242,7 +251,7 @@ var _ = Describe("PutStep", func() {
 				})
 
 				It("initializes the container with specified inputs", func() {
-					_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+					_, _, _, _, _, containerSpec, _, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(containerSpec.Inputs).To(HaveLen(2))
 					Expect([]worker.ArtifactSource{
 						containerSpec.Inputs[0].Source(),

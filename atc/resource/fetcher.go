@@ -30,6 +30,7 @@ type Fetcher interface {
 		resourceTypes atc.VersionedResourceTypes,
 		resourceInstance ResourceInstance,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
+		containerLock lock.Lock,
 	) (VersionedSource, error)
 }
 
@@ -60,6 +61,7 @@ func (f *fetcher) Fetch(
 	resourceTypes atc.VersionedResourceTypes,
 	resourceInstance ResourceInstance,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
+	containerLock lock.Lock,
 ) (VersionedSource, error) {
 	containerSpec.Outputs = map[string]string{
 		"resource": ResourcesDir("get"),
@@ -71,6 +73,9 @@ func (f *fetcher) Fetch(
 	defer ticker.Stop()
 
 	versionedSource, err := f.fetchWithLock(ctx, logger, source, imageFetchingDelegate.Stdout())
+	if containerLock != nil {
+		containerLock.Release()
+	}
 	if err != ErrFailedToGetLock {
 		return versionedSource, err
 	}

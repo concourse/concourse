@@ -41,13 +41,6 @@ type FakeGetDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	SaveVersionStub        func(lager.Logger, string, exec.VersionInfo)
-	saveVersionMutex       sync.RWMutex
-	saveVersionArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 string
-		arg3 exec.VersionInfo
-	}
 	StartingStub        func(lager.Logger)
 	startingMutex       sync.RWMutex
 	startingArgsForCall []struct {
@@ -240,39 +233,6 @@ func (fake *FakeGetDelegate) InitializingArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
-func (fake *FakeGetDelegate) SaveVersion(arg1 lager.Logger, arg2 string, arg3 exec.VersionInfo) {
-	fake.saveVersionMutex.Lock()
-	fake.saveVersionArgsForCall = append(fake.saveVersionArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 string
-		arg3 exec.VersionInfo
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("SaveVersion", []interface{}{arg1, arg2, arg3})
-	fake.saveVersionMutex.Unlock()
-	if fake.SaveVersionStub != nil {
-		fake.SaveVersionStub(arg1, arg2, arg3)
-	}
-}
-
-func (fake *FakeGetDelegate) SaveVersionCallCount() int {
-	fake.saveVersionMutex.RLock()
-	defer fake.saveVersionMutex.RUnlock()
-	return len(fake.saveVersionArgsForCall)
-}
-
-func (fake *FakeGetDelegate) SaveVersionCalls(stub func(lager.Logger, string, exec.VersionInfo)) {
-	fake.saveVersionMutex.Lock()
-	defer fake.saveVersionMutex.Unlock()
-	fake.SaveVersionStub = stub
-}
-
-func (fake *FakeGetDelegate) SaveVersionArgsForCall(i int) (lager.Logger, string, exec.VersionInfo) {
-	fake.saveVersionMutex.RLock()
-	defer fake.saveVersionMutex.RUnlock()
-	argsForCall := fake.saveVersionArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
 func (fake *FakeGetDelegate) Starting(arg1 lager.Logger) {
 	fake.startingMutex.Lock()
 	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
@@ -452,8 +412,6 @@ func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
-	fake.saveVersionMutex.RLock()
-	defer fake.saveVersionMutex.RUnlock()
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	fake.stderrMutex.RLock()

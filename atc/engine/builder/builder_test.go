@@ -38,6 +38,7 @@ var _ = Describe("Builder", func() {
 				fakeStepFactory,
 				fakeDelegateFactory,
 				"http://example.com",
+				nil,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
@@ -149,7 +150,7 @@ var _ = Describe("Builder", func() {
 
 					Context("constructing outputs", func() {
 						It("constructs the put correctly", func() {
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.PutStepArgsForCall(0)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.PutStepArgsForCall(0)
 							Expect(plan).To(Equal(putPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -163,7 +164,7 @@ var _ = Describe("Builder", func() {
 								BuildName:    "42",
 							}))
 
-							plan, stepMetadata, containerMetadata, _ = fakeStepFactory.PutStepArgsForCall(1)
+							plan, stepMetadata, containerMetadata, _, _ = fakeStepFactory.PutStepArgsForCall(1)
 							Expect(plan).To(Equal(otherPutPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -223,7 +224,7 @@ var _ = Describe("Builder", func() {
 
 					Context("constructing outputs", func() {
 						It("constructs the put correctly", func() {
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.PutStepArgsForCall(0)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.PutStepArgsForCall(0)
 							Expect(plan).To(Equal(putPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -237,7 +238,7 @@ var _ = Describe("Builder", func() {
 								BuildName:    "42",
 							}))
 
-							plan, stepMetadata, containerMetadata, _ = fakeStepFactory.PutStepArgsForCall(1)
+							plan, stepMetadata, containerMetadata, _, _ = fakeStepFactory.PutStepArgsForCall(1)
 							Expect(plan).To(Equal(otherPutPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -313,7 +314,7 @@ var _ = Describe("Builder", func() {
 					})
 
 					It("constructs the first get correctly", func() {
-						plan, stepMetadata, containerMetadata, _ := fakeStepFactory.GetStepArgsForCall(0)
+						plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.GetStepArgsForCall(0)
 						expectedPlan := getPlan
 						expectedPlan.Attempts = []int{1}
 						Expect(plan).To(Equal(expectedPlan))
@@ -332,7 +333,7 @@ var _ = Describe("Builder", func() {
 					})
 
 					It("constructs the second get correctly", func() {
-						plan, stepMetadata, containerMetadata, _ := fakeStepFactory.GetStepArgsForCall(1)
+						plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.GetStepArgsForCall(1)
 						expectedPlan := getPlan
 						expectedPlan.Attempts = []int{3}
 						Expect(plan).To(Equal(expectedPlan))
@@ -355,7 +356,7 @@ var _ = Describe("Builder", func() {
 					})
 
 					It("constructs nested steps correctly", func() {
-						plan, stepMetadata, containerMetadata, _ := fakeStepFactory.TaskStepArgsForCall(0)
+						plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.TaskStepArgsForCall(0)
 						expectedPlan := taskPlan
 						expectedPlan.Attempts = []int{2, 1}
 						Expect(plan).To(Equal(expectedPlan))
@@ -372,7 +373,7 @@ var _ = Describe("Builder", func() {
 							Attempt:      "2.1",
 						}))
 
-						plan, stepMetadata, containerMetadata, _ = fakeStepFactory.TaskStepArgsForCall(1)
+						plan, stepMetadata, containerMetadata, _, _ = fakeStepFactory.TaskStepArgsForCall(1)
 						expectedPlan = taskPlan
 						expectedPlan.Attempts = []int{2, 2}
 						Expect(plan).To(Equal(expectedPlan))
@@ -442,15 +443,15 @@ var _ = Describe("Builder", func() {
 					It("constructs nested steps correctly", func() {
 						Expect(fakeStepFactory.TaskStepCallCount()).To(Equal(6))
 
-						_, _, containerMetadata, _ := fakeStepFactory.TaskStepArgsForCall(0)
+						_, _, containerMetadata, _, _ := fakeStepFactory.TaskStepArgsForCall(0)
 						Expect(containerMetadata.Attempt).To(Equal("1"))
-						_, _, containerMetadata, _ = fakeStepFactory.TaskStepArgsForCall(1)
+						_, _, containerMetadata, _, _ = fakeStepFactory.TaskStepArgsForCall(1)
 						Expect(containerMetadata.Attempt).To(Equal("1"))
-						_, _, containerMetadata, _ = fakeStepFactory.TaskStepArgsForCall(2)
+						_, _, containerMetadata, _, _ = fakeStepFactory.TaskStepArgsForCall(2)
 						Expect(containerMetadata.Attempt).To(Equal("1"))
-						_, _, containerMetadata, _ = fakeStepFactory.TaskStepArgsForCall(3)
+						_, _, containerMetadata, _, _ = fakeStepFactory.TaskStepArgsForCall(3)
 						Expect(containerMetadata.Attempt).To(Equal("1"))
-						_, _, containerMetadata, _ = fakeStepFactory.TaskStepArgsForCall(4)
+						_, _, containerMetadata, _, _ = fakeStepFactory.TaskStepArgsForCall(4)
 						Expect(containerMetadata.Attempt).To(Equal("1"))
 					})
 				})
@@ -471,7 +472,7 @@ var _ = Describe("Builder", func() {
 						})
 
 						It("constructs inputs correctly", func() {
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.GetStepArgsForCall(0)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(expectedPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -498,7 +499,7 @@ var _ = Describe("Builder", func() {
 						})
 
 						It("constructs tasks correctly", func() {
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.TaskStepArgsForCall(0)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.TaskStepArgsForCall(0)
 							Expect(plan).To(Equal(expectedPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -547,7 +548,7 @@ var _ = Describe("Builder", func() {
 						})
 
 						It("constructs the put correctly", func() {
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.PutStepArgsForCall(0)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.PutStepArgsForCall(0)
 							Expect(plan).To(Equal(putPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -563,7 +564,7 @@ var _ = Describe("Builder", func() {
 						})
 
 						It("constructs the dependent get correctly", func() {
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.GetStepArgsForCall(0)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(dependentGetPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -628,7 +629,7 @@ var _ = Describe("Builder", func() {
 
 						It("constructs the step correctly", func() {
 							Expect(fakeStepFactory.GetStepCallCount()).To(Equal(1))
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.GetStepArgsForCall(0)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(inputPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -645,7 +646,7 @@ var _ = Describe("Builder", func() {
 
 						It("constructs the completion hook correctly", func() {
 							Expect(fakeStepFactory.TaskStepCallCount()).To(Equal(4))
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.TaskStepArgsForCall(2)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.TaskStepArgsForCall(2)
 							Expect(plan).To(Equal(completionTaskPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -662,7 +663,7 @@ var _ = Describe("Builder", func() {
 
 						It("constructs the failure hook correctly", func() {
 							Expect(fakeStepFactory.TaskStepCallCount()).To(Equal(4))
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.TaskStepArgsForCall(0)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.TaskStepArgsForCall(0)
 							Expect(plan).To(Equal(failureTaskPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -679,7 +680,7 @@ var _ = Describe("Builder", func() {
 
 						It("constructs the success hook correctly", func() {
 							Expect(fakeStepFactory.TaskStepCallCount()).To(Equal(4))
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.TaskStepArgsForCall(1)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.TaskStepArgsForCall(1)
 							Expect(plan).To(Equal(successTaskPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -696,7 +697,7 @@ var _ = Describe("Builder", func() {
 
 						It("constructs the next step correctly", func() {
 							Expect(fakeStepFactory.TaskStepCallCount()).To(Equal(4))
-							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.TaskStepArgsForCall(3)
+							plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.TaskStepArgsForCall(3)
 							Expect(plan).To(Equal(nextTaskPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
@@ -728,7 +729,7 @@ var _ = Describe("Builder", func() {
 
 					It("constructs the step correctly", func() {
 						Expect(fakeStepFactory.GetStepCallCount()).To(Equal(1))
-						plan, stepMetadata, containerMetadata, _ := fakeStepFactory.GetStepArgsForCall(0)
+						plan, stepMetadata, containerMetadata, _, _ := fakeStepFactory.GetStepArgsForCall(0)
 						Expect(plan).To(Equal(inputPlan))
 						Expect(stepMetadata).To(Equal(expectedMetadata))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{

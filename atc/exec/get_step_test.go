@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -40,6 +41,8 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeSecretManager        *credsfakes.FakeSecrets
 		fakeDelegate             *execfakes.FakeGetDelegate
+		fakeLock                 *lockfakes.FakeLock
+		fakeLockFactory          *lockfakes.FakeLockFactory
 		getPlan                  *atc.GetPlan
 
 		fakeVersionedSource       *resourcefakes.FakeVersionedSource
@@ -91,6 +94,11 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
+
+		fakeLock = new(lockfakes.FakeLock)
+
+		fakeLockFactory = new(lockfakes.FakeLockFactory)
+		fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -146,6 +154,7 @@ var _ = Describe("GetStep", func() {
 			fakeStrategy,
 			fakePool,
 			fakeDelegate,
+			fakeLockFactory,
 		)
 
 		stepErr = getStep.Run(ctx, state)
@@ -181,7 +190,7 @@ var _ = Describe("GetStep", func() {
 			Expect(stepErr).ToNot(HaveOccurred())
 
 			Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-			fctx, _, sid, actualWorker, actualContainerSpec, actualResourceTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+			fctx, _, sid, actualWorker, actualContainerSpec, actualResourceTypes, resourceInstance, delegate, _ := fakeResourceFetcher.FetchArgsForCall(0)
 			Expect(fctx).To(Equal(ctx))
 			Expect(sid).To(Equal(resource.Session{
 				Metadata: db.ContainerMetadata{

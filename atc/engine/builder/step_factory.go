@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
@@ -23,6 +24,7 @@ type stepFactory struct {
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
 	resourceFactory       resource.ResourceFactory
+	lockFactory           lock.LockFactory
 }
 
 func NewStepFactory(
@@ -35,6 +37,7 @@ func NewStepFactory(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
+	lockFactory lock.LockFactory,
 ) *stepFactory {
 	return &stepFactory{
 		pool:                  pool,
@@ -46,6 +49,7 @@ func NewStepFactory(
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		resourceFactory:       resourceFactory,
+		lockFactory:           lockFactory,
 	}
 }
 
@@ -54,6 +58,7 @@ func (factory *stepFactory) GetStep(
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.GetDelegate,
+	lockFactory lock.LockFactory,
 ) exec.Step {
 	containerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 
@@ -68,6 +73,7 @@ func (factory *stepFactory) GetStep(
 		factory.strategy,
 		factory.pool,
 		delegate,
+		lockFactory,
 	)
 
 	return exec.LogError(getStep, delegate)
@@ -78,6 +84,7 @@ func (factory *stepFactory) PutStep(
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.PutDelegate,
+	lockFactory lock.LockFactory,
 ) exec.Step {
 	containerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 
@@ -92,6 +99,7 @@ func (factory *stepFactory) PutStep(
 		factory.strategy,
 		factory.pool,
 		delegate,
+		lockFactory,
 	)
 
 	return exec.LogError(putStep, delegate)
@@ -102,6 +110,7 @@ func (factory *stepFactory) TaskStep(
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.TaskDelegate,
+	lockFactory lock.LockFactory,
 ) exec.Step {
 	sum := sha1.Sum([]byte(plan.Task.Name))
 	containerMetadata.WorkingDirectory = filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
@@ -116,6 +125,7 @@ func (factory *stepFactory) TaskStep(
 		factory.strategy,
 		factory.pool,
 		delegate,
+		lockFactory,
 	)
 
 	return exec.LogError(taskStep, delegate)

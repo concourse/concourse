@@ -760,6 +760,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		defaultLimits,
 		buildContainerStrategy,
 		resourceFactory,
+		lockFactory,
 	)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
@@ -1233,6 +1234,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
+	lockFactory lock.LockFactory,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1245,12 +1247,14 @@ func (cmd *RunCommand) constructEngine(
 		defaultLimits,
 		strategy,
 		resourceFactory,
+		lockFactory,
 	)
 
 	stepBuilder := builder.NewStepBuilder(
 		stepFactory,
 		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
+		lockFactory,
 	)
 
 	return engine.NewEngine(stepBuilder)

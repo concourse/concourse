@@ -347,6 +347,7 @@ func (scanner *resourceScanner) check(
 		},
 		containerSpec,
 		resourceTypes,
+		nil,
 	)
 	if err != nil {
 		// TODO: remove this after ephemeral check containers.

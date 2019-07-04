@@ -130,7 +130,6 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		&worker.CertsVolumeMount{Logger: s.logger},
 	}
 
-
 	container, err := s.worker.FindOrCreateContainer(
 		ctx,
 		s.logger,
@@ -139,6 +138,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		s.session.Metadata,
 		s.containerSpec,
 		s.resourceTypes,
+		nil,
 	)
 	if err != nil {
 		return nil, err

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -12,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
@@ -57,6 +59,7 @@ type GetStep struct {
 	strategy             worker.ContainerPlacementStrategy
 	workerPool           worker.Pool
 	delegate             GetDelegate
+	lockFactory          lock.LockFactory
 	succeeded            bool
 }
 
@@ -71,6 +74,7 @@ func NewGetStep(
 	strategy worker.ContainerPlacementStrategy,
 	workerPool worker.Pool,
 	delegate GetDelegate,
+	lockFactory lock.LockFactory,
 ) Step {
 	return &GetStep{
 		planID:               planID,
@@ -83,6 +87,7 @@ func NewGetStep(
 		strategy:             strategy,
 		workerPool:           workerPool,
 		delegate:             delegate,
+		lockFactory:          lockFactory,
 	}
 }
 
@@ -178,41 +183,59 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID),
 	)
 
-	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(
-		ctx,
-		logger,
-		resourceInstance.ContainerOwner(),
-		containerSpec,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return err
-	}
+	var chosenWorker worker.Worker
+	var versionedSource resource.VersionedSource
 
-	step.delegate.Starting(logger)
-
-	versionedSource, err := step.resourceFetcher.Fetch(
-		ctx,
-		logger,
-		resource.Session{
-			Metadata: step.containerMetadata,
-		},
-		chosenWorker,
-		containerSpec,
-		resourceTypes,
-		resourceInstance,
-		step.delegate,
-	)
-	if err != nil {
-		logger.Error("failed-to-fetch-resource", err)
-
-		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), VersionInfo{})
-			return nil
+	for {
+		lock, acquired, err := step.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID())
+		if err != nil {
+			return err
 		}
 
-		return err
+		if !acquired {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		chosenWorker, err = step.workerPool.FindOrChooseWorkerForContainer(
+			ctx,
+			logger,
+			resourceInstance.ContainerOwner(),
+			containerSpec,
+			workerSpec,
+			step.strategy,
+		)
+		if err != nil {
+			lock.Release()
+			return err
+		}
+
+		step.delegate.Starting(logger)
+
+		versionedSource, err = step.resourceFetcher.Fetch(
+			ctx,
+			logger,
+			resource.Session{
+				Metadata: step.containerMetadata,
+			},
+			chosenWorker,
+			containerSpec,
+			resourceTypes,
+			resourceInstance,
+			step.delegate,
+			lock,
+		)
+		if err != nil {
+			logger.Error("failed-to-fetch-resource", err)
+
+			if err, ok := err.(resource.ErrResourceScriptFailed); ok {
+				step.delegate.Finished(logger, ExitStatus(err.ExitStatus), VersionInfo{})
+				return nil
+			}
+
+			return err
+		}
+		break
 	}
 
 	state.Artifacts().RegisterSource(artifact.Name(step.plan.Name), &getArtifactSource{

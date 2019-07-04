@@ -2,12 +2,14 @@ package exec
 
 import (
 	"context"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -36,6 +38,7 @@ type PutStep struct {
 	strategy              worker.ContainerPlacementStrategy
 	pool                  worker.Pool
 	delegate              PutDelegate
+	lockFactory           lock.LockFactory
 	succeeded             bool
 }
 
@@ -50,6 +53,7 @@ func NewPutStep(
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
 	delegate PutDelegate,
+	lockFactory lock.LockFactory,
 ) *PutStep {
 	return &PutStep{
 		planID:                planID,
@@ -62,6 +66,7 @@ func NewPutStep(
 		pool:                  pool,
 		strategy:              strategy,
 		delegate:              delegate,
+		lockFactory:           lockFactory,
 	}
 }
 
@@ -140,35 +145,52 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	chosenWorker, err := step.pool.FindOrChooseWorkerForContainer(
-		ctx,
-		logger,
-		owner,
-		containerSpec,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return err
-	}
+	var chosenWorker worker.Worker
+	var container worker.Container
 
-	containerSpec.BindMounts = []worker.BindMountSource{
-		&worker.CertsVolumeMount{Logger: logger},
-	}
+	for {
+		lock, acquired, err := step.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID())
+		if err != nil {
+			return err
+		}
 
-	container, err := chosenWorker.FindOrCreateContainer(
-		ctx,
-		logger,
-		step.delegate,
-		owner,
-		step.containerMetadata,
-		containerSpec,
-		resourceTypes,
-	)
-	if err != nil {
-		return err
-	}
+		if !acquired {
+			time.Sleep(time.Second)
+			continue
+		}
 
+		chosenWorker, err = step.pool.FindOrChooseWorkerForContainer(
+			ctx,
+			logger,
+			owner,
+			containerSpec,
+			workerSpec,
+			step.strategy,
+		)
+		if err != nil {
+			lock.Release()
+			return err
+		}
+
+		containerSpec.BindMounts = []worker.BindMountSource{
+			&worker.CertsVolumeMount{Logger: logger},
+		}
+
+		container, err = chosenWorker.FindOrCreateContainer(
+			ctx,
+			logger,
+			step.delegate,
+			owner,
+			step.containerMetadata,
+			containerSpec,
+			resourceTypes,
+			lock,
+		)
+		if err != nil {
+			return err
+		}
+		break
+	}
 	step.delegate.Starting(logger)
 
 	putResource := step.resourceFactory.NewResourceForContainer(container)

@@ -17,6 +17,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
@@ -55,6 +56,7 @@ type Worker interface {
 		db.ContainerMetadata,
 		ContainerSpec,
 		atc.VersionedResourceTypes,
+		lock.Lock,
 	) (Container, error)
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
@@ -183,6 +185,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	metadata db.ContainerMetadata,
 	containerSpec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
+	containerLock lock.Lock,
 ) (Container, error) {
 
 	var (
@@ -194,6 +197,9 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	)
 
 	err = worker.EnsureDBContainerExists(ctx, logger, owner, metadata)
+	if containerLock != nil {
+		containerLock.Release()
+	}
 	if err != nil {
 		return nil, err
 	}

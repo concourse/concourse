@@ -178,6 +178,7 @@ func (i *imageResourceFetcher) Fetch(
 		i.customTypes,
 		resourceInstance,
 		i.imageFetchingDelegate,
+		nil,
 	)
 	if err != nil {
 		logger.Error("failed-to-fetch-image", err)
@@ -238,6 +239,7 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		},
 		containerSpec,
 		i.customTypes,
+		nil,
 	)
 	if err != nil {
 		return err
@@ -296,6 +298,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 		},
 		resourceSpec,
 		i.customTypes,
+		nil,
 	)
 	if err != nil {
 		return nil, err

@@ -70,6 +70,7 @@ var _ = Describe("Fetcher", func() {
 			atc.VersionedResourceTypes{},
 			new(resourcefakes.FakeResourceInstance),
 			fakeBuildStepDelegate,
+			nil,
 		)
 	})
 

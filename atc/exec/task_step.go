@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -17,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -75,6 +77,7 @@ type TaskStep struct {
 	strategy          worker.ContainerPlacementStrategy
 	workerPool        worker.Pool
 	delegate          TaskDelegate
+	lockFactory       lock.LockFactory
 	succeeded         bool
 }
 
@@ -88,6 +91,7 @@ func NewTaskStep(
 	strategy worker.ContainerPlacementStrategy,
 	workerPool worker.Pool,
 	delegate TaskDelegate,
+	lockFactory lock.LockFactory,
 ) Step {
 	return &TaskStep{
 		planID:            planID,
@@ -99,6 +103,7 @@ func NewTaskStep(
 		strategy:          strategy,
 		workerPool:        workerPool,
 		delegate:          delegate,
+		lockFactory:       lockFactory,
 	}
 }
 
@@ -190,29 +195,47 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(
-		ctx,
-		logger,
-		owner,
-		containerSpec,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return err
-	}
+	var chosenWorker worker.Worker
+	var container worker.Container
 
-	container, err := chosenWorker.FindOrCreateContainer(
-		ctx,
-		logger,
-		step.delegate,
-		owner,
-		step.containerMetadata,
-		containerSpec,
-		resourceTypes,
-	)
-	if err != nil {
-		return err
+	for {
+		lock, acquired, err := step.lockFactory.Acquire(logger, lock.NewContainerCreatingLockID())
+		if err != nil {
+			return err
+		}
+
+		if !acquired {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		chosenWorker, err = step.workerPool.FindOrChooseWorkerForContainer(
+			ctx,
+			logger,
+			owner,
+			containerSpec,
+			workerSpec,
+			step.strategy,
+		)
+		if err != nil {
+			lock.Release()
+			return err
+		}
+
+		container, err = chosenWorker.FindOrCreateContainer(
+			ctx,
+			logger,
+			step.delegate,
+			owner,
+			step.containerMetadata,
+			containerSpec,
+			resourceTypes,
+			lock,
+		)
+		if err != nil {
+			return err
+		}
+		break
 	}
 
 	exitStatusProp, err := container.Property(taskExitStatusPropertyName)
