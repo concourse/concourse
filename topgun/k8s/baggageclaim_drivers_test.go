@@ -13,9 +13,9 @@ var _ = Describe("baggageclaim drivers", func() {
 	})
 
 	onPks(func() {
-		works("btrfs")
-		works("overlay")
-		works("naive")
+		baggageclaimWorks("btrfs")
+		baggageclaimWorks("overlay")
+		baggageclaimWorks("naive")
 	})
 
 	onGke(func() {
@@ -26,50 +26,25 @@ var _ = Describe("baggageclaim drivers", func() {
 		)
 
 		Context("cos image", func() {
-			fails("btrfs", COS)
-			works("overlay", COS)
-			works("naive", COS)
+			baggageclaimFails("btrfs", COS)
+			baggageclaimWorks("overlay", COS)
+			baggageclaimWorks("naive", COS)
 		})
 
 		Context("ubuntu image", func() {
-			works("btrfs", UBUNTU)
-			works("overlay", UBUNTU)
-			works("naive", UBUNTU)
+			baggageclaimWorks("btrfs", UBUNTU)
+			baggageclaimWorks("overlay", UBUNTU)
+			baggageclaimWorks("naive", UBUNTU)
 		})
 
 	})
 })
 
-func onPks(f func()) {
-	Context("PKS", func() {
-
-		BeforeEach(func() {
-			if Environment.K8sEngine != "PKS" {
-				Skip("not running on PKS")
-			}
-		})
-
-		f()
-	})
-}
-
-func onGke(f func()) {
-	Context("GKE", func() {
-
-		BeforeEach(func() {
-			if Environment.K8sEngine != "GKE" {
-				Skip("not running on GKE")
-			}
-		})
-
-		f()
-	})
-}
-
-func works(driver string, selectorFlags ...string) {
+func baggageclaimWorks(driver string, selectorFlags ...string) {
 	Context(driver, func() {
 		It("works", func() {
-			deployWithSelectors(driver, selectorFlags...)
+			setReleaseNameAndNamespace("bd-" + driver)
+			deployWithDriverAndSelectors(driver, selectorFlags...)
 			waitAllPodsInNamespaceToBeReady(namespace)
 
 			By("Creating the web proxy")
@@ -86,10 +61,11 @@ func works(driver string, selectorFlags ...string) {
 	})
 }
 
-func fails(driver string, selectorFlags ...string) {
+func baggageclaimFails(driver string, selectorFlags ...string) {
 	Context(driver, func() {
 		It("fails", func() {
-			deployWithSelectors(driver, selectorFlags...)
+			setReleaseNameAndNamespace("bd-" + driver)
+			deployWithDriverAndSelectors(driver, selectorFlags...)
 
 			Eventually(func() []byte {
 				workerLogsSession := Start(nil, "kubectl", "logs",
@@ -104,9 +80,7 @@ func fails(driver string, selectorFlags ...string) {
 	})
 }
 
-func deployWithSelectors(driver string, selectorFlags ...string) {
-	setReleaseNameAndNamespace("bd-" + driver)
-
+func deployWithDriverAndSelectors(driver string, selectorFlags ...string) {
 	helmDeployTestFlags := []string{
 		"--set=concourse.web.kubernetes.enabled=false",
 		"--set=concourse.worker.baggageclaim.driver=" + driver,

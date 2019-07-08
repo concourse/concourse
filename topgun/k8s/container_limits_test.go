@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -12,50 +11,62 @@ import (
 )
 
 var _ = Describe("Container Limits", func() {
-	var (
-		proxySession        *gexec.Session
-		atcEndpoint         string
-		nodeImage           string
-		helmDeployTestFlags []string
+	const (
+		TaskCPULimit    = "--set=concourse.web.defaultTaskCpuLimit=512"
+		TaskMemoryLimit = "--set=concourse.web.defaultTaskMemoryLimit=1GB"
+		COS             = "--set=worker.nodeSelector.nodeImage=cos"
+		UBUNTU          = "--set=worker.nodeSelector.nodeImage=ubuntu"
 	)
 
 	BeforeEach(func() {
 		setReleaseNameAndNamespace("cl")
 	})
 
-	JustBeforeEach(func() {
-		helmDeployTestFlags = []string{
-			`--set=worker.replicas=1`,
-			`--set=concourse.web.defaultTaskCpuLimit=512`,
-			`--set=concourse.web.defaultTaskMemoryLimit=1GB`,
-			"--set=worker.nodeSelector.nodeImage=" + nodeImage,
-		}
-		deployConcourseChart(releaseName, helmDeployTestFlags...)
+	onPks(func() {
+		containerLimitsWork(TaskCPULimit, TaskMemoryLimit)
+	})
 
-		waitAllPodsInNamespaceToBeReady(namespace)
-
-		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
-
-		By("Logging in")
-		fly.Login("test", "test", atcEndpoint)
-
-		Eventually(func() []Worker {
-			return getRunningWorkers(fly.GetWorkers())
-		}, 2*time.Minute, 10*time.Second).
-			ShouldNot(HaveLen(0))
+	onGke(func() {
+		containerLimitsWork(COS, TaskCPULimit, TaskMemoryLimit)
+		containerLimitsFail(UBUNTU, TaskCPULimit, TaskMemoryLimit)
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace, nil)
 	})
 
-	Context("using cos as NodeImage", func() {
-		BeforeEach(func() {
-			nodeImage = "cos"
-		})
+})
 
+func waitAndLogin() {
+	waitAllPodsInNamespaceToBeReady(namespace)
+
+	By("Creating the web proxy")
+	_, atcEndpoint := startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
+
+	By("Logging in")
+	fly.Login("test", "test", atcEndpoint)
+
+	Eventually(func() []Worker {
+		return getRunningWorkers(fly.GetWorkers())
+	}, 2*time.Minute, 10*time.Second).
+		ShouldNot(HaveLen(0))
+
+}
+
+func deployWithSelectors(selectorFlags ...string) {
+	helmDeployTestFlags := []string{
+		"--set=concourse.web.kubernetes.enabled=false",
+		"--set=worker.replicas=1",
+	}
+
+	deployConcourseChart(releaseName, append(helmDeployTestFlags, selectorFlags...)...)
+}
+
+func containerLimitsWork(selectorFlags ...string) {
+	Context("container limits work", func() {
 		It("returns the configure default container limit", func() {
+			deployWithSelectors(selectorFlags...)
+			waitAndLogin()
 			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(0))
@@ -72,13 +83,13 @@ var _ = Describe("Container Limits", func() {
 			Expect(hijackSession).To(gbytes.Say("1073741824\n512"))
 		})
 	})
+}
 
-	Context("using Ubuntu as NodeImage", func() {
-		BeforeEach(func() {
-			nodeImage = "ubuntu"
-		})
-
+func containerLimitsFail(selectorFlags ...string) {
+	Context("container limits fail", func() {
 		It("fails to set the memory limit", func() {
+			deployWithSelectors(selectorFlags...)
+			waitAndLogin()
 			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(2))
@@ -87,5 +98,4 @@ var _ = Describe("Container Limits", func() {
 			Expect(buildSession).To(gbytes.Say("permission denied"))
 		})
 	})
-
-})
+}

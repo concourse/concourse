@@ -286,3 +286,29 @@ func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
 		Wait(proxySession.Interrupt())
 	}
 }
+
+func onPks(f func()) {
+	Context("PKS", func() {
+
+		BeforeEach(func() {
+			if Environment.K8sEngine != "PKS" {
+				Skip("not running on PKS")
+			}
+		})
+
+		f()
+	})
+}
+
+func onGke(f func()) {
+	Context("GKE", func() {
+
+		BeforeEach(func() {
+			if Environment.K8sEngine != "GKE" {
+				Skip("not running on GKE")
+			}
+		})
+
+		f()
+	})
+}
