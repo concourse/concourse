@@ -5,6 +5,7 @@ import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group.Models exposing (Group)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
+import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, download, href, id, style)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
@@ -68,7 +69,7 @@ handleDelivery delivery ( model, effects ) =
 
 
 view :
-    { a | hovered : Maybe DomID, screenSize : ScreenSize.ScreenSize }
+    { a | hovered : HoverState.HoverState, screenSize : ScreenSize.ScreenSize }
     -> FooterModel r
     -> Html Message
 view session model =
@@ -113,7 +114,7 @@ keyboardHelp =
 
 
 infoBar :
-    { a | hovered : Maybe DomID, screenSize : ScreenSize.ScreenSize }
+    { a | hovered : HoverState.HoverState, screenSize : ScreenSize.ScreenSize }
     ->
         { b
             | version : String
@@ -175,7 +176,7 @@ legend session model =
 
 
 concourseInfo :
-    { a | hovered : Maybe DomID }
+    { a | hovered : HoverState.HoverState }
     -> { b | version : String }
     -> Html Message
 concourseInfo { hovered } { version } =
@@ -233,7 +234,7 @@ legendSeparator screenSize =
             [ Html.div Styles.legendSeparator [ Html.text "|" ] ]
 
 
-cliIcon : Maybe DomID -> Cli.Cli -> Html Message
+cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
 cliIcon hovered cli =
     Html.a
         ([ href <| Cli.downloadUrl cli
@@ -244,7 +245,7 @@ cliIcon hovered cli =
          , download ""
          ]
             ++ Styles.infoCliIcon
-                { hovered = hovered == (Just <| FooterCliIcon cli)
+                { hovered = HoverState.isHovered (FooterCliIcon cli) hovered
                 , cli = cli
                 }
         )

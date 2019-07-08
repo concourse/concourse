@@ -3,23 +3,27 @@ module SideBar.SideBar exposing
     , hamburgerMenu
     , handleCallback
     , handleDelivery
+    , update
     , view
     )
 
 import Concourse
 import EffectTransformer exposing (ET)
+import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (href, id, title)
+import Html.Attributes exposing (id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
+import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
-import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
 import SideBar.Styles as Styles
+import SideBar.Team as Team
+import SideBar.Views as Views
 import Views.Icon as Icon
 
 
@@ -27,7 +31,7 @@ type alias Model m =
     { m
         | expandedTeams : Set String
         , pipelines : WebData (List Concourse.Pipeline)
-        , hovered : Maybe DomID
+        , hovered : HoverState.HoverState
         , isSideBarOpen : Bool
         , screenSize : ScreenSize.ScreenSize
     }
@@ -38,6 +42,36 @@ type alias PipelineScoped a =
         | teamName : String
         , pipelineName : String
     }
+
+
+update : Message -> Model m -> ( Model m, List Effects.Effect )
+update message model =
+    case message of
+        Click HamburgerMenu ->
+            ( { model | isSideBarOpen = not model.isSideBarOpen }
+            , [ Effects.SaveSideBarState <| not model.isSideBarOpen ]
+            )
+
+        Click (SideBarTeam teamName) ->
+            ( { model
+                | expandedTeams =
+                    if Set.member teamName model.expandedTeams then
+                        Set.remove teamName model.expandedTeams
+
+                    else
+                        Set.insert teamName model.expandedTeams
+              }
+            , []
+            )
+
+        Hover (Just (SideBarPipeline pipelineID)) ->
+            ( model, [ Effects.GetViewportOf <| SideBarPipeline pipelineID ] )
+
+        Hover (Just (SideBarTeam teamName)) ->
+            ( model, [ Effects.GetViewportOf <| SideBarTeam teamName ] )
+
+        _ ->
+            ( model, [] )
 
 
 handleCallback : Callback -> WebData (PipelineScoped a) -> ET (Model m)
@@ -70,6 +104,37 @@ handleCallback callback currentPipeline ( model, effects ) =
             , effects
             )
 
+        GotViewport (Ok { scene, viewport }) ->
+            case ( model.hovered, scene.width > viewport.width ) of
+                ( HoverState.Hovered domID, True ) ->
+                    ( { model
+                        | hovered =
+                            HoverState.TooltipPending domID
+                      }
+                    , effects ++ [ Effects.GetElement domID ]
+                    )
+
+                _ ->
+                    ( model, effects )
+
+        GotElement (Ok { element }) ->
+            case model.hovered of
+                HoverState.TooltipPending domID ->
+                    ( { model
+                        | hovered =
+                            HoverState.Tooltip domID
+                                { top = element.y + (element.height / 2)
+                                , left = element.x + element.width
+                                , arrowSize = 15
+                                , marginTop = -15
+                                }
+                      }
+                    , effects
+                    )
+
+                _ ->
+                    ( model, effects )
+
         _ ->
             ( model, effects )
 
@@ -101,13 +166,15 @@ view model currentPipeline =
                 |> List.Extra.gatherEqualsBy .teamName
                 |> List.map
                     (\( p, ps ) ->
-                        team
+                        Team.team
                             { hovered = model.hovered
-                            , isExpanded = Set.member p.teamName model.expandedTeams
-                            , teamName = p.teamName
                             , pipelines = p :: ps
                             , currentPipeline = currentPipeline
                             }
+                            { name = p.teamName
+                            , isExpanded = Set.member p.teamName model.expandedTeams
+                            }
+                            |> Views.viewTeam
                     )
             )
 
@@ -115,126 +182,12 @@ view model currentPipeline =
         Html.text ""
 
 
-team :
-    { a
-        | hovered : Maybe DomID
-        , isExpanded : Bool
-        , teamName : String
-        , pipelines : List Concourse.Pipeline
-        , currentPipeline : Maybe (PipelineScoped b)
-    }
-    -> Html Message
-team ({ isExpanded, pipelines } as session) =
-    Html.div
-        Styles.team
-        [ teamHeader session
-        , if isExpanded then
-            Html.div Styles.column <| List.map (pipeline session) pipelines
-
-          else
-            Html.text ""
-        ]
-
-
-teamHeader :
-    { a
-        | hovered : Maybe DomID
-        , isExpanded : Bool
-        , teamName : String
-        , currentPipeline : Maybe (PipelineScoped b)
-    }
-    -> Html Message
-teamHeader { hovered, isExpanded, teamName, currentPipeline } =
-    let
-        isHovered =
-            hovered == Just (SideBarTeam teamName)
-
-        isCurrent =
-            (currentPipeline
-                |> Maybe.map .teamName
-            )
-                == Just teamName
-    in
-    Html.div
-        (Styles.teamHeader
-            ++ [ onClick <| Click <| SideBarTeam teamName
-               , onMouseEnter <| Hover <| Just <| SideBarTeam teamName
-               , onMouseLeave <| Hover Nothing
-               ]
-        )
-        [ Styles.teamIcon { isCurrent = isCurrent, isHovered = isHovered }
-        , Styles.arrow
-            { isHovered = isHovered
-            , isExpanded = isExpanded
-            }
-        , Html.div
-            (title teamName
-                :: Styles.teamName
-                    { isHovered = isHovered
-                    , isCurrent = isCurrent
-                    }
-            )
-            [ Html.text teamName ]
-        ]
-
-
-pipeline :
-    { a
-        | hovered : Maybe DomID
-        , teamName : String
-        , currentPipeline : Maybe (PipelineScoped b)
-    }
-    -> Concourse.Pipeline
-    -> Html Message
-pipeline { hovered, teamName, currentPipeline } p =
-    let
-        pipelineId =
-            { pipelineName = p.name
-            , teamName = teamName
-            }
-
-        isCurrent =
-            case currentPipeline of
-                Just cp ->
-                    cp.pipelineName == p.name && cp.teamName == teamName
-
-                Nothing ->
-                    False
-
-        isHovered =
-            hovered == Just (SideBarPipeline pipelineId)
-    in
-    Html.div Styles.pipeline
-        [ Html.div
-            (Styles.pipelineIcon
-                { isCurrent = isCurrent
-                , isHovered = isHovered
-                }
-            )
-            []
-        , Html.a
-            (Styles.pipelineLink
-                { isHovered = isHovered
-                , isCurrent = isCurrent
-                }
-                ++ [ href <|
-                        Routes.toString <|
-                            Routes.Pipeline { id = pipelineId, groups = [] }
-                   , title p.name
-                   , onMouseEnter <| Hover <| Just <| SideBarPipeline pipelineId
-                   , onMouseLeave <| Hover Nothing
-                   ]
-            )
-            [ Html.text p.name ]
-        ]
-
-
 hamburgerMenu :
     { a
         | screenSize : ScreenSize
         , pipelines : WebData (List Concourse.Pipeline)
         , isSideBarOpen : Bool
-        , hovered : Maybe DomID
+        , hovered : HoverState.HoverState
     }
     -> Html Message
 hamburgerMenu model =
@@ -269,7 +222,7 @@ hamburgerMenu model =
                 (Styles.hamburgerIcon <|
                     { isHovered =
                         isHamburgerClickable
-                            && (model.hovered == Just HamburgerMenu)
+                            && HoverState.isHovered HamburgerMenu model.hovered
                     , isActive = model.isSideBarOpen
                     }
                 )

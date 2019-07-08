@@ -5,8 +5,10 @@ port module Message.Effects exposing
     , renderSvgIcon
     , runEffect
     , stickyHeaderConfig
+    , toHtmlID
     )
 
+import Base64
 import Browser.Dom exposing (Viewport, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse
@@ -15,7 +17,12 @@ import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Json.Encode
 import Message.Callback exposing (Callback(..))
-import Message.Message exposing (VersionToggleAction(..), VisibilityAction(..))
+import Message.Message
+    exposing
+        ( DomID(..)
+        , VersionToggleAction(..)
+        , VisibilityAction(..)
+        )
 import Network.Build
 import Network.BuildPlan
 import Network.BuildPrep
@@ -157,6 +164,8 @@ type Effect
     | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
     | LoadSideBarState
     | SaveSideBarState Bool
+    | GetViewportOf DomID
+    | GetElement DomID
 
 
 type alias VersionId =
@@ -421,6 +430,27 @@ runEffect effect key csrfToken =
 
         SaveSideBarState isOpen ->
             saveSideBarState isOpen
+
+        GetViewportOf domID ->
+            Browser.Dom.getViewportOf (toHtmlID domID)
+                |> Task.attempt GotViewport
+
+        GetElement domID ->
+            Browser.Dom.getElement (toHtmlID domID)
+                |> Task.attempt GotElement
+
+
+toHtmlID : DomID -> String
+toHtmlID domId =
+    case domId of
+        SideBarTeam t ->
+            Base64.encode t
+
+        SideBarPipeline p ->
+            Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+
+        _ ->
+            ""
 
 
 scroll :

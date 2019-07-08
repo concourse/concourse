@@ -6,6 +6,7 @@ import Concourse
 import Concourse.BuildStatus
 import Dashboard.DashboardPreview as DP
 import Dict exposing (Dict)
+import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href)
 import Routes
@@ -16,7 +17,7 @@ main =
     program <|
         Benchmark.compare "view"
             "with uncertainty metric"
-            (\_ -> DP.view Nothing sampleJobs)
+            (\_ -> DP.view HoverState.NoHover sampleJobs)
             "straight recursion"
             (\_ -> view sampleJobs)
 

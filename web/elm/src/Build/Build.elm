@@ -33,6 +33,7 @@ import Concourse.Pagination exposing (Paginated)
 import DateFormat
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
+import HoverState
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -331,7 +332,7 @@ handleCallback action ( model, effects ) =
             ( model, effects )
 
 
-handleDelivery : { a | hovered : Maybe DomID } -> Delivery -> ET Model
+handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
 handleDelivery session delivery ( model, effects ) =
     case delivery of
         KeyDown keyEvent ->
@@ -463,7 +464,7 @@ handleDelivery session delivery ( model, effects ) =
             ( model, effects )
 
 
-update : { a | hovered : Maybe DomID } -> Message -> ET Model
+update : { a | hovered : HoverState.HoverState } -> Message -> ET Model
 update session msg ( model, effects ) =
     case msg of
         Click (BuildTab build) ->
@@ -1287,7 +1288,9 @@ viewBuildHeader session model build =
                             model.disableManualTrigger
 
                         buttonHovered =
-                            session.hovered == Just TriggerBuildButton
+                            HoverState.isHovered
+                                TriggerBuildButton
+                                session.hovered
                     in
                     Html.button
                         ([ attribute "role" "button"
@@ -1329,7 +1332,7 @@ viewBuildHeader session model build =
                     Html.text ""
 
         abortHovered =
-            session.hovered == Just AbortBuildButton
+            HoverState.isHovered AbortBuildButton session.hovered
 
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then

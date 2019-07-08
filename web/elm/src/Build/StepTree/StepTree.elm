@@ -37,6 +37,7 @@ import Concourse
 import DateFormat
 import Dict exposing (Dict)
 import Duration
+import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -371,7 +372,7 @@ extendHighlight id line root =
 
 
 updateTooltip :
-    { a | hovered : Maybe DomID }
+    { a | hovered : HoverState.HoverState }
     -> { b | hoveredCounter : Int }
     -> StepTreeModel
     -> ( StepTreeModel, List Effect )
@@ -379,16 +380,30 @@ updateTooltip { hovered } { hoveredCounter } model =
     let
         newTooltip =
             case hovered of
-                Just (FirstOccurrenceIcon _) ->
+                HoverState.Tooltip (FirstOccurrenceIcon x) _ ->
                     if hoveredCounter > 0 then
-                        hovered
+                        Just (FirstOccurrenceIcon x)
 
                     else
                         Nothing
 
-                Just (StepState _) ->
+                HoverState.Hovered (FirstOccurrenceIcon x) ->
                     if hoveredCounter > 0 then
-                        hovered
+                        Just (FirstOccurrenceIcon x)
+
+                    else
+                        Nothing
+
+                HoverState.Tooltip (StepState x) _ ->
+                    if hoveredCounter > 0 then
+                        Just (StepState x)
+
+                    else
+                        Nothing
+
+                HoverState.Hovered (StepState x) ->
+                    if hoveredCounter > 0 then
+                        Just (StepState x)
 
                     else
                         Nothing
@@ -499,7 +514,7 @@ viewTab { hovered } id currentTab idx step =
          , onClick <| Click <| StepTab id tab
          ]
             ++ Styles.retryTab
-                { isHovered = hovered == (Just <| StepTab id tab)
+                { isHovered = HoverState.isHovered (StepTab id tab) hovered
                 , isCurrent = currentTab == tab
                 , isStarted = treeIsActive step
                 }

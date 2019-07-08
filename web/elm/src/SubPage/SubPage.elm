@@ -19,12 +19,13 @@ import Dashboard.Models
 import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
+import HoverState
 import Html
 import Job.Job as Job
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (DomID, Message(..))
+import Message.Message exposing (Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription)
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model
@@ -207,7 +208,7 @@ handleLoggedOut ( m, effs ) =
     )
 
 
-handleDelivery : { a | hovered : Maybe DomID } -> Delivery -> ET Model
+handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
 handleDelivery session delivery =
     genericUpdate
         (Build.handleDelivery session delivery)

@@ -18,6 +18,7 @@ import Concourse
 import Concourse.Cli as Cli
 import Dict
 import EffectTransformer exposing (ET)
+import HoverState
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -403,7 +404,7 @@ view session model =
                     { pinnedResources = getPinnedResources model
                     , pipeline = model.pipelineLocator
                     , isPinMenuExpanded =
-                        session.hovered == Just PinIcon
+                        HoverState.isHovered PinIcon session.hovered
                     }
                 , Html.div
                     (id "top-bar-pause-toggle"
@@ -413,10 +414,9 @@ view session model =
                         { pipeline = model.pipelineLocator
                         , isPaused = isPaused model.pipeline
                         , isToggleHovered =
-                            session.hovered
-                                == (Just <|
-                                        PipelineButton model.pipelineLocator
-                                   )
+                            HoverState.isHovered
+                                (PipelineButton model.pipelineLocator)
+                                session.hovered
                         , isToggleLoading = model.isToggleLoading
                         , tooltipPosition = Views.Styles.Below
                         , margin = "17px"
@@ -530,7 +530,7 @@ isPaused p =
     RemoteData.withDefault False (RemoteData.map .paused p)
 
 
-viewSubPage : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewSubPage : { a | hovered : HoverState.HoverState } -> Model -> Html Message
 viewSubPage session model =
     Html.div
         [ class "pipeline-view"
@@ -624,7 +624,7 @@ viewSubPage session model =
         ]
 
 
-viewGroupsBar : { a | hovered : Maybe DomID } -> Model -> Html Message
+viewGroupsBar : { a | hovered : HoverState.HoverState } -> Model -> Html Message
 viewGroupsBar session model =
     let
         groupList =
@@ -655,7 +655,7 @@ viewGroup :
     { a
         | selectedGroups : List String
         , pipelineLocator : Concourse.PipelineIdentifier
-        , hovered : Maybe DomID
+        , hovered : HoverState.HoverState
     }
     -> Int
     -> Concourse.PipelineGroup
@@ -676,7 +676,7 @@ viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
          ]
             ++ Styles.groupItem
                 { selected = List.member grp.name selectedGroups
-                , hovered = hovered == (Just <| JobGroup idx)
+                , hovered = HoverState.isHovered (JobGroup idx) hovered
                 }
         )
         [ Html.text grp.name ]
