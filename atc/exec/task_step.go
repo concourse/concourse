@@ -202,7 +202,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	events := make(chan string, 1)
 
 	go func(results chan worker.TaskResult) {
-		status, volumeMounts, err := step.workerClient.RunTaskStep(
+		results <- step.workerClient.RunTaskStep(
 			ctx,
 			logger,
 			owner,
@@ -214,29 +214,22 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 			processSpec,
 			events,
 		)
-
-		results <- worker.TaskResult{
-			Status:       status,
-			VolumeMounts: volumeMounts,
-			Err:          err,
-		}
-
 	}(results)
 
 	for {
 		select {
-		case <-ctx.Done():
-			result := <-results
-			err = step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
-			if err != nil {
-				return err
-			}
-
-			return ctx.Err()
-
 		case result := <-results:
-			if err = result.Err; err != nil {
-				return err
+			err = result.Err
+			if err != nil {
+				if err != nil {
+					if err == context.Canceled || err == context.DeadlineExceeded {
+						registerErr := step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+						if registerErr != nil {
+							return registerErr
+						}
+					}
+					return err
+				}
 			}
 
 			step.succeeded = (result.Status == 0)
@@ -245,6 +238,14 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 			err = step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 			if err != nil {
 				return err
+			}
+
+			// Do not initialize caches for one-off builds
+			if step.metadata.JobID != 0 {
+				err = step.registerCaches(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil
@@ -404,31 +405,31 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.
 		}
 	}
 
-	// Do not initialize caches for one-off builds
-	if step.metadata.JobID != 0 {
-		logger.Debug("initializing-caches", lager.Data{"caches": config.Caches})
+	return nil
+}
 
-		for _, cacheConfig := range config.Caches {
-			for _, volumeMount := range volumeMounts {
-				if volumeMount.MountPath == filepath.Join(metadata.WorkingDirectory, cacheConfig.Path) {
-					logger.Debug("initializing-cache", lager.Data{"path": volumeMount.MountPath})
+func (step *TaskStep) registerCaches(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) error {
+	logger.Debug("initializing-caches", lager.Data{"caches": config.Caches})
 
-					err := volumeMount.Volume.InitializeTaskCache(
-						logger,
-						step.metadata.JobID,
-						step.plan.Name,
-						cacheConfig.Path,
-						bool(step.plan.Privileged))
-					if err != nil {
-						return err
-					}
+	for _, cacheConfig := range config.Caches {
+		for _, volumeMount := range volumeMounts {
+			if volumeMount.MountPath == filepath.Join(metadata.WorkingDirectory, cacheConfig.Path) {
+				logger.Debug("initializing-cache", lager.Data{"path": volumeMount.MountPath})
 
-					continue
+				err := volumeMount.Volume.InitializeTaskCache(
+					logger,
+					step.metadata.JobID,
+					step.plan.Name,
+					cacheConfig.Path,
+					bool(step.plan.Privileged))
+				if err != nil {
+					return err
 				}
+
+				continue
 			}
 		}
 	}
-
 	return nil
 }
 
