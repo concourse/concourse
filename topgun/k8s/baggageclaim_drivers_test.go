@@ -1,6 +1,8 @@
 package k8s_test
 
 import (
+	"time"
+
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -52,6 +54,11 @@ func baggageclaimWorks(driver string, selectorFlags ...string) {
 
 			By("Logging in")
 			fly.Login("test", "test", atcEndpoint)
+
+			Eventually(func() []Worker {
+				return getRunningWorkers(fly.GetWorkers())
+			}, 2*time.Minute, 10*time.Second).
+				ShouldNot(HaveLen(0))
 
 			By("Setting and triggering a dumb pipeline")
 			fly.Run("set-pipeline", "-n", "-c", "../pipelines/get-task.yml", "-p", "some-pipeline")
