@@ -14,7 +14,7 @@ import (
 
 type Resource interface {
 	Get(context.Context, worker.Volume, IOConfig, atc.Source, atc.Params, atc.Version) (VersionedSource, error)
-	Put(context.Context, IOConfig, atc.Source, atc.Params) (VersionedSource, error)
+	Put(context.Context, IOConfig, atc.Source, atc.Params) (VersionResult, error)
 	Check(context.Context, atc.Source, atc.Version) ([]atc.Version, error)
 }
 

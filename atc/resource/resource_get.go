@@ -21,7 +21,7 @@ func (resource *resource) Get(
 	params atc.Params,
 	version atc.Version,
 ) (VersionedSource, error) {
-	var vr versionResult
+	var vr VersionResult
 
 	err := resource.runScript(
 		ctx,
