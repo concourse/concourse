@@ -1,10 +1,8 @@
 package resource_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"io"
 	"io/ioutil"
 
 	"code.cloudfoundry.org/garden"
@@ -32,7 +30,7 @@ var _ = Describe("Resource Put", func() {
 
 		outScriptProcess *gfakes.FakeProcess
 
-		versionedSource VersionedSource
+		versionResult VersionResult
 
 		ioConfig  IOConfig
 		stdoutBuf *gbytes.Buffer
@@ -100,48 +98,8 @@ var _ = Describe("Resource Put", func() {
 				return outScriptProcess, nil
 			}
 
-			versionedSource, putErr = resourceForContainer.Put(ctx, ioConfig, source, params)
+			versionResult, putErr = resourceForContainer.Put(ctx, ioConfig, source, params)
 		})
-
-		itCanStreamOut := func() {
-			Describe("streaming bits out", func() {
-				Context("when streaming out succeeds", func() {
-					BeforeEach(func() {
-						fakeContainer.StreamOutStub = func(spec garden.StreamOutSpec) (io.ReadCloser, error) {
-							streamOut := new(bytes.Buffer)
-
-							if spec.Path == "/tmp/build/put/some/subdir" {
-								streamOut.WriteString("sup")
-							}
-
-							return ioutil.NopCloser(streamOut), nil
-						}
-					})
-
-					It("returns the output stream of the resource", func() {
-						inStream, err := versionedSource.StreamOut("some/subdir")
-						Expect(err).NotTo(HaveOccurred())
-
-						contents, err := ioutil.ReadAll(inStream)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(string(contents)).To(Equal("sup"))
-					})
-				})
-
-				Context("when streaming out fails", func() {
-					disaster := errors.New("oh no!")
-
-					BeforeEach(func() {
-						fakeContainer.StreamOutReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						_, err := versionedSource.StreamOut("some/subdir")
-						Expect(err).To(Equal(disaster))
-					})
-				})
-			})
-		}
 
 		Context("when a result is already present on the container", func() {
 			BeforeEach(func() {
@@ -171,8 +129,8 @@ var _ = Describe("Resource Put", func() {
 			})
 
 			It("can be accessed on the versioned source", func() {
-				Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "new-version"}))
-				Expect(versionedSource.Metadata()).To(Equal([]atc.MetadataField{
+				Expect(versionResult.Version).To(Equal(atc.Version{"some": "new-version"}))
+				Expect(versionResult.Metadata).To(Equal([]atc.MetadataField{
 					{Name: "a", Value: "a-value"},
 					{Name: "b", Value: "b-value"},
 				}))
@@ -220,8 +178,8 @@ var _ = Describe("Resource Put", func() {
 				})
 
 				It("returns the version and metadata printed out by /opt/resource/out", func() {
-					Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "new-version"}))
-					Expect(versionedSource.Metadata()).To(Equal([]atc.MetadataField{
+					Expect(versionResult.Version).To(Equal(atc.Version{"some": "new-version"}))
+					Expect(versionResult.Metadata).To(Equal([]atc.MetadataField{
 						{Name: "a", Value: "a-value"},
 						{Name: "b", Value: "b-value"},
 					}))
@@ -292,27 +250,6 @@ var _ = Describe("Resource Put", func() {
 				Expect(spec.ID).To(Equal(ResourceProcessID))
 			})
 
-			It("uses the same working directory for all actions", func() {
-				err := versionedSource.StreamIn("a/path", &bytes.Buffer{})
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(fakeContainer.StreamInCallCount()).To(Equal(1))
-				streamSpec := fakeContainer.StreamInArgsForCall(0)
-				Expect(streamSpec.User).To(Equal("")) // use default
-
-				_, err = versionedSource.StreamOut("a/path")
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
-				streamOutSpec := fakeContainer.StreamOutArgsForCall(0)
-
-				Expect(fakeContainer.RunCallCount()).To(Equal(1))
-				spec, _ := fakeContainer.RunArgsForCall(0)
-
-				Expect(streamSpec.Path).To(HavePrefix(spec.Args[0]))
-				Expect(streamSpec.Path).To(Equal(streamOutSpec.Path))
-			})
-
 			It("runs /opt/resource/out <source path> with the request on stdin", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
@@ -330,41 +267,6 @@ var _ = Describe("Resource Put", func() {
 
 			})
 
-			Describe("streaming in", func() {
-				Context("when the container can stream in", func() {
-					BeforeEach(func() {
-						fakeContainer.StreamInReturns(nil)
-					})
-
-					It("streams in to the path", func() {
-						buf := new(bytes.Buffer)
-
-						err := versionedSource.StreamIn("some-path", buf)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(fakeContainer.StreamInCallCount()).To(Equal(1))
-						spec := fakeContainer.StreamInArgsForCall(0)
-
-						Expect(spec.Path).To(Equal("/tmp/build/put/some-path"))
-						Expect(spec.User).To(Equal("")) // use default
-						Expect(spec.TarStream).To(Equal(buf))
-					})
-				})
-
-				Context("when the container cannot stream in", func() {
-					disaster := errors.New("oh no!")
-
-					BeforeEach(func() {
-						fakeContainer.StreamInReturns(disaster)
-					})
-
-					It("returns the error", func() {
-						err := versionedSource.StreamIn("some-path", nil)
-						Expect(err).To(Equal(disaster))
-					})
-				})
-			})
-
 			Context("when /opt/resource/out prints the version and metadata", func() {
 				BeforeEach(func() {
 					outScriptStdout = `{
@@ -377,8 +279,8 @@ var _ = Describe("Resource Put", func() {
 				})
 
 				It("returns the version and metadata printed out by /opt/resource/out", func() {
-					Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "new-version"}))
-					Expect(versionedSource.Metadata()).To(Equal([]atc.MetadataField{
+					Expect(versionResult.Version).To(Equal(atc.Version{"some": "new-version"}))
+					Expect(versionResult.Metadata).To(Equal([]atc.MetadataField{
 						{Name: "a", Value: "a-value"},
 						{Name: "b", Value: "b-value"},
 					}))
@@ -427,8 +329,6 @@ var _ = Describe("Resource Put", func() {
 					Expect(putErr.Error()).To(ContainSubstring("exit status 9"))
 				})
 			})
-
-			itCanStreamOut()
 		})
 	})
 
@@ -457,7 +357,7 @@ var _ = Describe("Resource Put", func() {
 			}
 
 			go func() {
-				versionedSource, putErr = resourceForContainer.Put(ctx, ioConfig, source, params)
+				versionResult, putErr = resourceForContainer.Put(ctx, ioConfig, source, params)
 				close(done)
 			}()
 		})
