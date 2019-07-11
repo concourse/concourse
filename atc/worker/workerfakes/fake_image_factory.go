@@ -2,11 +2,11 @@
 package workerfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	atc "github.com/concourse/concourse/atc"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeImageFactory struct {
@@ -63,6 +63,12 @@ func (fake *FakeImageFactory) GetImageCallCount() int {
 	return len(fake.getImageArgsForCall)
 }
 
+func (fake *FakeImageFactory) GetImageCalls(stub func(lager.Logger, worker.Worker, worker.VolumeClient, worker.ImageSpec, int, worker.ImageFetchingDelegate, atc.VersionedResourceTypes) (worker.Image, error)) {
+	fake.getImageMutex.Lock()
+	defer fake.getImageMutex.Unlock()
+	fake.GetImageStub = stub
+}
+
 func (fake *FakeImageFactory) GetImageArgsForCall(i int) (lager.Logger, worker.Worker, worker.VolumeClient, worker.ImageSpec, int, worker.ImageFetchingDelegate, atc.VersionedResourceTypes) {
 	fake.getImageMutex.RLock()
 	defer fake.getImageMutex.RUnlock()
@@ -71,6 +77,8 @@ func (fake *FakeImageFactory) GetImageArgsForCall(i int) (lager.Logger, worker.W
 }
 
 func (fake *FakeImageFactory) GetImageReturns(result1 worker.Image, result2 error) {
+	fake.getImageMutex.Lock()
+	defer fake.getImageMutex.Unlock()
 	fake.GetImageStub = nil
 	fake.getImageReturns = struct {
 		result1 worker.Image
@@ -79,6 +87,8 @@ func (fake *FakeImageFactory) GetImageReturns(result1 worker.Image, result2 erro
 }
 
 func (fake *FakeImageFactory) GetImageReturnsOnCall(i int, result1 worker.Image, result2 error) {
+	fake.getImageMutex.Lock()
+	defer fake.getImageMutex.Unlock()
 	fake.GetImageStub = nil
 	if fake.getImageReturnsOnCall == nil {
 		fake.getImageReturnsOnCall = make(map[int]struct {

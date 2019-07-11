@@ -16,6 +16,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -38,6 +40,9 @@ var _ = Describe("TaskStep", func() {
 		fakePool     *workerfakes.FakePool
 		fakeWorker   *workerfakes.FakeWorker
 		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
+
+		fakeLockDB      *lockfakes.FakeLockDB
+		fakeLockFactory lock.LockFactory
 
 		fakeSecretManager *credsfakes.FakeSecrets
 		fakeDelegate      *execfakes.FakeTaskDelegate
@@ -76,6 +81,8 @@ var _ = Describe("TaskStep", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakePool = new(workerfakes.FakePool)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+
+		fakeLockFactory = lock.NewTestLockFactory(fakeLockDB)
 
 		fakeSecretManager = new(credsfakes.FakeSecrets)
 		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
@@ -136,6 +143,7 @@ var _ = Describe("TaskStep", func() {
 			fakeStrategy,
 			fakePool,
 			fakeDelegate,
+			fakeLockFactory,
 		)
 
 		stepErr = taskStep.Run(ctx, state)
@@ -203,6 +211,7 @@ var _ = Describe("TaskStep", func() {
 					},
 					Dir:     "some-artifact-root",
 					Env:     []string{"SECURE=secret-task-param"},
+					Type:    "task",
 					Inputs:  []worker.InputSource{},
 					Outputs: worker.OutputPaths{},
 				}))
@@ -253,7 +262,6 @@ var _ = Describe("TaskStep", func() {
 						StepName:         "some-step",
 					}))
 
-
 					cpu := uint64(1024)
 					memory := uint64(1024)
 					Expect(containerSpec).To(Equal(worker.ContainerSpec{
@@ -275,6 +283,7 @@ var _ = Describe("TaskStep", func() {
 						},
 						Dir:     "some-artifact-root",
 						Env:     []string{"SECURE=secret-task-param"},
+						Type:    "task",
 						Inputs:  []worker.InputSource{},
 						Outputs: worker.OutputPaths{},
 					}))
@@ -306,7 +315,6 @@ var _ = Describe("TaskStep", func() {
 							StepName:         "some-step",
 						}))
 
-
 						Expect(containerSpec).To(Equal(worker.ContainerSpec{
 							Platform: "some-platform",
 							Tags:     []string{"step", "tags"},
@@ -317,6 +325,7 @@ var _ = Describe("TaskStep", func() {
 							},
 							Dir:     "some-artifact-root",
 							Env:     []string{"SOME=params"},
+							Type:    "task",
 							Inputs:  []worker.InputSource{},
 							Outputs: worker.OutputPaths{},
 						}))

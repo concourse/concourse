@@ -2,10 +2,10 @@
 package workerfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeContainerPlacementStrategy struct {
@@ -23,6 +23,16 @@ type FakeContainerPlacementStrategy struct {
 	chooseReturnsOnCall map[int]struct {
 		result1 worker.Worker
 		result2 error
+	}
+	ModifyActiveTasksStub        func() bool
+	modifyActiveTasksMutex       sync.RWMutex
+	modifyActiveTasksArgsForCall []struct {
+	}
+	modifyActiveTasksReturns struct {
+		result1 bool
+	}
+	modifyActiveTasksReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -59,6 +69,12 @@ func (fake *FakeContainerPlacementStrategy) ChooseCallCount() int {
 	return len(fake.chooseArgsForCall)
 }
 
+func (fake *FakeContainerPlacementStrategy) ChooseCalls(stub func(lager.Logger, []worker.Worker, worker.ContainerSpec) (worker.Worker, error)) {
+	fake.chooseMutex.Lock()
+	defer fake.chooseMutex.Unlock()
+	fake.ChooseStub = stub
+}
+
 func (fake *FakeContainerPlacementStrategy) ChooseArgsForCall(i int) (lager.Logger, []worker.Worker, worker.ContainerSpec) {
 	fake.chooseMutex.RLock()
 	defer fake.chooseMutex.RUnlock()
@@ -67,6 +83,8 @@ func (fake *FakeContainerPlacementStrategy) ChooseArgsForCall(i int) (lager.Logg
 }
 
 func (fake *FakeContainerPlacementStrategy) ChooseReturns(result1 worker.Worker, result2 error) {
+	fake.chooseMutex.Lock()
+	defer fake.chooseMutex.Unlock()
 	fake.ChooseStub = nil
 	fake.chooseReturns = struct {
 		result1 worker.Worker
@@ -75,6 +93,8 @@ func (fake *FakeContainerPlacementStrategy) ChooseReturns(result1 worker.Worker,
 }
 
 func (fake *FakeContainerPlacementStrategy) ChooseReturnsOnCall(i int, result1 worker.Worker, result2 error) {
+	fake.chooseMutex.Lock()
+	defer fake.chooseMutex.Unlock()
 	fake.ChooseStub = nil
 	if fake.chooseReturnsOnCall == nil {
 		fake.chooseReturnsOnCall = make(map[int]struct {
@@ -88,11 +108,65 @@ func (fake *FakeContainerPlacementStrategy) ChooseReturnsOnCall(i int, result1 w
 	}{result1, result2}
 }
 
+func (fake *FakeContainerPlacementStrategy) ModifyActiveTasks() bool {
+	fake.modifyActiveTasksMutex.Lock()
+	ret, specificReturn := fake.modifyActiveTasksReturnsOnCall[len(fake.modifyActiveTasksArgsForCall)]
+	fake.modifyActiveTasksArgsForCall = append(fake.modifyActiveTasksArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ModifyActiveTasks", []interface{}{})
+	fake.modifyActiveTasksMutex.Unlock()
+	if fake.ModifyActiveTasksStub != nil {
+		return fake.ModifyActiveTasksStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.modifyActiveTasksReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeContainerPlacementStrategy) ModifyActiveTasksCallCount() int {
+	fake.modifyActiveTasksMutex.RLock()
+	defer fake.modifyActiveTasksMutex.RUnlock()
+	return len(fake.modifyActiveTasksArgsForCall)
+}
+
+func (fake *FakeContainerPlacementStrategy) ModifyActiveTasksCalls(stub func() bool) {
+	fake.modifyActiveTasksMutex.Lock()
+	defer fake.modifyActiveTasksMutex.Unlock()
+	fake.ModifyActiveTasksStub = stub
+}
+
+func (fake *FakeContainerPlacementStrategy) ModifyActiveTasksReturns(result1 bool) {
+	fake.modifyActiveTasksMutex.Lock()
+	defer fake.modifyActiveTasksMutex.Unlock()
+	fake.ModifyActiveTasksStub = nil
+	fake.modifyActiveTasksReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeContainerPlacementStrategy) ModifyActiveTasksReturnsOnCall(i int, result1 bool) {
+	fake.modifyActiveTasksMutex.Lock()
+	defer fake.modifyActiveTasksMutex.Unlock()
+	fake.ModifyActiveTasksStub = nil
+	if fake.modifyActiveTasksReturnsOnCall == nil {
+		fake.modifyActiveTasksReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.modifyActiveTasksReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeContainerPlacementStrategy) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.chooseMutex.RLock()
 	defer fake.chooseMutex.RUnlock()
+	fake.modifyActiveTasksMutex.RLock()
+	defer fake.modifyActiveTasksMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
