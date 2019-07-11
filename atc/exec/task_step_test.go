@@ -16,7 +16,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
@@ -41,8 +40,7 @@ var _ = Describe("TaskStep", func() {
 		fakeWorker   *workerfakes.FakeWorker
 		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
 
-		fakeLockDB      *lockfakes.FakeLockDB
-		fakeLockFactory lock.LockFactory
+		fakeLockFactory *lockfakes.FakeLockFactory
 
 		fakeSecretManager *credsfakes.FakeSecrets
 		fakeDelegate      *execfakes.FakeTaskDelegate
@@ -82,7 +80,10 @@ var _ = Describe("TaskStep", func() {
 		fakePool = new(workerfakes.FakePool)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
-		fakeLockFactory = lock.NewTestLockFactory(fakeLockDB)
+		fakeLock := new(lockfakes.FakeLock)
+
+		fakeLockFactory = new(lockfakes.FakeLockFactory)
+		fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
 		fakeSecretManager = new(credsfakes.FakeSecrets)
 		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
@@ -94,6 +95,11 @@ var _ = Describe("TaskStep", func() {
 		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
+
+		fakeWorker.IncreaseActiveTasksStub = func() error {
+			fakeWorker.ActiveTasksReturns(1, nil)
+			return nil
+		}
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -177,6 +183,21 @@ var _ = Describe("TaskStep", func() {
 			}
 		})
 
+		Context("when 'fewest-active-tasks' strategy is chosen and a worker found", func() {
+			BeforeEach(func() {
+				fakeWorker.NameReturns("some-worker")
+				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
+
+				fakeContainer := new(workerfakes.FakeContainer)
+				fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+
+				fakeStrategy.ModifyActiveTasksReturns(true)
+			})
+			It("increase the active tasks on the worker", func() {
+				Expect(fakeWorker.ActiveTasks()).To(Equal(1))
+			})
+		})
+
 		Context("when the worker is either found or chosen", func() {
 			BeforeEach(func() {
 				fakeWorker.NameReturns("some-worker")
@@ -184,6 +205,11 @@ var _ = Describe("TaskStep", func() {
 
 				fakeContainer := new(workerfakes.FakeContainer)
 				fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+
+				fakeWorker.DecreaseActiveTasksStub = func() error {
+					fakeWorker.ActiveTasksReturns(0, nil)
+					return nil
+				}
 			})
 
 			It("finds or chooses a worker", func() {
@@ -1034,6 +1060,16 @@ var _ = Describe("TaskStep", func() {
 									Expect(taskStep.Succeeded()).To(BeFalse())
 								})
 							})
+
+							Context("when 'fewest-active-tasks' strategy is chosen", func() {
+								BeforeEach(func() {
+									fakeStrategy.ModifyActiveTasksReturns(true)
+								})
+
+								It("decrements the active tasks counter on the worker", func() {
+									Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+								})
+							})
 						})
 
 						Context("when the process is interrupted", func() {
@@ -1148,6 +1184,15 @@ var _ = Describe("TaskStep", func() {
 
 									sourceMap := repo.AsMap()
 									Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
+								})
+							})
+							Context("when 'fewest-active-tasks' strategy is chosen", func() {
+								BeforeEach(func() {
+									fakeStrategy.ModifyActiveTasksReturns(true)
+								})
+
+								It("decrements the active tasks counter on the worker", func() {
+									Expect(fakeWorker.ActiveTasks()).To(Equal(0))
 								})
 							})
 						})
@@ -1536,6 +1581,15 @@ var _ = Describe("TaskStep", func() {
 								Expect(taskStep.Succeeded()).To(BeFalse())
 							})
 						})
+						Context("when 'fewest-active-tasks' strategy is chosen", func() {
+							BeforeEach(func() {
+								fakeStrategy.ModifyActiveTasksReturns(true)
+							})
+
+							It("decrements the active tasks counter on the worker", func() {
+								Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+							})
+						})
 					})
 
 					Context("when waiting on the process fails", func() {
@@ -1551,6 +1605,15 @@ var _ = Describe("TaskStep", func() {
 
 						It("is not successful", func() {
 							Expect(taskStep.Succeeded()).To(BeFalse())
+						})
+						Context("when 'fewest-active-tasks' strategy is chosen", func() {
+							BeforeEach(func() {
+								fakeStrategy.ModifyActiveTasksReturns(true)
+							})
+
+							It("decrements the active tasks counter on the worker", func() {
+								Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+							})
 						})
 					})
 
@@ -1609,6 +1672,15 @@ var _ = Describe("TaskStep", func() {
 							sourceMap := repo.AsMap()
 							Expect(sourceMap).To(BeEmpty())
 						})
+						Context("when 'fewest-active-tasks' strategy is chosen", func() {
+							BeforeEach(func() {
+								fakeStrategy.ModifyActiveTasksReturns(true)
+							})
+
+							It("decrements the active tasks counter on the worker", func() {
+								Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+							})
+						})
 					})
 
 					Context("when running the task's script fails", func() {
@@ -1624,6 +1696,15 @@ var _ = Describe("TaskStep", func() {
 
 						It("is not successful", func() {
 							Expect(taskStep.Succeeded()).To(BeFalse())
+						})
+						Context("when 'fewest-active-tasks' strategy is chosen", func() {
+							BeforeEach(func() {
+								fakeStrategy.ModifyActiveTasksReturns(true)
+							})
+
+							It("decrements the active tasks counter on the worker", func() {
+								Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+							})
 						})
 					})
 				})
@@ -1642,6 +1723,15 @@ var _ = Describe("TaskStep", func() {
 
 				It("is not successful", func() {
 					Expect(taskStep.Succeeded()).To(BeFalse())
+				})
+				Context("when 'fewest-active-tasks' strategy is chosen", func() {
+					BeforeEach(func() {
+						fakeStrategy.ModifyActiveTasksReturns(true)
+					})
+
+					It("decrements the active tasks counter on the worker", func() {
+						Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+					})
 				})
 			})
 		})
