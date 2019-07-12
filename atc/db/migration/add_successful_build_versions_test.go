@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// XXX: FIX TESTS
 var _ = Describe("Add successful build versions", func() {
 	const preMigrationVersion = 1560050191
 	const postMigrationVersion = 1560197908

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -81,13 +82,17 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) PaginatedBuilds {
 	}
 }
 
-func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, version ResourceVersion, resourceID int) PaginatedBuilds {
+func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, constrainingCandidates map[string][]string) (PaginatedBuilds, error) {
+	versionsJSON, err := json.Marshal(constrainingCandidates)
+	if err != nil {
+		return PaginatedBuilds{}, err
+	}
+
 	builder := psql.Select("build_id").
-		From("successful_build_versions").
+		From("successful_build_outputs").
+		Where(sq.Expr("outputs @> ?::jsonb", versionsJSON)).
 		Where(sq.Eq{
-			"job_id":      jobID,
-			"version_md5": version,
-			"resource_id": resourceID,
+			"job_id": jobID,
 		}).
 		OrderBy("build_id DESC")
 
@@ -97,7 +102,7 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, version
 		cacheBuildIDCursor: 0,
 
 		conn: versions.Conn,
-	}
+	}, nil
 }
 
 func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) {
@@ -152,47 +157,50 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 	return outputs, nil
 }
 
-func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmOutput, error) {
+func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersion, error) {
 	cacheKey := fmt.Sprintf("o%d", buildID)
 
 	c, found := versions.Cache.Get(cacheKey)
 	if found {
-		return c.([]AlgorithmOutput), nil
+		return c.([]AlgorithmVersion), nil
 	}
 
-	uniqOutputs := map[string]AlgorithmOutput{}
 	// TODO: prefer outputs over inputs for the same name
-	rows, err := psql.Select("name", "resource_id", "version_md5").
-		From("successful_build_versions").
+	var outputsJSON string
+	err := psql.Select("outputs").
+		From("successful_build_outputs").
 		Where(sq.Eq{"build_id": buildID}).
 		RunWith(versions.Conn).
-		Query()
+		QueryRow().
+		Scan(&outputsJSON)
 	if err != nil {
 		return nil, err
 	}
 
-	for rows.Next() {
-		var output AlgorithmOutput
-		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version)
-		if err != nil {
-			return nil, err
+	outputs := map[string][]string{}
+	err = json.Unmarshal([]byte(outputsJSON), &outputs)
+	if err != nil {
+		return nil, err
+	}
+
+	algorithmOutputs := []AlgorithmVersion{}
+	for resID, versions := range outputs {
+		for _, version := range versions {
+			resourceID, err := strconv.Atoi(resID)
+			if err != nil {
+				return nil, err
+			}
+
+			algorithmOutputs = append(algorithmOutputs, AlgorithmVersion{
+				ResourceID: resourceID,
+				Version:    ResourceVersion(version),
+			})
 		}
-
-		uniqOutputs[output.InputName] = output
 	}
 
-	outputs := []AlgorithmOutput{}
-	for _, o := range uniqOutputs {
-		outputs = append(outputs, o)
-	}
+	versions.Cache.Set(cacheKey, algorithmOutputs, time.Hour)
 
-	sort.Slice(outputs, func(i, j int) bool {
-		return outputs[i].InputName > outputs[j].InputName
-	})
-
-	versions.Cache.Set(cacheKey, outputs, time.Hour)
-
-	return outputs, nil
+	return algorithmOutputs, nil
 }
 
 func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) (ResourceVersion, bool, error) {
@@ -372,6 +380,9 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 		Limit(algorithmLimitRows).
 		RunWith(versions.Conn).
 		Query()
+	if err != nil {
+		return PaginatedBuilds{}, err
+	}
 
 	for rows.Next() {
 		var buildID int
@@ -405,14 +416,18 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 	}, nil
 }
 
-func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int, version ResourceVersion, resourceID int) (PaginatedBuilds, error) {
+func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int, constrainingCandidates map[string][]string) (PaginatedBuilds, error) {
 	var buildIDs []int
+	versionsJSON, err := json.Marshal(constrainingCandidates)
+	if err != nil {
+		return PaginatedBuilds{}, err
+	}
+
 	rows, err := psql.Select("build_id").
-		From("successful_build_versions").
+		From("successful_build_outputs").
+		Where(sq.Expr("outputs @> ?::jsonb", versionsJSON)).
 		Where(sq.Eq{
-			"job_id":      jobID,
-			"version_md5": version,
-			"resource_id": resourceID,
+			"job_id": jobID,
 		}).
 		Where(sq.Gt{
 			"build_id": buildID,
@@ -420,6 +435,10 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		OrderBy("build_id ASC").
 		RunWith(versions.Conn).
 		Query()
+	if err != nil {
+		return PaginatedBuilds{}, err
+	}
+
 	for rows.Next() {
 		var buildID int
 
@@ -432,11 +451,10 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 	}
 
 	builder := psql.Select("build_id").
-		From("successful_build_versions").
+		From("successful_build_outputs").
+		Where(sq.Expr("outputs @> ?::jsonb", versionsJSON)).
 		Where(sq.Eq{
-			"job_id":      jobID,
-			"version_md5": version,
-			"resource_id": resourceID,
+			"job_id": jobID,
 		}).
 		Where(sq.LtOrEq{
 			"build_id": buildID,

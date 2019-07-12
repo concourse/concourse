@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -100,39 +101,8 @@ var _ = Describe("Resolve", func() {
 			Disabled:   false,
 		})
 
-		// Set up build inputs
-		for _, buildInput := range buildInputs {
-			setup.insertRowBuild(DBRow{
-				Job:     buildInput.JobName,
-				BuildID: buildInput.BuildID,
-			})
-
-			setup.insertRowVersion(resources, DBRow{
-				Resource:   buildInput.ResourceName,
-				Version:    buildInput.Version,
-				CheckOrder: buildInput.CheckOrder,
-				Disabled:   false,
-			})
-
-			versionJSON, err := json.Marshal(atc.Version{"ver": buildInput.Version})
-			Expect(err).ToNot(HaveOccurred())
-
-			resourceID := setup.resourceIDs.ID(buildInput.ResourceName)
-			_, err = setup.psql.Insert("build_resource_config_version_inputs").
-				Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
-				Values(buildInput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), buildInput.InputName, false).
-				Exec()
-			Expect(err).ToNot(HaveOccurred())
-
-			jobID := setup.jobIDs.ID(buildInput.JobName)
-			_, err = setup.psql.Insert("successful_build_versions").
-				Columns("build_id", "resource_id", "version_md5", "job_id", "name").
-				Values(buildInput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), jobID, buildInput.InputName).
-				Suffix("ON CONFLICT DO NOTHING").
-				Exec()
-			Expect(err).ToNot(HaveOccurred())
-		}
-
+		succeessfulBuildOutputs := map[int]map[string][]string{}
+		buildToJobID := map[int]int{}
 		// Set up build outputs
 		for _, buildOutput := range buildOutputs {
 			setup.insertRowBuild(DBRow{
@@ -157,10 +127,61 @@ var _ = Describe("Resolve", func() {
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 
-			jobID := setup.jobIDs.ID(buildOutput.JobName)
-			_, err = setup.psql.Insert("successful_build_versions").
-				Columns("build_id", "resource_id", "version_md5", "job_id", "name").
-				Values(buildOutput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), jobID, buildOutput.ResourceName).
+			outputs, ok := succeessfulBuildOutputs[buildOutput.BuildID]
+			if !ok {
+				outputs = map[string][]string{}
+				succeessfulBuildOutputs[buildOutput.BuildID] = outputs
+			}
+
+			key := strconv.Itoa(resourceID)
+
+			outputs[key] = append(outputs[key], convertToMD5(buildOutput.Version))
+			buildToJobID[buildOutput.BuildID] = setup.jobIDs.ID(buildOutput.JobName)
+		}
+
+		// Set up build inputs
+		for _, buildInput := range buildInputs {
+			setup.insertRowBuild(DBRow{
+				Job:     buildInput.JobName,
+				BuildID: buildInput.BuildID,
+			})
+
+			setup.insertRowVersion(resources, DBRow{
+				Resource:   buildInput.ResourceName,
+				Version:    buildInput.Version,
+				CheckOrder: buildInput.CheckOrder,
+				Disabled:   false,
+			})
+
+			versionJSON, err := json.Marshal(atc.Version{"ver": buildInput.Version})
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceID := setup.resourceIDs.ID(buildInput.ResourceName)
+			_, err = setup.psql.Insert("build_resource_config_version_inputs").
+				Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
+				Values(buildInput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), buildInput.InputName, false).
+				Exec()
+			Expect(err).ToNot(HaveOccurred())
+
+			outputs, ok := succeessfulBuildOutputs[buildInput.BuildID]
+			if !ok {
+				outputs = map[string][]string{}
+				succeessfulBuildOutputs[buildInput.BuildID] = outputs
+			}
+
+			key := strconv.Itoa(resourceID)
+
+			outputs[key] = append(outputs[key], convertToMD5(buildInput.Version))
+			buildToJobID[buildInput.BuildID] = setup.jobIDs.ID(buildInput.JobName)
+		}
+
+		for buildID, outputs := range succeessfulBuildOutputs {
+			outputsJSON, err := json.Marshal(outputs)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = setup.psql.Insert("successful_build_outputs").
+				Columns("build_id", "job_id", "outputs").
+				Values(buildID, buildToJobID[buildID], outputsJSON).
 				Suffix("ON CONFLICT DO NOTHING").
 				Exec()
 			Expect(err).ToNot(HaveOccurred())

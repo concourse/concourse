@@ -305,23 +305,33 @@ func (example Example) Run() {
 
 		log.Println("IMPORTING INPUTS TO SUCCESSFUL BUILD VERSIONS")
 
+		inputs := map[int]map[string][]string{}
+		buildToJobID := map[int]int{}
+		for _, row := range legacyDB.BuildInputs {
+			outputs, ok := inputs[row.BuildID]
+			if !ok {
+				outputs = map[string][]string{}
+				inputs[row.BuildID] = outputs
+			}
+
+			key := strconv.Itoa(row.ResourceID)
+
+			outputs[key] = append(outputs[key], strconv.Itoa(row.VersionID))
+			buildToJobID[row.BuildID] = row.JobID
+		}
+
 		tx, err = dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
-		stmt, err = tx.Prepare(pq.CopyIn("successful_build_versions", "build_id", "resource_id", "version_md5", "job_id", "name"))
+		stmt, err = tx.Prepare(pq.CopyIn("successful_build_outputs", "build_id", "job_id", "outputs"))
 		Expect(err).ToNot(HaveOccurred())
 
-		importedInputs := map[string]bool{}
-		for i, row := range legacyDB.BuildInputs {
-			name := fmt.Sprintf("sbv%d-%d-%d-%d-%d", row.BuildID, row.ResourceID, row.VersionID, row.JobID, i)
-			if importedInputs[name] {
-				continue
-			}
-
-			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), row.JobID, strconv.Itoa(i))
+		for buildID, outputs := range inputs {
+			outputsJSON, err := json.Marshal(outputs)
 			Expect(err).ToNot(HaveOccurred())
 
-			importedInputs[name] = true
+			_, err = stmt.Exec(buildID, buildToJobID[buildID], outputsJSON)
+			Expect(err).ToNot(HaveOccurred())
 		}
 
 		_, err = stmt.Exec()
@@ -335,22 +345,32 @@ func (example Example) Run() {
 
 		log.Println("IMPORTING OUTPUTS TO SUCCESSFUL BUILD VERSIONS")
 
+		buildOutputs := map[int]map[string][]string{}
+		for _, row := range legacyDB.BuildOutputs {
+			out, ok := inputs[row.BuildID]
+			if !ok {
+				out = map[string][]string{}
+				buildOutputs[row.BuildID] = out
+			}
+
+			key := strconv.Itoa(row.ResourceID)
+
+			out[key] = append(out[key], strconv.Itoa(row.VersionID))
+			buildToJobID[row.BuildID] = row.JobID
+		}
+
 		tx, err = dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
-		stmt, err = tx.Prepare(pq.CopyIn("successful_build_versions", "build_id", "resource_id", "version_md5", "job_id", "name"))
+		stmt, err = tx.Prepare(pq.CopyIn("successful_build_outputs", "build_id", "job_id", "outputs"))
 		Expect(err).ToNot(HaveOccurred())
 
-		for i, row := range legacyDB.BuildOutputs {
-			name := fmt.Sprintf("sbv%d-%d-%d-%d-%d", row.BuildID, row.ResourceID, row.VersionID, row.JobID, i)
-			if importedInputs[name] {
-				continue
-			}
-
-			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), row.JobID, strconv.Itoa(i))
+		for buildID, outputs := range buildOutputs {
+			outputsJSON, err := json.Marshal(outputs)
 			Expect(err).ToNot(HaveOccurred())
 
-			importedInputs[name] = true
+			_, err = stmt.Exec(buildID, buildToJobID[buildID], outputsJSON)
+			Expect(err).ToNot(HaveOccurred())
 		}
 
 		_, err = stmt.Exec()
@@ -368,30 +388,8 @@ func (example Example) Run() {
 			setup.insertRowVersion(resources, row)
 		}
 
-		for _, row := range example.DB.BuildInputs {
-			setup.insertRowVersion(resources, row)
-			setup.insertRowBuild(row)
-
-			resourceID := setup.resourceIDs.ID(row.Resource)
-
-			versionJSON, err := json.Marshal(atc.Version{"ver": row.Version})
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = setup.psql.Insert("build_resource_config_version_inputs").
-				Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
-				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), row.Resource, false).
-				Exec()
-			Expect(err).ToNot(HaveOccurred())
-
-			jobID := setup.jobIDs.ID(row.Job)
-			_, err = setup.psql.Insert("successful_build_versions").
-				Columns("build_id", "resource_id", "version_md5", "job_id", "name").
-				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), jobID, row.Resource).
-				Suffix("ON CONFLICT DO NOTHING").
-				Exec()
-			Expect(err).ToNot(HaveOccurred())
-		}
-
+		buildOutputs := map[int]map[string][]string{}
+		buildToJobID := map[int]int{}
 		for _, row := range example.DB.BuildOutputs {
 			setup.insertRowVersion(resources, row)
 			setup.insertRowBuild(row)
@@ -407,10 +405,52 @@ func (example Example) Run() {
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 
-			jobID := setup.jobIDs.ID(row.Job)
-			_, err = setup.psql.Insert("successful_build_versions").
-				Columns("build_id", "resource_id", "version_md5", "job_id", "name").
-				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), jobID, row.Resource).
+			outputs, ok := buildOutputs[row.BuildID]
+			if !ok {
+				outputs = map[string][]string{}
+				buildOutputs[row.BuildID] = outputs
+			}
+
+			key := strconv.Itoa(resourceID)
+
+			outputs[key] = append(outputs[key], convertToMD5(row.Version))
+			buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
+		}
+
+		for _, row := range example.DB.BuildInputs {
+			setup.insertRowVersion(resources, row)
+			setup.insertRowBuild(row)
+
+			resourceID := setup.resourceIDs.ID(row.Resource)
+
+			versionJSON, err := json.Marshal(atc.Version{"ver": row.Version})
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = setup.psql.Insert("build_resource_config_version_inputs").
+				Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
+				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), row.Resource, false).
+				Exec()
+			Expect(err).ToNot(HaveOccurred())
+
+			outputs, ok := buildOutputs[row.BuildID]
+			if !ok {
+				outputs = map[string][]string{}
+				buildOutputs[row.BuildID] = outputs
+			}
+
+			key := strconv.Itoa(resourceID)
+
+			outputs[key] = append(outputs[key], convertToMD5(row.Version))
+			buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
+		}
+
+		for buildID, outputs := range buildOutputs {
+			outputsJSON, err := json.Marshal(outputs)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = setup.psql.Insert("successful_build_outputs").
+				Columns("build_id", "job_id", "outputs").
+				Values(buildID, buildToJobID[buildID], outputsJSON).
 				Suffix("ON CONFLICT DO NOTHING").
 				Exec()
 			Expect(err).ToNot(HaveOccurred())

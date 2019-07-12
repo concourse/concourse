@@ -3,6 +3,7 @@ package algorithm
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -346,7 +347,15 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 				if passedBuildFound {
 					var err error
 					if candidates[i] != nil {
-						paginatedBuilds, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, candidates[i].Version, inputConfig.ResourceID)
+						constrainingCandidates := map[string][]string{}
+						for passedIndex, passedInput := range inputConfigs {
+							if passedInput.Passed[jobID] && candidates[passedIndex] != nil {
+								resID := strconv.Itoa(passedInput.ResourceID)
+								constrainingCandidates[resID] = append(constrainingCandidates[resID], string(candidates[passedIndex].Version))
+							}
+						}
+
+						paginatedBuilds, err = vdb.UnusedBuildsVersionConstrained(constraintBuildID, jobID, constrainingCandidates)
 					} else {
 						paginatedBuilds, err = vdb.UnusedBuilds(constraintBuildID, jobID)
 					}
@@ -367,7 +376,19 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 
 			if !inputConfig.UseEveryVersion || !passedBuildFound {
 				if candidates[i] != nil {
-					paginatedBuilds = vdb.SuccessfulBuildsVersionConstrained(jobID, candidates[i].Version, inputConfig.ResourceID)
+					constrainingCandidates := map[string][]string{}
+					for passedIndex, passedInput := range inputConfigs {
+						if passedInput.Passed[jobID] && candidates[passedIndex] != nil {
+							resID := strconv.Itoa(passedInput.ResourceID)
+							constrainingCandidates[resID] = append(constrainingCandidates[resID], string(candidates[passedIndex].Version))
+						}
+					}
+
+					var err error
+					paginatedBuilds, err = vdb.SuccessfulBuildsVersionConstrained(jobID, constrainingCandidates)
+					if err != nil {
+						return false, err
+					}
 				} else {
 					paginatedBuilds = vdb.SuccessfulBuilds(jobID)
 				}

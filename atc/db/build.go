@@ -363,26 +363,87 @@ func (b *build) Finish(status BuildStatus) error {
 			return err
 		}
 
-		_, err = psql.Insert("successful_build_versions").
-			Columns("build_id", "resource_id", "version_md5", "name", "job_id").
-			Select(psql.Select("i.build_id", "i.resource_id", "i.version_md5", "i.name").
-				Column("?", b.jobID).
-				From("build_resource_config_version_inputs i").
-				Where(sq.Eq{"i.build_id": b.id})).
-			Suffix("ON CONFLICT DO NOTHING").
+		// XXX: NEED TESTS
+		rows, err := psql.Select("o.resource_id", "o.version_md5").
+			From("build_resource_config_version_outputs o").
+			Where(sq.Eq{
+				"o.build_id": b.id,
+			}).
 			RunWith(tx).
-			Exec()
+			Query()
 		if err != nil {
 			return err
 		}
 
-		_, err = psql.Insert("successful_build_versions").
-			Columns("build_id", "resource_id", "version_md5", "name", "job_id").
-			Select(psql.Select("o.build_id", "o.resource_id", "o.version_md5", "o.name").
-				Column("?", b.jobID).
-				From("build_resource_config_version_outputs o").
-				Where(sq.Eq{"o.build_id": b.id})).
-			Suffix("ON CONFLICT DO NOTHING").
+		defer Close(rows)
+
+		uniqueVersions := map[AlgorithmVersion]bool{}
+		outputVersions := map[string][]string{}
+		for rows.Next() {
+			var resourceID int
+			var version string
+
+			err = rows.Scan(&resourceID, &version)
+			if err != nil {
+				return err
+			}
+
+			resourceVersion := AlgorithmVersion{
+				ResourceID: resourceID,
+				Version:    ResourceVersion(version),
+			}
+
+			if !uniqueVersions[resourceVersion] {
+				resID := strconv.Itoa(resourceID)
+				outputVersions[resID] = append(outputVersions[resID], version)
+
+				uniqueVersions[resourceVersion] = true
+			}
+		}
+
+		rows, err = psql.Select("i.resource_id", "i.version_md5").
+			From("build_resource_config_version_inputs i").
+			Where(sq.Eq{
+				"i.build_id": b.id,
+			}).
+			RunWith(tx).
+			Query()
+		if err != nil {
+			return err
+		}
+
+		defer Close(rows)
+
+		for rows.Next() {
+			var resourceID int
+			var version string
+
+			err = rows.Scan(&resourceID, &version)
+			if err != nil {
+				return err
+			}
+
+			resourceVersion := AlgorithmVersion{
+				ResourceID: resourceID,
+				Version:    ResourceVersion(version),
+			}
+
+			if !uniqueVersions[resourceVersion] {
+				resID := strconv.Itoa(resourceID)
+				outputVersions[resID] = append(outputVersions[resID], version)
+
+				uniqueVersions[resourceVersion] = true
+			}
+		}
+
+		outputsJSON, err := json.Marshal(outputVersions)
+		if err != nil {
+			return err
+		}
+
+		_, err = psql.Insert("successful_build_outputs").
+			Columns("build_id", "job_id", "outputs").
+			Values(b.id, b.jobID, outputsJSON).
 			RunWith(tx).
 			Exec()
 		if err != nil {

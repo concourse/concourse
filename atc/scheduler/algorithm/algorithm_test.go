@@ -162,13 +162,12 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	//XXX: revisit unique output names (get and put can currently use the same name, but moving forward we don't want this)
 	Entry("can collect distinct versions of resources without correlating by job", Example{
 		DB: DB{
 			BuildOutputs: []DBRow{
 				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
 				{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-b", BuildID: 3, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
 			},
 		},
 
