@@ -21,7 +21,6 @@ type Scanner interface {
 func NewScanner(
 	logger lager.Logger,
 	checkFactory db.CheckFactory,
-	planFactory atc.PlanFactory,
 	secrets creds.Secrets,
 	defaultCheckTimeout time.Duration,
 	defaultCheckInterval time.Duration,
@@ -29,7 +28,6 @@ func NewScanner(
 	return &scanner{
 		logger:               logger,
 		checkFactory:         checkFactory,
-		planFactory:          planFactory,
 		secrets:              secrets,
 		defaultCheckTimeout:  defaultCheckTimeout,
 		defaultCheckInterval: defaultCheckInterval,
@@ -40,7 +38,6 @@ type scanner struct {
 	logger lager.Logger
 
 	checkFactory         db.CheckFactory
-	planFactory          atc.PlanFactory
 	secrets              creds.Secrets
 	defaultCheckTimeout  time.Duration
 	defaultCheckInterval time.Duration
@@ -82,7 +79,6 @@ func (s *scanner) Run(ctx context.Context) error {
 			defer waitGroup.Done()
 
 			if err := s.check(resource, resourceTypes); err != nil {
-				s.logger.Error("failed-to-create-check", err)
 				s.setCheckError(s.logger, resource, err)
 			}
 
@@ -102,7 +98,7 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 
 	parentType, found := s.parentType(checkable, filteredTypes)
 	if found {
-		if err := s.check(parentType, filteredTypes); err != nil {
+		if err = s.check(parentType, filteredTypes); err != nil {
 			s.logger.Error("failed-to-create-type-check", err)
 			s.setCheckError(s.logger, parentType, err)
 			return errors.Wrapf(err, "parent type '%v' error", parentType.Name())
@@ -132,9 +128,7 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 	}
 
 	if time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
-		s.logger.Debug("interval-not-reached", lager.Data{
-			"interval": interval,
-		})
+		s.logger.Debug("interval-not-reached", lager.Data{"interval": interval})
 		return nil
 	}
 
@@ -163,7 +157,7 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 		return err
 	}
 
-	fromVersion := make(atc.Version)
+	var fromVersion atc.Version
 	rcv, found, err := resourceConfigScope.LatestVersion()
 	if err != nil {
 		s.logger.Error("failed-to-get-current-version", err)
@@ -174,21 +168,24 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 		fromVersion = atc.Version(rcv.Version())
 	}
 
-	plan := s.planFactory.NewPlan(atc.CheckPlan{
-		Name:        checkable.Name(),
-		Type:        checkable.Type(),
-		Source:      source,
-		Tags:        checkable.Tags(),
-		Timeout:     timeout.String(),
-		FromVersion: fromVersion,
+	plan := atc.Plan{
+		Check: &atc.CheckPlan{
+			Name:        checkable.Name(),
+			Type:        checkable.Type(),
+			Source:      source,
+			Tags:        checkable.Tags(),
+			Timeout:     timeout.String(),
+			FromVersion: fromVersion,
 
-		VersionedResourceTypes: versionedResourceTypes,
-	})
+			VersionedResourceTypes: versionedResourceTypes,
+		},
+	}
 
 	_, created, err := s.checkFactory.CreateCheck(
 		resourceConfigScope.ID(),
 		resourceConfigScope.ResourceConfig().ID(),
 		resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		false,
 		plan,
 	)
 	if err != nil {

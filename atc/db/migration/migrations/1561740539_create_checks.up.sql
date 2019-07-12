@@ -7,6 +7,7 @@ BEGIN;
       base_resource_type_id integer REFERENCES base_resource_types(id) ON DELETE CASCADE,
       schema text NOT NULL,
       status text NOT NULL,
+      manually_triggered boolean DEFAULT false,
       plan text,
       nonce text,
       check_error text,
@@ -15,6 +16,6 @@ BEGIN;
       end_time timestamp WITH TIME ZONE
   );
 
-  CREATE UNIQUE INDEX resource_config_scope_id_key ON checks (resource_config_scope_id) WHERE status = 'started';
+  CREATE UNIQUE INDEX resource_config_scope_id_key ON checks (resource_config_scope_id) WHERE status = 'started' AND manually_triggered = false;
 
 COMMIT;

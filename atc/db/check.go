@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -20,28 +21,6 @@ const (
 	CheckStatusErrored   CheckStatus = "errored"
 )
 
-//go:generate counterfeiter . Checkable
-
-type Checkable interface {
-	Name() string
-	TeamName() string
-	PipelineName() string
-	Type() string
-	PipelineID() int
-	Source() atc.Source
-	Tags() atc.Tags
-	CheckEvery() string
-	CheckTimeout() string
-	LastCheckEndTime() time.Time
-
-	SetResourceConfig(
-		atc.Source,
-		atc.VersionedResourceTypes,
-	) (ResourceConfigScope, error)
-
-	SetCheckSetupError(error) error
-}
-
 //go:generate counterfeiter . Check
 
 type Check interface {
@@ -55,22 +34,19 @@ type Check interface {
 	StartTime() time.Time
 	EndTime() time.Time
 	Status() CheckStatus
-	IsRunning() bool
+	CheckError() error
 
 	Start() error
 	Finish() error
 	FinishWithError(err error) error
 
 	SaveVersions([]atc.Version) error
+	AllCheckables() ([]Checkable, error)
 	AcquireTrackingLock(lager.Logger) (lock.Lock, bool, error)
+	Reload() (bool, error)
 }
 
-const (
-	CheckTypeResource     = "resource"
-	CheckTypeResourceType = "resource_type"
-)
-
-var checksQuery = psql.Select("c.id, c.resource_config_scope_id, c.resource_config_id, c.base_resource_type_id, c.status, c.schema, c.create_time, c.start_time, c.end_time, c.plan, c.nonce").
+var checksQuery = psql.Select("c.id, c.resource_config_scope_id, c.resource_config_id, c.base_resource_type_id, c.status, c.schema, c.create_time, c.start_time, c.end_time, c.plan, c.nonce, c.check_error").
 	From("checks c")
 
 type check struct {
@@ -79,9 +55,10 @@ type check struct {
 	resourceConfigID      int
 	baseResourceTypeID    int
 
-	status CheckStatus
-	schema string
-	plan   atc.Plan
+	status     CheckStatus
+	schema     string
+	plan       atc.Plan
+	checkError error
 
 	createTime time.Time
 	startTime  time.Time
@@ -101,8 +78,24 @@ func (c *check) Plan() atc.Plan             { return c.plan }
 func (c *check) CreateTime() time.Time      { return c.createTime }
 func (c *check) StartTime() time.Time       { return c.startTime }
 func (c *check) EndTime() time.Time         { return c.endTime }
+func (c *check) CheckError() error          { return c.checkError }
 
-// TODO update resource config scope last check start time
+func (c *check) Reload() (bool, error) {
+	row := checksQuery.Where(sq.Eq{"c.id": c.id}).
+		RunWith(c.conn).
+		QueryRow()
+
+	err := scanCheck(c, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (c *check) Start() error {
 	tx, err := c.conn.Begin()
 	if err != nil {
@@ -113,7 +106,6 @@ func (c *check) Start() error {
 
 	now := time.Now()
 	_, err = psql.Update("checks").
-		Set("status", CheckStatusStarted).
 		Set("start_time", now).
 		Where(sq.Eq{
 			"id": c.id,
@@ -124,7 +116,6 @@ func (c *check) Start() error {
 		return err
 	}
 
-	// TODO update resource config scope
 	_, err = psql.Update("resource_config_scopes").
 		Set("last_check_start_time", now).
 		Where(sq.Eq{
@@ -161,25 +152,35 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 	defer Rollback(tx)
 
 	now := time.Now()
-	_, err = psql.Update("checks").
+	builder := psql.Update("checks").
 		Set("status", status).
 		Set("end_time", now).
-		Set("check_error", checkError).
 		Where(sq.Eq{
 			"id": c.id,
-		}).
+		})
+
+	if checkError != nil {
+		builder = builder.Set("check_error", checkError.Error())
+	}
+
+	_, err = builder.
 		RunWith(tx).
 		Exec()
 	if err != nil {
 		return err
 	}
 
-	_, err = psql.Update("resource_config_scopes").
+	builder = psql.Update("resource_config_scopes").
 		Set("last_check_end_time", now).
-		Set("check_error", checkError).
 		Where(sq.Eq{
 			"id": c.resourceConfigScopeID,
-		}).
+		})
+
+	if checkError != nil {
+		builder = builder.Set("check_error", checkError.Error())
+	}
+
+	_, err = builder.
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -194,15 +195,71 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 	return nil
 }
 
-func (c *check) IsRunning() bool {
-	return false
-}
-
 func (c *check) AcquireTrackingLock(logger lager.Logger) (lock.Lock, bool, error) {
 	return c.lockFactory.Acquire(
 		logger,
 		lock.NewResourceConfigCheckingLockID(c.ResourceConfigID()),
 	)
+}
+
+func (c *check) AllCheckables() ([]Checkable, error) {
+	var checkables []Checkable
+
+	rows, err := resourcesQuery.
+		Where(sq.Eq{
+			"r.resource_config_scope_id": c.resourceConfigScopeID,
+		}).
+		RunWith(c.conn).
+		Query()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	for rows.Next() {
+		r := &resource{
+			conn:        c.conn,
+			lockFactory: c.lockFactory,
+		}
+
+		err = scanResource(r, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		checkables = append(checkables, r)
+	}
+
+	rows, err = resourceTypesQuery.
+		Where(sq.Eq{
+			"ro.id": c.resourceConfigScopeID,
+		}).
+		RunWith(c.conn).
+		Query()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	for rows.Next() {
+		r := &resourceType{
+			conn:        c.conn,
+			lockFactory: c.lockFactory,
+		}
+
+		err = scanResourceType(r, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		checkables = append(checkables, r)
+	}
+
+	return checkables, nil
 }
 
 func (c *check) SaveVersions(versions []atc.Version) error {
@@ -213,11 +270,11 @@ func scanCheck(c *check, row scannable) error {
 	var (
 		resourceConfigScopeID, resourceConfigID, baseResourceTypeID sql.NullInt64
 		createTime, startTime, endTime                              pq.NullTime
-		schema, plan, nonce                                         sql.NullString
+		schema, plan, nonce, checkError                             sql.NullString
 		status                                                      string
 	)
 
-	err := row.Scan(&c.id, &resourceConfigScopeID, &resourceConfigID, &baseResourceTypeID, &status, &schema, &createTime, &startTime, &endTime, &plan, &nonce)
+	err := row.Scan(&c.id, &resourceConfigScopeID, &resourceConfigID, &baseResourceTypeID, &status, &schema, &createTime, &startTime, &endTime, &plan, &nonce, &checkError)
 	if err != nil {
 		return err
 	}
@@ -236,6 +293,12 @@ func scanCheck(c *check, row scannable) error {
 	err = json.Unmarshal(decryptedConfig, &c.plan)
 	if err != nil {
 		return err
+	}
+
+	if checkError.Valid {
+		c.checkError = errors.New(checkError.String)
+	} else {
+		c.checkError = nil
 	}
 
 	c.status = CheckStatus(status)

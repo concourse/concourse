@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
@@ -44,19 +45,26 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		created, err := s.check(dbResourceType, dbResourceTypes, reqBody.From)
+		check, created, err := s.checker.Check(dbResourceType, dbResourceTypes, reqBody.From)
 		if err != nil {
 			s.logger.Error("failed-to-create-check", err)
-			setErr := dbResourceType.SetCheckSetupError(err)
-			if setErr != nil {
-				logger.Error("failed-to-set-check-error", setErr)
-			}
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
 		}
 
-		if created {
-			w.WriteHeader(http.StatusCreated)
-		} else {
-			w.WriteHeader(http.StatusOK)
+		if !created {
+			s.logger.Info("check-not-created")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+
+		err = json.NewEncoder(w).Encode(present.Check(check))
+		if err != nil {
+			logger.Error("failed-to-encode-check", err)
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 	})
 }

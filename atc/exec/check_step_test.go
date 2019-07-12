@@ -95,7 +95,7 @@ var _ = Describe("CheckStep", func() {
 			Source:                 atc.Source{"some": "super-secret-source"},
 			Tags:                   []string{"some", "tags"},
 			Timeout:                "10s",
-			FromVersion:            &atc.Version{"some-custom": "version"},
+			FromVersion:            atc.Version{"some-custom": "version"},
 			VersionedResourceTypes: interpolatedResourceTypes,
 		}
 	})

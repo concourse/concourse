@@ -27,6 +27,18 @@ type FakeCheck struct {
 		result2 bool
 		result3 error
 	}
+	AllCheckablesStub        func() ([]db.Checkable, error)
+	allCheckablesMutex       sync.RWMutex
+	allCheckablesArgsForCall []struct {
+	}
+	allCheckablesReturns struct {
+		result1 []db.Checkable
+		result2 error
+	}
+	allCheckablesReturnsOnCall map[int]struct {
+		result1 []db.Checkable
+		result2 error
+	}
 	BaseResourceTypeIDStub        func() int
 	baseResourceTypeIDMutex       sync.RWMutex
 	baseResourceTypeIDArgsForCall []struct {
@@ -36,6 +48,16 @@ type FakeCheck struct {
 	}
 	baseResourceTypeIDReturnsOnCall map[int]struct {
 		result1 int
+	}
+	CheckErrorStub        func() error
+	checkErrorMutex       sync.RWMutex
+	checkErrorArgsForCall []struct {
+	}
+	checkErrorReturns struct {
+		result1 error
+	}
+	checkErrorReturnsOnCall map[int]struct {
+		result1 error
 	}
 	CreateTimeStub        func() time.Time
 	createTimeMutex       sync.RWMutex
@@ -88,16 +110,6 @@ type FakeCheck struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	IsRunningStub        func() bool
-	isRunningMutex       sync.RWMutex
-	isRunningArgsForCall []struct {
-	}
-	isRunningReturns struct {
-		result1 bool
-	}
-	isRunningReturnsOnCall map[int]struct {
-		result1 bool
-	}
 	PlanStub        func() atc.Plan
 	planMutex       sync.RWMutex
 	planArgsForCall []struct {
@@ -107,6 +119,18 @@ type FakeCheck struct {
 	}
 	planReturnsOnCall map[int]struct {
 		result1 atc.Plan
+	}
+	ReloadStub        func() (bool, error)
+	reloadMutex       sync.RWMutex
+	reloadArgsForCall []struct {
+	}
+	reloadReturns struct {
+		result1 bool
+		result2 error
+	}
+	reloadReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
 	}
 	ResourceConfigIDStub        func() int
 	resourceConfigIDMutex       sync.RWMutex
@@ -249,6 +273,61 @@ func (fake *FakeCheck) AcquireTrackingLockReturnsOnCall(i int, result1 lock.Lock
 	}{result1, result2, result3}
 }
 
+func (fake *FakeCheck) AllCheckables() ([]db.Checkable, error) {
+	fake.allCheckablesMutex.Lock()
+	ret, specificReturn := fake.allCheckablesReturnsOnCall[len(fake.allCheckablesArgsForCall)]
+	fake.allCheckablesArgsForCall = append(fake.allCheckablesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("AllCheckables", []interface{}{})
+	fake.allCheckablesMutex.Unlock()
+	if fake.AllCheckablesStub != nil {
+		return fake.AllCheckablesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.allCheckablesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCheck) AllCheckablesCallCount() int {
+	fake.allCheckablesMutex.RLock()
+	defer fake.allCheckablesMutex.RUnlock()
+	return len(fake.allCheckablesArgsForCall)
+}
+
+func (fake *FakeCheck) AllCheckablesCalls(stub func() ([]db.Checkable, error)) {
+	fake.allCheckablesMutex.Lock()
+	defer fake.allCheckablesMutex.Unlock()
+	fake.AllCheckablesStub = stub
+}
+
+func (fake *FakeCheck) AllCheckablesReturns(result1 []db.Checkable, result2 error) {
+	fake.allCheckablesMutex.Lock()
+	defer fake.allCheckablesMutex.Unlock()
+	fake.AllCheckablesStub = nil
+	fake.allCheckablesReturns = struct {
+		result1 []db.Checkable
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCheck) AllCheckablesReturnsOnCall(i int, result1 []db.Checkable, result2 error) {
+	fake.allCheckablesMutex.Lock()
+	defer fake.allCheckablesMutex.Unlock()
+	fake.AllCheckablesStub = nil
+	if fake.allCheckablesReturnsOnCall == nil {
+		fake.allCheckablesReturnsOnCall = make(map[int]struct {
+			result1 []db.Checkable
+			result2 error
+		})
+	}
+	fake.allCheckablesReturnsOnCall[i] = struct {
+		result1 []db.Checkable
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCheck) BaseResourceTypeID() int {
 	fake.baseResourceTypeIDMutex.Lock()
 	ret, specificReturn := fake.baseResourceTypeIDReturnsOnCall[len(fake.baseResourceTypeIDArgsForCall)]
@@ -298,6 +377,58 @@ func (fake *FakeCheck) BaseResourceTypeIDReturnsOnCall(i int, result1 int) {
 	}
 	fake.baseResourceTypeIDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakeCheck) CheckError() error {
+	fake.checkErrorMutex.Lock()
+	ret, specificReturn := fake.checkErrorReturnsOnCall[len(fake.checkErrorArgsForCall)]
+	fake.checkErrorArgsForCall = append(fake.checkErrorArgsForCall, struct {
+	}{})
+	fake.recordInvocation("CheckError", []interface{}{})
+	fake.checkErrorMutex.Unlock()
+	if fake.CheckErrorStub != nil {
+		return fake.CheckErrorStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.checkErrorReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheck) CheckErrorCallCount() int {
+	fake.checkErrorMutex.RLock()
+	defer fake.checkErrorMutex.RUnlock()
+	return len(fake.checkErrorArgsForCall)
+}
+
+func (fake *FakeCheck) CheckErrorCalls(stub func() error) {
+	fake.checkErrorMutex.Lock()
+	defer fake.checkErrorMutex.Unlock()
+	fake.CheckErrorStub = stub
+}
+
+func (fake *FakeCheck) CheckErrorReturns(result1 error) {
+	fake.checkErrorMutex.Lock()
+	defer fake.checkErrorMutex.Unlock()
+	fake.CheckErrorStub = nil
+	fake.checkErrorReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCheck) CheckErrorReturnsOnCall(i int, result1 error) {
+	fake.checkErrorMutex.Lock()
+	defer fake.checkErrorMutex.Unlock()
+	fake.CheckErrorStub = nil
+	if fake.checkErrorReturnsOnCall == nil {
+		fake.checkErrorReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.checkErrorReturnsOnCall[i] = struct {
+		result1 error
 	}{result1}
 }
 
@@ -569,58 +700,6 @@ func (fake *FakeCheck) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeCheck) IsRunning() bool {
-	fake.isRunningMutex.Lock()
-	ret, specificReturn := fake.isRunningReturnsOnCall[len(fake.isRunningArgsForCall)]
-	fake.isRunningArgsForCall = append(fake.isRunningArgsForCall, struct {
-	}{})
-	fake.recordInvocation("IsRunning", []interface{}{})
-	fake.isRunningMutex.Unlock()
-	if fake.IsRunningStub != nil {
-		return fake.IsRunningStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.isRunningReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeCheck) IsRunningCallCount() int {
-	fake.isRunningMutex.RLock()
-	defer fake.isRunningMutex.RUnlock()
-	return len(fake.isRunningArgsForCall)
-}
-
-func (fake *FakeCheck) IsRunningCalls(stub func() bool) {
-	fake.isRunningMutex.Lock()
-	defer fake.isRunningMutex.Unlock()
-	fake.IsRunningStub = stub
-}
-
-func (fake *FakeCheck) IsRunningReturns(result1 bool) {
-	fake.isRunningMutex.Lock()
-	defer fake.isRunningMutex.Unlock()
-	fake.IsRunningStub = nil
-	fake.isRunningReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeCheck) IsRunningReturnsOnCall(i int, result1 bool) {
-	fake.isRunningMutex.Lock()
-	defer fake.isRunningMutex.Unlock()
-	fake.IsRunningStub = nil
-	if fake.isRunningReturnsOnCall == nil {
-		fake.isRunningReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.isRunningReturnsOnCall[i] = struct {
-		result1 bool
-	}{result1}
-}
-
 func (fake *FakeCheck) Plan() atc.Plan {
 	fake.planMutex.Lock()
 	ret, specificReturn := fake.planReturnsOnCall[len(fake.planArgsForCall)]
@@ -671,6 +750,61 @@ func (fake *FakeCheck) PlanReturnsOnCall(i int, result1 atc.Plan) {
 	fake.planReturnsOnCall[i] = struct {
 		result1 atc.Plan
 	}{result1}
+}
+
+func (fake *FakeCheck) Reload() (bool, error) {
+	fake.reloadMutex.Lock()
+	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
+	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Reload", []interface{}{})
+	fake.reloadMutex.Unlock()
+	if fake.ReloadStub != nil {
+		return fake.ReloadStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.reloadReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCheck) ReloadCallCount() int {
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
+	return len(fake.reloadArgsForCall)
+}
+
+func (fake *FakeCheck) ReloadCalls(stub func() (bool, error)) {
+	fake.reloadMutex.Lock()
+	defer fake.reloadMutex.Unlock()
+	fake.ReloadStub = stub
+}
+
+func (fake *FakeCheck) ReloadReturns(result1 bool, result2 error) {
+	fake.reloadMutex.Lock()
+	defer fake.reloadMutex.Unlock()
+	fake.ReloadStub = nil
+	fake.reloadReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCheck) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.reloadMutex.Lock()
+	defer fake.reloadMutex.Unlock()
+	fake.ReloadStub = nil
+	if fake.reloadReturnsOnCall == nil {
+		fake.reloadReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.reloadReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeCheck) ResourceConfigID() int {
@@ -1055,8 +1189,12 @@ func (fake *FakeCheck) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.acquireTrackingLockMutex.RLock()
 	defer fake.acquireTrackingLockMutex.RUnlock()
+	fake.allCheckablesMutex.RLock()
+	defer fake.allCheckablesMutex.RUnlock()
 	fake.baseResourceTypeIDMutex.RLock()
 	defer fake.baseResourceTypeIDMutex.RUnlock()
+	fake.checkErrorMutex.RLock()
+	defer fake.checkErrorMutex.RUnlock()
 	fake.createTimeMutex.RLock()
 	defer fake.createTimeMutex.RUnlock()
 	fake.endTimeMutex.RLock()
@@ -1067,10 +1205,10 @@ func (fake *FakeCheck) Invocations() map[string][][]interface{} {
 	defer fake.finishWithErrorMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
-	fake.isRunningMutex.RLock()
-	defer fake.isRunningMutex.RUnlock()
 	fake.planMutex.RLock()
 	defer fake.planMutex.RUnlock()
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
 	fake.resourceConfigIDMutex.RLock()
 	defer fake.resourceConfigIDMutex.RUnlock()
 	fake.resourceConfigScopeIDMutex.RLock()

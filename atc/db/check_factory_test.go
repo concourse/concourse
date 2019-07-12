@@ -32,6 +32,36 @@ var _ = Describe("CheckFactory", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	Describe("Check", func() {
+		var created, found bool
+		var check, foundCheck db.Check
+
+		BeforeEach(func() {
+			check, created, err = checkFactory.CreateCheck(
+				resourceConfigScope.ID(),
+				resourceConfigScope.ResourceConfig().ID(),
+				resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+				false,
+				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
+			)
+			Expect(created).To(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			foundCheck, found, err = checkFactory.Check(check.ID())
+		})
+
+		It("succeeds", func() {
+			Expect(found).To(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns the db check", func() {
+			Expect(foundCheck).To(Equal(check))
+		})
+	})
+
 	Describe("CreateCheck", func() {
 		var created bool
 		var check db.Check
@@ -41,6 +71,7 @@ var _ = Describe("CheckFactory", func() {
 				resourceConfigScope.ID(),
 				resourceConfigScope.ResourceConfig().ID(),
 				resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+				false,
 				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
 			)
 		})
@@ -66,6 +97,7 @@ var _ = Describe("CheckFactory", func() {
 					resourceConfigScope.ID(),
 					resourceConfigScope.ResourceConfig().ID(),
 					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					false,
 					atc.Plan{},
 				)
 				Expect(created).To(BeTrue())
@@ -79,7 +111,7 @@ var _ = Describe("CheckFactory", func() {
 		})
 	})
 
-	Describe("PendingChecks", func() {
+	Describe("StartedChecks", func() {
 		var (
 			checks []db.Check
 		)
@@ -109,6 +141,7 @@ var _ = Describe("CheckFactory", func() {
 					resourceConfigScope.ID(),
 					resourceConfigScope.ResourceConfig().ID(),
 					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					false,
 					atc.Plan{},
 				)
 				Expect(created).To(BeTrue())
