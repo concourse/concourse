@@ -1,168 +1,13 @@
-@highlight: #ffffdc;
-
-@off-white: #f6f5f5;
-@offer-white: #efeeee;
-@offest-white: #e6e5e5;
-
-@light-grey: #5a5555;
-
-@dark-grey: #3d3c3c;
-@darker-grey: #2a2929;
-@darkest-grey: #1e1d1d;
-
-@green-primary: #11c560;
-@green-secondary: #419867;
-@amber-primary: #f5a623;
-@amber-secondary: #ec9910;
-@red-primary: #ed4b35;
-@red-secondary: #bd3826;
-@blue-primary: #4a90e2;
-@blue-secondary: #2d76cc;
-@grey-primary: #9b9b9b;
-@grey-secondary: #7a7373;
-@brown-primary: #8b572a;
-@brown-secondary: #6a401c;
-
-@brand: #3398dc;
-
-* {
-  box-sizing: border-box;
-}
-
-html, body {
-  min-height: 100vh;
-}
+@import "colors.less";
+@import "base.less";
 
 body {
-  font-family: 'PT Sans', Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1.6;
-  color: @darker-grey;
   background: @off-white;
-  width: 100%;
-  display: grid;
-  grid-template-rows: 80px auto;
-  grid-template-columns: 2fr 5fr 3fr;
-  grid-template-areas:
-    "logo primary-nav search"
-    "secondary-nav content aside";
-}
-
-a {
-  color: @blue-secondary;
-}
-
-a:hover {
-  color: @blue-primary;
-}
-
-a:visited {
-  color: @grey-secondary;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-code, pre {
-  font-family: 'Iosevka', monospace;
-}
-
-pre {
-  background: @offer-white;
-  color: @dark-grey;
-  padding: .5rem;
-  overflow-x: auto;
-
-  /* kind of a hack tbh but happens to make various code samples fit better
-   * narrow spaces like the examples pane and front page */
-  font-size: .9em;
 }
 
 .page-aside pre {
   background: @offest-white;
   color: @dark-grey;
-}
-
-p:first-child, pre:first-child {
-  margin-top: 0;
-}
-
-p:last-child, pre:last-child {
-  margin-bottom: 0;
-}
-
-li, dd {
-  margin-bottom: 1em;
-}
-
-li:last-child,
-dd:last-child {
-  margin-bottom: 0;
-}
-
-dt code,
-p code {
-  font-size: .9em;
-}
-
-code code {
-  font-size: 1em;
-}
-
-table, tr, td {
-  padding: 0;
-  border-collapse: collapse;
-}
-
-h1 code, h2 code, h3 code {
-  font-weight: 600;
-  font-size: .9em;
-}
-
-nav ul {
-  list-style-type: none;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Roboto Slab', serif;
-  font-weight: normal;
-}
-
-h1 {
-  font-size: 32px;
-  margin-top: 0;
-  font-weight: 500;
-}
-
-h2 {
-  font-size: 24px;
-  font-weight: 500;
-}
-
-h3 {
-  font-size: 20px;
-}
-
-h2, h3 {
-  margin-top: 2rem;
-}
-
-.top-logo {
-  grid-area: logo;
-}
-
-.top-nav {
-  grid-area: primary-nav;
-}
-
-.top-search {
-  grid-area: search;
-}
-
-.page-nav {
-  grid-area: secondary-nav;
 }
 
 .page-toc h2 {
@@ -182,14 +27,6 @@ h2, h3 {
   text-decoration: underline;
 }
 
-.page-content {
-  grid-area: content;
-}
-
-.page-aside {
-  grid-area: aside;
-}
-
 .page-toc ol {
   padding-left: 30px;
 }
@@ -198,39 +35,8 @@ h2, h3 {
   padding-left: 0px;
 }
 
-.top-logo, .top-nav, .top-search {
-  background: @brand;
-  color: white;
-  font-family: 'Roboto Slab', serif;
-  line-height: 80px;
-}
-
-.page-nav, .page-partial {
-  padding: 30px;
-}
-
-.page-partial h2 {
-  margin-top: 0;
-}
-
 .page-aside {
   background: @off-white;
-}
-
-.page-nav {
-  background: @darker-grey;
-  font-family: 'Roboto Slab', serif;
-  font-size: 14px;
-  color: @grey-secondary;
-  display: flex;
-  flex-direction: column;
-}
-
-.page-content {
-  padding: 70px;
-  position: relative;
-  min-width: 300px;
-  background: white;
 }
 
 .page-content.index {
@@ -240,6 +46,11 @@ h2, h3 {
 .page-content.full {
   grid-column-start: 2;
   grid-column-end: span 2;
+}
+
+.page-content h1 {
+  border-top: 4px solid @darker-grey;
+  padding-top: 10px;
 }
 
 .splash-title {
@@ -279,72 +90,6 @@ h2, h3 {
   vertical-align: top;
 }
 
-.top-logo a {
-  color: white;
-  margin: 0;
-  font-size: 22px;
-  padding: 0 50px 0 80px;
-  background-image: url('../images/logo-white.svg');
-  background-repeat: no-repeat;
-  background-size: 40px 40px;
-  background-position: 16.5px 18px;
-  line-height: 80px;
-  display: inline-block;
-  vertical-align: top;
-  text-decoration: none;
-}
-
-.top-logo a:visited {
-  color: white;
-}
-
-.top-link {
-  color: white;
-  font-size: 16px;
-  text-transform: lowercase;
-  line-height: 80px;
-  display: inline-block;
-  padding: 0 25px;
-}
-
-.top-link, .top-link:visited {
-  color: white;
-  text-decoration: none;
-}
-
-.top-link:hover {
-  color: white;
-  text-decoration: underline;
-}
-
-.top-link.active {
-  background: white;
-  color: @darker-grey;
-  text-decoration: underline;
-}
-
-.icon-link {
-  background-repeat: no-repeat;
-  background-size: 22px 22px;
-  background-position: 20px 30px;
-  padding-left: 20px + 24px + 10px;
-}
-
-/* shoutout to hashicorp who i've pretty much copied this from */
-
-.download-link {
-  background-image: url("../images/icons/arrow-down-box.svg");
-}
-
-.github-link {
-  background-image: url("../images/icons/github-box.svg");
-}
-
-.page-content h1 {
-  border-top: 4px solid @darker-grey;
-  padding-top: 10px;
-}
-
 .toc {
   font-family: 'Roboto Slab', serif;
 }
@@ -373,40 +118,20 @@ h2, h3 {
   list-style: none;
 }
 
-.page-content ul,
-.page-content ol,
-.page-content dl {
-  padding-left: 30px;
-  margin-top: 1.6em;
-  margin-bottom: 1.6em;
-}
-
 .page-content ol.toc {
   margin-top: 0;
   margin-bottom: 0;
 }
 
-.page-content code {
-  background: fade(@darkest-grey, 7%);
-  padding: 3px;
-  border-radius: 5px;
+.page-content {
+  background: white;
 }
 
-.page-content code code, .definition-thumb code {
-  border: 0;
-  padding: 0;
-}
-
-.page-content a code {
-  color: @dark-grey;
-}
-
-.page-content a:hover code {
-  color: @light-grey;
-}
-
-.page-content a:hover code strong {
-  text-decoration: underline;
+.page-nav {
+  background: @darker-grey;
+  color: @grey-secondary;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-nav .number-cell {
@@ -558,7 +283,6 @@ h2, h3 {
 
 .example h3 {
   font-size: 20px;
-  margin-bottom: -4px;
 }
 
 .trademark-guidelines {
@@ -919,11 +643,6 @@ h3 .anchor {
   display: none;
 }
 
-.top-nav {
-  position: relative;
-  white-space: nowrap;
-}
-
 .search-input {
   z-index: 101;
   border: 1px solid transparent;
@@ -1036,24 +755,6 @@ h3 .anchor {
 
 .search-results a, .search-results a:visited {
   color: @darker-grey;
-}
-
-.page-content table {
-  margin-bottom: 1em;
-}
-
-.page-content tr:first-child {
-  font-family: 'Roboto Slab', serif;
-  font-weight: 500;
-  border-bottom: 2px solid black;
-}
-
-.page-content td {
-  padding: .3em 1em .3em 0;
-}
-
-.page-content td:last-child {
-  padding-right: 0;
 }
 
 .prev-next {

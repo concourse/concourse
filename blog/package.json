@@ -1,0 +1,15 @@
+{
+  "name": "concourse",
+  "version": "1.0.0",
+  "author": {
+    "name": "Alex Suraci",
+    "email": "suraci.alex@gmail.com"
+  },
+  "engines": {
+    "ghost-api": "v2"
+  },
+  "keywords": ["ghost-theme"],
+  "config": {
+    "posts_per_page": 20
+  }
+}

@@ -1,0 +1,37 @@
+{{!< default}}
+
+{{#author}}
+<h1 class="posts-title">{{#if profile_image}}<img src="{{profile_image}}" alt="{{name}}" class="author-image" />{{/if}} {{name}}</h1>
+
+<div class="author-info">
+  {{#if bio}}
+  <p class="post-author-bio">{{{bio}}}</p>
+  {{/if}}
+
+  <ul class="author-meta">
+    <li><span class="post-author-stats"><i class="ic ic-pencil"></i> {{plural ../pagination.total empty=(t "No Posts") singular=(t "% Post") plural=(t "% Posts")}}</span></li>
+
+  {{#if location}}
+    <li><span class="post-author-location"><i class="ic ic-location"></i> {{location}}</span></li>
+  {{/if}}
+
+  {{#if website}}
+    <li><span class="post-author-website"><i class="ic ic-link"></i> <a href="{{website}}">{{t "Website"}}</a></span></li>
+  {{/if}}
+
+  {{#if twitter}}
+    <li><span class="post-author-twitter"><i class="ic ic-twitter"></i> <a target="_blank" href="{{twitter_url}}">Twitter</a></span></li>
+  {{/if}}
+
+  {{#if facebook}}
+    <li><span class="post-author-facebook"><i class="ic ic-facebook"></i> <a target="_blank" href="{{facebook_url}}">Facebook</a></span></li>
+  {{/if}}
+  </ul>
+</section>
+{{/author}}
+
+<div class="posts">
+  <h1>Posts</h1>
+
+  {{> "posts"}}
+</div>
