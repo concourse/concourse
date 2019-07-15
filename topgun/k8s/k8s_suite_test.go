@@ -71,8 +71,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	envBytes, err := json.Marshal(parsedEnv)
 	Expect(err).ToNot(HaveOccurred())
 
-	rand.Seed(time.Now().UTC().UnixNano())
-
 	return envBytes
 }, func(data []byte) {
 	err := json.Unmarshal(data, &Environment)
@@ -80,7 +78,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
-
 	SetDefaultEventuallyTimeout(30 * time.Second)
 	SetDefaultConsistentlyDuration(30 * time.Second)
 
@@ -98,7 +95,8 @@ var _ = BeforeEach(func() {
 })
 
 func setReleaseNameAndNamespace(description string) {
-	releaseName = fmt.Sprintf("topgun-"+description+"-%d-%d", rand.Int31n(1000000), GinkgoParallelNode())
+	rand.Seed(time.Now().UTC().UnixNano())
+	releaseName = fmt.Sprintf("topgun-"+description+"-%d", rand.Int63n(100000000))
 	namespace = releaseName
 }
 
