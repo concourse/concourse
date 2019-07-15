@@ -6,7 +6,7 @@ body {
   min-height: 100vh;
 }
 body {
-  font-family: 'PT Sans', Helvetica, Arial, sans-serif;
+  font-family: 'Barlow', Helvetica, Arial, sans-serif;
   font-size: 16px;
   font-weight: 400;
   line-height: 1.6;
@@ -48,7 +48,8 @@ pre,
 .highlight,
 ul,
 ol,
-dl {
+dl,
+iframe {
   margin: 0 0 1.5em;
 }
 dd,
