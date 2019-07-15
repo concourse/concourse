@@ -8,7 +8,6 @@ module Build.Output.Output exposing
     )
 
 import Ansi.Log
-import Application.Models exposing (Session)
 import Array
 import Build.Output.Models exposing (OutputModel, OutputState(..))
 import Build.StepTree.Models as StepTree
@@ -23,6 +22,7 @@ import Build.StepTree.StepTree
 import Concourse
 import Concourse.BuildStatus
 import Dict
+import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Message.Effects exposing (Effect(..))
@@ -333,13 +333,16 @@ setStepFinish mtime tree =
     StepTree.map (\step -> { step | finish = mtime }) tree
 
 
-view : Session -> OutputModel -> Html Message
+view :
+    { timeZone : Time.Zone, hovered : HoverState.HoverState }
+    -> OutputModel
+    -> Html Message
 view session { steps, state } =
     Html.div [ class "steps" ] [ viewStepTree session steps state ]
 
 
 viewStepTree :
-    Session
+    { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> Maybe StepTreeModel
     -> OutputState
     -> Html Message

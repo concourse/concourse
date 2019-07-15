@@ -482,7 +482,9 @@ viewBuildOutput : Session -> Build.Models.CurrentOutput -> Html Message
 viewBuildOutput session output =
     case output of
         Output o ->
-            Build.Output.Output.view session o
+            Build.Output.Output.view
+                { timeZone = session.timeZone, hovered = session.hovered }
+                o
 
         Cancelled ->
             Html.div
