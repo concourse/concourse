@@ -10,8 +10,6 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/concourse/atc"
-
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -179,38 +177,4 @@ func (pool *pool) FindOrChooseWorker(
 	}
 
 	return workers[rand.Intn(len(workers))], nil
-}
-
-func (pool *pool) FindOrCreateContainer(
-	ctx context.Context,
-	logger lager.Logger,
-	delegate ImageFetchingDelegate,
-	owner db.ContainerOwner,
-	metadata db.ContainerMetadata,
-	containerSpec ContainerSpec,
-	workerSpec WorkerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-) (Container, error) {
-	worker, err := pool.FindOrChooseWorkerForContainer(
-		ctx,
-		logger,
-		owner,
-		containerSpec,
-		workerSpec,
-		NewRandomPlacementStrategy(),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return worker.FindOrCreateContainer(
-		ctx,
-		logger,
-		delegate,
-		owner,
-		metadata,
-		containerSpec,
-		resourceTypes,
-	)
 }

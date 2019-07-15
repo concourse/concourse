@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -172,6 +173,26 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		config.Limits.Memory = step.defaultLimits.Memory
 	}
 
+	events := make(chan runtime.Event, 1)
+	go func(logger lager.Logger, config atc.TaskConfig, events chan runtime.Event, delegate TaskDelegate) {
+		for {
+			ev := <-events
+			switch {
+			case ev.EventType == runtime.InitializingEvent:
+				step.delegate.Initializing(logger, config)
+
+			case ev.EventType == runtime.StartingEvent:
+				step.delegate.Starting(logger, config)
+
+			case ev.EventType == runtime.FinishedEvent:
+				step.delegate.Finished(logger, ExitStatus(ev.ExitStatus))
+
+			default:
+				return
+			}
+		}
+	}(logger, config, events, step.delegate)
+
 	step.delegate.Initializing(logger, config)
 
 	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)
@@ -198,62 +219,49 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	}
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	results := make(chan worker.TaskResult)
-	events := make(chan string, 1)
+	result := step.workerClient.RunTaskStep(
+		ctx,
+		logger,
+		owner,
+		containerSpec,
+		workerSpec,
+		step.strategy,
+		step.containerMetadata,
+		imageSpec,
+		processSpec,
+		events,
+	)
 
-	go func(results chan worker.TaskResult) {
-		results <- step.workerClient.RunTaskStep(
-			ctx,
-			logger,
-			owner,
-			containerSpec,
-			workerSpec,
-			step.strategy,
-			step.containerMetadata,
-			imageSpec,
-			processSpec,
-			events,
-		)
-	}(results)
+	close(events)
 
-	for {
-		select {
-		case result := <-results:
-			err = result.Err
-			if err != nil {
-				if err != nil {
-					if err == context.Canceled || err == context.DeadlineExceeded {
-						registerErr := step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
-						if registerErr != nil {
-							return registerErr
-						}
-					}
-					return err
-				}
+	err = result.Err
+	if err != nil {
+		if err == context.Canceled || err == context.DeadlineExceeded {
+			registerErr := step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+			if registerErr != nil {
+				return registerErr
 			}
+		}
+		return err
+	}
 
-			step.succeeded = (result.Status == 0)
-			step.delegate.Finished(logger, ExitStatus(result.Status))
+	step.succeeded = (result.Status == 0)
+	step.delegate.Finished(logger, ExitStatus(result.Status))
 
-			err = step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
-			if err != nil {
-				return err
-			}
+	err = step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+	if err != nil {
+		return err
+	}
 
-			// Do not initialize caches for one-off builds
-			if step.metadata.JobID != 0 {
-				err = step.registerCaches(logger, repository, config, result.VolumeMounts, step.containerMetadata)
-				if err != nil {
-					return err
-				}
-			}
-
-			return nil
-
-		case <-events:
-			step.delegate.Starting(logger, config)
+	// Do not initialize caches for one-off builds
+	if step.metadata.JobID != 0 {
+		err = step.registerCaches(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+		if err != nil {
+			return err
 		}
 	}
+
+	return nil
 
 }
 

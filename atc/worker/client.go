@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/runtime"
 	"io"
 	"path"
 	"strconv"
@@ -31,7 +32,7 @@ type Client interface {
 		db.ContainerMetadata,
 		ImageFetcherSpec,
 		TaskProcessSpec,
-		chan string,
+		chan runtime.Event,
 	) TaskResult
 }
 
@@ -121,7 +122,7 @@ func (client *client) RunTaskStep(
 	metadata db.ContainerMetadata,
 	imageSpec ImageFetcherSpec,
 	processSpec TaskProcessSpec,
-	events chan string,
+	events chan runtime.Event,
 ) TaskResult {
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
@@ -173,7 +174,9 @@ func (client *client) RunTaskStep(
 	} else {
 		logger.Info("spawning")
 
-		events <- "Starting"
+		events <- runtime.Event{
+			EventType: runtime.StartingEvent,
+		}
 
 		process, err = container.Run(
 			garden.ProcessSpec{

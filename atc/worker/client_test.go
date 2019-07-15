@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/onsi/gomega/gbytes"
 	"path"
 
@@ -224,7 +225,7 @@ var _ = Describe("Client", func() {
 			fakeImageFetcherSpec worker.ImageFetcherSpec
 			fakeTaskProcessSpec  worker.TaskProcessSpec
 			fakeContainer        *workerfakes.FakeContainer
-			eventChan            chan string
+			eventChan            chan runtime.Event
 			ctx                  context.Context
 			cancel               func()
 		)
@@ -305,7 +306,7 @@ var _ = Describe("Client", func() {
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
 			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
-			eventChan = make(chan string, 1)
+			eventChan = make(chan runtime.Event, 1)
 			ctx, cancel = context.WithCancel(context.Background())
 		})
 
@@ -479,7 +480,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("does not send a Starting event", func() {
-					Expect(eventChan).ToNot(Receive(Equal("Starting")))
+					Expect(eventChan).ToNot(Receive(Equal(runtime.Event{runtime.StartingEvent, 0})))
 				})
 
 				It("does not create a new container", func() {
@@ -599,7 +600,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("sends a Starting event", func() {
-					Expect(eventChan).To(Receive(Equal("Starting")))
+					Expect(eventChan).To(Receive(Equal(runtime.Event{"Starting", 0})))
 				})
 
 				It("runs a new process in the container", func() {
