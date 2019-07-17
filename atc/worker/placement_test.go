@@ -306,7 +306,7 @@ var _ = Describe("RandomPlacementStrategy", func() {
 	})
 })
 
-var _ = Describe("FewestActiveTasksPlacementStrategy", func() {
+var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 	Describe("Choose", func() {
 		var compatibleWorker1 *workerfakes.FakeWorker
 		var compatibleWorker2 *workerfakes.FakeWorker
@@ -314,7 +314,7 @@ var _ = Describe("FewestActiveTasksPlacementStrategy", func() {
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("active-tasks-equal-placement-test")
-			strategy = NewFewestActiveTasksPlacementStrategy(0)
+			strategy = NewLimitActiveTasksPlacementStrategy(0)
 			compatibleWorker1 = new(workerfakes.FakeWorker)
 			compatibleWorker2 = new(workerfakes.FakeWorker)
 			compatibleWorker3 = new(workerfakes.FakeWorker)
@@ -390,7 +390,7 @@ var _ = Describe("FewestActiveTasksPlacementStrategy", func() {
 		})
 		Context("when max-tasks-per-worker is set to 1", func() {
 			BeforeEach(func() {
-				strategy = NewFewestActiveTasksPlacementStrategy(1)
+				strategy = NewLimitActiveTasksPlacementStrategy(1)
 			})
 			Context("when there are multiple workers", func() {
 				BeforeEach(func() {

@@ -2,11 +2,11 @@
 package concoursefakes
 
 import (
-	io "io"
-	sync "sync"
+	"io"
+	"sync"
 
-	atc "github.com/concourse/concourse/atc"
-	concourse "github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type FakeTeam struct {

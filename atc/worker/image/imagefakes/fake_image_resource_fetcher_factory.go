@@ -2,11 +2,11 @@
 package imagefakes
 
 import (
-	sync "sync"
+	"sync"
 
-	atc "github.com/concourse/concourse/atc"
-	worker "github.com/concourse/concourse/atc/worker"
-	image "github.com/concourse/concourse/atc/worker/image"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/image"
 )
 
 type FakeImageResourceFetcherFactory struct {
@@ -59,6 +59,12 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCallCount() 
 	return len(fake.newImageResourceFetcherArgsForCall)
 }
 
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCalls(stub func(worker.Worker, worker.ImageResource, atc.Version, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) image.ImageResourceFetcher) {
+	fake.newImageResourceFetcherMutex.Lock()
+	defer fake.newImageResourceFetcherMutex.Unlock()
+	fake.NewImageResourceFetcherStub = stub
+}
+
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherArgsForCall(i int) (worker.Worker, worker.ImageResource, atc.Version, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) {
 	fake.newImageResourceFetcherMutex.RLock()
 	defer fake.newImageResourceFetcherMutex.RUnlock()
@@ -67,6 +73,8 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherArgsForCall(
 }
 
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturns(result1 image.ImageResourceFetcher) {
+	fake.newImageResourceFetcherMutex.Lock()
+	defer fake.newImageResourceFetcherMutex.Unlock()
 	fake.NewImageResourceFetcherStub = nil
 	fake.newImageResourceFetcherReturns = struct {
 		result1 image.ImageResourceFetcher
@@ -74,6 +82,8 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturns(resu
 }
 
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturnsOnCall(i int, result1 image.ImageResourceFetcher) {
+	fake.newImageResourceFetcherMutex.Lock()
+	defer fake.newImageResourceFetcherMutex.Unlock()
 	fake.NewImageResourceFetcherStub = nil
 	if fake.newImageResourceFetcherReturnsOnCall == nil {
 		fake.newImageResourceFetcherReturnsOnCall = make(map[int]struct {

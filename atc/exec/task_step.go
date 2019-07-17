@@ -199,7 +199,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	var activeTasksLock lock.Lock
 
 	for {
-		if step.strategy.ModifyActiveTasks() {
+		if step.strategy.ModifiesActiveTasks() {
 			var acquired bool
 			activeTasksLock, acquired, err = step.lockFactory.Acquire(logger, lock.NewTaskStepLockID())
 			if err != nil {
@@ -224,7 +224,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 			return err
 		}
 
-		if step.strategy.ModifyActiveTasks() {
+		if step.strategy.ModifiesActiveTasks() {
 			if chosenWorker == nil {
 				logger.Info("no-worker-available")
 				err = activeTasksLock.Release()

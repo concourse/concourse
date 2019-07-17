@@ -12,7 +12,7 @@ type ContainerPlacementStrategy interface {
 	//TODO: Don't pass around container metadata since it's not guaranteed to be deterministic.
 	// Change this after check containers stop being reused
 	Choose(lager.Logger, []Worker, ContainerSpec) (Worker, error)
-	ModifyActiveTasks() bool
+	ModifiesActiveTasks() bool
 }
 
 type VolumeLocalityPlacementStrategy struct {
@@ -54,7 +54,7 @@ func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, wor
 	return highestLocalityWorkers[strategy.rand.Intn(len(highestLocalityWorkers))], nil
 }
 
-func (strategy *VolumeLocalityPlacementStrategy) ModifyActiveTasks() bool {
+func (strategy *VolumeLocalityPlacementStrategy) ModifiesActiveTasks() bool {
 	return false
 }
 
@@ -84,23 +84,23 @@ func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logg
 	return leastBusyWorkers[strategy.rand.Intn(len(leastBusyWorkers))], nil
 }
 
-func (strategy *FewestBuildContainersPlacementStrategy) ModifyActiveTasks() bool {
+func (strategy *FewestBuildContainersPlacementStrategy) ModifiesActiveTasks() bool {
 	return false
 }
 
-type FewestActiveTasksPlacementStrategy struct {
+type LimitActiveTasksPlacementStrategy struct {
 	rand     *rand.Rand
 	maxTasks int
 }
 
-func NewFewestActiveTasksPlacementStrategy(maxTasks int) ContainerPlacementStrategy {
-	return &FewestActiveTasksPlacementStrategy{
+func NewLimitActiveTasksPlacementStrategy(maxTasks int) ContainerPlacementStrategy {
+	return &LimitActiveTasksPlacementStrategy{
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
 		maxTasks: maxTasks,
 	}
 }
 
-func (strategy *FewestActiveTasksPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+func (strategy *LimitActiveTasksPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
 	workersByWork := map[int][]Worker{}
 	minActiveTasks := -1
 
@@ -130,7 +130,7 @@ func (strategy *FewestActiveTasksPlacementStrategy) Choose(logger lager.Logger, 
 	return leastBusyWorkers[strategy.rand.Intn(len(leastBusyWorkers))], nil
 }
 
-func (strategy *FewestActiveTasksPlacementStrategy) ModifyActiveTasks() bool {
+func (strategy *LimitActiveTasksPlacementStrategy) ModifiesActiveTasks() bool {
 	return true
 }
 
@@ -148,6 +148,6 @@ func (strategy *RandomPlacementStrategy) Choose(logger lager.Logger, workers []W
 	return workers[strategy.rand.Intn(len(workers))], nil
 }
 
-func (strategy *RandomPlacementStrategy) ModifyActiveTasks() bool {
+func (strategy *RandomPlacementStrategy) ModifiesActiveTasks() bool {
 	return false
 }

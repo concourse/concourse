@@ -183,7 +183,7 @@ var _ = Describe("TaskStep", func() {
 			}
 		})
 
-		Context("when 'fewest-active-tasks' strategy is chosen and a worker found", func() {
+		Context("when 'limit-active-tasks' strategy is chosen and a worker found", func() {
 			BeforeEach(func() {
 				fakeWorker.NameReturns("some-worker")
 				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
@@ -191,7 +191,7 @@ var _ = Describe("TaskStep", func() {
 				fakeContainer := new(workerfakes.FakeContainer)
 				fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
-				fakeStrategy.ModifyActiveTasksReturns(true)
+				fakeStrategy.ModifiesActiveTasksReturns(true)
 			})
 			It("increase the active tasks on the worker", func() {
 				Expect(fakeWorker.ActiveTasks()).To(Equal(1))
@@ -1061,9 +1061,9 @@ var _ = Describe("TaskStep", func() {
 								})
 							})
 
-							Context("when 'fewest-active-tasks' strategy is chosen", func() {
+							Context("when 'limit-active-tasks' strategy is chosen", func() {
 								BeforeEach(func() {
-									fakeStrategy.ModifyActiveTasksReturns(true)
+									fakeStrategy.ModifiesActiveTasksReturns(true)
 								})
 
 								It("decrements the active tasks counter on the worker", func() {
@@ -1186,9 +1186,9 @@ var _ = Describe("TaskStep", func() {
 									Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
 								})
 							})
-							Context("when 'fewest-active-tasks' strategy is chosen", func() {
+							Context("when 'limit-active-tasks' strategy is chosen", func() {
 								BeforeEach(func() {
-									fakeStrategy.ModifyActiveTasksReturns(true)
+									fakeStrategy.ModifiesActiveTasksReturns(true)
 								})
 
 								It("decrements the active tasks counter on the worker", func() {
@@ -1581,9 +1581,9 @@ var _ = Describe("TaskStep", func() {
 								Expect(taskStep.Succeeded()).To(BeFalse())
 							})
 						})
-						Context("when 'fewest-active-tasks' strategy is chosen", func() {
+						Context("when 'limit-active-tasks' strategy is chosen", func() {
 							BeforeEach(func() {
-								fakeStrategy.ModifyActiveTasksReturns(true)
+								fakeStrategy.ModifiesActiveTasksReturns(true)
 							})
 
 							It("decrements the active tasks counter on the worker", func() {
@@ -1606,9 +1606,9 @@ var _ = Describe("TaskStep", func() {
 						It("is not successful", func() {
 							Expect(taskStep.Succeeded()).To(BeFalse())
 						})
-						Context("when 'fewest-active-tasks' strategy is chosen", func() {
+						Context("when 'limit-active-tasks' strategy is chosen", func() {
 							BeforeEach(func() {
-								fakeStrategy.ModifyActiveTasksReturns(true)
+								fakeStrategy.ModifiesActiveTasksReturns(true)
 							})
 
 							It("decrements the active tasks counter on the worker", func() {
@@ -1672,9 +1672,9 @@ var _ = Describe("TaskStep", func() {
 							sourceMap := repo.AsMap()
 							Expect(sourceMap).To(BeEmpty())
 						})
-						Context("when 'fewest-active-tasks' strategy is chosen", func() {
+						Context("when 'limit-active-tasks' strategy is chosen", func() {
 							BeforeEach(func() {
-								fakeStrategy.ModifyActiveTasksReturns(true)
+								fakeStrategy.ModifiesActiveTasksReturns(true)
 							})
 
 							It("decrements the active tasks counter on the worker", func() {
@@ -1697,9 +1697,10 @@ var _ = Describe("TaskStep", func() {
 						It("is not successful", func() {
 							Expect(taskStep.Succeeded()).To(BeFalse())
 						})
-						Context("when 'fewest-active-tasks' strategy is chosen", func() {
+
+						Context("when 'limit-active-tasks' strategy is chosen", func() {
 							BeforeEach(func() {
-								fakeStrategy.ModifyActiveTasksReturns(true)
+								fakeStrategy.ModifiesActiveTasksReturns(true)
 							})
 
 							It("decrements the active tasks counter on the worker", func() {
@@ -1724,9 +1725,9 @@ var _ = Describe("TaskStep", func() {
 				It("is not successful", func() {
 					Expect(taskStep.Succeeded()).To(BeFalse())
 				})
-				Context("when 'fewest-active-tasks' strategy is chosen", func() {
+				Context("when 'limit-active-tasks' strategy is chosen", func() {
 					BeforeEach(func() {
-						fakeStrategy.ModifyActiveTasksReturns(true)
+						fakeStrategy.ModifiesActiveTasksReturns(true)
 					})
 
 					It("decrements the active tasks counter on the worker", func() {
