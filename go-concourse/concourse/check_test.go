@@ -5,38 +5,37 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/onsi/gomega/ghttp"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("CheckResource", func() {
+var _ = Describe("GetCheck", func() {
 	Context("when ATC request succeeds", func() {
 		var expectedCheck atc.Check
 
 		BeforeEach(func() {
 			expectedCheck = atc.Check{
 				ID:         123,
-				Status:     "started",
+				Status:     "errored",
 				CreateTime: 100000000000,
 				StartTime:  100000000000,
 				EndTime:    100000000000,
+				CheckError: "some-error",
 			}
 
-			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/checks/123"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
-					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
+					ghttp.VerifyRequest("GET", expectedURL),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedCheck),
 				),
 			)
 		})
 
 		It("sends check resource request to ATC", func() {
-			check, found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			check, found, err := client.Check("123")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(check).To(Equal(expectedCheck))
@@ -45,20 +44,19 @@ var _ = Describe("CheckResource", func() {
 		})
 	})
 
-	Context("when pipeline or resource does not exist", func() {
+	Context("when check does not exist", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/checks/100"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
-					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
+					ghttp.VerifyRequest("GET", expectedURL),
 					ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
 				),
 			)
 		})
 
 		It("returns a ResourceNotFoundError", func() {
-			_, found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, found, err := client.Check("100")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -66,19 +64,18 @@ var _ = Describe("CheckResource", func() {
 
 	Context("when ATC responds with an error", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/checks/123"
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
-					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
+					ghttp.VerifyRequest("GET", expectedURL),
 					ghttp.RespondWith(http.StatusBadRequest, "bad request"),
 				),
 			)
 		})
 
 		It("returns an error", func() {
-			_, _, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, _, err := client.Check("123")
 			Expect(err).To(HaveOccurred())
 
 			Expect(err.Error()).To(ContainSubstring("bad request"))
@@ -87,19 +84,18 @@ var _ = Describe("CheckResource", func() {
 
 	Context("when ATC responds with an internal server error", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/checks/123"
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
-					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
+					ghttp.VerifyRequest("GET", expectedURL),
 					ghttp.RespondWith(http.StatusInternalServerError, "unknown server error"),
 				),
 			)
 		})
 
 		It("returns an error with body", func() {
-			_, _, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, _, err := client.Check("123")
 			Expect(err).To(HaveOccurred())
 
 			cre, ok := err.(concourse.GenericError)

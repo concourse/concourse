@@ -24,5 +24,9 @@ func Check(check db.Check) atc.Check {
 		atcCheck.EndTime = check.EndTime().Unix()
 	}
 
+	if err := check.CheckError(); err != nil {
+		atcCheck.CheckError = err.Error()
+	}
+
 	return atcCheck
 }

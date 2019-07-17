@@ -96,6 +96,21 @@ type FakeClient struct {
 		result2 concourse.Pagination
 		result3 error
 	}
+	CheckStub        func(string) (atc.Check, bool, error)
+	checkMutex       sync.RWMutex
+	checkArgsForCall []struct {
+		arg1 string
+	}
+	checkReturns struct {
+		result1 atc.Check
+		result2 bool
+		result3 error
+	}
+	checkReturnsOnCall map[int]struct {
+		result1 atc.Check
+		result2 bool
+		result3 error
+	}
 	GetCLIReaderStub        func(string, string) (io.ReadCloser, http.Header, error)
 	getCLIReaderMutex       sync.RWMutex
 	getCLIReaderArgsForCall []struct {
@@ -652,6 +667,72 @@ func (fake *FakeClient) BuildsReturnsOnCall(i int, result1 []atc.Build, result2 
 	fake.buildsReturnsOnCall[i] = struct {
 		result1 []atc.Build
 		result2 concourse.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeClient) Check(arg1 string) (atc.Check, bool, error) {
+	fake.checkMutex.Lock()
+	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
+	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Check", []interface{}{arg1})
+	fake.checkMutex.Unlock()
+	if fake.CheckStub != nil {
+		return fake.CheckStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.checkReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeClient) CheckCallCount() int {
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	return len(fake.checkArgsForCall)
+}
+
+func (fake *FakeClient) CheckCalls(stub func(string) (atc.Check, bool, error)) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = stub
+}
+
+func (fake *FakeClient) CheckArgsForCall(i int) string {
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	argsForCall := fake.checkArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeClient) CheckReturns(result1 atc.Check, result2 bool, result3 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = nil
+	fake.checkReturns = struct {
+		result1 atc.Check
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeClient) CheckReturnsOnCall(i int, result1 atc.Check, result2 bool, result3 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = nil
+	if fake.checkReturnsOnCall == nil {
+		fake.checkReturnsOnCall = make(map[int]struct {
+			result1 atc.Check
+			result2 bool
+			result3 error
+		})
+	}
+	fake.checkReturnsOnCall[i] = struct {
+		result1 atc.Check
+		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
@@ -1487,6 +1568,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.buildResourcesMutex.RUnlock()
 	fake.buildsMutex.RLock()
 	defer fake.buildsMutex.RUnlock()
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
 	fake.getCLIReaderMutex.RLock()
 	defer fake.getCLIReaderMutex.RUnlock()
 	fake.getInfoMutex.RLock()

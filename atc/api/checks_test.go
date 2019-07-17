@@ -84,10 +84,11 @@ var _ = Describe("Checks API", func() {
 					BeforeEach(func() {
 						fakeCheck = new(dbfakes.FakeCheck)
 						fakeCheck.IDReturns(10)
-						fakeCheck.StatusReturns("started")
+						fakeCheck.StatusReturns("errored")
 						fakeCheck.CreateTimeReturns(time.Date(2000, 01, 01, 0, 0, 0, 0, time.UTC))
 						fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
 						fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
+						fakeCheck.CheckErrorReturns(errors.New("nope"))
 
 						dbCheckFactory.CheckReturns(fakeCheck, true, nil)
 					})
@@ -149,10 +150,11 @@ var _ = Describe("Checks API", func() {
 							It("returns the check", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
 									 "id": 10,
-									 "status": "started",
+									 "status": "errored",
 									 "create_time": 946684800,
 									 "start_time": 978307200,
-									 "end_time": 1009843200
+									 "end_time": 1009843200,
+									 "check_error": "nope"
 								}`))
 							})
 						})

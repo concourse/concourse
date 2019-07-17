@@ -24,21 +24,6 @@ func (err GenericError) Error() string {
 	return err.Message
 }
 
-// CommandFailedError is returned when a remotely executed command (e.g. a
-// resource check) exited with a nonzero status.
-type CommandFailedError struct {
-	Command string
-
-	ExitStatus int
-	Output     string
-}
-
-// Error returns a helpful message showing the command, exit status, and
-// output.
-func (err CommandFailedError) Error() string {
-	return fmt.Sprintf("%s failed with exit status '%d':\n%s\n", err.Command, err.ExitStatus, err.Output)
-}
-
 // InvalidConfigError is returned when saving a pipeline returns errors (i.e.
 // validation failures).
 type InvalidConfigError struct {

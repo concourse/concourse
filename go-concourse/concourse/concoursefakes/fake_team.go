@@ -75,7 +75,7 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
-	CheckResourceStub        func(string, string, atc.Version) (bool, error)
+	CheckResourceStub        func(string, string, atc.Version) (atc.Check, bool, error)
 	checkResourceMutex       sync.RWMutex
 	checkResourceArgsForCall []struct {
 		arg1 string
@@ -83,14 +83,16 @@ type FakeTeam struct {
 		arg3 atc.Version
 	}
 	checkResourceReturns struct {
-		result1 bool
-		result2 error
+		result1 atc.Check
+		result2 bool
+		result3 error
 	}
 	checkResourceReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
+		result1 atc.Check
+		result2 bool
+		result3 error
 	}
-	CheckResourceTypeStub        func(string, string, atc.Version) (bool, error)
+	CheckResourceTypeStub        func(string, string, atc.Version) (atc.Check, bool, error)
 	checkResourceTypeMutex       sync.RWMutex
 	checkResourceTypeArgsForCall []struct {
 		arg1 string
@@ -98,12 +100,14 @@ type FakeTeam struct {
 		arg3 atc.Version
 	}
 	checkResourceTypeReturns struct {
-		result1 bool
-		result2 error
+		result1 atc.Check
+		result2 bool
+		result3 error
 	}
 	checkResourceTypeReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
+		result1 atc.Check
+		result2 bool
+		result3 error
 	}
 	ClearTaskCacheStub        func(string, string, string, string) (int64, error)
 	clearTaskCacheMutex       sync.RWMutex
@@ -925,7 +929,7 @@ func (fake *FakeTeam) BuildsWithVersionAsOutputReturnsOnCall(i int, result1 []at
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) CheckResource(arg1 string, arg2 string, arg3 atc.Version) (bool, error) {
+func (fake *FakeTeam) CheckResource(arg1 string, arg2 string, arg3 atc.Version) (atc.Check, bool, error) {
 	fake.checkResourceMutex.Lock()
 	ret, specificReturn := fake.checkResourceReturnsOnCall[len(fake.checkResourceArgsForCall)]
 	fake.checkResourceArgsForCall = append(fake.checkResourceArgsForCall, struct {
@@ -939,10 +943,10 @@ func (fake *FakeTeam) CheckResource(arg1 string, arg2 string, arg3 atc.Version) 
 		return fake.CheckResourceStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1, ret.result2, ret.result3
 	}
 	fakeReturns := fake.checkResourceReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeTeam) CheckResourceCallCount() int {
@@ -951,7 +955,7 @@ func (fake *FakeTeam) CheckResourceCallCount() int {
 	return len(fake.checkResourceArgsForCall)
 }
 
-func (fake *FakeTeam) CheckResourceCalls(stub func(string, string, atc.Version) (bool, error)) {
+func (fake *FakeTeam) CheckResourceCalls(stub func(string, string, atc.Version) (atc.Check, bool, error)) {
 	fake.checkResourceMutex.Lock()
 	defer fake.checkResourceMutex.Unlock()
 	fake.CheckResourceStub = stub
@@ -964,33 +968,36 @@ func (fake *FakeTeam) CheckResourceArgsForCall(i int) (string, string, atc.Versi
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeTeam) CheckResourceReturns(result1 bool, result2 error) {
+func (fake *FakeTeam) CheckResourceReturns(result1 atc.Check, result2 bool, result3 error) {
 	fake.checkResourceMutex.Lock()
 	defer fake.checkResourceMutex.Unlock()
 	fake.CheckResourceStub = nil
 	fake.checkResourceReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
+		result1 atc.Check
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) CheckResourceReturnsOnCall(i int, result1 bool, result2 error) {
+func (fake *FakeTeam) CheckResourceReturnsOnCall(i int, result1 atc.Check, result2 bool, result3 error) {
 	fake.checkResourceMutex.Lock()
 	defer fake.checkResourceMutex.Unlock()
 	fake.CheckResourceStub = nil
 	if fake.checkResourceReturnsOnCall == nil {
 		fake.checkResourceReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
+			result1 atc.Check
+			result2 bool
+			result3 error
 		})
 	}
 	fake.checkResourceReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
+		result1 atc.Check
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) CheckResourceType(arg1 string, arg2 string, arg3 atc.Version) (bool, error) {
+func (fake *FakeTeam) CheckResourceType(arg1 string, arg2 string, arg3 atc.Version) (atc.Check, bool, error) {
 	fake.checkResourceTypeMutex.Lock()
 	ret, specificReturn := fake.checkResourceTypeReturnsOnCall[len(fake.checkResourceTypeArgsForCall)]
 	fake.checkResourceTypeArgsForCall = append(fake.checkResourceTypeArgsForCall, struct {
@@ -1004,10 +1011,10 @@ func (fake *FakeTeam) CheckResourceType(arg1 string, arg2 string, arg3 atc.Versi
 		return fake.CheckResourceTypeStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1, ret.result2, ret.result3
 	}
 	fakeReturns := fake.checkResourceTypeReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeTeam) CheckResourceTypeCallCount() int {
@@ -1016,7 +1023,7 @@ func (fake *FakeTeam) CheckResourceTypeCallCount() int {
 	return len(fake.checkResourceTypeArgsForCall)
 }
 
-func (fake *FakeTeam) CheckResourceTypeCalls(stub func(string, string, atc.Version) (bool, error)) {
+func (fake *FakeTeam) CheckResourceTypeCalls(stub func(string, string, atc.Version) (atc.Check, bool, error)) {
 	fake.checkResourceTypeMutex.Lock()
 	defer fake.checkResourceTypeMutex.Unlock()
 	fake.CheckResourceTypeStub = stub
@@ -1029,30 +1036,33 @@ func (fake *FakeTeam) CheckResourceTypeArgsForCall(i int) (string, string, atc.V
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeTeam) CheckResourceTypeReturns(result1 bool, result2 error) {
+func (fake *FakeTeam) CheckResourceTypeReturns(result1 atc.Check, result2 bool, result3 error) {
 	fake.checkResourceTypeMutex.Lock()
 	defer fake.checkResourceTypeMutex.Unlock()
 	fake.CheckResourceTypeStub = nil
 	fake.checkResourceTypeReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
+		result1 atc.Check
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) CheckResourceTypeReturnsOnCall(i int, result1 bool, result2 error) {
+func (fake *FakeTeam) CheckResourceTypeReturnsOnCall(i int, result1 atc.Check, result2 bool, result3 error) {
 	fake.checkResourceTypeMutex.Lock()
 	defer fake.checkResourceTypeMutex.Unlock()
 	fake.CheckResourceTypeStub = nil
 	if fake.checkResourceTypeReturnsOnCall == nil {
 		fake.checkResourceTypeReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
+			result1 atc.Check
+			result2 bool
+			result3 error
 		})
 	}
 	fake.checkResourceTypeReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
+		result1 atc.Check
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeTeam) ClearTaskCache(arg1 string, arg2 string, arg3 string, arg4 string) (int64, error) {
