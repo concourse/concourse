@@ -1,97 +1,98 @@
 package k8s_test
 
 import (
-	"github.com/onsi/gomega/gexec"
+	"time"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Baggageclaim Drivers", func() {
-	var (
-		proxySession *gexec.Session
-		atcEndpoint  string
-	)
+var _ = Describe("baggageclaim drivers", func() {
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace, nil)
 	})
 
-	type Case struct {
-		Driver     string
-		NodeImage  string
-		ShouldWork bool
-	}
+	onPks(func() {
+		baggageclaimWorks("btrfs")
+		baggageclaimWorks("overlay")
+		baggageclaimWorks("naive")
+	})
 
-	DescribeTable("across different node images",
-		func(c Case) {
-			setReleaseNameAndNamespace("bd-" + c.Driver + "-" + c.NodeImage)
+	onGke(func() {
 
-			helmDeployTestFlags := []string{
-				"--set=concourse.web.kubernetes.enabled=false",
-				"--set=concourse.worker.baggageclaim.driver=" + c.Driver,
-				"--set=worker.nodeSelector.nodeImage=" + c.NodeImage,
-				"--set=worker.replicas=1",
-			}
+		const (
+			COS    = "--set=worker.nodeSelector.nodeImage=cos"
+			UBUNTU = "--set=worker.nodeSelector.nodeImage=ubuntu"
+		)
 
-			deployConcourseChart(releaseName, helmDeployTestFlags...)
+		Context("cos image", func() {
+			baggageclaimFails("btrfs", COS)
+			baggageclaimWorks("overlay", COS)
+			baggageclaimWorks("naive", COS)
+		})
 
-			if !c.ShouldWork {
-				Eventually(func() []byte {
-					workerLogsSession := Start(nil, "kubectl", "logs",
-						"--namespace="+namespace, "-lapp="+namespace+"-worker")
-					<-workerLogsSession.Exited
+		Context("ubuntu image", func() {
+			baggageclaimWorks("btrfs", UBUNTU)
+			baggageclaimWorks("overlay", UBUNTU)
+			baggageclaimWorks("naive", UBUNTU)
+		})
 
-					return workerLogsSession.Out.Contents()
+	})
+})
 
-				}).Should(ContainSubstring("failed-to-set-up-driver"))
-				return
-			}
-
+func baggageclaimWorks(driver string, selectorFlags ...string) {
+	Context(driver, func() {
+		It("works", func() {
+			setReleaseNameAndNamespace("bd-" + driver)
+			deployWithDriverAndSelectors(driver, selectorFlags...)
 			waitAllPodsInNamespaceToBeReady(namespace)
 
 			By("Creating the web proxy")
-			proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
+			_, atcEndpoint := startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
 
 			By("Logging in")
 			fly.Login("test", "test", atcEndpoint)
+
+			Eventually(func() []Worker {
+				return getRunningWorkers(fly.GetWorkers())
+			}, 2*time.Minute, 10*time.Second).
+				ShouldNot(HaveLen(0))
 
 			By("Setting and triggering a dumb pipeline")
 			fly.Run("set-pipeline", "-n", "-c", "../pipelines/get-task.yml", "-p", "some-pipeline")
 			fly.Run("unpause-pipeline", "-p", "some-pipeline")
 			fly.Run("trigger-job", "-w", "-j", "some-pipeline/simple-job")
-		},
-		Entry("with btrfs on cos", Case{
-			Driver:     "btrfs",
-			NodeImage:  "cos",
-			ShouldWork: false,
-		}),
-		Entry("with btrfs on ubuntu", Case{
-			Driver:     "btrfs",
-			NodeImage:  "ubuntu",
-			ShouldWork: true,
-		}),
-		Entry("with overlay on cos", Case{
-			Driver:     "overlay",
-			NodeImage:  "cos",
-			ShouldWork: true,
-		}),
-		Entry("with overlay on ubuntu", Case{
-			Driver:     "overlay",
-			NodeImage:  "ubuntu",
-			ShouldWork: true,
-		}),
-		Entry("with naive on cos", Case{
-			Driver:     "naive",
-			NodeImage:  "cos",
-			ShouldWork: true,
-		}),
-		Entry("with naive on ubuntu", Case{
-			Driver:     "naive",
-			NodeImage:  "ubuntu",
-			ShouldWork: true,
-		}),
-	)
-})
+		})
+	})
+}
+
+func baggageclaimFails(driver string, selectorFlags ...string) {
+	Context(driver, func() {
+		It("fails", func() {
+			setReleaseNameAndNamespace("bd-" + driver)
+			deployWithDriverAndSelectors(driver, selectorFlags...)
+
+			Eventually(func() []byte {
+				workerLogsSession := Start(nil, "kubectl", "logs",
+					"--namespace="+namespace, "-lapp="+namespace+"-worker")
+				<-workerLogsSession.Exited
+
+				return workerLogsSession.Out.Contents()
+
+			}).Should(ContainSubstring("failed-to-set-up-driver"))
+
+		})
+	})
+}
+
+func deployWithDriverAndSelectors(driver string, selectorFlags ...string) {
+	helmDeployTestFlags := []string{
+		"--set=concourse.web.kubernetes.enabled=false",
+		"--set=concourse.worker.baggageclaim.driver=" + driver,
+		"--set=worker.replicas=1",
+	}
+
+	deployConcourseChart(releaseName, append(helmDeployTestFlags, selectorFlags...)...)
+}

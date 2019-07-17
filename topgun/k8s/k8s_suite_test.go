@@ -36,6 +36,7 @@ type environment struct {
 	ConcourseImageName   string `env:"CONCOURSE_IMAGE_NAME,required"`
 	ConcourseImageTag    string `env:"CONCOURSE_IMAGE_TAG"`
 	FlyPath              string `env:"FLY_PATH"`
+	K8sEngine            string `env:"K8S_ENGINE" envDefault:"GKE"`
 }
 
 var (
@@ -282,4 +283,30 @@ func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
 	if proxySession != nil {
 		Wait(proxySession.Interrupt())
 	}
+}
+
+func onPks(f func()) {
+	Context("PKS", func() {
+
+		BeforeEach(func() {
+			if Environment.K8sEngine != "PKS" {
+				Skip("not running on PKS")
+			}
+		})
+
+		f()
+	})
+}
+
+func onGke(f func()) {
+	Context("GKE", func() {
+
+		BeforeEach(func() {
+			if Environment.K8sEngine != "GKE" {
+				Skip("not running on GKE")
+			}
+		})
+
+		f()
+	})
 }
