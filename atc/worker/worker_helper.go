@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 
@@ -49,7 +48,6 @@ func (w workerHelper) createGardenContainer(
 	}
 
 	return w.gardenClient.Create(
-		context.TODO(),
 		garden.ContainerSpec{
 		Handle:     handleToCreate,
 		RootFSPath: fetchedImage.URL,

@@ -29,28 +29,31 @@ type Connection interface {
 
 	Capacity() (garden.Capacity, error)
 
-	Create(ctx context.Context, spec garden.ContainerSpec) (string, error)
+	Create(spec garden.ContainerSpec) (string, error)
 	List(properties garden.Properties) ([]string, error)
 
 	// Destroys the container with the given handle. If the container cannot be
 	// found, garden.ContainerNotFoundError is returned. If deletion fails for another
 	// reason, another error type is returned.
-	Destroy(ctx context.Context,handle string) error
+	Destroy(handle string) error
 
-	Stop(ctx context.Context, handle string, kill bool) error
+	Stop(handle string, kill bool) error
 
 	Info(handle string) (garden.ContainerInfo, error)
 	BulkInfo(handles []string) (map[string]garden.ContainerInfoEntry, error)
 	BulkMetrics(handles []string) (map[string]garden.ContainerMetricsEntry, error)
 
-	StreamIn(ctx context.Context, handle string, spec garden.StreamInSpec) error
-	StreamOut(ctx context.Context, handle string, spec garden.StreamOutSpec) (io.ReadCloser, error)
+	StreamIn(handle string, spec garden.StreamInSpec) error
+	StreamOut(handle string, spec garden.StreamOutSpec) (io.ReadCloser, error)
 
 	CurrentBandwidthLimits(handle string) (garden.BandwidthLimits, error)
 	CurrentCPULimits(handle string) (garden.CPULimits, error)
 	CurrentDiskLimits(handle string) (garden.DiskLimits, error)
 	CurrentMemoryLimits(handle string) (garden.MemoryLimits, error)
 
+	// NOTE: Contexts are passed in to Run/Attach as they call WorkerHijackStreamer.Hijack()
+	//		 Hijack() spawns multiple dedicated connections that need to get cleaned up in error
+	//       scenarios. We use the cancelFunc associated to the context in order to close connections
 	Run(ctx context.Context, handle string, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error)
 	Attach(ctx context.Context, handle string, processID string, io garden.ProcessIO) (garden.Process, error)
 
@@ -70,7 +73,7 @@ type Connection interface {
 
 //go:generate counterfeiter . HijackStreamer
 type HijackStreamer interface {
-	Stream(ctx context.Context, handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (io.ReadCloser, error)
+	Stream(handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (io.ReadCloser, error)
 	Hijack(ctx context.Context, handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (net.Conn, *bufio.Reader, error)
 }
 
@@ -96,12 +99,12 @@ func NewWithHijacker(hijacker HijackStreamer, log lager.Logger) Connection {
 }
 
 func (c *connection) Ping() error {
-	return c.do(context.Background(), routes.Ping, nil, &struct{}{}, nil, nil)
+	return c.do(routes.Ping, nil, &struct{}{}, nil, nil)
 }
 
 func (c *connection) Capacity() (garden.Capacity, error) {
 	capacity := garden.Capacity{}
-	err := c.do(context.Background(), routes.Capacity, nil, &capacity, nil, nil)
+	err := c.do(routes.Capacity, nil, &capacity, nil, nil)
 	if err != nil {
 		return garden.Capacity{}, err
 	}
@@ -109,12 +112,12 @@ func (c *connection) Capacity() (garden.Capacity, error) {
 	return capacity, nil
 }
 
-func (c *connection) Create(ctx context.Context, spec garden.ContainerSpec) (string, error) {
+func (c *connection) Create(spec garden.ContainerSpec) (string, error) {
 	res := struct {
 		Handle string `json:"handle"`
 	}{}
 
-	err := c.do(ctx, routes.Create, spec, &res, nil, nil)
+	err := c.do(routes.Create, spec, &res, nil, nil)
 	if err != nil {
 		return "", err
 	}
@@ -122,9 +125,8 @@ func (c *connection) Create(ctx context.Context, spec garden.ContainerSpec) (str
 	return res.Handle, nil
 }
 
-func (c *connection) Stop(ctx context.Context, handle string, kill bool) error {
+func (c *connection) Stop(handle string, kill bool) error {
 	return c.do(
-		ctx,
 		routes.Stop,
 		map[string]bool{
 			"kill": kill,
@@ -137,9 +139,8 @@ func (c *connection) Stop(ctx context.Context, handle string, kill bool) error {
 	)
 }
 
-func (c *connection) Destroy(ctx context.Context, handle string) error {
+func (c *connection) Destroy(handle string) error {
 	return c.do(
-		ctx,
 		routes.Destroy,
 		nil,
 		&struct{}{},
@@ -196,6 +197,8 @@ func (c *connection) Attach(ctx context.Context, handle string, processID string
 	return c.streamProcess(ctx, handle, processIO, hijackedConn, hijackedResponseReader)
 }
 
+
+// TODO: add cancel func stuff
 func (c *connection) streamProcess(ctx context.Context, handle string, processIO garden.ProcessIO, hijackedConn net.Conn, hijackedResponseReader *bufio.Reader) (garden.Process, error) {
 	decoder := json.NewDecoder(hijackedResponseReader)
 
@@ -271,8 +274,13 @@ func (c *connection) streamProcess(ctx context.Context, handle string, processIO
 			defer stderrConn.Close()
 		}
 
-		exitCode, err := streamHandler.wait(decoder)
-		process.exited(exitCode, err)
+		select {
+		case <-ctx.Done():
+			process.exited(-1, errors.New("stdin/stdout/stderr streams were canceled by context.Done"))
+		case waitedFor := <- streamHandler.wait(decoder):
+			process.exited(waitedFor.exitCode, waitedFor.err)
+		}
+
 	}()
 
 	return process, nil
@@ -282,7 +290,6 @@ func (c *connection) NetIn(handle string, hostPort, containerPort uint32) (uint3
 	res := &transport.NetInResponse{}
 
 	err := c.do(
-		context.Background(),
 		routes.NetIn,
 		&transport.NetInRequest{
 			Handle:        handle,
@@ -305,7 +312,6 @@ func (c *connection) NetIn(handle string, hostPort, containerPort uint32) (uint3
 
 func (c *connection) BulkNetOut(handle string, rules []garden.NetOutRule) error {
 	return c.do(
-		context.Background(),
 		routes.BulkNetOut,
 		rules,
 		&struct{}{},
@@ -318,7 +324,6 @@ func (c *connection) BulkNetOut(handle string, rules []garden.NetOutRule) error 
 
 func (c *connection) NetOut(handle string, rule garden.NetOutRule) error {
 	return c.do(
-		context.Background(),
 		routes.NetOut,
 		rule,
 		&struct{}{},
@@ -335,7 +340,6 @@ func (c *connection) Property(handle string, name string) (string, error) {
 	}
 
 	err := c.do(
-		context.Background(),
 		routes.Property,
 		nil,
 		&res,
@@ -351,7 +355,6 @@ func (c *connection) Property(handle string, name string) (string, error) {
 
 func (c *connection) SetProperty(handle string, name string, value string) error {
 	err := c.do(
-		context.Background(),
 		routes.SetProperty,
 		map[string]string{
 			"value": value,
@@ -373,7 +376,6 @@ func (c *connection) SetProperty(handle string, name string, value string) error
 
 func (c *connection) RemoveProperty(handle string, name string) error {
 	err := c.do(
-		context.Background(),
 		routes.RemoveProperty,
 		nil,
 		&struct{}{},
@@ -395,7 +397,6 @@ func (c *connection) CurrentBandwidthLimits(handle string) (garden.BandwidthLimi
 	res := garden.BandwidthLimits{}
 
 	err := c.do(
-		context.Background(),
 		routes.CurrentBandwidthLimits,
 		nil,
 		&res,
@@ -412,7 +413,6 @@ func (c *connection) CurrentCPULimits(handle string) (garden.CPULimits, error) {
 	res := garden.CPULimits{}
 
 	err := c.do(
-		context.Background(),
 		routes.CurrentCPULimits,
 		nil,
 		&res,
@@ -429,7 +429,6 @@ func (c *connection) CurrentDiskLimits(handle string) (garden.DiskLimits, error)
 	res := garden.DiskLimits{}
 
 	err := c.do(
-		context.Background(),
 		routes.CurrentDiskLimits,
 		nil,
 		&res,
@@ -446,7 +445,6 @@ func (c *connection) CurrentMemoryLimits(handle string) (garden.MemoryLimits, er
 	res := garden.MemoryLimits{}
 
 	err := c.do(
-		context.Background(),
 		routes.CurrentMemoryLimits,
 		nil,
 		&res,
@@ -459,9 +457,8 @@ func (c *connection) CurrentMemoryLimits(handle string) (garden.MemoryLimits, er
 	return res, err
 }
 
-func (c *connection) StreamIn(ctx context.Context, handle string, spec garden.StreamInSpec) error {
+func (c *connection) StreamIn(handle string, spec garden.StreamInSpec) error {
 	body, err := c.hijacker.Stream(
-		ctx,
 		routes.StreamIn,
 		spec.TarStream,
 		rata.Params{
@@ -480,9 +477,8 @@ func (c *connection) StreamIn(ctx context.Context, handle string, spec garden.St
 	return body.Close()
 }
 
-func (c *connection) StreamOut(ctx context.Context, handle string, spec garden.StreamOutSpec) (io.ReadCloser, error) {
+func (c *connection) StreamOut(handle string, spec garden.StreamOutSpec) (io.ReadCloser, error) {
 	return c.hijacker.Stream(
-		ctx,
 		routes.StreamOut,
 		nil,
 		rata.Params{
@@ -507,7 +503,6 @@ func (c *connection) List(filterProperties garden.Properties) ([]string, error) 
 	}{}
 
 	if err := c.do(
-		context.Background(),
 		routes.List,
 		nil,
 		&res,
@@ -521,25 +516,25 @@ func (c *connection) List(filterProperties garden.Properties) ([]string, error) 
 }
 
 func (c *connection) SetGraceTime(handle string, graceTime time.Duration) error {
-	return c.do(context.Background(),routes.SetGraceTime, graceTime, &struct{}{}, rata.Params{"handle": handle}, nil)
+	return c.do(routes.SetGraceTime, graceTime, &struct{}{}, rata.Params{"handle": handle}, nil)
 }
 
 func (c *connection) Properties(handle string) (garden.Properties, error) {
 	res := make(garden.Properties)
-	err := c.do(context.Background(),routes.Properties, nil, &res, rata.Params{"handle": handle}, nil)
+	err := c.do(routes.Properties, nil, &res, rata.Params{"handle": handle}, nil)
 	return res, err
 }
 
 func (c *connection) Metrics(handle string) (garden.Metrics, error) {
 	res := garden.Metrics{}
-	err := c.do(context.Background(),routes.Metrics, nil, &res, rata.Params{"handle": handle}, nil)
+	err := c.do(routes.Metrics, nil, &res, rata.Params{"handle": handle}, nil)
 	return res, err
 }
 
 func (c *connection) Info(handle string) (garden.ContainerInfo, error) {
 	res := garden.ContainerInfo{}
 
-	err := c.do(context.Background(),routes.Info, nil, &res, rata.Params{"handle": handle}, nil)
+	err := c.do(routes.Info, nil, &res, rata.Params{"handle": handle}, nil)
 	if err != nil {
 		return garden.ContainerInfo{}, err
 	}
@@ -552,7 +547,7 @@ func (c *connection) BulkInfo(handles []string) (map[string]garden.ContainerInfo
 	queryParams := url.Values{
 		"handles": []string{strings.Join(handles, ",")},
 	}
-	err := c.do(context.Background(),routes.BulkInfo, nil, &res, nil, queryParams)
+	err := c.do(routes.BulkInfo, nil, &res, nil, queryParams)
 	return res, err
 }
 
@@ -561,12 +556,11 @@ func (c *connection) BulkMetrics(handles []string) (map[string]garden.ContainerM
 	queryParams := url.Values{
 		"handles": []string{strings.Join(handles, ",")},
 	}
-	err := c.do(context.Background(),routes.BulkMetrics, nil, &res, nil, queryParams)
+	err := c.do(routes.BulkMetrics, nil, &res, nil, queryParams)
 	return res, err
 }
 
 func (c *connection) do(
-	ctx context.Context,
 	handler string,
 	req, res interface{},
 	params rata.Params,
@@ -591,7 +585,6 @@ func (c *connection) do(
 	}
 
 	response, err := c.hijacker.Stream(
-		ctx,
 		handler,
 		body,
 		params,

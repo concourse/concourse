@@ -17,7 +17,7 @@ var ErrMissingVolume = errors.New("volume mounted to container is missing")
 type Container interface {
 	gclient.Container
 
-	Destroy(context.Context) error
+	Destroy() error
 
 	VolumeMounts() []VolumeMount
 
@@ -79,8 +79,8 @@ func newGardenWorkerContainer(
 	return workerContainer, nil
 }
 
-func (container *gardenWorkerContainer) Destroy(ctx context.Context) error {
-	return container.gardenClient.Destroy(ctx, container.Handle())
+func (container *gardenWorkerContainer) Destroy() error {
+	return container.gardenClient.Destroy(container.Handle())
 }
 
 func (container *gardenWorkerContainer) WorkerName() string {

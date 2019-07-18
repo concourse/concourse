@@ -338,6 +338,7 @@ func (scanner *resourceScanner) check(
 		}
 		return err
 	}
+
 	container, err := chosenWorker.FindOrCreateContainer(
 		context.Background(),
 		logger,

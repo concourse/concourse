@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/concourse/concourse/atc/worker/gclient/client/connection"
+	"github.com/concourse/concourse/atc/worker/gclient/connection"
 	"github.com/tedsuo/rata"
 )
 
@@ -34,15 +34,14 @@ type FakeHijackStreamer struct {
 		result2 *bufio.Reader
 		result3 error
 	}
-	StreamStub        func(context.Context, string, io.Reader, rata.Params, url.Values, string) (io.ReadCloser, error)
+	StreamStub        func(string, io.Reader, rata.Params, url.Values, string) (io.ReadCloser, error)
 	streamMutex       sync.RWMutex
 	streamArgsForCall []struct {
-		arg1 context.Context
-		arg2 string
-		arg3 io.Reader
-		arg4 rata.Params
-		arg5 url.Values
-		arg6 string
+		arg1 string
+		arg2 io.Reader
+		arg3 rata.Params
+		arg4 url.Values
+		arg5 string
 	}
 	streamReturns struct {
 		result1 io.ReadCloser
@@ -127,21 +126,20 @@ func (fake *FakeHijackStreamer) HijackReturnsOnCall(i int, result1 net.Conn, res
 	}{result1, result2, result3}
 }
 
-func (fake *FakeHijackStreamer) Stream(arg1 context.Context, arg2 string, arg3 io.Reader, arg4 rata.Params, arg5 url.Values, arg6 string) (io.ReadCloser, error) {
+func (fake *FakeHijackStreamer) Stream(arg1 string, arg2 io.Reader, arg3 rata.Params, arg4 url.Values, arg5 string) (io.ReadCloser, error) {
 	fake.streamMutex.Lock()
 	ret, specificReturn := fake.streamReturnsOnCall[len(fake.streamArgsForCall)]
 	fake.streamArgsForCall = append(fake.streamArgsForCall, struct {
-		arg1 context.Context
-		arg2 string
-		arg3 io.Reader
-		arg4 rata.Params
-		arg5 url.Values
-		arg6 string
-	}{arg1, arg2, arg3, arg4, arg5, arg6})
-	fake.recordInvocation("Stream", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
+		arg1 string
+		arg2 io.Reader
+		arg3 rata.Params
+		arg4 url.Values
+		arg5 string
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("Stream", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.streamMutex.Unlock()
 	if fake.StreamStub != nil {
-		return fake.StreamStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.StreamStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -156,17 +154,17 @@ func (fake *FakeHijackStreamer) StreamCallCount() int {
 	return len(fake.streamArgsForCall)
 }
 
-func (fake *FakeHijackStreamer) StreamCalls(stub func(context.Context, string, io.Reader, rata.Params, url.Values, string) (io.ReadCloser, error)) {
+func (fake *FakeHijackStreamer) StreamCalls(stub func(string, io.Reader, rata.Params, url.Values, string) (io.ReadCloser, error)) {
 	fake.streamMutex.Lock()
 	defer fake.streamMutex.Unlock()
 	fake.StreamStub = stub
 }
 
-func (fake *FakeHijackStreamer) StreamArgsForCall(i int) (context.Context, string, io.Reader, rata.Params, url.Values, string) {
+func (fake *FakeHijackStreamer) StreamArgsForCall(i int) (string, io.Reader, rata.Params, url.Values, string) {
 	fake.streamMutex.RLock()
 	defer fake.streamMutex.RUnlock()
 	argsForCall := fake.streamArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeHijackStreamer) StreamReturns(result1 io.ReadCloser, result2 error) {

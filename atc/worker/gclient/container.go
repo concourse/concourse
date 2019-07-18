@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/atc/worker/gclient/client/connection"
+	"github.com/concourse/concourse/atc/worker/gclient/connection"
 )
 
+//go:generate counterfeiter . Container
 type Container interface {
 	Handle() string
 
@@ -26,7 +27,7 @@ type Container interface {
 	//
 	// Errors:
 	// * None.
-	Stop(ctx context.Context, kill bool) error
+	Stop(kill bool) error
 
 	// Returns information about a container.
 	Info() (garden.ContainerInfo, error)
@@ -35,13 +36,13 @@ type Container interface {
 	//
 	// Errors:
 	// *  TODO.
-	StreamIn(ctx context.Context, spec garden.StreamInSpec) error
+	StreamIn(spec garden.StreamInSpec) error
 
 	// StreamOut streams a file out of a container.
 	//
 	// Errors:
 	// * TODO.
-	StreamOut(ctx context.Context, spec garden.StreamOutSpec) (io.ReadCloser, error)
+	StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, error)
 
 	// Returns the current bandwidth limits set for the container.
 	CurrentBandwidthLimits() (garden.BandwidthLimits, error)
@@ -151,20 +152,20 @@ func (container *container) Handle() string {
 	return container.handle
 }
 
-func (container *container) Stop(ctx context.Context, kill bool) error {
-	return container.connection.Stop(ctx, container.handle, kill)
+func (container *container) Stop(kill bool) error {
+	return container.connection.Stop(container.handle, kill)
 }
 
 func (container *container) Info() (garden.ContainerInfo, error) {
 	return container.connection.Info(container.handle)
 }
 
-func (container *container) StreamIn(ctx context.Context,spec garden.StreamInSpec) error {
-	return container.connection.StreamIn(ctx,container.handle, spec)
+func (container *container) StreamIn(spec garden.StreamInSpec) error {
+	return container.connection.StreamIn(container.handle, spec)
 }
 
-func (container *container) StreamOut(ctx context.Context,spec garden.StreamOutSpec) (io.ReadCloser, error) {
-	return container.connection.StreamOut(ctx,container.handle, spec)
+func (container *container) StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, error) {
+	return container.connection.StreamOut(container.handle, spec)
 }
 
 func (container *container) CurrentBandwidthLimits() (garden.BandwidthLimits, error) {
@@ -184,7 +185,7 @@ func (container *container) CurrentMemoryLimits() (garden.MemoryLimits, error) {
 }
 
 func (container *container) Run(ctx context.Context,spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-	return container.connection.Run(ctx,container.handle, spec, io)
+	return container.connection.Run(ctx, container.handle, spec, io)
 }
 
 func (container *container) Attach(ctx context.Context,processID string, io garden.ProcessIO) (garden.Process, error) {

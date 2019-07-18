@@ -2,7 +2,6 @@
 package gclientfakes
 
 import (
-	"context"
 	"sync"
 
 	"code.cloudfoundry.org/garden"
@@ -61,11 +60,10 @@ type FakeClient struct {
 		result1 []gclient.Container
 		result2 error
 	}
-	CreateStub        func(context.Context, garden.ContainerSpec) (gclient.Container, error)
+	CreateStub        func(garden.ContainerSpec) (gclient.Container, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
-		arg1 context.Context
-		arg2 garden.ContainerSpec
+		arg1 garden.ContainerSpec
 	}
 	createReturns struct {
 		result1 gclient.Container
@@ -75,11 +73,10 @@ type FakeClient struct {
 		result1 gclient.Container
 		result2 error
 	}
-	DestroyStub        func(context.Context, string) error
+	DestroyStub        func(string) error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct {
-		arg1 context.Context
-		arg2 string
+		arg1 string
 	}
 	destroyReturns struct {
 		result1 error
@@ -368,17 +365,16 @@ func (fake *FakeClient) ContainersReturnsOnCall(i int, result1 []gclient.Contain
 	}{result1, result2}
 }
 
-func (fake *FakeClient) Create(arg1 context.Context, arg2 garden.ContainerSpec) (gclient.Container, error) {
+func (fake *FakeClient) Create(arg1 garden.ContainerSpec) (gclient.Container, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		arg1 context.Context
-		arg2 garden.ContainerSpec
-	}{arg1, arg2})
-	fake.recordInvocation("Create", []interface{}{arg1, arg2})
+		arg1 garden.ContainerSpec
+	}{arg1})
+	fake.recordInvocation("Create", []interface{}{arg1})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1, arg2)
+		return fake.CreateStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -393,17 +389,17 @@ func (fake *FakeClient) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeClient) CreateCalls(stub func(context.Context, garden.ContainerSpec) (gclient.Container, error)) {
+func (fake *FakeClient) CreateCalls(stub func(garden.ContainerSpec) (gclient.Container, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
 }
 
-func (fake *FakeClient) CreateArgsForCall(i int) (context.Context, garden.ContainerSpec) {
+func (fake *FakeClient) CreateArgsForCall(i int) garden.ContainerSpec {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	argsForCall := fake.createArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeClient) CreateReturns(result1 gclient.Container, result2 error) {
@@ -432,17 +428,16 @@ func (fake *FakeClient) CreateReturnsOnCall(i int, result1 gclient.Container, re
 	}{result1, result2}
 }
 
-func (fake *FakeClient) Destroy(arg1 context.Context, arg2 string) error {
+func (fake *FakeClient) Destroy(arg1 string) error {
 	fake.destroyMutex.Lock()
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
-		arg1 context.Context
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("Destroy", []interface{}{arg1, arg2})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Destroy", []interface{}{arg1})
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
-		return fake.DestroyStub(arg1, arg2)
+		return fake.DestroyStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -457,17 +452,17 @@ func (fake *FakeClient) DestroyCallCount() int {
 	return len(fake.destroyArgsForCall)
 }
 
-func (fake *FakeClient) DestroyCalls(stub func(context.Context, string) error) {
+func (fake *FakeClient) DestroyCalls(stub func(string) error) {
 	fake.destroyMutex.Lock()
 	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = stub
 }
 
-func (fake *FakeClient) DestroyArgsForCall(i int) (context.Context, string) {
+func (fake *FakeClient) DestroyArgsForCall(i int) string {
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	argsForCall := fake.destroyArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeClient) DestroyReturns(result1 error) {

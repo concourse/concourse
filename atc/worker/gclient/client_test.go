@@ -1,30 +1,27 @@
 package gclient_test
 
 import (
-	"context"
 	"errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/garden"
-	. "github.com/concourse/concourse/atc/worker/gclient/client"
-	"github.com/concourse/concourse/atc/worker/gclient/client/connection/connectionfakes"
+	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/concourse/concourse/atc/worker/gclient/connection/connectionfakes"
 )
 
 var _ = Describe("Client", func() {
-	var client Client
+	var client gclient.Client
 
 	var fakeConnection *connectionfakes.FakeConnection
-	var testctx context.Context
 
 	BeforeEach(func() {
-		testctx = context.TODO()
 		fakeConnection = new(connectionfakes.FakeConnection)
 	})
 
 	JustBeforeEach(func() {
-		client = New(fakeConnection)
+		client = gclient.NewClient(fakeConnection)
 	})
 
 	Describe("Capacity", func() {
@@ -158,11 +155,11 @@ var _ = Describe("Client", func() {
 
 			fakeConnection.CreateReturns("some-handle", nil)
 
-			container, err := client.Create(testctx, spec)
+			container, err := client.Create(spec)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(container).ShouldNot(BeNil())
 
-			_, actualSpec := fakeConnection.CreateArgsForCall(0)
+			actualSpec := fakeConnection.CreateArgsForCall(0)
 			Ω(actualSpec).Should(Equal(spec))
 
 			Ω(container.Handle()).Should(Equal("some-handle"))
@@ -176,7 +173,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns it", func() {
-				_, err := client.Create(testctx, garden.ContainerSpec{})
+				_, err := client.Create(garden.ContainerSpec{})
 				Ω(err).Should(Equal(disaster))
 			})
 		})
@@ -191,7 +188,8 @@ var _ = Describe("Client", func() {
 			containers, err := client.Containers(props)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			Ω(fakeConnection.ListArgsForCall(0)).Should(Equal(props))
+			actualProps := fakeConnection.ListArgsForCall(0)
+			Ω(actualProps).Should(Equal(props))
 
 			Ω(containers).Should(HaveLen(2))
 			Ω(containers[0].Handle()).Should(Equal("handle-a"))
@@ -214,9 +212,9 @@ var _ = Describe("Client", func() {
 
 	Describe("Destroy", func() {
 		It("sends a destroy request", func() {
-			err := client.Destroy(testctx, "some-handle")
+			err := client.Destroy("some-handle")
 			Ω(err).ShouldNot(HaveOccurred())
-			_, actualHandle := fakeConnection.DestroyArgsForCall(0)
+			actualHandle := fakeConnection.DestroyArgsForCall(0)
 			Ω(actualHandle).Should(Equal("some-handle"))
 		})
 
@@ -228,7 +226,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns it", func() {
-				err := client.Destroy(testctx, "some-handle")
+				err := client.Destroy("some-handle")
 				Ω(err).Should(Equal(disaster))
 			})
 		})

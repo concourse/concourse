@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/atc/worker/gclient/client/connection"
+	"github.com/concourse/concourse/atc/worker/gclient/connection"
 )
 
 type FakeConnection struct {
@@ -78,11 +78,10 @@ type FakeConnection struct {
 		result1 garden.Capacity
 		result2 error
 	}
-	CreateStub        func(context.Context, garden.ContainerSpec) (string, error)
+	CreateStub        func(garden.ContainerSpec) (string, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
-		arg1 context.Context
-		arg2 garden.ContainerSpec
+		arg1 garden.ContainerSpec
 	}
 	createReturns struct {
 		result1 string
@@ -144,11 +143,10 @@ type FakeConnection struct {
 		result1 garden.MemoryLimits
 		result2 error
 	}
-	DestroyStub        func(context.Context, string) error
+	DestroyStub        func(string) error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct {
-		arg1 context.Context
-		arg2 string
+		arg1 string
 	}
 	destroyReturns struct {
 		result1 error
@@ -314,12 +312,11 @@ type FakeConnection struct {
 	setPropertyReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StopStub        func(context.Context, string, bool) error
+	StopStub        func(string, bool) error
 	stopMutex       sync.RWMutex
 	stopArgsForCall []struct {
-		arg1 context.Context
-		arg2 string
-		arg3 bool
+		arg1 string
+		arg2 bool
 	}
 	stopReturns struct {
 		result1 error
@@ -327,12 +324,11 @@ type FakeConnection struct {
 	stopReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StreamInStub        func(context.Context, string, garden.StreamInSpec) error
+	StreamInStub        func(string, garden.StreamInSpec) error
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
-		arg1 context.Context
-		arg2 string
-		arg3 garden.StreamInSpec
+		arg1 string
+		arg2 garden.StreamInSpec
 	}
 	streamInReturns struct {
 		result1 error
@@ -340,12 +336,11 @@ type FakeConnection struct {
 	streamInReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StreamOutStub        func(context.Context, string, garden.StreamOutSpec) (io.ReadCloser, error)
+	StreamOutStub        func(string, garden.StreamOutSpec) (io.ReadCloser, error)
 	streamOutMutex       sync.RWMutex
 	streamOutArgsForCall []struct {
-		arg1 context.Context
-		arg2 string
-		arg3 garden.StreamOutSpec
+		arg1 string
+		arg2 garden.StreamOutSpec
 	}
 	streamOutReturns struct {
 		result1 io.ReadCloser
@@ -682,17 +677,16 @@ func (fake *FakeConnection) CapacityReturnsOnCall(i int, result1 garden.Capacity
 	}{result1, result2}
 }
 
-func (fake *FakeConnection) Create(arg1 context.Context, arg2 garden.ContainerSpec) (string, error) {
+func (fake *FakeConnection) Create(arg1 garden.ContainerSpec) (string, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		arg1 context.Context
-		arg2 garden.ContainerSpec
-	}{arg1, arg2})
-	fake.recordInvocation("Create", []interface{}{arg1, arg2})
+		arg1 garden.ContainerSpec
+	}{arg1})
+	fake.recordInvocation("Create", []interface{}{arg1})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1, arg2)
+		return fake.CreateStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -707,17 +701,17 @@ func (fake *FakeConnection) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeConnection) CreateCalls(stub func(context.Context, garden.ContainerSpec) (string, error)) {
+func (fake *FakeConnection) CreateCalls(stub func(garden.ContainerSpec) (string, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
 }
 
-func (fake *FakeConnection) CreateArgsForCall(i int) (context.Context, garden.ContainerSpec) {
+func (fake *FakeConnection) CreateArgsForCall(i int) garden.ContainerSpec {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	argsForCall := fake.createArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeConnection) CreateReturns(result1 string, result2 error) {
@@ -998,17 +992,16 @@ func (fake *FakeConnection) CurrentMemoryLimitsReturnsOnCall(i int, result1 gard
 	}{result1, result2}
 }
 
-func (fake *FakeConnection) Destroy(arg1 context.Context, arg2 string) error {
+func (fake *FakeConnection) Destroy(arg1 string) error {
 	fake.destroyMutex.Lock()
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
-		arg1 context.Context
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("Destroy", []interface{}{arg1, arg2})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Destroy", []interface{}{arg1})
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
-		return fake.DestroyStub(arg1, arg2)
+		return fake.DestroyStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1023,17 +1016,17 @@ func (fake *FakeConnection) DestroyCallCount() int {
 	return len(fake.destroyArgsForCall)
 }
 
-func (fake *FakeConnection) DestroyCalls(stub func(context.Context, string) error) {
+func (fake *FakeConnection) DestroyCalls(stub func(string) error) {
 	fake.destroyMutex.Lock()
 	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = stub
 }
 
-func (fake *FakeConnection) DestroyArgsForCall(i int) (context.Context, string) {
+func (fake *FakeConnection) DestroyArgsForCall(i int) string {
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	argsForCall := fake.destroyArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeConnection) DestroyReturns(result1 error) {
@@ -1806,18 +1799,17 @@ func (fake *FakeConnection) SetPropertyReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeConnection) Stop(arg1 context.Context, arg2 string, arg3 bool) error {
+func (fake *FakeConnection) Stop(arg1 string, arg2 bool) error {
 	fake.stopMutex.Lock()
 	ret, specificReturn := fake.stopReturnsOnCall[len(fake.stopArgsForCall)]
 	fake.stopArgsForCall = append(fake.stopArgsForCall, struct {
-		arg1 context.Context
-		arg2 string
-		arg3 bool
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("Stop", []interface{}{arg1, arg2, arg3})
+		arg1 string
+		arg2 bool
+	}{arg1, arg2})
+	fake.recordInvocation("Stop", []interface{}{arg1, arg2})
 	fake.stopMutex.Unlock()
 	if fake.StopStub != nil {
-		return fake.StopStub(arg1, arg2, arg3)
+		return fake.StopStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1832,17 +1824,17 @@ func (fake *FakeConnection) StopCallCount() int {
 	return len(fake.stopArgsForCall)
 }
 
-func (fake *FakeConnection) StopCalls(stub func(context.Context, string, bool) error) {
+func (fake *FakeConnection) StopCalls(stub func(string, bool) error) {
 	fake.stopMutex.Lock()
 	defer fake.stopMutex.Unlock()
 	fake.StopStub = stub
 }
 
-func (fake *FakeConnection) StopArgsForCall(i int) (context.Context, string, bool) {
+func (fake *FakeConnection) StopArgsForCall(i int) (string, bool) {
 	fake.stopMutex.RLock()
 	defer fake.stopMutex.RUnlock()
 	argsForCall := fake.stopArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeConnection) StopReturns(result1 error) {
@@ -1868,18 +1860,17 @@ func (fake *FakeConnection) StopReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeConnection) StreamIn(arg1 context.Context, arg2 string, arg3 garden.StreamInSpec) error {
+func (fake *FakeConnection) StreamIn(arg1 string, arg2 garden.StreamInSpec) error {
 	fake.streamInMutex.Lock()
 	ret, specificReturn := fake.streamInReturnsOnCall[len(fake.streamInArgsForCall)]
 	fake.streamInArgsForCall = append(fake.streamInArgsForCall, struct {
-		arg1 context.Context
-		arg2 string
-		arg3 garden.StreamInSpec
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2, arg3})
+		arg1 string
+		arg2 garden.StreamInSpec
+	}{arg1, arg2})
+	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2})
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
-		return fake.StreamInStub(arg1, arg2, arg3)
+		return fake.StreamInStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1894,17 +1885,17 @@ func (fake *FakeConnection) StreamInCallCount() int {
 	return len(fake.streamInArgsForCall)
 }
 
-func (fake *FakeConnection) StreamInCalls(stub func(context.Context, string, garden.StreamInSpec) error) {
+func (fake *FakeConnection) StreamInCalls(stub func(string, garden.StreamInSpec) error) {
 	fake.streamInMutex.Lock()
 	defer fake.streamInMutex.Unlock()
 	fake.StreamInStub = stub
 }
 
-func (fake *FakeConnection) StreamInArgsForCall(i int) (context.Context, string, garden.StreamInSpec) {
+func (fake *FakeConnection) StreamInArgsForCall(i int) (string, garden.StreamInSpec) {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
 	argsForCall := fake.streamInArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeConnection) StreamInReturns(result1 error) {
@@ -1930,18 +1921,17 @@ func (fake *FakeConnection) StreamInReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeConnection) StreamOut(arg1 context.Context, arg2 string, arg3 garden.StreamOutSpec) (io.ReadCloser, error) {
+func (fake *FakeConnection) StreamOut(arg1 string, arg2 garden.StreamOutSpec) (io.ReadCloser, error) {
 	fake.streamOutMutex.Lock()
 	ret, specificReturn := fake.streamOutReturnsOnCall[len(fake.streamOutArgsForCall)]
 	fake.streamOutArgsForCall = append(fake.streamOutArgsForCall, struct {
-		arg1 context.Context
-		arg2 string
-		arg3 garden.StreamOutSpec
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("StreamOut", []interface{}{arg1, arg2, arg3})
+		arg1 string
+		arg2 garden.StreamOutSpec
+	}{arg1, arg2})
+	fake.recordInvocation("StreamOut", []interface{}{arg1, arg2})
 	fake.streamOutMutex.Unlock()
 	if fake.StreamOutStub != nil {
-		return fake.StreamOutStub(arg1, arg2, arg3)
+		return fake.StreamOutStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1956,17 +1946,17 @@ func (fake *FakeConnection) StreamOutCallCount() int {
 	return len(fake.streamOutArgsForCall)
 }
 
-func (fake *FakeConnection) StreamOutCalls(stub func(context.Context, string, garden.StreamOutSpec) (io.ReadCloser, error)) {
+func (fake *FakeConnection) StreamOutCalls(stub func(string, garden.StreamOutSpec) (io.ReadCloser, error)) {
 	fake.streamOutMutex.Lock()
 	defer fake.streamOutMutex.Unlock()
 	fake.StreamOutStub = stub
 }
 
-func (fake *FakeConnection) StreamOutArgsForCall(i int) (context.Context, string, garden.StreamOutSpec) {
+func (fake *FakeConnection) StreamOutArgsForCall(i int) (string, garden.StreamOutSpec) {
 	fake.streamOutMutex.RLock()
 	defer fake.streamOutMutex.RUnlock()
 	argsForCall := fake.streamOutArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeConnection) StreamOutReturns(result1 io.ReadCloser, result2 error) {

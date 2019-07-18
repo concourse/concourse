@@ -45,26 +45,47 @@ func (sh *streamHandler) streamOut(streamWriter io.Writer, streamReader io.Reade
 	}()
 }
 
-func (sh *streamHandler) wait(decoder *json.Decoder) (int, error) {
-	for {
-		payload := &transport.ProcessPayload{}
-		err := decoder.Decode(payload)
-		if err != nil {
-			sh.wg.Wait()
-			return 0, fmt.Errorf("connection: decode failed: %s", err)
-		}
+type waitReturn struct {
+	exitCode int
+	err      error
+}
 
-		if payload.Error != nil {
-			sh.wg.Wait()
-			return 0, fmt.Errorf("connection: process error: %s", *payload.Error)
-		}
+func (sh *streamHandler) wait(decoder *json.Decoder) <- chan waitReturn  {
+	result := make(chan waitReturn)
+	go func() {
+		for {
+			payload := &transport.ProcessPayload{}
+			err := decoder.Decode(payload)
+			if err != nil {
+				sh.wg.Wait()
+				result <- waitReturn{
+					0,
+					fmt.Errorf("connection: decode failed: %s", err),
+				}
+				break
+			}
 
-		if payload.ExitStatus != nil {
-			sh.wg.Wait()
-			status := int(*payload.ExitStatus)
-			return status, nil
-		}
+			if payload.Error != nil {
+				sh.wg.Wait()
+				result <- waitReturn{
+					0,
+					fmt.Errorf("connection: process error: %s", *payload.Error),
+				}
+				break
+			}
 
-		// discard other payloads
-	}
+			if payload.ExitStatus != nil {
+				sh.wg.Wait()
+				result <- waitReturn{
+					int(*payload.ExitStatus),
+					nil,
+				}
+				break
+			}
+
+			// discard other payloads
+		}
+		defer close(result)
+	}()
+	return result
 }

@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"
-	"github.com/concourse/concourse/atc/worker/gclient/client/connection"
+	"github.com/concourse/concourse/atc/worker/gclient/connection"
 )
 
 var _ = Describe("ConnectionHijacker", func() {
@@ -44,7 +44,6 @@ var _ = Describe("ConnectionHijacker", func() {
 		Context("when Stream is called", func() {
 			It("should use the dialer", func() {
 				_, err := hijackStreamer.Stream(
-					context.TODO(),
 					routes.Run,
 					new(bytes.Buffer),
 					rata.Params{

@@ -48,7 +48,7 @@ var _ = Describe("Resource Check", func() {
 	})
 
 	JustBeforeEach(func() {
-		fakeContainer.RunStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+		fakeContainer.RunStub = func(ctx context.Context, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 			if runCheckError != nil {
 				return nil, runCheckError
 			}
@@ -68,7 +68,7 @@ var _ = Describe("Resource Check", func() {
 	It("runs /opt/resource/check the request on stdin", func() {
 		Expect(checkErr).NotTo(HaveOccurred())
 
-		spec, io := fakeContainer.RunArgsForCall(0)
+		_, spec, io := fakeContainer.RunArgsForCall(0)
 		Expect(spec.Path).To(Equal("/opt/resource/check"))
 		Expect(spec.Args).To(BeEmpty())
 

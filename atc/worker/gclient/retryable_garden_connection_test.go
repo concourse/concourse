@@ -1,14 +1,16 @@
-package worker_test
+package gclient_test
 
 import (
-	gconn "code.cloudfoundry.org/garden/client/connection"
+	"context"
 	"fmt"
 	"io"
 
+	"github.com/concourse/concourse/atc/worker/gclient"
+	gconn "github.com/concourse/concourse/atc/worker/gclient/connection"
+
 	"code.cloudfoundry.org/garden"
-	"code.cloudfoundry.org/garden/client/connection/connectionfakes"
 	"code.cloudfoundry.org/garden/gardenfakes"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/gclient/connection/connectionfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -20,7 +22,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 
 	BeforeEach(func() {
 		innerConnection = new(connectionfakes.FakeConnection)
-		conn = worker.NewRetryableConnection(innerConnection)
+		conn = gclient.NewRetryableConnection(innerConnection)
 	})
 
 	Describe("StreamIn", func() {
@@ -298,14 +300,14 @@ var _ = Describe("Retryable Garden Connection", func() {
 			fakeProcess.IDReturns("process-id")
 			innerConnection.AttachReturns(fakeProcess, nil)
 			var err error
-			process, err = conn.Attach("la-contineur", "process-id", processIO)
+			process, err = conn.Attach(context.TODO(), "la-contineur", "process-id", processIO)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("calls through to garden", func() {
 			Expect(innerConnection.AttachCallCount()).To(Equal(1))
 
-			handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
+			_, handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
 			Expect(handle).To(Equal("la-contineur"))
 			Expect(processID).To(Equal("process-id"))
 			Expect(calledProcessIO).To(Equal(processIO))
@@ -334,7 +336,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 					Expect(result).To(Equal(42))
 
 					Expect(innerConnection.AttachCallCount()).To(Equal(2))
-					handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
+					_, handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
 					Expect(handle).To(Equal("la-contineur"))
 					Expect(processID).To(Equal("process-id"))
 					Expect(calledProcessIO).To(Equal(processIO))
@@ -357,7 +359,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 					Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
 
 					Expect(innerConnection.AttachCallCount()).To(Equal(2))
-					handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
+					_, handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
 					Expect(handle).To(Equal("la-contineur"))
 					Expect(processID).To(Equal("process-id"))
 					Expect(calledProcessIO).To(Equal(processIO))
@@ -384,7 +386,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 					Expect(fakeProcess.SetTTYArgsForCall(0)).To(Equal(ttySpec))
 
 					Expect(innerConnection.AttachCallCount()).To(Equal(2))
-					handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
+					_, handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(1)
 					Expect(handle).To(Equal("la-contineur"))
 					Expect(processID).To(Equal("process-id"))
 					Expect(calledProcessIO).To(Equal(processIO))
@@ -412,14 +414,14 @@ var _ = Describe("Retryable Garden Connection", func() {
 			fakeProcess.IDReturns("process-id")
 			innerConnection.RunReturns(fakeProcess, nil)
 			var err error
-			process, err = conn.Run("la-contineur", processSpec, processIO)
+			process, err = conn.Run(context.TODO(), "la-contineur", processSpec, processIO)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("calls through to garden", func() {
 			Expect(innerConnection.RunCallCount()).To(Equal(1))
 
-			handle, calledProcessSpec, calledProcessIO := innerConnection.RunArgsForCall(0)
+			_, handle, calledProcessSpec, calledProcessIO := innerConnection.RunArgsForCall(0)
 			Expect(handle).To(Equal("la-contineur"))
 			Expect(calledProcessSpec).To(Equal(processSpec))
 			Expect(calledProcessIO).To(Equal(processIO))
@@ -450,7 +452,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 					Expect(process.Wait()).To(Equal(42))
 
 					Expect(innerConnection.AttachCallCount()).To(Equal(1))
-					handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
+					_, handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
 					Expect(handle).To(Equal("la-contineur"))
 					Expect(processID).To(Equal("process-id"))
 					Expect(calledProcessIO).To(Equal(processIO))
@@ -473,7 +475,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 					Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
 
 					Expect(innerConnection.AttachCallCount()).To(Equal(1))
-					handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
+					_, handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
 					Expect(handle).To(Equal("la-contineur"))
 					Expect(processID).To(Equal("process-id"))
 					Expect(calledProcessIO).To(Equal(processIO))
@@ -500,7 +502,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 					Expect(fakeProcess.SetTTYArgsForCall(0)).To(Equal(ttySpec))
 
 					Expect(innerConnection.AttachCallCount()).To(Equal(1))
-					handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
+					_, handle, processID, calledProcessIO := innerConnection.AttachArgsForCall(0)
 					Expect(handle).To(Equal("la-contineur"))
 					Expect(processID).To(Equal("process-id"))
 					Expect(calledProcessIO).To(Equal(processIO))

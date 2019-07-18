@@ -1,6 +1,7 @@
 package containerserver
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -213,7 +214,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		}
 	}
 
-	process, err := request.Container.Run(garden.ProcessSpec{
+	process, err := request.Container.Run(context.Background(), garden.ProcessSpec{
 		Path: request.Process.Path,
 		Args: request.Process.Args,
 		Env:  request.Process.Env,

@@ -41,7 +41,7 @@ type WorkerHijackStreamer struct {
 	Req              RequestGenerator
 }
 
-func (h *WorkerHijackStreamer) Stream(ctx context.Context, handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (io.ReadCloser, error) {
+func (h *WorkerHijackStreamer) Stream(handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (io.ReadCloser, error) {
 	request, err := h.Req.CreateRequest(handler, params, body)
 	if err != nil {
 		return nil, err
@@ -54,8 +54,6 @@ func (h *WorkerHijackStreamer) Stream(ctx context.Context, handler string, body 
 	if query != nil {
 		request.URL.RawQuery = query.Encode()
 	}
-
-	request = request.WithContext(ctx)
 
 	httpResp, err := h.HttpClient.Do(request)
 	if err != nil {
