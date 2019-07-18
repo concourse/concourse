@@ -303,7 +303,7 @@ func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan) exec.S
 	}
 
 	stepMetadata := exec.StepMetadata{
-		// TeamID:                check.TeamID(),
+		TeamID:                check.TeamID(),
 		ResourceConfigScopeID: check.ResourceConfigScopeID(),
 		ResourceConfigID:      check.ResourceConfigID(),
 		BaseResourceTypeID:    check.BaseResourceTypeID(),

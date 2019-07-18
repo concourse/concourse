@@ -31,7 +31,7 @@ var _ = Describe("Resource config versions", func() {
 
 			newVersion := u.String()
 
-			fly("check-resource-type", "-r", inPipeline("custom-resource-type"), "-f", "version:"+newVersion)
+			fly("check-resource-type", "-r", inPipeline("custom-resource-type"), "-f", "version:"+newVersion, "-w")
 
 			By("triggering a job using the custom type")
 			fly("trigger-job", "-j", inPipeline("passed-job"), "-w")

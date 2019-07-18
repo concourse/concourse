@@ -15,10 +15,11 @@ import (
 
 type Checkable interface {
 	Name() string
+	TeamID() int
 	TeamName() string
+	PipelineID() int
 	PipelineName() string
 	Type() string
-	PipelineID() int
 	Source() atc.Source
 	Tags() atc.Tags
 	CheckEvery() string
@@ -38,7 +39,7 @@ type Checkable interface {
 type CheckFactory interface {
 	Check(int) (Check, bool, error)
 	StartedChecks() ([]Check, error)
-	CreateCheck(int, int, int, bool, atc.Plan) (Check, bool, error)
+	CreateCheck(int, int, int, int, bool, atc.Plan) (Check, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
 	AcquireScanningLock(lager.Logger) (lock.Lock, bool, error)
@@ -115,7 +116,7 @@ func (c *checkFactory) StartedChecks() ([]Check, error) {
 	return checks, nil
 }
 
-func (c *checkFactory) CreateCheck(resourceConfigScopeID int, resourceConfigID int, baseResourceTypeID int, manuallyTriggered bool, plan atc.Plan) (Check, bool, error) {
+func (c *checkFactory) CreateCheck(resourceConfigScopeID, resourceConfigID, baseResourceTypeID, teamID int, manuallyTriggered bool, plan atc.Plan) (Check, bool, error) {
 	tx, err := c.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -134,28 +135,35 @@ func (c *checkFactory) CreateCheck(resourceConfigScopeID int, resourceConfigID i
 		return nil, false, err
 	}
 
+	metadata, err := json.Marshal(map[string]interface{}{
+		"team_id":               teamID,
+		"resource_config_id":    resourceConfigID,
+		"base_resource_type_id": baseResourceTypeID,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
 	var id int
 	var createTime time.Time
 	err = psql.Insert("checks").
 		Columns(
 			"resource_config_scope_id",
-			"resource_config_id",
-			"base_resource_type_id",
 			"schema",
 			"status",
 			"manually_triggered",
 			"plan",
 			"nonce",
+			"metadata",
 		).
 		Values(
 			resourceConfigScopeID,
-			resourceConfigID,
-			baseResourceTypeID,
 			schema,
 			CheckStatusStarted,
 			manuallyTriggered,
 			encryptedPayload,
 			nonce,
+			metadata,
 		).
 		Suffix(`
 			ON CONFLICT DO NOTHING
@@ -178,6 +186,7 @@ func (c *checkFactory) CreateCheck(resourceConfigScopeID int, resourceConfigID i
 
 	return &check{
 		id:                    id,
+		teamID:                teamID,
 		resourceConfigScopeID: resourceConfigScopeID,
 		resourceConfigID:      resourceConfigID,
 		baseResourceTypeID:    baseResourceTypeID,

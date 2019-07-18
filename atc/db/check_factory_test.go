@@ -41,6 +41,7 @@ var _ = Describe("CheckFactory", func() {
 				resourceConfigScope.ID(),
 				resourceConfigScope.ResourceConfig().ID(),
 				resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+				defaultTeam.ID(),
 				false,
 				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
 			)
@@ -71,6 +72,7 @@ var _ = Describe("CheckFactory", func() {
 				resourceConfigScope.ID(),
 				resourceConfigScope.ResourceConfig().ID(),
 				resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+				defaultTeam.ID(),
 				false,
 				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
 			)
@@ -83,12 +85,15 @@ var _ = Describe("CheckFactory", func() {
 
 		It("returns the resource check", func() {
 			Expect(check.ID()).To(Equal(1))
+			Expect(check.TeamID()).To(Equal(defaultTeam.ID()))
 			Expect(check.Status()).To(Equal(db.CheckStatusStarted))
 			Expect(check.Schema()).To(Equal("exec.v2"))
 			Expect(check.Plan().Check.Name).To(Equal("some-name"))
 			Expect(check.Plan().Check.Type).To(Equal("some-type"))
 			Expect(check.CreateTime()).To(BeTemporally("~", time.Now(), time.Second))
 			Expect(check.ResourceConfigScopeID()).To(Equal(resourceConfigScope.ID()))
+			Expect(check.ResourceConfigID()).To(Equal(resourceConfigScope.ResourceConfig().ID()))
+			Expect(check.BaseResourceTypeID()).To(Equal(resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID))
 		})
 
 		Context("when a check is already pending", func() {
@@ -97,6 +102,7 @@ var _ = Describe("CheckFactory", func() {
 					resourceConfigScope.ID(),
 					resourceConfigScope.ResourceConfig().ID(),
 					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					defaultTeam.ID(),
 					false,
 					atc.Plan{},
 				)
@@ -132,6 +138,24 @@ var _ = Describe("CheckFactory", func() {
 			})
 		})
 
+		Context("when a check has no metadata", func() {
+			BeforeEach(func() {
+				_, err = dbConn.Exec(`INSERT INTO checks(resource_config_scope_id, status, schema) VALUES ($1, 'started', 'some-schema')`, resourceConfigScope.ID())
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns the check", func() {
+				Expect(checks).To(HaveLen(1))
+				Expect(checks[0].ID()).To(Equal(1))
+				Expect(checks[0].Status()).To(Equal(db.CheckStatusStarted))
+				Expect(checks[0].Schema()).To(Equal("some-schema"))
+				Expect(checks[0].TeamID()).To(Equal(0))
+				Expect(checks[0].ResourceConfigScopeID()).To(Equal(resourceConfigScope.ID()))
+				Expect(checks[0].ResourceConfigID()).To(Equal(0))
+				Expect(checks[0].BaseResourceTypeID()).To(Equal(0))
+			})
+		})
+
 		Context("when looking up the resource check succeeds", func() {
 			var check db.Check
 
@@ -141,6 +165,7 @@ var _ = Describe("CheckFactory", func() {
 					resourceConfigScope.ID(),
 					resourceConfigScope.ResourceConfig().ID(),
 					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					defaultTeam.ID(),
 					false,
 					atc.Plan{},
 				)

@@ -78,9 +78,8 @@ func (s *scanner) Run(ctx context.Context) error {
 		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
 			defer waitGroup.Done()
 
-			if err := s.check(resource, resourceTypes); err != nil {
-				s.setCheckError(s.logger, resource, err)
-			}
+			err = s.check(resource, resourceTypes)
+			s.setCheckError(s.logger, resource, err)
 
 		}(resource, resourceTypes)
 	}
@@ -98,9 +97,11 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 
 	parentType, found := s.parentType(checkable, filteredTypes)
 	if found {
-		if err = s.check(parentType, filteredTypes); err != nil {
+		err = s.check(parentType, filteredTypes)
+		s.setCheckError(s.logger, parentType, err)
+
+		if err != nil {
 			s.logger.Error("failed-to-create-type-check", err)
-			s.setCheckError(s.logger, parentType, err)
 			return errors.Wrapf(err, "parent type '%v' error", parentType.Name())
 		}
 
@@ -185,6 +186,7 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 		resourceConfigScope.ID(),
 		resourceConfigScope.ResourceConfig().ID(),
 		resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		checkable.TeamID(),
 		false,
 		plan,
 	)

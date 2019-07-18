@@ -25,6 +25,7 @@ const (
 
 type Check interface {
 	ID() int
+	TeamID() int
 	ResourceConfigScopeID() int
 	ResourceConfigID() int
 	BaseResourceTypeID() int
@@ -46,11 +47,26 @@ type Check interface {
 	Reload() (bool, error)
 }
 
-var checksQuery = psql.Select("c.id, c.resource_config_scope_id, c.resource_config_id, c.base_resource_type_id, c.status, c.schema, c.create_time, c.start_time, c.end_time, c.plan, c.nonce, c.check_error").
+var checksQuery = psql.Select(
+	"c.id",
+	"c.resource_config_scope_id",
+	"c.status",
+	"c.schema",
+	"c.create_time",
+	"c.start_time",
+	"c.end_time",
+	"c.plan",
+	"c.nonce",
+	"c.check_error",
+	"(c.metadata->>'team_id')::int",
+	"(c.metadata->>'resource_config_id')::int",
+	"(c.metadata->>'base_resource_type_id')::int",
+).
 	From("checks c")
 
 type check struct {
 	id                    int
+	teamID                int
 	resourceConfigScopeID int
 	resourceConfigID      int
 	baseResourceTypeID    int
@@ -69,6 +85,7 @@ type check struct {
 }
 
 func (c *check) ID() int                    { return c.id }
+func (c *check) TeamID() int                { return c.teamID }
 func (c *check) ResourceConfigScopeID() int { return c.resourceConfigScopeID }
 func (c *check) ResourceConfigID() int      { return c.resourceConfigID }
 func (c *check) BaseResourceTypeID() int    { return c.baseResourceTypeID }
@@ -268,13 +285,13 @@ func (c *check) SaveVersions(versions []atc.Version) error {
 
 func scanCheck(c *check, row scannable) error {
 	var (
-		resourceConfigScopeID, resourceConfigID, baseResourceTypeID sql.NullInt64
-		createTime, startTime, endTime                              pq.NullTime
-		schema, plan, nonce, checkError                             sql.NullString
-		status                                                      string
+		createTime, startTime, endTime               pq.NullTime
+		schema, plan, nonce, checkError              sql.NullString
+		status                                       string
+		teamID, resourceConfigID, baseResourceTypeID sql.NullInt64
 	)
 
-	err := row.Scan(&c.id, &resourceConfigScopeID, &resourceConfigID, &baseResourceTypeID, &status, &schema, &createTime, &startTime, &endTime, &plan, &nonce, &checkError)
+	err := row.Scan(&c.id, &c.resourceConfigScopeID, &status, &schema, &createTime, &startTime, &endTime, &plan, &nonce, &checkError, &teamID, &resourceConfigID, &baseResourceTypeID)
 	if err != nil {
 		return err
 	}
@@ -285,14 +302,16 @@ func scanCheck(c *check, row scannable) error {
 	}
 
 	es := c.conn.EncryptionStrategy()
-	decryptedConfig, err := es.Decrypt(string(plan.String), noncense)
+	decryptedPlan, err := es.Decrypt(string(plan.String), noncense)
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(decryptedConfig, &c.plan)
-	if err != nil {
-		return err
+	if len(decryptedPlan) > 0 {
+		err = json.Unmarshal(decryptedPlan, &c.plan)
+		if err != nil {
+			return err
+		}
 	}
 
 	if checkError.Valid {
@@ -303,12 +322,12 @@ func scanCheck(c *check, row scannable) error {
 
 	c.status = CheckStatus(status)
 	c.schema = schema.String
-	c.resourceConfigScopeID = int(resourceConfigScopeID.Int64)
-	c.resourceConfigID = int(resourceConfigID.Int64)
-	c.baseResourceTypeID = int(baseResourceTypeID.Int64)
 	c.createTime = createTime.Time
 	c.startTime = startTime.Time
 	c.endTime = endTime.Time
+	c.teamID = int(teamID.Int64)
+	c.resourceConfigID = int(resourceConfigID.Int64)
+	c.baseResourceTypeID = int(baseResourceTypeID.Int64)
 
 	return nil
 }

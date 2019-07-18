@@ -113,6 +113,7 @@ func (s *checker) Check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 		resourceConfigScope.ID(),
 		resourceConfigScope.ResourceConfig().ID(),
 		resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		checkable.TeamID(),
 		true,
 		plan,
 	)

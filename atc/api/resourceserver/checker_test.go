@@ -151,7 +151,7 @@ var _ = Describe("Checker", func() {
 								})
 
 								It("creates a plan with a version", func() {
-									_, _, _, manuallyTriggered, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
+									_, _, _, _, manuallyTriggered, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
 									Expect(manuallyTriggered).To(BeTrue())
 									Expect(plan.Check.FromVersion).To(Equal(atc.Version{"version": "a"}))
 									Expect(plan.Check.Name).To(Equal("some-name"))
@@ -187,7 +187,7 @@ var _ = Describe("Checker", func() {
 									})
 
 									It("creates a plan with a nil version", func() {
-										_, _, _, manuallyTriggered, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
+										_, _, _, _, manuallyTriggered, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
 										Expect(manuallyTriggered).To(BeTrue())
 										Expect(plan.Check.FromVersion).To(BeNil())
 										Expect(plan.Check.Name).To(Equal("some-name"))
@@ -213,7 +213,7 @@ var _ = Describe("Checker", func() {
 									})
 
 									It("creates a plan with a version", func() {
-										_, _, _, manuallyTriggered, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
+										_, _, _, _, manuallyTriggered, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
 										Expect(manuallyTriggered).To(BeTrue())
 										Expect(plan.Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
 										Expect(plan.Check.Name).To(Equal("some-name"))
@@ -313,7 +313,7 @@ var _ = Describe("Checker", func() {
 					It("creates a check for the resource", func() {
 						Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(1))
 
-						_, _, _, manuallyTriggered, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
+						_, _, _, _, manuallyTriggered, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
 						Expect(manuallyTriggered).To(BeTrue())
 						Expect(plan.Check.FromVersion).To(Equal(atc.Version{"from": "version"}))
 						Expect(plan.Check.Name).To(Equal("some-name"))

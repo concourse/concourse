@@ -42,6 +42,7 @@ var _ = Describe("Check", func() {
 			resourceConfigScope.ID(),
 			resourceConfigScope.ResourceConfig().ID(),
 			resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+			defaultTeam.ID(),
 			false,
 			atc.Plan{},
 		)
@@ -146,6 +147,7 @@ var _ = Describe("Check", func() {
 					resourceTypeConfigScope.ID(),
 					resourceTypeConfigScope.ResourceConfig().ID(),
 					resourceTypeConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					defaultTeam.ID(),
 					false,
 					atc.Plan{},
 				)

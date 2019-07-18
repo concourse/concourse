@@ -272,7 +272,7 @@ func newMockVersion(resourceName string, tag string) string {
 
 	version := guid.String() + "-" + tag
 
-	fly("check-resource", "-r", inPipeline(resourceName), "-f", "version:"+version)
+	fly("check-resource", "-r", inPipeline(resourceName), "-f", "version:"+version, "-w")
 
 	return version
 }
