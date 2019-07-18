@@ -75,5 +75,13 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		{Contents: check.CheckError},
 	})
 
-	return table.Render(os.Stdout, Fly.PrintTableHeaders)
+	if err = table.Render(os.Stdout, Fly.PrintTableHeaders); err != nil {
+		return err
+	}
+
+	if check.Status == "errored" {
+		os.Exit(1)
+	}
+
+	return nil
 }

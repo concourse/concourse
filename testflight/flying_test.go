@@ -289,7 +289,7 @@ run:
 
 		It("runs the task without error", func() {
 			By("having an initial version")
-			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version")
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version", "-w")
 
 			By("satisfying the job's passed constraint for the first version")
 			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
@@ -302,7 +302,7 @@ run:
 			Expect(execS).To(gbytes.Say("first-version"))
 
 			By("finding another version that doesn't yet satisfy the passed constraint")
-			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:second-version")
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:second-version", "-w")
 
 			By("still executing using the first version via -j")
 			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job")
@@ -352,7 +352,7 @@ run:
 
 		It("runs the task without error", func() {
 			By("having an initial version")
-			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version")
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version", "-w")
 
 			By("satisfying the job's passed constraint for the first version")
 			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
@@ -365,7 +365,7 @@ run:
 			Expect(execS).To(gbytes.Say("first-version"))
 
 			By("finding another version that doesn't yet satisfy the passed constraint")
-			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:second-version")
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:second-version", "-w")
 
 			By("still executing using the first version via -j")
 			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job", "-m", "mapped-resource=some-resource")
@@ -411,7 +411,7 @@ run:
 
 		It("runs the task without error", func() {
 			By("having an initial version")
-			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version")
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:first-version", "-w")
 
 			By("satisfying the job's passed constraint for the first version")
 			fly("trigger-job", "-w", "-j", pipelineName+"/upstream-job")
@@ -424,7 +424,7 @@ run:
 			Expect(execS).To(gbytes.Say("first-version"))
 
 			By("finding another version that doesn't yet satisfy the passed constraint")
-			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:second-version")
+			fly("check-resource", "-r", pipelineName+"/some-resource", "-f", "version:second-version", "-w")
 
 			By("still executing using the first version via -j")
 			execS = flyIn(tmp, "execute", "-c", "task.yml", "-j", pipelineName+"/downstream-job", "--image", "some-image")
@@ -466,8 +466,6 @@ run:
 			Expect(err).NotTo(HaveOccurred())
 
 			setAndUnpausePipeline("fixtures/custom-resource-type.yml")
-
-			fly("check-resource", "-r", pipelineName+"/some-resource")
 		})
 
 		Context("when -j is specified", func() {

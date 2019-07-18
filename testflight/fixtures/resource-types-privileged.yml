@@ -14,7 +14,9 @@ resource_types:
 resources:
 - name: my-resource
   type: custom-resource-type
-  source: {}
+  source:
+    create_files:
+      unique: ((unique_config))
 
 jobs:
 - name: resource-getter
