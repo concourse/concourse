@@ -66,6 +66,18 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	activeTasks, err := savedWorker.ActiveTasks()
+
+	if err != nil {
+		logger.Info("failed-to-get-worker-active-tasks")
+	}
+
+	metric.WorkerTasks{
+		WorkerName: registration.Name,
+		Tasks:      activeTasks,
+		Platform:   registration.Platform,
+	}.Emit(s.logger)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(present.Worker(savedWorker))
