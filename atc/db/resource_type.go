@@ -53,16 +53,29 @@ type ResourceType interface {
 
 type ResourceTypes []ResourceType
 
-func (resourceTypes ResourceTypes) Filter(resourceType string) ResourceTypes {
-	var result ResourceTypes
-
+func (resourceTypes ResourceTypes) Parent(checkable Checkable) (ResourceType, bool) {
 	for _, t := range resourceTypes {
-		if t.Name() == resourceType {
-			result = append(resourceTypes.Filter(t.Type()), t)
+		if t.PipelineID() == checkable.PipelineID() {
+			if t.Name() != checkable.Name() && t.Name() == checkable.Type() {
+				return t, true
+			}
 		}
 	}
+	return nil, false
+}
 
-	return result
+func (resourceTypes ResourceTypes) Filter(checkable Checkable) ResourceTypes {
+	var result ResourceTypes
+
+	for {
+		resourceType, found := resourceTypes.Parent(checkable)
+		if !found {
+			return result
+		}
+
+		result = append(result, resourceType)
+		checkable = resourceType
+	}
 }
 
 func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {

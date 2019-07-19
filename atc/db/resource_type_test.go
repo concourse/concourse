@@ -137,18 +137,44 @@ var _ = Describe("ResourceType", func() {
 					err     error
 				)
 
-				pipeline, created, err = defaultTeam.SavePipeline(
-					"pipeline-with-types",
+				otherPipeline, created, err := defaultTeam.SavePipeline(
+					"pipeline-with-duplicate-type-name",
 					atc.Config{
 						ResourceTypes: atc.ResourceTypes{
 							{
-								Name:   "some-type",
+								Name:       "some-custom-type",
+								Type:       "some-different-foo-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: "10ms",
+							},
+						},
+					},
+					db.ConfigVersion(0),
+					db.PipelineUnpaused,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+				Expect(otherPipeline).NotTo(BeNil())
+
+				pipeline, created, err = defaultTeam.SavePipeline(
+					"pipeline-with-types",
+					atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-custom-type",
+								Source: atc.Source{},
+							},
+						},
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:   "registry-image",
 								Type:   "registry-image",
 								Source: atc.Source{"some": "repository"},
 							},
 							{
 								Name:       "some-other-type",
-								Type:       "registry-image-ng",
+								Type:       "registry-image",
 								Privileged: true,
 								Source:     atc.Source{"some": "other-repository"},
 							},
@@ -185,15 +211,25 @@ var _ = Describe("ResourceType", func() {
 				Expect(created).To(BeFalse())
 			})
 
-			It("returns the resource types tree given type name", func() {
-				tree := resourceTypes.Filter("some-custom-type")
-				Expect(len(tree)).To(Equal(3))
-				Expect(tree[0].Name()).To(Equal("some-other-type"))
-				Expect(tree[0].Type()).To(Equal("registry-image-ng"))
+			It("returns the resource types tree given a resource", func() {
+				resource, found, err := pipeline.Resource("some-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				tree := resourceTypes.Filter(resource)
+				Expect(len(tree)).To(Equal(4))
+
+				Expect(tree[0].Name()).To(Equal("some-custom-type"))
+				Expect(tree[0].Type()).To(Equal("some-other-foo-type"))
+
 				Expect(tree[1].Name()).To(Equal("some-other-foo-type"))
 				Expect(tree[1].Type()).To(Equal("some-other-type"))
-				Expect(tree[2].Name()).To(Equal("some-custom-type"))
-				Expect(tree[2].Type()).To(Equal("some-other-foo-type"))
+
+				Expect(tree[2].Name()).To(Equal("some-other-type"))
+				Expect(tree[2].Type()).To(Equal("registry-image"))
+
+				Expect(tree[3].Name()).To(Equal("registry-image"))
+				Expect(tree[3].Type()).To(Equal("registry-image"))
 			})
 		})
 	})

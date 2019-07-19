@@ -93,11 +93,9 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 
 	var err error
 
-	filteredTypes := resourceTypes.Filter(checkable.Type())
-
-	parentType, found := s.parentType(checkable, filteredTypes)
+	parentType, found := resourceTypes.Parent(checkable)
 	if found {
-		err = s.check(parentType, filteredTypes)
+		err = s.check(parentType, resourceTypes)
 		s.setCheckError(s.logger, parentType, err)
 
 		if err != nil {
@@ -145,7 +143,8 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 		return err
 	}
 
-	versionedResourceTypes, err := creds.NewVersionedResourceTypes(variables, filteredTypes.Deserialize()).Evaluate()
+	filteredTypes := resourceTypes.Filter(checkable).Deserialize()
+	versionedResourceTypes, err := creds.NewVersionedResourceTypes(variables, filteredTypes).Evaluate()
 	if err != nil {
 		s.logger.Error("failed-to-evaluate-resource-types", err)
 		return err
@@ -200,15 +199,6 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 	}
 
 	return nil
-}
-
-func (s *scanner) parentType(checkable db.Checkable, resourceTypes []db.ResourceType) (db.ResourceType, bool) {
-	for _, resourceType := range resourceTypes {
-		if resourceType.Name() == checkable.Type() && resourceType.PipelineID() == checkable.PipelineID() {
-			return resourceType, true
-		}
-	}
-	return nil, false
 }
 
 func (s *scanner) setCheckError(logger lager.Logger, checkable db.Checkable, err error) {

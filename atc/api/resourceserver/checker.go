@@ -41,9 +41,7 @@ func (s *checker) Check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 
 	var err error
 
-	filteredTypes := resourceTypes.Filter(checkable.Type())
-
-	parentType, found := s.parentType(checkable, filteredTypes)
+	parentType, found := resourceTypes.Parent(checkable)
 	if found {
 		if parentType.Version() == nil {
 			return nil, false, errors.New("parent type has no version")
@@ -71,7 +69,8 @@ func (s *checker) Check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 		return nil, false, err
 	}
 
-	versionedResourceTypes, err := creds.NewVersionedResourceTypes(variables, filteredTypes.Deserialize()).Evaluate()
+	filteredTypes := resourceTypes.Filter(checkable).Deserialize()
+	versionedResourceTypes, err := creds.NewVersionedResourceTypes(variables, filteredTypes).Evaluate()
 	if err != nil {
 		s.logger.Error("failed-to-evaluate-resource-types", err)
 		return nil, false, err
@@ -123,13 +122,4 @@ func (s *checker) Check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 	}
 
 	return check, created, nil
-}
-
-func (s *checker) parentType(checkable db.Checkable, resourceTypes []db.ResourceType) (db.ResourceType, bool) {
-	for _, resourceType := range resourceTypes {
-		if resourceType.Name() == checkable.Type() && resourceType.PipelineID() == checkable.PipelineID() {
-			return resourceType, true
-		}
-	}
-	return nil, false
 }

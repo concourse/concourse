@@ -175,8 +175,9 @@ var _ = Describe("Scanner", func() {
 										Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(0))
 									})
 
-									It("does not set a check error", func() {
-										Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(0))
+									It("clears the check error", func() {
+										Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+										Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
 									})
 								})
 
@@ -229,13 +230,18 @@ var _ = Describe("Scanner", func() {
 											})
 
 											It("creates a plan with a nil version", func() {
-												_, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
+												_, _, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
 												Expect(plan.Check.FromVersion).To(BeNil())
 												Expect(plan.Check.Name).To(Equal("some-name"))
 												Expect(plan.Check.Type).To(Equal("base-type"))
 												Expect(plan.Check.Source).To(Equal(atc.Source{"some": "source"}))
 												Expect(plan.Check.Tags).To(ConsistOf("tag-a", "tag-b"))
 												Expect(plan.Check.Timeout).To(Equal("10s"))
+											})
+
+											It("clears the check error", func() {
+												Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+												Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
 											})
 										})
 
@@ -254,13 +260,18 @@ var _ = Describe("Scanner", func() {
 											})
 
 											It("creates a plan with a version", func() {
-												_, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
+												_, _, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
 												Expect(plan.Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
 												Expect(plan.Check.Name).To(Equal("some-name"))
 												Expect(plan.Check.Type).To(Equal("base-type"))
 												Expect(plan.Check.Source).To(Equal(atc.Source{"some": "source"}))
 												Expect(plan.Check.Tags).To(ConsistOf("tag-a", "tag-b"))
 												Expect(plan.Check.Timeout).To(Equal("10s"))
+											})
+
+											It("clears the check error", func() {
+												Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+												Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
 											})
 										})
 									})
@@ -325,7 +336,7 @@ var _ = Describe("Scanner", func() {
 								It("creates a check for the parent type", func() {
 									Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(1))
 
-									_, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
+									_, _, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
 									Expect(plan.Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
 									Expect(plan.Check.Name).To(Equal("custom-type"))
 									Expect(plan.Check.Type).To(Equal("some-base-type"))
@@ -343,7 +354,7 @@ var _ = Describe("Scanner", func() {
 								It("creates a check for both the parent and the resource", func() {
 									Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(2))
 
-									_, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
+									_, _, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
 									Expect(plan.Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
 									Expect(plan.Check.Name).To(Equal("custom-type"))
 									Expect(plan.Check.Type).To(Equal("some-base-type"))
@@ -351,7 +362,7 @@ var _ = Describe("Scanner", func() {
 									Expect(plan.Check.Tags).To(ConsistOf("some-tag"))
 									Expect(plan.Check.Timeout).To(Equal("1m0s"))
 
-									_, _, _, _, plan = fakeCheckFactory.CreateCheckArgsForCall(1)
+									_, _, _, _, _, plan = fakeCheckFactory.CreateCheckArgsForCall(1)
 									Expect(plan.Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
 									Expect(plan.Check.Name).To(Equal("some-name"))
 									Expect(plan.Check.Type).To(Equal("custom-type"))
