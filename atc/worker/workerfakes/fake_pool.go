@@ -2,12 +2,12 @@
 package workerfakes
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	lager "code.cloudfoundry.org/lager"
-	db "github.com/concourse/concourse/atc/db"
-	worker "github.com/concourse/concourse/atc/worker"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakePool struct {
@@ -72,6 +72,12 @@ func (fake *FakePool) FindOrChooseWorkerCallCount() int {
 	return len(fake.findOrChooseWorkerArgsForCall)
 }
 
+func (fake *FakePool) FindOrChooseWorkerCalls(stub func(lager.Logger, worker.WorkerSpec) (worker.Worker, error)) {
+	fake.findOrChooseWorkerMutex.Lock()
+	defer fake.findOrChooseWorkerMutex.Unlock()
+	fake.FindOrChooseWorkerStub = stub
+}
+
 func (fake *FakePool) FindOrChooseWorkerArgsForCall(i int) (lager.Logger, worker.WorkerSpec) {
 	fake.findOrChooseWorkerMutex.RLock()
 	defer fake.findOrChooseWorkerMutex.RUnlock()
@@ -80,6 +86,8 @@ func (fake *FakePool) FindOrChooseWorkerArgsForCall(i int) (lager.Logger, worker
 }
 
 func (fake *FakePool) FindOrChooseWorkerReturns(result1 worker.Worker, result2 error) {
+	fake.findOrChooseWorkerMutex.Lock()
+	defer fake.findOrChooseWorkerMutex.Unlock()
 	fake.FindOrChooseWorkerStub = nil
 	fake.findOrChooseWorkerReturns = struct {
 		result1 worker.Worker
@@ -88,6 +96,8 @@ func (fake *FakePool) FindOrChooseWorkerReturns(result1 worker.Worker, result2 e
 }
 
 func (fake *FakePool) FindOrChooseWorkerReturnsOnCall(i int, result1 worker.Worker, result2 error) {
+	fake.findOrChooseWorkerMutex.Lock()
+	defer fake.findOrChooseWorkerMutex.Unlock()
 	fake.FindOrChooseWorkerStub = nil
 	if fake.findOrChooseWorkerReturnsOnCall == nil {
 		fake.findOrChooseWorkerReturnsOnCall = make(map[int]struct {
@@ -130,6 +140,12 @@ func (fake *FakePool) FindOrChooseWorkerForContainerCallCount() int {
 	return len(fake.findOrChooseWorkerForContainerArgsForCall)
 }
 
+func (fake *FakePool) FindOrChooseWorkerForContainerCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy) (worker.Worker, error)) {
+	fake.findOrChooseWorkerForContainerMutex.Lock()
+	defer fake.findOrChooseWorkerForContainerMutex.Unlock()
+	fake.FindOrChooseWorkerForContainerStub = stub
+}
+
 func (fake *FakePool) FindOrChooseWorkerForContainerArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy) {
 	fake.findOrChooseWorkerForContainerMutex.RLock()
 	defer fake.findOrChooseWorkerForContainerMutex.RUnlock()
@@ -138,6 +154,8 @@ func (fake *FakePool) FindOrChooseWorkerForContainerArgsForCall(i int) (context.
 }
 
 func (fake *FakePool) FindOrChooseWorkerForContainerReturns(result1 worker.Worker, result2 error) {
+	fake.findOrChooseWorkerForContainerMutex.Lock()
+	defer fake.findOrChooseWorkerForContainerMutex.Unlock()
 	fake.FindOrChooseWorkerForContainerStub = nil
 	fake.findOrChooseWorkerForContainerReturns = struct {
 		result1 worker.Worker
@@ -146,6 +164,8 @@ func (fake *FakePool) FindOrChooseWorkerForContainerReturns(result1 worker.Worke
 }
 
 func (fake *FakePool) FindOrChooseWorkerForContainerReturnsOnCall(i int, result1 worker.Worker, result2 error) {
+	fake.findOrChooseWorkerForContainerMutex.Lock()
+	defer fake.findOrChooseWorkerForContainerMutex.Unlock()
 	fake.FindOrChooseWorkerForContainerStub = nil
 	if fake.findOrChooseWorkerForContainerReturnsOnCall == nil {
 		fake.findOrChooseWorkerForContainerReturnsOnCall = make(map[int]struct {

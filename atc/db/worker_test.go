@@ -385,4 +385,51 @@ var _ = Describe("Worker", func() {
 			})
 		})
 	})
+
+	Describe("Active tasks", func() {
+		BeforeEach(func() {
+			var err error
+			worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when the worker registers", func() {
+			It("has no active tasks", func() {
+				at, err := worker.ActiveTasks()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(at).To(Equal(0))
+			})
+		})
+
+		Context("when the active task is increased", func() {
+			BeforeEach(func() {
+				err := worker.IncreaseActiveTasks()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("increase the active tasks counter", func() {
+				at, err := worker.ActiveTasks()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(at).To(Equal(1))
+			})
+			Context("when the active task is decreased", func() {
+				BeforeEach(func() {
+					err := worker.DecreaseActiveTasks()
+					Expect(err).ToNot(HaveOccurred())
+				})
+				It("reset the active tasks to 0", func() {
+					at, err := worker.ActiveTasks()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(at).To(Equal(0))
+				})
+			})
+		})
+
+		Context("when the active task is decreased below 0", func() {
+			It("raise an error", func() {
+				err := worker.DecreaseActiveTasks()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
 })

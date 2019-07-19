@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -17,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -75,6 +77,7 @@ type TaskStep struct {
 	strategy          worker.ContainerPlacementStrategy
 	workerPool        worker.Pool
 	delegate          TaskDelegate
+	lockFactory       lock.LockFactory
 	succeeded         bool
 }
 
@@ -88,6 +91,7 @@ func NewTaskStep(
 	strategy worker.ContainerPlacementStrategy,
 	workerPool worker.Pool,
 	delegate TaskDelegate,
+	lockFactory lock.LockFactory,
 ) Step {
 	return &TaskStep{
 		planID:            planID,
@@ -99,6 +103,7 @@ func NewTaskStep(
 		strategy:          strategy,
 		workerPool:        workerPool,
 		delegate:          delegate,
+		lockFactory:       lockFactory,
 	}
 }
 
@@ -190,16 +195,57 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(
-		ctx,
-		logger,
-		owner,
-		containerSpec,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return err
+	var chosenWorker worker.Worker
+	var activeTasksLock lock.Lock
+
+	for {
+		if step.strategy.ModifiesActiveTasks() {
+			var acquired bool
+			activeTasksLock, acquired, err = step.lockFactory.Acquire(logger, lock.NewTaskStepLockID())
+			if err != nil {
+				return err
+			}
+
+			if !acquired {
+				time.Sleep(time.Second)
+				continue
+			}
+		}
+
+		chosenWorker, err = step.workerPool.FindOrChooseWorkerForContainer(
+			ctx,
+			logger,
+			owner,
+			containerSpec,
+			workerSpec,
+			step.strategy,
+		)
+		if err != nil {
+			return err
+		}
+
+		if step.strategy.ModifiesActiveTasks() {
+			if chosenWorker == nil {
+				logger.Info("no-worker-available")
+				err = activeTasksLock.Release()
+				if err != nil {
+					return err
+				}
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			err = chosenWorker.IncreaseActiveTasks()
+			if err != nil {
+				logger.Error("Failed to increase active tasks.", err)
+			}
+			logger.Info("increase-active-tasks")
+			err = activeTasksLock.Release()
+			if err != nil {
+				return err
+			}
+			defer step.decreaseActiveTasks(logger, chosenWorker)
+		}
+		break
 	}
 
 	container, err := chosenWorker.FindOrCreateContainer(
@@ -410,6 +456,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *artifact.Re
 		User:      config.Run.User,
 		Dir:       metadata.WorkingDirectory,
 		Env:       step.envForParams(config.Params),
+		Type:      metadata.Type,
 
 		Inputs:  []worker.InputSource{},
 		Outputs: worker.OutputPaths{},
@@ -606,4 +653,12 @@ func (src *taskCacheSource) StreamFile(logger lager.Logger, filename string) (io
 
 func (src *taskCacheSource) VolumeOn(logger lager.Logger, w worker.Worker) (worker.Volume, bool, error) {
 	return w.FindVolumeForTaskCache(src.logger, src.teamID, src.jobID, src.stepName, src.path)
+}
+
+func (step *TaskStep) decreaseActiveTasks(logger lager.Logger, w worker.Worker) {
+	logger.Info("decrease-active-tasks")
+	err := w.DecreaseActiveTasks()
+	if err != nil {
+		logger.Error("Error decreasing active tasks.", err)
+	}
 }
