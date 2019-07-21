@@ -1,6 +1,7 @@
 package atc_test
 
 import (
+	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc"
 
 	. "github.com/onsi/ginkgo"
@@ -112,7 +113,7 @@ run: {path: a/file}
 					task, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(task.Platform).To(Equal("beos"))
-					Expect(task.Params).To(Equal(map[string]string{"FOO": "1"}))
+					Expect(task.Params).To(Equal(atc.TaskEnv{"FOO": "1"}))
 				})
 			})
 

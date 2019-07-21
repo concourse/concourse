@@ -455,7 +455,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *artifact.Re
 		Limits:    worker.ContainerLimits(config.Limits),
 		User:      config.Run.User,
 		Dir:       metadata.WorkingDirectory,
-		Env:       step.envForParams(config.Params),
+		Env:       config.Params.Env(),
 		Type:      metadata.Type,
 
 		Inputs:  []worker.InputSource{},
@@ -542,16 +542,6 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.
 	}
 
 	return nil
-}
-
-func (TaskStep) envForParams(params map[string]string) []string {
-	env := make([]string, 0, len(params))
-
-	for k, v := range params {
-		env = append(env, k+"="+v)
-	}
-
-	return env
 }
 
 type taskArtifactSource struct {

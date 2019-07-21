@@ -6,6 +6,11 @@ import (
 	"reflect"
 )
 
+type MetadataField struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type Source map[string]interface{}
 
 func (src Source) MarshalJSON() ([]byte, error) {

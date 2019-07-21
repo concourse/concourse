@@ -15,7 +15,7 @@ func NewTaskParamsValidator(variables Variables, params atc.Params) TaskParamsVa
 }
 
 func (s TaskParamsValidator) Validate() error {
-	var params map[string]string
+	var params atc.TaskEnv
 	return evaluate(s.variablesResolver, s.rawTaskParams, &params)
 }
 

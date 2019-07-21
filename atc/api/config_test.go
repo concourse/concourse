@@ -582,7 +582,7 @@ jobs:
 															Path: "ls",
 														},
 
-														Params: map[string]string{
+														Params: atc.TaskEnv{
 															"FOO": "true",
 															"BAR": "1",
 															"BAZ": "1.9",
@@ -795,7 +795,7 @@ jobs:
 															Path: "ls",
 														},
 
-														Params: map[string]string{
+														Params: atc.TaskEnv{
 															"FOO": "((BAR))",
 														},
 													},

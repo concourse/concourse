@@ -1,7 +1,9 @@
 package atc
 
 import (
+	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -21,7 +23,7 @@ type TaskConfig struct {
 	Limits ContainerLimits `json:"container_limits,omitempty"`
 
 	// Parameters to pass to the task via environment variables.
-	Params map[string]string `json:"params,omitempty"`
+	Params TaskEnv `json:"params,omitempty"`
 
 	// Script to execute.
 	Run TaskRunConfig `json:"run,omitempty"`
@@ -33,7 +35,7 @@ type TaskConfig struct {
 	Outputs []TaskOutputConfig `json:"outputs,omitempty"`
 
 	// Path to cached directory that will be shared between builds for the same task.
-	Caches []CacheConfig `json:"caches,omitempty"`
+	Caches []TaskCacheConfig `json:"caches,omitempty"`
 }
 
 type ContainerLimits struct {
@@ -51,7 +53,7 @@ type ImageResource struct {
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 	var config TaskConfig
-	err := yaml.Unmarshal(configBytes, &config)
+	err := yaml.UnmarshalStrict(configBytes, &config, yaml.DisallowUnknownFields)
 	if err != nil {
 		return TaskConfig{}, err
 	}
@@ -75,87 +77,14 @@ func (config TaskConfig) Validate() error {
 		messages = append(messages, "  missing path to executable to run")
 	}
 
-	messages = append(messages, config.validateInputsAndOutputs()...)
+	messages = append(messages, config.validateInputContainsNames()...)
+	messages = append(messages, config.validateOutputContainsNames()...)
 
 	if len(messages) > 0 {
 		return fmt.Errorf("invalid task configuration:\n%s", strings.Join(messages, "\n"))
 	}
 
 	return nil
-}
-
-func (config TaskConfig) validateInputsAndOutputs() []string {
-	messages := []string{}
-
-	messages = append(messages, config.validateInputContainsNames()...)
-	messages = append(messages, config.validateOutputContainsNames()...)
-
-	return messages
-}
-
-func (config TaskConfig) validateDotPath() []string {
-	messages := []string{}
-
-	pathCount := 0
-	dotPath := false
-
-	for _, input := range config.Inputs {
-		path := strings.TrimPrefix(input.resolvePath(), "./")
-
-		if path == "." {
-			dotPath = true
-		}
-
-		pathCount++
-	}
-
-	for _, output := range config.Outputs {
-		path := strings.TrimPrefix(output.resolvePath(), "./")
-
-		if path == "." {
-			dotPath = true
-		}
-
-		pathCount++
-	}
-
-	if pathCount > 1 && dotPath {
-		messages = append(messages, "  you may not have more than one input or output when one of them has a path of '.'")
-	}
-
-	return messages
-}
-
-type pathCounter struct {
-	inputCount  map[string]int
-	outputCount map[string]int
-}
-
-func (counter *pathCounter) foundInBoth(path string) bool {
-	_, inputFound := counter.inputCount[path]
-	_, outputFound := counter.outputCount[path]
-
-	return inputFound && outputFound
-}
-
-func (counter *pathCounter) registerInput(input TaskInputConfig) {
-	path := strings.TrimPrefix(input.resolvePath(), "./")
-
-	if val, found := counter.inputCount[path]; !found {
-		counter.inputCount[path] = 1
-	} else {
-		counter.inputCount[path] = val + 1
-	}
-}
-
-func (counter *pathCounter) registerOutput(output TaskOutputConfig) {
-	path := strings.TrimPrefix(output.resolvePath(), "./")
-
-	if val, found := counter.outputCount[path]; !found {
-		counter.outputCount[path] = 1
-	} else {
-		counter.outputCount[path] = val + 1
-	}
 }
 
 func (config TaskConfig) validateOutputContainsNames() []string {
@@ -197,30 +126,66 @@ type TaskInputConfig struct {
 	Optional bool   `json:"optional,omitempty"`
 }
 
-func (input TaskInputConfig) resolvePath() string {
-	if input.Path != "" {
-		return input.Path
-	}
-	return input.Name
-}
-
 type TaskOutputConfig struct {
 	Name string `json:"name"`
 	Path string `json:"path,omitempty"`
 }
 
-func (output TaskOutputConfig) resolvePath() string {
-	if output.Path != "" {
-		return output.Path
-	}
-	return output.Name
-}
-
-type MetadataField struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-type CacheConfig struct {
+type TaskCacheConfig struct {
 	Path string `json:"path,omitempty"`
+}
+
+type TaskEnv map[string]string
+
+func (te *TaskEnv) UnmarshalJSON(p []byte) error {
+	raw := map[string]CoercedString{}
+	err := json.Unmarshal(p, &raw)
+	if err != nil {
+		return err
+	}
+
+	m := map[string]string{}
+	for k, v := range raw {
+		m[k] = string(v)
+	}
+
+	*te = m
+
+	return nil
+}
+
+func (te TaskEnv) Env() []string {
+	env := make([]string, 0, len(te))
+
+	for k, v := range te {
+		env = append(env, k+"="+v)
+	}
+
+	return env
+}
+
+type CoercedString string
+
+func (cs *CoercedString) UnmarshalJSON(p []byte) error {
+	var raw interface{}
+	err := json.Unmarshal(p, &raw)
+	if err != nil {
+		return err
+	}
+
+	switch v := raw.(type) {
+	case string:
+		*cs = CoercedString(v)
+	case float64:
+		*cs = CoercedString(strconv.FormatFloat(v, 'f', -1, 64))
+	default:
+		j, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+
+		*cs = CoercedString(j)
+	}
+
+	return nil
 }

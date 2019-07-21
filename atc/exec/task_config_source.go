@@ -123,7 +123,7 @@ func (configSource *OverrideParamsConfigSource) FetchConfig(logger lager.Logger,
 	}
 
 	if taskConfig.Params == nil {
-		taskConfig.Params = map[string]string{}
+		taskConfig.Params = atc.TaskEnv{}
 	}
 
 	for key, val := range configSource.Params {

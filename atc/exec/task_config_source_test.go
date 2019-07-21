@@ -11,10 +11,10 @@ import (
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/ghodss/yaml"
 )
 
 var _ = Describe("TaskConfigSource", func() {
@@ -43,7 +43,7 @@ var _ = Describe("TaskConfigSource", func() {
 				},
 				Version: &atc.Version{"some": "version"},
 			},
-			Params: map[string]string{
+			Params: atc.TaskEnv{
 				"key1": "key1-((task-variable-name))",
 				"key2": "key2-((task-variable-name))",
 			},
@@ -243,7 +243,7 @@ run: {path: a/file}
 			config = atc.TaskConfig{
 				Platform:  "some-platform",
 				RootfsURI: "some-image",
-				Params:    map[string]string{"PARAM": "A", "ORIG_PARAM": "D"},
+				Params:    atc.TaskEnv{"PARAM": "A", "ORIG_PARAM": "D"},
 				Run: atc.TaskRunConfig{
 					Path: "echo",
 					Args: []string{"bananapants"},
@@ -294,7 +294,7 @@ run: {path: a/file}
 			})
 
 			It("returns the config with overridden parameters", func() {
-				Expect(fetchedConfig.Params).To(Equal(map[string]string{
+				Expect(fetchedConfig.Params).To(Equal(atc.TaskEnv{
 					"ORIG_PARAM":  "D",
 					"PARAM":       "B",
 					"EXTRA_PARAM": "C",
@@ -357,7 +357,7 @@ run: {path: a/file}
 			config := atc.TaskConfig{
 				Platform:  "some-platform",
 				RootfsURI: "some-image",
-				Params:    map[string]string{"PARAM": "A"},
+				Params:    atc.TaskEnv{"PARAM": "A"},
 				Run: atc.TaskRunConfig{
 					Path: "echo",
 					Args: []string{"bananapants"},
@@ -378,7 +378,7 @@ run: {path: a/file}
 			BeforeEach(func() {
 				fakeConfigSource.FetchConfigReturns(atc.TaskConfig{
 					RootfsURI: "some-image",
-					Params:    map[string]string{"PARAM": "A"},
+					Params:    atc.TaskEnv{"PARAM": "A"},
 					Run: atc.TaskRunConfig{
 						Args: []string{"bananapants"},
 					},
@@ -422,7 +422,7 @@ run: {path: a/file}
 
 		It("resolves task config parameters successfully", func() {
 			Expect(fetchedConfig.Run.Args).To(Equal([]string{"-al", "task-variable-value"}))
-			Expect(fetchedConfig.Params).To(Equal(map[string]string{
+			Expect(fetchedConfig.Params).To(Equal(atc.TaskEnv{
 				"key1": "key1-task-variable-value",
 				"key2": "key2-task-variable-value",
 			}))
