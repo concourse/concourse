@@ -19,8 +19,8 @@ type Drainer interface {
 
 type drainer struct {
 	hostname     string
-	transport    string `yaml:"transport"`
-	address      string `yaml:"address"`
+	transport    string
+	address      string
 	caCerts      []string
 	buildFactory db.BuildFactory
 }
