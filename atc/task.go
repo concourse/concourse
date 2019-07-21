@@ -1,9 +1,9 @@
 package atc
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -168,7 +168,9 @@ type CoercedString string
 
 func (cs *CoercedString) UnmarshalJSON(p []byte) error {
 	var raw interface{}
-	err := json.Unmarshal(p, &raw)
+	dec := json.NewDecoder(bytes.NewReader(p))
+	dec.UseNumber()
+	err := dec.Decode(&raw)
 	if err != nil {
 		return err
 	}
@@ -176,8 +178,10 @@ func (cs *CoercedString) UnmarshalJSON(p []byte) error {
 	switch v := raw.(type) {
 	case string:
 		*cs = CoercedString(v)
-	case float64:
-		*cs = CoercedString(strconv.FormatFloat(v, 'f', -1, 64))
+
+	case json.Number:
+		*cs = CoercedString(v)
+
 	default:
 		j, err := json.Marshal(v)
 		if err != nil {

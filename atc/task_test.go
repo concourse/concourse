@@ -70,6 +70,48 @@ run: {path: a/file}
 					Expect(config.Params["testParam"]).To(Equal("1059262"))
 				})
 
+				It("converts large yaml ints to the correct string in params", func() {
+					data := []byte(`
+platform: beos
+
+params:
+  testParam: 18446744073709551615
+
+run: {path: a/file}
+`)
+					config, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(config.Params["testParam"]).To(Equal("18446744073709551615"))
+				})
+
+				It("does not preserve unquoted float notation", func() {
+					data := []byte(`
+platform: beos
+
+params:
+  testParam: 1.8446744e+19
+
+run: {path: a/file}
+`)
+					config, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(config.Params["testParam"]).To(Equal("18446744000000000000"))
+				})
+
+				It("(obviously) preserves quoted float notation", func() {
+					data := []byte(`
+platform: beos
+
+params:
+  testParam: "1.8446744e+19"
+
+run: {path: a/file}
+`)
+					config, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(config.Params["testParam"]).To(Equal("1.8446744e+19"))
+				})
+
 				It("converts yaml floats to the correct string in params", func() {
 					data := []byte(`
 platform: beos
