@@ -231,7 +231,7 @@ var _ = Describe("Worker Lifecycle", func() {
 								Interruptible: false,
 							},
 						},
-					}, db.ConfigVersion(0), db.PipelineUnpaused)
+					}, db.ConfigVersion(0), false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(created).To(BeTrue())
 
@@ -263,7 +263,7 @@ var _ = Describe("Worker Lifecycle", func() {
 								Interruptible: true,
 							},
 						},
-					}, db.ConfigVersion(0), db.PipelineUnpaused)
+					}, db.ConfigVersion(0), false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(created).To(BeTrue())
 
@@ -478,7 +478,7 @@ var _ = Describe("Worker Lifecycle", func() {
 								Interruptible: false,
 							},
 						},
-					}, db.ConfigVersion(0), db.PipelineUnpaused)
+					}, db.ConfigVersion(0), false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(created).To(BeTrue())
 
@@ -510,7 +510,7 @@ var _ = Describe("Worker Lifecycle", func() {
 								Interruptible: true,
 							},
 						},
-					}, db.ConfigVersion(0), db.PipelineUnpaused)
+					}, db.ConfigVersion(0), false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(created).To(BeTrue())
 

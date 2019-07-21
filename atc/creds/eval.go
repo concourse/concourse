@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 )
 
 func evaluate(variablesResolver Variables, in, out interface{}) error {

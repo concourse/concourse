@@ -18,7 +18,7 @@ import (
 
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
-	yaml "gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -69,10 +69,10 @@ var _ = Describe("Credhub", func() {
 
 			var vars struct {
 				CredHubClient struct {
-					CA          string `yaml:"ca"`
-					Certificate string `yaml:"certificate"`
-					PrivateKey  string `yaml:"private_key"`
-				} `yaml:"credhub_client_topgun"`
+					CA          string `json:"ca"`
+					Certificate string `json:"certificate"`
+					PrivateKey  string `json:"private_key"`
+				} `json:"credhub_client_topgun"`
 			}
 
 			err = yaml.Unmarshal(varsBytes, &vars)
@@ -174,16 +174,16 @@ var _ = Describe("Credhub", func() {
 })
 
 type Cert struct {
-	CA          string `yaml:"ca"`
-	Certificate string `yaml:"certificate"`
-	PrivateKey  string `yaml:"private_key"`
+	CA          string `json:"ca"`
+	Certificate string `json:"certificate"`
+	PrivateKey  string `json:"private_key"`
 }
 
 func generateCredhubCerts(filepath string) (err error) {
 	var vars struct {
-		CredHubCA           Cert `yaml:"credhub_ca"`
-		CredHubClientAtc    Cert `yaml:"credhub_client_atc"`
-		CredHubClientTopgun Cert `yaml:"credhub_client_topgun"`
+		CredHubCA           Cert `json:"credhub_ca"`
+		CredHubClientAtc    Cert `json:"credhub_client_atc"`
+		CredHubClientTopgun Cert `json:"credhub_client_topgun"`
 	}
 
 	key, _ := rsa.GenerateKey(rand.Reader, 2048)

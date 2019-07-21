@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/template"
+	"github.com/ghodss/yaml"
 )
 
 //go:generate counterfeiter . TaskConfigSource
@@ -168,7 +169,7 @@ func (configSource InterpolateTemplateConfigSource) FetchConfig(logger lager.Log
 		return atc.TaskConfig{}, err
 	}
 
-	byteConfig, err := json.Marshal(taskConfig)
+	byteConfig, err := yaml.Marshal(taskConfig)
 	if err != nil {
 		return atc.TaskConfig{}, fmt.Errorf("failed to marshal task config: %s", err)
 	}

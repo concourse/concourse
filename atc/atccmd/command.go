@@ -1044,7 +1044,7 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 }
 
 func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
-	return atc.ContainerLimitsParser(map[string]interface{}{
+	return atc.ParseContainerLimits(map[string]interface{}{
 		"cpu":    cmd.DefaultCpuLimit,
 		"memory": cmd.DefaultMemoryLimit,
 	})

@@ -23,7 +23,7 @@ var _ = Describe("Job Factory", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "public-pipeline-job"},
 				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			}, db.ConfigVersion(0), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(publicPipeline.Expose()).To(Succeed())
 
@@ -31,7 +31,7 @@ var _ = Describe("Job Factory", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "private-pipeline-job"},
 				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			}, db.ConfigVersion(0), false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

@@ -86,7 +86,7 @@ var _ = Describe("Job", func() {
 					Type: "some-type",
 				},
 			},
-		}, db.ConfigVersion(0), db.PipelineUnpaused)
+		}, db.ConfigVersion(0), false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(created).To(BeTrue())
 
@@ -161,7 +161,7 @@ var _ = Describe("Job", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "some-job"},
 				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			}, db.ConfigVersion(0), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 
@@ -387,7 +387,7 @@ var _ = Describe("Job", func() {
 					},
 				},
 			}
-			pipeline, _, err = team.SavePipeline("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			pipeline, _, err = team.SavePipeline("some-pipeline", config, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			job, found, err = pipeline.Job("some-job")
@@ -788,7 +788,7 @@ var _ = Describe("Job", func() {
 				},
 			}
 
-			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, db.PipelineUnpaused)
+			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			resource2, found, err = pipeline2.Resource("some-resource")
@@ -968,7 +968,7 @@ var _ = Describe("Job", func() {
 				},
 			}
 
-			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, db.PipelineUnpaused)
+			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			resource2, found, err = pipeline2.Resource("some-resource")
@@ -1120,7 +1120,7 @@ var _ = Describe("Job", func() {
 				},
 			}
 			var err error
-			otherPipeline, _, err = team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+			otherPipeline, _, err = team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			build1DB, err = job.CreateBuild()

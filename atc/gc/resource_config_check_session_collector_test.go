@@ -125,7 +125,7 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 					},
 				}
 
-				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, db.ConfigVersion(1), false)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

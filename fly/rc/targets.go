@@ -10,7 +10,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 )
 
 var (
@@ -27,16 +27,16 @@ func (err UnknownTargetError) Error() string {
 }
 
 type TargetProps struct {
-	API      string       `yaml:"api"`
-	TeamName string       `yaml:"team"`
-	Insecure bool         `yaml:"insecure,omitempty"`
-	Token    *TargetToken `yaml:"token,omitempty"`
-	CACert   string       `yaml:"ca_cert,omitempty"`
+	API      string       `json:"api"`
+	TeamName string       `json:"team"`
+	Insecure bool         `json:"insecure,omitempty"`
+	Token    *TargetToken `json:"token,omitempty"`
+	CACert   string       `json:"ca_cert,omitempty"`
 }
 
 type TargetToken struct {
-	Type  string `yaml:"type"`
-	Value string `yaml:"value"`
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
 
 type targetDetailsYAML struct {
@@ -175,7 +175,7 @@ func userHomeDir() string {
 }
 
 func LoadTargets() (*targetDetailsYAML, error) {
-	var flyTargets *targetDetailsYAML
+	var flyTargets targetDetailsYAML
 
 	flyrc := flyrcPath()
 	if _, err := os.Stat(flyrc); err == nil {
@@ -189,16 +189,18 @@ func LoadTargets() (*targetDetailsYAML, error) {
 		}
 	}
 
-	if flyTargets == nil {
-		return &targetDetailsYAML{Targets: map[TargetName]TargetProps{}}, nil
+	if flyTargets.Targets == nil {
+		flyTargets.Targets = map[TargetName]TargetProps{}
 	}
+
 	for name, targetProps := range flyTargets.Targets {
 		if targetProps.TeamName == "" {
 			targetProps.TeamName = atc.DefaultTeamName
 			flyTargets.Targets[name] = targetProps
 		}
 	}
-	return flyTargets, nil
+
+	return &flyTargets, nil
 }
 
 func writeTargets(configFileLocation string, targetsToWrite *targetDetailsYAML) error {

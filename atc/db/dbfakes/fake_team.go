@@ -336,13 +336,13 @@ type FakeTeam struct {
 	renameReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SavePipelineStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.Pipeline, bool, error)
+	SavePipelineStub        func(string, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
 	savePipelineArgsForCall []struct {
 		arg1 string
 		arg2 atc.Config
 		arg3 db.ConfigVersion
-		arg4 db.PipelinePausedState
+		arg4 bool
 	}
 	savePipelineReturns struct {
 		result1 db.Pipeline
@@ -1927,14 +1927,14 @@ func (fake *FakeTeam) RenameReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) SavePipeline(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) (db.Pipeline, bool, error) {
+func (fake *FakeTeam) SavePipeline(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 bool) (db.Pipeline, bool, error) {
 	fake.savePipelineMutex.Lock()
 	ret, specificReturn := fake.savePipelineReturnsOnCall[len(fake.savePipelineArgsForCall)]
 	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
 		arg1 string
 		arg2 atc.Config
 		arg3 db.ConfigVersion
-		arg4 db.PipelinePausedState
+		arg4 bool
 	}{arg1, arg2, arg3, arg4})
 	fake.recordInvocation("SavePipeline", []interface{}{arg1, arg2, arg3, arg4})
 	fake.savePipelineMutex.Unlock()
@@ -1954,13 +1954,13 @@ func (fake *FakeTeam) SavePipelineCallCount() int {
 	return len(fake.savePipelineArgsForCall)
 }
 
-func (fake *FakeTeam) SavePipelineCalls(stub func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.Pipeline, bool, error)) {
+func (fake *FakeTeam) SavePipelineCalls(stub func(string, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)) {
 	fake.savePipelineMutex.Lock()
 	defer fake.savePipelineMutex.Unlock()
 	fake.SavePipelineStub = stub
 }
 
-func (fake *FakeTeam) SavePipelineArgsForCall(i int) (string, atc.Config, db.ConfigVersion, db.PipelinePausedState) {
+func (fake *FakeTeam) SavePipelineArgsForCall(i int) (string, atc.Config, db.ConfigVersion, bool) {
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
 	argsForCall := fake.savePipelineArgsForCall[i]

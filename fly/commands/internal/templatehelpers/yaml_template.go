@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/template"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 	"io/ioutil"
 )
 

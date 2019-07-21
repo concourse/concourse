@@ -5,7 +5,7 @@ import (
 	"github.com/concourse/concourse/atc/template"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 )
 
 var _ = Describe("Template", func() {

@@ -32,7 +32,7 @@ var _ = Describe("Pipeline Factory", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "job-name"},
 				},
-			}, db.ConfigVersion(1), db.PipelineUnpaused)
+			}, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipeline1.Reload()).To(BeTrue())
 
@@ -40,7 +40,7 @@ var _ = Describe("Pipeline Factory", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "job-fake"},
 				},
-			}, db.ConfigVersion(1), db.PipelineUnpaused)
+			}, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipeline2.Reload()).To(BeTrue())
 
@@ -48,7 +48,7 @@ var _ = Describe("Pipeline Factory", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "job-fake-two"},
 				},
-			}, db.ConfigVersion(1), db.PipelineUnpaused)
+			}, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipeline3.Expose()).To(Succeed())
 			Expect(pipeline3.Reload()).To(BeTrue())
@@ -102,7 +102,7 @@ var _ = Describe("Pipeline Factory", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "job-name"},
 				},
-			}, db.ConfigVersion(1), db.PipelineUnpaused)
+			}, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipeline1.Expose()).To(Succeed())
 			Expect(pipeline1.Reload()).To(BeTrue())
@@ -111,7 +111,7 @@ var _ = Describe("Pipeline Factory", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "job-fake"},
 				},
-			}, db.ConfigVersion(1), db.PipelineUnpaused)
+			}, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipeline2.Reload()).To(BeTrue())
 
@@ -119,7 +119,7 @@ var _ = Describe("Pipeline Factory", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "job-fake-two"},
 				},
-			}, db.ConfigVersion(1), db.PipelineUnpaused)
+			}, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipeline3.Expose()).To(Succeed())
 			Expect(pipeline3.Reload()).To(BeTrue())

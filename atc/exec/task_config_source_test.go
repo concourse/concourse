@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 )
 
 var _ = Describe("TaskConfigSource", func() {
