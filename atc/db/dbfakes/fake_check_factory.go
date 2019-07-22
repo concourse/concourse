@@ -61,6 +61,16 @@ type FakeCheckFactory struct {
 		result2 bool
 		result3 error
 	}
+	NotifyCheckerStub        func() error
+	notifyCheckerMutex       sync.RWMutex
+	notifyCheckerArgsForCall []struct {
+	}
+	notifyCheckerReturns struct {
+		result1 error
+	}
+	notifyCheckerReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ResourceTypesStub        func() ([]db.ResourceType, error)
 	resourceTypesMutex       sync.RWMutex
 	resourceTypesArgsForCall []struct {
@@ -304,6 +314,58 @@ func (fake *FakeCheckFactory) CreateCheckReturnsOnCall(i int, result1 db.Check, 
 	}{result1, result2, result3}
 }
 
+func (fake *FakeCheckFactory) NotifyChecker() error {
+	fake.notifyCheckerMutex.Lock()
+	ret, specificReturn := fake.notifyCheckerReturnsOnCall[len(fake.notifyCheckerArgsForCall)]
+	fake.notifyCheckerArgsForCall = append(fake.notifyCheckerArgsForCall, struct {
+	}{})
+	fake.recordInvocation("NotifyChecker", []interface{}{})
+	fake.notifyCheckerMutex.Unlock()
+	if fake.NotifyCheckerStub != nil {
+		return fake.NotifyCheckerStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.notifyCheckerReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckFactory) NotifyCheckerCallCount() int {
+	fake.notifyCheckerMutex.RLock()
+	defer fake.notifyCheckerMutex.RUnlock()
+	return len(fake.notifyCheckerArgsForCall)
+}
+
+func (fake *FakeCheckFactory) NotifyCheckerCalls(stub func() error) {
+	fake.notifyCheckerMutex.Lock()
+	defer fake.notifyCheckerMutex.Unlock()
+	fake.NotifyCheckerStub = stub
+}
+
+func (fake *FakeCheckFactory) NotifyCheckerReturns(result1 error) {
+	fake.notifyCheckerMutex.Lock()
+	defer fake.notifyCheckerMutex.Unlock()
+	fake.NotifyCheckerStub = nil
+	fake.notifyCheckerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCheckFactory) NotifyCheckerReturnsOnCall(i int, result1 error) {
+	fake.notifyCheckerMutex.Lock()
+	defer fake.notifyCheckerMutex.Unlock()
+	fake.NotifyCheckerStub = nil
+	if fake.notifyCheckerReturnsOnCall == nil {
+		fake.notifyCheckerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.notifyCheckerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeCheckFactory) ResourceTypes() ([]db.ResourceType, error) {
 	fake.resourceTypesMutex.Lock()
 	ret, specificReturn := fake.resourceTypesReturnsOnCall[len(fake.resourceTypesArgsForCall)]
@@ -478,6 +540,8 @@ func (fake *FakeCheckFactory) Invocations() map[string][][]interface{} {
 	defer fake.checkMutex.RUnlock()
 	fake.createCheckMutex.RLock()
 	defer fake.createCheckMutex.RUnlock()
+	fake.notifyCheckerMutex.RLock()
+	defer fake.notifyCheckerMutex.RUnlock()
 	fake.resourceTypesMutex.RLock()
 	defer fake.resourceTypesMutex.RUnlock()
 	fake.resourcesMutex.RLock()

@@ -111,5 +111,5 @@ func (s *checker) Check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 		return nil, false, err
 	}
 
-	return check, created, nil
+	return check, created, s.checkFactory.NotifyChecker()
 }

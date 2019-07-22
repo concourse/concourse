@@ -243,6 +243,10 @@ var _ = Describe("Scanner", func() {
 												Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 												Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
 											})
+
+											It("sends a notification for the checker to run", func() {
+												Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+											})
 										})
 
 										Context("when fetching the latest version returns a version", func() {
@@ -272,6 +276,10 @@ var _ = Describe("Scanner", func() {
 											It("clears the check error", func() {
 												Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 												Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
+											})
+
+											It("sends a notification for the checker to run", func() {
+												Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 											})
 										})
 									})
@@ -344,6 +352,10 @@ var _ = Describe("Scanner", func() {
 									Expect(plan.Check.Tags).To(ConsistOf("some-tag"))
 									Expect(plan.Check.Timeout).To(Equal("1m0s"))
 								})
+
+								It("sends a notification for the checker to run", func() {
+									Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+								})
 							})
 
 							Context("when the parent type has a version", func() {
@@ -369,6 +381,10 @@ var _ = Describe("Scanner", func() {
 									Expect(plan.Check.Source).To(Equal(atc.Source{"some": "source"}))
 									Expect(plan.Check.Tags).To(ConsistOf("tag-a", "tag-b"))
 									Expect(plan.Check.Timeout).To(Equal("1m0s"))
+								})
+
+								It("sends a notification for the checker to run", func() {
+									Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 								})
 							})
 						})

@@ -43,6 +43,7 @@ type CheckFactory interface {
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
 	AcquireScanningLock(lager.Logger) (lock.Lock, bool, error)
+	NotifyChecker() error
 }
 
 type checkFactory struct {
@@ -58,6 +59,10 @@ func NewCheckFactory(
 		conn:        conn,
 		lockFactory: lockFactory,
 	}
+}
+
+func (c *checkFactory) NotifyChecker() error {
+	return c.conn.Bus().Notify("checker")
 }
 
 func (c *checkFactory) AcquireScanningLock(

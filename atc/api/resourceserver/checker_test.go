@@ -255,6 +255,10 @@ var _ = Describe("Checker", func() {
 										It("returns created", func() {
 											Expect(created).To(BeTrue())
 										})
+
+										It("sends a notification for the checker to run", func() {
+											Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+										})
 									})
 								})
 							})
@@ -317,6 +321,10 @@ var _ = Describe("Checker", func() {
 						Expect(plan.Check.Source).To(Equal(atc.Source{"some": "source"}))
 						Expect(plan.Check.Tags).To(ConsistOf("tag-a", "tag-b"))
 						Expect(plan.Check.Timeout).To(Equal("1m0s"))
+					})
+
+					It("sends a notification for the checker to run", func() {
+						Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 					})
 				})
 			})
