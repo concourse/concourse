@@ -14,6 +14,10 @@ type MetadataField struct {
 type Source map[string]interface{}
 
 func (src Source) MarshalJSON() ([]byte, error) {
+	if src == nil {
+		return json.Marshal(nil)
+	}
+
 	strKeys, err := stringifyKeys(src)
 	if err != nil {
 		return nil, err
@@ -25,6 +29,10 @@ func (src Source) MarshalJSON() ([]byte, error) {
 type Params map[string]interface{}
 
 func (ps Params) MarshalJSON() ([]byte, error) {
+	if ps == nil {
+		return json.Marshal(nil)
+	}
+
 	strKeys, err := stringifyKeys(ps)
 	if err != nil {
 		return nil, err
