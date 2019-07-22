@@ -1,11 +1,13 @@
 package creds
 
+import "github.com/concourse/concourse/vars"
+
 type String struct {
-	variablesResolver Variables
+	variablesResolver vars.Variables
 	rawCredString     string
 }
 
-func NewString(variables Variables, credString string) String {
+func NewString(variables vars.Variables, credString string) String {
 	return String{
 		variablesResolver: variables,
 		rawCredString:     credString,

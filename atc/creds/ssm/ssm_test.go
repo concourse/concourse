@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	. "github.com/concourse/concourse/atc/creds/ssm"
-	vars "github.com/concourse/concourse/atc/template"
+	"github.com/concourse/concourse/vars"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -86,7 +86,7 @@ func (mock *MockSsmService) GetParametersByPathPages(input *ssm.GetParametersByP
 
 var _ = Describe("Ssm", func() {
 	var ssmAccess *Ssm
-	var variables creds.Variables
+	var variables vars.Variables
 	var varDef vars.VariableDefinition
 	var mockService MockSsmService
 

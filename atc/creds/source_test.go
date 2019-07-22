@@ -1,9 +1,9 @@
 package creds_test
 
 import (
-	"github.com/concourse/concourse/atc/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/vars"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,7 +13,7 @@ var _ = Describe("Evaluate", func() {
 	var source creds.Source
 
 	BeforeEach(func() {
-		variables := template.StaticVariables{
+		variables := vars.StaticVariables{
 			"some-param": "lol",
 		}
 		source = creds.NewSource(variables, atc.Source{

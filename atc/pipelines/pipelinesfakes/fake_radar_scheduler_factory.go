@@ -8,16 +8,16 @@ import (
 	"github.com/concourse/concourse/atc/pipelines"
 	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/template"
+	"github.com/concourse/concourse/vars"
 )
 
 type FakeRadarSchedulerFactory struct {
-	BuildScanRunnerFactoryStub        func(db.Pipeline, string, template.Variables, radar.Notifications) radar.ScanRunnerFactory
+	BuildScanRunnerFactoryStub        func(db.Pipeline, string, vars.Variables, radar.Notifications) radar.ScanRunnerFactory
 	buildScanRunnerFactoryMutex       sync.RWMutex
 	buildScanRunnerFactoryArgsForCall []struct {
 		arg1 db.Pipeline
 		arg2 string
-		arg3 template.Variables
+		arg3 vars.Variables
 		arg4 radar.Notifications
 	}
 	buildScanRunnerFactoryReturns struct {
@@ -41,13 +41,13 @@ type FakeRadarSchedulerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactory(arg1 db.Pipeline, arg2 string, arg3 template.Variables, arg4 radar.Notifications) radar.ScanRunnerFactory {
+func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactory(arg1 db.Pipeline, arg2 string, arg3 vars.Variables, arg4 radar.Notifications) radar.ScanRunnerFactory {
 	fake.buildScanRunnerFactoryMutex.Lock()
 	ret, specificReturn := fake.buildScanRunnerFactoryReturnsOnCall[len(fake.buildScanRunnerFactoryArgsForCall)]
 	fake.buildScanRunnerFactoryArgsForCall = append(fake.buildScanRunnerFactoryArgsForCall, struct {
 		arg1 db.Pipeline
 		arg2 string
-		arg3 template.Variables
+		arg3 vars.Variables
 		arg4 radar.Notifications
 	}{arg1, arg2, arg3, arg4})
 	fake.recordInvocation("BuildScanRunnerFactory", []interface{}{arg1, arg2, arg3, arg4})
@@ -68,13 +68,13 @@ func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryCallCount() int {
 	return len(fake.buildScanRunnerFactoryArgsForCall)
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryCalls(stub func(db.Pipeline, string, template.Variables, radar.Notifications) radar.ScanRunnerFactory) {
+func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryCalls(stub func(db.Pipeline, string, vars.Variables, radar.Notifications) radar.ScanRunnerFactory) {
 	fake.buildScanRunnerFactoryMutex.Lock()
 	defer fake.buildScanRunnerFactoryMutex.Unlock()
 	fake.BuildScanRunnerFactoryStub = stub
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryArgsForCall(i int) (db.Pipeline, string, template.Variables, radar.Notifications) {
+func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryArgsForCall(i int) (db.Pipeline, string, vars.Variables, radar.Notifications) {
 	fake.buildScanRunnerFactoryMutex.RLock()
 	defer fake.buildScanRunnerFactoryMutex.RUnlock()
 	argsForCall := fake.buildScanRunnerFactoryArgsForCall[i]

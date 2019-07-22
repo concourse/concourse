@@ -2,14 +2,15 @@ package creds
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/vars"
 )
 
 type Source struct {
-	variablesResolver Variables
+	variablesResolver vars.Variables
 	rawSource         atc.Source
 }
 
-func NewSource(variables Variables, source atc.Source) Source {
+func NewSource(variables vars.Variables, source atc.Source) Source {
 	return Source{
 		variablesResolver: variables,
 		rawSource:         source,

@@ -1,4 +1,4 @@
-package template
+package vars
 
 type MultiVars struct {
 	varss []Variables

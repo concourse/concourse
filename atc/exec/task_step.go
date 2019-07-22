@@ -14,13 +14,13 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/concourse/atc/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/vars"
 )
 
 const taskProcessID = "task"
@@ -137,20 +137,20 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	var taskConfigSource TaskConfigSource
-	var taskVars []template.Variables
+	var taskVars []vars.Variables
 
 	if step.plan.ConfigPath != "" {
 		// external task - construct a source which reads it from file
 		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath}
 
 		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables
-		taskVars = []template.Variables{template.StaticVariables(step.plan.Vars), variables}
+		taskVars = []vars.Variables{vars.StaticVariables(step.plan.Vars), variables}
 	} else {
 		// embedded task - first we take it
 		taskConfigSource = StaticConfigSource{Config: step.plan.Config}
 
 		// for interpolation - use just cred variables
-		taskVars = []template.Variables{variables}
+		taskVars = []vars.Variables{variables}
 	}
 
 	// override params

@@ -2,14 +2,15 @@ package creds
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/vars"
 )
 
 type Params struct {
-	variablesResolver Variables
+	variablesResolver vars.Variables
 	rawParams         atc.Params
 }
 
-func NewParams(variables Variables, params atc.Params) Params {
+func NewParams(variables vars.Variables, params atc.Params) Params {
 	return Params{
 		variablesResolver: variables,
 		rawParams:         params,

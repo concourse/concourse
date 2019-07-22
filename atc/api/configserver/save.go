@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/template"
+	"github.com/concourse/concourse/vars"
 	"github.com/ghodss/yaml"
 	"github.com/hashicorp/go-multierror"
 	"github.com/tedsuo/rata"
@@ -140,7 +140,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 // Simply validate that the credentials exist; don't do anything with the actual secrets
-func validateCredParams(credMgrVars creds.Variables, config atc.Config, session lager.Logger) error {
+func validateCredParams(credMgrVars vars.Variables, config atc.Config, session lager.Logger) error {
 	var errs error
 
 	for _, resourceType := range config.ResourceTypes {
@@ -186,7 +186,7 @@ func validateCredParams(credMgrVars creds.Variables, config atc.Config, session 
 			} else if plan.TaskConfig != nil {
 				// embedded task - we can fully validate it, interpolating with cred mgr variables
 				var taskConfigSource exec.TaskConfigSource
-				embeddedTaskVars := []template.Variables{credMgrVars}
+				embeddedTaskVars := []vars.Variables{credMgrVars}
 				taskConfigSource = exec.StaticConfigSource{Config: plan.TaskConfig}
 				taskConfigSource = exec.InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: embeddedTaskVars}
 				taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}

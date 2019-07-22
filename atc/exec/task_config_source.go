@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/artifact"
-	"github.com/concourse/concourse/atc/template"
+	"github.com/concourse/concourse/vars"
 	"github.com/ghodss/yaml"
 )
 
@@ -158,7 +158,7 @@ func (configSource OverrideParamsConfigSource) Warnings() []string {
 // InterpolateTemplateConfigSource represents a config source interpolated by template vars
 type InterpolateTemplateConfigSource struct {
 	ConfigSource TaskConfigSource
-	Vars         []template.Variables
+	Vars         []vars.Variables
 }
 
 // FetchConfig returns the interpolated configuration
@@ -174,7 +174,7 @@ func (configSource InterpolateTemplateConfigSource) FetchConfig(logger lager.Log
 	}
 
 	// process task config using the provided variables
-	byteConfig, err = template.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(true, true)
+	byteConfig, err = vars.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(true, true)
 	if err != nil {
 		return atc.TaskConfig{}, fmt.Errorf("failed to interpolate task config: %s", err)
 	}

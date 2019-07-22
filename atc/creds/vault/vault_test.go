@@ -1,9 +1,9 @@
 package vault_test
 
 import (
-	"github.com/concourse/concourse/atc/template"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/vault"
+	"github.com/concourse/concourse/vars"
 	vaultapi "github.com/hashicorp/vault/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +33,7 @@ func (msr *MockSecretReader) Read(lookupPath string) (*vaultapi.Secret, error) {
 var _ = Describe("Vault", func() {
 
 	var v *vault.Vault
-	var variables creds.Variables
+	var variables vars.Variables
 	var msr *MockSecretReader
 
 	JustBeforeEach(func() {
@@ -66,7 +66,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := variables.Get(template.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -81,7 +81,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := variables.Get(template.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -96,7 +96,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := variables.Get(template.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -117,7 +117,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := variables.Get(template.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())

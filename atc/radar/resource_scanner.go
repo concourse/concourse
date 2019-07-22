@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/vars"
 )
 
 var GlobalResourceCheckTimeout time.Duration
@@ -27,7 +28,7 @@ type resourceScanner struct {
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
-	variables             creds.Variables
+	variables             vars.Variables
 	strategy              worker.ContainerPlacementStrategy
 }
 
@@ -39,7 +40,7 @@ func NewResourceScanner(
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
-	variables creds.Variables,
+	variables vars.Variables,
 	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
 	return &resourceScanner{

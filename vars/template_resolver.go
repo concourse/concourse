@@ -1,4 +1,4 @@
-package template
+package vars
 
 import (
 	"encoding/json"

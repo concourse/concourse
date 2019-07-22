@@ -1,6 +1,9 @@
 package creds
 
-import "github.com/concourse/concourse/atc"
+import (
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/vars"
+)
 
 type VersionedResourceType struct {
 	atc.VersionedResourceType
@@ -10,7 +13,7 @@ type VersionedResourceType struct {
 
 type VersionedResourceTypes []VersionedResourceType
 
-func NewVersionedResourceTypes(variables Variables, rawTypes atc.VersionedResourceTypes) VersionedResourceTypes {
+func NewVersionedResourceTypes(variables vars.Variables, rawTypes atc.VersionedResourceTypes) VersionedResourceTypes {
 	var types VersionedResourceTypes
 	for _, t := range rawTypes {
 		types = append(types, VersionedResourceType{

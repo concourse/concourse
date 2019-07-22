@@ -13,7 +13,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/atc/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/creds"
@@ -21,6 +20,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/radar/radarfakes"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("Resources API", func() {
@@ -28,7 +28,7 @@ var _ = Describe("Resources API", func() {
 		fakePipeline *dbfakes.FakePipeline
 		resource1    *dbfakes.FakeResource
 		fakeaccess   = new(accessorfakes.FakeAccess)
-		variables    creds.Variables
+		variables    vars.Variables
 	)
 
 	BeforeEach(func() {
@@ -1340,7 +1340,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				variables = template.StaticVariables{
+				variables = vars.StaticVariables{
 					"webhook-token": "fake-token",
 				}
 				token, err := creds.NewString(variables, "((webhook-token))").Evaluate()

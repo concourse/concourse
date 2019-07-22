@@ -1,13 +1,16 @@
 package creds
 
-import "github.com/concourse/concourse/atc"
+import (
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/vars"
+)
 
 type TaskParamsValidator struct {
-	variablesResolver Variables
+	variablesResolver vars.Variables
 	rawTaskParams     atc.Params
 }
 
-func NewTaskParamsValidator(variables Variables, params atc.Params) TaskParamsValidator {
+func NewTaskParamsValidator(variables vars.Variables, params atc.Params) TaskParamsValidator {
 	return TaskParamsValidator{
 		variablesResolver: variables,
 		rawTaskParams:     params,
@@ -20,11 +23,11 @@ func (s TaskParamsValidator) Validate() error {
 }
 
 type TaskVarsValidator struct {
-	variablesResolver Variables
+	variablesResolver vars.Variables
 	rawTaskVars       atc.Params
 }
 
-func NewTaskVarsValidator(variables Variables, taskVars atc.Params) TaskVarsValidator {
+func NewTaskVarsValidator(variables vars.Variables, taskVars atc.Params) TaskVarsValidator {
 	return TaskVarsValidator{
 		variablesResolver: variables,
 		rawTaskVars:       taskVars,

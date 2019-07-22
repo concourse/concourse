@@ -1,4 +1,4 @@
-package template
+package vars
 
 type Variables interface {
 	Get(VariableDefinition) (interface{}, bool, error)

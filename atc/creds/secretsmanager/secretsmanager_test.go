@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
-	vars "github.com/concourse/concourse/atc/template"
+	"github.com/concourse/concourse/vars"
 
 	. "github.com/concourse/concourse/atc/creds/secretsmanager"
 	. "github.com/onsi/ginkgo"
@@ -39,7 +39,7 @@ func (mock *MockSecretsManagerService) GetSecretValue(input *secretsmanager.GetS
 
 var _ = Describe("SecretsManager", func() {
 	var secretAccess *SecretsManager
-	var variables creds.Variables
+	var variables vars.Variables
 	var varDef vars.VariableDefinition
 	var mockService MockSecretsManagerService
 

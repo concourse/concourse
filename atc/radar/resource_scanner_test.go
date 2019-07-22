@@ -8,9 +8,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -18,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 
 	. "github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/resource"
@@ -40,7 +39,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBPipeline            *dbfakes.FakePipeline
 		fakeClock                 *fakeclock.FakeClock
 		interval                  time.Duration
-		variables                 creds.Variables
+		variables                 vars.Variables
 
 		fakeResourceType          *dbfakes.FakeResourceType
 		interpolatedResourceTypes atc.VersionedResourceTypes
@@ -62,7 +61,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeLock = &lockfakes.FakeLock{}
 		interval = 1 * time.Minute
 		GlobalResourceCheckTimeout = 1 * time.Hour
-		variables = template.StaticVariables{
+		variables = vars.StaticVariables{
 			"source-params": "some-secret-sauce",
 		}
 

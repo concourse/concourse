@@ -1,4 +1,4 @@
-package template_test
+package vars_test
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/concourse/concourse/atc/template"
+	. "github.com/concourse/concourse/vars"
 )
 
 func TestReg(t *testing.T) {
