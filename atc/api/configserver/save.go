@@ -6,13 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/template"
 	"github.com/ghodss/yaml"
 	"github.com/hashicorp/go-multierror"
 	"github.com/tedsuo/rata"
@@ -187,7 +186,7 @@ func validateCredParams(credMgrVars creds.Variables, config atc.Config, session 
 			} else if plan.TaskConfig != nil {
 				// embedded task - we can fully validate it, interpolating with cred mgr variables
 				var taskConfigSource exec.TaskConfigSource
-				embeddedTaskVars := []boshtemplate.Variables{credMgrVars}
+				embeddedTaskVars := []template.Variables{credMgrVars}
 				taskConfigSource = exec.StaticConfigSource{Config: plan.TaskConfig}
 				taskConfigSource = exec.InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: embeddedTaskVars}
 				taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}

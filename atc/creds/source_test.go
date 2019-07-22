@@ -1,7 +1,7 @@
 package creds_test
 
 import (
-	"github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/concourse/atc/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 

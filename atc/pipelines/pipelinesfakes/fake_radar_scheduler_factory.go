@@ -4,11 +4,11 @@ package pipelinesfakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/pipelines"
 	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/template"
 )
 
 type FakeRadarSchedulerFactory struct {

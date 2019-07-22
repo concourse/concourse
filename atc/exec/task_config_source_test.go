@@ -4,12 +4,12 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/template"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
@@ -412,7 +412,7 @@ run: {path: a/file}
 
 		JustBeforeEach(func() {
 			configSource = StaticConfigSource{Config: &taskConfig}
-			configSource = InterpolateTemplateConfigSource{ConfigSource: configSource, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(taskVars)}}
+			configSource = InterpolateTemplateConfigSource{ConfigSource: configSource, Vars: []template.Variables{template.StaticVariables(taskVars)}}
 			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
 		})
 

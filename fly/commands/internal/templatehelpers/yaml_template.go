@@ -2,12 +2,12 @@ package templatehelpers
 
 import (
 	"fmt"
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
+	"io/ioutil"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/template"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/ghodss/yaml"
-	"io/ioutil"
 )
 
 type YamlTemplateWithParams struct {
@@ -47,10 +47,10 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 		}
 	}
 
-	var params []boshtemplate.Variables
+	var params []template.Variables
 
 	// first, we take explicitly specified variables on the command line
-	vars := boshtemplate.StaticVariables{}
+	vars := template.StaticVariables{}
 	for _, f := range yamlTemplate.templateVariables {
 		vars[f.Name] = f.Value
 	}
@@ -68,7 +68,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 			return nil, fmt.Errorf("could not read template variables file (%s): %s", string(path), err.Error())
 		}
 
-		var staticVars boshtemplate.StaticVariables
+		var staticVars template.StaticVariables
 		err = yaml.Unmarshal(templateVars, &staticVars)
 		if err != nil {
 			return nil, fmt.Errorf("could not unmarshal template variables (%s): %s", string(path), err.Error())

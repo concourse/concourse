@@ -1,18 +1,17 @@
 package template_test
 
 import (
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc/template"
+	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/ghodss/yaml"
 )
 
 var _ = Describe("Template", func() {
 	var (
 		paramPayload  []byte
 		configPayload []byte
-		staticVars    boshtemplate.StaticVariables
+		staticVars    template.StaticVariables
 	)
 
 	BeforeEach(func() {
@@ -57,10 +56,10 @@ jobs:
 			})
 
 			It("evaluates all params", func() {
-				evaluatedContent1, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars}).Resolve(false, true)
+				evaluatedContent1, err := template.NewTemplateResolver(configPayload, []template.Variables{staticVars}).Resolve(false, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				evaluatedContent2, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars}).Resolve(true, true)
+				evaluatedContent2, err := template.NewTemplateResolver(configPayload, []template.Variables{staticVars}).Resolve(true, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(evaluatedContent1).To(Equal(evaluatedContent2))
@@ -103,7 +102,7 @@ resources:
 			})
 
 			It("evaluates only given params if expectAllKeys = false", func() {
-				evaluatedContent, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars}).Resolve(false, true)
+				evaluatedContent, err := template.NewTemplateResolver(configPayload, []template.Variables{staticVars}).Resolve(false, true)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(evaluatedContent).To(MatchYAML([]byte(`
 resources:
@@ -120,14 +119,14 @@ resources:
 			})
 
 			It("fails with an error if expectAllKeys = true", func() {
-				_, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars}).Resolve(true, true)
+				_, err := template.NewTemplateResolver(configPayload, []template.Variables{staticVars}).Resolve(true, true)
 				Expect(err).To(HaveOccurred())
 			})
 		})
 
 		Context("when multiple variable sources are given", func() {
 
-			var staticVars2 boshtemplate.StaticVariables
+			var staticVars2 template.StaticVariables
 
 			BeforeEach(func() {
 				configPayload = []byte(`
@@ -163,7 +162,7 @@ env: some-env-override
 
 			It("evaluates params using param sources in the given order", func() {
 				// forward order
-				evaluatedContent1, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars, staticVars2}).Resolve(false, true)
+				evaluatedContent1, err := template.NewTemplateResolver(configPayload, []template.Variables{staticVars, staticVars2}).Resolve(false, true)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(evaluatedContent1).To(MatchYAML([]byte(`
 resources:
@@ -187,7 +186,7 @@ jobs:
 				)))
 
 				// reverse order
-				evaluatedContent2, err := template.NewTemplateResolver(configPayload, []boshtemplate.Variables{staticVars2, staticVars}).Resolve(false, true)
+				evaluatedContent2, err := template.NewTemplateResolver(configPayload, []template.Variables{staticVars2, staticVars}).Resolve(false, true)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(evaluatedContent2).To(MatchYAML([]byte(`
 resources:
@@ -216,91 +215,91 @@ jobs:
 
 	It("can template values into a byte slice", func() {
 		byteSlice := []byte("{{key}}")
-		variables := boshtemplate.StaticVariables{
+		variables := template.StaticVariables{
 			"key": "foo",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []template.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"foo"`)))
 	})
 
 	It("can template multiple values into a byte slice", func() {
 		byteSlice := []byte("{{key}}={{value}}")
-		variables := boshtemplate.StaticVariables{
+		variables := template.StaticVariables{
 			"key":   "foo",
 			"value": "bar",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []template.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"foo"="bar"`)))
 	})
 
 	It("can template unicode values into a byte slice", func() {
 		byteSlice := []byte("{{Ω}}")
-		variables := boshtemplate.StaticVariables{
+		variables := template.StaticVariables{
 			"Ω": "☃",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []template.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"☃"`)))
 	})
 
 	It("can template keys with dashes and underscores into a byte slice", func() {
 		byteSlice := []byte("{{with-a-dash}} = {{with_an_underscore}}")
-		variables := boshtemplate.StaticVariables{
+		variables := template.StaticVariables{
 			"with-a-dash":        "dash",
 			"with_an_underscore": "underscore",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []template.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"dash" = "underscore"`)))
 	})
 
 	It("can template the same value multiple times into a byte slice", func() {
 		byteSlice := []byte("{{key}}={{key}}")
-		variables := boshtemplate.StaticVariables{
+		variables := template.StaticVariables{
 			"key": "foo",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []template.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"foo"="foo"`)))
 	})
 
 	It("can template values with strange newlines", func() {
 		byteSlice := []byte("{{key}}")
-		variables := boshtemplate.StaticVariables{
+		variables := template.StaticVariables{
 			"key": "this\nhas\nmany\nlines",
 		}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []template.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte(`"this\nhas\nmany\nlines"`)))
 	})
 
 	It("raises an error for each variable that is undefined", func() {
 		byteSlice := []byte("{{not-specified-one}}{{not-specified-two}}")
-		variables := boshtemplate.StaticVariables{}
+		variables := template.StaticVariables{}
 		errorMsg := `2 errors occurred:
 	* unbound variable in template: 'not-specified-one'
 	* unbound variable in template: 'not-specified-two'
 
 `
 
-		_, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
+		_, err := template.NewTemplateResolver(byteSlice, []template.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal(errorMsg))
 	})
 
 	It("ignores an invalid input", func() {
 		byteSlice := []byte("{{}")
-		variables := boshtemplate.StaticVariables{}
+		variables := template.StaticVariables{}
 
-		result, err := template.NewTemplateResolver(byteSlice, []boshtemplate.Variables{variables}).ResolveDeprecated(false)
+		result, err := template.NewTemplateResolver(byteSlice, []template.Variables{variables}).ResolveDeprecated(false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal([]byte("{{}")))
 	})

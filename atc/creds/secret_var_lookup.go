@@ -1,7 +1,7 @@
 package creds
 
 import (
-	"github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/concourse/atc/template"
 )
 
 type VariableLookupFromSecrets struct {

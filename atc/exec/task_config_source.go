@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/artifact"
@@ -159,7 +158,7 @@ func (configSource OverrideParamsConfigSource) Warnings() []string {
 // InterpolateTemplateConfigSource represents a config source interpolated by template vars
 type InterpolateTemplateConfigSource struct {
 	ConfigSource TaskConfigSource
-	Vars         []boshtemplate.Variables
+	Vars         []template.Variables
 }
 
 // FetchConfig returns the interpolated configuration
