@@ -1,12 +1,11 @@
-all: js/search.js css/booklit.css css/blog.css css/pipeline.css
+objects = js/search.js css/booklit.css css/blog.css css/pipeline.css discourse/common/common.scss blog/concourse.zip
+
+all: $(objects)
 
 .PHONY: clean
 
 clean:
-	rm -f js/search.js
-	rm -f css/booklit.css
-	rm -f css/blog.css
-	rm -f css/pipeline.css
+	rm -f $(objects)
 
 js/search.js: elm/Search.elm elm/Query.elm
 	yarn run elm make --output $@ $^
