@@ -12,19 +12,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate counterfeiter . Scanner
-
-type Scanner interface {
-	Run(context.Context) error
-}
-
 func NewScanner(
 	logger lager.Logger,
 	checkFactory db.CheckFactory,
 	secrets creds.Secrets,
 	defaultCheckTimeout time.Duration,
 	defaultCheckInterval time.Duration,
-) Scanner {
+) *scanner {
 	return &scanner{
 		logger:               logger,
 		checkFactory:         checkFactory,

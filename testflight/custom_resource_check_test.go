@@ -16,7 +16,7 @@ var _ = Describe("When a resource type depends on another resource type", func()
 		check := spawnFly("check-resource", "-r", inPipeline("recursive-custom-resource"), "-w")
 		<-check.Exited
 		Expect(check).To(gexec.Exit(1))
-		Expect(check.Out).To(gbytes.Say("errored"))
+		Expect(check.Err).To(gbytes.Say("parent type has no version"))
 	})
 
 	It("can be checked in order", func() {

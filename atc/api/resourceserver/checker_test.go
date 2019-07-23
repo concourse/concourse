@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/resourceserver"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
@@ -26,7 +25,6 @@ var _ = Describe("Checker", func() {
 		fakeResourceTypes []db.ResourceType
 		fromVersion       atc.Version
 
-		logger  *lagertest.TestLogger
 		checker resourceserver.Checker
 	)
 
@@ -48,9 +46,7 @@ var _ = Describe("Checker", func() {
 
 		fakeResourceTypes = []db.ResourceType{fakeResourceType}
 
-		logger = lagertest.NewTestLogger("test")
 		checker = resourceserver.NewChecker(
-			logger,
 			fakeSecrets,
 			fakeCheckFactory,
 			time.Minute*1,
