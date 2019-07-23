@@ -1,0 +1,144 @@
+@import "colors.less";
+@import "base.less";
+
+@content-width: 1000px;
+@content-padding: 70px;
+
+body {
+  background: @off-white;
+  grid-template-rows: 80px auto;
+  grid-template-columns: 1fr @content-width 1fr;
+  grid-template-areas:
+    "logo primary-nav search"
+    "secondary-nav content aside";
+}
+
+#main {
+  grid-area: content;
+  background: white;
+}
+
+.docked .d-header {
+  background: @brand;
+
+  .d-header-icons .d-icon {
+    color: white;
+  }
+}
+
+.wrap {
+  max-width: none;
+  padding: 0;
+}
+
+#main-outlet {
+  padding: @content-padding;
+}
+
+.d-header {
+  box-shadow: none;
+  height: auto;
+  margin-bottom: 0;
+
+  > .wrap {
+    width: 100%;
+    margin: 0;
+    padding: 8px;
+  }
+
+  .d-header-icons {
+    height: 40px;
+
+    .icon {
+      margin-left: 8px;
+      padding: 0;
+    }
+
+    img.avatar {
+      width: 32px;
+      height: 32px;
+    }
+
+    .svg-icon {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .title a, .topic-link {
+    color: white;
+
+    &:visited {
+      color: white;
+    }
+  }
+
+  // topic title
+  .extra-info {
+    &:not(.two-rows) {
+      // fix vertical centering
+      min-height: initial;
+    }
+  }
+}
+
+.btn, .nav-pills > li > a {
+  padding: 8px;
+  font-size: 18px;
+}
+
+h2, h3 {
+  margin: 0;
+  margin-bottom: 0.5rem;
+}
+
+.select-kit.combo-box {
+  border: 0;
+
+  .select-kit-header {
+    padding: 8px;
+    font-size: 18px;
+    height: 34px;
+
+    &.is-focused {
+      box-shadow: none !important;
+    }
+  }
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
+@avatar-width: 45px;
+
+.topic-avatar {
+  float: none;
+  width: @avatar-width;
+}
+
+.post-notice, .topic-body {
+  float: none;
+  max-width: none;
+  flex-grow: 1;
+}
+
+.topic-body {
+  width: @content-width - (@content-padding * 2) - @avatar-width;
+}
+
+.post-notice {
+  background: #ffffdc;
+  margin-bottom: 8px;
+  border-top: 0;
+}
+
+.badge-wrapper.box {
+  font-size: 14px;
+
+  // somehow this is the only way i can find to vertically align the text :|
+  line-height: 20px;
+  height: 20px;
+  padding: 0 5px 22px !important;
+}

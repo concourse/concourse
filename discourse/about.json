@@ -1,0 +1,21 @@
+{
+  "name": "Concourse",
+  "about_url": null,
+  "license_url": null,
+  "assets": {
+  },
+  "color_schemes": {
+    "Concourse": {
+      "primary": "2a2929",
+      "secondary": "ffffff",
+      "tertiary": "3d3c3c",
+      "quaternary": "f5a623",
+      "header_background": "ffffff",
+      "header_primary": "5a5555",
+      "highlight": "ffffdc",
+      "danger": "f5a623",
+      "success": "11c560",
+      "love": "ed4b35"
+    }
+  }
+}

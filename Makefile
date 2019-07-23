@@ -20,6 +20,9 @@ css/blog.css: less/blog.less less/*.less
 css/pipeline.css: less/pipeline.less
 	yarn run lessc $< $@
 
+discourse/common/common.scss: less/discourse.less less/*.less
+	yarn run lessc $< $@
+
 blog/concourse.zip: blog/package.json blog/*.hbs css/*.css images/* blog/partials/*.hbs
 	cp css/*.css blog/assets/css/
 	cp -r images/* blog/assets/images/
