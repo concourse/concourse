@@ -179,20 +179,16 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	events := make(chan runtime.Event, 1)
 	go func(logger lager.Logger, config atc.TaskConfig, events chan runtime.Event, delegate TaskDelegate) {
-		for {
-			ev := <-events
-			switch {
-			case ev.EventType == runtime.InitializingEvent:
+		for ev := range events {
+			switch ev.EventType {
+			case runtime.InitializingEvent:
 				step.delegate.Initializing(logger, config)
 
-			case ev.EventType == runtime.StartingEvent:
+			case runtime.StartingEvent:
 				step.delegate.Starting(logger, config)
 
-			case ev.EventType == runtime.FinishedEvent:
+			case runtime.FinishedEvent:
 				step.delegate.Finished(logger, ExitStatus(ev.ExitStatus))
-
-			default:
-				return
 			}
 		}
 	}(logger, config, events, step.delegate)
