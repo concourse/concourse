@@ -433,6 +433,9 @@ h3 {
 .timeline-container .topic-timeline .timeline-handle {
   background-color: #9b9b9b;
 }
+.timeline-container .topic-timeline .timeline-footer-controls {
+  justify-content: flex-end;
+}
 .timeline-container .topic-timeline .timeline-controls button,
 .timeline-container .topic-timeline .timeline-footer-controls button {
   margin-right: 0;
