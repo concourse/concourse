@@ -1,0 +1,444 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  min-height: 100vh;
+}
+body {
+  font-family: 'Barlow', Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: #2a2929;
+  background: white;
+  width: 100%;
+  display: grid;
+  grid-template-rows: 80px auto;
+  grid-template-columns: 2fr 5fr 3fr;
+  grid-template-areas: "logo primary-nav search" "secondary-nav content aside";
+}
+a {
+  color: #2d76cc;
+}
+a:hover {
+  color: #4a90e2;
+}
+a:visited {
+  color: #7a7373;
+}
+a:hover {
+  text-decoration: underline;
+}
+code,
+pre {
+  font-family: 'Iosevka', monospace;
+}
+pre {
+  background: #efeeee;
+  color: #3d3c3c;
+  padding: 0.5rem;
+  overflow-x: auto;
+  /* kind of a hack tbh but happens to make various code samples fit better
+   * narrow spaces like the examples pane and front page */
+  font-size: 0.9em;
+}
+p,
+pre,
+.highlight,
+ul,
+ol,
+dl,
+iframe {
+  margin: 0 0 1.5em;
+}
+dd,
+li {
+  margin-bottom: 1em;
+}
+p:first-child,
+pre:first-child {
+  margin-top: 0;
+}
+p:last-child,
+pre:last-child {
+  margin-bottom: 0;
+}
+li:last-child,
+dd:last-child {
+  margin-bottom: 0;
+}
+dt code,
+p code {
+  font-size: 0.9em;
+}
+code code {
+  font-size: 1em;
+}
+table,
+tr,
+td {
+  padding: 0;
+  border-collapse: collapse;
+}
+h1 code,
+h2 code,
+h3 code {
+  font-weight: 600;
+  font-size: 0.9em;
+}
+nav ul {
+  list-style-type: none;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Roboto Slab', serif;
+  font-weight: normal;
+}
+h1 {
+  font-size: 32px;
+  margin-top: 0;
+  font-weight: 500;
+}
+h2 {
+  font-size: 24px;
+  font-weight: 500;
+}
+h3 {
+  font-size: 20px;
+}
+h2,
+h3 {
+  margin: 2rem 0 0.8rem;
+}
+.top-logo {
+  grid-area: logo;
+}
+.top-nav {
+  grid-area: primary-nav;
+}
+.top-search {
+  grid-area: search;
+}
+.page-nav {
+  grid-area: secondary-nav;
+}
+.page-content {
+  grid-area: content;
+}
+.page-aside {
+  grid-area: aside;
+}
+.top-logo,
+.top-nav,
+.top-search {
+  background: #3398dc;
+  color: white;
+  font-family: 'Roboto Slab', serif;
+  line-height: 80px;
+}
+.page-nav,
+.page-partial {
+  padding: 30px;
+}
+.page-partial h2 {
+  margin-top: 0;
+}
+.page-content {
+  background: white;
+  padding: 70px;
+  position: relative;
+  min-width: 300px;
+}
+.top-nav {
+  position: relative;
+  white-space: nowrap;
+}
+.top-logo a {
+  color: white;
+  margin: 0;
+  font-size: 22px;
+  padding: 0 50px 0 80px;
+  line-height: 80px;
+  display: inline-block;
+  vertical-align: top;
+  text-decoration: none;
+  position: relative;
+}
+.top-logo img {
+  width: 40px;
+  height: 40px;
+  vertical-align: middle;
+  position: absolute;
+  top: 18px;
+  left: 17px;
+}
+.top-logo a:visited {
+  color: white;
+}
+.top-link {
+  color: white;
+  font-size: 16px;
+  text-transform: lowercase;
+  line-height: 80px;
+  display: inline-block;
+  padding: 0 25px;
+}
+.top-link,
+.top-link:visited {
+  color: white;
+  text-decoration: none;
+}
+.top-link:hover {
+  color: white;
+  text-decoration: underline;
+}
+.top-link.active {
+  background: white;
+  color: #2a2929;
+  text-decoration: underline;
+}
+.icon-link {
+  background-repeat: no-repeat;
+  background-size: 22px 22px;
+  background-position: 20px 30px;
+  padding-left: 54px;
+}
+/* shoutout to hashicorp who i've pretty much copied this from */
+.download-link {
+  background-image: url("../images/icons/arrow-down-box.svg");
+}
+.github-link {
+  background-image: url("../images/icons/github-box.svg");
+}
+.page-nav {
+  font-family: 'Roboto Slab', serif;
+  font-size: 14px;
+}
+.page-content ul,
+.page-content ol,
+.page-content dl {
+  padding-left: 30px;
+}
+.page-content code {
+  background: rgba(30, 29, 29, 0.07);
+  padding: 3px;
+  border-radius: 5px;
+}
+.page-content pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+.page-content code code,
+.definition-thumb code {
+  border: 0;
+  padding: 0;
+}
+.page-content a code {
+  color: #3d3c3c;
+}
+.page-content a:hover code {
+  color: #5a5555;
+}
+.page-content a:hover code strong {
+  text-decoration: underline;
+}
+.page-content table {
+  margin-bottom: 1em;
+}
+.page-content tr:first-child {
+  font-family: 'Roboto Slab', serif;
+  font-weight: 500;
+  border-bottom: 2px solid black;
+}
+.page-content td {
+  padding: 0.3em 1em 0.3em 0;
+}
+.page-content td:last-child {
+  padding-right: 0;
+}
+body {
+  background: #f6f5f5;
+  grid-template-columns: 2fr 4fr 2fr;
+}
+.post-meta {
+  color: #5a5555;
+}
+.post-meta a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid #e6e5e5;
+}
+.post-meta a:hover {
+  color: #4a90e2;
+  border-color: #4a90e2;
+}
+.post-content {
+  font-size: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.post-content blockquote,
+.post-content dl,
+.post-content h1,
+.post-content h2,
+.post-content h3,
+.post-content h4,
+.post-content h5,
+.post-content h6,
+.post-content ol,
+.post-content p,
+.post-content pre,
+.post-content ul {
+  min-width: 100%;
+}
+.post-content h1 {
+  margin-top: 1.5em;
+}
+.post-content h3 {
+  font-size: initial;
+}
+.post-content p:first-child {
+  font-size: 1.25em;
+  line-height: 1.5em;
+}
+.post-content a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid #4a90e2;
+}
+.post-content a:hover {
+  color: #4a90e2;
+}
+.post-title {
+  margin: 0;
+}
+.post-title a {
+  text-decoration: none;
+  color: #2a2929;
+}
+.posts-title {
+  border-top: 4px solid #5a5555;
+  padding-top: 10px;
+  color: #5a5555;
+}
+.posts .post {
+  margin-bottom: 4em;
+}
+.posts .post-title {
+  margin-top: 0;
+}
+.posts .post-header {
+  margin-bottom: 1em;
+}
+.posts .post-title {
+  border: 0;
+  padding: 0;
+}
+.post-template .post-header {
+  margin-bottom: 2em;
+}
+.post-template .post-title {
+  font-size: 40px;
+}
+.pagination {
+  margin-top: 2em;
+}
+.author-image {
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  vertical-align: middle;
+  margin-top: -1px;
+  margin-right: 4px;
+}
+h1 .author-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  margin-top: -5px;
+}
+.posts .author-image {
+  width: 20px;
+  height: 20px;
+  margin-right: 2px;
+  margin-top: 0;
+}
+.kg-image-card {
+  margin: 2em 0;
+}
+.kg-image-card.kg-width-wide {
+  max-width: 48em !important;
+  min-width: 100%;
+  width: 75vw;
+}
+.kg-image-card.kg-width-full {
+  max-width: none;
+  width: 98vw;
+  margin-top: 2em;
+}
+.kg-gallery-card {
+  margin: 0 0 2em;
+  max-width: 48em !important;
+  min-width: 100%;
+  width: 75vw;
+}
+.kg-image-card img,
+.kg-gallery-card img {
+  max-width: 100%;
+}
+.kg-image-card figcaption,
+.kg-gallery-card figcaption {
+  color: #5a5555;
+  text-align: center;
+  max-width: 32em;
+  margin: auto;
+  font-size: 0.9em;
+  line-height: 1.25em;
+  padding: 0.66666em 0;
+}
+.kg-image-card .kg-image-full + figcaption,
+.kg-gallery-card .kg-image-full + figcaption {
+  margin-bottom: 1.33333em;
+}
+.kg-gallery-container {
+  display: flex;
+  flex-direction: column;
+}
+.kg-gallery-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+.kg-gallery-image img {
+  display: block;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+.kg-gallery-row:not(:first-of-type) {
+  margin: 0.75em 0 0 0;
+}
+.kg-gallery-image:not(:first-of-type) {
+  margin: 0 0 0 0.75em;
+}
+.kg-embed-card {
+  margin: 0 0 2em;
+}
+.kg-embed-card > * {
+  margin-left: auto;
+  margin-right: auto;
+}
+.kg-code-card {
+  min-width: 100%;
+  margin: 0 0 2em;
+}
+.kg-code-card pre {
+  margin: 0;
+}

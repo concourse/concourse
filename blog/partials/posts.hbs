@@ -1,0 +1,13 @@
+{{#foreach posts}}
+
+<article class="{{post_class}}">
+  <header class="post-header">
+    <h2 class="post-title"><a href="{{url}}">{{{title}}}</a></h2>
+    {{> "post-meta"}}
+  </header>
+  {{excerpt}}
+</article>
+
+{{/foreach}}
+
+{{pagination}}

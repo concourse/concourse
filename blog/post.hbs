@@ -1,0 +1,31 @@
+{{!< default}}
+
+{{#post}}
+
+<article class="{{post_class}}">
+  <header class="post-header">
+    <h1 class="post-title"><a href="{{url}}">{{{title}}}</a></h1>
+    {{> "post-meta"}}
+  </header>
+
+  <section class="post-content">
+    {{content}}
+  </section>
+
+  <section class="post-comments">
+    <div id='discourse-comments'></div>
+
+    <script type="text/javascript">
+      DiscourseEmbed = { discourseUrl: 'https://discuss.concourse-ci.org/',
+                         discourseEmbedUrl: '{{url absolute="true"}}' };
+
+      (function() {
+        var d = document.createElement('script'); d.type = 'text/javascript'; d.async = true;
+        d.src = DiscourseEmbed.discourseUrl + 'javascripts/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(d);
+      })();
+    </script>
+  </section>
+</article>
+
+{{/post}}

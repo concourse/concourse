@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-60508041-1"></script>
+
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-60508041-1');
+    </script>
+
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=775" />
+    <title>{{meta_title}}</title>
+    <link rel="stylesheet" type="text/css" href="{{asset "css/normalize.css"}}" />
+    <link rel="stylesheet" type="text/css" href="{{asset "css/iosevka.css"}}" />
+    <link rel="stylesheet" type="text/css" href="{{asset "css/blog.css"}}" />
+    <link href="https://fonts.googleapis.com/css?family=Barlow:400,400i,700|Roboto+Slab:300,400,700" rel="stylesheet" />
+    {{ghost_head}}
+  </head>
+  <body class="{{body_class}}">
+    <div class="top-logo">
+      <a href="https://concourse-ci.org"><img src="{{asset "images/logo-white.svg"}}" />Concourse</a>
+    </div>
+
+    <nav class="top-nav">
+      <a class="top-link" href="https://concourse-ci.org/docs.html">docs</a>
+      <a class="top-link" href="https://concourse-ci.org/examples.html">examples</a>
+      <a class="top-link" href="https://concourse-ci.org/project.html">project</a>
+      <a class="top-link active" href="/">blog</a>
+      <a class="top-link icon-link github-link" href="https://github.com/concourse/concourse/wiki">wiki</a>
+      <a class="top-link icon-link download-link" href="https://github.com/concourse/concourse/releases/latest">download</a>
+    </nav>
+
+    <div class="top-search">
+    </div>
+
+    <div class="page-nav">
+    </div>
+
+    <div class="page-aside">
+    </div>
+
+    <div class="page-content">
+      {{{body}}}
+    </div>
+
+
+    {{ghost_foot}}
+  </body>
+</html>
