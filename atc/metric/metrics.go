@@ -153,6 +153,27 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 	)
 }
 
+type WorkerTasks struct {
+	WorkerName string
+	Platform   string
+	Tasks      int
+}
+
+func (event WorkerTasks) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("worker-tasks"),
+		Event{
+			Name:  "worker tasks",
+			Value: event.Tasks,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"worker":   event.WorkerName,
+				"platform": event.Platform,
+			},
+		},
+	)
+}
+
 type VolumesToBeGarbageCollected struct {
 	Volumes int
 }

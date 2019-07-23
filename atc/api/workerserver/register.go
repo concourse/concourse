@@ -75,6 +75,12 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		Platform:   registration.Platform,
 	}.Emit(s.logger)
 
+	metric.WorkerTasks{
+		WorkerName: registration.Name,
+		Tasks:      registration.ActiveTasks,
+		Platform:   registration.Platform,
+	}.Emit(s.logger)
+
 	if registration.Team != "" {
 		team, found, err := s.teamFactory.FindTeam(registration.Team)
 		if err != nil {
