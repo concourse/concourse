@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
@@ -72,6 +73,7 @@ type TaskStep struct {
 	strategy          worker.ContainerPlacementStrategy
 	workerClient      worker.Client
 	delegate          TaskDelegate
+	lockFactory       lock.LockFactory
 	succeeded         bool
 }
 
@@ -85,6 +87,7 @@ func NewTaskStep(
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
 	delegate TaskDelegate,
+	lockFactory lock.LockFactory,
 ) Step {
 	return &TaskStep{
 		planID:            planID,
@@ -96,6 +99,7 @@ func NewTaskStep(
 		strategy:          strategy,
 		workerClient:      workerClient,
 		delegate:          delegate,
+		lockFactory:       lockFactory,
 	}
 }
 
@@ -222,6 +226,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	result := step.workerClient.RunTaskStep(
 		ctx,
 		logger,
+		step.lockFactory,
 		owner,
 		containerSpec,
 		workerSpec,

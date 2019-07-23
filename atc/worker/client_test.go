@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/onsi/gomega/gbytes"
@@ -28,6 +29,7 @@ var _ = Describe("Client", func() {
 		fakePool     *workerfakes.FakePool
 		fakeProvider *workerfakes.FakeWorkerProvider
 		client       worker.Client
+		fakeLockFactory *lockfakes.FakeLockFactory
 	)
 
 	BeforeEach(func() {
@@ -233,6 +235,7 @@ var _ = Describe("Client", func() {
 			taskResult := client.RunTaskStep(
 				ctx,
 				logger,
+				fakeLockFactory,
 				fakeContainerOwner,
 				fakeContainerSpec,
 				fakeWorkerSpec,
@@ -305,6 +308,21 @@ var _ = Describe("Client", func() {
 			fakeWorker.SatisfiesReturns(true)
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
+			fakeWorker.IncreaseActiveTasksStub = func() error {
+				fakeWorker.ActiveTasksReturns(1, nil)
+				return nil
+			}
+
+			fakeWorker.DecreaseActiveTasksStub = func() error {
+				fakeWorker.ActiveTasksReturns(0, nil)
+				return nil
+			}
+
+			fakeLock := new(lockfakes.FakeLock)
+
+			fakeLockFactory = new(lockfakes.FakeLockFactory)
+			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
+
 			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 			eventChan = make(chan runtime.Event, 1)
 			ctx, cancel = context.WithCancel(context.Background())
@@ -319,6 +337,21 @@ var _ = Describe("Client", func() {
 			It("chooses a worker", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+			})
+
+			Context("when 'limit-active-tasks' strategy is chosen and a worker found", func() {
+				BeforeEach(func() {
+					fakeWorker.NameReturns("some-worker")
+					fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
+
+					fakeContainer := new(workerfakes.FakeContainer)
+					fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+
+					fakeStrategy.ModifiesActiveTasksReturns(true)
+				})
+				It("increase the active tasks on the worker", func() {
+					Expect(fakeWorker.IncreaseActiveTasksCallCount()).To(Equal(1))
+				})
 			})
 
 			Context("when finding or choosing the worker fails", func() {
@@ -366,6 +399,16 @@ var _ = Describe("Client", func() {
 			It("returns result of container process", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(status).To(Equal(8))
+			})
+
+			Context("when 'limit-active-tasks' strategy is chosen", func() {
+				BeforeEach(func() {
+					fakeStrategy.ModifiesActiveTasksReturns(true)
+				})
+
+				It("decrements the active tasks counter on the worker", func() {
+					Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+				})
 			})
 
 			Context("when volumes are configured and present on the container", func() {
@@ -538,6 +581,16 @@ var _ = Describe("Client", func() {
 							Expect(err).To(Equal(context.Canceled))
 						})
 					})
+
+					Context("when 'limit-active-tasks' strategy is chosen", func() {
+						BeforeEach(func() {
+							fakeStrategy.ModifiesActiveTasksReturns(true)
+						})
+
+						It("decrements the active tasks counter on the worker", func() {
+							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+						})
+					})
 				})
 
 				Context("when the process exits successfully", func() {
@@ -566,6 +619,16 @@ var _ = Describe("Client", func() {
 							},
 						))
 					})
+
+					Context("when 'limit-active-tasks' strategy is chosen", func() {
+						BeforeEach(func() {
+							fakeStrategy.ModifiesActiveTasksReturns(true)
+						})
+
+						It("decrements the active tasks counter on the worker", func() {
+							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+						})
+					})
 				})
 
 				Context("when the process exits with an error", func() {
@@ -582,6 +645,16 @@ var _ = Describe("Client", func() {
 
 					It("returns no volume mounts", func() {
 						Expect(volumeMounts).To(BeEmpty())
+					})
+
+					Context("when 'limit-active-tasks' strategy is chosen", func() {
+						BeforeEach(func() {
+							fakeStrategy.ModifiesActiveTasksReturns(true)
+						})
+
+						It("decrements the active tasks counter on the worker", func() {
+							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+						})
 					})
 				})
 			})
@@ -703,6 +776,7 @@ var _ = Describe("Client", func() {
 							Expect(err).To(Equal(disaster))
 						})
 					})
+
 					Context("when volumes are configured and present on the container", func() {
 						var (
 							fakeMountPath1 string = "some-artifact-root/some-output-configured-path/"
@@ -756,6 +830,16 @@ var _ = Describe("Client", func() {
 						})
 
 					})
+
+					Context("when 'limit-active-tasks' strategy is chosen", func() {
+						BeforeEach(func() {
+							fakeStrategy.ModifiesActiveTasksReturns(true)
+						})
+
+						It("decrements the active tasks counter on the worker", func() {
+							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+						})
+					})
 				})
 
 				Context("when the process exits on failure", func() {
@@ -805,6 +889,7 @@ var _ = Describe("Client", func() {
 							Expect(err).To(Equal(disaster))
 						})
 					})
+
 					It("returns all the volume mounts", func() {
 						Expect(volumeMounts).To(ConsistOf(
 							worker.VolumeMount{
@@ -821,6 +906,16 @@ var _ = Describe("Client", func() {
 							},
 						))
 					})
+
+					Context("when 'limit-active-tasks' strategy is chosen", func() {
+						BeforeEach(func() {
+							fakeStrategy.ModifiesActiveTasksReturns(true)
+						})
+
+						It("decrements the active tasks counter on the worker", func() {
+							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+						})
+					})
 				})
 
 				Context("when running the container fails with an error", func() {
@@ -832,6 +927,16 @@ var _ = Describe("Client", func() {
 
 					It("returns the error", func() {
 						Expect(err).To(Equal(disaster))
+					})
+
+					Context("when 'limit-active-tasks' strategy is chosen", func() {
+						BeforeEach(func() {
+							fakeStrategy.ModifiesActiveTasksReturns(true)
+						})
+
+						It("decrements the active tasks counter on the worker", func() {
+							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
+						})
 					})
 				})
 			})

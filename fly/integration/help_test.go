@@ -43,4 +43,17 @@ var _ = Describe("Fly CLI", func() {
 			Expect(sess.Out).To(gbytes.Say("Available commands:"))
 		})
 	})
+
+	Context("when invoking a subcommand with -h flag", func() {
+		It("prints help for the given subcommand", func() {
+			flyCmd := exec.Command(flyPath, "completion", "-h")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+			Expect(sess.Out).To(gbytes.Say("completion command options"))
+		})
+	})
 })

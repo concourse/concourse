@@ -18,6 +18,10 @@ func Worker(workerInfo db.Worker) atc.Worker {
 	if workerInfo.Version() != nil {
 		version = *workerInfo.Version()
 	}
+	activeTasks, err := workerInfo.ActiveTasks()
+	if err != nil {
+		activeTasks = 0
+	}
 
 	return atc.Worker{
 		GardenAddr:       gardenAddr,
@@ -27,6 +31,7 @@ func Worker(workerInfo db.Worker) atc.Worker {
 		NoProxy:          workerInfo.NoProxy(),
 		ActiveContainers: workerInfo.ActiveContainers(),
 		ActiveVolumes:    workerInfo.ActiveVolumes(),
+		ActiveTasks:      activeTasks,
 		ResourceTypes:    workerInfo.ResourceTypes(),
 		Platform:         workerInfo.Platform(),
 		Tags:             workerInfo.Tags(),

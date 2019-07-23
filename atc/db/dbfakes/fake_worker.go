@@ -20,6 +20,18 @@ type FakeWorker struct {
 	activeContainersReturnsOnCall map[int]struct {
 		result1 int
 	}
+	ActiveTasksStub        func() (int, error)
+	activeTasksMutex       sync.RWMutex
+	activeTasksArgsForCall []struct {
+	}
+	activeTasksReturns struct {
+		result1 int
+		result2 error
+	}
+	activeTasksReturnsOnCall map[int]struct {
+		result1 int
+		result2 error
+	}
 	ActiveVolumesStub        func() int
 	activeVolumesMutex       sync.RWMutex
 	activeVolumesArgsForCall []struct {
@@ -63,6 +75,16 @@ type FakeWorker struct {
 	createContainerReturnsOnCall map[int]struct {
 		result1 db.CreatingContainer
 		result2 error
+	}
+	DecreaseActiveTasksStub        func() error
+	decreaseActiveTasksMutex       sync.RWMutex
+	decreaseActiveTasksArgsForCall []struct {
+	}
+	decreaseActiveTasksReturns struct {
+		result1 error
+	}
+	decreaseActiveTasksReturnsOnCall map[int]struct {
+		result1 error
 	}
 	DeleteStub        func() error
 	deleteMutex       sync.RWMutex
@@ -138,6 +160,16 @@ type FakeWorker struct {
 	}
 	hTTPSProxyURLReturnsOnCall map[int]struct {
 		result1 string
+	}
+	IncreaseActiveTasksStub        func() error
+	increaseActiveTasksMutex       sync.RWMutex
+	increaseActiveTasksArgsForCall []struct {
+	}
+	increaseActiveTasksReturns struct {
+		result1 error
+	}
+	increaseActiveTasksReturnsOnCall map[int]struct {
+		result1 error
 	}
 	LandStub        func() error
 	landMutex       sync.RWMutex
@@ -349,6 +381,61 @@ func (fake *FakeWorker) ActiveContainersReturnsOnCall(i int, result1 int) {
 	fake.activeContainersReturnsOnCall[i] = struct {
 		result1 int
 	}{result1}
+}
+
+func (fake *FakeWorker) ActiveTasks() (int, error) {
+	fake.activeTasksMutex.Lock()
+	ret, specificReturn := fake.activeTasksReturnsOnCall[len(fake.activeTasksArgsForCall)]
+	fake.activeTasksArgsForCall = append(fake.activeTasksArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ActiveTasks", []interface{}{})
+	fake.activeTasksMutex.Unlock()
+	if fake.ActiveTasksStub != nil {
+		return fake.ActiveTasksStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.activeTasksReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeWorker) ActiveTasksCallCount() int {
+	fake.activeTasksMutex.RLock()
+	defer fake.activeTasksMutex.RUnlock()
+	return len(fake.activeTasksArgsForCall)
+}
+
+func (fake *FakeWorker) ActiveTasksCalls(stub func() (int, error)) {
+	fake.activeTasksMutex.Lock()
+	defer fake.activeTasksMutex.Unlock()
+	fake.ActiveTasksStub = stub
+}
+
+func (fake *FakeWorker) ActiveTasksReturns(result1 int, result2 error) {
+	fake.activeTasksMutex.Lock()
+	defer fake.activeTasksMutex.Unlock()
+	fake.ActiveTasksStub = nil
+	fake.activeTasksReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorker) ActiveTasksReturnsOnCall(i int, result1 int, result2 error) {
+	fake.activeTasksMutex.Lock()
+	defer fake.activeTasksMutex.Unlock()
+	fake.ActiveTasksStub = nil
+	if fake.activeTasksReturnsOnCall == nil {
+		fake.activeTasksReturnsOnCall = make(map[int]struct {
+			result1 int
+			result2 error
+		})
+	}
+	fake.activeTasksReturnsOnCall[i] = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeWorker) ActiveVolumes() int {
@@ -569,6 +656,58 @@ func (fake *FakeWorker) CreateContainerReturnsOnCall(i int, result1 db.CreatingC
 		result1 db.CreatingContainer
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeWorker) DecreaseActiveTasks() error {
+	fake.decreaseActiveTasksMutex.Lock()
+	ret, specificReturn := fake.decreaseActiveTasksReturnsOnCall[len(fake.decreaseActiveTasksArgsForCall)]
+	fake.decreaseActiveTasksArgsForCall = append(fake.decreaseActiveTasksArgsForCall, struct {
+	}{})
+	fake.recordInvocation("DecreaseActiveTasks", []interface{}{})
+	fake.decreaseActiveTasksMutex.Unlock()
+	if fake.DecreaseActiveTasksStub != nil {
+		return fake.DecreaseActiveTasksStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.decreaseActiveTasksReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) DecreaseActiveTasksCallCount() int {
+	fake.decreaseActiveTasksMutex.RLock()
+	defer fake.decreaseActiveTasksMutex.RUnlock()
+	return len(fake.decreaseActiveTasksArgsForCall)
+}
+
+func (fake *FakeWorker) DecreaseActiveTasksCalls(stub func() error) {
+	fake.decreaseActiveTasksMutex.Lock()
+	defer fake.decreaseActiveTasksMutex.Unlock()
+	fake.DecreaseActiveTasksStub = stub
+}
+
+func (fake *FakeWorker) DecreaseActiveTasksReturns(result1 error) {
+	fake.decreaseActiveTasksMutex.Lock()
+	defer fake.decreaseActiveTasksMutex.Unlock()
+	fake.DecreaseActiveTasksStub = nil
+	fake.decreaseActiveTasksReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorker) DecreaseActiveTasksReturnsOnCall(i int, result1 error) {
+	fake.decreaseActiveTasksMutex.Lock()
+	defer fake.decreaseActiveTasksMutex.Unlock()
+	fake.DecreaseActiveTasksStub = nil
+	if fake.decreaseActiveTasksReturnsOnCall == nil {
+		fake.decreaseActiveTasksReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.decreaseActiveTasksReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeWorker) Delete() error {
@@ -946,6 +1085,58 @@ func (fake *FakeWorker) HTTPSProxyURLReturnsOnCall(i int, result1 string) {
 	}
 	fake.hTTPSProxyURLReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeWorker) IncreaseActiveTasks() error {
+	fake.increaseActiveTasksMutex.Lock()
+	ret, specificReturn := fake.increaseActiveTasksReturnsOnCall[len(fake.increaseActiveTasksArgsForCall)]
+	fake.increaseActiveTasksArgsForCall = append(fake.increaseActiveTasksArgsForCall, struct {
+	}{})
+	fake.recordInvocation("IncreaseActiveTasks", []interface{}{})
+	fake.increaseActiveTasksMutex.Unlock()
+	if fake.IncreaseActiveTasksStub != nil {
+		return fake.IncreaseActiveTasksStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.increaseActiveTasksReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) IncreaseActiveTasksCallCount() int {
+	fake.increaseActiveTasksMutex.RLock()
+	defer fake.increaseActiveTasksMutex.RUnlock()
+	return len(fake.increaseActiveTasksArgsForCall)
+}
+
+func (fake *FakeWorker) IncreaseActiveTasksCalls(stub func() error) {
+	fake.increaseActiveTasksMutex.Lock()
+	defer fake.increaseActiveTasksMutex.Unlock()
+	fake.IncreaseActiveTasksStub = stub
+}
+
+func (fake *FakeWorker) IncreaseActiveTasksReturns(result1 error) {
+	fake.increaseActiveTasksMutex.Lock()
+	defer fake.increaseActiveTasksMutex.Unlock()
+	fake.IncreaseActiveTasksStub = nil
+	fake.increaseActiveTasksReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorker) IncreaseActiveTasksReturnsOnCall(i int, result1 error) {
+	fake.increaseActiveTasksMutex.Lock()
+	defer fake.increaseActiveTasksMutex.Unlock()
+	fake.IncreaseActiveTasksStub = nil
+	if fake.increaseActiveTasksReturnsOnCall == nil {
+		fake.increaseActiveTasksReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.increaseActiveTasksReturnsOnCall[i] = struct {
+		result1 error
 	}{result1}
 }
 
@@ -1743,6 +1934,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.activeContainersMutex.RLock()
 	defer fake.activeContainersMutex.RUnlock()
+	fake.activeTasksMutex.RLock()
+	defer fake.activeTasksMutex.RUnlock()
 	fake.activeVolumesMutex.RLock()
 	defer fake.activeVolumesMutex.RUnlock()
 	fake.baggageclaimURLMutex.RLock()
@@ -1751,6 +1944,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.certsPathMutex.RUnlock()
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
+	fake.decreaseActiveTasksMutex.RLock()
+	defer fake.decreaseActiveTasksMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	fake.ephemeralMutex.RLock()
@@ -1765,6 +1960,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.hTTPProxyURLMutex.RUnlock()
 	fake.hTTPSProxyURLMutex.RLock()
 	defer fake.hTTPSProxyURLMutex.RUnlock()
+	fake.increaseActiveTasksMutex.RLock()
+	defer fake.increaseActiveTasksMutex.RUnlock()
 	fake.landMutex.RLock()
 	defer fake.landMutex.RUnlock()
 	fake.nameMutex.RLock()

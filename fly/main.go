@@ -68,7 +68,8 @@ func handleError(helpParser *flags.Parser, err error) {
 		} else if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrCommandRequired {
 			showHelp(helpParser)
 		} else if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
-			showHelp(helpParser)
+			fmt.Println(err)
+			os.Exit(0)
 		} else {
 			fmt.Fprintf(ui.Stderr, "error: %s\n", err)
 		}
