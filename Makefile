@@ -25,5 +25,5 @@ discourse/common/common.scss: less/discourse.less less/*.less
 blog/concourse.zip: blog/package.json blog/*.hbs css/*.css images/* blog/partials/*.hbs
 	cp css/*.css blog/assets/css/
 	cp -r images/* blog/assets/images/
-	gscan ./blog
+	yarn run gscan ./blog
 	cd blog && zip -r concourse.zip package.json *.hbs assets partials
