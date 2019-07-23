@@ -11,6 +11,8 @@ blog/assets/css/*
 blog/assets/images/*
 !blog/assets/images/.gitkeep
 
+!discourse/*/*.html
+
 ### Node ###
 node_modules
 yarn-error.log
