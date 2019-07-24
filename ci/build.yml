@@ -17,6 +17,7 @@ outputs:
 
 params:
   ANALYTICS_ID:
+  GITHUB_TOKEN:
 
 run:
   path: docs/ci/build
