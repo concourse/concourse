@@ -506,3 +506,8 @@ h3 {
 .btn .d-icon {
   transition: none;
 }
+body:before,
+body:after,
+#svg-sprites {
+  display: none;
+}
