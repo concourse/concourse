@@ -326,10 +326,17 @@ a:visited {
 .d-header > .wrap {
   width: 100%;
   margin: 0;
-  padding: 8px;
+}
+.d-header #site-logo {
+  width: 64px;
+  height: 64px;
+}
+.d-header .extra-info-wrapper {
+  padding-left: 0;
 }
 .d-header .d-header-icons {
   height: 40px;
+  margin-right: 10px;
 }
 .d-header .d-header-icons .icon {
   margin-left: 8px;
