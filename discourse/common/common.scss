@@ -265,6 +265,9 @@ h3 {
 body {
   background: #f6f5f5;
 }
+li {
+  margin-bottom: 0;
+}
 @media (max-width: 925px) {
   body {
     grid-template-columns: 5fr 2fr;
@@ -498,9 +501,6 @@ h3 {
 .timeline-container .topic-timeline .timeline-controls .popup-menu .btn:hover .d-icon,
 .timeline-container .topic-timeline .timeline-footer-controls .popup-menu .btn:hover .d-icon {
   color: #3d3c3c;
-}
-.menu-links li {
-  margin-bottom: 0;
 }
 .btn,
 .btn .d-icon {
