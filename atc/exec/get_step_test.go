@@ -19,11 +19,12 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
@@ -46,7 +47,7 @@ var _ = Describe("GetStep", func() {
 		fakeVersionedSource       *resourcefakes.FakeVersionedSource
 		interpolatedResourceTypes atc.VersionedResourceTypes
 
-		artifactRepository *artifact.Repository
+		artifactRepository *build.Repository
 		state              *execfakes.FakeRunState
 
 		getStep exec.Step
@@ -86,7 +87,7 @@ var _ = Describe("GetStep", func() {
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 
-		artifactRepository = artifact.NewRepository()
+		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(artifactRepository)
 
@@ -410,7 +411,7 @@ var _ = Describe("GetStep", func() {
 						Context("but the stream is empty", func() {
 							It("returns ErrFileNotFound", func() {
 								_, err := artifactSource.StreamFile(context.TODO(), testLogger, "some-path")
-								Expect(err).To(MatchError(exec.FileNotFoundError{Path: "some-path"}))
+								Expect(err).To(MatchError(runtime.FileNotFoundError{Path: "some-path"}))
 							})
 						})
 					})

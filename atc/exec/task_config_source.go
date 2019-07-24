@@ -12,7 +12,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 	"sigs.k8s.io/yaml"
 )
@@ -23,7 +24,7 @@ import (
 type TaskConfigSource interface {
 	// FetchConfig returns the TaskConfig, and may have to a task config file out
 	// of the artifact.Repository.
-	FetchConfig(context.Context, lager.Logger, *artifact.Repository) (atc.TaskConfig, error)
+	FetchConfig(context.Context, lager.Logger, *build.Repository) (atc.TaskConfig, error)
 	Warnings() []string
 }
 
@@ -33,7 +34,7 @@ type StaticConfigSource struct {
 }
 
 // FetchConfig returns the configuration.
-func (configSource StaticConfigSource) FetchConfig(context.Context, lager.Logger, *artifact.Repository) (atc.TaskConfig, error) {
+func (configSource StaticConfigSource) FetchConfig(context.Context, lager.Logger, *build.Repository) (atc.TaskConfig, error) {
 	taskConfig := atc.TaskConfig{}
 	if configSource.Config != nil {
 		taskConfig = *configSource.Config
@@ -49,6 +50,7 @@ func (configSource StaticConfigSource) Warnings() []string {
 // be fetched from a specified file in the artifact.Repository.
 type FileConfigSource struct {
 	ConfigPath string
+	Client     worker.Client
 }
 
 // FetchConfig reads the specified file from the artifact.Repository and loads the
@@ -66,23 +68,20 @@ type FileConfigSource struct {
 //
 // If the task config file is not found, or is invalid YAML, or is an invalid
 // task configuration, the respective errors will be bubbled up.
-func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, repo *artifact.Repository) (atc.TaskConfig, error) {
+func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, repo *build.Repository) (atc.TaskConfig, error) {
 	segs := strings.SplitN(configSource.ConfigPath, "/", 2)
 	if len(segs) != 2 {
 		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.ConfigPath}
 	}
 
-	sourceName := artifact.Name(segs[0])
+	sourceName := build.ArtifactName(segs[0])
 	filePath := segs[1]
 
-	source, found := repo.SourceFor(sourceName)
+	artifact, found := repo.ArtifactFor(sourceName)
 	if !found {
 		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
 	}
-
-	// This context is not passed down yet because it would pollute the
-	// TaskConfigSource Interface as all the FetchConfigs will be need to have this passed in.
-	stream, err := source.StreamFile(ctx, logger, filePath)
+	stream, err := configSource.Client.StreamFileFromArtifact(ctx, logger, artifact, filePath)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {
 			return atc.TaskConfig{}, fmt.Errorf("task config '%s/%s' not found", sourceName, filePath)
@@ -118,7 +117,7 @@ type OverrideParamsConfigSource struct {
 
 // FetchConfig overrides parameters, allowing the user to set params required by a task loaded
 // from a file by providing them in static configuration.
-func (configSource *OverrideParamsConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, source *artifact.Repository) (atc.TaskConfig, error) {
+func (configSource *OverrideParamsConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, source *build.Repository) (atc.TaskConfig, error) {
 	taskConfig, err := configSource.ConfigSource.FetchConfig(ctx, logger, source)
 	if err != nil {
 		return atc.TaskConfig{}, err
@@ -165,7 +164,7 @@ type InterpolateTemplateConfigSource struct {
 }
 
 // FetchConfig returns the interpolated configuration
-func (configSource InterpolateTemplateConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, source *artifact.Repository) (atc.TaskConfig, error) {
+func (configSource InterpolateTemplateConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, source *build.Repository) (atc.TaskConfig, error) {
 	taskConfig, err := configSource.ConfigSource.FetchConfig(ctx, logger, source)
 	if err != nil {
 		return atc.TaskConfig{}, err
@@ -202,7 +201,7 @@ type ValidatingConfigSource struct {
 
 // FetchConfig fetches the config using the underlying ConfigSource, and checks
 // that it's valid.
-func (configSource ValidatingConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, source *artifact.Repository) (atc.TaskConfig, error) {
+func (configSource ValidatingConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, source *build.Repository) (atc.TaskConfig, error) {
 	config, err := configSource.ConfigSource.FetchConfig(ctx, logger, source)
 	if err != nil {
 		return atc.TaskConfig{}, err
@@ -219,10 +218,10 @@ func (configSource ValidatingConfigSource) Warnings() []string {
 	return configSource.ConfigSource.Warnings()
 }
 
-// UnknownArtifactSourceError is returned when the artifact.Name specified by the
+// UnknownArtifactSourceError is returned when the artifact.ArtifactName specified by the
 // path does not exist in the artifact.Repository.
 type UnknownArtifactSourceError struct {
-	SourceName artifact.Name
+	SourceName build.ArtifactName
 	ConfigPath string
 }
 

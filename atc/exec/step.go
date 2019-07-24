@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 )
 
 //go:generate counterfeiter . Step
@@ -36,17 +36,10 @@ type BuildOutputFilter func(text string) string
 //go:generate counterfeiter . RunState
 
 type RunState interface {
-	Artifacts() *artifact.Repository
+	ArtifactRepository() *build.Repository
 
 	Result(atc.PlanID, interface{}) bool
 	StoreResult(atc.PlanID, interface{})
-}
-
-// VersionInfo is the version and metadata of a resource that was fetched or
-// produced. It is used by Put and Get.
-type VersionInfo struct {
-	Version  atc.Version
-	Metadata []atc.MetadataField
 }
 
 // ExitStatus is the resulting exit code from the process that the step ran.

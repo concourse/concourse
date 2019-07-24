@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/fetcher"
 	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -219,11 +218,11 @@ var _ = Describe("Image", func() {
 
 					Context("when fetching resource fails", func() {
 						BeforeEach(func() {
-							fakeResourceFetcher.FetchReturns(nil, fetcher.ErrInterrupted)
+							fakeResourceFetcher.FetchReturns(nil, worker.ErrInterrupted)
 						})
 
 						It("returns error", func() {
-							Expect(fetchErr).To(Equal(fetcher.ErrInterrupted))
+							Expect(fetchErr).To(Equal(worker.ErrInterrupted))
 						})
 					})
 
@@ -486,11 +485,11 @@ var _ = Describe("Image", func() {
 
 			Context("when fetching resource fails", func() {
 				BeforeEach(func() {
-					fakeResourceFetcher.FetchReturns(nil, fetcher.ErrInterrupted)
+					fakeResourceFetcher.FetchReturns(nil, worker.ErrInterrupted)
 				})
 
 				It("returns error", func() {
-					Expect(fetchErr).To(Equal(fetcher.ErrInterrupted))
+					Expect(fetchErr).To(Equal(worker.ErrInterrupted))
 				})
 			})
 

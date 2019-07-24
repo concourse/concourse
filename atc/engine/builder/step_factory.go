@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/fetcher"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -17,7 +16,7 @@ import (
 type stepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
-	resourceFetcher       fetcher.Fetcher
+	resourceFetcher       worker.Fetcher
 	teamFactory           db.TeamFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
@@ -30,7 +29,7 @@ type stepFactory struct {
 func NewStepFactory(
 	pool worker.Pool,
 	client worker.Client,
-	resourceFetcher fetcher.Fetcher,
+	resourceFetcher worker.Fetcher,
 	teamFactory db.TeamFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
@@ -92,7 +91,7 @@ func (factory *stepFactory) PutStep(
 		factory.resourceFactory,
 		factory.resourceConfigFactory,
 		factory.strategy,
-		factory.pool,
+		factory.client,
 		delegate,
 	)
 

@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
@@ -22,13 +22,13 @@ var _ = Describe("TaskConfigSource", func() {
 	var (
 		taskConfig atc.TaskConfig
 		taskVars   atc.Params
-		repo       *artifact.Repository
+		repo       *build.Repository
 		logger     *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("task-config-source-test")
-		repo = artifact.NewRepository()
+		repo = build.NewRepository()
 		taskConfig = atc.TaskConfig{
 			Platform:  "some-platform",
 			RootfsURI: "some-image",

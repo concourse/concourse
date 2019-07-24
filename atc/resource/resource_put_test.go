@@ -3,6 +3,7 @@ package resource_test
 import (
 	"context"
 	"errors"
+	"github.com/concourse/concourse/atc/runtime"
 	"io/ioutil"
 
 	"code.cloudfoundry.org/garden"
@@ -30,9 +31,9 @@ var _ = Describe("Resource Put", func() {
 
 		outScriptProcess *gfakes.FakeProcess
 
-		versionResult VersionResult
+		versionResult runtime.VersionResult
 
-		ioConfig  IOConfig
+		ioConfig  runtime.IOConfig
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
@@ -61,7 +62,7 @@ var _ = Describe("Resource Put", func() {
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 
-		ioConfig = IOConfig{
+		ioConfig = runtime.IOConfig{
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}

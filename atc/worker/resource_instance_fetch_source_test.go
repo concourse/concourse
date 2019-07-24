@@ -1,4 +1,4 @@
-package fetcher_test
+package worker_test
 
 import (
 	"context"
@@ -12,10 +12,8 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
-	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
-	. "github.com/concourse/concourse/atc/fetcher"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -62,7 +60,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		}
 
 		fakeVolume = new(workerfakes.FakeVolume)
-		fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+		fakeContainer.VolumeMountsReturns([]VolumeMount{
 			{
 				Volume:    fakeVolume,
 				MountPath: resource.ResourcesDir("get"),
@@ -107,10 +105,10 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			fakeWorker,
 			fakeResourceInstance,
 			resourceTypes,
-			worker.ContainerSpec{
+			ContainerSpec{
 				TeamID: 42,
 				Tags:   []string{},
-				ImageSpec: worker.ImageSpec{
+				ImageSpec: ImageSpec{
 					ResourceType: "fake-resource-type",
 				},
 				Outputs: map[string]string{
@@ -207,13 +205,13 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				Expect(delegate).To(Equal(fakeDelegate))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
 				Expect(actualMetadata).To(Equal(metadata))
-				Expect(containerSpec).To(Equal(worker.ContainerSpec{
+				Expect(containerSpec).To(Equal(ContainerSpec{
 					TeamID: 42,
 					Tags:   []string{},
-					ImageSpec: worker.ImageSpec{
+					ImageSpec: ImageSpec{
 						ResourceType: "fake-resource-type",
 					},
-					BindMounts: []worker.BindMountSource{&worker.CertsVolumeMount{Logger: logger}},
+					BindMounts: []BindMountSource{&CertsVolumeMount{Logger: logger}},
 					Outputs: map[string]string{
 						"resource": resource.ResourcesDir("get"),
 					},

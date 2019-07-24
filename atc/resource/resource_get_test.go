@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/concourse/concourse/atc/runtime"
 	"io"
 	"io/ioutil"
 
@@ -34,7 +35,7 @@ var _ = Describe("Resource Get", func() {
 
 		versionedSource resource.VersionedSource
 
-		ioConfig  resource.IOConfig
+		ioConfig  runtime.IOConfig
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
@@ -69,7 +70,7 @@ var _ = Describe("Resource Get", func() {
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 
-		ioConfig = resource.IOConfig{
+		ioConfig = runtime.IOConfig{
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}

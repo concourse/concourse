@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/concourse/concourse/atc/runtime"
+
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/DataDog/zstd"
@@ -19,7 +21,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -45,7 +47,7 @@ var _ = Describe("TaskStep", func() {
 
 		interpolatedResourceTypes atc.VersionedResourceTypes
 
-		repo  *artifact.Repository
+		repo  *build.Repository
 		state *execfakes.FakeRunState
 
 		taskStep exec.Step
@@ -88,7 +90,7 @@ var _ = Describe("TaskStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
-		repo = artifact.NewRepository()
+		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 
@@ -989,7 +991,7 @@ var _ = Describe("TaskStep", func() {
 							Context("but the stream is empty", func() {
 								It("returns ErrFileNotFound", func() {
 									_, err := artifactSource1.StreamFile(context.TODO(), logger, "some-path")
-									Expect(err).To(MatchError(exec.FileNotFoundError{Path: "some-path"}))
+									Expect(err).To(MatchError(runtime.FileNotFoundError{Path: "some-path"}))
 								})
 							})
 						})

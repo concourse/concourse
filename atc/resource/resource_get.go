@@ -3,8 +3,11 @@ package resource
 import (
 	"context"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker"
+
+	"github.com/concourse/concourse/atc/runtime"
+
+	"github.com/concourse/concourse/atc"
 )
 
 type getRequest struct {
@@ -16,13 +19,14 @@ type getRequest struct {
 func (resource *resource) Get(
 	ctx context.Context,
 	volume worker.Volume,
-	ioConfig IOConfig,
+	ioConfig runtime.IOConfig,
 	source atc.Source,
 	params atc.Params,
 	version atc.Version,
 ) (VersionedSource, error) {
-	var vr VersionResult
+	var vr runtime.VersionResult
 
+	// should be something on worker client, not direct runScript call
 	err := resource.runScript(
 		ctx,
 		"/opt/resource/in",

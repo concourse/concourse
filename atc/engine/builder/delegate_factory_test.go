@@ -2,6 +2,7 @@ package builder_test
 
 import (
 	"errors"
+	"github.com/concourse/concourse/atc/runtime"
 	"io"
 	"time"
 
@@ -47,12 +48,12 @@ var _ = Describe("DelegateFactory", func() {
 	Describe("GetDelegate", func() {
 		var (
 			delegate   exec.GetDelegate
-			info       exec.VersionInfo
+			info       runtime.VersionResult
 			exitStatus exec.ExitStatus
 		)
 
 		BeforeEach(func() {
-			info = exec.VersionInfo{
+			info = runtime.VersionResult{
 				Version:  atc.Version{"foo": "bar"},
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}
@@ -157,12 +158,12 @@ var _ = Describe("DelegateFactory", func() {
 	Describe("PutDelegate", func() {
 		var (
 			delegate   exec.PutDelegate
-			info       exec.VersionInfo
+			info       runtime.VersionResult
 			exitStatus exec.ExitStatus
 		)
 
 		BeforeEach(func() {
-			info = exec.VersionInfo{
+			info = runtime.VersionResult{
 				Version:  atc.Version{"foo": "bar"},
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}

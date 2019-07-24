@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -282,4 +282,4 @@ func (fake *FakeRegisterableSource) recordInvocation(key string, args []interfac
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ artifact.RegisterableSource = new(FakeRegisterableSource)
+var _ build.RegisterableSource = new(FakeRegisterableSource)

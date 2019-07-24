@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/concourse/concourse/atc/runtime"
+
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -28,6 +30,8 @@ type ContainerSpec struct {
 	// Working directory for processes run in the container.
 	Dir string
 
+	InputFooBars []FooBarInput
+
 	// Inputs to provide to the container. Inputs with a volume local to the
 	// selected worker will be made available via a COW volume; others will be
 	// streamed.
@@ -44,6 +48,13 @@ type ContainerSpec struct {
 
 	// Optional user to run processes as. Overwrites the one specified in the docker image.
 	User string
+}
+
+//go:generate counterfeiter . FooBarInput
+
+type FooBarInput interface {
+	Artifact() runtime.Artifact
+	DestinationPath() string
 }
 
 //go:generate counterfeiter . InputSource
@@ -63,10 +74,12 @@ type BindMountSource interface {
 type OutputPaths map[string]string
 
 type ImageSpec struct {
-	ResourceType        string
-	ImageURL            string
-	ImageResource       *ImageResource
+	ResourceType  string
+	ImageURL      string
+	ImageResource *ImageResource
+	// populate ImageArtifactSource if ImageArtifact is specified
 	ImageArtifactSource ArtifactSource
+	ImageArtifact       runtime.Artifact
 	Privileged          bool
 }
 

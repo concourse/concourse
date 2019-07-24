@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/concourse/concourse/atc/runtime"
+
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -47,7 +49,7 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	volume, found, err := buildArtifact.Volume(step.build.TeamID())
+	createdVolume, found, err := buildArtifact.Volume(step.build.TeamID())
 	if err != nil {
 		return err
 	}
@@ -56,22 +58,34 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
 	}
 
-	workerVolume, found, err := step.workerClient.FindVolume(logger, volume.TeamID(), volume.Handle())
-	if err != nil {
-		return err
+	art := runtime.TaskArtifact{
+		VolumeHandle: createdVolume.Handle(),
 	}
 
-	if !found {
-		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
-	}
+	//volume, found, err := buildArtifact.Volume(step.build.TeamID())
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if !found {
+	//	return ArtifactVolumeNotFoundError{buildArtifact.ArtifactName()}
+	//}
+	//
+	//workerVolume, found, err := step.workerClient.FindVolume(logger, volume.TeamID(), volume.Handle())
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if !found {
+	//	return ArtifactVolumeNotFoundError{buildArtifact.ArtifactName()}
+	//}
 
 	logger.Info("register-artifact-source", lager.Data{
 		"artifact_id": buildArtifact.ID(),
-		"handle":      workerVolume.Handle(),
+		"handle":      art.ID(),
 	})
 
-	source := NewTaskArtifactSource(workerVolume)
-	state.Artifacts().RegisterSource(artifact.Name(step.plan.ArtifactInput.Name), source)
+	state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.ArtifactInput.Name), &art)
 
 	step.succeeded = true
 

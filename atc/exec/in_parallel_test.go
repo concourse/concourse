@@ -8,7 +8,7 @@ import (
 	"time"
 
 	. "github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +23,7 @@ var _ = Describe("Parallel", func() {
 		fakeStepB *execfakes.FakeStep
 		fakeSteps []Step
 
-		repo  *artifact.Repository
+		repo  *build.Repository
 		state *execfakes.FakeRunState
 
 		step    Step
@@ -39,7 +39,7 @@ var _ = Describe("Parallel", func() {
 
 		step = InParallel(fakeSteps, len(fakeSteps), false)
 
-		repo = artifact.NewRepository()
+		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 	})

@@ -12,6 +12,7 @@ import (
 
 //go:generate counterfeiter . WorkerArtifact
 
+// TODO This should be deprecated
 type WorkerArtifact interface {
 	ID() int
 	Name() string

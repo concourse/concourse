@@ -1,4 +1,4 @@
-package fetcher_test
+package worker_test
 
 import (
 	"testing"

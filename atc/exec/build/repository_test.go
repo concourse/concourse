@@ -1,8 +1,8 @@
-package artifact_test
+package build_test
 
 import (
-	. "github.com/concourse/concourse/atc/exec/artifact"
-	"github.com/concourse/concourse/atc/exec/artifact/artifactfakes"
+	. "github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/build/artifactfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"io"

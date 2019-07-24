@@ -124,7 +124,7 @@ var _ = Describe("ArtifactInputStep", func() {
 				})
 
 				It("registers the worker volume as an artifact source", func() {
-					source, found := state.Artifacts().SourceFor("some-name")
+					source, found := state.ArtifactRepository().SourceFor("some-name")
 
 					Expect(stepErr).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())

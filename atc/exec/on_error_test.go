@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/hashicorp/go-multierror"
 	. "github.com/onsi/ginkgo"
@@ -20,7 +20,7 @@ var _ = Describe("On Error Step", func() {
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
 
-		repo  *artifact.Repository
+		repo  *build.Repository
 		state *execfakes.FakeRunState
 
 		onErrorStep exec.Step
@@ -36,7 +36,7 @@ var _ = Describe("On Error Step", func() {
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
 
-		repo = artifact.NewRepository()
+		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 

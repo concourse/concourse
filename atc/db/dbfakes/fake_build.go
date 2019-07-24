@@ -700,7 +700,7 @@ func (fake *FakeBuild) Artifacts() ([]db.WorkerArtifact, error) {
 	ret, specificReturn := fake.artifactsReturnsOnCall[len(fake.artifactsArgsForCall)]
 	fake.artifactsArgsForCall = append(fake.artifactsArgsForCall, struct {
 	}{})
-	fake.recordInvocation("Artifacts", []interface{}{})
+	fake.recordInvocation("ArtifactRepository", []interface{}{})
 	fake.artifactsMutex.Unlock()
 	if fake.ArtifactsStub != nil {
 		return fake.ArtifactsStub()

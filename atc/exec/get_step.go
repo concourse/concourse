@@ -1,24 +1,20 @@
 package exec
 
 import (
-	"archive/tar"
 	"context"
 	"fmt"
-	"github.com/concourse/concourse/vars"
 	"io"
-
-	"github.com/hashicorp/go-multierror"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/exec/artifact"
-	"github.com/concourse/concourse/atc/fetcher"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/vars"
 )
 
 type ErrPipelineNotFound struct {
@@ -49,10 +45,10 @@ type GetDelegate interface {
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus, VersionInfo)
+	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
 	Errored(lager.Logger, string)
 
-	UpdateVersion(lager.Logger, atc.GetPlan, VersionInfo)
+	UpdateVersion(lager.Logger, atc.GetPlan, runtime.VersionResult)
 }
 
 // GetStep will fetch a version of a resource on a worker that supports the
@@ -62,9 +58,10 @@ type GetStep struct {
 	plan                 atc.GetPlan
 	metadata             StepMetadata
 	containerMetadata    db.ContainerMetadata
-	resourceFetcher      fetcher.Fetcher
+	resourceFetcher      worker.Fetcher
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
+	workerClient         worker.Client
 	workerPool           worker.Pool
 	delegate             GetDelegate
 	succeeded            bool
@@ -75,7 +72,7 @@ func NewGetStep(
 	plan atc.GetPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	resourceFetcher fetcher.Fetcher,
+	resourceFetcher worker.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerPool worker.Pool,
@@ -176,6 +173,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	// TODO containerOwner accepts workerName and this should be extracted out
 	resourceInstance := resource.NewResourceInstance(
 		resource.ResourceType(step.plan.Type),
 		version,
@@ -185,59 +183,81 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		resourceCache,
 		db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID),
 	)
+	// Stuff above is all part of Concourse CORE
 
-	chosenWorker, err := step.workerPool.FindOrChooseWorkerForContainer(
+	events := make(chan runtime.Event, 1)
+	go func(logger lager.Logger, events chan runtime.Event, delegate GetDelegate) {
+		for {
+			ev := <-events
+			switch {
+			case ev.EventType == runtime.InitializingEvent:
+				step.delegate.Initializing(logger)
+
+			case ev.EventType == runtime.StartingEvent:
+				step.delegate.Starting(logger)
+
+			case ev.EventType == runtime.FinishedEvent:
+				step.delegate.Finished(logger, ExitStatus(ev.ExitStatus), ev.VersionResult)
+
+			default:
+				return
+			}
+		}
+	}(logger, events, step.delegate)
+
+	resourceDir := resource.ResourcesDir("get")
+
+	// start of workerClient.RunGetStep?
+	getResult, err := step.workerClient.RunGetStep(
 		ctx,
 		logger,
 		resourceInstance.ContainerOwner(),
 		containerSpec,
 		workerSpec,
 		step.strategy,
-	)
-	if err != nil {
-		return err
-	}
-
-	step.delegate.Starting(logger)
-
-	versionedSource, err := step.resourceFetcher.Fetch(
-		ctx,
-		logger,
 		step.containerMetadata,
-		chosenWorker,
-		containerSpec,
 		resourceTypes,
 		resourceInstance,
+		step.resourceFetcher,
 		step.delegate,
+		resourceCache,
+		worker.ProcessSpec{
+			Path:         "/opt/resource/out",
+			Args:         []string{resourceDir},
+			StdoutWriter: step.delegate.Stdout(),
+			StderrWriter: step.delegate.Stderr(),
+		},
+		events,
 	)
+
 	if err != nil {
-		logger.Error("failed-to-fetch-resource", err)
-
-		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), VersionInfo{})
-			return nil
-		}
-
 		return err
 	}
 
-	state.Artifacts().RegisterSource(artifact.Name(step.plan.Name), &getArtifactSource{
-		resourceInstance: resourceInstance,
-		versionedSource:  versionedSource,
-	})
+	if getResult.Status == 0 {
+		// TODO move all the state changing logic from resourceInstnanceFetchSource.Create to here
+		//err = volume.InitializeResourceCache(s.resourceInstance.ResourceCache())
+		//if err != nil {
+		//	sLog.Error("failed-to-initialize-cache", err)
+		//	return nil, err
+		//}
+		//
+		//err = s.dbResourceCacheFactory.UpdateResourceCacheMetadata(s.resourceInstance.ResourceCache(), versionedSource.Metadata())
+		//if err != nil {
+		//	s.logger.Error("failed-to-update-resource-cache-metadata", err, lager.Data{"resource-cache": s.resourceInstance.ResourceCache()})
+		//	return nil, err
+		//}
 
-	versionInfo := VersionInfo{
-		Version:  versionedSource.Version(),
-		Metadata: versionedSource.Metadata(),
+		state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.Name), &getResult.GetArtifact)
+
+		if step.plan.Resource != "" {
+			step.delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
+		}
+
+		step.succeeded = true
+	} else {
+		// TODO  have a way of bubbling up the error message from getResult.Err
 	}
-
-	if step.plan.Resource != "" {
-		step.delegate.UpdateVersion(logger, step.plan, versionInfo)
-	}
-
-	step.succeeded = true
-
-	step.delegate.Finished(logger, 0, versionInfo)
 
 	return nil
 }
@@ -247,103 +267,10 @@ func (step *GetStep) Succeeded() bool {
 	return step.succeeded
 }
 
-type getArtifactSource struct {
-	resourceInstance resource.ResourceInstance
-	versionedSource  resource.VersionedSource
-}
-
-// VolumeOn locates the cache for the GetStep's resource and version on the
-// given worker.
-func (s *getArtifactSource) VolumeOn(logger lager.Logger, worker worker.Worker) (worker.Volume, bool, error) {
-	return s.resourceInstance.FindOn(logger.Session("volume-on"), worker)
-}
-
-// StreamTo streams the resource's data to the destination.
-func (s *getArtifactSource) StreamTo(ctx context.Context, logger lager.Logger, destination worker.ArtifactDestination) error {
-	return streamToHelper(ctx, s.versionedSource, logger, destination)
-}
-
-// StreamFile streams a single file out of the resource.
-func (s *getArtifactSource) StreamFile(ctx context.Context, logger lager.Logger, path string) (io.ReadCloser, error) {
-	return streamFileHelper(ctx, s.versionedSource, logger, path)
-}
-
-func streamToHelper(
-	ctx context.Context,
-	s interface {
-		StreamOut(context.Context, string) (io.ReadCloser, error)
-	},
-	logger lager.Logger,
-	destination worker.ArtifactDestination,
-) error {
-	logger.Debug("start")
-
-	defer logger.Debug("end")
-
-	out, err := s.StreamOut(ctx, ".")
-	if err != nil {
-		logger.Error("failed", err)
-		return err
-	}
-
-	defer out.Close()
-
-	err = destination.StreamIn(ctx, ".", out)
-	if err != nil {
-		logger.Error("failed", err)
-		return err
-	}
-	return nil
-}
-
-func streamFileHelper(
-	ctx context.Context,
-	s interface {
-		StreamOut(context.Context, string) (io.ReadCloser, error)
-	},
-	logger lager.Logger,
-	path string,
-) (io.ReadCloser, error) {
-	out, err := s.StreamOut(ctx, path)
-	if err != nil {
-		return nil, err
-	}
-
-	zstdReader := zstd.NewReader(out)
-	tarReader := tar.NewReader(zstdReader)
-
-	_, err = tarReader.Next()
-	if err != nil {
-		return nil, FileNotFoundError{Path: path}
-	}
-
-	return fileReadMultiCloser{
-		reader: tarReader,
-		closers: []io.Closer{
-			out,
-			zstdReader,
-		},
-	}, nil
-}
-
-type fileReadMultiCloser struct {
-	reader  io.Reader
-	closers []io.Closer
-}
-
-func (frc fileReadMultiCloser) Read(p []byte) (n int, err error) {
-	return frc.reader.Read(p)
-}
-
-func (frc fileReadMultiCloser) Close() error {
-	var closeErrors error
-
-	for _, closer := range frc.closers {
-		err := closer.Close()
-		if err != nil {
-			closeErrors = multierror.Append(closeErrors, err)
-		}
-	}
-
-	return closeErrors
-}
+//type GetArtifact struct {
+//	volumeHandle string
+//}
+//
+//func (art *GetArtifact) ID() string {
+//	return art.volumeHandle
+//}

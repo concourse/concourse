@@ -4,30 +4,32 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/concourse/concourse/atc/runtime"
+
 	"github.com/concourse/concourse/atc"
 )
 
-type putRequest struct {
-	Source atc.Source `json:"source"`
-	Params atc.Params `json:"params,omitempty"`
-}
+//type putRequest struct {
+//	Source atc.Source `json:"source"`
+//	Params atc.Params `json:"params,omitempty"`
+//}
 
 func (resource *resource) Put(
 	ctx context.Context,
-	ioConfig IOConfig,
+	ioConfig runtime.IOConfig,
 	source atc.Source,
 	params atc.Params,
-) (VersionResult, error) {
+) (runtime.VersionResult, error) {
 	resourceDir := ResourcesDir("put")
 
-	vr := &VersionResult{}
+	vr := &runtime.VersionResult{}
 
 	path := "/opt/resource/out"
 	err := resource.runScript(
 		ctx,
 		path,
 		[]string{resourceDir},
-		putRequest{
+		runtime.PutRequest{
 			Params: params,
 			Source: source,
 		},
@@ -36,7 +38,7 @@ func (resource *resource) Put(
 		true,
 	)
 	if err != nil {
-		return VersionResult{}, err
+		return runtime.VersionResult{}, err
 	}
 	if vr == nil {
 		return VersionResult{}, fmt.Errorf("resource script (%s %s) output a null version", path, resourceDir)

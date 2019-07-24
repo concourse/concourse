@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
@@ -63,7 +63,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 		Context("when the source is not a worker.Volume", func() {
 			BeforeEach(func() {
 				fakeSource := new(workerfakes.FakeArtifactSource)
-				state.Artifacts().RegisterSource(artifact.Name("some-name"), fakeSource)
+				state.ArtifactRepository().RegisterSource(build.ArtifactName("some-name"), fakeSource)
 			})
 			It("returns the error", func() {
 				Expect(stepErr).To(HaveOccurred())
@@ -78,7 +78,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 				fakeWorkerVolume.HandleReturns("handle")
 
 				source := exec.NewTaskArtifactSource(fakeWorkerVolume)
-				state.Artifacts().RegisterSource(artifact.Name("some-name"), source)
+				state.ArtifactRepository().RegisterSource(build.ArtifactName("some-name"), source)
 			})
 
 			Context("when initializing the artifact fails", func() {

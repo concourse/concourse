@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	. "github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,7 +20,7 @@ var _ = Describe("Aggregate", func() {
 		fakeStepA *execfakes.FakeStep
 		fakeStepB *execfakes.FakeStep
 
-		repo  *artifact.Repository
+		repo  *build.Repository
 		state *execfakes.FakeRunState
 
 		step    Step
@@ -38,7 +38,7 @@ var _ = Describe("Aggregate", func() {
 			fakeStepB,
 		}
 
-		repo = artifact.NewRepository()
+		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactsReturns(repo)
 	})

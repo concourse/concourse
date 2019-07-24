@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -44,24 +44,28 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
 
 	outputName := step.plan.ArtifactOutput.Name
 
-	source, found := state.Artifacts().SourceFor(artifact.Name(outputName))
+	buildArtifact, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(outputName))
 	if !found {
 		return ArtifactNotFoundError{outputName}
 	}
 
-	volume, ok := source.(worker.Volume)
-	if !ok {
+	volume, found, err := step.workerClient.FindVolume(logger, step.build.TeamID(), buildArtifact.ID())
+	if err != nil {
+		return err
+	}
+
+	if !found {
 		return ArtifactNotFoundError{outputName}
 	}
 
-	artifact, err := volume.InitializeArtifact(outputName, step.build.ID())
+	dbWorkerArtifact, err := volume.InitializeArtifact(outputName, step.build.ID())
 	if err != nil {
 		return err
 	}
 
 	logger.Info("initialize-artifact-from-source", lager.Data{
 		"handle":      volume.Handle(),
-		"artifact_id": artifact.ID(),
+		"artifact_id": dbWorkerArtifact.ID(),
 	})
 
 	step.succeeded = true
