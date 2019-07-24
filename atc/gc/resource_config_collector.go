@@ -2,9 +2,11 @@ package gc
 
 import (
 	"context"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type resourceConfigCollector struct {
@@ -22,6 +24,13 @@ func (rcuc *resourceConfigCollector) Run(ctx context.Context) error {
 
 	logger.Debug("start")
 	defer logger.Debug("done")
+
+	start := time.Now()
+	defer func() {
+		metric.ResourceConfigCollectorDuration{
+			Duration: time.Since(start),
+		}.Emit(logger)
+	}()
 
 	return rcuc.configFactory.CleanUnreferencedConfigs()
 }

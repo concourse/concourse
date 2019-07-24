@@ -53,6 +53,13 @@ func (c *containerCollector) Run(ctx context.Context) error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
+	start := time.Now()
+	defer func() {
+		metric.ContainerCollectorDuration{
+			Duration: time.Since(start),
+		}.Emit(logger)
+	}()
+
 	var errs error
 
 	err := c.cleanupOrphanedContainers(logger.Session("orphaned-containers"))
