@@ -1,22 +1,24 @@
+@import "../colors.less";
+
 body {
   grid-template-columns: 10fr;
   grid-template-rows: auto;
   grid-template-areas: "content";
 }
+
 #main-outlet {
   padding: 30px;
   padding-top: 70px;
 }
+
 .d-header {
-  background: #3398dc;
+  background: @brand;
+
+  .title {
+    display: initial;
+  }
 }
-.d-header .title {
-  display: initial;
-}
-.top-logo,
-.top-nav,
-.top-search,
-.page-nav,
-.page-aside {
+
+.top-logo, .top-nav, .top-search, .page-nav, .page-aside {
   display: none;
 }
