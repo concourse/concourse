@@ -223,7 +223,7 @@ $ docker-compose rm db
 $ docker-compose start
 ```
 
-## Adding migrations
+### Adding migrations
 
 Concourse database migrations live under `atc/db/migration/migrations`. They are
 generated using Concourse's own inbuilt migration library. The migration file 
