@@ -266,6 +266,9 @@ body {
   background: #f6f5f5;
   grid-template-columns: 2fr 8fr;
 }
+a:visited {
+  color: #2d76cc;
+}
 #main {
   max-width: 1200px;
   grid-area: content;
