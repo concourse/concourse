@@ -921,12 +921,98 @@ a.github-user {
 a.github-user:hover {
   text-decoration: underline;
 }
+.hero-pill,
+.download-info {
+  margin-top: 80px;
+}
+.hero-pill {
+  background-color: #f5a623;
+  text-decoration: none;
+  height: 80px;
+  background-repeat: no-repeat;
+  background-size: 32px 32px;
+  background-position: 24px center;
+  background-image: url("../images/icons/tag.svg");
+  font-size: 32px;
+  padding-left: 72px;
+  line-height: 80px;
+  font-family: 'Roboto Slab', serif;
+}
+.hero-pill,
+.hero-pill:visited {
+  color: white;
+}
+.hero-pill:hover {
+  background-color: #ec9910;
+  text-decoration: none;
+}
+.hero-pill .small {
+  font-size: 16px;
+}
+.download-info {
+  list-style-type: none;
+  padding-left: 0 !important;
+}
+.download-info > li {
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid #efeeee;
+  margin-bottom: 0;
+  color: #5a5555;
+  line-height: 38px;
+  display: grid;
+  grid-template-columns: 150px auto;
+}
+.download-info > li:first-child {
+  border-top-color: #efeeee;
+}
+.download-info .download-links {
+  list-style-type: none;
+  padding-left: 0 !important;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: row;
+}
+.download-info .download-links > li {
+  margin-bottom: 0;
+  white-space: nowrap;
+  margin-right: 16px;
+}
+.download-info .download-links .icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-right: 4px;
+  margin-top: -4px;
+}
+.download-info .download-links a,
+.download-info .download-links a:visited {
+  display: inline-block;
+  line-height: 38px;
+  margin-bottom: -1px;
+  color: #7a7373;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.download-info .download-links a .icon path,
+.download-info .download-links a:visited .icon path {
+  fill: #7a7373;
+}
+.download-info .download-links a:hover {
+  color: #3d3c3c;
+  border-bottom-color: #9b9b9b;
+}
+.download-info .download-links a:hover .icon path {
+  fill: #3d3c3c;
+}
 @media (max-width: 1800px) {
   .page-content.index {
     grid-column-start: span 2;
   }
 }
 @media (max-width: 1600px) {
+  .download-info > li {
+    grid-template-columns: auto;
+  }
   .release {
     grid-template-columns: auto auto;
     grid-template-areas: "header downloads" "notes notes";
@@ -997,6 +1083,9 @@ a.github-user:hover {
   }
   .splash-title {
     grid-column-start: 1;
+  }
+  .download-info {
+    margin-top: 10px;
   }
   .top-nav a {
     line-height: 60px;

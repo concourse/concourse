@@ -6,8 +6,8 @@
   {{range .Top.Children}}
   <a class="top-link{{if .Contains $}} active{{end}}" href="{{.PrimaryTag | url}}">{{.Title | stripAux | render}}</a>
   {{end}}
-  <a class="top-link icon-link github-link" href="https://github.com/concourse/concourse/wiki">wiki</a>
-  <a class="top-link icon-link download-link" href="https://github.com/concourse/concourse/releases/latest">download</a>
+  <a class="top-link" href="https://blog.concourse-ci.org">blog</a>
+  <a class="top-link" href="https://discuss.concourse-ci.org">discuss</a>
 </nav>
 
 <div class="top-search">

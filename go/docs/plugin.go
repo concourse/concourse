@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/blang/semver"
 	_ "github.com/concourse/docs/go/chromastyle"
+	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 
 	"github.com/vito/booklit"
 	"github.com/vito/booklit/ast"
@@ -70,6 +74,72 @@ func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
 		Block:   true,
 		Content: content,
 	}
+}
+
+func (p *Plugin) DownloadLinks() (booklit.Content, error) {
+	ctx := context.Background()
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+
+	tc := oauth2.NewClient(ctx, ts)
+
+	client := github.NewClient(tc)
+
+	release, _, err := client.Repositories.GetLatestRelease(ctx, "concourse", "concourse")
+	if err != nil {
+		return nil, err
+	}
+
+	var linuxURL, darwinURL, windowsURL string
+	var flyLinuxURL, flyDarwinURL, flyWindowsURL string
+	for _, asset := range release.Assets {
+		name := asset.GetName()
+
+		if strings.Contains(name, "concourse") && strings.Contains(name, "linux") && strings.HasSuffix(name, ".tgz") {
+			linuxURL = asset.GetBrowserDownloadURL()
+		}
+
+		if strings.Contains(name, "concourse") && strings.Contains(name, "darwin") && strings.HasSuffix(name, ".tgz") {
+			darwinURL = asset.GetBrowserDownloadURL()
+		}
+
+		if strings.Contains(name, "concourse") && strings.Contains(name, "windows") && strings.HasSuffix(name, ".zip") {
+			windowsURL = asset.GetBrowserDownloadURL()
+		}
+
+		if strings.Contains(name, "fly") && strings.Contains(name, "linux") && strings.HasSuffix(name, ".tgz") {
+			flyLinuxURL = asset.GetBrowserDownloadURL()
+		}
+
+		if strings.Contains(name, "fly") && strings.Contains(name, "darwin") && strings.HasSuffix(name, ".tgz") {
+			flyDarwinURL = asset.GetBrowserDownloadURL()
+		}
+
+		if strings.Contains(name, "fly") && strings.Contains(name, "windows") && strings.HasSuffix(name, ".zip") {
+			flyWindowsURL = asset.GetBrowserDownloadURL()
+		}
+	}
+
+	return booklit.Styled{
+		Style: "download-links",
+		Block: true,
+		Content: booklit.Link{
+			Target:  release.GetHTMLURL(),
+			Content: booklit.String(release.GetName()),
+		},
+		Partials: booklit.Partials{
+			"Version":         booklit.String(release.GetName()),
+			"ReleaseNotesURL": booklit.String(release.GetHTMLURL()),
+			"LinuxURL":        booklit.String(linuxURL),
+			"DarwinURL":       booklit.String(darwinURL),
+			"WindowsURL":      booklit.String(windowsURL),
+			"FlyLinuxURL":     booklit.String(flyLinuxURL),
+			"FlyDarwinURL":    booklit.String(flyDarwinURL),
+			"FlyWindowsURL":   booklit.String(flyWindowsURL),
+		},
+	}, nil
 }
 
 func (p Plugin) SplashExample(title booklit.Content, content booklit.Content, example booklit.Content) booklit.Content {

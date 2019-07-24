@@ -41,6 +41,8 @@
   tires!
 }
 
+\download-links
+
 \splash-example{Configuration As Code}{
   You can think of a \reference{pipelines}{pipeline} as a distributed,
   higher-level, continuously-running \code{Makefile}.

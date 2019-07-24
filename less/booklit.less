@@ -803,4 +803,108 @@ a.github-user {
   }
 }
 
+@download-size: 80px;
+@download-font-size: 32px;
+@download-icon-size: 32px;
+
+.hero-pill, .download-info {
+  margin-top: 80px;
+}
+
+.hero-pill {
+  background-color: @amber-primary;
+  text-decoration: none;
+  height: @download-size;
+
+  &, &:visited {
+    color: white;
+  }
+
+  &:hover {
+    background-color: @amber-secondary;
+    text-decoration: none;
+  }
+
+  background-repeat: no-repeat;
+  background-size: @download-icon-size @download-icon-size;
+  background-position: (@download-size / 2 - @download-icon-size / 2) center;
+  background-image: url("../images/icons/tag.svg");
+
+  font-size: @download-font-size;
+  padding-left: (@download-size / 2) + (@download-icon-size / 2) + 16px;
+  line-height: @download-size;
+  font-family: 'Roboto Slab', serif;
+
+  .small {
+    font-size: 16px;
+  }
+}
+
+.download-info {
+  list-style-type: none;
+  padding-left: 0 !important;
+
+  > li {
+    border-top: 1px solid transparent;
+    &:first-child {
+      border-top-color: @offer-white;
+    }
+
+    border-bottom: 1px solid @offer-white;
+    margin-bottom: 0;
+    color: @light-grey;
+    line-height: (@download-size / 2) - 2px;
+
+    display: grid;
+    grid-template-columns: 150px auto;
+  }
+
+  .download-links {
+    list-style-type: none;
+    padding-left: 0 !important;
+    margin-bottom: 0;
+
+    display: flex;
+    flex-direction: row;
+
+    > li {
+      margin-bottom: 0;
+      white-space: nowrap;
+      margin-right: 16px;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+      margin-right: 4px;
+      margin-top: -4px;
+    }
+
+    a, a:visited {
+      display: inline-block;
+      line-height: (@download-size / 2) - 2px;
+      margin-bottom: -1px;
+
+      color: @grey-secondary;
+      text-decoration: none;
+
+      border-bottom: 1px solid transparent;
+
+      .icon path {
+        fill: @grey-secondary;
+      }
+    }
+
+    a:hover {
+      color: @dark-grey;
+      border-bottom-color: @grey-primary;
+
+      .icon path {
+        fill: @dark-grey;
+      }
+    }
+  }
+}
+
 @import "responsive.less";

@@ -1,0 +1,27 @@
+<a class="hero-pill" href="{{.Content.Target}}">{{.Partial "Version" | render}} <span class="small">release notes</span></a>
+
+<ul class="download-info">
+  <li>
+    <span class="label">
+      <code>concourse</code> binary:
+    </span>
+
+    <ul class="download-links">
+      <li><a href="{{.Partial "LinuxURL" | render}}">{{template "linux-icon.tmpl"}} Linux</a></li>
+      <li><a href="{{.Partial "DarwinURL" | render}}">{{template "osx-icon.tmpl"}} OS X</a></li>
+      <li><a href="{{.Partial "WindowsURL" | render}}">{{template "windows-icon.tmpl"}} Windows</a></li>
+    </ul>
+  </li>
+
+  <li>
+    <span class="label">
+      <code>fly</code> binary:
+    </span>
+
+    <ul class="download-links">
+      <li><a href="{{.Partial "FlyLinuxURL" | render}}">{{template "linux-icon.tmpl"}} Linux</a></li>
+      <li><a href="{{.Partial "FlyDarwinURL" | render}}">{{template "osx-icon.tmpl"}} OS X</a></li>
+      <li><a href="{{.Partial "FlyWindowsURL" | render}}">{{template "windows-icon.tmpl"}} Windows</a></li>
+    </ul>
+  </li>
+</ul>
