@@ -264,7 +264,6 @@ h3 {
 }
 body {
   background: #f6f5f5;
-  grid-template-columns: 2fr 4fr 2fr;
 }
 .post-meta {
   color: #5a5555;
