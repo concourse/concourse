@@ -19,6 +19,7 @@ module Build.Styles exposing
 
 import Application.Styles
 import Build.Models exposing (StepHeaderType(..))
+import Build.StepTree.Models exposing (StepState(..))
 import Colors
 import Concourse
 import Dashboard.Styles exposing (striped)
@@ -141,10 +142,16 @@ triggerTooltip =
     ]
 
 
-stepHeader : List (Html.Attribute msg)
-stepHeader =
+stepHeader : StepState -> List (Html.Attribute msg)
+stepHeader state =
     [ style "display" "flex"
     , style "justify-content" "space-between"
+    , case state of
+        StepStateFailed ->
+            style "border" "1px solid #C24433"
+
+        _ ->
+            style "border" "none"
     ]
 
 

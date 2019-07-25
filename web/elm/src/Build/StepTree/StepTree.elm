@@ -555,7 +555,7 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
             ([ class "header"
              , onClick <| Click <| StepHeader id
              ]
-                ++ Styles.stepHeader
+                ++ Styles.stepHeader state
             )
             [ Html.div
                 [ style "display" "flex" ]
