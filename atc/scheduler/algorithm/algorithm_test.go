@@ -121,7 +121,6 @@ var _ = DescribeTable("Input resolving",
 
 		Result: Result{
 			OK:     false,
-			Values: map[string]string{},
 			Errors: map[string]string{"resource-x": "pinned version ver:rxv2 not found"},
 		},
 	}),
@@ -369,13 +368,9 @@ var _ = DescribeTable("Input resolving",
 
 		// only one reason since skipping algorithm if resource does not satisfy passed constraints by itself
 		Result: Result{
-			OK:     false,
-			Values: map[string]string{},
+			OK: false,
 			Errors: map[string]string{
 				"resource-x": "passed job 'simple-b' does not have a build that satisfies the constraints",
-			},
-			Skipped: map[string]bool{
-				"resource-y": true,
 			},
 		},
 	}),
@@ -669,8 +664,7 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			OK:     false,
-			Values: map[string]string{},
+			OK: false,
 			Errors: map[string]string{
 				"resource-x": "passed job 'simple-b' does not have a build that satisfies the constraints",
 			},
@@ -886,8 +880,7 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			OK:     false,
-			Values: map[string]string{},
+			OK: false,
 			Errors: map[string]string{
 				"resource-x": "passed job 'simple-b' does not have a build that satisfies the constraints",
 			},
@@ -1806,9 +1799,6 @@ var _ = DescribeTable("Input resolving",
 
 		Result: Result{
 			OK: false,
-			Values: map[string]string{
-				"input-1": "new-r1-common-to-shared-and-j1",
-			},
 			Errors: map[string]string{
 				"input-2": "passed job 'job-2' does not have a build that satisfies the constraints",
 			},
@@ -1861,7 +1851,6 @@ var _ = DescribeTable("Input resolving",
 
 		Result: Result{
 			OK:     false,
-			Values: map[string]string{},
 			Errors: map[string]string{"resource-x": "pinned version ver:rxv2 not found"},
 		},
 	}),
@@ -1925,7 +1914,6 @@ var _ = DescribeTable("Input resolving",
 
 		Result: Result{
 			OK:     false,
-			Values: map[string]string{},
 			Errors: map[string]string{"resource-x": "passed job 'some-job' does not have a build that satisfies the constraints"},
 		},
 	}),
@@ -2090,9 +2078,6 @@ var _ = DescribeTable("Input resolving",
 
 		Result: Result{
 			OK: false,
-			Values: map[string]string{
-				"resource-x": "rxv3",
-			},
 			Errors: map[string]string{
 				"resource-y": "passed job 'simple-a' does not have a build that satisfies the constraints",
 			},
@@ -2188,21 +2173,13 @@ var _ = DescribeTable("Input resolving",
 
 		Result: Result{
 			OK: false,
-			Values: map[string]string{
-				"resource-x": "rxv2",
-				"resource-y": "ryv2",
-				"resource-z": "rzv2",
-			},
 			Errors: map[string]string{
 				"resource-w": "passed job 'simple-c' does not have a build that satisfies the constraints",
-			},
-			Skipped: map[string]bool{
-				"resource-v": true,
 			},
 		},
 	}),
 
-	Entry("finds a suitable candidate for any inputs resolved before an unresolveable candidates, all candidates after are skipped", Example{
+	Entry("finds a suitable candidate for any inputs resolved before an unresolveable candidates", Example{
 		DB: DB{
 			BuildInputs: []DBRow{
 				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
@@ -2235,13 +2212,13 @@ var _ = DescribeTable("Input resolving",
 				{Job: "shared-job", BuildID: 9, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
 				{Job: "shared-job", BuildID: 9, Resource: "resource-d", Version: "rdv1", CheckOrder: 1},
 
-				{Job: "shared-job", BuildID: 10, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "shared-job", BuildID: 10, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
 				{Job: "shared-job", BuildID: 10, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
 
-				{Job: "shared-job", BuildID: 11, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "shared-job", BuildID: 11, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
 				{Job: "shared-job", BuildID: 11, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
 
-				{Job: "shared-job", BuildID: 12, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "shared-job", BuildID: 12, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
 				{Job: "shared-job", BuildID: 12, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
 
 				{Job: "simple-1", BuildID: 13, Resource: "resource-a", Version: "rav1", CheckOrder: 1},
@@ -2292,7 +2269,6 @@ var _ = DescribeTable("Input resolving",
 			{
 				Name:     "resource-x",
 				Resource: "resource-x",
-				Version:  Version{Every: true},
 				Passed:   []string{"shared-job", "simple-a"},
 			},
 			{
@@ -2321,24 +2297,14 @@ var _ = DescribeTable("Input resolving",
 			{
 				Name:     "resource-d",
 				Resource: "resource-d",
-				Version:  Version{Every: true},
 				Passed:   []string{"shared-job", "simple-b", "simple-3"},
 			},
 		},
 
 		Result: Result{
 			OK: false,
-			Values: map[string]string{
-				"resource-x": "rxv4",
-			},
 			Errors: map[string]string{
 				"resource-y": "passed job 'simple-b' does not have a build that satisfies the constraints",
-			},
-			Skipped: map[string]bool{
-				"resource-a": true,
-				"resource-b": true,
-				"resource-c": true,
-				"resource-d": true,
 			},
 		},
 	}),
@@ -2366,9 +2332,6 @@ var _ = DescribeTable("Input resolving",
 
 		Result: Result{
 			OK: false,
-			Values: map[string]string{
-				"resource-x": "rxv2",
-			},
 			Errors: map[string]string{
 				"resource-y": "latest version of resource not found",
 			},

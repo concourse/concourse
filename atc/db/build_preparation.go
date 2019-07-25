@@ -3,12 +3,11 @@ package db
 type BuildPreparationStatus string
 
 const (
-	BuildPreparationStatusSkipped     BuildPreparationStatus = "skipped"
 	BuildPreparationStatusBlocking    BuildPreparationStatus = "blocking"
 	BuildPreparationStatusNotBlocking BuildPreparationStatus = "not_blocking"
 )
 
-const MissingBuildInput string = "input has not yet attempted to be resolved"
+const MissingBuildInput string = "input is not included in resolved candidates"
 
 type MissingInputReasons map[string]string
 

@@ -1174,7 +1174,7 @@ var _ = Describe("Build", func() {
 				})
 			})
 
-			Context("when some inputs are not satisfied", func() {
+			Context("when some inputs are errored", func() {
 				BeforeEach(func() {
 					pipelineConfig := atc.Config{
 						Jobs: atc.JobConfigs{
@@ -1196,6 +1196,51 @@ var _ = Describe("Build", func() {
 							{Name: "input2", Type: "some-type", Source: atc.Source{"some": "source-2"}},
 							{Name: "input3", Type: "some-type", Source: atc.Source{"some": "source-3"}},
 							{Name: "input4", Type: "some-type", Source: atc.Source{"some": "source-4"}},
+						},
+					}
+
+					pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(2), db.PipelineUnpaused)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = job.SaveNextInputMapping(db.InputMapping{
+						"input2": db.InputResult{
+							ResolveError: errors.New("resolve error"),
+						},
+					}, false)
+					Expect(err).NotTo(HaveOccurred())
+
+					expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
+						"input2": db.BuildPreparationStatusBlocking,
+					}
+					expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
+					expectedBuildPrep.MissingInputReasons = db.MissingInputReasons{
+						"input2": "resolve error",
+					}
+				})
+
+				It("returns blocking inputs satisfied", func() {
+					buildPrep, found, err := build.Preparation()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(buildPrep).To(Equal(expectedBuildPrep))
+				})
+			})
+
+			Context("when some inputs are missing", func() {
+				BeforeEach(func() {
+					pipelineConfig := atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								Plan: atc.PlanSequence{
+									{Get: "input1"},
+									{Get: "input2"},
+								},
+							},
+						},
+						Resources: atc.ResourceConfigs{
+							{Name: "input1", Type: "some-type", Source: atc.Source{"some": "source-1"}},
+							{Name: "input2", Type: "some-type", Source: atc.Source{"some": "source-2"}},
 						},
 					}
 
@@ -1227,39 +1272,30 @@ var _ = Describe("Build", func() {
 					err = resourceConfig1.SaveVersions([]atc.Version{{"version": "v1"}})
 					Expect(err).NotTo(HaveOccurred())
 
-					versions, _, found, err := resource1.Versions(db.Page{Limit: 1})
+					version, found, err := resourceConfig1.FindVersion(atc.Version{"version": "v1"})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
-					Expect(versions).To(HaveLen(1))
 
 					err = job.SaveNextInputMapping(db.InputMapping{
 						"input1": db.InputResult{
 							Input: &db.AlgorithmInput{
 								AlgorithmVersion: db.AlgorithmVersion{
-									Version: db.ResourceVersion(convertToMD5(versions[0].Version)), ResourceID: resource1.ID()},
+									Version:    db.ResourceVersion(convertToMD5(atc.Version(version.Version()))),
+									ResourceID: resource1.ID(),
+								},
 								FirstOccurrence: true,
 							},
 							PassedBuildIDs: []int{},
-						},
-						"input2": db.InputResult{
-							ResolveError: errors.New("resolve error"),
-						},
-						"input3": db.InputResult{
-							ResolveSkipped: true,
 						},
 					}, false)
 					Expect(err).NotTo(HaveOccurred())
 
 					expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
-						"input1": db.BuildPreparationStatusNotBlocking,
 						"input2": db.BuildPreparationStatusBlocking,
-						"input3": db.BuildPreparationStatusSkipped,
-						"input4": db.BuildPreparationStatusBlocking,
 					}
 					expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
 					expectedBuildPrep.MissingInputReasons = db.MissingInputReasons{
-						"input2": "resolve error",
-						"input4": db.MissingBuildInput,
+						"input2": "input is not included in resolved candidates",
 					}
 				})
 

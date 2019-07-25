@@ -8,7 +8,6 @@ type InputResult struct {
 	Input          *AlgorithmInput
 	PassedBuildIDs []int
 	ResolveError   error
-	ResolveSkipped bool
 }
 
 type ResourceVersion string

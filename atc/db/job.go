@@ -801,19 +801,16 @@ func (j *job) SaveNextInputMapping(inputMapping InputMapping, inputsDetermined b
 	}
 
 	builder := psql.Insert("next_build_inputs").
-		Columns("input_name", "job_id", "version_md5", "resource_id", "first_occurrence", "resolve_error", "resolve_skipped")
+		Columns("input_name", "job_id", "version_md5", "resource_id", "first_occurrence", "resolve_error")
 
 	for inputName, inputResult := range inputMapping {
 		var resolveError sql.NullString
 		var firstOccurrence sql.NullBool
 		var versionMD5 sql.NullString
 		var resourceID sql.NullInt64
-		var resolveSkipped bool
 
 		if inputResult.ResolveError != nil {
 			resolveError = sql.NullString{String: inputResult.ResolveError.Error(), Valid: true}
-		} else if inputResult.ResolveSkipped == true {
-			resolveSkipped = true
 		} else {
 			if inputResult.Input == nil {
 				return InputVersionEmptyError{inputName}
@@ -824,7 +821,7 @@ func (j *job) SaveNextInputMapping(inputMapping InputMapping, inputsDetermined b
 			versionMD5 = sql.NullString{String: string(inputResult.Input.Version), Valid: true}
 		}
 
-		builder = builder.Values(inputName, j.id, versionMD5, resourceID, firstOccurrence, resolveError, resolveSkipped)
+		builder = builder.Values(inputName, j.id, versionMD5, resourceID, firstOccurrence, resolveError)
 	}
 
 	if len(inputMapping) != 0 {
@@ -903,7 +900,7 @@ func (j *job) finishedBuild() (Build, error) {
 }
 
 func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
-	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version, i.resolve_error, i.resolve_skipped").
+	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version, i.resolve_error").
 		From("next_build_inputs i").
 		LeftJoin("resources r ON r.id = i.resource_id").
 		LeftJoin("resource_config_versions v ON v.version_md5 = i.version_md5 AND r.resource_config_scope_id = v.resource_config_scope_id").
@@ -924,10 +921,9 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 			versionBlob sql.NullString
 			resID       sql.NullString
 			resolveErr  sql.NullString
-			resSkip     bool
 		)
 
-		err := rows.Scan(&inputName, &firstOcc, &resID, &versionBlob, &resolveErr, &resSkip)
+		err := rows.Scan(&inputName, &firstOcc, &resID, &versionBlob, &resolveErr)
 		if err != nil {
 			return nil, err
 		}
@@ -964,7 +960,6 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 			Version:         version,
 			FirstOccurrence: firstOccurrence,
 			ResolveError:    resolveError,
-			ResolveSkipped:  resSkip,
 		})
 	}
 

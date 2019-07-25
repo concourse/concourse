@@ -10,7 +10,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	cache "github.com/patrickmn/go-cache"
 	gocache "github.com/patrickmn/go-cache"
 )
 
@@ -196,6 +195,10 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersi
 			})
 		}
 	}
+
+	sort.Slice(algorithmOutputs, func(i, j int) bool {
+		return algorithmOutputs[i].ResourceID < algorithmOutputs[j].ResourceID
+	})
 
 	versions.Cache.Set(cacheKey, algorithmOutputs, time.Hour)
 
@@ -472,61 +475,14 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 }
 
 func (versions VersionsDB) OrderPassedJobs(currentJobID int, jobs JobSet) ([]int, error) {
-	// var jobIDs []int
-	// for id, _ := range jobs {
-	// 	jobIDs = append(jobIDs, id)
-	// }
-
-	// sort.Ints(jobIDs)
-
-	// return jobIDs, nil
-
-	type jobLatestBuild struct {
-		jobID         int
-		latestBuildID int
-	}
-
-	jobsLatestBuilds := []jobLatestBuild{}
+	var jobIDs []int
 	for id, _ := range jobs {
-		cacheKey := fmt.Sprintf("jlb%d", id)
-
-		var buildID sql.NullInt64
-		c, found := versions.Cache.Get(cacheKey)
-		if found {
-			buildID.Int64 = c.(int64)
-		} else {
-			err := psql.Select("latest_completed_build_id").
-				From("jobs").
-				Where(sq.Eq{"id": id}).
-				RunWith(versions.Conn).
-				QueryRow().
-				Scan(&buildID)
-			if err != nil {
-				if err == sql.ErrNoRows {
-					return nil, JobNotFoundError{id}
-				}
-				return nil, err
-			}
-
-			versions.Cache.Set(cacheKey, buildID.Int64, cache.DefaultExpiration)
-		}
-
-		jobsLatestBuilds = append(jobsLatestBuilds, jobLatestBuild{
-			jobID:         id,
-			latestBuildID: int(buildID.Int64),
-		})
+		jobIDs = append(jobIDs, id)
 	}
 
-	sort.Slice(jobsLatestBuilds, func(i, j int) bool {
-		return jobsLatestBuilds[i].latestBuildID < jobsLatestBuilds[j].latestBuildID
-	})
+	sort.Ints(jobIDs)
 
-	orderedJobs := []int{}
-	for _, jlb := range jobsLatestBuilds {
-		orderedJobs = append(orderedJobs, jlb.jobID)
-	}
-
-	return orderedJobs, nil
+	return jobIDs, nil
 }
 
 func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (ResourceVersion, bool, error) {
@@ -575,8 +531,7 @@ type PaginatedBuilds struct {
 	conn      Conn
 }
 
-func (bs *PaginatedBuilds) Next(debug func(messages ...interface{})) (int, bool, error) {
-	debug("current offset", bs.offset, "build len", len(bs.buildIDs))
+func (bs *PaginatedBuilds) Next() (int, bool, error) {
 	if bs.offset+1 > len(bs.buildIDs) {
 		builder := bs.builder
 
@@ -607,8 +562,6 @@ func (bs *PaginatedBuilds) Next(debug func(messages ...interface{})) (int, bool,
 
 			bs.buildIDs = append(bs.buildIDs, buildID)
 		}
-
-		debug("found", len(bs.buildIDs), "builds in successful")
 
 		if len(bs.buildIDs) == 0 {
 			return 0, false, nil

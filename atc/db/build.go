@@ -27,7 +27,6 @@ type BuildInput struct {
 
 	FirstOccurrence bool
 	ResolveError    error
-	ResolveSkipped  bool
 }
 
 type BuildOutput struct {
@@ -696,6 +695,14 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, err
 	}
 
+	resolved := true
+	for _, input := range buildInputs {
+		if input.ResolveError != nil {
+			resolved = false
+			break
+		}
+	}
+
 	inputsSatisfiedStatus := BuildPreparationStatusNotBlocking
 	inputs := map[string]BuildPreparationStatus{}
 	missingInputReasons := MissingInputReasons{}
@@ -712,9 +719,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		}
 
 		if found {
-			if buildInput.ResolveSkipped {
-				inputs[configInput.Name] = BuildPreparationStatusSkipped
-			} else if buildInput.ResolveError == nil {
+			if buildInput.ResolveError == nil {
 				inputs[configInput.Name] = BuildPreparationStatusNotBlocking
 			} else {
 				inputs[configInput.Name] = BuildPreparationStatusBlocking
@@ -722,9 +727,11 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 				inputsSatisfiedStatus = BuildPreparationStatusBlocking
 			}
 		} else {
-			inputs[configInput.Name] = BuildPreparationStatusBlocking
-			missingInputReasons.RegisterMissingInput(configInput.Name)
-			inputsSatisfiedStatus = BuildPreparationStatusBlocking
+			if resolved {
+				inputs[configInput.Name] = BuildPreparationStatusBlocking
+				missingInputReasons.RegisterMissingInput(configInput.Name)
+				inputsSatisfiedStatus = BuildPreparationStatusBlocking
+			}
 		}
 	}
 

@@ -1161,9 +1161,6 @@ var _ = Describe("Job", func() {
 					"some-input-2": db.InputResult{
 						ResolveError: errors.New("disaster"),
 					},
-					"some-input-3": db.InputResult{
-						ResolveSkipped: true,
-					},
 				}
 
 				err := job.SaveNextInputMapping(inputVersions, false)
@@ -1179,10 +1176,6 @@ var _ = Describe("Job", func() {
 					{
 						Name:         "some-input-2",
 						ResolveError: errors.New("disaster"),
-					},
-					{
-						Name:           "some-input-3",
-						ResolveSkipped: true,
 					},
 				}
 

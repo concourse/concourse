@@ -413,63 +413,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	buildGCConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "build-collector", lockFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	workerGCConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "worker-collector", lockFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceCacheUseGCConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "resource-cache-use-collector", lockFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfigGCConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "resource-config-collector", lockFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceCacheGCConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "resource-cache-collector", lockFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfigCheckSessionGCConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "resource-config-check-session-collector", lockFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	artifactGCConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "artifact-collector", lockFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	containerGCConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "container-collector", lockFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	volumeGCConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, "volume-collector", lockFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	gcConn := map[string]db.Conn{
-		buildGCConn.Name():                      buildGCConn,
-		workerGCConn.Name():                     workerGCConn,
-		resourceCacheUseGCConn.Name():           resourceCacheUseGCConn,
-		resourceConfigGCConn.Name():             resourceConfigGCConn,
-		resourceCacheGCConn.Name():              resourceCacheGCConn,
-		resourceConfigCheckSessionGCConn.Name(): resourceConfigCheckSessionGCConn,
-		artifactGCConn.Name():                   artifactGCConn,
-		containerGCConn.Name():                  containerGCConn,
-		volumeGCConn.Name():                     volumeGCConn,
-	}
-
 	storage, err := storage.NewPostgresStorage(logger, cmd.Postgres)
 	if err != nil {
 		return nil, err
@@ -480,7 +423,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -521,7 +464,6 @@ func (cmd *RunCommand) constructMembers(
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
 	backendConn db.Conn,
-	gcConn map[string]db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
@@ -546,7 +488,7 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	gcMembers, err := cmd.constructGCMembers(logger, gcConn, lockFactory)
+	gcMembers, err := cmd.constructGCMembers(logger, lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -914,7 +856,6 @@ func (cmd *RunCommand) constructBackendMembers(
 
 func (cmd *RunCommand) constructGCMembers(
 	logger lager.Logger,
-	dbConn map[string]db.Conn,
 	lockFactory lock.LockFactory,
 ) ([]grouper.Member, error) {
 	// Each component of GC has it's own dedicated connection pool to make sure

@@ -67,7 +67,6 @@ type Result struct {
 	Values         map[string]string
 	PassedBuildIDs map[string][]int
 	Errors         map[string]string
-	Skipped        map[string]bool
 }
 
 type StringMapping map[string]int
@@ -594,29 +593,28 @@ func (example Example) Run() {
 
 		prettyValues := map[string]string{}
 		erroredValues := map[string]string{}
-		skippedValues := map[string]bool{}
 		passedJobs := map[string][]int{}
 		for name, inputSource := range resolved {
-			if inputSource.ResolveSkipped == true {
-				skippedValues[name] = true
-			} else if inputSource.ResolveError != nil {
+			if inputSource.ResolveError != nil {
 				erroredValues[name] = inputSource.ResolveError.Error()
 			} else {
-				var versionID int
-				err := setup.psql.Select("v.id").
-					From("resource_config_versions v").
-					Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
-					Where(sq.Eq{
-						"v.version_md5": inputSource.Input.AlgorithmVersion.Version,
-						"r.id":          inputSource.Input.ResourceID,
-					}).
-					QueryRow().
-					Scan(&versionID)
-				Expect(err).ToNot(HaveOccurred())
+				if ok {
+					var versionID int
+					err := setup.psql.Select("v.id").
+						From("resource_config_versions v").
+						Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
+						Where(sq.Eq{
+							"v.version_md5": inputSource.Input.AlgorithmVersion.Version,
+							"r.id":          inputSource.Input.ResourceID,
+						}).
+						QueryRow().
+						Scan(&versionID)
+					Expect(err).ToNot(HaveOccurred())
 
-				prettyValues[name] = setup.versionIDs.Name(versionID)
+					prettyValues[name] = setup.versionIDs.Name(versionID)
 
-				passedJobs[name] = inputSource.PassedBuildIDs
+					passedJobs[name] = inputSource.PassedBuildIDs
+				}
 			}
 		}
 
@@ -629,19 +627,20 @@ func (example Example) Run() {
 			actualResult.PassedBuildIDs = passedJobs
 		}
 
-		if len(skippedValues) != 0 {
-			actualResult.Skipped = skippedValues
+		if ok {
+			actualResult.Values = prettyValues
 		}
 
-		actualResult.Values = prettyValues
+		if len(example.Result.PassedBuildIDs) > 0 {
+			Expect(actualResult.OK).To(Equal(example.Result.OK))
+			Expect(actualResult.Errors).To(Equal(example.Result.Errors))
+			Expect(actualResult.Values).To(Equal(example.Result.Values))
 
-		Expect(actualResult.OK).To(Equal(example.Result.OK))
-		Expect(actualResult.Errors).To(Equal(example.Result.Errors))
-		Expect(actualResult.Values).To(Equal(example.Result.Values))
-		Expect(actualResult.Skipped).To(Equal(example.Result.Skipped))
-
-		for input, buildIDs := range example.Result.PassedBuildIDs {
-			Expect(actualResult.PassedBuildIDs[input]).To(ConsistOf(buildIDs))
+			for input, buildIDs := range example.Result.PassedBuildIDs {
+				Expect(actualResult.PassedBuildIDs[input]).To(ConsistOf(buildIDs))
+			}
+		} else {
+			Expect(actualResult).To(Equal(example.Result))
 		}
 	}
 }
