@@ -107,6 +107,7 @@ func (factory *stepFactory) CheckStep(
 	containerMetadata db.ContainerMetadata,
 	delegate exec.CheckDelegate,
 ) exec.Step {
+	containerMetadata.WorkingDirectory = resource.ResourcesDir("check")
 
 	checkStep := exec.NewCheckStep(
 		plan.ID,
@@ -115,7 +116,7 @@ func (factory *stepFactory) CheckStep(
 		containerMetadata,
 		factory.secretManager,
 		factory.resourceFactory,
-		factory.strategy,
+		worker.NewRandomPlacementStrategy(),
 		factory.pool,
 		delegate,
 	)
