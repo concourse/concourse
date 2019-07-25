@@ -245,6 +245,65 @@ h2, h3 {
 .page-nav {
   font-family: 'Roboto Slab', serif;
   font-size: 14px;
+
+  background: @darker-grey;
+  color: @grey-secondary;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-nav .number-cell {
+  padding-right: 3px;
+}
+
+.page-nav a {
+  color: @grey-primary;
+  text-decoration: none;
+}
+
+.page-nav a:hover {
+  text-decoration: underline;
+}
+
+.page-nav .context {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.page-nav .context .children a.active {
+  text-decoration: underline;
+}
+
+.page-nav .context a.self {
+  color: white;
+  text-decoration: underline;
+}
+
+.page-nav .context .top {
+  font-size: 1.1em;
+}
+
+.page-nav .children {
+  margin-left: .5rem;
+  border-left: 1px solid @dark-grey;
+  padding-left: .8rem;
+}
+
+.page-nav .children table {
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+.page-nav table td {
+  vertical-align: top;
+}
+
+.section-number {
+  margin-right: .5rem;
+}
+
+.page-content {
+  background: white;
 }
 
 .page-content ul,

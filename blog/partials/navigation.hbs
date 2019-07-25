@@ -1,0 +1,14 @@
+<div class="context">
+  <nav>
+    <div class="top"><a href="/"{{#is "index"}} class="self"{{/is}}>Blog</a></div>
+    <div class="children">
+      <table>
+      {{#foreach navigation}}
+        <tr>
+          <td class="title-cell"><a href="{{url absolute="true"}}"{{#if current}} class="self"{{/if}}>{{label}}</a></td>
+        </tr>
+      {{/foreach}}
+      </table>
+    </div>
+  </nav>
+</div>

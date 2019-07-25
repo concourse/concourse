@@ -218,6 +218,52 @@ h3 {
 .page-nav {
   font-family: 'Roboto Slab', serif;
   font-size: 14px;
+  background: #2a2929;
+  color: #7a7373;
+  display: flex;
+  flex-direction: column;
+}
+.page-nav .number-cell {
+  padding-right: 3px;
+}
+.page-nav a {
+  color: #9b9b9b;
+  text-decoration: none;
+}
+.page-nav a:hover {
+  text-decoration: underline;
+}
+.page-nav .context {
+  position: relative;
+  margin-bottom: 2rem;
+}
+.page-nav .context .children a.active {
+  text-decoration: underline;
+}
+.page-nav .context a.self {
+  color: white;
+  text-decoration: underline;
+}
+.page-nav .context .top {
+  font-size: 1.1em;
+}
+.page-nav .children {
+  margin-left: 0.5rem;
+  border-left: 1px solid #3d3c3c;
+  padding-left: 0.8rem;
+}
+.page-nav .children table {
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+.page-nav table td {
+  vertical-align: top;
+}
+.section-number {
+  margin-right: 0.5rem;
+}
+.page-content {
+  background: white;
 }
 .page-content ul,
 .page-content ol,
@@ -361,25 +407,6 @@ body {
   margin-top: 0;
   margin-bottom: 0;
 }
-.page-content {
-  background: white;
-}
-.page-nav {
-  background: #2a2929;
-  color: #7a7373;
-  display: flex;
-  flex-direction: column;
-}
-.page-nav .number-cell {
-  padding-right: 3px;
-}
-.page-nav a {
-  color: #9b9b9b;
-  text-decoration: none;
-}
-.page-nav a:hover {
-  text-decoration: underline;
-}
 .improve-docs {
   position: fixed;
   bottom: 0;
@@ -418,35 +445,6 @@ body {
 .improve-docs li:hover img {
   filter: none;
   opacity: 1;
-}
-.page-nav .context {
-  position: relative;
-  margin-bottom: 2rem;
-}
-.page-nav .context .children a.active {
-  text-decoration: underline;
-}
-.page-nav .context a.self {
-  color: white;
-  text-decoration: underline;
-}
-.page-nav .context .top {
-  font-size: 1.1em;
-}
-.page-nav .children {
-  margin-left: 0.5rem;
-  border-left: 1px solid #3d3c3c;
-  padding-left: 0.8rem;
-}
-.page-nav .children table {
-  border-spacing: 0;
-  border-collapse: collapse;
-}
-.page-nav table td {
-  vertical-align: top;
-}
-.section-number {
-  margin-right: 0.5rem;
 }
 .definition-thumb a {
   color: inherit;
