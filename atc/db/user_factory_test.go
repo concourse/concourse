@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"encoding/base64"
 	"time"
 
 	"github.com/concourse/concourse/atc/db"
@@ -17,7 +18,8 @@ var _ = Describe("User Factory", func() {
 	)
 
 	JustBeforeEach(func() {
-		user, err = userFactory.CreateOrUpdateUser("test", "github")
+		user, err = userFactory.CreateOrUpdateUser("test", "github",
+			base64.StdEncoding.EncodeToString([]byte("test" + "github")))
 		Expect(err).ToNot(HaveOccurred())
 
 	})
@@ -35,7 +37,8 @@ var _ = Describe("User Factory", func() {
 		var user2 db.User
 
 		JustBeforeEach(func() {
-			user2, err = userFactory.CreateOrUpdateUser("test", "basic")
+			user2, err = userFactory.CreateOrUpdateUser("test", "basic",
+				base64.StdEncoding.EncodeToString([]byte("test" + "basic")))
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -55,7 +58,8 @@ var _ = Describe("User Factory", func() {
 		var updatedUser db.User
 
 		JustBeforeEach(func() {
-			updatedUser, err = userFactory.CreateOrUpdateUser("test", "github")
+			updatedUser, err = userFactory.CreateOrUpdateUser("test", "github",
+				base64.StdEncoding.EncodeToString([]byte("test" + "github")))
 			Expect(err).ToNot(HaveOccurred())
 
 		})

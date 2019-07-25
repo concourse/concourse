@@ -9,11 +9,12 @@ import (
 )
 
 type FakeUserFactory struct {
-	CreateOrUpdateUserStub        func(string, string) (db.User, error)
+	CreateOrUpdateUserStub        func(string, string, string) (db.User, error)
 	createOrUpdateUserMutex       sync.RWMutex
 	createOrUpdateUserArgsForCall []struct {
 		arg1 string
 		arg2 string
+		arg3 string
 	}
 	createOrUpdateUserReturns struct {
 		result1 db.User
@@ -52,17 +53,18 @@ type FakeUserFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeUserFactory) CreateOrUpdateUser(arg1 string, arg2 string) (db.User, error) {
+func (fake *FakeUserFactory) CreateOrUpdateUser(arg1 string, arg2 string, arg3 string) (db.User, error) {
 	fake.createOrUpdateUserMutex.Lock()
 	ret, specificReturn := fake.createOrUpdateUserReturnsOnCall[len(fake.createOrUpdateUserArgsForCall)]
 	fake.createOrUpdateUserArgsForCall = append(fake.createOrUpdateUserArgsForCall, struct {
 		arg1 string
 		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("CreateOrUpdateUser", []interface{}{arg1, arg2})
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("CreateOrUpdateUser", []interface{}{arg1, arg2, arg3})
 	fake.createOrUpdateUserMutex.Unlock()
 	if fake.CreateOrUpdateUserStub != nil {
-		return fake.CreateOrUpdateUserStub(arg1, arg2)
+		return fake.CreateOrUpdateUserStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -77,17 +79,17 @@ func (fake *FakeUserFactory) CreateOrUpdateUserCallCount() int {
 	return len(fake.createOrUpdateUserArgsForCall)
 }
 
-func (fake *FakeUserFactory) CreateOrUpdateUserCalls(stub func(string, string) (db.User, error)) {
+func (fake *FakeUserFactory) CreateOrUpdateUserCalls(stub func(string, string, string) (db.User, error)) {
 	fake.createOrUpdateUserMutex.Lock()
 	defer fake.createOrUpdateUserMutex.Unlock()
 	fake.CreateOrUpdateUserStub = stub
 }
 
-func (fake *FakeUserFactory) CreateOrUpdateUserArgsForCall(i int) (string, string) {
+func (fake *FakeUserFactory) CreateOrUpdateUserArgsForCall(i int) (string, string, string) {
 	fake.createOrUpdateUserMutex.RLock()
 	defer fake.createOrUpdateUserMutex.RUnlock()
 	argsForCall := fake.createOrUpdateUserArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeUserFactory) CreateOrUpdateUserReturns(result1 db.User, result2 error) {

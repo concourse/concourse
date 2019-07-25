@@ -8,7 +8,7 @@ import (
 //go:generate counterfeiter . UserFactory
 
 type UserFactory interface {
-	CreateOrUpdateUser(username, connector string) (User, error)
+	CreateOrUpdateUser(username, connector, sub string) (User, error)
 	GetAllUsers() ([]User, error)
 	GetAllUsersByLoginDate(LastLogin time.Time) ([]User, error)
 }
@@ -17,7 +17,7 @@ type userFactory struct {
 	conn Conn
 }
 
-func (f *userFactory) CreateOrUpdateUser(username, connector string) (User, error) {
+func (f *userFactory) CreateOrUpdateUser(username, connector, sub string) (User, error) {
 	tx, err := f.conn.Begin()
 
 	if err != nil {
@@ -28,6 +28,7 @@ func (f *userFactory) CreateOrUpdateUser(username, connector string) (User, erro
 	u, err := user{
 		name:      username,
 		connector: connector,
+		sub:       sub,
 	}.create(tx)
 
 	if err != nil {

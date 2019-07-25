@@ -49,6 +49,16 @@ type FakeUser struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	SubStub        func() string
+	subMutex       sync.RWMutex
+	subArgsForCall []struct {
+	}
+	subReturns struct {
+		result1 string
+	}
+	subReturnsOnCall map[int]struct {
+		result1 string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -261,6 +271,58 @@ func (fake *FakeUser) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeUser) Sub() string {
+	fake.subMutex.Lock()
+	ret, specificReturn := fake.subReturnsOnCall[len(fake.subArgsForCall)]
+	fake.subArgsForCall = append(fake.subArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Sub", []interface{}{})
+	fake.subMutex.Unlock()
+	if fake.SubStub != nil {
+		return fake.SubStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.subReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeUser) SubCallCount() int {
+	fake.subMutex.RLock()
+	defer fake.subMutex.RUnlock()
+	return len(fake.subArgsForCall)
+}
+
+func (fake *FakeUser) SubCalls(stub func() string) {
+	fake.subMutex.Lock()
+	defer fake.subMutex.Unlock()
+	fake.SubStub = stub
+}
+
+func (fake *FakeUser) SubReturns(result1 string) {
+	fake.subMutex.Lock()
+	defer fake.subMutex.Unlock()
+	fake.SubStub = nil
+	fake.subReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeUser) SubReturnsOnCall(i int, result1 string) {
+	fake.subMutex.Lock()
+	defer fake.subMutex.Unlock()
+	fake.SubStub = nil
+	if fake.subReturnsOnCall == nil {
+		fake.subReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.subReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeUser) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -272,6 +334,8 @@ func (fake *FakeUser) Invocations() map[string][][]interface{} {
 	defer fake.lastLoginMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
+	fake.subMutex.RLock()
+	defer fake.subMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

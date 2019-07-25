@@ -22,6 +22,7 @@ var _ = Describe("Sky Server API", func() {
 
 	defaultUsername := "user"
 	defaultConnector := "github"
+	defaultSub := "sub"
 
 	ExpectServerBehaviour := func() {
 		Describe("GET /sky/login", func() {
@@ -409,6 +410,7 @@ var _ = Describe("Sky Server API", func() {
 						fakeVerifiedClaims = &token.VerifiedClaims{
 							UserName:    defaultUsername,
 							ConnectorID: defaultConnector,
+							Sub:         defaultSub,
 						}
 
 						fakeOAuthToken = (&oauth2.Token{
@@ -455,9 +457,10 @@ var _ = Describe("Sky Server API", func() {
 
 					It("records the user login", func() {
 						Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(1))
-						user, connector := fakeUserFactory.CreateOrUpdateUserArgsForCall(0)
+						user, connector, sub := fakeUserFactory.CreateOrUpdateUserArgsForCall(0)
 						Expect(user).To(Equal(defaultUsername))
 						Expect(connector).To(Equal(defaultConnector))
+						Expect(sub).To(Equal(defaultSub))
 					})
 				})
 			})
@@ -688,6 +691,7 @@ var _ = Describe("Sky Server API", func() {
 						fakeVerifiedClaims = &token.VerifiedClaims{
 							UserName:    defaultUsername,
 							ConnectorID: defaultConnector,
+							Sub:         defaultSub,
 						}
 
 						fakeOAuthToken = &oauth2.Token{
@@ -718,9 +722,10 @@ var _ = Describe("Sky Server API", func() {
 
 					It("records the user login", func() {
 						Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(1))
-						user, connector := fakeUserFactory.CreateOrUpdateUserArgsForCall(0)
+						user, connector, sub := fakeUserFactory.CreateOrUpdateUserArgsForCall(0)
 						Expect(user).To(Equal(defaultUsername))
 						Expect(connector).To(Equal(defaultConnector))
+						Expect(sub).To(Equal(defaultSub))
 					})
 				})
 			})

@@ -223,7 +223,7 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = s.config.UserFactory.CreateOrUpdateUser(verifiedClaims.UserName, verifiedClaims.ConnectorID); err != nil {
+	if _, err = s.config.UserFactory.CreateOrUpdateUser(verifiedClaims.UserName, verifiedClaims.ConnectorID, verifiedClaims.Sub); err != nil {
 		logger.Error("failed-to-save-user-to-database", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -346,7 +346,7 @@ func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = s.config.UserFactory.CreateOrUpdateUser(verifiedClaims.UserName, verifiedClaims.ConnectorID); err != nil {
+	if _, err = s.config.UserFactory.CreateOrUpdateUser(verifiedClaims.UserName, verifiedClaims.ConnectorID, verifiedClaims.Sub); err != nil {
 		logger.Error("failed-to-save-user-to-database", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

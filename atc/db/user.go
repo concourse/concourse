@@ -9,6 +9,7 @@ import (
 
 type user struct {
 	id        int
+	sub       string
 	name      string
 	connector string
 	lastLogin time.Time
@@ -18,12 +19,14 @@ type user struct {
 
 type User interface {
 	ID() int
+	Sub() string
 	Name() string
 	Connector() string
 	LastLogin() time.Time
 }
 
 func (u user) ID() int              { return u.id }
+func (u user) Sub() string          { return u.sub }
 func (u user) Name() string         { return u.name }
 func (u user) Connector() string    { return u.connector }
 func (u user) LastLogin() time.Time { return u.lastLogin }
@@ -39,6 +42,7 @@ func (u user) find(tx Tx) (User, bool, error) {
 		Where(sq.Eq{
 			"username":  u.name,
 			"connector": u.connector,
+			"sub":       u.sub,
 		}).
 		RunWith(tx).
 		QueryRow().
@@ -51,6 +55,7 @@ func (u user) find(tx Tx) (User, bool, error) {
 	}
 	return &user{
 		id:        id,
+		sub:       u.sub,
 		name:      u.name,
 		connector: u.connector,
 		lastLogin: lastLogin,
@@ -64,13 +69,14 @@ func (u user) create(tx Tx) (User, error) {
 	)
 
 	err := psql.Insert("users").
-		Columns("username", "connector").
-		Values(u.name, u.connector).
-		Suffix(`ON CONFLICT (username, connector) DO UPDATE SET
+		Columns("username", "connector", "sub").
+		Values(u.name, u.connector, u.sub).
+		Suffix(`ON CONFLICT (sub) DO UPDATE SET
 				username = ?,
 				connector = ?,
+				sub = ?,
 				last_login = now() 
-			RETURNING id, last_login`, u.name, u.connector).
+			RETURNING id, last_login`, u.name, u.connector, u.sub).
 		RunWith(tx).
 		QueryRow().
 		Scan(&id, &lastLogin)
@@ -78,7 +84,7 @@ func (u user) create(tx Tx) (User, error) {
 		return nil, err
 	}
 
-	return &user{id: id, name: u.name, connector: u.connector, lastLogin: lastLogin}, nil
+	return &user{id: id, name: u.name, connector: u.connector, lastLogin: lastLogin, sub: u.sub}, nil
 }
 
 func (u user) delete(tx Tx) error {

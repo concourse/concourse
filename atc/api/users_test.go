@@ -100,6 +100,8 @@ var _ = Describe("Users API", func() {
 						user1.IDReturns(6)
 						user1.NameReturns("bob")
 						user1.ConnectorReturns("github")
+						user1.SubReturns("sub")
+
 						loginDate = time.Unix(10, 0)
 						user1.LastLoginReturns(loginDate)
 
@@ -114,7 +116,8 @@ var _ = Describe("Users API", func() {
 							"id": 6,
 							"username": "bob",
 							"connector": "github",
-							"last_login": "%s"
+							"last_login": "%s",
+							"sub": ""
 						}]`, loginDate.Format(time.RFC3339))))
 					})
 
@@ -163,6 +166,7 @@ var _ = Describe("Users API", func() {
 				user1.IDReturns(6)
 				user1.NameReturns("bob")
 				user1.ConnectorReturns("github")
+				user1.SubReturns("sub")
 				loginDate = time.Unix(10, 0)
 				user1.LastLoginReturns(loginDate)
 				dbUserFactory.GetAllUsersByLoginDateReturns([]db.User{user1}, nil)
@@ -175,7 +179,8 @@ var _ = Describe("Users API", func() {
 						"id": 6,
 						"username": "bob",
 						"connector": "github",
-						"last_login": "%s"
+						"last_login": "%s",
+						"sub": ""
 					}]`, loginDate.Format(time.RFC3339))))
 			})
 		})
@@ -188,7 +193,7 @@ var _ = Describe("Users API", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(body).To(MatchJSON(`{"error": "wrong date format (yyyy-MM-dd)"}`))
+				Expect(body).To(MatchJSON(`{"error": "wrong date format (yyyy-mm-dd)"}`))
 			})
 
 			It("returns a HTTP 400", func() {
