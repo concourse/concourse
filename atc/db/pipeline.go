@@ -15,6 +15,8 @@ import (
 	gocache "github.com/patrickmn/go-cache"
 )
 
+const algorithmLimitRows = 100
+
 type ErrResourceNotFound struct {
 	Name string
 }
@@ -686,7 +688,8 @@ var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
 
 func (p *pipeline) LoadVersionsDB() (*VersionsDB, error) {
 	db := &VersionsDB{
-		Conn: p.conn,
+		Conn:      p.conn,
+		LimitRows: algorithmLimitRows,
 
 		Cache: schedulerCache,
 

@@ -14,8 +14,6 @@ import (
 	gocache "github.com/patrickmn/go-cache"
 )
 
-const algorithmLimitRows = 100
-
 type JobNotFoundError struct {
 	ID int
 }
@@ -25,7 +23,8 @@ func (e JobNotFoundError) Error() string {
 }
 
 type VersionsDB struct {
-	Conn Conn
+	Conn      Conn
+	LimitRows int
 
 	Cache *gocache.Cache
 
@@ -74,11 +73,11 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) PaginatedBuilds {
 		OrderBy("b.id DESC")
 
 	return PaginatedBuilds{
-		builder:            builder,
-		column:             "b.id",
-		cacheBuildIDCursor: 0,
+		builder: builder,
+		column:  "b.id",
 
-		conn: versions.Conn,
+		limitRows: versions.LimitRows,
+		conn:      versions.Conn,
 	}
 }
 
@@ -97,11 +96,11 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, constra
 		OrderBy("build_id DESC")
 
 	return PaginatedBuilds{
-		builder:            builder,
-		column:             "build_id",
-		cacheBuildIDCursor: 0,
+		builder: builder,
+		column:  "build_id",
 
-		conn: versions.Conn,
+		limitRows: versions.LimitRows,
+		conn:      versions.Conn,
 	}, nil
 }
 
@@ -407,12 +406,12 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 		OrderBy("id DESC")
 
 	return PaginatedBuilds{
-		builder:            builder,
-		buildIDs:           buildIDs,
-		column:             "id",
-		cacheBuildIDCursor: 0,
+		builder:  builder,
+		buildIDs: buildIDs,
+		column:   "id",
 
-		conn: versions.Conn,
+		limitRows: versions.LimitRows,
+		conn:      versions.Conn,
 	}, nil
 }
 
@@ -462,12 +461,12 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		OrderBy("build_id DESC")
 
 	return PaginatedBuilds{
-		builder:            builder,
-		buildIDs:           buildIDs,
-		column:             "build_id",
-		cacheBuildIDCursor: 0,
+		builder:  builder,
+		buildIDs: buildIDs,
+		column:   "build_id",
 
-		conn: versions.Conn,
+		limitRows: versions.LimitRows,
+		conn:      versions.Conn,
 	}, nil
 
 }
@@ -569,12 +568,11 @@ type PaginatedBuilds struct {
 	builder sq.SelectBuilder
 	column  string
 
-	cacheBuildIDCursor int
-
 	buildIDs []int
 	offset   int
 
-	conn Conn
+	limitRows int
+	conn      Conn
 }
 
 func (bs *PaginatedBuilds) Next(debug func(messages ...interface{})) (int, bool, error) {
@@ -592,7 +590,7 @@ func (bs *PaginatedBuilds) Next(debug func(messages ...interface{})) (int, bool,
 		bs.offset = 0
 
 		rows, err := builder.
-			Limit(algorithmLimitRows).
+			Limit(uint64(bs.limitRows)).
 			RunWith(bs.conn).
 			Query()
 		if err != nil {
@@ -611,10 +609,6 @@ func (bs *PaginatedBuilds) Next(debug func(messages ...interface{})) (int, bool,
 		}
 
 		debug("found", len(bs.buildIDs), "builds in successful")
-
-		if len(bs.buildIDs) != 0 {
-			bs.cacheBuildIDCursor = bs.buildIDs[len(bs.buildIDs)-1]
-		}
 
 		if len(bs.buildIDs) == 0 {
 			return 0, false, nil

@@ -118,20 +118,20 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 				Context("when the cache is an input to a job", func() {
 					BeforeEach(func() {
-						var versionID int
+						var versionMD5 string
 						version := `{"some":"version"}`
 						err = psql.Insert("resource_config_versions").
 							Columns("version", "version_md5", "metadata", "resource_config_scope_id").
 							Values(version, sq.Expr(fmt.Sprintf("md5('%s')", version)), `null`, jobCache.ResourceConfig().ID()).
-							Suffix("RETURNING id").
-							RunWith(dbConn).QueryRow().Scan(&versionID)
+							Suffix("RETURNING version_md5").
+							RunWith(dbConn).QueryRow().Scan(&versionMD5)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(defaultJob.SaveNextInputMapping(db.InputMapping{
 							"whatever": db.InputResult{
 								Input: &db.AlgorithmInput{
 									AlgorithmVersion: db.AlgorithmVersion{
-										VersionID:  versionID,
+										Version:    db.ResourceVersion(versionMD5),
 										ResourceID: resource.ID(),
 									},
 								},

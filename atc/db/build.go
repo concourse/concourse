@@ -364,6 +364,7 @@ func (b *build) Finish(status BuildStatus) error {
 		}
 
 		// XXX: NEED TESTS
+		// XXX: Should we order the outputs returned by the version? greatest to least if it the same resource ID
 		rows, err := psql.Select("o.resource_id", "o.version_md5").
 			From("build_resource_config_version_outputs o").
 			Where(sq.Eq{

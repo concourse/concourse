@@ -3,7 +3,9 @@ package algorithm
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -132,7 +134,18 @@ func (im *inputMapper) MapInputs(
 			}
 
 			if !found {
-				return nil, false, PinnedVersionNotFoundError{pinnedVersion}
+				mapping := db.InputMapping{}
+				for _, innerInput := range job.Config().Inputs() {
+					inputResult := db.InputResult{}
+					if innerInput.Name == input.Name {
+						inputResult.ResolveError = PinnedVersionNotFoundError{pinnedVersion}
+					} else {
+						inputResult.ResolveSkipped = true
+					}
+					mapping[innerInput.Name] = inputResult
+				}
+
+				return mapping, false, nil
 			}
 
 			inputConfig.PinnedVersion = version
@@ -225,15 +238,15 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 	// NOTE : make sure everything is deterministically ordered
 
 	for i, inputConfig := range inputConfigs {
-		debug := func(messages ...interface{}) {
-			// log.Println(
-			// 	append(
-			// 		[]interface{}{
-			// 			strings.Repeat("-", depth) + fmt.Sprintf("[%s]", inputConfig.Name),
-			// 		},
-			// 		messages...,
-			// 	)...,
-			// )
+		// debug := func(messages ...interface{}) {
+		// 	log.Println(
+		// 		append(
+		// 			[]interface{}{
+		// 				strings.Repeat("-", depth) + fmt.Sprintf("[%s]", inputConfig.Name),
+		// 			},
+		// 			messages...,
+		// 		)...,
+		// 	)
 		}
 
 		if len(inputConfig.Passed) == 0 {
@@ -401,7 +414,7 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 				}
 
 				if !ok {
-					// reached the end of the builds
+					debug("reached end")
 					break
 				}
 
@@ -423,6 +436,12 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 
 					// try to pin each candidate to the versions from this build
 					for c, candidate := range candidates {
+						if _, ok := restore[c]; ok {
+							// have already set a new version for this candidate within this build, so skip
+							debug("have already set this candidate", c, "with a version", candidate.Version)
+							continue
+						}
+
 						if inputConfigs[c].ResourceID != output.ResourceID {
 							// unrelated to this output
 							continue
@@ -449,18 +468,30 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 						if candidate != nil && candidate.Version != output.Version {
 							// don't return here! just try the next output set. it's possible
 							// we just need to use an older output set.
-							debug("mismatch")
+							debug("mismatch candidate version", candidate.Version, "comparing to output version", output.Version)
 							mismatch = true
 							break outputs
 						}
 
 						// if this doesn't work out, restore it to either nil or the
 						// candidate *without* the job vouching for it
-						if candidate == nil {
-							restore[c] = candidate
+						restore[c] = candidate
 
-							debug("setting candidate", c, "to", output.Version)
-							candidates[c] = newCandidateVersion(output.Version)
+						// make a copy
+						debug("setting candidate", c, "to", output.Version)
+						candidates[c] = newCandidateVersion(output.Version)
+
+						// carry over the vouchers
+						if candidate != nil {
+							for vJobID := range candidate.VouchedForBy {
+								candidates[c].VouchedForBy[vJobID] = true
+							}
+
+							if len(candidate.SourceBuildIds) != 0 {
+								for _, sourceBuildId := range candidate.SourceBuildIds {
+									candidates[c].SourceBuildIds = append(candidates[c].SourceBuildIds, sourceBuildId)
+								}
+							}
 						}
 
 						debug("job", jobID, "vouching for", output.ResourceID, "version", output.Version)
@@ -514,6 +545,8 @@ func (im *inputMapper) tryResolve(depth int, vdb *db.VersionsDB, inputConfigs In
 				}
 				unresolvedCandidates[i] = newCandidateError(NoSatisfiableBuildsForPassedJobError{jobName})
 			}
+
+			// reached the end of the builds
 			return false, nil
 		}
 	}

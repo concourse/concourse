@@ -1467,10 +1467,10 @@ var _ = Describe("Build", func() {
 				versionsDB, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 
-				buildID, found, err := versionsDB.LatestConstraintBuildID(build.ID(), otherJob.ID())
+				passedJobs := map[int]bool{otherJob.ID(): true}
+				buildPipes, err := versionsDB.LatestBuildPipes(build.ID(), passedJobs)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(buildID).To(Equal(otherBuild.ID()))
+				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
 			})
 		})
 
@@ -1492,9 +1492,10 @@ var _ = Describe("Build", func() {
 				versionsDB, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 
-				_, found, err := versionsDB.LatestConstraintBuildID(build.ID(), otherJob.ID())
+				passedJobs := map[int]bool{otherJob.ID(): true}
+				buildPipes, err := versionsDB.LatestBuildPipes(build.ID(), passedJobs)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeFalse())
+				Expect(buildPipes).To(HaveLen(0))
 			})
 		})
 	})

@@ -188,6 +188,8 @@ type RunCommand struct {
 		AuthFlags     skycmd.AuthFlags
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
+
+	closeDBConns []Closer
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -505,7 +507,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	onExit := func() {
-		for _, closer := range []Closer{lockConn, apiConn, backendConn, buildGCConn, workerGCConn, resourceCacheUseGCConn, resourceConfigGCConn, resourceCacheGCConn, resourceConfigCheckSessionGCConn, artifactGCConn, containerGCConn, volumeGCConn, storage} {
+		closeDBConns := append([]Closer{lockConn, storage}, cmd.closeDBConns...)
+		for _, closer := range closeDBConns {
 			closer.Close()
 		}
 	}
@@ -925,157 +928,113 @@ func (cmd *RunCommand) constructGCMembers(
 		return nil, err
 	}
 
-	// Construct build collector with it's designated connection pool
-	bCollectorBuildFactory := db.NewBuildFactory(dbConn["build-collector"], lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	members = append(members, grouper.Member{
-		Name: "build-collector", Runner: lockrunner.NewRunner(
-			logger.Session("build-collector-runner"),
-			gc.NewBuildCollector(bCollectorBuildFactory),
-			"build-collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)})
+	// A list of all the garbage collector components
+	gcConns := []string{
+		"build-collector",
+		"worker-collector",
+		"resource-cache-use-collector",
+		"resource-config-collector",
+		"resource-cache-collector",
+		"resource-config-check-session-collector",
+		"artifact-collector",
+		"volume-collector",
+		"container-collector",
+	}
 
-	// Construct worker collector
-	wCollectorWorkerLifecycle := db.NewWorkerLifecycle(dbConn["worker-collector"])
-	members = append(members, grouper.Member{
-		Name: "worker-collector", Runner: lockrunner.NewRunner(
-			logger.Session("worker-collector-runner"),
-			gc.NewWorkerCollector(wCollectorWorkerLifecycle),
-			"worker-collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)})
+	for _, name := range gcConns {
+		gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, name, lockFactory)
+		if err != nil {
+			return nil, err
+		}
 
-	// Construct resource cache use collector
-	rcacheuCollectorResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn["resource-cache-use-collector"])
-	members = append(members, grouper.Member{
-		Name: "resource-cache-use-collector", Runner: lockrunner.NewRunner(
-			logger.Session("resource-cache-use-collector-runner"),
-			gc.NewResourceCacheUseCollector(rcacheuCollectorResourceCacheLifecycle),
-			"resource-cache-use-collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)})
-
-	// Construct resource config collector
-	rconfigCollectorResourceConfigFactory := db.NewResourceConfigFactory(dbConn["resource-config-collector"], lockFactory)
-	members = append(members, grouper.Member{
-		Name: "resource-config-collector", Runner: lockrunner.NewRunner(
-			logger.Session("resource-config-collector-runner"),
-			gc.NewResourceConfigCollector(rconfigCollectorResourceConfigFactory),
-			"resource-config-collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)})
-
-	// Construct resource cache collector
-	rcacheCollectorResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn["resource-cache-use-collector"])
-	members = append(members, grouper.Member{
-		Name: "resource-cache-collector", Runner: lockrunner.NewRunner(
-			logger.Session("resource-cache-collector-runner"),
-			gc.NewResourceCacheCollector(rcacheCollectorResourceCacheLifecycle),
-			"resource-cache-collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)})
-
-	// Construct resource config check session collector
-	rccsCollectorResourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn["resource-config-check-session-collector"])
-	members = append(members, grouper.Member{
-		Name: "resource-config-check-session-collector", Runner: lockrunner.NewRunner(
-			logger.Session("resource-config-check-session-collector-runner"),
-			gc.NewResourceConfigCheckSessionCollector(
-				rccsCollectorResourceConfigCheckSessionLifecycle,
-			),
-			"resource-config-check-session-collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)})
-
-	// Construct artifact collector
-	aCollectorArtifactLifecycle := db.NewArtifactLifecycle(dbConn["artifact-collector"])
-	members = append(members, grouper.Member{
-		Name: "artifact-collector", Runner: lockrunner.NewRunner(
-			logger.Session("artifact-collector-runner"),
-			gc.NewArtifactCollector(aCollectorArtifactLifecycle),
-			"artifact-collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)})
-
-	// Construct volume collector
-	vCollectorVolumeRepository := db.NewVolumeRepository(dbConn["volume-collector"])
-	members = append(members, grouper.Member{
-		Name: "volume-collector", Runner: lockrunner.NewRunner(
-			logger.Session("volume-collector-runner"),
-			gc.NewVolumeCollector(
-				vCollectorVolumeRepository,
+		var collector gc.Collector
+		switch name {
+		case "build-collector":
+			buildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+			collector = gc.NewBuildCollector(buildFactory)
+		case "worker-collector":
+			workerLifecycle := db.NewWorkerLifecycle(gcConn)
+			collector = gc.NewWorkerCollector(workerLifecycle)
+		case "resource-cache-use-collector":
+			resourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
+			collector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
+		case "resource-config-collector":
+			resourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
+			collector = gc.NewResourceConfigCollector(resourceConfigFactory)
+		case "resource-cache-collector":
+			resourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
+			collector = gc.NewResourceCacheCollector(resourceCacheLifecycle)
+		case "resource-config-check-session-collector":
+			resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
+			collector = gc.NewResourceConfigCheckSessionCollector(
+				resourceConfigCheckSessionLifecycle,
+			)
+		case "artifact-collector":
+			artifactLifecycle := db.NewArtifactLifecycle(gcConn)
+			collector = gc.NewArtifactCollector(artifactLifecycle)
+		case "volume-collector":
+			volumeRepository := db.NewVolumeRepository(gcConn)
+			collector = gc.NewVolumeCollector(
+				volumeRepository,
 				cmd.GC.MissingGracePeriod,
-			),
-			"volume-collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)})
-
-	// Construct container collector
-	cCollectorContainerRepository := db.NewContainerRepository(dbConn["container-collector"])
-	cCollectorResourceCacheFactory := db.NewResourceCacheFactory(dbConn["container-collector"], lockFactory)
-	cCollectorResourceConfigFactory := db.NewResourceConfigFactory(dbConn["container-collector"], lockFactory)
-	cCollectorFetchSourceFactory := resource.NewFetchSourceFactory(cCollectorResourceCacheFactory, resourceFactory)
-	cCollectorResourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, cCollectorFetchSourceFactory)
-	cCollectorImageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		cCollectorResourceCacheFactory,
-		cCollectorResourceConfigFactory,
-		cCollectorResourceFetcher,
-		resourceFactory,
-	)
-	cCollectorWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn["container-collector"])
-	cCollectorTaskCacheFactory := db.NewTaskCacheFactory(dbConn["container-collector"])
-	cCollectorWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn["container-collector"])
-	cCollectorVolumeRepository := db.NewVolumeRepository(dbConn["container-collector"])
-	cCollectorTeamFactory := db.NewTeamFactory(dbConn["container-collector"], lockFactory)
-	cCollectorWorkerFactory := db.NewWorkerFactory(dbConn["container-collector"])
-	cCollectorWorkerProvider := worker.NewDBWorkerProvider(
-		lockFactory,
-		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-		image.NewImageFactory(cCollectorImageResourceFetcherFactory),
-		cCollectorResourceCacheFactory,
-		cCollectorResourceConfigFactory,
-		cCollectorWorkerBaseResourceTypeFactory,
-		cCollectorTaskCacheFactory,
-		cCollectorWorkerTaskCacheFactory,
-		cCollectorVolumeRepository,
-		cCollectorTeamFactory,
-		cCollectorWorkerFactory,
-		workerVersion,
-		cmd.BaggageclaimResponseHeaderTimeout,
-	)
-	members = append(members, grouper.Member{
-		Name: "container-collector", Runner: lockrunner.NewRunner(
-			logger.Session("container-collector-runner"),
-			gc.NewContainerCollector(
-				cCollectorContainerRepository,
+			)
+		case "container-collector":
+			containerRepository := db.NewContainerRepository(gcConn)
+			resourceCacheFactory := db.NewResourceCacheFactory(gcConn, lockFactory)
+			resourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
+			fetchSourceFactory := resource.NewFetchSourceFactory(resourceCacheFactory, resourceFactory)
+			resourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+			imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+				resourceCacheFactory,
+				resourceConfigFactory,
+				resourceFetcher,
+				resourceFactory,
+			)
+			workerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(gcConn)
+			taskCacheFactory := db.NewTaskCacheFactory(gcConn)
+			workerTaskCacheFactory := db.NewWorkerTaskCacheFactory(gcConn)
+			volumeRepository := db.NewVolumeRepository(gcConn)
+			teamFactory := db.NewTeamFactory(gcConn, lockFactory)
+			workerFactory := db.NewWorkerFactory(gcConn)
+			workerProvider := worker.NewDBWorkerProvider(
+				lockFactory,
+				retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+				image.NewImageFactory(imageResourceFetcherFactory),
+				resourceCacheFactory,
+				resourceConfigFactory,
+				workerBaseResourceTypeFactory,
+				taskCacheFactory,
+				workerTaskCacheFactory,
+				volumeRepository,
+				teamFactory,
+				workerFactory,
+				workerVersion,
+				cmd.BaggageclaimResponseHeaderTimeout,
+			)
+			collector = gc.NewContainerCollector(
+				containerRepository,
 				gc.NewWorkerJobRunner(
-					logger.Session("container-collector-worker-job-runner"),
-					cCollectorWorkerProvider,
+					logger.Session(name+"-runner"),
+					workerProvider,
 					time.Minute,
 				),
 				cmd.GC.MissingGracePeriod,
-			),
-			"container-collector",
-			lockFactory,
-			clock.NewClock(),
-			cmd.GC.Interval,
-		)})
+			)
+		default:
+			panic("garbage collector does not exist: " + name)
+		}
+
+		members = append(members, grouper.Member{
+			Name: name,
+			Runner: lockrunner.NewRunner(
+				logger.Session(name+"-runner"),
+				collector,
+				name,
+				lockFactory,
+				clock.NewClock(),
+				cmd.GC.Interval,
+			)})
+	}
 
 	return members, nil
 }
@@ -1365,6 +1324,9 @@ func (cmd *RunCommand) constructDBConn(
 
 	// Prepare
 	dbConn.SetMaxOpenConns(maxConn)
+
+	// Add connection to the connection pool list
+	cmd.closeDBConns = append(cmd.closeDBConns, dbConn)
 
 	return dbConn, nil
 }
