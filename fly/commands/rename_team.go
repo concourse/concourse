@@ -9,7 +9,7 @@ import (
 )
 
 type RenameTeamCommand struct {
-	TeamName    flaghelpers.TeamFlag `short:"o" long:"old-name" required:"true" description:"Current team name"`
+	Team        flaghelpers.TeamFlag `short:"o" long:"old-name" required:"true" description:"Current team name"`
 	NewTeamName string               `short:"n" long:"new-name" required:"true" description:"New team name"`
 }
 
@@ -24,7 +24,7 @@ func (command *RenameTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	teamName := string(command.TeamName)
+	teamName := command.Team.Name()
 
 	found, err := target.Team().RenameTeam(teamName, command.NewTeamName)
 	if err != nil {

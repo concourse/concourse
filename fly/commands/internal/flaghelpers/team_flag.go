@@ -31,3 +31,7 @@ func (flag *TeamFlag) Complete(match string) []flags.Completion {
 
 	return comps
 }
+
+func (flag TeamFlag) Name() string {
+	return string(flag)
+}

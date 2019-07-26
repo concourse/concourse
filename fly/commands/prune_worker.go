@@ -19,10 +19,11 @@ func (command *PruneWorkerCommand) Execute(args []string) error {
 		displayhelpers.Failf("Either a worker name or --all-stalled are required")
 	}
 
+	workerName := command.Worker.Name()
 	var workersNames []string
 
 	if command.Worker != "" {
-		workersNames = append(workersNames, string(command.Worker))
+		workersNames = append(workersNames, workerName)
 	}
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)

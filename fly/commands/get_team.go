@@ -15,8 +15,8 @@ import (
 )
 
 type GetTeamCommand struct {
-	TeamName flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true" description:"Get configuration of this team"`
-	JSON     bool                 `short:"j" long:"json" description:"Print command result as JSON"`
+	Team flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true" description:"Get configuration of this team"`
+	JSON bool                 `short:"j" long:"json" description:"Print command result as JSON"`
 }
 
 func (command *GetTeamCommand) Execute(args []string) error {
@@ -29,7 +29,8 @@ func (command *GetTeamCommand) Execute(args []string) error {
 		return err
 	}
 
-	team, found, err := target.Team().Team(string(command.TeamName))
+	teamName := command.Team.Name()
+	team, found, err := target.Team().Team(teamName)
 	if err != nil {
 		return err
 	}

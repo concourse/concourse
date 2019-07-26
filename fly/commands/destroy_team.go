@@ -13,7 +13,7 @@ import (
 )
 
 type DestroyTeamCommand struct {
-	TeamName        flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true"        description:"The team to delete"`
+	Team            flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true"        description:"The team to delete"`
 	SkipInteractive bool                 `long:"non-interactive"        description:"Force apply configuration"`
 }
 
@@ -28,7 +28,7 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	teamName := string(command.TeamName)
+	teamName := command.Team.Name()
 	fmt.Printf("!!! this will remove all data for team `%s`\n\n", teamName)
 
 	if !command.SkipInteractive {

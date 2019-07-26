@@ -25,7 +25,7 @@ func WireTeamConnectors(command *flags.Command) {
 }
 
 type SetTeamCommand struct {
-	TeamName        flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true" description:"The team to create or modify"`
+	Team            flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true" description:"The team to create or modify"`
 	SkipInteractive bool                 `long:"non-interactive" description:"Force apply configuration"`
 	AuthFlags       skycmd.AuthTeamFlags `group:"Authentication"`
 }
@@ -53,7 +53,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 	sort.Strings(roles)
 
-	teamName := string(command.TeamName)
+	teamName := command.Team.Name()
 	fmt.Println("setting team:", ui.Embolden("%s", teamName))
 
 	for _, role := range roles {

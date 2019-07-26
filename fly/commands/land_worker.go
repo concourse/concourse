@@ -12,7 +12,7 @@ type LandWorkerCommand struct {
 }
 
 func (command *LandWorkerCommand) Execute(args []string) error {
-	workerName := string(command.Worker)
+	workerName := command.Worker.Name()
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
