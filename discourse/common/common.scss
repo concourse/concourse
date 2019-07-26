@@ -325,13 +325,16 @@ li {
   }
 }
 .cooked img {
-  max-width: 100% !important;
   width: auto;
   height: auto;
 }
 .cooked img.emoji {
   width: 20px;
   height: 20px;
+}
+aside.onebox .onebox-body img.thumbnail {
+  max-width: 60px;
+  max-height: 60px;
 }
 .cooked p {
   margin: 1em 0;
@@ -453,7 +456,7 @@ h3 {
   flex-grow: 1;
 }
 .topic-body {
-  width: auto;
+  width: 0;
 }
 .post-notice {
   background: #ffffdc;
