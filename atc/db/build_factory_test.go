@@ -120,7 +120,7 @@ var _ = Describe("BuildFactory", func() {
 							Name: "some-other-job",
 						},
 					},
-				}, db.ConfigVersion(0), db.PipelineUnpaused)
+				}, db.ConfigVersion(0), false)
 				Expect(err).NotTo(HaveOccurred())
 
 				j, found, err := p.Job("some-other-job")
@@ -221,7 +221,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			privateJob, found, err := privatePipeline.Job("some-job")
@@ -231,7 +231,7 @@ var _ = Describe("BuildFactory", func() {
 			build2, err = privateJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 			err = publicPipeline.Expose()
 			Expect(err).NotTo(HaveOccurred())
@@ -268,7 +268,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			privateJob, found, err := privatePipeline.Job("some-job")
@@ -278,7 +278,7 @@ var _ = Describe("BuildFactory", func() {
 			_, err = privateJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 			err = publicPipeline.Expose()
 			Expect(err).NotTo(HaveOccurred())
@@ -310,7 +310,7 @@ var _ = Describe("BuildFactory", func() {
 						Name: "some-job",
 					},
 				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			}, db.ConfigVersion(0), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			job, found, err := pipeline.Job("some-job")
@@ -365,7 +365,7 @@ var _ = Describe("BuildFactory", func() {
 						Name: "some-job",
 					},
 				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			}, db.ConfigVersion(0), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			job, found, err := pipeline.Job("some-job")

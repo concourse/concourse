@@ -2,10 +2,11 @@ package ssm
 
 import (
 	"bytes"
-	"github.com/concourse/concourse/atc/creds"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/concourse/concourse/atc/creds"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
@@ -90,7 +91,7 @@ func (s *Ssm) getParameterByPath(path string) (interface{}, *time.Time, bool, er
 	if path == "" {
 		path = "/"
 	}
-	value := make(map[interface{}]interface{})
+	value := make(map[string]interface{})
 	pathQuery := &ssm.GetParametersByPathInput{}
 	pathQuery = pathQuery.SetPath(path).SetRecursive(true).SetWithDecryption(true).SetMaxResults(10)
 	err := s.api.GetParametersByPathPages(pathQuery, func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {

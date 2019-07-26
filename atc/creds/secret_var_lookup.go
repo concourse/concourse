@@ -1,7 +1,7 @@
 package creds
 
 import (
-	"github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/concourse/vars"
 )
 
 type VariableLookupFromSecrets struct {
@@ -9,14 +9,14 @@ type VariableLookupFromSecrets struct {
 	LookupPaths []SecretLookupPath
 }
 
-func NewVariables(secrets Secrets, teamName string, pipelineName string) template.Variables {
+func NewVariables(secrets Secrets, teamName string, pipelineName string) vars.Variables {
 	return VariableLookupFromSecrets{
 		Secrets:     secrets,
 		LookupPaths: secrets.NewSecretLookupPaths(teamName, pipelineName),
 	}
 }
 
-func (sl VariableLookupFromSecrets) Get(varDef template.VariableDefinition) (interface{}, bool, error) {
+func (sl VariableLookupFromSecrets) Get(varDef vars.VariableDefinition) (interface{}, bool, error) {
 	// try to find a secret according to our var->secret lookup paths
 	if len(sl.LookupPaths) > 0 {
 		for _, rule := range sl.LookupPaths {
@@ -41,6 +41,6 @@ func (sl VariableLookupFromSecrets) Get(varDef template.VariableDefinition) (int
 	}
 }
 
-func (sl VariableLookupFromSecrets) List() ([]template.VariableDefinition, error) {
+func (sl VariableLookupFromSecrets) List() ([]vars.VariableDefinition, error) {
 	return nil, nil
 }

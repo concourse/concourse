@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
-// The vaultFactory will return a vault implementation of creds.Variables.
+// The vaultFactory will return a vault implementation of vars.Variables.
 type vaultFactory struct {
 	sr         SecretReader
 	prefix     string

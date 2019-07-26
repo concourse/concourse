@@ -173,7 +173,7 @@ var _ = Describe("TaskStep", func() {
 					CPU:    &cpu,
 					Memory: &memory,
 				},
-				Params: map[string]string{
+				Params: atc.TaskEnv{
 					"SECURE": "secret-task-param",
 				},
 				Run: atc.TaskRunConfig{
@@ -321,7 +321,7 @@ var _ = Describe("TaskStep", func() {
 						taskPlan.Config = &atc.TaskConfig{
 							Platform:  "some-platform",
 							RootfsURI: "some-image",
-							Params:    map[string]string{"SOME": "params"},
+							Params:    atc.TaskEnv{"SOME": "params"},
 							Run: atc.TaskRunConfig{
 								Path: "ls",
 								Args: []string{"some", "args"},
@@ -405,7 +405,7 @@ var _ = Describe("TaskStep", func() {
 							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
-								Params:    map[string]string{"SOME": "params"},
+								Params:    atc.TaskEnv{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},
@@ -584,7 +584,7 @@ var _ = Describe("TaskStep", func() {
 							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
-								Params:    map[string]string{"SOME": "params"},
+								Params:    atc.TaskEnv{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},
@@ -736,7 +736,7 @@ var _ = Describe("TaskStep", func() {
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 								},
-								Caches: []atc.CacheConfig{
+								Caches: []atc.TaskCacheConfig{
 									{Path: "some-path-1"},
 									{Path: "some-path-2"},
 								},
@@ -810,7 +810,7 @@ var _ = Describe("TaskStep", func() {
 							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
-								Params:    map[string]string{"SOME": "params"},
+								Params:    atc.TaskEnv{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},
@@ -1282,7 +1282,7 @@ var _ = Describe("TaskStep", func() {
 											taskPlan.Config = &atc.TaskConfig{
 												Platform:  "some-platform",
 												RootfsURI: "some-image",
-												Params:    map[string]string{"SOME": "params"},
+												Params:    atc.TaskEnv{"SOME": "params"},
 												Run: atc.TaskRunConfig{
 													Path: "ls",
 													Args: []string{"some", "args"},
@@ -1310,7 +1310,7 @@ var _ = Describe("TaskStep", func() {
 													Params:  &atc.Params{"some": "params"},
 													Version: &atc.Version{"some": "version"},
 												},
-												Params: map[string]string{"SOME": "params"},
+												Params: atc.TaskEnv{"SOME": "params"},
 												Run: atc.TaskRunConfig{
 													Path: "ls",
 													Args: []string{"some", "args"},
@@ -1339,7 +1339,7 @@ var _ = Describe("TaskStep", func() {
 													Params:  &atc.Params{"some": "params"},
 													Version: &atc.Version{"some": "version"},
 												},
-												Params: map[string]string{"SOME": "params"},
+												Params: atc.TaskEnv{"SOME": "params"},
 												Run: atc.TaskRunConfig{
 													Path: "ls",
 													Args: []string{"some", "args"},
@@ -1381,7 +1381,7 @@ var _ = Describe("TaskStep", func() {
 									Params:  &atc.Params{"some": "params"},
 									Version: &atc.Version{"some": "version"},
 								},
-								Params: map[string]string{"SOME": "params"},
+								Params: atc.TaskEnv{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},
@@ -1413,7 +1413,7 @@ var _ = Describe("TaskStep", func() {
 							taskPlan.Config = &atc.TaskConfig{
 								Platform:  "some-platform",
 								RootfsURI: "some-image",
-								Params:    map[string]string{"SOME": "params"},
+								Params:    atc.TaskEnv{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},

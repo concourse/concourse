@@ -52,7 +52,7 @@ var _ = Describe("Resource", func() {
 				},
 			},
 			0,
-			db.PipelineUnpaused,
+			false,
 		)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(created).To(BeTrue())
@@ -239,7 +239,7 @@ var _ = Describe("Resource", func() {
 				"pipeline-with-same-resources",
 				config,
 				0,
-				db.PipelineUnpaused,
+				false,
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
@@ -459,7 +459,7 @@ var _ = Describe("Resource", func() {
 							"pipeline-with-same-resources",
 							config,
 							pipeline.ConfigVersion(),
-							db.PipelineUnpaused,
+							false,
 						)
 						Expect(err).ToNot(HaveOccurred())
 
@@ -491,7 +491,7 @@ var _ = Describe("Resource", func() {
 							"pipeline-with-same-resources",
 							config,
 							pipeline.ConfigVersion(),
-							db.PipelineUnpaused,
+							false,
 						)
 						Expect(err).ToNot(HaveOccurred())
 

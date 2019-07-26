@@ -1,88 +1,61 @@
 package atc
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"strings"
 
-	"gopkg.in/yaml.v2"
-
-	"github.com/mitchellh/mapstructure"
+	"github.com/ghodss/yaml"
 )
 
 type TaskConfig struct {
 	// The platform the task must run on (e.g. linux, windows).
-	Platform string `json:"platform,omitempty" yaml:"platform,omitempty" mapstructure:"platform"`
+	Platform string `json:"platform,omitempty"`
 
 	// Optional string specifying an image to use for the build. Depending on the
 	// platform, this may or may not be required (e.g. Windows/OS X vs. Linux).
-	RootfsURI string `json:"rootfs_uri,omitempty" yaml:"rootfs_uri,omitempty" mapstructure:"rootfs_uri"`
+	RootfsURI string `json:"rootfs_uri,omitempty"`
 
-	ImageResource *ImageResource `json:"image_resource,omitempty" yaml:"image_resource,omitempty" mapstructure:"image_resource"`
+	ImageResource *ImageResource `json:"image_resource,omitempty"`
 
 	// Limits to set on the Task Container
-	Limits ContainerLimits `json:"container_limits,omitempty" yaml:"container_limits,omitempty" mapstructure:"container_limits"`
+	Limits ContainerLimits `json:"container_limits,omitempty"`
 
 	// Parameters to pass to the task via environment variables.
-	Params map[string]string `json:"params,omitempty" yaml:"params,omitempty" mapstructure:"params"`
+	Params TaskEnv `json:"params,omitempty"`
 
 	// Script to execute.
-	Run TaskRunConfig `json:"run,omitempty" yaml:"run,omitempty" mapstructure:"run"`
+	Run TaskRunConfig `json:"run,omitempty"`
 
 	// The set of (logical, name-only) inputs required by the task.
-	Inputs []TaskInputConfig `json:"inputs,omitempty" yaml:"inputs,omitempty" mapstructure:"inputs"`
+	Inputs []TaskInputConfig `json:"inputs,omitempty"`
 
 	// The set of (logical, name-only) outputs provided by the task.
-	Outputs []TaskOutputConfig `json:"outputs,omitempty" yaml:"outputs,omitempty" mapstructure:"outputs"`
+	Outputs []TaskOutputConfig `json:"outputs,omitempty"`
 
 	// Path to cached directory that will be shared between builds for the same task.
-	Caches []CacheConfig `json:"caches,omitempty" yaml:"caches,omitempty" mapstructure:"caches"`
+	Caches []TaskCacheConfig `json:"caches,omitempty"`
 }
 
 type ContainerLimits struct {
-	CPU    *uint64 `yaml:"cpu,omitempty" json:"cpu,omitempty"  mapstructure:"cpu"`
-	Memory *uint64 `yaml:"memory,omitempty" json:"memory,omitempty"  mapstructure:"memory"`
+	CPU    *uint64 `json:"cpu,omitempty"`
+	Memory *uint64 `json:"memory,omitempty"`
 }
 
 type ImageResource struct {
-	Type   string `yaml:"type"   json:"type"   mapstructure:"type"`
-	Source Source `yaml:"source" json:"source" mapstructure:"source"`
+	Type   string `json:"type"`
+	Source Source `json:"source"`
 
-	Params  *Params  `yaml:"params,omitempty"  json:"params,omitempty"  mapstructure:"params"`
-	Version *Version `yaml:"version,omitempty" json:"version,omitempty" mapstructure:"version"`
+	Params  *Params  `json:"params,omitempty"`
+	Version *Version `json:"version,omitempty"`
 }
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
-	var untypedInput map[string]interface{}
-
-	if err := yaml.Unmarshal(configBytes, &untypedInput); err != nil {
-		return TaskConfig{}, err
-	}
-
 	var config TaskConfig
-	var metadata mapstructure.Metadata
-
-	msConfig := &mapstructure.DecoderConfig{
-		Metadata:         &metadata,
-		Result:           &config,
-		WeaklyTypedInput: true,
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			SanitizeDecodeHook,
-			ContainerLimitsDecodeHook,
-		),
-	}
-
-	decoder, err := mapstructure.NewDecoder(msConfig)
+	err := yaml.UnmarshalStrict(configBytes, &config, yaml.DisallowUnknownFields)
 	if err != nil {
 		return TaskConfig{}, err
-	}
-
-	if err := decoder.Decode(untypedInput); err != nil {
-		return TaskConfig{}, err
-	}
-
-	if len(metadata.Unused) > 0 {
-		keys := strings.Join(metadata.Unused, ", ")
-		return TaskConfig{}, fmt.Errorf("extra keys in the task configuration: %s", keys)
 	}
 
 	err = config.Validate()
@@ -104,87 +77,14 @@ func (config TaskConfig) Validate() error {
 		messages = append(messages, "  missing path to executable to run")
 	}
 
-	messages = append(messages, config.validateInputsAndOutputs()...)
+	messages = append(messages, config.validateInputContainsNames()...)
+	messages = append(messages, config.validateOutputContainsNames()...)
 
 	if len(messages) > 0 {
 		return fmt.Errorf("invalid task configuration:\n%s", strings.Join(messages, "\n"))
 	}
 
 	return nil
-}
-
-func (config TaskConfig) validateInputsAndOutputs() []string {
-	messages := []string{}
-
-	messages = append(messages, config.validateInputContainsNames()...)
-	messages = append(messages, config.validateOutputContainsNames()...)
-
-	return messages
-}
-
-func (config TaskConfig) validateDotPath() []string {
-	messages := []string{}
-
-	pathCount := 0
-	dotPath := false
-
-	for _, input := range config.Inputs {
-		path := strings.TrimPrefix(input.resolvePath(), "./")
-
-		if path == "." {
-			dotPath = true
-		}
-
-		pathCount++
-	}
-
-	for _, output := range config.Outputs {
-		path := strings.TrimPrefix(output.resolvePath(), "./")
-
-		if path == "." {
-			dotPath = true
-		}
-
-		pathCount++
-	}
-
-	if pathCount > 1 && dotPath {
-		messages = append(messages, "  you may not have more than one input or output when one of them has a path of '.'")
-	}
-
-	return messages
-}
-
-type pathCounter struct {
-	inputCount  map[string]int
-	outputCount map[string]int
-}
-
-func (counter *pathCounter) foundInBoth(path string) bool {
-	_, inputFound := counter.inputCount[path]
-	_, outputFound := counter.outputCount[path]
-
-	return inputFound && outputFound
-}
-
-func (counter *pathCounter) registerInput(input TaskInputConfig) {
-	path := strings.TrimPrefix(input.resolvePath(), "./")
-
-	if val, found := counter.inputCount[path]; !found {
-		counter.inputCount[path] = 1
-	} else {
-		counter.inputCount[path] = val + 1
-	}
-}
-
-func (counter *pathCounter) registerOutput(output TaskOutputConfig) {
-	path := strings.TrimPrefix(output.resolvePath(), "./")
-
-	if val, found := counter.outputCount[path]; !found {
-		counter.outputCount[path] = 1
-	} else {
-		counter.outputCount[path] = val + 1
-	}
 }
 
 func (config TaskConfig) validateOutputContainsNames() []string {
@@ -212,44 +112,84 @@ func (config TaskConfig) validateInputContainsNames() []string {
 }
 
 type TaskRunConfig struct {
-	Path string   `json:"path" yaml:"path"`
-	Args []string `json:"args,omitempty" yaml:"args,omitempty"`
-	Dir  string   `json:"dir,omitempty" yaml:"dir,omitempty"`
+	Path string   `json:"path"`
+	Args []string `json:"args,omitempty"`
+	Dir  string   `json:"dir,omitempty"`
 
 	// The user that the task will run as (defaults to whatever the docker image specifies)
-	User string `json:"user,omitempty" yaml:"user,omitempty" mapstructure:"user"`
+	User string `json:"user,omitempty"`
 }
 
 type TaskInputConfig struct {
-	Name     string `json:"name" yaml:"name"`
-	Path     string `json:"path,omitempty" yaml:"path,omitempty"`
-	Optional bool   `json:"optional,omitempty" yaml:"optional,omitempty"`
-}
-
-func (input TaskInputConfig) resolvePath() string {
-	if input.Path != "" {
-		return input.Path
-	}
-	return input.Name
+	Name     string `json:"name"`
+	Path     string `json:"path,omitempty"`
+	Optional bool   `json:"optional,omitempty"`
 }
 
 type TaskOutputConfig struct {
-	Name string `json:"name" yaml:"name"`
-	Path string `json:"path,omitempty" yaml:"path,omitempty"`
+	Name string `json:"name"`
+	Path string `json:"path,omitempty"`
 }
 
-func (output TaskOutputConfig) resolvePath() string {
-	if output.Path != "" {
-		return output.Path
+type TaskCacheConfig struct {
+	Path string `json:"path,omitempty"`
+}
+
+type TaskEnv map[string]string
+
+func (te *TaskEnv) UnmarshalJSON(p []byte) error {
+	raw := map[string]CoercedString{}
+	err := json.Unmarshal(p, &raw)
+	if err != nil {
+		return err
 	}
-	return output.Name
+
+	m := map[string]string{}
+	for k, v := range raw {
+		m[k] = string(v)
+	}
+
+	*te = m
+
+	return nil
 }
 
-type MetadataField struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
+func (te TaskEnv) Env() []string {
+	env := make([]string, 0, len(te))
+
+	for k, v := range te {
+		env = append(env, k+"="+v)
+	}
+
+	return env
 }
 
-type CacheConfig struct {
-	Path string `json:"path,omitempty" yaml:"path,omitempty" mapstructure:"path"`
+type CoercedString string
+
+func (cs *CoercedString) UnmarshalJSON(p []byte) error {
+	var raw interface{}
+	dec := json.NewDecoder(bytes.NewReader(p))
+	dec.UseNumber()
+	err := dec.Decode(&raw)
+	if err != nil {
+		return err
+	}
+
+	switch v := raw.(type) {
+	case string:
+		*cs = CoercedString(v)
+
+	case json.Number:
+		*cs = CoercedString(v)
+
+	default:
+		j, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+
+		*cs = CoercedString(j)
+	}
+
+	return nil
 }

@@ -4,17 +4,17 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
+	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("TaskConfigSource", func() {
@@ -43,7 +43,7 @@ var _ = Describe("TaskConfigSource", func() {
 				},
 				Version: &atc.Version{"some": "version"},
 			},
-			Params: map[string]string{
+			Params: atc.TaskEnv{
 				"key1": "key1-((task-variable-name))",
 				"key2": "key2-((task-variable-name))",
 			},
@@ -243,7 +243,7 @@ run: {path: a/file}
 			config = atc.TaskConfig{
 				Platform:  "some-platform",
 				RootfsURI: "some-image",
-				Params:    map[string]string{"PARAM": "A", "ORIG_PARAM": "D"},
+				Params:    atc.TaskEnv{"PARAM": "A", "ORIG_PARAM": "D"},
 				Run: atc.TaskRunConfig{
 					Path: "echo",
 					Args: []string{"bananapants"},
@@ -294,7 +294,7 @@ run: {path: a/file}
 			})
 
 			It("returns the config with overridden parameters", func() {
-				Expect(fetchedConfig.Params).To(Equal(map[string]string{
+				Expect(fetchedConfig.Params).To(Equal(atc.TaskEnv{
 					"ORIG_PARAM":  "D",
 					"PARAM":       "B",
 					"EXTRA_PARAM": "C",
@@ -357,7 +357,7 @@ run: {path: a/file}
 			config := atc.TaskConfig{
 				Platform:  "some-platform",
 				RootfsURI: "some-image",
-				Params:    map[string]string{"PARAM": "A"},
+				Params:    atc.TaskEnv{"PARAM": "A"},
 				Run: atc.TaskRunConfig{
 					Path: "echo",
 					Args: []string{"bananapants"},
@@ -378,7 +378,7 @@ run: {path: a/file}
 			BeforeEach(func() {
 				fakeConfigSource.FetchConfigReturns(atc.TaskConfig{
 					RootfsURI: "some-image",
-					Params:    map[string]string{"PARAM": "A"},
+					Params:    atc.TaskEnv{"PARAM": "A"},
 					Run: atc.TaskRunConfig{
 						Args: []string{"bananapants"},
 					},
@@ -412,7 +412,7 @@ run: {path: a/file}
 
 		JustBeforeEach(func() {
 			configSource = StaticConfigSource{Config: &taskConfig}
-			configSource = InterpolateTemplateConfigSource{ConfigSource: configSource, Vars: []boshtemplate.Variables{boshtemplate.StaticVariables(taskVars)}}
+			configSource = InterpolateTemplateConfigSource{ConfigSource: configSource, Vars: []vars.Variables{vars.StaticVariables(taskVars)}}
 			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
 		})
 
@@ -422,7 +422,7 @@ run: {path: a/file}
 
 		It("resolves task config parameters successfully", func() {
 			Expect(fetchedConfig.Run.Args).To(Equal([]string{"-al", "task-variable-value"}))
-			Expect(fetchedConfig.Params).To(Equal(map[string]string{
+			Expect(fetchedConfig.Params).To(Equal(atc.TaskEnv{
 				"key1": "key1-task-variable-value",
 				"key2": "key2-task-variable-value",
 			}))

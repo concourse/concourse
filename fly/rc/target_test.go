@@ -11,7 +11,7 @@ import (
 
 	"github.com/concourse/concourse/fly/rc"
 	"golang.org/x/oauth2"
-	yaml "gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -3,7 +3,7 @@ package atc
 type VersionedResourceType struct {
 	ResourceType
 
-	Version Version `yaml:"version" json:"version" mapstructure:"version"`
+	Version Version `json:"version"`
 }
 
 type VersionedResourceTypes []VersionedResourceType

@@ -17,16 +17,16 @@ const DefaultTeamName = "main"
 type Tags []string
 
 type Config struct {
-	Groups        GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
-	Resources     ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
-	ResourceTypes ResourceTypes   `yaml:"resource_types" json:"resource_types" mapstructure:"resource_types"`
-	Jobs          JobConfigs      `yaml:"jobs" json:"jobs" mapstructure:"jobs"`
+	Groups        GroupConfigs    `json:"groups,omitempty"`
+	Resources     ResourceConfigs `json:"resources,omitempty"`
+	ResourceTypes ResourceTypes   `json:"resource_types,omitempty"`
+	Jobs          JobConfigs      `json:"jobs,omitempty"`
 }
 
 type GroupConfig struct {
-	Name      string   `yaml:"name" json:"name" mapstructure:"name"`
-	Jobs      []string `yaml:"jobs,omitempty" json:"jobs,omitempty" mapstructure:"jobs"`
-	Resources []string `yaml:"resources,omitempty" json:"resources,omitempty" mapstructure:"resources"`
+	Name      string   `json:"name"`
+	Jobs      []string `json:"jobs,omitempty"`
+	Resources []string `json:"resources,omitempty"`
 }
 
 type GroupConfigs []GroupConfig
@@ -42,29 +42,29 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, int, bool) {
 }
 
 type ResourceConfig struct {
-	Name         string  `yaml:"name" json:"name" mapstructure:"name"`
-	Public       bool    `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
-	WebhookToken string  `yaml:"webhook_token,omitempty" json:"webhook_token" mapstructure:"webhook_token"`
-	Type         string  `yaml:"type" json:"type" mapstructure:"type"`
-	Source       Source  `yaml:"source" json:"source" mapstructure:"source"`
-	CheckEvery   string  `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
-	CheckTimeout string  `yaml:"check_timeout,omitempty" json:"check_timeout" mapstructure:"check_timeout"`
-	Tags         Tags    `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
-	Version      Version `yaml:"version,omitempty" json:"version" mapstructure:"version"`
-	Icon         string  `yaml:"icon,omitempty" json:"icon,omitempty" mapstructure:"icon"`
+	Name         string  `json:"name"`
+	Public       bool    `json:"public,omitempty"`
+	WebhookToken string  `json:"webhook_token,omitempty"`
+	Type         string  `json:"type"`
+	Source       Source  `json:"source"`
+	CheckEvery   string  `json:"check_every,omitempty"`
+	CheckTimeout string  `json:"check_timeout,omitempty"`
+	Tags         Tags    `json:"tags,omitempty"`
+	Version      Version `json:"version,omitempty"`
+	Icon         string  `json:"icon,omitempty"`
 }
 
 type ResourceType struct {
-	Name                 string `yaml:"name" json:"name" mapstructure:"name"`
-	Type                 string `yaml:"type" json:"type" mapstructure:"type"`
-	Source               Source `yaml:"source" json:"source" mapstructure:"source"`
-	Privileged           bool   `yaml:"privileged,omitempty" json:"privileged" mapstructure:"privileged"`
-	CheckEvery           string `yaml:"check_every,omitempty" json:"check_every,omitempty" mapstructure:"check_every"`
-	Tags                 Tags   `yaml:"tags,omitempty" json:"tags,omitempty" mapstructure:"tags"`
-	Params               Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
-	CheckSetupError      string `yaml:"check_setup_error,omitempty" json:"check_setup_error,omitempty" mapstructure:"check_setup_error"`
-	CheckError           string `yaml:"check_error,omitempty" json:"check_error,omitempty" mapstructure:"check_error"`
-	UniqueVersionHistory bool   `yaml:"unique_version_history,omitempty" json:"unique_version_history" mapstructure:"unique_version_history"`
+	Name                 string `json:"name"`
+	Type                 string `json:"type"`
+	Source               Source `json:"source"`
+	Privileged           bool   `json:"privileged,omitempty"`
+	CheckEvery           string `json:"check_every,omitempty"`
+	Tags                 Tags   `json:"tags,omitempty"`
+	Params               Params `json:"params,omitempty"`
+	CheckSetupError      string `json:"check_setup_error,omitempty"`
+	CheckError           string `json:"check_error,omitempty"`
+	UniqueVersionHistory bool   `json:"unique_version_history,omitempty"`
 }
 
 type ResourceTypes []ResourceType
@@ -139,52 +139,8 @@ func (c *VersionConfig) UnmarshalJSON(version []byte) error {
 	return nil
 }
 
-func (c *VersionConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var data interface{}
-
-	err := unmarshal(&data)
-	if err != nil {
-		return err
-	}
-
-	switch actual := data.(type) {
-	case string:
-		c.Every = actual == "every"
-		c.Latest = actual == "latest"
-	case map[interface{}]interface{}:
-		version := Version{}
-
-		for k, v := range actual {
-			if ks, ok := k.(string); ok {
-				if vs, ok := v.(string); ok {
-					version[ks] = strings.TrimSpace(vs)
-				}
-			}
-		}
-
-		c.Pinned = version
-	default:
-		return errors.New("unknown type for version")
-	}
-
-	return nil
-}
-
-func (c *VersionConfig) MarshalYAML() (interface{}, error) {
-	if c.Latest {
-		return VersionLatest, nil
-	}
-
-	if c.Every {
-		return VersionEvery, nil
-	}
-
-	if c.Pinned != nil {
-		return c.Pinned, nil
-	}
-
-	return nil, nil
-}
+const VersionLatest = "latest"
+const VersionEvery = "every"
 
 func (c *VersionConfig) MarshalJSON() ([]byte, error) {
 	if c.Latest {
@@ -240,48 +196,7 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 	return nil
 }
 
-func (c *InputsConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var data interface{}
-
-	err := unmarshal(&data)
-	if err != nil {
-		return err
-	}
-
-	switch actual := data.(type) {
-	case string:
-		c.All = actual == "all"
-	case []interface{}:
-		inputs := []string{}
-
-		for _, v := range actual {
-			str, ok := v.(string)
-			if !ok {
-				return fmt.Errorf("non-string put input: %v", v)
-			}
-
-			inputs = append(inputs, strings.TrimSpace(str))
-		}
-
-		c.Specified = inputs
-	default:
-		return errors.New("unknown type for put inputs")
-	}
-
-	return nil
-}
-
-func (c InputsConfig) MarshalYAML() (interface{}, error) {
-	if c.All {
-		return InputsAll, nil
-	}
-
-	if c.Specified != nil {
-		return c.Specified, nil
-	}
-
-	return nil, nil
-}
+const InputsAll = "all"
 
 func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	if c.All {
@@ -296,32 +211,32 @@ func (c InputsConfig) MarshalJSON() ([]byte, error) {
 }
 
 type InParallelConfig struct {
-	Steps    PlanSequence `yaml:"steps,omitempty" json:"steps" mapstructure:"steps"`
-	Limit    int          `yaml:"limit,omitempty" json:"limit,omitempty" mapstructure:"limit"`
-	FailFast bool         `yaml:"fail_fast,omitempty" json:"fail_fast,omitempty" mapstructure:"fail_fast"`
+	Steps    PlanSequence `json:"steps,omitempty"`
+	Limit    int          `json:"limit,omitempty"`
+	FailFast bool         `json:"fail_fast,omitempty"`
 }
 
-func (c *InParallelConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (c *InParallelConfig) UnmarshalJSON(payload []byte) error {
 	var data interface{}
-
-	err := unmarshal(&data)
+	err := json.Unmarshal(payload, &data)
 	if err != nil {
 		return err
 	}
 
 	switch actual := data.(type) {
 	case []interface{}:
-		if err := unmarshal(&c.Steps); err != nil {
+		if err := json.Unmarshal(payload, &c.Steps); err != nil {
 			return fmt.Errorf("failed to unmarshal parallel steps: %s", err)
 		}
-	case map[interface{}]interface{}:
+	case map[string]interface{}:
 		// Used to avoid infinite recursion when unmarshalling this variant.
 		type target InParallelConfig
 
 		var t target
-		if err := unmarshal(&t); err != nil {
+		if err := json.Unmarshal(payload, &t); err != nil {
 			return fmt.Errorf("failed to unmarshal parallel config: %s", err)
 		}
+
 		c.Steps, c.Limit, c.FailFast = t.Steps, t.Limit, t.FailFast
 	default:
 		return fmt.Errorf("wrong type for parallel config: %v", actual)
@@ -338,91 +253,91 @@ type PlanConfig struct {
 
 	// compose a nested sequence of plans
 	// name of the nested 'do'
-	RawName string `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
+	RawName string `json:"name,omitempty"`
 
 	// a nested chain of steps to run
-	Do *PlanSequence `yaml:"do,omitempty" json:"do,omitempty" mapstructure:"do"`
+	Do *PlanSequence `json:"do,omitempty"`
 
 	// corresponds to an Aggregate plan, keyed by the name of each sub-plan
-	Aggregate *PlanSequence `yaml:"aggregate,omitempty" json:"aggregate,omitempty" mapstructure:"aggregate"`
+	Aggregate *PlanSequence `json:"aggregate,omitempty"`
 
 	// a nested chain of steps to run in parallel
-	InParallel *InParallelConfig `yaml:"in_parallel,omitempty" json:"in_parallel,omitempty" mapstructure:"in_parallel"`
+	InParallel *InParallelConfig `json:"in_parallel,omitempty"`
 
 	// corresponds to Get and Put resource plans, respectively
 	// name of 'input', e.g. bosh-stemcell
-	Get string `yaml:"get,omitempty" json:"get,omitempty" mapstructure:"get"`
+	Get string `json:"get,omitempty"`
 	// jobs that this resource must have made it through
-	Passed []string `yaml:"passed,omitempty" json:"passed,omitempty" mapstructure:"passed"`
+	Passed []string `json:"passed,omitempty"`
 	// whether to trigger based on this resource changing
-	Trigger bool `yaml:"trigger,omitempty" json:"trigger,omitempty" mapstructure:"trigger"`
+	Trigger bool `json:"trigger,omitempty"`
 
 	// name of 'output', e.g. rootfs-tarball
-	Put string `yaml:"put,omitempty" json:"put,omitempty" mapstructure:"put"`
+	Put string `json:"put,omitempty"`
 
 	// corresponding resource config, e.g. aws-stemcell
-	Resource string `yaml:"resource,omitempty" json:"resource,omitempty" mapstructure:"resource"`
+	Resource string `json:"resource,omitempty"`
 
 	// inputs to a put step either a list (e.g. [artifact-1, aritfact-2]) or all (e.g. all)
-	Inputs *InputsConfig `yaml:"inputs,omitempty" json:"inputs,omitempty" mapstructure:"inputs"`
+	Inputs *InputsConfig `json:"inputs,omitempty"`
 
 	// corresponds to a Task plan
 	// name of 'task', e.g. unit, go1.3, go1.4
-	Task string `yaml:"task,omitempty" json:"task,omitempty" mapstructure:"task"`
+	Task string `json:"task,omitempty"`
 	// run task privileged
-	Privileged bool `yaml:"privileged,omitempty" json:"privileged,omitempty" mapstructure:"privileged"`
+	Privileged bool `json:"privileged,omitempty"`
 	// task config path, e.g. foo/build.yml
-	TaskConfigPath string `yaml:"file,omitempty" json:"file,omitempty" mapstructure:"file"`
+	TaskConfigPath string `json:"file,omitempty"`
 	// task variables, if task is specified as external file via TaskConfigPath
-	TaskVars Params `yaml:"vars,omitempty" json:"vars,omitempty" mapstructure:"vars"`
+	TaskVars Params `json:"vars,omitempty"`
 	// inlined task config
-	TaskConfig *TaskConfig `yaml:"config,omitempty" json:"config,omitempty" mapstructure:"config"`
+	TaskConfig *TaskConfig `json:"config,omitempty"`
 
 	// used by Get and Put for specifying params to the resource
 	// used by Task for passing params to external task config
-	Params Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
+	Params Params `json:"params,omitempty"`
 
 	// used to pass specific inputs/outputs as generic inputs/outputs in task config
-	InputMapping  map[string]string `yaml:"input_mapping,omitempty" json:"input_mapping,omitempty" mapstructure:"input_mapping"`
-	OutputMapping map[string]string `yaml:"output_mapping,omitempty" json:"output_mapping,omitempty" mapstructure:"output_mapping"`
+	InputMapping  map[string]string `json:"input_mapping,omitempty"`
+	OutputMapping map[string]string `json:"output_mapping,omitempty"`
 
 	// used to specify an image artifact from a previous build to be used as the image for a subsequent task container
-	ImageArtifactName string `yaml:"image,omitempty" json:"image,omitempty" mapstructure:"image"`
+	ImageArtifactName string `json:"image,omitempty"`
 
 	// used by Put to specify params for the subsequent Get
-	GetParams Params `yaml:"get_params,omitempty" json:"get_params,omitempty" mapstructure:"get_params"`
+	GetParams Params `json:"get_params,omitempty"`
 
 	// used by any step to specify which workers are eligible to run the step
-	Tags Tags `yaml:"tags,omitempty" json:"tags,omitempty" mapstructure:"tags"`
+	Tags Tags `json:"tags,omitempty"`
 
 	// used by any step to run something when the build is aborted during execution of the step
-	Abort *PlanConfig `yaml:"on_abort,omitempty" json:"on_abort,omitempty" mapstructure:"on_abort"`
+	Abort *PlanConfig `json:"on_abort,omitempty"`
 
 	// used by any step to run something when the build errors during execution of the step
-	Error *PlanConfig `yaml:"on_error,omitempty" json:"on_error,omitempty" mapstructure:"on_error"`
+	Error *PlanConfig `json:"on_error,omitempty"`
 
 	// used by any step to run something when the step reports a failure
-	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
+	Failure *PlanConfig `json:"on_failure,omitempty"`
 
 	// used on any step to always execute regardless of the step's completed state
-	Ensure *PlanConfig `yaml:"ensure,omitempty" json:"ensure,omitempty" mapstructure:"ensure"`
+	Ensure *PlanConfig `json:"ensure,omitempty"`
 
 	// used on any step to execute on successful completion of the step
-	Success *PlanConfig `yaml:"on_success,omitempty" json:"on_success,omitempty" mapstructure:"on_success"`
+	Success *PlanConfig `json:"on_success,omitempty"`
 
 	// used on any step to swallow failures and errors
-	Try *PlanConfig `yaml:"try,omitempty" json:"try,omitempty" mapstructure:"try"`
+	Try *PlanConfig `json:"try,omitempty"`
 
 	// used on any step to interrupt the step after a given duration
-	Timeout string `yaml:"timeout,omitempty" json:"timeout,omitempty" mapstructure:"timeout"`
+	Timeout string `json:"timeout,omitempty"`
 
 	// not present in yaml
-	DependentGet string `yaml:"-" json:"-"`
+	DependentGet string `json:"-" json:"-"`
 
 	// repeat the step up to N times, until it works
-	Attempts int `yaml:"attempts,omitempty" json:"attempts,omitempty" mapstructure:"attempts"`
+	Attempts int `json:"attempts,omitempty"`
 
-	Version *VersionConfig `yaml:"version,omitempty" json:"version,omitempty" mapstructure:"version"`
+	Version *VersionConfig `json:"version,omitempty"`
 }
 
 func (config PlanConfig) Name() string {

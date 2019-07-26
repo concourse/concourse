@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"

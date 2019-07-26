@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/rata"
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 )
 
 var _ = Describe("GetPipeline", func() {

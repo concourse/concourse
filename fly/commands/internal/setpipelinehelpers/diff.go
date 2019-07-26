@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gexec"
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 )
 
 type Index interface {
