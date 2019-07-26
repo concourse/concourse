@@ -16,14 +16,26 @@ import (
 )
 
 type SyncCommand struct {
-	Force bool `long:"force" short:"f" description:"Sync even if versions already match."`
+	Force  bool   `long:"force" short:"f" description:"Sync even if versions already match."`
+	ATCURL string `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
 }
 
 func (command *SyncCommand) Execute(args []string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	var target rc.Target
+	var err error
+
+	target, err = rc.NewUnauthenticatedTarget(
+		"dummy",
+		command.ATCURL,
+		"",
+		false,
+		"",
+		Fly.Verbose,
+	)
 	if err != nil {
 		return err
 	}
+
 	info, err := target.Client().GetInfo()
 	if err != nil {
 		return err
