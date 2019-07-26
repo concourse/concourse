@@ -197,6 +197,8 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	var chosenWorker worker.Worker
 	var activeTasksLock lock.Lock
+	var elapsed time.Duration
+	outputWriter := step.delegate.Stdout()
 
 	for {
 		if step.strategy.ModifiesActiveTasks() {
@@ -225,13 +227,21 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		}
 
 		if step.strategy.ModifiesActiveTasks() {
+			waitWorker := time.Duration(5 * time.Second) // Workers polling frequency
 			if chosenWorker == nil {
 				logger.Info("no-worker-available")
 				err = activeTasksLock.Release()
 				if err != nil {
 					return err
 				}
-				time.Sleep(5 * time.Second)
+				if elapsed%time.Duration(time.Minute) == 0 { // Every minute report that it is still waiting
+					_, err := outputWriter.Write([]byte("All workers are busy at the moment, please stand-by.\n"))
+					if err != nil {
+						logger.Error("Failed to report status.", err)
+					}
+				}
+				elapsed += waitWorker
+				time.Sleep(waitWorker)
 				continue
 			}
 			err = chosenWorker.IncreaseActiveTasks()
@@ -242,6 +252,12 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 			err = activeTasksLock.Release()
 			if err != nil {
 				return err
+			}
+			if elapsed > 0 {
+				_, err := outputWriter.Write([]byte(fmt.Sprintf("Found a free worker after waiting %s.\n", elapsed)))
+				if err != nil {
+					logger.Error("Failed to report status.", err)
+				}
 			}
 			defer step.decreaseActiveTasks(logger, chosenWorker)
 		}
