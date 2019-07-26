@@ -18,7 +18,6 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-
 // IMPORTANT NOTE: We don't compile this in because we actually use transport.WorkerHijackStreamer
 // most of this folder was just copied in from garden/client as a temp workaround to adding ctx to Hijack()
 // we needed connection.go in garden/client package and were forced to import the rest of this stuff to make

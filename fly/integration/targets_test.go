@@ -8,8 +8,8 @@ import (
 
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
-	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

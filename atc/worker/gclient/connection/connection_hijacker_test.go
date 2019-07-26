@@ -8,10 +8,10 @@ import (
 	"net/url"
 
 	"code.cloudfoundry.org/garden/routes"
+	"github.com/concourse/concourse/atc/worker/gclient/connection"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"
-	"github.com/concourse/concourse/atc/worker/gclient/connection"
 )
 
 var _ = Describe("ConnectionHijacker", func() {

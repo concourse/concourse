@@ -3,9 +3,11 @@ package worker_test
 import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+
 	//"code.cloudfoundry.org/garden/gardenfakes"
 	"context"
 	"errors"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"

@@ -19,7 +19,7 @@ var _ = Describe("User Factory", func() {
 
 	JustBeforeEach(func() {
 		user, err = userFactory.CreateOrUpdateUser("test", "github",
-			base64.StdEncoding.EncodeToString([]byte("test" + "github")))
+			base64.StdEncoding.EncodeToString([]byte("test"+"github")))
 		Expect(err).ToNot(HaveOccurred())
 
 	})
@@ -38,7 +38,7 @@ var _ = Describe("User Factory", func() {
 
 		JustBeforeEach(func() {
 			user2, err = userFactory.CreateOrUpdateUser("test", "basic",
-				base64.StdEncoding.EncodeToString([]byte("test" + "basic")))
+				base64.StdEncoding.EncodeToString([]byte("test"+"basic")))
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -59,7 +59,7 @@ var _ = Describe("User Factory", func() {
 
 		JustBeforeEach(func() {
 			updatedUser, err = userFactory.CreateOrUpdateUser("test", "github",
-				base64.StdEncoding.EncodeToString([]byte("test" + "github")))
+				base64.StdEncoding.EncodeToString([]byte("test"+"github")))
 			Expect(err).ToNot(HaveOccurred())
 
 		})

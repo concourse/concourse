@@ -25,10 +25,10 @@ import (
 
 var _ = Describe("Client", func() {
 	var (
-		logger       *lagertest.TestLogger
-		fakePool     *workerfakes.FakePool
-		fakeProvider *workerfakes.FakeWorkerProvider
-		client       worker.Client
+		logger          *lagertest.TestLogger
+		fakePool        *workerfakes.FakePool
+		fakeProvider    *workerfakes.FakeWorkerProvider
+		client          worker.Client
 		fakeLockFactory *lockfakes.FakeLockFactory
 	)
 

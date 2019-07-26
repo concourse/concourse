@@ -130,7 +130,6 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 		&worker.CertsVolumeMount{Logger: s.logger},
 	}
 
-
 	container, err := s.worker.FindOrCreateContainer(
 		ctx,
 		s.logger,

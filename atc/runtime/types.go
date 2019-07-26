@@ -2,11 +2,11 @@ package runtime
 
 const (
 	InitializingEvent = "Initializing"
-	StartingEvent = "Starting"
-	FinishedEvent = "Finished"
+	StartingEvent     = "Starting"
+	FinishedEvent     = "Finished"
 )
 
 type Event struct {
-	EventType string
+	EventType  string
 	ExitStatus int
 }

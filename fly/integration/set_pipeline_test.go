@@ -12,12 +12,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/urljoiner"
+	"github.com/ghodss/yaml"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/rata"
-	"github.com/ghodss/yaml"
 
 	"github.com/concourse/concourse/atc"
 )

@@ -178,7 +178,7 @@ var _ = Describe("PutStep", func() {
 				fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
 				fakeVersionResult = resource.VersionResult{
-					Version: atc.Version{"some": "version"},
+					Version:  atc.Version{"some": "version"},
 					Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
 				}
 

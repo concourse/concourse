@@ -139,7 +139,7 @@ func (client *client) RunTaskStep(
 		processSpec.StdoutWriter,
 	)
 	if err != nil {
-		return TaskResult{Status: - 1, VolumeMounts: []VolumeMount{}, Err: err}
+		return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
 	}
 
 	if strategy.ModifiesActiveTasks() {
@@ -157,7 +157,7 @@ func (client *client) RunTaskStep(
 	)
 
 	if err != nil {
-		return TaskResult{Status: - 1, VolumeMounts: []VolumeMount{}, Err: err}
+		return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
 	}
 
 	// container already exited
@@ -167,7 +167,7 @@ func (client *client) RunTaskStep(
 
 		status, err := strconv.Atoi(exitStatusProp)
 		if err != nil {
-			return TaskResult{- 1, []VolumeMount{}, err}
+			return TaskResult{-1, []VolumeMount{}, err}
 		}
 
 		return TaskResult{Status: status, VolumeMounts: container.VolumeMounts(), Err: nil}

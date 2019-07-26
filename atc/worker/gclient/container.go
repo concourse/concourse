@@ -143,7 +143,7 @@ type container struct {
 
 func newContainer(handle string, connection connection.Connection) Container {
 	return &container{
-		handle: handle,
+		handle:     handle,
 		connection: connection,
 	}
 }
@@ -184,11 +184,11 @@ func (container *container) CurrentMemoryLimits() (garden.MemoryLimits, error) {
 	return container.connection.CurrentMemoryLimits(container.handle)
 }
 
-func (container *container) Run(ctx context.Context,spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+func (container *container) Run(ctx context.Context, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 	return container.connection.Run(ctx, container.handle, spec, io)
 }
 
-func (container *container) Attach(ctx context.Context,processID string, io garden.ProcessIO) (garden.Process, error) {
+func (container *container) Attach(ctx context.Context, processID string, io garden.ProcessIO) (garden.Process, error) {
 	return container.connection.Attach(ctx, container.handle, processID, io)
 }
 

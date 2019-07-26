@@ -10,7 +10,6 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-
 type streamHandler struct {
 	log lager.Logger
 	wg  *sync.WaitGroup
@@ -50,7 +49,7 @@ type waitReturn struct {
 	err      error
 }
 
-func (sh *streamHandler) wait(decoder *json.Decoder) <- chan waitReturn  {
+func (sh *streamHandler) wait(decoder *json.Decoder) <-chan waitReturn {
 	result := make(chan waitReturn)
 	go func() {
 		for {
