@@ -11,11 +11,6 @@ type DeleteTargetCommand struct {
 }
 
 func (command *DeleteTargetCommand) Execute(args []string) error {
-	_, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
 	if command.All {
 		if err := rc.DeleteAllTargets(); err != nil {
 			return err
@@ -23,6 +18,11 @@ func (command *DeleteTargetCommand) Execute(args []string) error {
 
 		fmt.Println("deleted all targets")
 	} else {
+		_, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+		if err != nil {
+			return err
+		}
+
 		if err := rc.DeleteTarget(Fly.Target); err != nil {
 			return err
 		}
