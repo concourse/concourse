@@ -10,6 +10,13 @@ services:
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
 
+  apache:
+    image: httpd
+    volumes:
+    - ./httpd.conf:/usr/local/apache2/conf/httpd.conf
+    ports:
+    - 80:80
+
   web:
     build: .
     image: concourse/concourse:local
@@ -25,7 +32,7 @@ services:
       CONCOURSE_POSTGRES_USER: dev
       CONCOURSE_POSTGRES_PASSWORD: dev
       CONCOURSE_POSTGRES_DATABASE: concourse
-      CONCOURSE_EXTERNAL_URL: http://localhost:8080
+      CONCOURSE_EXTERNAL_URL: http://localhost/concourse
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
