@@ -103,20 +103,13 @@ var _ = Describe("Resource Put", func() {
 
 		Context("when a result is already present on the container", func() {
 			BeforeEach(func() {
-				fakeContainer.PropertyStub = func(name string) (string, error) {
-					switch name {
-					case "concourse:resource-result":
-						return `{
-						"version": {"some": "new-version"},
-						"metadata": [
-							{"name": "a", "value":"a-value"},
-							{"name": "b","value": "b-value"}
-						]
-					}`, nil
-					default:
-						return "", errors.New("unstubbed property: " + name)
-					}
-				}
+				fakeContainer.PropertiesReturns(garden.Properties{"concourse:resource-result": `{
+					"version": {"some": "new-version"},
+					"metadata": [
+						{"name": "a", "value":"a-value"},
+						{"name": "b","value": "b-value"}
+					]
+				}`}, nil)
 			})
 
 			It("exits successfully", func() {
@@ -140,9 +133,7 @@ var _ = Describe("Resource Put", func() {
 
 		Context("when /out has already been spawned", func() {
 			BeforeEach(func() {
-				fakeContainer.PropertyStub = func(name string) (string, error) {
-					return "", errors.New("unstubbed property: " + name)
-				}
+				fakeContainer.PropertiesReturns(nil, nil)
 			})
 
 			It("reattaches to it", func() {
@@ -233,13 +224,7 @@ var _ = Describe("Resource Put", func() {
 
 		Context("when /out has not yet been spawned", func() {
 			BeforeEach(func() {
-				fakeContainer.PropertyStub = func(name string) (string, error) {
-					switch name {
-					default:
-						return "", errors.New("unstubbed property: " + name)
-					}
-				}
-
+				fakeContainer.PropertiesReturns(nil, nil)
 				attachOutError = errors.New("not-found")
 			})
 

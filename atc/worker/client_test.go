@@ -303,6 +303,7 @@ var _ = Describe("Client", func() {
 				Dir:  "/some/dir",
 			}
 			fakeContainer = new(workerfakes.FakeContainer)
+			fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
 
 			fakeWorker = new(workerfakes.FakeWorker)
 			fakeWorker.NameReturns("some-worker")
@@ -332,7 +333,7 @@ var _ = Describe("Client", func() {
 		Context("choosing a worker", func() {
 			BeforeEach(func() {
 				// later fakes are uninitialized
-				fakeContainer.PropertyReturns("3", nil)
+				fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "3"}, nil)
 			})
 
 			It("chooses a worker", func() {
@@ -347,6 +348,7 @@ var _ = Describe("Client", func() {
 
 					fakeContainer := new(workerfakes.FakeContainer)
 					fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+					fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
 
 					fakeStrategy.ModifiesActiveTasksReturns(true)
 				})
@@ -385,12 +387,7 @@ var _ = Describe("Client", func() {
 
 		Context("found a container that has already exited", func() {
 			BeforeEach(func() {
-				fakeContainer.PropertyStub = func(prop string) (result string, err error) {
-					if prop == "concourse:exit-status" {
-						return "8", nil
-					}
-					return "", errors.New("unhandled property")
-				}
+				fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "8"}, nil)
 			})
 
 			It("does not attach to any process", func() {
@@ -485,7 +482,7 @@ var _ = Describe("Client", func() {
 
 			BeforeEach(func() {
 				fakeProcess = new(gardenfakes.FakeProcess)
-				fakeContainer.PropertyReturns("", errors.New("not exited"))
+				fakeContainer.PropertiesReturns(garden.Properties{}, nil)
 
 				// for testing volume mounts being returned
 				fakeVolume1 = new(workerfakes.FakeVolume)
@@ -863,7 +860,7 @@ var _ = Describe("Client", func() {
 
 					Context("when saving the exit status succeeds", func() {
 						BeforeEach(func() {
-							fakeContainer.SetPropertyReturns(nil)
+							fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
 						})
 
 						It("returns successfully", func() {
