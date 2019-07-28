@@ -36,10 +36,11 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 		errorMessages = append(errorMessages, formatErr("resources", resourcesErr))
 	}
 
-	resourceTypesErr := validateResourceTypes(c)
+	resourceTypesWarnings, resourceTypesErr := validateResourceTypes(c)
 	if resourceTypesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
+	warnings = append(warnings, resourceTypesWarnings...)
 
 	varSourcesErr := validateVarSources(c)
 	if varSourcesErr != nil {
@@ -142,13 +143,12 @@ func validateResources(c Config) error {
 		}
 	}
 
-	errorMessages = append(errorMessages, validateResourcesUnused(c)...)
-
 	return compositeErr(errorMessages)
 }
 
-func validateResourceTypes(c Config) error {
-	var errorMessages []string
+func validateResourceTypes(c Config) ([]ConfigWarning, error) {
+	errorMessages := []string{}
+	warnings := []ConfigWarning{}
 
 	names := map[string]int{}
 
@@ -178,21 +178,25 @@ func validateResourceTypes(c Config) error {
 		}
 	}
 
-	return compositeErr(errorMessages)
+	warnings = append(warnings, validateResourcesUnused(c)...)
+
+	return warnings, compositeErr(errorMessages)
 }
 
-func validateResourcesUnused(c Config) []string {
+func validateResourcesUnused(c Config) []ConfigWarning {
+	warnings := []ConfigWarning{}
 	usedResources := usedResources(c)
 
-	var errorMessages []string
 	for _, resource := range c.Resources {
 		if _, used := usedResources[resource.Name]; !used {
-			message := fmt.Sprintf("resource '%s' is not used", resource.Name)
-			errorMessages = append(errorMessages, message)
+			warnings = append(warnings, ConfigWarning{
+				Type:    "resources",
+				Message: resource.Name + " : is not used in pipeline",
+			})
 		}
 	}
 
-	return errorMessages
+	return warnings
 }
 
 func usedResources(c Config) map[string]bool {
