@@ -116,7 +116,7 @@ func (factory *stepFactory) TaskStep(
 		containerMetadata,
 		factory.secretManager,
 		factory.strategy,
-		factory.pool,
+		factory.client,
 		delegate,
 		lockFactory,
 	)

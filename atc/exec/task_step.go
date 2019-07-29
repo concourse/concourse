@@ -7,11 +7,8 @@ import (
 	"io"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 
-	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
@@ -19,12 +16,10 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
-
-const taskProcessID = "task"
-const taskExitStatusPropertyName = "concourse:exit-status"
 
 // MissingInputsError is returned when any of the task's required inputs are
 // missing.
@@ -75,7 +70,7 @@ type TaskStep struct {
 	containerMetadata db.ContainerMetadata
 	secrets           creds.Secrets
 	strategy          worker.ContainerPlacementStrategy
-	workerPool        worker.Pool
+	workerClient      worker.Client
 	delegate          TaskDelegate
 	lockFactory       lock.LockFactory
 	succeeded         bool
@@ -89,7 +84,7 @@ func NewTaskStep(
 	containerMetadata db.ContainerMetadata,
 	secrets creds.Secrets,
 	strategy worker.ContainerPlacementStrategy,
-	workerPool worker.Pool,
+	workerClient worker.Client,
 	delegate TaskDelegate,
 	lockFactory lock.LockFactory,
 ) Step {
@@ -101,7 +96,7 @@ func NewTaskStep(
 		containerMetadata: containerMetadata,
 		secrets:           secrets,
 		strategy:          strategy,
-		workerPool:        workerPool,
+		workerClient:      workerClient,
 		delegate:          delegate,
 		lockFactory:       lockFactory,
 	}
@@ -181,6 +176,8 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		config.Limits.Memory = step.defaultLimits.Memory
 	}
 
+
+
 	step.delegate.Initializing(logger, config)
 
 	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)
@@ -193,192 +190,81 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	processSpec := worker.TaskProcessSpec{
+		Path:         config.Run.Path,
+		Args:         config.Run.Args,
+		Dir:          config.Run.Dir,
+		StdoutWriter: step.delegate.Stdout(),
+		StderrWriter: step.delegate.Stderr(),
+	}
+
+	imageSpec := worker.ImageFetcherSpec{
+		ResourceTypes: resourceTypes,
+		Delegate:      step.delegate,
+	}
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	var chosenWorker worker.Worker
-	var activeTasksLock lock.Lock
-	var elapsed time.Duration
-	outputWriter := step.delegate.Stdout()
+	events := make(chan runtime.Event, 1)
+	go func(logger lager.Logger, config atc.TaskConfig, events chan runtime.Event, delegate TaskDelegate) {
+		for ev := range events {
+			switch ev.EventType {
+			case runtime.InitializingEvent:
+				step.delegate.Initializing(logger, config)
 
-	for {
-		if step.strategy.ModifiesActiveTasks() {
-			var acquired bool
-			activeTasksLock, acquired, err = step.lockFactory.Acquire(logger, lock.NewTaskStepLockID())
-			if err != nil {
-				return err
-			}
+			case runtime.StartingEvent:
+				step.delegate.Starting(logger, config)
 
-			if !acquired {
-				time.Sleep(time.Second)
-				continue
+			case runtime.FinishedEvent:
+				step.delegate.Finished(logger, ExitStatus(ev.ExitStatus))
 			}
 		}
+	}(logger, config, events, step.delegate)
 
-		chosenWorker, err = step.workerPool.FindOrChooseWorkerForContainer(
-			ctx,
-			logger,
-			owner,
-			containerSpec,
-			workerSpec,
-			step.strategy,
-		)
-		if err != nil {
-			return err
-		}
-
-		if step.strategy.ModifiesActiveTasks() {
-			waitWorker := time.Duration(5 * time.Second) // Workers polling frequency
-			if chosenWorker == nil {
-				logger.Info("no-worker-available")
-				err = activeTasksLock.Release()
-				if err != nil {
-					return err
-				}
-				if elapsed%time.Duration(time.Minute) == 0 { // Every minute report that it is still waiting
-					_, err := outputWriter.Write([]byte("All workers are busy at the moment, please stand-by.\n"))
-					if err != nil {
-						logger.Error("Failed to report status.", err)
-					}
-				}
-				elapsed += waitWorker
-				time.Sleep(waitWorker)
-				continue
-			}
-			err = chosenWorker.IncreaseActiveTasks()
-			if err != nil {
-				logger.Error("Failed to increase active tasks.", err)
-			}
-			logger.Info("increase-active-tasks")
-			err = activeTasksLock.Release()
-			if err != nil {
-				return err
-			}
-			if elapsed > 0 {
-				_, err := outputWriter.Write([]byte(fmt.Sprintf("Found a free worker after waiting %s.\n", elapsed)))
-				if err != nil {
-					logger.Error("Failed to report status.", err)
-				}
-			}
-			defer step.decreaseActiveTasks(logger, chosenWorker)
-		}
-		break
-	}
-
-	container, err := chosenWorker.FindOrCreateContainer(
+	result := step.workerClient.RunTaskStep(
 		ctx,
 		logger,
-		step.delegate,
+		step.lockFactory,
 		owner,
-		step.containerMetadata,
 		containerSpec,
-		resourceTypes,
+		workerSpec,
+		step.strategy,
+		step.containerMetadata,
+		imageSpec,
+		processSpec,
+		events,
 	)
+
+	close(events)
+
+	err = result.Err
+	if err != nil {
+		if err == context.Canceled || err == context.DeadlineExceeded {
+			registerErr := step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+			if registerErr != nil {
+				return registerErr
+			}
+		}
+		return err
+	}
+
+	step.succeeded = (result.Status == 0)
+	step.delegate.Finished(logger, ExitStatus(result.Status))
+
+	err = step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 	if err != nil {
 		return err
 	}
 
-	exitStatusProp, err := container.Property(taskExitStatusPropertyName)
-	if err == nil {
-		logger.Info("already-exited", lager.Data{"status": exitStatusProp})
-
-		status, err := strconv.Atoi(exitStatusProp)
+	// Do not initialize caches for one-off builds
+	if step.metadata.JobID != 0 {
+		err = step.registerCaches(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 		if err != nil {
 			return err
 		}
-
-		step.succeeded = (status == 0)
-
-		err = step.registerOutputs(logger, repository, config, container, step.containerMetadata)
-		if err != nil {
-			return err
-		}
-
-		return nil
 	}
 
-	processIO := garden.ProcessIO{
-		Stdout: step.delegate.Stdout(),
-		Stderr: step.delegate.Stderr(),
-	}
+	return nil
 
-	process, err := container.Attach(taskProcessID, processIO)
-	if err == nil {
-		logger.Info("already-running")
-	} else {
-		logger.Info("spawning")
-
-		step.delegate.Starting(logger, config)
-
-		process, err = container.Run(
-			garden.ProcessSpec{
-				ID: taskProcessID,
-
-				Path: config.Run.Path,
-				Args: config.Run.Args,
-
-				Dir: path.Join(step.containerMetadata.WorkingDirectory, config.Run.Dir),
-
-				// Guardian sets the default TTY window size to width: 80, height: 24,
-				// which creates ANSI control sequences that do not work with other window sizes
-				TTY: &garden.TTYSpec{
-					WindowSize: &garden.WindowSize{Columns: 500, Rows: 500},
-				},
-			},
-			processIO,
-		)
-	}
-	if err != nil {
-		return err
-	}
-
-	logger.Info("attached")
-
-	exited := make(chan struct{})
-	var processStatus int
-	var processErr error
-
-	go func() {
-		processStatus, processErr = process.Wait()
-		close(exited)
-	}()
-
-	select {
-	case <-ctx.Done():
-		err = step.registerOutputs(logger, repository, config, container, step.containerMetadata)
-		if err != nil {
-			return err
-		}
-
-		err = container.Stop(false)
-		if err != nil {
-			logger.Error("stopping-container", err)
-		}
-
-		<-exited
-
-		return ctx.Err()
-
-	case <-exited:
-		if processErr != nil {
-			return processErr
-		}
-
-		err = step.registerOutputs(logger, repository, config, container, step.containerMetadata)
-		if err != nil {
-			return err
-		}
-
-		step.delegate.Finished(logger, ExitStatus(processStatus))
-
-		err = container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
-		if err != nil {
-			return err
-		}
-
-		step.succeeded = processStatus == 0
-
-		return nil
-	}
 }
 
 func (step *TaskStep) Succeeded() bool {
@@ -511,9 +397,7 @@ func (step *TaskStep) workerSpec(logger lager.Logger, resourceTypes atc.Versione
 	return workerSpec, nil
 }
 
-func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, container worker.Container, metadata db.ContainerMetadata) error {
-	volumeMounts := container.VolumeMounts()
-
+func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) error {
 	logger.Debug("registering-outputs", lager.Data{"outputs": config.Outputs})
 
 	for _, output := range config.Outputs {
@@ -532,31 +416,31 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.
 		}
 	}
 
-	// Do not initialize caches for one-off builds
-	if step.metadata.JobID != 0 {
-		logger.Debug("initializing-caches", lager.Data{"caches": config.Caches})
+	return nil
+}
 
-		for _, cacheConfig := range config.Caches {
-			for _, volumeMount := range volumeMounts {
-				if volumeMount.MountPath == filepath.Join(metadata.WorkingDirectory, cacheConfig.Path) {
-					logger.Debug("initializing-cache", lager.Data{"path": volumeMount.MountPath})
+func (step *TaskStep) registerCaches(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) error {
+	logger.Debug("initializing-caches", lager.Data{"caches": config.Caches})
 
-					err := volumeMount.Volume.InitializeTaskCache(
-						logger,
-						step.metadata.JobID,
-						step.plan.Name,
-						cacheConfig.Path,
-						bool(step.plan.Privileged))
-					if err != nil {
-						return err
-					}
+	for _, cacheConfig := range config.Caches {
+		for _, volumeMount := range volumeMounts {
+			if volumeMount.MountPath == filepath.Join(metadata.WorkingDirectory, cacheConfig.Path) {
+				logger.Debug("initializing-cache", lager.Data{"path": volumeMount.MountPath})
 
-					continue
+				err := volumeMount.Volume.InitializeTaskCache(
+					logger,
+					step.metadata.JobID,
+					step.plan.Name,
+					cacheConfig.Path,
+					bool(step.plan.Privileged))
+				if err != nil {
+					return err
 				}
+
+				continue
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -659,12 +543,4 @@ func (src *taskCacheSource) StreamFile(logger lager.Logger, filename string) (io
 
 func (src *taskCacheSource) VolumeOn(logger lager.Logger, w worker.Worker) (worker.Volume, bool, error) {
 	return w.FindVolumeForTaskCache(src.logger, src.teamID, src.jobID, src.stepName, src.path)
-}
-
-func (step *TaskStep) decreaseActiveTasks(logger lager.Logger, w worker.Worker) {
-	logger.Info("decrease-active-tasks")
-	err := w.DecreaseActiveTasks()
-	if err != nil {
-		logger.Error("Error decreasing active tasks.", err)
-	}
 }

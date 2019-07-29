@@ -9,10 +9,12 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+
 	"github.com/concourse/concourse/atc/db"
 )
 
 //go:generate counterfeiter . WorkerProvider
+
 
 type WorkerProvider interface {
 	RunningWorkers(lager.Logger) ([]Worker, error)
@@ -58,6 +60,11 @@ func (err NoCompatibleWorkersError) Error() string {
 //go:generate counterfeiter . Pool
 
 type Pool interface {
+	FindOrChooseWorker(
+		lager.Logger,
+		WorkerSpec,
+	) (Worker, error)
+
 	FindOrChooseWorkerForContainer(
 		context.Context,
 		lager.Logger,
@@ -66,24 +73,19 @@ type Pool interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 	) (Worker, error)
-
-	FindOrChooseWorker(
-		lager.Logger,
-		WorkerSpec,
-	) (Worker, error)
 }
 
 type pool struct {
-	provider    WorkerProvider
-	rand *rand.Rand
+	provider WorkerProvider
+	rand     *rand.Rand
 }
 
 func NewPool(
 	provider WorkerProvider,
 ) Pool {
 	return &pool{
-		provider:    provider,
-		rand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		provider: provider,
+		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -155,12 +157,12 @@ dance:
 		}
 	}
 
-		if worker == nil {
-			worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
-			if err != nil {
-				return nil, err
-			}
+	if worker == nil {
+		worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
+		if err != nil {
+			return nil, err
 		}
+	}
 
 	return worker, nil
 }

@@ -183,7 +183,7 @@ var _ = Describe("Image", func() {
 
 					It("checks for the latest version of the resource type", func() {
 						By("find or create a resource container")
-						_, _, _, _, _,  containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+						_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 						Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
 
 						By("calling the resource type's check script")
