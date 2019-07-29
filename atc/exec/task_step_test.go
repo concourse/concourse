@@ -163,7 +163,7 @@ var _ = Describe("TaskStep", func() {
 					CPU:    &cpu,
 					Memory: &memory,
 				},
-				Params: map[string]string{
+				Params: atc.TaskEnv{
 					"SECURE": "secret-task-param",
 				},
 				Run: atc.TaskRunConfig{
@@ -210,6 +210,7 @@ var _ = Describe("TaskStep", func() {
 							ImageURL:   "some-image",
 							Privileged: false,
 						},
+						Type: "task",
 						Dir:     "some-artifact-root",
 						Env:     []string{"SOME=params"},
 						Inputs:  []worker.InputSource{},
@@ -417,7 +418,7 @@ var _ = Describe("TaskStep", func() {
 					Run: atc.TaskRunConfig{
 						Path: "ls",
 					},
-					Caches: []atc.CacheConfig{
+					Caches: []atc.TaskCacheConfig{
 						{Path: "some-path-1"},
 						{Path: "some-path-2"},
 					},

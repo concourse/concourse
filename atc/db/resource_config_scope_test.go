@@ -35,7 +35,7 @@ var _ = Describe("Resource Config Scope", func() {
 					},
 				},
 			},
-		}, db.ConfigVersion(0), db.PipelineUnpaused)
+		}, db.ConfigVersion(0), false)
 		Expect(err).NotTo(HaveOccurred())
 
 		resource, found, err := pipeline.Resource("some-resource")

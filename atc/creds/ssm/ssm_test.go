@@ -2,17 +2,18 @@ package ssm_test
 
 import (
 	"errors"
-	"github.com/concourse/concourse/atc/creds"
 	"strconv"
 	"text/template"
+
+	"github.com/concourse/concourse/atc/creds"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
-	varTemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	. "github.com/concourse/concourse/atc/creds/ssm"
+	"github.com/concourse/concourse/vars"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -85,12 +86,12 @@ func (mock *MockSsmService) GetParametersByPathPages(input *ssm.GetParametersByP
 
 var _ = Describe("Ssm", func() {
 	var ssmAccess *Ssm
-	var variables creds.Variables
-	var varDef varTemplate.VariableDefinition
+	var variables vars.Variables
+	var varDef vars.VariableDefinition
 	var mockService MockSsmService
 
 	JustBeforeEach(func() {
-		varDef = varTemplate.VariableDefinition{Name: "cheery"}
+		varDef = vars.VariableDefinition{Name: "cheery"}
 		t1, err := template.New("test").Parse(DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -131,8 +132,8 @@ var _ = Describe("Ssm", func() {
 					},
 				}
 			}
-			value, found, err := variables.Get(varTemplate.VariableDefinition{Name: "user"})
-			Expect(value).To(BeEquivalentTo(map[interface{}]interface{}{
+			value, found, err := variables.Get(vars.VariableDefinition{Name: "user"})
+			Expect(value).To(BeEquivalentTo(map[string]interface{}{
 				"name": "yours",
 				"pass": "truely",
 			}))

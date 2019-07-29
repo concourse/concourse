@@ -1,11 +1,12 @@
 package kubernetes
 
 import (
-	"code.cloudfoundry.org/lager"
 	"fmt"
-	"github.com/concourse/concourse/atc/creds"
 	"strings"
 	"time"
+
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/creds"
 
 	v1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
@@ -67,12 +68,7 @@ func (k Kubernetes) getValueFromSecret(secret *v1.Secret) (interface{}, *time.Ti
 		return string(val), nil, true, nil
 	}
 
-	evenLessTyped := map[interface{}]interface{}{}
-	for k, v := range secret.Data {
-		evenLessTyped[k] = string(v)
-	}
-
-	return evenLessTyped, nil, true, nil
+	return secret.Data, nil, true, nil
 }
 
 func (k Kubernetes) findSecret(namespace, name string) (*v1.Secret, bool, error) {

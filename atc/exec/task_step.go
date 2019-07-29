@@ -11,8 +11,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/cloudfoundry/bosh-cli/director/template"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -20,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/vars"
 )
 
 // MissingInputsError is returned when any of the task's required inputs are
@@ -133,20 +132,20 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	var taskConfigSource TaskConfigSource
-	var taskVars []template.Variables
+	var taskVars []vars.Variables
 
 	if step.plan.ConfigPath != "" {
 		// external task - construct a source which reads it from file
 		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath}
 
 		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables
-		taskVars = []template.Variables{template.StaticVariables(step.plan.Vars), variables}
+		taskVars = []vars.Variables{vars.StaticVariables(step.plan.Vars), variables}
 	} else {
 		// embedded task - first we take it
 		taskConfigSource = StaticConfigSource{Config: step.plan.Config}
 
 		// for interpolation - use just cred variables
-		taskVars = []template.Variables{variables}
+		taskVars = []vars.Variables{variables}
 	}
 
 	// override params
@@ -358,7 +357,8 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *artifact.Re
 		Limits:    worker.ContainerLimits(config.Limits),
 		User:      config.Run.User,
 		Dir:       metadata.WorkingDirectory,
-		Env:       step.envForParams(config.Params),
+		Env:       config.Params.Env(),
+		Type:      metadata.Type,
 
 		Inputs:  []worker.InputSource{},
 		Outputs: worker.OutputPaths{},
@@ -442,16 +442,6 @@ func (step *TaskStep) registerCaches(logger lager.Logger, repository *artifact.R
 		}
 	}
 	return nil
-}
-
-func (TaskStep) envForParams(params map[string]string) []string {
-	env := make([]string, 0, len(params))
-
-	for k, v := range params {
-		env = append(env, k+"="+v)
-	}
-
-	return env
 }
 
 type taskArtifactSource struct {

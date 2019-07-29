@@ -3,9 +3,25 @@ package migrations
 import (
 	"database/sql"
 	"encoding/json"
-
-	"github.com/concourse/concourse/atc"
 )
+
+type ResourceConfig struct {
+	Name         string   `json:"name"`
+	Public       bool     `json:"public,omitempty"`
+	WebhookToken string   `json:"webhook_token,omitempty"`
+	Type         string   `json:"type"`
+	Source       Source   `json:"source"`
+	CheckEvery   string   `json:"check_every,omitempty"`
+	CheckTimeout string   `json:"check_timeout,omitempty"`
+	Tags         []string `json:"tags,omitempty"`
+	Version      Version  `json:"version,omitempty"`
+}
+
+type Source map[string]interface{}
+
+type Params map[string]interface{}
+
+type Version map[string]string
 
 func (self *migrations) Down_1537546150() error {
 	tx, err := self.DB.Begin()
@@ -45,7 +61,7 @@ func (self *migrations) Down_1537546150() error {
 			return err
 		}
 
-		var config atc.ResourceConfig
+		var config ResourceConfig
 		err = json.Unmarshal(decryptedConfig, &config)
 		if err != nil {
 			return err

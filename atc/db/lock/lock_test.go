@@ -74,7 +74,7 @@ var _ = Describe("Locks", func() {
 					},
 				},
 			},
-		}, db.ConfigVersion(0), db.PipelineUnpaused)
+		}, db.ConfigVersion(0), false)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/vars"
 )
 
 type resourceTypeScanner struct {
@@ -22,7 +23,7 @@ type resourceTypeScanner struct {
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
-	variables             creds.Variables
+	variables             vars.Variables
 	strategy              worker.ContainerPlacementStrategy
 }
 
@@ -34,7 +35,7 @@ func NewResourceTypeScanner(
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
-	variables creds.Variables,
+	variables vars.Variables,
 	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
 	return &resourceTypeScanner{

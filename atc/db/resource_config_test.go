@@ -32,7 +32,7 @@ var _ = Describe("ResourceConfig", func() {
 				"pipeline-one-resource",
 				config,
 				0,
-				db.PipelineUnpaused,
+				false,
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
