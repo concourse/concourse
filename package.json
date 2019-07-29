@@ -8,12 +8,11 @@
   "devDependencies": {
     "@mdi/svg": "^3.5.95",
     "child-process-promise": "^2.2.1",
-    "chokidar-cli": "^1.2.1",
     "clean-css-cli": "^4.3.0",
     "elm": "^0.19.0-bugfix6",
-    "elm-analyse": "^0.16.2",
+    "elm-analyse": "stil4m/elm-analyse#1ced133fa266fca45027e007e573badedb62a225",
     "elm-format": "0.8.1",
-    "elm-test": "^0.19.0-rev6",
+    "elm-test": "rtfeldman/node-test-runner#79cefc998411f997141d5f2023a369b43548caf0",
     "less": "^3.0.2",
     "less-plugin-autoprefix": "^1.5.1",
     "puppeteer": "^1.12.2",
@@ -31,7 +30,6 @@
     "build-less": "lessc web/assets/css/main.less web/public/main.out.css && cleancss -o web/public/main.css web/public/main.out.css && rm web/public/main.out.css",
     "build-elm": "cd web/elm && elm make --optimize --output ../public/elm.js src/Main.elm && uglifyjs ../public/elm.js --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output=../public/elm.min.js",
     "build-elm-debug": "cd web/elm && elm make --output ../public/elm.js src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
-    "watch": "chokidar -i elm-stuff 'web/elm/src/**/*.elm' 'web/assets/css/*.less' -c 'yarn run build-debug' --initial",
     "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" > web/public/mdi-svg.js && uglifyjs < web/public/mdi-svg.js > web/public/mdi-svg.min.js",
     "benchmark": "cd web/elm && elm make --optimize --output /tmp/benchmark.html benchmarks/Benchmarks.elm && node benchmarks/benchmark.js /tmp/benchmark.html"
   }

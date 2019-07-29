@@ -1,9 +1,9 @@
 import test from 'ava';
 
-const Suite = require('./helpers/suite');
+const Suite = require('../helpers/suite');
 
 const color = require('color');
-const palette = require('./helpers/palette');
+const palette = require('../helpers/palette');
 
 test.beforeEach(async t => {
   t.context = new Suite();

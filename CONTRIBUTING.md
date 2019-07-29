@@ -169,16 +169,6 @@ $ yarn build
 When new assets are built locally, they will automatically propagate to the
 `web` container without requiring a restart.
 
-For a quicker feedback cycle, you'll probably want to use `watch` instead of
-`build`:
-
-```sh
-$ yarn watch
-```
-
-This will continuously monitor your local `.elm`/`.less` files and run `yarn
-build` whenever they change.
-
 ### Debugging with `dlv`
 
 With concourse already running, during local development is possible to attach
