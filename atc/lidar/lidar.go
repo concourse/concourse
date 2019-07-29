@@ -33,3 +33,21 @@ func NewRunner(
 		},
 	)
 }
+
+func NewCheckerRunner(
+	logger lager.Logger,
+	clock clock.Clock,
+	checkRunner Runner,
+	checkInterval time.Duration,
+	notifications Notifications,
+) ifrit.Runner {
+	return grouper.NewParallel(
+		os.Interrupt,
+		[]grouper.Member{
+			{
+				Name:   "checker",
+				Runner: NewIntervalRunner(logger, clock, checkRunner, checkInterval, notifications, "checker"),
+			},
+		},
+	)
+}
