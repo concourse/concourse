@@ -40,7 +40,7 @@ type TargetToken struct {
 }
 
 type targetDetailsYAML struct {
-	Targets map[TargetName]TargetProps
+	Targets map[TargetName]TargetProps `json:"targets"`
 }
 
 func flyrcPath() string {
