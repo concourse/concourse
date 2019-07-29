@@ -136,153 +136,42 @@ var _ = Describe("Scanner", func() {
 							fakeResource.TypeReturns("base-type")
 						})
 
-						Context("when the configured timeout is not parseable", func() {
+						Context("when the check interval is parseable", func() {
 							BeforeEach(func() {
-								fakeResource.CheckTimeoutReturns("not-a-duration")
+								fakeResource.CheckEveryReturns("10s")
 							})
 
-							It("sets the check error", func() {
-								Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-							})
-						})
-
-						Context("when the configured timeout is parseable", func() {
-							BeforeEach(func() {
-								fakeResource.CheckTimeoutReturns("10s")
-							})
-
-							Context("when the check interval is not parseable", func() {
+							Context("when the last check end time is within our interval", func() {
 								BeforeEach(func() {
-									fakeResource.CheckEveryReturns("not-a-duration")
+									fakeResource.LastCheckEndTimeReturns(time.Now())
 								})
 
-								It("sets the check error", func() {
+								It("does not check", func() {
+									Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(0))
+								})
+
+								It("clears the check error", func() {
 									Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+									Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
 								})
 							})
 
-							Context("when the check interval is parseable", func() {
+							Context("when the last check end time is past our interval", func() {
 								BeforeEach(func() {
-									fakeResource.CheckEveryReturns("10s")
+									fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
 								})
 
-								Context("when the last check end time is within our interval", func() {
-									BeforeEach(func() {
-										fakeResource.LastCheckEndTimeReturns(time.Now())
-									})
-
-									It("does not check", func() {
-										Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(0))
-									})
-
-									It("clears the check error", func() {
-										Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-										Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-									})
+								It("creates a check", func() {
+									Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
 								})
 
-								Context("when the last check end time is past our interval", func() {
-									BeforeEach(func() {
-										fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
-									})
+								It("clears the check error", func() {
+									Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+									Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
+								})
 
-									Context("when updating the resource config scope fails", func() {
-										BeforeEach(func() {
-											fakeResource.SetResourceConfigReturns(nil, errors.New("nope"))
-										})
-
-										It("sets the check error", func() {
-											Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-										})
-									})
-
-									Context("when updating the resource config scope succeeds", func() {
-										var fakeResourceConfig *dbfakes.FakeResourceConfig
-										var fakeResourceConfigScope *dbfakes.FakeResourceConfigScope
-
-										BeforeEach(func() {
-											fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-											fakeResourceConfig.OriginBaseResourceTypeReturns(&db.UsedBaseResourceType{ID: 10})
-
-											fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
-											fakeResourceConfigScope.ResourceConfigReturns(fakeResourceConfig)
-
-											fakeResource.SetResourceConfigReturns(fakeResourceConfigScope, nil)
-										})
-
-										Context("when fetching the latest version fails", func() {
-											BeforeEach(func() {
-												fakeResourceConfigScope.LatestVersionReturns(nil, false, errors.New("nope"))
-											})
-
-											It("sets the check error", func() {
-												Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-											})
-										})
-
-										Context("when fetching the latest version returns not found", func() {
-											BeforeEach(func() {
-												fakeResourceConfigScope.LatestVersionReturns(nil, false, nil)
-											})
-
-											It("creates a check", func() {
-												Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(1))
-											})
-
-											It("creates a plan with a nil version", func() {
-												_, _, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
-												Expect(plan.Check.FromVersion).To(BeNil())
-												Expect(plan.Check.Name).To(Equal("some-name"))
-												Expect(plan.Check.Type).To(Equal("base-type"))
-												Expect(plan.Check.Source).To(Equal(atc.Source{"some": "source"}))
-												Expect(plan.Check.Tags).To(ConsistOf("tag-a", "tag-b"))
-												Expect(plan.Check.Timeout).To(Equal("10s"))
-											})
-
-											It("clears the check error", func() {
-												Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-												Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-											})
-
-											It("sends a notification for the checker to run", func() {
-												Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-											})
-										})
-
-										Context("when fetching the latest version returns a version", func() {
-											var fakeResourceConfigVersion *dbfakes.FakeResourceConfigVersion
-
-											BeforeEach(func() {
-												fakeResourceConfigVersion = new(dbfakes.FakeResourceConfigVersion)
-												fakeResourceConfigVersion.VersionReturns(db.Version{"some": "version"})
-
-												fakeResourceConfigScope.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
-											})
-
-											It("creates a check", func() {
-												Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(1))
-											})
-
-											It("creates a plan with a version", func() {
-												_, _, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
-												Expect(plan.Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
-												Expect(plan.Check.Name).To(Equal("some-name"))
-												Expect(plan.Check.Type).To(Equal("base-type"))
-												Expect(plan.Check.Source).To(Equal(atc.Source{"some": "source"}))
-												Expect(plan.Check.Tags).To(ConsistOf("tag-a", "tag-b"))
-												Expect(plan.Check.Timeout).To(Equal("10s"))
-											})
-
-											It("clears the check error", func() {
-												Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-												Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-											})
-
-											It("sends a notification for the checker to run", func() {
-												Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-											})
-										})
-									})
+								It("sends a notification for the checker to run", func() {
+									Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 								})
 							})
 						})
@@ -298,7 +187,7 @@ var _ = Describe("Scanner", func() {
 
 						Context("when it fails to create a check for parent resource", func() {
 							BeforeEach(func() {
-								fakeResourceType.CheckTimeoutReturns("not-a-duration")
+								fakeResourceType.CheckEveryReturns("not-a-duration")
 							})
 
 							It("sets the check error", func() {
@@ -309,53 +198,14 @@ var _ = Describe("Scanner", func() {
 							})
 
 							It("does not create a check", func() {
-								Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(0))
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
 							})
 						})
 
-						Context("when the parent type has a resource config", func() {
+						Context("when the parent type requires a check", func() {
 							BeforeEach(func() {
 								fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
 								fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
-
-								fakeResourceConfig := new(dbfakes.FakeResourceConfig)
-								fakeResourceConfig.OriginBaseResourceTypeReturns(&db.UsedBaseResourceType{ID: 10})
-
-								fakeResourceConfigVersion := new(dbfakes.FakeResourceConfigVersion)
-								fakeResourceConfigVersion.VersionReturns(db.Version{"some": "version"})
-
-								fakeResourceConfigScope := new(dbfakes.FakeResourceConfigScope)
-								fakeResourceConfigScope.ResourceConfigReturns(fakeResourceConfig)
-								fakeResourceConfigScope.LatestVersionReturns(fakeResourceConfigVersion, true, nil)
-
-								fakeResourceType.SetResourceConfigReturns(fakeResourceConfigScope, nil)
-								fakeResource.SetResourceConfigReturns(fakeResourceConfigScope, nil)
-							})
-
-							Context("when the parent type has no version", func() {
-								BeforeEach(func() {
-									fakeResourceType.VersionReturns(nil)
-								})
-
-								It("sets the check error on the resource", func() {
-									Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-								})
-
-								It("creates a check for the parent type", func() {
-									Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(1))
-
-									_, _, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
-									Expect(plan.Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
-									Expect(plan.Check.Name).To(Equal("custom-type"))
-									Expect(plan.Check.Type).To(Equal("some-base-type"))
-									Expect(plan.Check.Source).To(Equal(atc.Source{"some": "type-source"}))
-									Expect(plan.Check.Tags).To(ConsistOf("some-tag"))
-									Expect(plan.Check.Timeout).To(Equal("1m0s"))
-								})
-
-								It("sends a notification for the checker to run", func() {
-									Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-								})
 							})
 
 							Context("when the parent type has a version", func() {
@@ -364,23 +214,15 @@ var _ = Describe("Scanner", func() {
 								})
 
 								It("creates a check for both the parent and the resource", func() {
-									Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(2))
+									Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 
-									_, _, _, _, _, plan := fakeCheckFactory.CreateCheckArgsForCall(0)
-									Expect(plan.Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
-									Expect(plan.Check.Name).To(Equal("custom-type"))
-									Expect(plan.Check.Type).To(Equal("some-base-type"))
-									Expect(plan.Check.Source).To(Equal(atc.Source{"some": "type-source"}))
-									Expect(plan.Check.Tags).To(ConsistOf("some-tag"))
-									Expect(plan.Check.Timeout).To(Equal("1m0s"))
+									checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+									Expect(checkable).To(Equal(fakeResourceType))
+									Expect(manuallyTriggered).To(BeFalse())
 
-									_, _, _, _, _, plan = fakeCheckFactory.CreateCheckArgsForCall(1)
-									Expect(plan.Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
-									Expect(plan.Check.Name).To(Equal("some-name"))
-									Expect(plan.Check.Type).To(Equal("custom-type"))
-									Expect(plan.Check.Source).To(Equal(atc.Source{"some": "source"}))
-									Expect(plan.Check.Tags).To(ConsistOf("tag-a", "tag-b"))
-									Expect(plan.Check.Timeout).To(Equal("1m0s"))
+									checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+									Expect(checkable).To(Equal(fakeResource))
+									Expect(manuallyTriggered).To(BeFalse())
 								})
 
 								It("sends a notification for the checker to run", func() {

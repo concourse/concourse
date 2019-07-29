@@ -1531,23 +1531,47 @@ var _ = Describe("Jobs API", func() {
 								fakePipeline.ResourcesReturns([]db.Resource{fakeResource}, nil)
 							})
 
-							It("returns 200 OK", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							Context("when finding the pipeline resource types fails", func() {
+								BeforeEach(func() {
+									fakePipeline.ResourceTypesReturns(nil, errors.New("nope"))
+								})
+
+								It("returns a 500", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+								})
 							})
 
-							It("returns Content-Type 'application/json'", func() {
-								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-							})
+							Context("when finding the pipeline resources types succeeds", func() {
+								var fakeResourceType *dbfakes.FakeResourceType
 
-							It("notifies a scan of the resource", func() {
-								Expect(fakeResource.NotifyScanCallCount()).To(Equal(1))
-							})
+								BeforeEach(func() {
+									fakeResourceType = new(dbfakes.FakeResourceType)
+									fakeResourceType.NameReturns("some-input")
 
-							It("returns the build", func() {
-								body, err := ioutil.ReadAll(response.Body)
-								Expect(err).NotTo(HaveOccurred())
+									fakePipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+								})
 
-								Expect(body).To(MatchJSON(`{
+								It("returns 200 OK", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusOK))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								})
+
+								It("creates a check for the resource", func() {
+									Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+								})
+
+								It("notifies the checker to run", func() {
+									Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+								})
+
+								It("returns the build", func() {
+									body, err := ioutil.ReadAll(response.Body)
+									Expect(err).NotTo(HaveOccurred())
+
+									Expect(body).To(MatchJSON(`{
 							"id": 42,
 							"name": "1",
 							"job_name": "some-job",
@@ -1558,6 +1582,7 @@ var _ = Describe("Jobs API", func() {
 							"start_time": 1,
 							"end_time": 100
 						}`))
+								})
 							})
 						})
 					})

@@ -54,7 +54,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		check, created, err := s.checker.Check(dbResource, dbResourceTypes, nil)
+		check, created, err := s.checkFactory.TryCreateCheck(dbResource, dbResourceTypes, nil, true)
 		if err != nil {
 			s.logger.Error("failed-to-create-check", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -64,6 +64,13 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 
 		if !created {
 			s.logger.Info("check-not-created")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = s.checkFactory.NotifyChecker()
+		if err != nil {
+			s.logger.Error("failed-to-notify-checker", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

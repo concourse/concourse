@@ -58,8 +58,6 @@ func NewHandler(
 
 	workerClient worker.Client,
 
-	checker resourceserver.Checker,
-
 	sink *lager.ReconfigurableSink,
 
 	isTLSEnabled bool,
@@ -83,8 +81,8 @@ func NewHandler(
 
 	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory)
 	checkServer := checkserver.NewServer(logger, dbCheckFactory)
-	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory)
-	resourceServer := resourceserver.NewServer(logger, secretManager, checker, dbResourceFactory, dbResourceConfigFactory)
+	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory, dbCheckFactory)
+	resourceServer := resourceserver.NewServer(logger, secretManager, dbCheckFactory, dbResourceFactory, dbResourceConfigFactory)
 
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)

@@ -41,7 +41,14 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 
 		resources, err := pipeline.Resources()
 		if err != nil {
-			logger.Error("failed-to-create-job-build", err)
+			logger.Error("failed-to-get-resources", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		resourceTypes, err := pipeline.ResourceTypes()
+		if err != nil {
+			logger.Error("failed-to-get-resource-types", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -49,10 +56,16 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		for _, input := range job.Config().Inputs() {
 			resource, found := resources.Lookup(input.Resource)
 			if found {
-				if err = resource.NotifyScan(); err != nil {
-					logger.Error("failed-to-notify-scan", err)
+				_, _, err := s.checkFactory.TryCreateCheck(resource, resourceTypes, nil, true)
+				if err != nil {
+					logger.Error("failed-to-create-check", err)
 				}
 			}
+		}
+
+		err = s.checkFactory.NotifyChecker()
+		if err != nil {
+			logger.Error("failed-to-notify-checker", err)
 		}
 
 		err = json.NewEncoder(w).Encode(present.Build(build))

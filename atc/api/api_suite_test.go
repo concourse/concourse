@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
-	"github.com/concourse/concourse/atc/api/resourceserver/resourceserverfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
@@ -53,7 +52,6 @@ var (
 	dbUserFactory           *dbfakes.FakeUserFactory
 	dbCheckFactory          *dbfakes.FakeCheckFactory
 	dbTeam                  *dbfakes.FakeTeam
-	fakeChecker             *resourceserverfakes.FakeChecker
 	fakeSecretManager       *credsfakes.FakeSecrets
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
@@ -120,8 +118,6 @@ var _ = BeforeEach(func() {
 
 	fakeWorkerClient = new(workerfakes.FakeClient)
 
-	fakeChecker = new(resourceserverfakes.FakeChecker)
-
 	fakeVolumeRepository = new(dbfakes.FakeVolumeRepository)
 	fakeContainerRepository = new(dbfakes.FakeContainerRepository)
 	fakeDestroyer = new(gcfakes.FakeDestroyer)
@@ -182,8 +178,6 @@ var _ = BeforeEach(func() {
 		constructedEventHandler.Construct,
 
 		fakeWorkerClient,
-
-		fakeChecker,
 
 		sink,
 

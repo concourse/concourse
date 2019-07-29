@@ -45,7 +45,7 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		check, created, err := s.checker.Check(dbResourceType, dbResourceTypes, reqBody.From)
+		check, created, err := s.checkFactory.TryCreateCheck(dbResourceType, dbResourceTypes, reqBody.From, true)
 		if err != nil {
 			s.logger.Error("failed-to-create-check", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -55,6 +55,13 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 
 		if !created {
 			s.logger.Info("check-not-created")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = s.checkFactory.NotifyChecker()
+		if err != nil {
+			s.logger.Error("failed-to-notify-checker", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

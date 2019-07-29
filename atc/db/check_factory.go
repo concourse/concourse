@@ -3,11 +3,13 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -40,6 +42,7 @@ type CheckFactory interface {
 	Check(int) (Check, bool, error)
 	StartedChecks() ([]Check, error)
 	CreateCheck(int, int, int, int, bool, atc.Plan) (Check, bool, error)
+	TryCreateCheck(Checkable, ResourceTypes, atc.Version, bool) (Check, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
 	AcquireScanningLock(lager.Logger) (lock.Lock, bool, error)
@@ -49,15 +52,23 @@ type CheckFactory interface {
 type checkFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
+
+	secrets             creds.Secrets
+	defaultCheckTimeout time.Duration
 }
 
 func NewCheckFactory(
 	conn Conn,
 	lockFactory lock.LockFactory,
+	secrets creds.Secrets,
+	defaultCheckTimeout time.Duration,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
+
+		secrets:             secrets,
+		defaultCheckTimeout: defaultCheckTimeout,
 	}
 }
 
@@ -119,6 +130,87 @@ func (c *checkFactory) StartedChecks() ([]Check, error) {
 	}
 
 	return checks, nil
+}
+
+func (c *checkFactory) TryCreateCheck(checkable Checkable, resourceTypes ResourceTypes, fromVersion atc.Version, manuallyTriggered bool) (Check, bool, error) {
+
+	var err error
+
+	parentType, found := resourceTypes.Parent(checkable)
+	if found {
+		if parentType.Version() == nil {
+			return nil, false, errors.New("parent type has no version")
+		}
+	}
+
+	timeout := c.defaultCheckTimeout
+	if to := checkable.CheckTimeout(); to != "" {
+		timeout, err = time.ParseDuration(to)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	variables := creds.NewVariables(
+		c.secrets,
+		checkable.TeamName(),
+		checkable.PipelineName(),
+	)
+
+	source, err := creds.NewSource(variables, checkable.Source()).Evaluate()
+	if err != nil {
+		return nil, false, err
+	}
+
+	filteredTypes := resourceTypes.Filter(checkable).Deserialize()
+	versionedResourceTypes, err := creds.NewVersionedResourceTypes(variables, filteredTypes).Evaluate()
+	if err != nil {
+		return nil, false, err
+	}
+
+	// This could have changed based on new variable interpolation so update it
+	resourceConfigScope, err := checkable.SetResourceConfig(source, versionedResourceTypes)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if fromVersion == nil {
+		rcv, found, err := resourceConfigScope.LatestVersion()
+		if err != nil {
+			return nil, false, err
+		}
+
+		if found {
+			fromVersion = atc.Version(rcv.Version())
+		}
+	}
+
+	plan := atc.Plan{
+		Check: &atc.CheckPlan{
+			Name:        checkable.Name(),
+			Type:        checkable.Type(),
+			Source:      source,
+			Tags:        checkable.Tags(),
+			Timeout:     timeout.String(),
+			FromVersion: fromVersion,
+
+			VersionedResourceTypes: versionedResourceTypes,
+		},
+	}
+
+	check, created, err := c.CreateCheck(
+		resourceConfigScope.ID(),
+		resourceConfigScope.ResourceConfig().ID(),
+		resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		checkable.TeamID(),
+		manuallyTriggered,
+		plan,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return check, created, nil
 }
 
 func (c *checkFactory) CreateCheck(resourceConfigScopeID, resourceConfigID, baseResourceTypeID, teamID int, manuallyTriggered bool, plan atc.Plan) (Check, bool, error) {

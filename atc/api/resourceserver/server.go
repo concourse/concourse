@@ -9,7 +9,7 @@ import (
 type Server struct {
 	logger                lager.Logger
 	secretManager         creds.Secrets
-	checker               Checker
+	checkFactory          db.CheckFactory
 	resourceFactory       db.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 }
@@ -17,14 +17,14 @@ type Server struct {
 func NewServer(
 	logger lager.Logger,
 	secretManager creds.Secrets,
-	checker Checker,
+	checkFactory db.CheckFactory,
 	resourceFactory db.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 ) *Server {
 	return &Server{
 		logger:                logger,
 		secretManager:         secretManager,
-		checker:               checker,
+		checkFactory:          checkFactory,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 	}

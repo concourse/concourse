@@ -628,11 +628,12 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("checks with no version specified", func() {
-						Expect(fakeChecker.CheckCallCount()).To(Equal(1))
-						actualResource, actualResourceTypes, actualFromVersion := fakeChecker.CheckArgsForCall(0)
+						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+						actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualResource).To(Equal(fakeResource))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
+						Expect(manuallyTriggered).To(BeTrue())
 					})
 
 					Context("when checking with a version specified", func() {
@@ -645,17 +646,18 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("checks with the version specified", func() {
-							Expect(fakeChecker.CheckCallCount()).To(Equal(1))
-							actualResource, actualResourceTypes, actualFromVersion := fakeChecker.CheckArgsForCall(0)
+							Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+							actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(actualResource).To(Equal(fakeResource))
 							Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 							Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+							Expect(manuallyTriggered).To(BeTrue())
 						})
 					})
 
 					Context("when checking fails", func() {
 						BeforeEach(func() {
-							fakeChecker.CheckReturns(nil, false, errors.New("nope"))
+							dbCheckFactory.TryCreateCheckReturns(nil, false, errors.New("nope"))
 						})
 
 						It("returns 500", func() {
@@ -665,7 +667,7 @@ var _ = Describe("Resources API", func() {
 
 					Context("when checking does not create a new check", func() {
 						BeforeEach(func() {
-							fakeChecker.CheckReturns(nil, false, nil)
+							dbCheckFactory.TryCreateCheckReturns(nil, false, nil)
 						})
 
 						It("returns 500", func() {
@@ -684,7 +686,11 @@ var _ = Describe("Resources API", func() {
 							fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
 							fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
-							fakeChecker.CheckReturns(fakeCheck, true, nil)
+							dbCheckFactory.TryCreateCheckReturns(fakeCheck, true, nil)
+						})
+
+						It("notify checker", func() {
+							Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 						})
 
 						It("returns 201", func() {
@@ -1266,11 +1272,12 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("checks with no version specified", func() {
-						Expect(fakeChecker.CheckCallCount()).To(Equal(1))
-						actualResourceType, actualResourceTypes, actualFromVersion := fakeChecker.CheckArgsForCall(0)
+						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+						actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualResourceType).To(Equal(fakeResourceType))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
+						Expect(manuallyTriggered).To(BeTrue())
 					})
 
 					Context("when checking with a version specified", func() {
@@ -1283,17 +1290,18 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("checks with no version specified", func() {
-							Expect(fakeChecker.CheckCallCount()).To(Equal(1))
-							actualResourceType, actualResourceTypes, actualFromVersion := fakeChecker.CheckArgsForCall(0)
+							Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+							actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(actualResourceType).To(Equal(fakeResourceType))
 							Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 							Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+							Expect(manuallyTriggered).To(BeTrue())
 						})
 					})
 
 					Context("when checking fails", func() {
 						BeforeEach(func() {
-							fakeChecker.CheckReturns(nil, false, errors.New("nope"))
+							dbCheckFactory.TryCreateCheckReturns(nil, false, errors.New("nope"))
 						})
 
 						It("returns 500", func() {
@@ -1303,7 +1311,7 @@ var _ = Describe("Resources API", func() {
 
 					Context("when checking does not create a new check", func() {
 						BeforeEach(func() {
-							fakeChecker.CheckReturns(nil, false, nil)
+							dbCheckFactory.TryCreateCheckReturns(nil, false, nil)
 						})
 
 						It("returns 500", func() {
@@ -1322,7 +1330,11 @@ var _ = Describe("Resources API", func() {
 							fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
 							fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
-							fakeChecker.CheckReturns(fakeCheck, true, nil)
+							dbCheckFactory.TryCreateCheckReturns(fakeCheck, true, nil)
+						})
+
+						It("notify checker", func() {
+							Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 						})
 
 						It("returns 201", func() {
@@ -1417,16 +1429,17 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("checks with a nil version", func() {
-						Expect(fakeChecker.CheckCallCount()).To(Equal(1))
-						actualResource, actualResourceTypes, actualFromVersion := fakeChecker.CheckArgsForCall(0)
+						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+						actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualResource).To(Equal(fakeResource))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
+						Expect(manuallyTriggered).To(BeTrue())
 					})
 
 					Context("when checking fails", func() {
 						BeforeEach(func() {
-							fakeChecker.CheckReturns(nil, false, errors.New("nope"))
+							dbCheckFactory.TryCreateCheckReturns(nil, false, errors.New("nope"))
 						})
 
 						It("returns 500", func() {
@@ -1436,7 +1449,7 @@ var _ = Describe("Resources API", func() {
 
 					Context("when checking does not create a new check", func() {
 						BeforeEach(func() {
-							fakeChecker.CheckReturns(nil, false, nil)
+							dbCheckFactory.TryCreateCheckReturns(nil, false, nil)
 						})
 
 						It("returns 500", func() {
@@ -1455,7 +1468,11 @@ var _ = Describe("Resources API", func() {
 							fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
 							fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
-							fakeChecker.CheckReturns(fakeCheck, true, nil)
+							dbCheckFactory.TryCreateCheckReturns(fakeCheck, true, nil)
+						})
+
+						It("notify checker", func() {
+							Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 						})
 
 						It("returns 201", func() {
