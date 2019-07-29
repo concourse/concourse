@@ -301,13 +301,31 @@ func streamFileHelper(s interface {
 		return nil, FileNotFoundError{Path: path}
 	}
 
-	return fileReadCloser{
-		Reader: tarReader,
-		Closer: out,
+	return fileReadMultiCloser{
+		reader: tarReader,
+		closers: []io.Closer{
+			out,
+			zstdReader,
+		},
 	}, nil
 }
 
-type fileReadCloser struct {
-	io.Reader
-	io.Closer
+type fileReadMultiCloser struct {
+	reader  io.Reader
+	closers []io.Closer
+}
+
+func (frc fileReadMultiCloser) Read(p []byte) (n int, err error) {
+	return frc.reader.Read(p)
+}
+
+func (frc fileReadMultiCloser) Close() error {
+	for _, closer := range frc.closers {
+		err := closer.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
