@@ -69,7 +69,6 @@ type Worker interface {
 	ActiveTasks() (int, error)
 	IncreaseActiveTasks() error
 	DecreaseActiveTasks() error
-
 }
 
 type gardenWorker struct {
@@ -632,7 +631,6 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 }
 
 func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
-	// TODO: does this require a real context?
 	gardenContainer, err := worker.gardenClient.Lookup(handle)
 	if err != nil {
 		if _, ok := err.(garden.ContainerNotFoundError); ok {

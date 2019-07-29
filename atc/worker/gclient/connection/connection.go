@@ -197,8 +197,6 @@ func (c *connection) Attach(ctx context.Context, handle string, processID string
 	return c.streamProcess(ctx, handle, processIO, hijackedConn, hijackedResponseReader)
 }
 
-
-// TODO: add cancel func stuff
 func (c *connection) streamProcess(ctx context.Context, handle string, processIO garden.ProcessIO, hijackedConn net.Conn, hijackedResponseReader *bufio.Reader) (garden.Process, error) {
 	decoder := json.NewDecoder(hijackedResponseReader)
 
@@ -277,7 +275,7 @@ func (c *connection) streamProcess(ctx context.Context, handle string, processIO
 		select {
 		case <-ctx.Done():
 			process.exited(-1, errors.New("stdin/stdout/stderr streams were canceled by context.Done"))
-		case waitedFor := <- streamHandler.wait(decoder):
+		case waitedFor := <-streamHandler.wait(decoder):
 			process.exited(waitedFor.exitCode, waitedFor.err)
 		}
 
