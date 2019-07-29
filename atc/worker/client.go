@@ -210,13 +210,13 @@ func (client *client) RunTaskStep(
 
 	logger.Info("attached")
 
-	exitStatusChan := make(chan processStatus)
+	exited := make(chan string)
 
-	go func() {
-		status := processStatus{}
+	status := &processStatus{}
+	go func(status *processStatus) {
 		status.processStatus, status.processErr = process.Wait()
-		exitStatusChan <- status
-	}()
+		exited <- "done"
+	}(status)
 
 	select {
 	case <-ctx.Done():
@@ -225,10 +225,11 @@ func (client *client) RunTaskStep(
 			logger.Error("stopping-container", err)
 		}
 
-		status := <-exitStatusChan
+		<-exited
+
 		return TaskResult{Status: status.processStatus, VolumeMounts: container.VolumeMounts(), Err: ctx.Err()}
 
-	case status := <-exitStatusChan:
+	case <-exited:
 		if status.processErr != nil {
 			return TaskResult{Status: status.processStatus, VolumeMounts: []VolumeMount{}, Err: status.processErr}
 		}
@@ -237,6 +238,7 @@ func (client *client) RunTaskStep(
 		if err != nil {
 			return TaskResult{Status: status.processStatus, VolumeMounts: []VolumeMount{}, Err: err}
 		}
+
 		return TaskResult{Status: status.processStatus, VolumeMounts: container.VolumeMounts(), Err: nil}
 	}
 }
