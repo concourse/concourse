@@ -175,7 +175,7 @@ func (client *client) RunTaskStep(
 		Stderr: processSpec.StderrWriter,
 	}
 
-	process, err := container.Attach(taskProcessID, processIO)
+	process, err := container.Attach(context.Background(), taskProcessID, processIO)
 	if err == nil {
 		logger.Info("already-running")
 	} else {
@@ -186,6 +186,7 @@ func (client *client) RunTaskStep(
 		}
 
 		process, err = container.Run(
+			context.Background(),
 			garden.ProcessSpec{
 				ID: taskProcessID,
 

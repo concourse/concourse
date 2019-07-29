@@ -534,7 +534,7 @@ var _ = Describe("Client", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 					Expect(fakeContainer.RunCallCount()).To(Equal(0))
-					_, actualProcessIO := fakeContainer.AttachArgsForCall(0)
+					_, _, actualProcessIO := fakeContainer.AttachArgsForCall(0)
 					Expect(actualProcessIO.Stdout).To(Equal(stdoutBuf))
 					Expect(actualProcessIO.Stderr).To(Equal(stderrBuf))
 				})
@@ -679,7 +679,7 @@ var _ = Describe("Client", func() {
 				It("runs a new process in the container", func() {
 					Eventually(fakeContainer.RunCallCount()).Should(Equal(1))
 
-					gardenProcessSpec, actualProcessIO := fakeContainer.RunArgsForCall(0)
+					_, gardenProcessSpec, actualProcessIO := fakeContainer.RunArgsForCall(0)
 					Expect(gardenProcessSpec.ID).To(Equal("task"))
 					Expect(gardenProcessSpec.Path).To(Equal(fakeTaskProcessSpec.Path))
 					Expect(gardenProcessSpec.Args).To(ConsistOf(fakeTaskProcessSpec.Args))
