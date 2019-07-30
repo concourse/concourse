@@ -1,4 +1,4 @@
-const Web = require('../../wats/test/helpers/web');
+const Web = require('../../wats/helpers/web');
 
 class Benchmark {
   constructor() {

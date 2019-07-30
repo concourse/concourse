@@ -1,5 +1,5 @@
 import test from 'ava';
-import Suite from './helpers/suite';
+import Suite from '../helpers/suite';
 
 test.beforeEach(async t => {
   t.context = new Suite();
