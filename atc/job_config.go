@@ -24,8 +24,9 @@ type JobConfig struct {
 }
 
 type BuildLogRetention struct {
-	Builds int `json:"builds,omitempty"`
-	Days   int `json:"days,omitempty"`
+	Builds                 int `json:"builds,omitempty"`
+	MinimumSucceededBuilds int `json:"minimum_succeeded_builds,omitempty"`
+	Days                   int `json:"days,omitempty"`
 }
 
 func (config JobConfig) Hooks() Hooks {

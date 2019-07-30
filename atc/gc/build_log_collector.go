@@ -56,111 +56,160 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 		}
 
 		for _, job := range jobs {
-			logRetention := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
-			if logRetention.Builds == 0 && logRetention.Days == 0 {
+			err = br.reapLogsOfJob(pipeline, job, logger)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
+	job db.Job,
+	logger lager.Logger) error {
+	logRetention := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
+	if logRetention.Builds == 0 && logRetention.Days == 0 {
+		return nil
+	}
+
+	buildsToConsiderDeleting := []db.Build{}
+	// FirstLoggedBuildID points to the smallest build id that is not reaped.
+	// We will use db.Page as query criteria to fetch builds, and "Until" is
+	// excluded, thus until should be FirstLoggedBuildID-1.
+	until := job.FirstLoggedBuildID() - 1
+	if until < 0 {
+		until = 0
+	}
+	limit := br.batchSize
+
+	returnedBatch := br.batchSize
+	for returnedBatch == br.batchSize {
+		// Returned builds will be ordered by id desc.
+		builds, _, err := job.Builds(
+			db.Page{Until: until, Limit: limit},
+		)
+		if err != nil {
+			logger.Error("failed-to-get-job-builds-to-delete", err)
+			return err
+		}
+		returnedBatch = len(builds)
+		if returnedBatch == 0 {
+			break
+		}
+
+		buildsOfBatch := []db.Build{}
+		for _, build := range builds {
+			// Ignore reaped builds
+			if !build.ReapTime().IsZero() {
 				continue
 			}
 
-			buildsToConsiderDeleting := []db.Build{}
-			until := job.FirstLoggedBuildID() - 1
-			limit := br.batchSize
+			buildsOfBatch = append(buildsOfBatch, build)
+		}
+		buildsToConsiderDeleting = append(buildsOfBatch, buildsToConsiderDeleting...)
 
-			if job.FirstLoggedBuildID() <= 1 {
-				until = 1
+		until = builds[0].ID()
+	}
 
-				buildsToConsiderDeleting, _, err = job.Builds(
-					db.Page{Since: 2, Limit: 1},
-				)
-				if err != nil {
-					logger.Error("failed-to-get-job-build-1-to-delete", err)
-					return err
-				}
+	logger.Debug("after-first-round-filter", lager.Data{
+		"buildsToConsiderDeleting": len(buildsToConsiderDeleting),
+	})
 
-				limit -= len(buildsToConsiderDeleting)
+	if len(buildsToConsiderDeleting) == 0 {
+		return nil
+	}
+
+	buildIDsToDelete := []int{}
+	toRetainNonSucceededBuildIDs := []int{}
+	retainedBuilds := 0
+	retainedSucceededBuilds := 0
+	firstLoggedBuildID := 0
+	for _, build := range buildsToConsiderDeleting {
+		// Running build should not be reaped.
+		if build.IsRunning() {
+			firstLoggedBuildID = build.ID()
+			continue
+		}
+
+		if logRetention.Days > 0 {
+			if !build.EndTime().IsZero() && build.EndTime().AddDate(0, 0, logRetention.Days).Before(time.Now()) {
+				logger.Debug("should-reap-due-to-days", lager.Data{"build_id": build.ID()})
+				buildIDsToDelete = append(buildIDsToDelete, build.ID())
+				continue
 			}
+		}
 
-			if limit > 0 {
-				moreBuildsToConsiderDeleting, _, err := job.Builds(
-					db.Page{Until: until, Limit: limit},
-				)
-				if err != nil {
-					logger.Error("failed-to-get-job-builds-to-delete", err)
-					return err
-				}
-
-				buildsToConsiderDeleting = append(
-					moreBuildsToConsiderDeleting,
-					buildsToConsiderDeleting...,
-				)
+		// Before a build is drained, it should not be reaped.
+		if br.drainerConfigured {
+			if !build.IsDrained() {
+				firstLoggedBuildID = build.ID()
+				continue
 			}
+		}
 
-			buildIDsToConsiderDeleting := []int{}
-			for _, build := range buildsToConsiderDeleting {
-				buildIDsToConsiderDeleting = append(buildIDsToConsiderDeleting, build.ID())
-			}
-
-			var firstBuildToRetain int
-
-			if logRetention.Builds > 0 {
-				buildsToRetain, _, err := job.Builds(
-					db.Page{Limit: logRetention.Builds},
-				)
-
-				if err != nil {
-					logger.Error("failed-to-get-job-builds-to-retain", err)
-					return err
-				}
-
-				if len(buildsToRetain) == 0 {
+		// If Builds is 0, then all builds are retained, so we don't need to
+		// check MinSuccessBuilds at all.
+		if logRetention.Builds > 0 {
+			if logRetention.MinimumSucceededBuilds > 0 && build.Status() == db.BuildStatusSucceeded {
+				if retainedSucceededBuilds < logRetention.MinimumSucceededBuilds {
+					retainedBuilds++
+					retainedSucceededBuilds++
+					firstLoggedBuildID = build.ID()
 					continue
 				}
-
-				firstBuildToRetain = buildsToRetain[len(buildsToRetain)-1].ID()
 			}
 
-			buildIDsToDelete := []int{}
-			for i := len(buildsToConsiderDeleting) - 1; i >= 0; i-- {
-				build := buildsToConsiderDeleting[i]
-
-				if logRetention.Builds > 0 && build.ID() >= firstBuildToRetain || build.IsRunning() {
-					break
-				}
-
-				if br.drainerConfigured {
-					if !build.IsDrained() {
-						continue
-					}
-				}
-
-				if logRetention.Days > 0 {
-					if build.EndTime().AddDate(0, 0, logRetention.Days).After(time.Now()) {
-						continue
-					}
-				}
-
-				buildIDsToDelete = append(buildIDsToDelete, build.ID())
-			}
-
-			if len(buildIDsToDelete) == 0 {
-				logger.Debug("no-builds-to-reap")
+			if retainedBuilds < logRetention.Builds {
+				retainedBuilds++
+				toRetainNonSucceededBuildIDs = append(toRetainNonSucceededBuildIDs, build.ID())
+				firstLoggedBuildID = build.ID()
 				continue
 			}
 
-			logger.Debug("reaping-builds", lager.Data{
-				"build-ids": buildIDsToDelete,
-			})
+			buildIDsToDelete = append(buildIDsToDelete, build.ID())
+		}
+	}
 
-			err = pipeline.DeleteBuildEventsByBuildIDs(buildIDsToDelete)
-			if err != nil {
-				logger.Error("failed-to-delete-build-events", err)
-				return err
-			}
+	logger.Debug("after-second-round-filter", lager.Data{
+		"retainedBuilds":          retainedBuilds,
+		"retainedSucceededBuilds": retainedSucceededBuilds,
+	})
 
-			err = job.UpdateFirstLoggedBuildID(buildIDsToDelete[len(buildIDsToDelete)-1] + 1)
-			if err != nil {
-				logger.Error("failed-to-update-first-logged-build-id", err)
-				return err
-			}
+	if len(buildIDsToDelete) == 0 {
+		logger.Debug("no-builds-to-reap")
+		return nil
+	}
+
+	// If this happens, firstLoggedBuildID must points to a success build, thus
+	// no need to update firstLoggedBuildID.
+	if retainedBuilds > logRetention.Builds {
+		logger.Debug("more-builds-to-retain", lager.Data{
+			"retainedBuilds": retainedBuilds,
+		})
+		delta := retainedBuilds - logRetention.Builds
+		n := len(toRetainNonSucceededBuildIDs)
+		for i := 1; i <= delta; i++ {
+			buildIDsToDelete = append(buildIDsToDelete, toRetainNonSucceededBuildIDs[n-i])
+		}
+	}
+
+	logger.Debug("reaping-builds", lager.Data{
+		"build-ids": buildIDsToDelete,
+	})
+
+	err := pipeline.DeleteBuildEventsByBuildIDs(buildIDsToDelete)
+	if err != nil {
+		logger.Error("failed-to-delete-build-events", err)
+		return err
+	}
+
+	if firstLoggedBuildID+1 != job.FirstLoggedBuildID() {
+		err = job.UpdateFirstLoggedBuildID(firstLoggedBuildID)
+		if err != nil {
+			logger.Error("failed-to-update-first-logged-build-id", err)
+			return err
 		}
 	}
 
