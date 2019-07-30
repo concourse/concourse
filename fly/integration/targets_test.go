@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 	"github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/gbytes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,12 +17,13 @@ import (
 
 var _ = Describe("Fly CLI", func() {
 	var (
-		flyCmd *exec.Cmd
-		flyrc  string
-		tmpDir string
+		flyCmd       *exec.Cmd
+		flyrc        string
+		tmpDir       string
+		flyrcFixture string
 	)
 
-	BeforeEach(func() {
+	JustBeforeEach(func() {
 		var err error
 		tmpDir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).NotTo(HaveOccurred())
@@ -29,7 +31,7 @@ var _ = Describe("Fly CLI", func() {
 		os.Setenv("HOME", tmpDir)
 		flyrc = filepath.Join(userHomeDir(), ".flyrc")
 
-		flyFixtureFile, err := os.OpenFile("./fixtures/flyrc.yml", os.O_RDONLY, 0600)
+		flyFixtureFile, err := os.OpenFile(flyrcFixture, os.O_RDONLY, 0600)
 		Expect(err).NotTo(HaveOccurred())
 
 		flyFixtureData, err := ioutil.ReadAll(flyFixtureFile)
@@ -39,6 +41,10 @@ var _ = Describe("Fly CLI", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		flyCmd = exec.Command(flyPath, "targets")
+	})
+
+	BeforeEach(func() {
+		flyrcFixture = "./fixtures/flyrc.yml"
 	})
 
 	AfterEach(func() {
@@ -67,6 +73,21 @@ var _ = Describe("Fly CLI", func() {
 						{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
 					},
 				}))
+			})
+		})
+
+		Context("when the .flyrc contains a target with an invalid token", func() {
+			BeforeEach(func() {
+				flyrcFixture = "./fixtures/flyrc-badtoken.yml"
+			})
+
+			It("shows an error message", func() {
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(1))
+
+				Expect(sess.Err).To(gbytes.Say("token validation failed"))
 			})
 		})
 
