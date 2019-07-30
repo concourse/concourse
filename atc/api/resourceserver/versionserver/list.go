@@ -37,7 +37,9 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 		versionFilter := make(atc.Version)
 		for _, field := range fields {
 			vs := strings.SplitN(field, ":", 2)
-			versionFilter[vs[0]] = vs[1]
+			if len(vs) == 2 {
+				versionFilter[vs[0]] = vs[1]
+			}
 		}
 
 		resourceName := r.FormValue(":resource_name")

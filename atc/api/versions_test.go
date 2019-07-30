@@ -310,6 +310,19 @@ var _ = Describe("Versions API", func() {
 							}))
 						})
 					})
+
+					Context("if there is no : ", func() {
+						BeforeEach(func() {
+							queryParams = "?filter=abcdef"
+						})
+
+						It("set no filter when fetching versions", func() {
+							Expect(fakeResource.VersionsCallCount()).To(Equal(1))
+
+							_, versionFilter := fakeResource.VersionsArgsForCall(0)
+							Expect(versionFilter).To(BeEmpty())
+						})
+					})
 				})
 
 				Context("when getting the versions succeeds", func() {

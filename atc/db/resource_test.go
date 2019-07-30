@@ -998,7 +998,7 @@ var _ = Describe("Resource", func() {
 					err = resourceScope.SaveVersions([]atc.Version{resourceVersions[9].Version})
 					Expect(err).ToNot(HaveOccurred())
 
-					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1})
+					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1}, atc.Version{})
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
@@ -1010,7 +1010,7 @@ var _ = Describe("Resource", func() {
 					newMetadata := []db.ResourceConfigMetadataField{{Name: "name-new", Value: "value-new"}}
 					_, err := resource.SaveUncheckedVersion(atc.Version(resourceVersions[9].Version), newMetadata, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
 
-					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1})
+					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1}, atc.Version{})
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
