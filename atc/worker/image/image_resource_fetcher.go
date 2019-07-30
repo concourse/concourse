@@ -202,9 +202,12 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, fmt.Errorf("could not read file \"%s\" from tar", ImageMetadataFile)
 	}
 
-	releasingReader := &readCloser{
-		Reader: tarReader,
-		Closer: reader,
+	releasingReader := &fileReadMultiCloser{
+		reader: tarReader,
+		closers: []io.Closer{
+			reader,
+			zstdReader,
+		},
 	}
 
 	return volume, releasingReader, version, nil
@@ -314,7 +317,22 @@ func (i *imageResourceFetcher) getLatestVersion(
 	return versions[0], nil
 }
 
-type readCloser struct {
-	io.Reader
-	io.Closer
+type fileReadMultiCloser struct {
+	reader  io.Reader
+	closers []io.Closer
+}
+
+func (frc fileReadMultiCloser) Read(p []byte) (n int, err error) {
+	return frc.reader.Read(p)
+}
+
+func (frc fileReadMultiCloser) Close() error {
+	for _, closer := range frc.closers {
+		err := closer.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
