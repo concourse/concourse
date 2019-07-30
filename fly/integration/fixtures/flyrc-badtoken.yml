@@ -1,0 +1,7 @@
+targets:
+  test:
+    api: https://example.com/test
+    team: test
+    token:
+      type: Bearer
+      value: banana

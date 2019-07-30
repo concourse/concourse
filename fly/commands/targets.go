@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/color"
 )
@@ -52,9 +53,14 @@ func GetExpirationFromString(token *rc.TargetToken) string {
 		return "n/a"
 	}
 
-	parsedToken, _ := jwt.Parse(token.Value, func(token *jwt.Token) (interface{}, error) {
-		return "", nil
+	parsedToken, err := jwt.Parse(token.Value, func(token *jwt.Token) (interface{}, error) {
+		return "", token.Claims.Valid()
 	})
+
+	if err != nil && err.Error() != jwt.ErrInvalidKeyType.Error() {
+		displayhelpers.FailWithErrorf("please login again.\n\ntoken validation failed with error ", err)
+		return "n/a"
+	}
 
 	claims := parsedToken.Claims.(jwt.MapClaims)
 	expClaim, ok := claims["exp"]
