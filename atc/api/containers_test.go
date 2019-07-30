@@ -753,7 +753,7 @@ var _ = Describe("Containers API", func() {
 								Expect(lookedUpTeamID).To(Equal(734))
 								Expect(lookedUpHandle).To(Equal(handle))
 
-								spec, io := fakeContainer.RunArgsForCall(0)
+								_, spec, io := fakeContainer.RunArgsForCall(0)
 								Expect(spec).To(Equal(garden.ProcessSpec{
 									Path: "ls",
 									User: "snoopy",
@@ -781,7 +781,7 @@ var _ = Describe("Containers API", func() {
 								It("forwards the payload to the process", func() {
 									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-									_, io := fakeContainer.RunArgsForCall(0)
+									_, _, io := fakeContainer.RunArgsForCall(0)
 									Expect(bufio.NewReader(io.Stdin).ReadBytes('\n')).To(Equal([]byte("some stdin\n")))
 
 									Expect(interceptTimeout.ResetCallCount()).To(Equal(1))
@@ -799,7 +799,7 @@ var _ = Describe("Containers API", func() {
 								It("closes the process's stdin", func() {
 									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-									_, ioConfig := fakeContainer.RunArgsForCall(0)
+									_, _, ioConfig := fakeContainer.RunArgsForCall(0)
 									_, err := ioConfig.Stdin.Read(make([]byte, 10))
 									Expect(err).To(Equal(io.EOF))
 								})
@@ -809,7 +809,7 @@ var _ = Describe("Containers API", func() {
 								JustBeforeEach(func() {
 									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-									_, io := fakeContainer.RunArgsForCall(0)
+									_, _, io := fakeContainer.RunArgsForCall(0)
 
 									_, err := fmt.Fprintf(io.Stdout, "some stdout\n")
 									Expect(err).NotTo(HaveOccurred())
@@ -830,7 +830,7 @@ var _ = Describe("Containers API", func() {
 								JustBeforeEach(func() {
 									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-									_, io := fakeContainer.RunArgsForCall(0)
+									_, _, io := fakeContainer.RunArgsForCall(0)
 
 									_, err := fmt.Fprintf(io.Stderr, "some stderr\n")
 									Expect(err).NotTo(HaveOccurred())
@@ -864,7 +864,7 @@ var _ = Describe("Containers API", func() {
 								})
 
 								It("closes the process' stdin pipe", func() {
-									_, io := fakeContainer.RunArgsForCall(0)
+									_, _, io := fakeContainer.RunArgsForCall(0)
 
 									c := make(chan bool, 1)
 

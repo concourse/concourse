@@ -1,6 +1,8 @@
 package transport
 
-import "github.com/concourse/retryhttp"
+import (
+	"github.com/concourse/retryhttp"
+)
 
 type UnreachableWorkerRetryer struct {
 	DelegateRetryer retryhttp.Retryer

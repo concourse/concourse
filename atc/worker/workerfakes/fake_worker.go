@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
@@ -183,15 +183,15 @@ type FakeWorker struct {
 		result2 bool
 		result3 error
 	}
-	GardenClientStub        func() garden.Client
+	GardenClientStub        func() gclient.Client
 	gardenClientMutex       sync.RWMutex
 	gardenClientArgsForCall []struct {
 	}
 	gardenClientReturns struct {
-		result1 garden.Client
+		result1 gclient.Client
 	}
 	gardenClientReturnsOnCall map[int]struct {
-		result1 garden.Client
+		result1 gclient.Client
 	}
 	IncreaseActiveTasksStub        func() error
 	increaseActiveTasksMutex       sync.RWMutex
@@ -1029,7 +1029,7 @@ func (fake *FakeWorker) FindVolumeForTaskCacheReturnsOnCall(i int, result1 worke
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) GardenClient() garden.Client {
+func (fake *FakeWorker) GardenClient() gclient.Client {
 	fake.gardenClientMutex.Lock()
 	ret, specificReturn := fake.gardenClientReturnsOnCall[len(fake.gardenClientArgsForCall)]
 	fake.gardenClientArgsForCall = append(fake.gardenClientArgsForCall, struct {
@@ -1052,32 +1052,32 @@ func (fake *FakeWorker) GardenClientCallCount() int {
 	return len(fake.gardenClientArgsForCall)
 }
 
-func (fake *FakeWorker) GardenClientCalls(stub func() garden.Client) {
+func (fake *FakeWorker) GardenClientCalls(stub func() gclient.Client) {
 	fake.gardenClientMutex.Lock()
 	defer fake.gardenClientMutex.Unlock()
 	fake.GardenClientStub = stub
 }
 
-func (fake *FakeWorker) GardenClientReturns(result1 garden.Client) {
+func (fake *FakeWorker) GardenClientReturns(result1 gclient.Client) {
 	fake.gardenClientMutex.Lock()
 	defer fake.gardenClientMutex.Unlock()
 	fake.GardenClientStub = nil
 	fake.gardenClientReturns = struct {
-		result1 garden.Client
+		result1 gclient.Client
 	}{result1}
 }
 
-func (fake *FakeWorker) GardenClientReturnsOnCall(i int, result1 garden.Client) {
+func (fake *FakeWorker) GardenClientReturnsOnCall(i int, result1 gclient.Client) {
 	fake.gardenClientMutex.Lock()
 	defer fake.gardenClientMutex.Unlock()
 	fake.GardenClientStub = nil
 	if fake.gardenClientReturnsOnCall == nil {
 		fake.gardenClientReturnsOnCall = make(map[int]struct {
-			result1 garden.Client
+			result1 gclient.Client
 		})
 	}
 	fake.gardenClientReturnsOnCall[i] = struct {
-		result1 garden.Client
+		result1 gclient.Client
 	}{result1}
 }
 

@@ -75,19 +75,21 @@ func (resource *resource) runScript(
 	var process garden.Process
 
 	if recoverable {
-		process, err = resource.container.Attach(ResourceProcessID, processIO)
+		process, err = resource.container.Attach(ctx, ResourceProcessID, processIO)
 		if err != nil {
-			process, err = resource.container.Run(garden.ProcessSpec{
-				ID:   ResourceProcessID,
-				Path: path,
-				Args: args,
-			}, processIO)
+			process, err = resource.container.Run(
+				ctx,
+				garden.ProcessSpec{
+					ID:   ResourceProcessID,
+					Path: path,
+					Args: args,
+				}, processIO)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		process, err = resource.container.Run(garden.ProcessSpec{
+		process, err = resource.container.Run(ctx, garden.ProcessSpec{
 			Path: path,
 			Args: args,
 		}, processIO)
