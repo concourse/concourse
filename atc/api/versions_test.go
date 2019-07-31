@@ -230,7 +230,7 @@ var _ = Describe("Versions API", func() {
 					It("does not set defaults for since and until", func() {
 						Expect(fakeResource.VersionsCallCount()).To(Equal(1))
 
-						page := fakeResource.VersionsArgsForCall(0)
+						page, versionFilter := fakeResource.VersionsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
 							Since: 0,
 							Until: 0,
@@ -238,18 +238,19 @@ var _ = Describe("Versions API", func() {
 							To:    0,
 							Limit: 100,
 						}))
+						Expect(versionFilter).To(Equal(atc.Version{}))
 					})
 				})
 
 				Context("when all the params are passed", func() {
 					BeforeEach(func() {
-						queryParams = "?since=2&until=3&from=5&to=7&limit=8"
+						queryParams = "?since=2&until=3&from=5&to=7&limit=8&filter=ref:foo&filter=some-ref:blah"
 					})
 
 					It("passes them through", func() {
 						Expect(fakeResource.VersionsCallCount()).To(Equal(1))
 
-						page := fakeResource.VersionsArgsForCall(0)
+						page, versionFilter := fakeResource.VersionsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
 							Since: 2,
 							Until: 3,
@@ -257,6 +258,70 @@ var _ = Describe("Versions API", func() {
 							To:    7,
 							Limit: 8,
 						}))
+						Expect(versionFilter).To(Equal(atc.Version{
+							"ref":      "foo",
+							"some-ref": "blah",
+						}))
+					})
+				})
+
+				Context("when params includes version filter has special char", func() {
+					Context("space char", func() {
+						BeforeEach(func() {
+							queryParams = "?filter=some%20ref:some%20value"
+						})
+
+						It("passes them through", func() {
+							Expect(fakeResource.VersionsCallCount()).To(Equal(1))
+
+							_, versionFilter := fakeResource.VersionsArgsForCall(0)
+							Expect(versionFilter).To(Equal(atc.Version{
+								"some ref": "some value",
+							}))
+						})
+					})
+
+					Context("% char", func() {
+						BeforeEach(func() {
+							queryParams = "?filter=ref:some%25value"
+						})
+
+						It("passes them through", func() {
+							Expect(fakeResource.VersionsCallCount()).To(Equal(1))
+
+							_, versionFilter := fakeResource.VersionsArgsForCall(0)
+							Expect(versionFilter).To(Equal(atc.Version{
+								"ref": "some%value",
+							}))
+						})
+					})
+
+					Context(": char", func() {
+						BeforeEach(func() {
+							queryParams = "?filter=key%3Awith%3Acolon:abcdef"
+						})
+
+						It("passes them through by splitting on first colon", func() {
+							Expect(fakeResource.VersionsCallCount()).To(Equal(1))
+
+							_, versionFilter := fakeResource.VersionsArgsForCall(0)
+							Expect(versionFilter).To(Equal(atc.Version{
+								"key": "with:colon:abcdef",
+							}))
+						})
+					})
+
+					Context("if there is no : ", func() {
+						BeforeEach(func() {
+							queryParams = "?filter=abcdef"
+						})
+
+						It("set no filter when fetching versions", func() {
+							Expect(fakeResource.VersionsCallCount()).To(Equal(1))
+
+							_, versionFilter := fakeResource.VersionsArgsForCall(0)
+							Expect(versionFilter).To(BeEmpty())
+						})
 					})
 				})
 
@@ -271,6 +336,7 @@ var _ = Describe("Versions API", func() {
 								Enabled: true,
 								Version: atc.Version{
 									"some": "version",
+									"ref":  "foo",
 								},
 								Metadata: []atc.MetadataField{
 									{
@@ -284,6 +350,7 @@ var _ = Describe("Versions API", func() {
 								Enabled: false,
 								Version: atc.Version{
 									"some": "version",
+									"ref":  "blah",
 								},
 								Metadata: []atc.MetadataField{
 									{
@@ -313,7 +380,7 @@ var _ = Describe("Versions API", func() {
 					{
 						"id": 4,
 						"enabled": true,
-						"version": {"some":"version"},
+						"version": {"some":"version", "ref":"foo"},
 						"metadata": [
 							{
 								"name":"some",
@@ -324,7 +391,7 @@ var _ = Describe("Versions API", func() {
 					{
 						"id":2,
 						"enabled": false,
-						"version": {"some":"version"},
+						"version": {"some":"version", "ref":"blah"},
 						"metadata": [
 							{
 								"name":"some",

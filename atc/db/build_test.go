@@ -1036,7 +1036,7 @@ var _ = Describe("Build", func() {
 					err = resourceConfig1.SaveVersions([]atc.Version{{"version": "v1"}})
 					Expect(err).NotTo(HaveOccurred())
 
-					versions, _, found, err := resource1.Versions(db.Page{Limit: 1})
+					versions, _, found, err := resource1.Versions(db.Page{Limit: 1}, nil)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(versions).To(HaveLen(1))

@@ -2,17 +2,19 @@ package commands
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/fly/rc"
 	"net/url"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/concourse/concourse/fly/rc"
 )
 
 type CurlCommand struct {
 	Args struct {
-		Path string   `positional-arg-name:"PATH" required:"true"`
-		Rest []string `positional-arg-name:"curl flags"`
+		Path  string   `positional-arg-name:"PATH" required:"true"`
+		Query string   `positional-arg-name:"QUERY"`
+		Rest  []string `positional-arg-name:"curl flags"`
 	} `positional-args:"yes"`
 	PrintAndExit bool `long:"print-and-exit" description:"Print curl command and exit"`
 }
@@ -28,7 +30,7 @@ func (command *CurlCommand) Execute([]string) error {
 		return err
 	}
 
-	fullUrl, err := command.makeFullUrl(target.URL(), command.Args.Path)
+	fullUrl, err := command.makeFullUrl(target.URL(), command.Args.Path, command.Args.Query)
 	if err != nil {
 		return err
 	}
@@ -52,12 +54,13 @@ func (command *CurlCommand) Execute([]string) error {
 	return nil
 }
 
-func (command *CurlCommand) makeFullUrl(host, path string) (string, error) {
+func (command *CurlCommand) makeFullUrl(host, path string, query string) (string, error) {
 	u, err := url.Parse(host)
 	if err != nil {
 		return "", err
 	}
 	u.Path = path
+	u.RawQuery = query
 	return u.String(), nil
 }
 

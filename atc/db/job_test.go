@@ -765,7 +765,7 @@ var _ = Describe("Job", func() {
 			}, resourceConfigScope.ResourceConfig(), atc.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
-			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
+			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -945,7 +945,7 @@ var _ = Describe("Job", func() {
 			}, resourceConfigScope.ResourceConfig(), atc.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
-			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
+			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 

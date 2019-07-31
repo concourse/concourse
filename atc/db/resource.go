@@ -44,7 +44,7 @@ type Resource interface {
 	CurrentPinnedVersion() atc.Version
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
-	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
+	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
 	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, atc.VersionedResourceTypes) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
@@ -370,7 +370,7 @@ func (r *resource) CurrentPinnedVersion() atc.Version {
 	return nil
 }
 
-func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error) {
+func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
 	query := `
 		SELECT v.id, v.version, v.metadata, v.check_order,
 			NOT EXISTS (
@@ -384,6 +384,16 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id AND v.check_order != 0
 	`
 
+	filterJSON := "{}"
+	if len(versionFilter) != 0 {
+		filterBytes, err := json.Marshal(versionFilter)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+
+		filterJSON = string(filterBytes)
+	}
+
 	var rows *sql.Rows
 	var err error
 	if page.Until != 0 {
@@ -391,22 +401,24 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			SELECT sub.*
 				FROM (
 						%s
+					AND version @> $4
 					AND v.check_order > (SELECT check_order FROM resource_config_versions WHERE id = $2)
 				ORDER BY v.check_order ASC
 				LIMIT $3
 			) sub
 			ORDER BY sub.check_order DESC
-		`, query), r.id, page.Until, page.Limit)
+		`, query), r.id, page.Until, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else if page.Since != 0 {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
+				AND version @> $4
 				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
-		`, query), r.id, page.Since, page.Limit)
+		`, query), r.id, page.Since, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
@@ -415,31 +427,34 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			SELECT sub.*
 				FROM (
 						%s
+					AND version @> $4
 					AND v.check_order >= (SELECT check_order FROM resource_config_versions WHERE id = $2)
 				ORDER BY v.check_order ASC
 				LIMIT $3
 			) sub
 			ORDER BY sub.check_order DESC
-		`, query), r.id, page.To, page.Limit)
+		`, query), r.id, page.To, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else if page.From != 0 {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
+				AND version @> $4
 				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
-		`, query), r.id, page.From, page.Limit)
+		`, query), r.id, page.From, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
+			AND version @> $3
 			ORDER BY v.check_order DESC
 			LIMIT $2
-		`, query), r.id, page.Limit)
+		`, query), r.id, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
