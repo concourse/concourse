@@ -146,12 +146,15 @@ stepHeader : StepState -> List (Html.Attribute msg)
 stepHeader state =
     [ style "display" "flex"
     , style "justify-content" "space-between"
-    , case state of
-        StepStateFailed ->
-            style "border" "1px solid #C24433"
+    , style "border" <|
+        "1px solid "
+            ++ (case state of
+                    StepStateFailed ->
+                        Colors.failure
 
-        _ ->
-            style "border" "none"
+                    _ ->
+                        Colors.frame
+               )
     ]
 
 

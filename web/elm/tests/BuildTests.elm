@@ -3217,7 +3217,7 @@ all =
                         >> Common.queryView
                         >> Query.find [ class "header" ]
                         >> Query.has
-                            [ style "border" "none" ]
+                            [ style "border" <| "1px solid " ++ Colors.frame ]
                 , test "failing step has a red border" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3238,7 +3238,7 @@ all =
                         >> Common.queryView
                         >> Query.find [ class "header" ]
                         >> Query.has
-                            [ style "border" "1px solid #C24433" ]
+                            [ style "border" <| "1px solid " ++ Colors.failure ]
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
