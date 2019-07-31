@@ -635,30 +635,34 @@ viewTimestampedLine { timestamps, highlight, id, lineNo, line, timeZone } =
                     hlId == id && lineNo >= hlLine1 && lineNo <= hlLine2
 
         ts =
-            Dict.get lineNo timestamps
+            Dict.get (lineNo - 1) timestamps
     in
-    Html.tr
-        [ classList
-            [ ( "timestamped-line", True )
-            , ( "highlighted-line", highlighted )
-            ]
-        , Html.Attributes.id <| id ++ ":" ++ String.fromInt lineNo
-        ]
-        [ viewTimestamp
-            { id = id
-            , line = lineNo
-            , date = ts
-            , timeZone = timeZone
-            }
-        , viewLine line
-        ]
+    case line of
+        ( [], _ ) ->
+            Html.text ""
+
+        _ ->
+            Html.tr
+                [ classList
+                    [ ( "timestamped-line", True )
+                    , ( "highlighted-line", highlighted )
+                    ]
+                , Html.Attributes.id <| id ++ ":" ++ String.fromInt lineNo
+                ]
+                [ viewTimestamp
+                    { id = id
+                    , line = lineNo
+                    , date = ts
+                    , timeZone = timeZone
+                    }
+                , viewLine line
+                ]
 
 
 viewLine : Ansi.Log.Line -> Html Message
 viewLine line =
     Html.td [ class "timestamped-content" ]
-        [ Ansi.Log.viewLine line
-        ]
+        [ Ansi.Log.viewLine line ]
 
 
 viewTimestamp :
