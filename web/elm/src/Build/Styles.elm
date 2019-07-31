@@ -152,7 +152,22 @@ stepHeader state =
                     StepStateFailed ->
                         Colors.failure
 
-                    _ ->
+                    StepStateErrored ->
+                        Colors.error
+
+                    StepStatePending ->
+                        Colors.frame
+
+                    StepStateRunning ->
+                        Colors.frame
+
+                    StepStateInterrupted ->
+                        Colors.frame
+
+                    StepStateCancelled ->
+                        Colors.frame
+
+                    StepStateSucceeded ->
                         Colors.frame
                )
     ]
