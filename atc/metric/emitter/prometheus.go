@@ -168,7 +168,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "containers",
 			Help:      "Number of containers per worker",
 		},
-		[]string{"worker", "platform"},
+		[]string{"worker", "platform", "team", "tags"},
 	)
 	prometheus.MustRegister(workerContainers)
 
@@ -179,7 +179,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "volumes",
 			Help:      "Number of volumes per worker",
 		},
-		[]string{"worker", "platform"},
+		[]string{"worker", "platform", "team", "tags"},
 	)
 	prometheus.MustRegister(workerVolumes)
 
@@ -463,6 +463,12 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
 		return
 	}
+	team, exists := event.Attributes["team_name"]
+	if !exists {
+		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
+		return
+	}
+	tags, _ := event.Attributes["tags"]
 
 	containers, ok := event.Value.(int)
 	if !ok {
@@ -470,7 +476,7 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		return
 	}
 
-	emitter.workerContainers.WithLabelValues(worker, platform).Set(float64(containers))
+	emitter.workerContainers.WithLabelValues(worker, platform, team, tags).Set(float64(containers))
 }
 
 func (emitter *PrometheusEmitter) workersRegisteredMetric(logger lager.Logger, event metric.Event) {
@@ -500,6 +506,12 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
 		return
 	}
+	team, exists := event.Attributes["team_name"]
+	if !exists {
+		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
+		return
+	}
+	tags, _ := event.Attributes["tags"]
 
 	volumes, ok := event.Value.(int)
 	if !ok {
@@ -507,7 +519,7 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		return
 	}
 
-	emitter.workerVolumes.WithLabelValues(worker, platform).Set(float64(volumes))
+	emitter.workerVolumes.WithLabelValues(worker, platform, team, tags).Set(float64(volumes))
 }
 
 func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event metric.Event) {
@@ -612,9 +624,9 @@ func (emitter *PrometheusEmitter) resourceMetric(logger lager.Logger, event metr
 		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
 		return
 	}
-	team, exists := event.Attributes["team"]
+	team, exists := event.Attributes["team_name"]
 	if !exists {
-		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
+		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
 		return
 	}
 

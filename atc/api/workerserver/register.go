@@ -67,12 +67,16 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		WorkerName: registration.Name,
 		Containers: registration.ActiveContainers,
 		Platform:   registration.Platform,
+		TeamName:   registration.Team,
+		Tags:       registration.Tags,
 	}.Emit(s.logger)
 
 	metric.WorkerVolumes{
 		WorkerName: registration.Name,
 		Volumes:    registration.ActiveVolumes,
 		Platform:   registration.Platform,
+		TeamName:   registration.Team,
+		Tags:       registration.Tags,
 	}.Emit(s.logger)
 
 	metric.WorkerTasks{
