@@ -55,3 +55,38 @@ on the configured strategy.
   CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=random
   }}}
 }
+
+\section{
+  \title{\aux{The }\code{limit-active-tasks} strategy}{limit-active-tasks-strategy}
+  \warn{\code{limit-active-tasks} is an \bold{experimental} feature.}
+
+  When selecting the \code{limit-active-tasks} placement strategy, each \code{task}
+  executed on a worker will increase the number of "active tasks" on that worker
+  by one. When the task completes the number is decreased by one.
+  The \reference{web-node} then places \code{get}, \code{put} and \code{task}
+  containers on the worker that currently has the \italic{least amount of active tasks}.
+
+  Additionally \code{max-active-tasks-per-worker} can be set to be an integer of 1 or more,
+  in which case a worker will not execute more than that amount of \bold{tasks}.
+  A value of 0 means that there is no limit on the maximum number of active tasks on the workers.
+  If no worker can be selected because all of them already have \code{max-active-tasks-per-worker}
+  active tasks, then the task will wait for a free worker, periodically polling the pool.
+  Note that the parameter does not apply to \code{get} and \code{put} steps which will always
+  be scheduled on the worker with the fewest active tasks.
+
+  \warn{
+    In the event where the \reference{web-node} restarts and
+    a task completes while the restart is ongoing, then the counter
+    on the worker \bold{will not be decreased}.
+    If that happens the worker must be retired and re-registered
+    to reset the counter.
+  }
+
+  \codeblock{bash}{{{
+  CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=limit-active-tasks
+  }}}
+  and, optionally
+  \codeblock{bash}{{{
+  CONCOURSE_MAX_ACTIVE_TASKS_PER_WORKER=1
+  }}}
+}
