@@ -1,23 +1,24 @@
-package worker
+package gclient
 
 import (
 	"net/http"
+	"time"
 
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/garden/routes"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/worker/gclient/connection"
 	"github.com/concourse/concourse/atc/worker/transport"
 	"github.com/concourse/retryhttp"
 	"github.com/tedsuo/rata"
 )
 
 type gardenClientFactory struct {
-	db                  transport.TransportDB
-	logger              lager.Logger
-	workerName          string
-	workerHost          *string
-	retryBackOffFactory retryhttp.BackOffFactory
+	db                         transport.TransportDB
+	logger                     lager.Logger
+	workerName                 string
+	workerHost                 *string
+	retryBackOffFactory        retryhttp.BackOffFactory
+	streamClientRequestTimeout time.Duration
 }
 
 func NewGardenClientFactory(
@@ -26,28 +27,31 @@ func NewGardenClientFactory(
 	workerName string,
 	workerHost *string,
 	retryBackOffFactory retryhttp.BackOffFactory,
+	streamClientRequestTimeout time.Duration,
 ) *gardenClientFactory {
 	return &gardenClientFactory{
-		db:                  db,
-		logger:              logger,
-		workerName:          workerName,
-		workerHost:          workerHost,
-		retryBackOffFactory: retryBackOffFactory,
+		db:                         db,
+		logger:                     logger,
+		workerName:                 workerName,
+		workerHost:                 workerHost,
+		retryBackOffFactory:        retryBackOffFactory,
+		streamClientRequestTimeout: streamClientRequestTimeout,
 	}
 }
 
-func (gcf *gardenClientFactory) NewClient() gclient.Client {
+func (gcf *gardenClientFactory) NewClient() Client {
 	retryer := &transport.UnreachableWorkerRetryer{
 		DelegateRetryer: &retryhttp.DefaultRetryer{},
 	}
 
-	httpClient := &http.Client{
+	streamClient := &http.Client{
 		Transport: &retryhttp.RetryRoundTripper{
 			Logger:         gcf.logger.Session("retryable-http-client"),
 			BackOffFactory: gcf.retryBackOffFactory,
 			RoundTripper:   transport.NewGardenRoundTripper(gcf.workerName, gcf.workerHost, gcf.db, &http.Transport{DisableKeepAlives: true}),
 			Retryer:        retryer,
 		},
+		Timeout: gcf.streamClientRequestTimeout,
 	}
 
 	hijackableClient := &retryhttp.RetryHijackableClient{
@@ -59,10 +63,10 @@ func (gcf *gardenClientFactory) NewClient() gclient.Client {
 
 	// the request generator's address doesn't matter because it's overwritten by the worker lookup clients
 	hijackStreamer := &transport.WorkerHijackStreamer{
-		HttpClient:       httpClient,
+		HttpClient:       streamClient,
 		HijackableClient: hijackableClient,
 		Req:              rata.NewRequestGenerator("http://127.0.0.1:8080", routes.Routes),
 	}
 
-	return gclient.New(NewRetryableConnection(gconn.NewWithHijacker(hijackStreamer, gcf.logger)))
+	return NewClient(NewRetryableConnection(connection.NewWithHijacker(hijackStreamer, gcf.logger)))
 }

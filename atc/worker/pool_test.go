@@ -1,18 +1,13 @@
 package worker_test
 
 import (
-	"context"
-	"errors"
-	"time"
-
-	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	//"code.cloudfoundry.org/garden/gardenfakes"
+	"context"
+	"errors"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
@@ -21,20 +16,16 @@ import (
 
 var _ = Describe("Pool", func() {
 	var (
-		fakeClock       *fakeclock.FakeClock
-		logger          *lagertest.TestLogger
-		fakeProvider    *workerfakes.FakeWorkerProvider
-		fakeLockFactory *lockfakes.FakeLockFactory
-		pool            Pool
+		logger       *lagertest.TestLogger
+		pool         Pool
+		fakeProvider *workerfakes.FakeWorkerProvider
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeProvider = new(workerfakes.FakeWorkerProvider)
-		fakeLockFactory = new(lockfakes.FakeLockFactory)
-		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
-		pool = NewPool(fakeClock, fakeLockFactory, fakeProvider)
+		pool = NewPool(fakeProvider)
 	})
 
 	Describe("FindOrChooseWorkerForContainer", func() {
@@ -43,7 +34,6 @@ var _ = Describe("Pool", func() {
 			workerSpec    WorkerSpec
 			resourceTypes atc.VersionedResourceTypes
 			fakeOwner     *dbfakes.FakeContainerOwner
-			fakeLock      *lockfakes.FakeLock
 
 			chosenWorker Worker
 			chooseErr    error
@@ -116,9 +106,6 @@ var _ = Describe("Pool", func() {
 
 			compatibleWorker = new(workerfakes.FakeWorker)
 			compatibleWorker.SatisfiesReturns(true)
-
-			fakeLock = new(lockfakes.FakeLock)
-			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -127,7 +114,6 @@ var _ = Describe("Pool", func() {
 				logger,
 				fakeOwner,
 				spec,
-				db.ContainerMetadata{},
 				workerSpec,
 				fakeStrategy,
 			)
@@ -148,50 +134,6 @@ var _ = Describe("Pool", func() {
 				fakeStrategy.ChooseReturns(workerA, nil)
 			})
 
-			Context("fails to acquire the pool lock", func() {
-				BeforeEach(func() {
-					fakeLockFactory.AcquireReturns(nil, false, ErrFailedAcquirePoolLock)
-				})
-
-				It("returns an error", func() {
-					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
-					fakeLockFactory.AcquireReturns(nil, false, ErrFailedAcquirePoolLock)
-					Expect(chooseErr).To(HaveOccurred())
-					Expect(chooseErr.Error()).To(Equal("failed to acquire pool lock"))
-				})
-			})
-
-			Context("lock is held by another", func() {
-				BeforeEach(func() {
-					callCount := 0
-					fakeLockFactory.AcquireStub = func(logger lager.Logger, lockID lock.LockID) (lock.Lock, bool, error) {
-						callCount++
-						go fakeClock.WaitForWatcherAndIncrement(time.Second)
-
-						if callCount < 3 {
-							return nil, false, nil
-						}
-
-						return fakeLock, true, nil
-					}
-				})
-
-				It("retries every second until it is", func() {
-					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(3))
-					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
-				})
-			})
-
-			Context("lock is not held by anyone", func() {
-				BeforeEach(func() {
-					fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-				})
-
-				It("acquires the lock", func() {
-					Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
-					Expect(chooseErr).ToNot(HaveOccurred())
-				})
-			})
 		})
 
 		Context("when workers are found with the container", func() {
@@ -213,10 +155,6 @@ var _ = Describe("Pool", func() {
 				fakeProvider.FindWorkersForContainerByOwnerReturns([]Worker{workerA, workerB, workerC}, nil)
 				fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
 				fakeStrategy.ChooseReturns(workerA, nil)
-			})
-
-			It("ensures a db container exists", func() {
-				Expect(workerA.EnsureDBContainerExistsCallCount()).To(Equal(1))
 			})
 
 			Context("when one of the workers satisfy the spec", func() {
@@ -319,10 +257,6 @@ var _ = Describe("Pool", func() {
 
 					fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
 					fakeStrategy.ChooseReturns(workerA, nil)
-				})
-
-				It("ensures a db container exists", func() {
-					Expect(workerA.EnsureDBContainerExistsCallCount()).To(Equal(1))
 				})
 
 				It("checks that the workers satisfy the given worker spec", func() {
@@ -471,9 +405,6 @@ var _ = Describe("Pool", func() {
 						fakeStrategy.ChooseReturns(compatibleWorker, nil)
 					})
 
-					It("ensures a db container exists", func() {
-						Expect(compatibleWorker.EnsureDBContainerExistsCallCount()).To(Equal(1))
-					})
 					It("chooses a worker", func() {
 						Expect(chooseErr).ToNot(HaveOccurred())
 						Expect(fakeStrategy.ChooseCallCount()).To(Equal(1))
@@ -498,4 +429,5 @@ var _ = Describe("Pool", func() {
 			})
 		})
 	})
+
 })

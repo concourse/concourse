@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 )
 
 type RenameTeamCommand struct {
-	TeamName    string `short:"o" long:"old-name" required:"true" description:"Current team name"`
-	NewTeamName string `short:"n" long:"new-name" required:"true" description:"New team name"`
+	Team        flaghelpers.TeamFlag `short:"o" long:"old-name" required:"true" description:"Current team name"`
+	NewTeamName string               `short:"n" long:"new-name" required:"true" description:"New team name"`
 }
 
 func (command *RenameTeamCommand) Execute([]string) error {
@@ -23,13 +24,15 @@ func (command *RenameTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	found, err := target.Team().RenameTeam(command.TeamName, command.NewTeamName)
+	teamName := command.Team.Name()
+
+	found, err := target.Team().RenameTeam(teamName, command.NewTeamName)
 	if err != nil {
 		return err
 	}
 
 	if !found {
-		displayhelpers.Failf("Team '%s' not found\n", command.TeamName)
+		displayhelpers.Failf("Team '%s' not found\n", teamName)
 		return nil
 	}
 

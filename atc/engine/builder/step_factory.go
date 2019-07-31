@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
@@ -102,6 +103,7 @@ func (factory *stepFactory) TaskStep(
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.TaskDelegate,
+	lockFactory lock.LockFactory,
 ) exec.Step {
 	sum := sha1.Sum([]byte(plan.Task.Name))
 	containerMetadata.WorkingDirectory = filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
@@ -114,8 +116,9 @@ func (factory *stepFactory) TaskStep(
 		containerMetadata,
 		factory.secretManager,
 		factory.strategy,
-		factory.pool,
+		factory.client,
 		delegate,
+		lockFactory,
 	)
 
 	return exec.LogError(taskStep, delegate)

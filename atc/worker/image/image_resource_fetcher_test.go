@@ -2,7 +2,6 @@ package image_test
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -12,6 +11,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -183,7 +183,7 @@ var _ = Describe("Image", func() {
 
 					It("checks for the latest version of the resource type", func() {
 						By("find or create a resource container")
-						_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+						_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 						Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
 
 						By("calling the resource type's check script")
@@ -196,9 +196,8 @@ var _ = Describe("Image", func() {
 						})
 
 						It("uses the version of the custom type when checking for the original resource", func() {
-							Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(2))
 							Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(2))
-							_, _, _, _, containerSpec, customTypes := fakeWorker.FindOrCreateContainerArgsForCall(1)
+							_, _, _, _, _, containerSpec, customTypes := fakeWorker.FindOrCreateContainerArgsForCall(1)
 							Expect(containerSpec.ImageSpec.ResourceType).To(Equal("custom-type-a"))
 							Expect(customTypes[0].Version).To(Equal(atc.Version{"some": "version"}))
 						})
@@ -269,17 +268,13 @@ var _ = Describe("Image", func() {
 								})
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-									Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(1))
-									_, _, owner, metadata := fakeWorker.EnsureDBContainerExistsArgsForCall(0)
+									Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+									cctx, _, delegate, owner, metadata, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+									Expect(cctx).To(Equal(ctx))
+									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 									Expect(metadata).To(Equal(db.ContainerMetadata{
 										Type: db.ContainerTypeCheck,
 									}))
-									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
-
-									Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-									cctx, _, delegate, owner, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-									Expect(cctx).To(Equal(ctx))
-									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 									Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 										ResourceType: "docker",
 									}))
@@ -314,19 +309,15 @@ var _ = Describe("Image", func() {
 							})
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-								Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(1))
-								_, _, owner, metadata := fakeWorker.EnsureDBContainerExistsArgsForCall(0)
-								Expect(metadata).To(Equal(db.ContainerMetadata{
-									Type: db.ContainerTypeCheck,
-								}))
-								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
-
 								Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-								cctx, _, delegate, owner, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+								cctx, _, delegate, owner, metadata, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
 								Expect(cctx).To(Equal(ctx))
 								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ResourceType: "docker",
+								}))
+								Expect(metadata).To(Equal(db.ContainerMetadata{
+									Type: db.ContainerTypeCheck,
 								}))
 								Expect(containerSpec.TeamID).To(Equal(123))
 								Expect(actualCustomTypes).To(Equal(customTypes))
@@ -644,8 +635,8 @@ var _ = Describe("Image", func() {
 func tgzStreamWith(metadata string) io.ReadCloser {
 	buffer := gbytes.NewBuffer()
 
-	gzWriter := gzip.NewWriter(buffer)
-	tarWriter := tar.NewWriter(gzWriter)
+	zstdWriter := zstd.NewWriter(buffer)
+	tarWriter := tar.NewWriter(zstdWriter)
 
 	err := tarWriter.WriteHeader(&tar.Header{
 		Name: "metadata.json",
@@ -660,7 +651,7 @@ func tgzStreamWith(metadata string) io.ReadCloser {
 	err = tarWriter.Close()
 	Expect(err).NotTo(HaveOccurred())
 
-	err = gzWriter.Close()
+	err = zstdWriter.Close()
 	Expect(err).NotTo(HaveOccurred())
 
 	return buffer

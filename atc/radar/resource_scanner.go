@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/vars"
 )
 
 var GlobalResourceCheckTimeout time.Duration
@@ -27,7 +28,7 @@ type resourceScanner struct {
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
-	variables             creds.Variables
+	variables             vars.Variables
 	strategy              worker.ContainerPlacementStrategy
 }
 
@@ -39,7 +40,7 @@ func NewResourceScanner(
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
-	variables creds.Variables,
+	variables vars.Variables,
 	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
 	return &resourceScanner{
@@ -326,9 +327,6 @@ func (scanner *resourceScanner) check(
 		logger,
 		owner,
 		containerSpec,
-		db.ContainerMetadata{
-			Type: db.ContainerTypeCheck,
-		},
 		workerSpec,
 		scanner.strategy,
 	)
@@ -340,11 +338,15 @@ func (scanner *resourceScanner) check(
 		}
 		return err
 	}
+
 	container, err := chosenWorker.FindOrCreateContainer(
 		context.Background(),
 		logger,
 		worker.NoopImageFetchingDelegate{},
 		owner,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
 		containerSpec,
 		resourceTypes,
 	)

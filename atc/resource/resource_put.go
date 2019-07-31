@@ -16,13 +16,10 @@ func (resource *resource) Put(
 	ioConfig IOConfig,
 	source atc.Source,
 	params atc.Params,
-) (VersionedSource, error) {
+) (VersionResult, error) {
 	resourceDir := ResourcesDir("put")
 
-	vs := &putVersionedSource{
-		container:   resource.container,
-		resourceDir: resourceDir,
-	}
+	vr := &VersionResult{}
 
 	err := resource.runScript(
 		ctx,
@@ -32,13 +29,13 @@ func (resource *resource) Put(
 			Params: params,
 			Source: source,
 		},
-		&vs.versionResult,
+		&vr,
 		ioConfig.Stderr,
 		true,
 	)
 	if err != nil {
-		return nil, err
+		return VersionResult{}, err
 	}
 
-	return vs, nil
+	return *vr, nil
 }

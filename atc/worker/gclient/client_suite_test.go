@@ -1,4 +1,4 @@
-package template_test
+package gclient_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestTemplate(t *testing.T) {
+func TestClient(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Template Suite")
+	RunSpecs(t, "GClient Suite")
 }

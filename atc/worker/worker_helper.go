@@ -7,10 +7,11 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/worker/gclient"
 )
 
 type workerHelper struct {
-	gardenClient  garden.Client
+	gardenClient  gclient.Client
 	volumeClient  VolumeClient
 	volumeRepo    db.VolumeRepository
 	dbTeamFactory db.TeamFactory
@@ -22,7 +23,7 @@ func (w workerHelper) createGardenContainer(
 	fetchedImage FetchedImage,
 	handleToCreate string,
 	bindMounts []garden.BindMount,
-) (garden.Container, error) {
+) (gclient.Container, error) {
 
 	gardenProperties := garden.Properties{}
 
@@ -46,7 +47,8 @@ func (w workerHelper) createGardenContainer(
 		env = append(env, fmt.Sprintf("no_proxy=%s", w.dbWorker.NoProxy()))
 	}
 
-	return w.gardenClient.Create(garden.ContainerSpec{
+	return w.gardenClient.Create(
+		garden.ContainerSpec{
 		Handle:     handleToCreate,
 		RootFSPath: fetchedImage.URL,
 		Privileged: fetchedImage.Privileged,
@@ -60,7 +62,7 @@ func (w workerHelper) createGardenContainer(
 func (w workerHelper) constructGardenWorkerContainer(
 	logger lager.Logger,
 	createdContainer db.CreatedContainer,
-	gardenContainer garden.Container,
+	gardenContainer gclient.Container,
 ) (Container, error) {
 	createdVolumes, err := w.volumeRepo.FindVolumesForContainer(createdContainer)
 	if err != nil {

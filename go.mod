@@ -1,18 +1,19 @@
 module github.com/concourse/concourse
 
 require (
-	cloud.google.com/go v0.28.0 // indirect
+	cloud.google.com/go v0.43.0 // indirect
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
 	code.cloudfoundry.org/credhub-cli v0.0.0-20190415201820-e3951663d25c
 	code.cloudfoundry.org/garden v0.0.0-20181108172608-62470dc86365
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	code.cloudfoundry.org/localip v0.0.0-20170223024724-b88ad0dea95c
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
-	contrib.go.opencensus.io/exporter/ocagent v0.4.1 // indirect
+	contrib.go.opencensus.io/exporter/ocagent v0.5.1 // indirect
 	github.com/Azure/azure-sdk-for-go v24.0.0+incompatible // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest v11.2.8+incompatible // indirect
 	github.com/DataDog/datadog-go v0.0.0-20180702141236-ef3a9daf849d
+	github.com/DataDog/zstd v1.4.0
 	github.com/Jeffail/gabs v1.1.0 // indirect
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/Microsoft/go-winio v0.4.11 // indirect
@@ -31,21 +32,19 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf // indirect
 	github.com/aws/aws-sdk-go v1.18.3
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
-	github.com/bmatcuk/doublestar v1.1.1 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/boombuler/barcode v1.0.0 // indirect
 	github.com/briankassouf/jose v0.9.1 // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
+	github.com/census-instrumentation/opencensus-proto v0.2.1 // indirect
 	github.com/centrify/cloud-golang-sdk v0.0.0-20180119173102-7c97cc6fde16 // indirect
 	github.com/chrismalek/oktasdk-go v0.0.0-20181212195951-3430665dfaa0 // indirect
 	github.com/circonus-labs/circonus-gometrics v2.2.1+incompatible // indirect
 	github.com/circonus-labs/circonusllhist v0.0.0-20180430145027-5eb751da55c6 // indirect
-	github.com/cloudfoundry/bosh-cli v5.4.0+incompatible
-	github.com/cloudfoundry/bosh-utils v0.0.0-20181224171034-c2cf699102bd // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.4.0
+	github.com/concourse/baggageclaim v1.6.2
 	github.com/concourse/dex v0.0.0-20190417202333-2202f4ef4172
 	github.com/concourse/flag v1.0.0
 	github.com/concourse/go-archive v1.0.1
@@ -55,8 +54,7 @@ require (
 	github.com/coreos/etcd v3.3.12+incompatible // indirect
 	github.com/coreos/go-oidc v2.0.0+incompatible
 	github.com/coreos/go-semver v0.3.0 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
-	github.com/cppforlife/go-patch v0.0.0-20171006213518-250da0e0e68c // indirect
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/dancannon/gorethink v4.0.0+incompatible // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20180901172138-1eb28afdf9b6 // indirect
@@ -74,6 +72,7 @@ require (
 	github.com/gammazero/deque v0.0.0-20180920172122-f6adf94963e4 // indirect
 	github.com/gammazero/workerpool v0.0.0-20181230203049-86a96b5d5d92 // indirect
 	github.com/garyburd/redigo v1.6.0 // indirect
+	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/go-ldap/ldap v2.5.1+incompatible // indirect
 	github.com/go-openapi/jsonpointer v0.0.0-20180825180259-52eb3d4b47c6 // indirect
@@ -86,19 +85,18 @@ require (
 	github.com/gobuffalo/packr v1.13.7
 	github.com/gocql/gocql v0.0.0-20180920092337-799fb0373110 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
-	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
-	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gorhill/cronexpr v0.0.0-20180427100037-88b0669f7d75 // indirect
 	github.com/gorilla/websocket v1.4.0
 	github.com/gotestyourself/gotestyourself v2.1.0+incompatible // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway v1.9.5 // indirect
 	github.com/hashicorp/consul v1.2.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.0 // indirect
 	github.com/hashicorp/go-gcp-common v0.0.0-20180425173946-763e39302965 // indirect
@@ -141,7 +139,7 @@ require (
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/juju/ratelimit v1.0.1 // indirect
 	github.com/keybase/go-crypto v0.0.0-20180920171116-0b2a91ace448 // indirect
-	github.com/kr/pty v1.1.4
+	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v0.0.0-20181016162627-9eb73efc1fcc
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
@@ -149,7 +147,7 @@ require (
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mattn/go-isatty v0.0.7
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.0.2
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.2
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/michaelklishin/rabbit-hole v1.4.0 // indirect
 	github.com/miekg/dns v1.1.6
@@ -207,13 +205,11 @@ require (
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
-	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
-	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890
-	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
-	google.golang.org/api v0.1.0 // indirect
-	google.golang.org/appengine v1.4.0 // indirect
-	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f // indirect
-	google.golang.org/grpc v1.19.0 // indirect
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
+	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
+	golang.org/x/tools v0.0.0-20190723021737-8bb11ff117ca // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/gorethink/gorethink.v4 v4.1.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect

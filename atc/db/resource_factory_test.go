@@ -23,7 +23,7 @@ var _ = Describe("Resource Factory", func() {
 				Resources: atc.ResourceConfigs{
 					{Name: "public-pipeline-resource"},
 				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			}, db.ConfigVersion(0), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(publicPipeline.Expose()).To(Succeed())
 
@@ -31,7 +31,7 @@ var _ = Describe("Resource Factory", func() {
 				Resources: atc.ResourceConfigs{
 					{Name: "private-pipeline-resource"},
 				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			}, db.ConfigVersion(0), false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

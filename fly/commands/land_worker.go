@@ -3,15 +3,16 @@ package commands
 import (
 	"fmt"
 
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 )
 
 type LandWorkerCommand struct {
-	Worker string `short:"w"  long:"worker" required:"true" description:"Worker to land"`
+	Worker flaghelpers.WorkerFlag `short:"w"  long:"worker" required:"true" description:"Worker to land"`
 }
 
 func (command *LandWorkerCommand) Execute(args []string) error {
-	workerName := command.Worker
+	workerName := command.Worker.Name()
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {

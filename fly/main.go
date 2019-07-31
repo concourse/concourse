@@ -64,12 +64,11 @@ func handleError(helpParser *flags.Parser, err error) {
 			fmt.Fprintln(ui.Stderr, "")
 			fmt.Fprintln(ui.Stderr, "is the targeted Concourse running? better go catch it lol")
 		} else if err == commands.ErrShowHelpMessage {
-			helpParser.ParseArgs([]string{"-h"})
-			helpParser.WriteHelp(os.Stdout)
-			os.Exit(0)
+			showHelp(helpParser)
 		} else if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrCommandRequired {
-			helpParser.ParseArgs([]string{"-h"})
-			helpParser.WriteHelp(os.Stdout)
+			showHelp(helpParser)
+		} else if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			fmt.Println(err)
 			os.Exit(0)
 		} else {
 			fmt.Fprintf(ui.Stderr, "error: %s\n", err)
@@ -77,4 +76,10 @@ func handleError(helpParser *flags.Parser, err error) {
 
 		os.Exit(1)
 	}
+}
+
+func showHelp(helpParser *flags.Parser) {
+	helpParser.ParseArgs([]string{"-h"})
+	helpParser.WriteHelp(os.Stdout)
+	os.Exit(0)
 }

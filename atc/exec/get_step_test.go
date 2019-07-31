@@ -2,7 +2,6 @@ package exec_test
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -11,6 +10,7 @@ import (
 	"io/ioutil"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
@@ -153,7 +153,7 @@ var _ = Describe("GetStep", func() {
 
 	It("finds or chooses a worker", func() {
 		Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-		_, _, actualOwner, actualContainerSpec, actualContainerMetadata, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+		_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, atc.PlanID(planID), stepMetadata.TeamID)))
 		Expect(actualContainerSpec).To(Equal(worker.ContainerSpec{
 			ImageSpec: worker.ImageSpec{
@@ -162,7 +162,6 @@ var _ = Describe("GetStep", func() {
 			TeamID: stepMetadata.TeamID,
 			Env:    stepMetadata.Env(),
 		}))
-		Expect(actualContainerMetadata).To(Equal(containerMetadata))
 		Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
 			ResourceType:  "some-resource-type",
 			Tags:          atc.Tags{"some", "tags"},
@@ -359,10 +358,10 @@ var _ = Describe("GetStep", func() {
 
 						Context("when the file exists", func() {
 							BeforeEach(func() {
-								gzWriter := gzip.NewWriter(tgzBuffer)
-								defer gzWriter.Close()
+								zstdWriter := zstd.NewWriter(tgzBuffer)
+								defer zstdWriter.Close()
 
-								tarWriter := tar.NewWriter(gzWriter)
+								tarWriter := tar.NewWriter(zstdWriter)
 								defer tarWriter.Close()
 
 								err := tarWriter.WriteHeader(&tar.Header{

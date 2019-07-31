@@ -166,9 +166,9 @@ var _ = Describe("PutStep", func() {
 
 		Context("when the tracker can initialize the resource", func() {
 			var (
-				fakeResource        *resourcefakes.FakeResource
-				fakeResourceConfig  *dbfakes.FakeResourceConfig
-				fakeVersionedSource *resourcefakes.FakeVersionedSource
+				fakeResource       *resourcefakes.FakeResource
+				fakeResourceConfig *dbfakes.FakeResourceConfig
+				fakeVersionResult  resource.VersionResult
 			)
 
 			BeforeEach(func() {
@@ -177,21 +177,22 @@ var _ = Describe("PutStep", func() {
 
 				fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
-				fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
-				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
-				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{Name: "some", Value: "metadata"}})
+				fakeVersionResult = resource.VersionResult{
+					Version: atc.Version{"some": "version"},
+					Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+				}
 
 				fakeWorker.NameReturns("some-worker")
 				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 				fakeResource = new(resourcefakes.FakeResource)
-				fakeResource.PutReturns(fakeVersionedSource, nil)
+				fakeResource.PutReturns(fakeVersionResult, nil)
 				fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
 			})
 
 			It("finds/chooses a worker and creates a container with the correct type, session, and sources with no inputs specified (meaning it takes all artifacts)", func() {
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-				_, _, actualOwner, actualContainerSpec, actualContainerMetadata, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+				_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
 				Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "some-resource-type",
@@ -201,7 +202,6 @@ var _ = Describe("PutStep", func() {
 				Expect(actualContainerSpec.Env).To(Equal(stepMetadata.Env()))
 				Expect(actualContainerSpec.Dir).To(Equal("/tmp/build/put"))
 				Expect(actualContainerSpec.Inputs).To(HaveLen(3))
-				Expect(actualContainerMetadata).To(Equal(containerMetadata))
 				Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
 					TeamID:        123,
 					Tags:          []string{"some", "tags"},
@@ -210,8 +210,9 @@ var _ = Describe("PutStep", func() {
 				}))
 				Expect(strategy).To(Equal(fakeStrategy))
 
-				_, _, delegate, owner, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, _, delegate, owner, actualContainerMetadata, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
+				Expect(actualContainerMetadata).To(Equal(containerMetadata))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "some-resource-type",
 				}))
@@ -242,7 +243,7 @@ var _ = Describe("PutStep", func() {
 				})
 
 				It("initializes the container with specified inputs", func() {
-					_, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+					_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(containerSpec.Inputs).To(HaveLen(2))
 					Expect([]worker.ArtifactSource{
 						containerSpec.Inputs[0].Source(),
@@ -331,7 +332,7 @@ var _ = Describe("PutStep", func() {
 
 			Context("when performing the put exits unsuccessfully", func() {
 				BeforeEach(func() {
-					fakeResource.PutReturns(nil, resource.ErrResourceScriptFailed{
+					fakeResource.PutReturns(resource.VersionResult{}, resource.ErrResourceScriptFailed{
 						ExitStatus: 42,
 					})
 				})
@@ -356,7 +357,7 @@ var _ = Describe("PutStep", func() {
 				disaster := errors.New("oh no")
 
 				BeforeEach(func() {
-					fakeResource.PutReturns(nil, disaster)
+					fakeResource.PutReturns(resource.VersionResult{}, disaster)
 				})
 
 				It("does not finish the step via the delegate", func() {

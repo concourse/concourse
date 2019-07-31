@@ -53,7 +53,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 		fakeContainer.AttachReturns(nil, errors.New("process not found"))
 
-		fakeContainer.RunStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+		fakeContainer.RunStub = func(ctx context.Context, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 			_, err := io.Stdout.Write([]byte("{}"))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -202,15 +202,12 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 			It("creates container with volume and worker", func() {
 				Expect(initErr).NotTo(HaveOccurred())
-				Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(Equal(1))
-				_, _, owner, actualMetadata := fakeWorker.EnsureDBContainerExistsArgsForCall(0)
-				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
-				Expect(actualMetadata).To(Equal(metadata))
 
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, logger, delegate, owner, containerSpec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, logger, delegate, owner, actualMetadata, containerSpec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(delegate).To(Equal(fakeDelegate))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
+				Expect(actualMetadata).To(Equal(metadata))
 				Expect(containerSpec).To(Equal(worker.ContainerSpec{
 					TeamID: 42,
 					Tags:   []string{},

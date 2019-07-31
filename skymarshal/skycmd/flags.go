@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/concourse/flag"
+	"github.com/ghodss/yaml"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/mitchellh/mapstructure"
-	yaml "gopkg.in/yaml.v2"
 )
 
 var ErrAuthNotConfiguredFromFlags = errors.New("ErrAuthNotConfiguredFromFlags")
@@ -82,7 +82,7 @@ func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 	}
 
 	var data struct {
-		Roles []map[string]interface{} `yaml:"roles"`
+		Roles []map[string]interface{} `json:"roles"`
 	}
 	if err = yaml.Unmarshal(content, &data); err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 			}
 		}
 
-		if conf, ok := role["local"].(map[interface{}]interface{}); ok {
+		if conf, ok := role["local"].(map[string]interface{}); ok {
 			for _, user := range conf["users"].([]interface{}) {
 				if user != "" {
 					users = append(users, "local:"+strings.ToLower(user.(string)))

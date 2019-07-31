@@ -48,7 +48,7 @@ var _ = Describe("ResourceType", func() {
 				},
 			},
 			0,
-			db.PipelineUnpaused,
+			false,
 		)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(created).To(BeTrue())
@@ -118,7 +118,7 @@ var _ = Describe("ResourceType", func() {
 						},
 					},
 					pipeline.ConfigVersion(),
-					db.PipelineUnpaused,
+					false,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeFalse())

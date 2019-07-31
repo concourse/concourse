@@ -33,7 +33,7 @@ type Team interface {
 		pipelineName string,
 		config atc.Config,
 		from ConfigVersion,
-		pausedState PipelinePausedState,
+		initiallyPaused bool,
 	) (Pipeline, bool, error)
 
 	Pipeline(pipelineName string) (Pipeline, bool, error)
@@ -341,7 +341,7 @@ func (t *team) SavePipeline(
 	pipelineName string,
 	config atc.Config,
 	from ConfigVersion,
-	pausedState PipelinePausedState,
+	initiallyPaused bool,
 ) (Pipeline, bool, error) {
 	groupsPayload, err := json.Marshal(config.Groups)
 	if err != nil {
@@ -377,17 +377,13 @@ func (t *team) SavePipeline(
 
 	var pipelineID int
 	if existingConfig == 0 {
-		if pausedState == PipelineNoChange {
-			pausedState = PipelinePaused
-		}
-
 		err = psql.Insert("pipelines").
 			SetMap(map[string]interface{}{
 				"name":     pipelineName,
 				"groups":   groupsPayload,
 				"version":  sq.Expr("nextval('config_version_seq')"),
 				"ordering": sq.Expr("currval('pipelines_id_seq')"),
-				"paused":   pausedState.Bool(),
+				"paused":   initiallyPaused,
 				"team_id":  t.id,
 			}).
 			Suffix("RETURNING id").
@@ -408,10 +404,6 @@ func (t *team) SavePipeline(
 				"team_id": t.id,
 			}).
 			Suffix("RETURNING id")
-
-		if pausedState != PipelineNoChange {
-			update = update.Set("paused", pausedState.Bool())
-		}
 
 		err = update.RunWith(tx).QueryRow().Scan(&pipelineID)
 		if err != nil {
@@ -1065,9 +1057,9 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resources
-		SET config = $3, active = true, nonce = $4
+		SET config = $3, active = true, nonce = $4, type = $5
 		WHERE name = $1 AND pipeline_id = $2
-	`, resource.Name, pipelineID, encryptedPayload, nonce)
+	`, resource.Name, pipelineID, encryptedPayload, nonce, resource.Type)
 	if err != nil {
 		return err
 	}
@@ -1092,9 +1084,9 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO resources (name, pipeline_id, config, active, nonce)
-		VALUES ($1, $2, $3, true, $4)
-	`, resource.Name, pipelineID, encryptedPayload, nonce)
+		INSERT INTO resources (name, pipeline_id, config, active, nonce, type)
+		VALUES ($1, $2, $3, true, $4, $5)
+	`, resource.Name, pipelineID, encryptedPayload, nonce, resource.Type)
 
 	return swallowUniqueViolation(err)
 }

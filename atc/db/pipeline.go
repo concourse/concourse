@@ -102,10 +102,8 @@ type pipeline struct {
 	lockFactory lock.LockFactory
 }
 
-//ConfigVersion is a sequence identifier used for compare-and-swap
+// ConfigVersion is a sequence identifier used for compare-and-swap.
 type ConfigVersion int
-
-type PipelinePausedState string
 
 var pipelinesQuery = psql.Select(`
 		p.id,
@@ -119,28 +117,6 @@ var pipelinesQuery = psql.Select(`
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
-
-const (
-	PipelinePaused   PipelinePausedState = "paused"
-	PipelineUnpaused PipelinePausedState = "unpaused"
-	PipelineNoChange PipelinePausedState = "nochange"
-)
-
-func (state PipelinePausedState) Bool() *bool {
-	yes := true
-	no := false
-
-	switch state {
-	case PipelinePaused:
-		return &yes
-	case PipelineUnpaused:
-		return &no
-	case PipelineNoChange:
-		return nil
-	default:
-		panic("unknown pipeline state")
-	}
-}
 
 func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	return &pipeline{

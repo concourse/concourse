@@ -92,7 +92,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 							},
 						},
 					},
-				}, defaultPipeline.ConfigVersion(), db.PipelineUnpaused)
+				}, defaultPipeline.ConfigVersion(), false)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("cleaning up inactive sessions")
@@ -189,7 +189,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 						},
 					},
 					ResourceTypes: atc.ResourceTypes{},
-				}, defaultPipeline.ConfigVersion(), db.PipelineUnpaused)
+				}, defaultPipeline.ConfigVersion(), false)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("cleaning up inactive sessions")

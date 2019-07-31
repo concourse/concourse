@@ -43,6 +43,7 @@ type PrometheusEmitter struct {
 
 	workerContainers  *prometheus.GaugeVec
 	workerVolumes     *prometheus.GaugeVec
+	workerTasks       *prometheus.GaugeVec
 	workersRegistered *prometheus.GaugeVec
 
 	workerLastSeen map[string]time.Time
@@ -182,6 +183,17 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(workerVolumes)
 
+	workerTasks := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "workers",
+			Name:      "tasks",
+			Help:      "Number of active tasks per worker",
+		},
+		[]string{"worker", "platform"},
+	)
+	prometheus.MustRegister(workerTasks)
+
 	workersRegistered := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "concourse",
@@ -306,6 +318,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		workersRegistered: workersRegistered,
 		workerLastSeen:    map[string]time.Time{},
 		workerVolumes:     workerVolumes,
+		workerTasks:       workerTasks,
 	}
 	go emitter.periodicMetricGC()
 
@@ -334,6 +347,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workerContainersMetric(logger, event)
 	case "worker volumes":
 		emitter.workerVolumesMetric(logger, event)
+	case "worker tasks":
+		emitter.workerTasksMetric(logger, event)
 	case "worker state":
 		emitter.workersRegisteredMetric(logger, event)
 	case "http response time":
@@ -495,6 +510,27 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 	emitter.workerVolumes.WithLabelValues(worker, platform).Set(float64(volumes))
 }
 
+func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event metric.Event) {
+	worker, exists := event.Attributes["worker"]
+	if !exists {
+		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		return
+	}
+	platform, exists := event.Attributes["platform"]
+	if !exists || platform == "" {
+		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
+		return
+	}
+
+	tasks, ok := event.Value.(int)
+	if !ok {
+		logger.Error("worker-tasks-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+		return
+	}
+
+	emitter.workerTasks.WithLabelValues(worker, platform).Set(float64(tasks))
+}
+
 func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, event metric.Event) {
 	route, exists := event.Attributes["route"]
 	if !exists {
@@ -607,6 +643,7 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 				for _, platform := range []string{"linux", "windows", "darwin"} {
 					emitter.workerContainers.DeleteLabelValues(worker, platform)
 					emitter.workerVolumes.DeleteLabelValues(worker, platform)
+					emitter.workerTasks.DeleteLabelValues(worker, platform)
 				}
 				delete(emitter.workerLastSeen, worker)
 			}

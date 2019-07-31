@@ -1,10 +1,9 @@
 package exec
 
 import (
-	"context"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"context"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -145,7 +144,6 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		logger,
 		owner,
 		containerSpec,
-		step.containerMetadata,
 		workerSpec,
 		step.strategy,
 	)
@@ -162,6 +160,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		logger,
 		step.delegate,
 		owner,
+		step.containerMetadata,
 		containerSpec,
 		resourceTypes,
 	)
@@ -172,7 +171,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	step.delegate.Starting(logger)
 
 	putResource := step.resourceFactory.NewResourceForContainer(container)
-	versionedSource, err := putResource.Put(
+	versionResult, err := putResource.Put(
 		ctx,
 		resource.IOConfig{
 			Stdout: step.delegate.Stdout(),
@@ -194,8 +193,8 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	versionInfo := VersionInfo{
-		Version:  versionedSource.Version(),
-		Metadata: versionedSource.Metadata(),
+		Version:  versionResult.Version,
+		Metadata: versionResult.Metadata,
 	}
 
 	if step.plan.Resource != "" {

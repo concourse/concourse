@@ -393,8 +393,9 @@ func (s *SkyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 
 func (s *SkyServer) endpoint() oauth2.Endpoint {
 	return oauth2.Endpoint{
-		AuthURL:  strings.TrimRight(s.config.DexIssuerURL, "/") + "/auth",
-		TokenURL: strings.TrimRight(s.config.DexIssuerURL, "/") + "/token",
+		AuthURL:   strings.TrimRight(s.config.DexIssuerURL, "/") + "/auth",
+		TokenURL:  strings.TrimRight(s.config.DexIssuerURL, "/") + "/token",
+		AuthStyle: oauth2.AuthStyleInHeader,
 	}
 }
 

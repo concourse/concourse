@@ -2,13 +2,13 @@ package image
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
@@ -194,21 +194,20 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	gzReader, err := gzip.NewReader(reader)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	tarReader := tar.NewReader(gzReader)
+	zstdReader := zstd.NewReader(reader)
+	tarReader := tar.NewReader(zstdReader)
 
 	_, err = tarReader.Next()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("could not read file \"%s\" from tar", ImageMetadataFile)
 	}
 
-	releasingReader := &readCloser{
-		Reader: tarReader,
-		Closer: reader,
+	releasingReader := &fileReadMultiCloser{
+		reader: tarReader,
+		closers: []io.Closer{
+			reader,
+			zstdReader,
+		},
 	}
 
 	return volume, releasingReader, version, nil
@@ -231,23 +230,15 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	}
 
 	owner := db.NewImageCheckContainerOwner(container, i.teamID)
-	err := i.worker.EnsureDBContainerExists(
-		ctx,
-		logger,
-		owner,
-		db.ContainerMetadata{
-			Type: db.ContainerTypeCheck,
-		},
-	)
-	if err != nil {
-		return err
-	}
 
 	resourceTypeContainer, err := i.worker.FindOrCreateContainer(
 		ctx,
 		logger,
 		worker.NoopImageFetchingDelegate{},
 		owner,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
 		containerSpec,
 		i.customTypes,
 	)
@@ -297,23 +288,15 @@ func (i *imageResourceFetcher) getLatestVersion(
 	}
 
 	owner := db.NewImageCheckContainerOwner(container, i.teamID)
-	err := i.worker.EnsureDBContainerExists(
-		ctx,
-		logger,
-		owner,
-		db.ContainerMetadata{
-			Type: db.ContainerTypeCheck,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
 
 	imageContainer, err := i.worker.FindOrCreateContainer(
 		ctx,
 		logger,
 		i.imageFetchingDelegate,
 		owner,
+		db.ContainerMetadata{
+			Type: db.ContainerTypeCheck,
+		},
 		resourceSpec,
 		i.customTypes,
 	)
@@ -334,7 +317,22 @@ func (i *imageResourceFetcher) getLatestVersion(
 	return versions[0], nil
 }
 
-type readCloser struct {
-	io.Reader
-	io.Closer
+type fileReadMultiCloser struct {
+	reader  io.Reader
+	closers []io.Closer
+}
+
+func (frc fileReadMultiCloser) Read(p []byte) (n int, err error) {
+	return frc.reader.Read(p)
+}
+
+func (frc fileReadMultiCloser) Close() error {
+	for _, closer := range frc.closers {
+		err := closer.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

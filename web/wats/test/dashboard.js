@@ -1,12 +1,12 @@
 import test from 'ava';
-import Fly from './helpers/fly'
-import Web from './helpers/web'
+import Fly from '../helpers/fly'
+import Web from '../helpers/web'
 import puppeteer from 'puppeteer';
 
-const Suite = require('./helpers/suite');
+const Suite = require('../helpers/suite');
 
 const color = require('color');
-const palette = require('./helpers/palette');
+const palette = require('../helpers/palette');
 
 test.beforeEach(async t => {
   t.context = new Suite();
@@ -92,7 +92,7 @@ test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
 }, async (t, text, background, group) => {
   t.deepEqual(background, palette.green);
 
-  await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/failing"));
+  await t.throwsAsync(async () => await t.context.fly.run("trigger-job -w -j some-pipeline/failing"));
 
   await t.context.web.page.waitFor(10000);
 

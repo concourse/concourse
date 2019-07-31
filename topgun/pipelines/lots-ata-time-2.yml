@@ -9,127 +9,52 @@ jobs:
   plan:
   - get: timer
     trigger: true
-  - in_parallel:
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
+  - task: exit
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          exit 2
 
 - name: exiter2
   plan:
   - get: timer
     trigger: true
-  - in_parallel:
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
+  - task: exit
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          exit 2
 
 - name: exiter3
   plan:
   - get: timer
     trigger: true
-  - in_parallel:
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
+  - task: exit
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          exit 2
 
 - name: exiter4
   plan:
@@ -177,43 +102,18 @@ jobs:
   plan:
   - get: timer
     trigger: true
-  - in_parallel:
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
-    - task: exit
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: {repository: concourse/dev}
-        run:
-          path: /bin/sh
-          args:
-          - -c
-          - |
-            exit 2
+  - task: exit
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          exit 2
 
 - name: exiter6
   plan:
