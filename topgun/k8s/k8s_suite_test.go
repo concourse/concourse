@@ -278,6 +278,11 @@ func getRunningWorkers(workers []Worker) (running []Worker) {
 
 func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
 	helmDestroy(releaseName)
+
+	onPks(func() {
+		cleanupFailedVolumesOnPKS(namespace)
+	})
+
 	Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
 
 	if proxySession != nil {
@@ -309,4 +314,32 @@ func onGke(f func()) {
 
 		f()
 	})
+}
+
+func cleanupFailedVolumesOnPKS(namespace string) {
+	// list failed volumes
+	fmt.Println("********************* cleanup for pks failed volumes")
+
+	session := Run(nil, "kubectl", "get", "pv", "-n", namespace, "--output=json")
+	data := session.Out.Contents()
+	fmt.Println(string(data))
+
+	//items := session.items
+	//fmt.Println("items ", items)
+
+
+	// failed volume names
+	failedVolumeNames := []string{}
+
+	for _, failedVolumeName  := range failedVolumeNames {
+		deletedSession := Run(nil, "kubectl", "delete", "pv", failedVolumeName)
+
+		fmt.Println("deleted session: ", deletedSession)
+		fmt.Println("deleted failed volume name: ", failedVolumeName)
+	}
+
+
+
+
+
 }
