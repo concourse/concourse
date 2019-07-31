@@ -34,8 +34,6 @@ var _ = Describe("Resource-types checks", func() {
 			newVersion = u.String()
 
 			fly("check-resource-type", "-r", inPipeline("custom-resource-type"), "-f", "version:"+newVersion, "-w")
-
-			fly("check-resource", "-r", inPipeline("my-resource-image"), "-w")
 		})
 
 		It("uses the updated resource type", func() {

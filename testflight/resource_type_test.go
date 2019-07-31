@@ -33,12 +33,10 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			Expect(watch).To(gbytes.Say("MIRRORED_VERSION=image-version"))
 		})
 
-		It("can check for resources using a custom type once the parent has a version", func() {
-			checkResourceType := fly("check-resource-type", "-r", inPipeline("custom-resource-type"), "-w")
-			Expect(checkResourceType).To(gbytes.Say("succeeded"))
-
-			checkResource := fly("check-resource", "-r", inPipeline("my-resource"), "-w")
-			Expect(checkResource).To(gbytes.Say("succeeded"))
+		It("can check for resources having a custom type recursively", func() {
+			checkResource := fly("check-resource", "-r", inPipeline("my-resource"), "-w", "--recursive")
+			Expect(checkResource).To(gbytes.Say("custom-resource-type.*succeeded"))
+			Expect(checkResource).To(gbytes.Say("my-resource.*succeeded"))
 		})
 	})
 
