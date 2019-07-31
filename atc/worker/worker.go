@@ -588,6 +588,8 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	// 		 this will only cancel the groups goroutines but not the requests.
 	g, _ := errgroup.WithContext(ctx)
 
+	maxInFlight := make(chan int, 5)
+
 	for i, nonLocalInput := range nonLocals {
 		// this is to ensure each go func gets its own non changing copy of the iterator
 		i, nonLocalInput := i, nonLocalInput
@@ -609,9 +611,13 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 			"dest-worker": inputVolume.WorkerName(),
 		}
 
+
+		maxInFlight <- 1
+
 		g.Go(func() error {
 			err = nonLocalInput.desiredArtifact.StreamTo(logger.Session("stream-to", destData), inputVolume)
 			if err != nil {
+				<-maxInFlight
 				return err
 			}
 
@@ -620,9 +626,12 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 				MountPath: nonLocalInput.desiredMountPath,
 			}
 
+			<-maxInFlight
 			return nil
 		})
 	}
+
+
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
