@@ -174,6 +174,48 @@ var _ = Describe("Scanner", func() {
 									Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 								})
 							})
+
+							Context("when the checkable has a pinned version", func() {
+								BeforeEach(func() {
+									fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
+								})
+
+								It("creates a check", func() {
+									Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+									_, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+									Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
+								})
+
+								It("clears the check error", func() {
+									Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+									Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
+								})
+
+								It("sends a notification for the checker to run", func() {
+									Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+								})
+							})
+
+							Context("when the checkable does not have a pinned version", func() {
+								BeforeEach(func() {
+									fakeResource.CurrentPinnedVersionReturns(nil)
+								})
+
+								It("creates a check", func() {
+									Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+									_, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+									Expect(fromVersion).To(BeNil())
+								})
+
+								It("clears the check error", func() {
+									Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+									Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
+								})
+
+								It("sends a notification for the checker to run", func() {
+									Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+								})
+							})
 						})
 					})
 

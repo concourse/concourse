@@ -42,6 +42,7 @@ type ResourceType interface {
 	CheckSetupError() error
 	CheckError() error
 	UniqueVersionHistory() bool
+	CurrentPinnedVersion() atc.Version
 
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
@@ -192,7 +193,8 @@ func (t *resourceType) CheckSetupError() error        { return t.checkSetupError
 func (t *resourceType) CheckError() error             { return t.checkError }
 func (t *resourceType) UniqueVersionHistory() bool    { return t.uniqueVersionHistory }
 
-func (t *resourceType) Version() atc.Version { return t.version }
+func (t *resourceType) Version() atc.Version              { return t.version }
+func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
 
 func (t *resourceType) Reload() (bool, error) {
 	row := resourceTypesQuery.Where(sq.Eq{"r.id": t.id}).RunWith(t.conn).QueryRow()

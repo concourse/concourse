@@ -27,6 +27,7 @@ type Checkable interface {
 	CheckEvery() string
 	CheckTimeout() string
 	LastCheckEndTime() time.Time
+	CurrentPinnedVersion() atc.Version
 
 	SetResourceConfig(
 		atc.Source,
