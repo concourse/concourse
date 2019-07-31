@@ -10,7 +10,6 @@ module Build.StepTree.StepTree exposing
     )
 
 import Ansi.Log
-import Application.Models exposing (Session)
 import Array exposing (Array)
 import Build.Models exposing (StepHeaderType(..))
 import Build.StepTree.Models
@@ -415,7 +414,7 @@ updateTooltip { hovered } { hoveredCounter } model =
 
 
 view :
-    Session
+    { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> StepTreeModel
     -> Html Message
 view session model =
@@ -423,7 +422,7 @@ view session model =
 
 
 viewTree :
-    Session
+    { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> StepTreeModel
     -> StepTree
     -> Html Message
@@ -493,7 +492,7 @@ viewTree session model tree =
 
 
 viewTab :
-    Session
+    { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> StepID
     -> Int
     -> Int
@@ -522,12 +521,12 @@ viewTab { hovered } id currentTab idx step =
         [ Html.text (String.fromInt tab) ]
 
 
-viewSeq : Session -> StepTreeModel -> StepTree -> Html Message
+viewSeq : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> StepTreeModel -> StepTree -> Html Message
 viewSeq session model tree =
     Html.div [ class "seq" ] [ viewTree session model tree ]
 
 
-viewHooked : Session -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
+viewHooked : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
 viewHooked session name model step hook =
     Html.div [ class "hooked" ]
         [ Html.div [ class "step" ] [ viewTree session model step ]
@@ -542,7 +541,7 @@ isActive state =
     state /= StepStatePending && state /= StepStateCancelled
 
 
-viewStep : StepTreeModel -> Session -> Step -> StepHeaderType -> Html Message
+viewStep : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Step -> StepHeaderType -> Html Message
 viewStep model session { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
     Html.div
         [ classList

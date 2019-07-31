@@ -598,7 +598,21 @@ updateOutput updater ( model, effects ) =
                     updater output
             in
             handleOutMsg outMsg
-                ( { model | currentBuild = RemoteData.Success { cb | output = Output newOutput } }
+                ( { model
+                    | currentBuild =
+                        RemoteData.Success
+                            { cb
+                                | output =
+                                    -- cb.output must be equal-by-reference
+                                    -- to its previous value when passed
+                                    -- into `Html.Lazy.lazy3` below.
+                                    if newOutput /= output then
+                                        Output newOutput
+
+                                    else
+                                        cb.output
+                            }
+                  }
                 , effects ++ outputEffects
                 )
 
@@ -984,13 +998,51 @@ body session { currentBuild, authorized, showHelp } =
     <|
         if authorized then
             [ viewBuildPrep currentBuild.prep
-            , Html.Lazy.lazy2 viewBuildOutput session currentBuild.output
+            , Html.Lazy.lazy3
+                viewBuildOutput
+                session.timeZone
+                (projectOntoBuildPage session.hovered)
+                currentBuild.output
             , keyboardHelp showHelp
             ]
                 ++ tombstone session.timeZone currentBuild
 
         else
             [ NotAuthorized.view ]
+
+
+projectOntoBuildPage : HoverState.HoverState -> HoverState.HoverState
+projectOntoBuildPage hovered =
+    case hovered of
+        HoverState.Hovered (FirstOccurrenceIcon _) ->
+            hovered
+
+        HoverState.TooltipPending (FirstOccurrenceIcon _) ->
+            hovered
+
+        HoverState.Tooltip (FirstOccurrenceIcon _) _ ->
+            hovered
+
+        HoverState.Hovered (StepState _) ->
+            hovered
+
+        HoverState.TooltipPending (StepState _) ->
+            hovered
+
+        HoverState.Tooltip (StepState _) _ ->
+            hovered
+
+        HoverState.Hovered (StepTab _ _) ->
+            hovered
+
+        HoverState.TooltipPending (StepTab _ _) ->
+            hovered
+
+        HoverState.Tooltip (StepTab _ _) _ ->
+            hovered
+
+        _ ->
+            HoverState.NoHover
 
 
 keyboardHelp : Bool -> Html Message
@@ -1145,11 +1197,13 @@ mmDDYY =
         ]
 
 
-viewBuildOutput : Session -> CurrentOutput -> Html Message
-viewBuildOutput session output =
+viewBuildOutput : Time.Zone -> HoverState.HoverState -> CurrentOutput -> Html Message
+viewBuildOutput timeZone hovered output =
     case output of
         Output o ->
-            Build.Output.Output.view session o
+            Build.Output.Output.view
+                { timeZone = timeZone, hovered = hovered }
+                o
 
         Cancelled ->
             Html.div
