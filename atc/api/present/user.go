@@ -10,6 +10,6 @@ func User(user db.User) atc.User {
 		ID:        user.ID(),
 		Username:  user.Name(),
 		Connector: user.Connector(),
-		LastLogin: user.LastLogin(),
+		LastLogin: user.LastLogin().Unix(),
 	}
 }

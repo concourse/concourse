@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 
-	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -112,13 +111,13 @@ var _ = Describe("Users API", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(body).To(MatchJSON(fmt.Sprintf(`[{
+						Expect(body).To(MatchJSON(`[{
 							"id": 6,
 							"username": "bob",
 							"connector": "github",
-							"last_login": "%s",
+							"last_login": 10,
 							"sub": ""
-						}]`, loginDate.Format(time.RFC3339))))
+						}]`))
 					})
 
 				})
@@ -175,13 +174,13 @@ var _ = Describe("Users API", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(body).To(MatchJSON(fmt.Sprintf(`[{
+				Expect(body).To(MatchJSON(`[{
 						"id": 6,
 						"username": "bob",
 						"connector": "github",
-						"last_login": "%s",
+						"last_login": 10,
 						"sub": ""
-					}]`, loginDate.Format(time.RFC3339))))
+					}]`))
 			})
 		})
 

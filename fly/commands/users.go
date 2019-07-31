@@ -67,7 +67,7 @@ func (command *ActiveUsersCommand) Execute([]string) error {
 		row := ui.TableRow{
 			{Contents: user.Username},
 			{Contents: user.Connector},
-			{Contents: user.LastLogin.Format(inputDateLayout)},
+			{Contents: time.Unix(user.LastLogin, 0).Format(inputDateLayout)},
 		}
 		table.Data = append(table.Data, row)
 	}
