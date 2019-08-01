@@ -1,6 +1,7 @@
 package atccmd
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -190,6 +191,12 @@ type RunCommand struct {
 	} `group:"Authentication"`
 
 	closeDBConns []Closer
+}
+
+//go:generate counterfeiter . Collector
+
+type Collector interface {
+	Run(context.Context) error
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -888,7 +895,7 @@ func (cmd *RunCommand) constructGCMembers(
 			return nil, err
 		}
 
-		var collector gc.Collector
+		var collector Collector
 		switch name {
 		case "build-collector":
 			buildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)

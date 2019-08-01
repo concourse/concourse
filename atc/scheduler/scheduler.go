@@ -4,11 +4,16 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
+//go:generate counterfeiter . Algorithm
+
+type Algorithm interface {
+	Compute(*db.VersionsDB, db.Job, db.Resources) (db.InputMapping, bool, error)
+}
+
 type Scheduler struct {
-	InputMapper  algorithm.InputMapper
+	Algorithm    Algorithm
 	BuildStarter BuildStarter
 }
 
@@ -19,7 +24,7 @@ func (s *Scheduler) Schedule(
 	resources db.Resources,
 	resourceTypes atc.VersionedResourceTypes,
 ) error {
-	inputMapping, resolved, err := s.InputMapper.MapInputs(versions, job, resources)
+	inputMapping, resolved, err := s.Algorithm.Compute(versions, job, resources)
 	if err != nil {
 		return err
 	}

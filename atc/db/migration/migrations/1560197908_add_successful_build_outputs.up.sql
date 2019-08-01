@@ -9,5 +9,5 @@ BEGIN;
 
   CREATE INDEX on successful_build_outputs USING GIN (outputs jsonb_path_ops);
 
-  CREATE INDEX successful_build_versions_job_id_idx ON successful_build_outputs (job_id);
+  CREATE INDEX successful_build_outputs_job_id_idx ON successful_build_outputs (job_id);
 COMMIT;

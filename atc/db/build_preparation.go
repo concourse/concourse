@@ -15,8 +15,8 @@ func (m MissingInputReasons) RegisterMissingInput(inputName string) {
 	m[inputName] = MissingBuildInput
 }
 
-func (m MissingInputReasons) RegisterResolveError(inputName string, resolveErr error) {
-	m[inputName] = resolveErr.Error()
+func (m MissingInputReasons) RegisterResolveError(inputName string, resolveErr string) {
+	m[inputName] = resolveErr
 }
 
 type BuildPreparation struct {

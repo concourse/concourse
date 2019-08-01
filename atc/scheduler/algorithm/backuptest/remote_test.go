@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,7 +16,7 @@ import (
 
 var _ = XDescribe("Resolve", func() {
 	var teamFactory db.TeamFactory
-	var inputMapper algorithm.InputMapper
+	var alg scheduler.Algorithm
 
 	BeforeSuite(func() {
 		driverName := "postgres"
@@ -39,7 +40,7 @@ var _ = XDescribe("Resolve", func() {
 
 		teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 
-		inputMapper = algorithm.NewInputMapper()
+		alg = algorithm.New()
 	})
 
 	It("schedules all jobs", func() {
@@ -63,7 +64,7 @@ var _ = XDescribe("Resolve", func() {
 				for _, j := range jobs {
 					log.Println("scheduling", t.Name(), p.Name(), j.Name())
 
-					inputMapping, ok, err := inputMapper.MapInputs(versionsDB, j, resources)
+					inputMapping, ok, err := alg.Compute(versionsDB, j, resources)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(ok).To(BeTrue())
 
@@ -73,7 +74,7 @@ var _ = XDescribe("Resolve", func() {
 		}
 	})
 
-	FIt("schedules all jobs for a pipeline", func() {
+	It("schedules all jobs for a pipeline", func() {
 		teams, err := teamFactory.GetTeams()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -93,7 +94,7 @@ var _ = XDescribe("Resolve", func() {
 		for _, j := range jobs {
 			log.Println("scheduling", teams[0].Name(), p.Name(), j.Name())
 
-			inputMapping, ok, err := inputMapper.MapInputs(versionsDB, j, resources)
+			inputMapping, ok, err := alg.Compute(versionsDB, j, resources)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ok).To(BeTrue())
 

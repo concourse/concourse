@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/gc/gcfakes"
@@ -31,9 +32,9 @@ var _ = Describe("ContainerCollector", func() {
 
 		creatingContainer *dbfakes.FakeCreatingContainer
 
-		collector                   gc.Collector
-		realCollector               gc.Collector
-		fakeCollector               gc.Collector
+		collector                   atccmd.Collector
+		realCollector               atccmd.Collector
+		fakeCollector               atccmd.Collector
 		missingContainerGracePeriod time.Duration
 	)
 

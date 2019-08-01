@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/gc"
@@ -15,7 +16,7 @@ import (
 
 var _ = Describe("VolumeCollector", func() {
 	var (
-		volumeCollector          gc.Collector
+		volumeCollector          atccmd.Collector
 		missingVolumeGracePeriod time.Duration
 
 		volumeRepository   db.VolumeRepository

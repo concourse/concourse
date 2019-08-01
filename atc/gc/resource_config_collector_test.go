@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
@@ -14,7 +15,7 @@ import (
 )
 
 var _ = Describe("ResourceConfigCollector", func() {
-	var collector gc.Collector
+	var collector atccmd.Collector
 
 	BeforeEach(func() {
 		collector = gc.NewResourceConfigCollector(resourceConfigFactory)
@@ -40,8 +41,8 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 			Context("when the config is referenced in resource config check sessions", func() {
 				ownerExpiries := db.ContainerOwnerExpiries{
-					Min:       5 * time.Minute,
-					Max:       10 * time.Minute,
+					Min: 5 * time.Minute,
+					Max: 10 * time.Minute,
 				}
 
 				BeforeEach(func() {
@@ -84,8 +85,8 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 			Context("when the config is no longer referenced in resource config check sessions", func() {
 				ownerExpiries := db.ContainerOwnerExpiries{
-					Min:       5 * time.Minute,
-					Max:       10 * time.Minute,
+					Min: 5 * time.Minute,
+					Max: 10 * time.Minute,
 				}
 
 				BeforeEach(func() {

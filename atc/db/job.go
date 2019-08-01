@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -809,8 +808,8 @@ func (j *job) SaveNextInputMapping(inputMapping InputMapping, inputsDetermined b
 		var versionMD5 sql.NullString
 		var resourceID sql.NullInt64
 
-		if inputResult.ResolveError != nil {
-			resolveError = sql.NullString{String: inputResult.ResolveError.Error(), Valid: true}
+		if inputResult.ResolveError != "" {
+			resolveError = sql.NullString{String: string(inputResult.ResolveError), Valid: true}
 		} else {
 			if inputResult.Input == nil {
 				return InputVersionEmptyError{inputName}
@@ -949,9 +948,9 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 			}
 		}
 
-		var resolveError error
+		var resolveError string
 		if resolveErr.Valid {
-			resolveError = errors.New(resolveErr.String)
+			resolveError = resolveErr.String
 		}
 
 		buildInputs = append(buildInputs, BuildInput{

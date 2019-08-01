@@ -64,7 +64,16 @@ func (self *migrations) Up_1562949427() error {
 
 		key := strconv.Itoa(o.resourceID)
 
-		outputs[key] = append(outputs[key], o.version)
+		exists := false
+		for _, version := range outputs[key] {
+			if version == o.version {
+				exists = true
+			}
+		}
+
+		if !exists {
+			outputs[key] = append(outputs[key], o.version)
+		}
 
 		buildToJobID[o.buildID] = o.jobID
 	}
@@ -78,7 +87,16 @@ func (self *migrations) Up_1562949427() error {
 
 		key := strconv.Itoa(i.resourceID)
 
-		outputs[key] = append(outputs[key], i.version)
+		exists := false
+		for _, version := range outputs[key] {
+			if version == i.version {
+				exists = true
+			}
+		}
+
+		if !exists {
+			outputs[key] = append(outputs[key], i.version)
+		}
 
 		buildToJobID[i.buildID] = i.jobID
 	}

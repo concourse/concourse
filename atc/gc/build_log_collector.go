@@ -23,7 +23,7 @@ func NewBuildLogCollector(
 	batchSize int,
 	buildLogRetentionCalculator BuildLogRetentionCalculator,
 	drainerConfigured bool,
-) Collector {
+) *buildLogCollector {
 	return &buildLogCollector{
 		pipelineFactory:             pipelineFactory,
 		batchSize:                   batchSize,

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/gc"
@@ -17,7 +18,7 @@ import (
 
 var _ = Describe("BuildLogCollector", func() {
 	var (
-		buildLogCollector   Collector
+		buildLogCollector   atccmd.Collector
 		fakePipelineFactory *dbfakes.FakePipelineFactory
 		batchSize           int
 		buildLogRetainCalc  BuildLogRetentionCalculator

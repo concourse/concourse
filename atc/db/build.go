@@ -26,7 +26,7 @@ type BuildInput struct {
 	ResourceID int
 
 	FirstOccurrence bool
-	ResolveError    error
+	ResolveError    string
 }
 
 type BuildOutput struct {
@@ -362,8 +362,6 @@ func (b *build) Finish(status BuildStatus) error {
 			return err
 		}
 
-		// XXX: NEED TESTS
-		// XXX: Should we order the outputs returned by the version? greatest to least if it the same resource ID
 		rows, err := psql.Select("o.resource_id", "o.version_md5").
 			From("build_resource_config_version_outputs o").
 			Where(sq.Eq{
@@ -697,7 +695,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 
 	resolved := true
 	for _, input := range buildInputs {
-		if input.ResolveError != nil {
+		if input.ResolveError != "" {
 			resolved = false
 			break
 		}
@@ -719,7 +717,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		}
 
 		if found {
-			if buildInput.ResolveError == nil {
+			if buildInput.ResolveError == "" {
 				inputs[configInput.Name] = BuildPreparationStatusNotBlocking
 			} else {
 				inputs[configInput.Name] = BuildPreparationStatusBlocking

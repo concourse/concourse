@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm/algorithmfakes"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -18,10 +17,10 @@ import (
 
 var _ = Describe("BuildStarter", func() {
 	var (
-		fakePipeline    *dbfakes.FakePipeline
-		fakeFactory     *schedulerfakes.FakeBuildFactory
-		pendingBuilds   []db.Build
-		fakeInputMapper *algorithmfakes.FakeInputMapper
+		fakePipeline  *dbfakes.FakePipeline
+		fakeFactory   *schedulerfakes.FakeBuildFactory
+		pendingBuilds []db.Build
+		fakeAlgorithm *schedulerfakes.FakeAlgorithm
 
 		buildStarter scheduler.BuildStarter
 
@@ -31,9 +30,9 @@ var _ = Describe("BuildStarter", func() {
 	BeforeEach(func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeFactory = new(schedulerfakes.FakeBuildFactory)
-		fakeInputMapper = new(algorithmfakes.FakeInputMapper)
+		fakeAlgorithm = new(schedulerfakes.FakeAlgorithm)
 
-		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeFactory, fakeInputMapper)
+		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeFactory, fakeAlgorithm)
 
 		disaster = errors.New("bad thing")
 	})
@@ -119,7 +118,7 @@ var _ = Describe("BuildStarter", func() {
 
 						It("does not save the next input mapping", func() {
 							Expect(fakePipeline.LoadVersionsDBCallCount()).To(BeZero())
-							Expect(fakeInputMapper.MapInputsCallCount()).To(BeZero())
+							Expect(fakeAlgorithm.ComputeCallCount()).To(BeZero())
 						})
 
 						It("does not start the build", func() {
@@ -205,12 +204,12 @@ var _ = Describe("BuildStarter", func() {
 
 							Context("when mapping the next inputs fails", func() {
 								BeforeEach(func() {
-									fakeInputMapper.MapInputsReturns(nil, false, disaster)
+									fakeAlgorithm.ComputeReturns(nil, false, disaster)
 								})
 
 								It("maps the next inputs for the right job and versions", func() {
-									Expect(fakeInputMapper.MapInputsCallCount()).To(Equal(1))
-									actualVersionsDB, actualJob, _ := fakeInputMapper.MapInputsArgsForCall(0)
+									Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
+									actualVersionsDB, actualJob, _ := fakeAlgorithm.ComputeArgsForCall(0)
 									Expect(actualVersionsDB).To(Equal(versionsDB))
 									Expect(actualJob.Name()).To(Equal(job.Name()))
 								})
@@ -232,7 +231,7 @@ var _ = Describe("BuildStarter", func() {
 										},
 									}
 
-									fakeInputMapper.MapInputsReturns(expectedInputMapping, true, nil)
+									fakeAlgorithm.ComputeReturns(expectedInputMapping, true, nil)
 								})
 
 								Context("when saving the next input mapping fails", func() {

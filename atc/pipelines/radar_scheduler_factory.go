@@ -65,16 +65,16 @@ func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline,
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline) scheduler.BuildScheduler {
-	inputMapper := algorithm.NewInputMapper()
+	alg := algorithm.New()
 	return &scheduler.Scheduler{
-		InputMapper: inputMapper,
+		Algorithm: alg,
 		BuildStarter: scheduler.NewBuildStarter(
 			pipeline,
 			factory.NewBuildFactory(
 				pipeline.ID(),
 				atc.NewPlanFactory(time.Now().Unix()),
 			),
-			inputMapper,
+			alg,
 		),
 	}
 }

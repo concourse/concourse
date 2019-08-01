@@ -468,43 +468,17 @@ func (example Example) Run() {
 		}
 
 		if len(input.Version.Pinned) != 0 {
-			versionJSON, err := json.Marshal(atc.Version{"ver": input.Version.Pinned})
-			Expect(err).ToNot(HaveOccurred())
-
-			var pinnedVersion db.ResourceVersion
-			rows, err := setup.psql.Select("rcv.version_md5").
-				From("resource_config_versions rcv").
-				Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
-				Where(sq.Eq{
-					"rcv.version": versionJSON,
-					"r.id":        inputConfigs[i].ResourceID,
-				}).
-				Query()
-			Expect(err).ToNot(HaveOccurred())
-
-			if rows.Next() {
-				err = rows.Scan(&pinnedVersion)
-				Expect(err).ToNot(HaveOccurred())
-			}
-
-			rows.Close()
-
-			if pinnedVersion != "" {
-				inputConfigs[i].PinnedVersion = pinnedVersion
-			} else {
-				// Pinning to an non existant version id
-				inputConfigs[i].PinnedVersion = "non-existant-version"
-			}
+			inputConfigs[i].PinnedVersion = atc.Version{"ver": input.Version.Pinned}
 		}
 	}
 
 	inputs := atc.PlanSequence{}
-	for i, input := range inputConfigs {
+	for _, input := range inputConfigs {
 		var version *atc.VersionConfig
 		if input.UseEveryVersion {
 			version = &atc.VersionConfig{Every: true}
-		} else if input.PinnedVersion != "" {
-			version = &atc.VersionConfig{Pinned: atc.Version{"ver": example.Inputs[i].Version.Pinned}}
+		} else if input.PinnedVersion != nil {
+			version = &atc.VersionConfig{Pinned: input.PinnedVersion}
 		} else {
 			version = &atc.VersionConfig{Latest: true}
 		}
@@ -584,8 +558,8 @@ func (example Example) Run() {
 	versionsDB.JobIDs = setup.jobIDs
 	versionsDB.ResourceIDs = setup.resourceIDs
 
-	inputMapper := algorithm.NewInputMapper()
-	resolved, ok, err := inputMapper.MapInputs(versionsDB, job, dbResources)
+	algorithm := algorithm.New()
+	resolved, ok, err := algorithm.Compute(versionsDB, job, dbResources)
 	if example.Error != nil {
 		Expect(err).To(Equal(example.Error))
 	} else {
@@ -595,8 +569,8 @@ func (example Example) Run() {
 		erroredValues := map[string]string{}
 		passedJobs := map[string][]int{}
 		for name, inputSource := range resolved {
-			if inputSource.ResolveError != nil {
-				erroredValues[name] = inputSource.ResolveError.Error()
+			if inputSource.ResolveError != "" {
+				erroredValues[name] = string(inputSource.ResolveError)
 			} else {
 				if ok {
 					var versionID int

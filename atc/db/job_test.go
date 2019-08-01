@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"errors"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -1159,7 +1158,7 @@ var _ = Describe("Job", func() {
 						PassedBuildIDs: []int{},
 					},
 					"some-input-2": db.InputResult{
-						ResolveError: errors.New("disaster"),
+						ResolveError: "disaster",
 					},
 				}
 
@@ -1175,7 +1174,7 @@ var _ = Describe("Job", func() {
 					},
 					{
 						Name:         "some-input-2",
-						ResolveError: errors.New("disaster"),
+						ResolveError: "disaster",
 					},
 				}
 

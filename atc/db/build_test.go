@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -166,7 +165,7 @@ var _ = Describe("Build", func() {
 	Describe("Finish", func() {
 		var pipeline db.Pipeline
 		var build db.Build
-		var expectedOutputs []db.AlgorithmOutput
+		var expectedOutputs []db.AlgorithmVersion
 
 		BeforeEach(func() {
 			setupTx, err := dbConn.Begin()
@@ -268,6 +267,16 @@ var _ = Describe("Build", func() {
 					},
 					PassedBuildIDs: []int{},
 				},
+				"input-4": db.InputResult{
+					Input: &db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "2"})),
+							ResourceID: resource1.ID(),
+						},
+						FirstOccurrence: true,
+					},
+					PassedBuildIDs: []int{},
+				},
 			}, true)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -286,41 +295,22 @@ var _ = Describe("Build", func() {
 			err = build.Finish(db.BuildStatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			expectedOutputs = []db.AlgorithmOutput{
+			expectedOutputs = []db.AlgorithmVersion{
 				{
-					AlgorithmVersion: db.AlgorithmVersion{
-						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
-						ResourceID: resource1.ID(),
-					},
-					InputName: "input-1",
+					Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
+					ResourceID: resource1.ID(),
 				},
 				{
-					AlgorithmVersion: db.AlgorithmVersion{
-						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "3"})),
-						ResourceID: resource2.ID(),
-					},
-					InputName: "input-2",
+					Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "3"})),
+					ResourceID: resource2.ID(),
 				},
 				{
-					AlgorithmVersion: db.AlgorithmVersion{
-						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "2"})),
-						ResourceID: resource1.ID(),
-					},
-					InputName: "input-3",
+					Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "2"})),
+					ResourceID: resource1.ID(),
 				},
 				{
-					AlgorithmVersion: db.AlgorithmVersion{
-						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "2"})),
-						ResourceID: resource1.ID(),
-					},
-					InputName: "output-1",
-				},
-				{
-					AlgorithmVersion: db.AlgorithmVersion{
-						Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "3"})),
-						ResourceID: resource1.ID(),
-					},
-					InputName: "output-2",
+					Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "3"})),
+					ResourceID: resource1.ID(),
 				},
 			}
 		})
@@ -1204,7 +1194,7 @@ var _ = Describe("Build", func() {
 
 					err = job.SaveNextInputMapping(db.InputMapping{
 						"input2": db.InputResult{
-							ResolveError: errors.New("resolve error"),
+							ResolveError: "resolve error",
 						},
 					}, false)
 					Expect(err).NotTo(HaveOccurred())
@@ -1291,6 +1281,7 @@ var _ = Describe("Build", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
+						"input1": db.BuildPreparationStatusNotBlocking,
 						"input2": db.BuildPreparationStatusBlocking,
 					}
 					expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
@@ -1503,8 +1494,7 @@ var _ = Describe("Build", func() {
 				versionsDB, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 
-				passedJobs := map[int]bool{otherJob.ID(): true}
-				buildPipes, err := versionsDB.LatestBuildPipes(build.ID(), passedJobs)
+				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
 			})
@@ -1514,7 +1504,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				err := job.SaveNextInputMapping(db.InputMapping{
 					"some-input-1": db.InputResult{
-						ResolveError: errors.New("errored"),
+						ResolveError: "errored",
 					}}, false)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -1528,8 +1518,7 @@ var _ = Describe("Build", func() {
 				versionsDB, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 
-				passedJobs := map[int]bool{otherJob.ID(): true}
-				buildPipes, err := versionsDB.LatestBuildPipes(build.ID(), passedJobs)
+				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes).To(HaveLen(0))
 			})

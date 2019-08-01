@@ -7,17 +7,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// XXX: FIX TESTS
-var _ = Describe("Add successful build versions", func() {
-	const preMigrationVersion = 1560050191
-	const postMigrationVersion = 1560197908
+var _ = Describe("Add successful build outputs", func() {
+	const preMigrationVersion = 1560865519
+	const postMigrationVersion = 1562949427
 
 	var (
 		db *sql.DB
 	)
 
 	Context("Up", func() {
-		It("migrates the build inputs and outputs into the new successful build versions table", func() {
+		It("migrates the build inputs and outputs into the new successful build outputs table", func() {
 			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)
 
 			setup(db)
@@ -28,83 +27,47 @@ var _ = Describe("Add successful build versions", func() {
 
 			db = postgresRunner.OpenDBAtVersion(postMigrationVersion)
 
-			rows, err := db.Query(`SELECT build_id, version_md5, resource_id, job_id, name FROM successful_build_versions`)
+			rows, err := db.Query(`SELECT build_id, job_id, outputs FROM successful_build_outputs`)
 			Expect(err).NotTo(HaveOccurred())
 
-			type successfulBuildVersion struct {
-				buildID    int
-				versionMD5 string
-				resourceID int
-				jobID      int
-				name       string
+			type successfulBuildOutput struct {
+				buildID int
+				outputs string
+				jobID   int
 			}
 
-			successfulBuildVersions := []successfulBuildVersion{}
+			successfulBuildOutputs := []successfulBuildOutput{}
 			for rows.Next() {
-				sb := successfulBuildVersion{}
+				sb := successfulBuildOutput{}
 
-				err := rows.Scan(&sb.buildID, &sb.versionMD5, &sb.resourceID, &sb.jobID, &sb.name)
+				err := rows.Scan(&sb.buildID, &sb.jobID, &sb.outputs)
 				Expect(err).NotTo(HaveOccurred())
 
-				successfulBuildVersions = append(successfulBuildVersions, sb)
+				successfulBuildOutputs = append(successfulBuildOutputs, sb)
 			}
 
 			_ = db.Close()
 
-			actualSuccessfulBuildVersions := []successfulBuildVersion{
+			actualSuccessfulBuildOutputs := []successfulBuildOutput{
 				{
-					buildID:    1,
-					versionMD5: "v1",
-					resourceID: 1,
-					jobID:      1,
-					name:       "build_input1",
+					buildID: 1,
+					jobID:   1,
+					outputs: `{"1": ["v1"]}`,
 				},
 				{
-					buildID:    1,
-					versionMD5: "v1",
-					resourceID: 1,
-					jobID:      1,
-					name:       "build_input2",
+					buildID: 2,
+					jobID:   1,
+					outputs: `{"1": ["v3", "v2"], "3": ["v2"]}`,
 				},
 				{
-					buildID:    2,
-					versionMD5: "v2",
-					resourceID: 1,
-					jobID:      1,
-					name:       "build_input1",
-				},
-				{
-					buildID:    5,
-					versionMD5: "v1",
-					resourceID: 2,
-					jobID:      1,
-					name:       "build_input4",
-				},
-				{
-					buildID:    1,
-					versionMD5: "v1",
-					resourceID: 1,
-					jobID:      1,
-					name:       "build_output1",
-				},
-				{
-					buildID:    2,
-					versionMD5: "v3",
-					resourceID: 1,
-					jobID:      1,
-					name:       "build_output1",
-				},
-				{
-					buildID:    2,
-					versionMD5: "v2",
-					resourceID: 3,
-					jobID:      1,
-					name:       "build_output2",
+					buildID: 5,
+					jobID:   1,
+					outputs: `{"2": ["v1"]}`,
 				},
 			}
 
-			Expect(len(successfulBuildVersions)).To(Equal(len(actualSuccessfulBuildVersions)))
-			Expect(successfulBuildVersions).To(ConsistOf(actualSuccessfulBuildVersions))
+			Expect(len(successfulBuildOutputs)).To(Equal(len(actualSuccessfulBuildOutputs)))
+			Expect(successfulBuildOutputs).To(ConsistOf(actualSuccessfulBuildOutputs))
 		})
 	})
 })

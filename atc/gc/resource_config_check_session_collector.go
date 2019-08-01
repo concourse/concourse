@@ -16,7 +16,7 @@ type resourceConfigCheckSessionCollector struct {
 
 func NewResourceConfigCheckSessionCollector(
 	configCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle,
-) Collector {
+) *resourceConfigCheckSessionCollector {
 	return &resourceConfigCheckSessionCollector{
 		configCheckSessionLifecycle: configCheckSessionLifecycle,
 	}

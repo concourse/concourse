@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 //go:generate counterfeiter . BuildStarter
@@ -27,19 +26,19 @@ type BuildFactory interface {
 func NewBuildStarter(
 	pipeline db.Pipeline,
 	factory BuildFactory,
-	inputMapper algorithm.InputMapper,
+	algorithm Algorithm,
 ) BuildStarter {
 	return &buildStarter{
-		pipeline:    pipeline,
-		factory:     factory,
-		inputMapper: inputMapper,
+		pipeline:  pipeline,
+		factory:   factory,
+		algorithm: algorithm,
 	}
 }
 
 type buildStarter struct {
-	pipeline    db.Pipeline
-	factory     BuildFactory
-	inputMapper algorithm.InputMapper
+	pipeline  db.Pipeline
+	factory   BuildFactory
+	algorithm Algorithm
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
@@ -128,7 +127,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			return false, err
 		}
 
-		inputMapping, resolved, err := s.inputMapper.MapInputs(versions, job, resources)
+		inputMapping, resolved, err := s.algorithm.Compute(versions, job, resources)
 		if err != nil {
 			return false, err
 		}

@@ -6,6 +6,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
@@ -16,7 +17,7 @@ import (
 
 var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 	var (
-		collector                           gc.Collector
+		collector                           atccmd.Collector
 		resourceConfigCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle
 		resourceConfigScope                 db.ResourceConfigScope
 		ownerExpiries                       db.ContainerOwnerExpiries
@@ -34,8 +35,8 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 		var owner db.ContainerOwner
 
 		ownerExpiries = db.ContainerOwnerExpiries{
-			Min:       10 * time.Second,
-			Max:       10 * time.Second,
+			Min: 10 * time.Second,
+			Max: 10 * time.Second,
 		}
 
 		BeforeEach(func() {

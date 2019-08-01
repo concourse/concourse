@@ -5,6 +5,7 @@ import (
 
 	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
@@ -14,8 +15,8 @@ import (
 )
 
 var _ = Describe("ResourceCacheUseCollector", func() {
-	var collector gc.Collector
-	var buildCollector gc.Collector
+	var collector atccmd.Collector
+	var buildCollector atccmd.Collector
 
 	BeforeEach(func() {
 		collector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)

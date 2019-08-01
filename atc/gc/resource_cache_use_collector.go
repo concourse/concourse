@@ -14,7 +14,7 @@ type resourceCacheUseCollector struct {
 	cacheLifecycle db.ResourceCacheLifecycle
 }
 
-func NewResourceCacheUseCollector(cacheLifecycle db.ResourceCacheLifecycle) Collector {
+func NewResourceCacheUseCollector(cacheLifecycle db.ResourceCacheLifecycle) *resourceCacheUseCollector {
 	return &resourceCacheUseCollector{
 		cacheLifecycle: cacheLifecycle,
 	}

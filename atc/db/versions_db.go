@@ -211,6 +211,13 @@ func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) 
 		return "", false, nil
 	}
 
+	cacheKey := fmt.Sprintf("v%d-%s", resourceID, versionJSON)
+
+	c, found := versions.Cache.Get(cacheKey)
+	if found {
+		return c.(ResourceVersion), true, nil
+	}
+
 	var version ResourceVersion
 	err = psql.Select("rcv.version_md5").
 		From("resource_config_versions rcv").
@@ -228,6 +235,8 @@ func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) 
 		}
 		return "", false, err
 	}
+
+	versions.Cache.Set(cacheKey, version, time.Hour)
 
 	return version, true, err
 }
@@ -336,7 +345,7 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 	return nextVersion, true, nil
 }
 
-func (versions VersionsDB) LatestBuildPipes(buildID int, passedJobs map[int]bool) (map[int]int, error) {
+func (versions VersionsDB) LatestBuildPipes(buildID int) (map[int]int, error) {
 	rows, err := psql.Select("p.from_build_id", "b.job_id").
 		From("build_pipes p").
 		Join("builds b ON b.id = p.from_build_id").
@@ -359,9 +368,7 @@ func (versions VersionsDB) LatestBuildPipes(buildID int, passedJobs map[int]bool
 			return nil, err
 		}
 
-		if passedJobs[jobID] {
-			jobToBuildPipes[jobID] = buildID
-		}
+		jobToBuildPipes[jobID] = buildID
 	}
 
 	return jobToBuildPipes, nil
@@ -472,17 +479,6 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		conn:      versions.Conn,
 	}, nil
 
-}
-
-func (versions VersionsDB) OrderPassedJobs(currentJobID int, jobs JobSet) ([]int, error) {
-	var jobIDs []int
-	for id, _ := range jobs {
-		jobIDs = append(jobIDs, id)
-	}
-
-	sort.Ints(jobIDs)
-
-	return jobIDs, nil
 }
 
 func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (ResourceVersion, bool, error) {

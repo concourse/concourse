@@ -35,11 +35,15 @@ var _ = Describe("Resolve", func() {
 	}
 
 	var (
-		versionsDB   *db.VersionsDB
 		inputMapping db.InputMapping
 		buildInputs  []buildInput
 		buildOutputs []buildOutput
 	)
+
+	BeforeEach(func() {
+		buildInputs = []buildInput{}
+		buildOutputs = []buildOutput{}
+	})
 
 	JustBeforeEach(func() {
 		setup := setupDB{
@@ -188,7 +192,7 @@ var _ = Describe("Resolve", func() {
 		}
 
 		schedulerCache := gocache.New(10*time.Second, 10*time.Second)
-		versionsDB = &db.VersionsDB{
+		versionsDB := &db.VersionsDB{
 			Conn:        dbConn,
 			Cache:       schedulerCache,
 			JobIDs:      setup.jobIDs,
@@ -232,10 +236,10 @@ var _ = Describe("Resolve", func() {
 		versionsDB.JobIDs = setup.jobIDs
 		versionsDB.ResourceIDs = setup.resourceIDs
 
-		inputMapper := algorithm.NewInputMapper()
+		algorithm := algorithm.New()
 
 		var ok bool
-		inputMapping, ok, err = inputMapper.MapInputs(versionsDB, job, dbResources)
+		inputMapping, ok, err = algorithm.Compute(versionsDB, job, dbResources)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ok).To(BeTrue())
 	})
@@ -386,7 +390,6 @@ var _ = Describe("Resolve", func() {
 			}
 		})
 
-		// XXX: FLAKY
 		It("sets FirstOccurrence to true", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{

@@ -3,6 +3,7 @@ package gc_test
 import (
 	"context"
 
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/gc"
 
 	"errors"
@@ -14,7 +15,7 @@ import (
 
 var _ = Describe("WorkerCollector", func() {
 	var (
-		workerCollector     gc.Collector
+		workerCollector     atccmd.Collector
 		fakeWorkerLifecycle *dbfakes.FakeWorkerLifecycle
 	)
 

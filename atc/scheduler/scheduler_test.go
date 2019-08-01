@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm/algorithmfakes"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,7 +15,7 @@ import (
 
 var _ = Describe("Scheduler", func() {
 	var (
-		fakeInputMapper  *algorithmfakes.FakeInputMapper
+		fakeAlgorithm    *schedulerfakes.FakeAlgorithm
 		fakeBuildStarter *schedulerfakes.FakeBuildStarter
 
 		scheduler *Scheduler
@@ -25,11 +24,11 @@ var _ = Describe("Scheduler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeInputMapper = new(algorithmfakes.FakeInputMapper)
+		fakeAlgorithm = new(schedulerfakes.FakeAlgorithm)
 		fakeBuildStarter = new(schedulerfakes.FakeBuildStarter)
 
 		scheduler = &Scheduler{
-			InputMapper:  fakeInputMapper,
+			Algorithm:    fakeAlgorithm,
 			BuildStarter: fakeBuildStarter,
 		}
 
@@ -82,7 +81,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when mapping the inputs fails", func() {
 				BeforeEach(func() {
-					fakeInputMapper.MapInputsReturns(nil, false, disaster)
+					fakeAlgorithm.ComputeReturns(nil, false, disaster)
 				})
 
 				It("returns the error", func() {
@@ -106,12 +105,12 @@ var _ = Describe("Scheduler", func() {
 						},
 					}
 
-					fakeInputMapper.MapInputsReturns(expectedInputMapping, true, nil)
+					fakeAlgorithm.ComputeReturns(expectedInputMapping, true, nil)
 				})
 
 				It("mapped the inputs", func() {
-					Expect(fakeInputMapper.MapInputsCallCount()).To(Equal(1))
-					actualVersionsDB, actualJob, _ := fakeInputMapper.MapInputsArgsForCall(0)
+					Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
+					actualVersionsDB, actualJob, _ := fakeAlgorithm.ComputeArgsForCall(0)
 					Expect(actualVersionsDB).To(Equal(versionsDB))
 					Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
 				})
@@ -211,7 +210,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when no input mapping is found", func() {
 				BeforeEach(func() {
-					fakeInputMapper.MapInputsReturns(db.InputMapping{}, false, nil)
+					fakeAlgorithm.ComputeReturns(db.InputMapping{}, false, nil)
 				})
 
 				It("starts all pending builds and returns no error", func() {

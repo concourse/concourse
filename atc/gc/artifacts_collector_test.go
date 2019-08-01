@@ -3,6 +3,7 @@ package gc_test
 import (
 	"context"
 
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/gc"
 	. "github.com/onsi/ginkgo"
@@ -10,7 +11,7 @@ import (
 )
 
 var _ = Describe("ArtifactCollector", func() {
-	var collector gc.Collector
+	var collector atccmd.Collector
 	var fakeArtifactLifecycle *dbfakes.FakeWorkerArtifactLifecycle
 
 	BeforeEach(func() {

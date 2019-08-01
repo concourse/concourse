@@ -13,7 +13,7 @@ type resourceConfigCollector struct {
 	configFactory db.ResourceConfigFactory
 }
 
-func NewResourceConfigCollector(configFactory db.ResourceConfigFactory) Collector {
+func NewResourceConfigCollector(configFactory db.ResourceConfigFactory) *resourceConfigCollector {
 	return &resourceConfigCollector{
 		configFactory: configFactory,
 	}

@@ -370,7 +370,8 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK: false,
 			Errors: map[string]string{
-				"resource-x": "passed job 'simple-b' does not have a build that satisfies the constraints",
+				"resource-x": "no satisfiable builds from passed jobs found for set of inputs",
+				"resource-y": "no satisfiable builds from passed jobs found for set of inputs",
 			},
 		},
 	}),
@@ -666,7 +667,7 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK: false,
 			Errors: map[string]string{
-				"resource-x": "passed job 'simple-b' does not have a build that satisfies the constraints",
+				"resource-x": "no satisfiable builds from passed jobs found for set of inputs",
 			},
 		},
 	}),
@@ -882,7 +883,7 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK: false,
 			Errors: map[string]string{
-				"resource-x": "passed job 'simple-b' does not have a build that satisfies the constraints",
+				"resource-x": "no satisfiable builds from passed jobs found for set of inputs",
 			},
 		},
 	}),
@@ -1800,7 +1801,8 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK: false,
 			Errors: map[string]string{
-				"input-2": "passed job 'job-2' does not have a build that satisfies the constraints",
+				"input-1": "no satisfiable builds from passed jobs found for set of inputs",
+				"input-2": "no satisfiable builds from passed jobs found for set of inputs",
 			},
 		},
 	}),
@@ -1913,8 +1915,10 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			OK:     false,
-			Errors: map[string]string{"resource-x": "passed job 'some-job' does not have a build that satisfies the constraints"},
+			OK: false,
+			Errors: map[string]string{
+				"resource-x": "no satisfiable builds from passed jobs found for set of inputs",
+			},
 		},
 	}),
 
@@ -2079,7 +2083,8 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK: false,
 			Errors: map[string]string{
-				"resource-y": "passed job 'simple-a' does not have a build that satisfies the constraints",
+				"resource-x": "no satisfiable builds from passed jobs found for set of inputs",
+				"resource-y": "no satisfiable builds from passed jobs found for set of inputs",
 			},
 		},
 	}),
@@ -2174,7 +2179,9 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK: false,
 			Errors: map[string]string{
-				"resource-w": "passed job 'simple-c' does not have a build that satisfies the constraints",
+				"resource-x": "no satisfiable builds from passed jobs found for set of inputs",
+				"resource-y": "no satisfiable builds from passed jobs found for set of inputs",
+				"resource-w": "no satisfiable builds from passed jobs found for set of inputs",
 			},
 		},
 	}),
@@ -2227,8 +2234,6 @@ var _ = DescribeTable("Input resolving",
 				{Job: "simple-1", BuildID: 14, Resource: "resource-c", Version: "rcv2", CheckOrder: 2},
 				{Job: "simple-1", BuildID: 15, Resource: "resource-a", Version: "rav3", CheckOrder: 3},
 				{Job: "simple-1", BuildID: 15, Resource: "resource-c", Version: "rcv3", CheckOrder: 3},
-
-				{Job: "simple-2", BuildID: 16, Resource: "resource-b", Version: "rbv1", CheckOrder: 1},
 
 				{Job: "simple-3", BuildID: 17, Resource: "resource-d", Version: "rdv1", CheckOrder: 1},
 				{Job: "simple-3", BuildID: 18, Resource: "resource-d", Version: "rdv2", CheckOrder: 2},
@@ -2304,7 +2309,10 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK: false,
 			Errors: map[string]string{
-				"resource-y": "passed job 'simple-b' does not have a build that satisfies the constraints",
+				"resource-x": "no satisfiable builds from passed jobs found for set of inputs",
+				"resource-y": "no satisfiable builds from passed jobs found for set of inputs",
+				"resource-d": "no satisfiable builds from passed jobs found for set of inputs",
+				"resource-b": "no satisfiable builds from passed jobs found for set of inputs",
 			},
 		},
 	}),
