@@ -140,6 +140,20 @@ run: {path: a/file}
 					Expect(err).ToNot(HaveOccurred())
 					Expect(config.Params["testParam"]).To(Equal(`{"foo":"bar"}`))
 				})
+
+				It("converts empty values to empty string in params", func() {
+					data := []byte(`
+platform: beos
+
+params:
+  testParam:
+
+run: {path: a/file}
+`)
+					config, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(config.Params["testParam"]).To(Equal(""))
+				})
 			})
 
 			Context("given a valid task config with numeric params", func() {
