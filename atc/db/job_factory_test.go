@@ -12,29 +12,27 @@ var _ = Describe("Job Factory", func() {
 
 	BeforeEach(func() {
 		jobFactory = db.NewJobFactory(dbConn, lockFactory)
+
+		otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "other-team"})
+		Expect(err).NotTo(HaveOccurred())
+
+		publicPipeline, _, err := otherTeam.SavePipeline("public-pipeline", atc.Config{
+			Jobs: atc.JobConfigs{
+				{Name: "public-pipeline-job"},
+			},
+		}, db.ConfigVersion(0), false)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(publicPipeline.Expose()).To(Succeed())
+
+		_, _, err = otherTeam.SavePipeline("private-pipeline", atc.Config{
+			Jobs: atc.JobConfigs{
+				{Name: "private-pipeline-job"},
+			},
+		}, db.ConfigVersion(0), false)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("VisibleJobs", func() {
-		BeforeEach(func() {
-			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "other-team"})
-			Expect(err).NotTo(HaveOccurred())
-
-			publicPipeline, _, err := otherTeam.SavePipeline("public-pipeline", atc.Config{
-				Jobs: atc.JobConfigs{
-					{Name: "public-pipeline-job"},
-				},
-			}, db.ConfigVersion(0), false)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(publicPipeline.Expose()).To(Succeed())
-
-			_, _, err = otherTeam.SavePipeline("private-pipeline", atc.Config{
-				Jobs: atc.JobConfigs{
-					{Name: "private-pipeline-job"},
-				},
-			}, db.ConfigVersion(0), false)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		It("returns jobs in the provided teams and jobs in public pipelines", func() {
 			visibleJobs, err := jobFactory.VisibleJobs([]string{"default-team"})
 			Expect(err).ToNot(HaveOccurred())
@@ -75,6 +73,18 @@ var _ = Describe("Job Factory", func() {
 			Expect(visibleJobs[0].NextBuild.ID()).To(Equal(nextBuild.ID()))
 			Expect(visibleJobs[0].FinishedBuild.ID()).To(Equal(finishedBuild.ID()))
 			Expect(visibleJobs[0].TransitionBuild.ID()).To(Equal(transitionBuild.ID()))
+		})
+	})
+
+	Describe("AllActiveJobs", func() {
+		It("return all private and public pipelines", func() {
+			allJobs, err := jobFactory.AllActiveJobs()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(len(allJobs)).To(Equal(3))
+			Expect(allJobs[0].Job.Name()).To(Equal("some-job"))
+			Expect(allJobs[1].Job.Name()).To(Equal("public-pipeline-job"))
+			Expect(allJobs[2].Job.Name()).To(Equal("private-pipeline-job"))
 		})
 	})
 })

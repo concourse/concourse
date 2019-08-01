@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
@@ -14,7 +15,15 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 
-	dashboard, err := s.jobFactory.VisibleJobs(acc.TeamNames())
+	var dashboard db.Dashboard
+	var err error
+
+	if acc.IsAdmin() {
+		dashboard, err = s.jobFactory.AllActiveJobs()
+	} else {
+		dashboard, err = s.jobFactory.VisibleJobs(acc.TeamNames())
+	}
+
 	if err != nil {
 		logger.Error("failed-to-get-all-visible-jobs", err)
 		w.WriteHeader(http.StatusInternalServerError)
