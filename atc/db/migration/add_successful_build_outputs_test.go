@@ -8,8 +8,8 @@ import (
 )
 
 var _ = Describe("Add successful build outputs", func() {
-	const preMigrationVersion = 1560865519
-	const postMigrationVersion = 1562949427
+	const preMigrationVersion = 1564686443
+	const postMigrationVersion = 1564686445
 
 	var (
 		db *sql.DB
@@ -73,13 +73,13 @@ var _ = Describe("Add successful build outputs", func() {
 })
 
 func setupSuccessfulBuildsResource(db *sql.DB) {
-	_, err := db.Exec(`INSERT INTO resources(name, pipeline_id, config, active) VALUES('some-resource', 1, '{"type": "some-type"}', true)`)
+	_, err := db.Exec(`INSERT INTO resources(name, type, pipeline_id, config, active) VALUES('some-resource', 'some-type', 1, '{"type": "some-type"}', true)`)
 	Expect(err).NotTo(HaveOccurred())
 
-	_, err = db.Exec(`INSERT INTO resources(name, pipeline_id, config, active) VALUES('some-other-resource', 2, '{"type": "some-type"}', true)`)
+	_, err = db.Exec(`INSERT INTO resources(name, type, pipeline_id, config, active) VALUES('some-other-resource', 'some-type', 2, '{"type": "some-type"}', true)`)
 	Expect(err).NotTo(HaveOccurred())
 
-	_, err = db.Exec(`INSERT INTO resources(name, pipeline_id, config, active) VALUES('some-resource-2', 1, '{"type": "some-type"}', true)`)
+	_, err = db.Exec(`INSERT INTO resources(name, type, pipeline_id, config, active) VALUES('some-resource-2', 'some-type', 1, '{"type": "some-type"}', true)`)
 	Expect(err).NotTo(HaveOccurred())
 }
 
