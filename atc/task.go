@@ -175,6 +175,10 @@ func (cs *CoercedString) UnmarshalJSON(p []byte) error {
 		return err
 	}
 
+	if raw == nil {
+		*cs = CoercedString("")
+		return nil
+	}
 	switch v := raw.(type) {
 	case string:
 		*cs = CoercedString(v)
