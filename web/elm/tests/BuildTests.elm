@@ -3219,6 +3219,51 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
+                , test "successful step has no border" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url =
+                                            eventsUrl
+                                      , data =
+                                            STModels.FinishGet
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                                0
+                                                Dict.empty
+                                                []
+                                                Nothing
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ class "header" ]
+                        >> Query.has
+                            [ style "border" <| "1px solid " ++ Colors.frame ]
+                , test "failing step has a red border" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.FinishGet
+                                                { source = "stdout", id = "plan" }
+                                                1
+                                                Dict.empty
+                                                []
+                                                Nothing
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ class "header" ]
+                        >> Query.has
+                            [ style "border" <| "1px solid " ++ Colors.failure ]
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
