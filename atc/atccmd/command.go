@@ -883,7 +883,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbCheckFactory,
 				engine,
 			),
-			30*time.Minute,
+			5*time.Second,
 			bus,
 		)
 	} else {
@@ -895,7 +895,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbCheckFactory,
 				engine,
 			),
-			time.Minute,
+			5*time.Second,
 			bus,
 		)
 	}
