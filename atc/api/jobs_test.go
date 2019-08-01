@@ -1527,6 +1527,7 @@ var _ = Describe("Jobs API", func() {
 							BeforeEach(func() {
 								fakeResource = new(dbfakes.FakeResource)
 								fakeResource.NameReturns("some-input")
+								fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
 
 								fakePipeline.ResourcesReturns([]db.Resource{fakeResource}, nil)
 							})
@@ -1561,6 +1562,11 @@ var _ = Describe("Jobs API", func() {
 
 								It("creates a check for the resource", func() {
 									Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+								})
+
+								It("runs the check from the current pinned version", func() {
+									_, _, fromVersion, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
+									Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 								})
 
 								It("notifies the checker to run", func() {
