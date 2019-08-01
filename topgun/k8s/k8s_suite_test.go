@@ -280,7 +280,7 @@ func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
 	helmDestroy(releaseName)
 
 	onPks(func() {
-		cleanupFailedVolumesOnPKS(namespace)
+		deleteFailedVolumesOnPKS(namespace)
 	})
 
 	Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
@@ -316,30 +316,62 @@ func onGke(f func()) {
 	})
 }
 
-func cleanupFailedVolumesOnPKS(namespace string) {
-	// list failed volumes
-	fmt.Println("********************* cleanup for pks failed volumes")
+/*
+overall json structure:
+{
+  "apiVersion": "v1",
+  "items": [ {"metadata": {"xxx": "xxxx", "xxx": "xxxx"}, "status": {"phase": "Failed"}}]}, {}, {}],
+  "bbbb": "cccc"
+}
+*/
 
-	session := Run(nil, "kubectl", "get", "pv", "-n", namespace, "--output=json")
-	data := session.Out.Contents()
-	fmt.Println(string(data))
+/*
+TODO: once the shitty code works, breaks it down into modular functions
+1) func getFailedVolumeNames(namespace string) []string{} {}
 
-	//items := session.items
-	//fmt.Println("items ", items)
+2) func getObjectKey() {}
 
+3) func getObjectValue() {}
+
+4) func deleteFailedVolumesOnPKS() {}
+
+5) error handling: using multiple error variables, once break, panic on detailed messages, defer
+*/
+
+// shitty code :-(
+func deleteFailedVolumesOnPKS(namespace string) {
 
 	// failed volume names
-	failedVolumeNames := []string{}
+	var failedVolumeNames []string
 
-	for _, failedVolumeName  := range failedVolumeNames {
+	// list failed volumes
+	fmt.Println("********************* cleanup for pks failed volumes")
+	session := Run(nil, "kubectl", "get", "pv", "-n", namespace, "--output=json")
+	data := session.Out.Contents() // []unit8
+
+	var result map[string]interface{}
+
+	json.Unmarshal(data, &result)
+	items := result["items"].(map[string]interface{})
+
+	for _, item := range items {
+		var raw map[string]interface{}
+		json.Unmarshal([]byte(item.(string)), &raw)
+		status := raw["status"]
+		json.Unmarshal([]byte(status.(string)), &result)
+		phase := result["phase"].(string)
+		if phase == "Failed" {
+			matadata := raw["metadata"]
+			json.Unmarshal([]byte(matadata.(string)), &result)
+			name := result["name"].(string)
+			fmt.Println("failed name: ", name)
+			failedVolumeNames = append(failedVolumeNames, name)
+		} // if
+	} // for
+
+	for _, failedVolumeName := range failedVolumeNames {
 		deletedSession := Run(nil, "kubectl", "delete", "pv", failedVolumeName)
-
 		fmt.Println("deleted session: ", deletedSession)
 		fmt.Println("deleted failed volume name: ", failedVolumeName)
 	}
-
-
-
-
-
 }
