@@ -1508,7 +1508,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , test """page contents lay out vertically, filling available 
+                , test """page contents lay out vertically, filling available
                           space without scrolling horizontally""" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
@@ -2755,14 +2755,11 @@ all =
                                 [ style "position" "relative"
                                 , containing
                                     [ containing [ text "new version" ]
-                                    , style "position" "absolute"
-                                    , style "left" "0"
-                                    , style "bottom" "100%"
+                                    , style "position" "fixed"
                                     , style "background-color" tooltipGreyHex
                                     , style "padding" "5px"
                                     , style "z-index" "100"
                                     , style "width" "6em"
-                                    , style "pointer-events" "none"
                                     , style "cursor" "default"
                                     , style "user-select" "none"
                                     , style "-ms-user-select" "none"
@@ -2770,6 +2767,12 @@ all =
                                     , style "-khtml-user-select" "none"
                                     , style "-webkit-user-select" "none"
                                     , style "-webkit-touch-callout" "none"
+                                    , style "transform" "translate(0, -100%)"
+                                    , style "background-color" Colors.tooltipBackground
+                                    , style "padding" "5px"
+                                    , style "z-index" "100"
+                                    , style "width" "6em"
+                                    , style "pointer-events" "none"
                                     ]
                                 , containing
                                     [ style "width" "0"
