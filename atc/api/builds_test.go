@@ -299,6 +299,27 @@ var _ = Describe("Builds API", func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
+			Context("when user has the admin privilege", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAdminReturns(true)
+				})
+
+				It("calls AllBuilds", func() {
+					Expect(dbBuildFactory.AllBuildsCallCount()).To(Equal(1))
+					Expect(dbBuildFactory.VisibleBuildsCallCount()).To(Equal(0))
+				})
+
+				Context("timestamp is provided", func() {
+					BeforeEach(func() {
+						queryParams = "?timestamps=true"
+					})
+					It("calls AllBuildsWithTime", func() {
+						Expect(dbBuildFactory.AllBuildsWithTimeCallCount()).To(Equal(1))
+						Expect(dbBuildFactory.VisibleBuildsWithTimeCallCount()).To(Equal(0))
+					})
+				})
+			})
+
 			Context("when no params are passed", func() {
 				BeforeEach(func() {
 					queryParams = ""

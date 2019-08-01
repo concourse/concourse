@@ -8,6 +8,36 @@ import (
 )
 
 type FakeBuildFactory struct {
+	AllBuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	allBuildsMutex       sync.RWMutex
+	allBuildsArgsForCall []struct {
+		arg1 db.Page
+	}
+	allBuildsReturns struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
+	allBuildsReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
+	AllBuildsWithTimeStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	allBuildsWithTimeMutex       sync.RWMutex
+	allBuildsWithTimeArgsForCall []struct {
+		arg1 db.Page
+	}
+	allBuildsWithTimeReturns struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
+	allBuildsWithTimeReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
 	BuildStub        func(int) (db.Build, bool, error)
 	buildMutex       sync.RWMutex
 	buildArgsForCall []struct {
@@ -106,6 +136,138 @@ type FakeBuildFactory struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeBuildFactory) AllBuilds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+	fake.allBuildsMutex.Lock()
+	ret, specificReturn := fake.allBuildsReturnsOnCall[len(fake.allBuildsArgsForCall)]
+	fake.allBuildsArgsForCall = append(fake.allBuildsArgsForCall, struct {
+		arg1 db.Page
+	}{arg1})
+	fake.recordInvocation("AllBuilds", []interface{}{arg1})
+	fake.allBuildsMutex.Unlock()
+	if fake.AllBuildsStub != nil {
+		return fake.AllBuildsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.allBuildsReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeBuildFactory) AllBuildsCallCount() int {
+	fake.allBuildsMutex.RLock()
+	defer fake.allBuildsMutex.RUnlock()
+	return len(fake.allBuildsArgsForCall)
+}
+
+func (fake *FakeBuildFactory) AllBuildsCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+	fake.allBuildsMutex.Lock()
+	defer fake.allBuildsMutex.Unlock()
+	fake.AllBuildsStub = stub
+}
+
+func (fake *FakeBuildFactory) AllBuildsArgsForCall(i int) db.Page {
+	fake.allBuildsMutex.RLock()
+	defer fake.allBuildsMutex.RUnlock()
+	argsForCall := fake.allBuildsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuildFactory) AllBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.allBuildsMutex.Lock()
+	defer fake.allBuildsMutex.Unlock()
+	fake.AllBuildsStub = nil
+	fake.allBuildsReturns = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildFactory) AllBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.allBuildsMutex.Lock()
+	defer fake.allBuildsMutex.Unlock()
+	fake.AllBuildsStub = nil
+	if fake.allBuildsReturnsOnCall == nil {
+		fake.allBuildsReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 db.Pagination
+			result3 error
+		})
+	}
+	fake.allBuildsReturnsOnCall[i] = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildFactory) AllBuildsWithTime(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+	fake.allBuildsWithTimeMutex.Lock()
+	ret, specificReturn := fake.allBuildsWithTimeReturnsOnCall[len(fake.allBuildsWithTimeArgsForCall)]
+	fake.allBuildsWithTimeArgsForCall = append(fake.allBuildsWithTimeArgsForCall, struct {
+		arg1 db.Page
+	}{arg1})
+	fake.recordInvocation("AllBuildsWithTime", []interface{}{arg1})
+	fake.allBuildsWithTimeMutex.Unlock()
+	if fake.AllBuildsWithTimeStub != nil {
+		return fake.AllBuildsWithTimeStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.allBuildsWithTimeReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeBuildFactory) AllBuildsWithTimeCallCount() int {
+	fake.allBuildsWithTimeMutex.RLock()
+	defer fake.allBuildsWithTimeMutex.RUnlock()
+	return len(fake.allBuildsWithTimeArgsForCall)
+}
+
+func (fake *FakeBuildFactory) AllBuildsWithTimeCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+	fake.allBuildsWithTimeMutex.Lock()
+	defer fake.allBuildsWithTimeMutex.Unlock()
+	fake.AllBuildsWithTimeStub = stub
+}
+
+func (fake *FakeBuildFactory) AllBuildsWithTimeArgsForCall(i int) db.Page {
+	fake.allBuildsWithTimeMutex.RLock()
+	defer fake.allBuildsWithTimeMutex.RUnlock()
+	argsForCall := fake.allBuildsWithTimeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuildFactory) AllBuildsWithTimeReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.allBuildsWithTimeMutex.Lock()
+	defer fake.allBuildsWithTimeMutex.Unlock()
+	fake.AllBuildsWithTimeStub = nil
+	fake.allBuildsWithTimeReturns = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildFactory) AllBuildsWithTimeReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.allBuildsWithTimeMutex.Lock()
+	defer fake.allBuildsWithTimeMutex.Unlock()
+	fake.AllBuildsWithTimeStub = nil
+	if fake.allBuildsWithTimeReturnsOnCall == nil {
+		fake.allBuildsWithTimeReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 db.Pagination
+			result3 error
+		})
+	}
+	fake.allBuildsWithTimeReturnsOnCall[i] = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeBuildFactory) Build(arg1 int) (db.Build, bool, error) {
@@ -549,6 +711,10 @@ func (fake *FakeBuildFactory) VisibleBuildsWithTimeReturnsOnCall(i int, result1 
 func (fake *FakeBuildFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.allBuildsMutex.RLock()
+	defer fake.allBuildsMutex.RUnlock()
+	fake.allBuildsWithTimeMutex.RLock()
+	defer fake.allBuildsWithTimeMutex.RUnlock()
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
 	fake.getAllStartedBuildsMutex.RLock()

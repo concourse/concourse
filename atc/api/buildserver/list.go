@@ -44,9 +44,17 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 	if timestamps == "" {
-		builds, pagination, err = s.buildFactory.VisibleBuilds(acc.TeamNames(), page)
+		if acc.IsAdmin() {
+			builds, pagination, err =  s.buildFactory.AllBuilds(page)
+		} else {
+			builds, pagination, err = s.buildFactory.VisibleBuilds(acc.TeamNames(), page)
+		}
 	} else {
-		builds, pagination, err = s.buildFactory.VisibleBuildsWithTime(acc.TeamNames(), page)
+		if acc.IsAdmin() {
+			builds, pagination, err = s.buildFactory.AllBuildsWithTime(page)
+		} else {
+			builds, pagination, err = s.buildFactory.VisibleBuildsWithTime(acc.TeamNames(), page)
+		}
 	}
 
 	if err != nil {
