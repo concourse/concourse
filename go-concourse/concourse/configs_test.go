@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"

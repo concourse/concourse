@@ -1,25 +1,26 @@
-package worker
+package gclient
 
 import (
+	"context"
 	"io"
 	"strings"
 
 	"code.cloudfoundry.org/garden"
-	gconn "code.cloudfoundry.org/garden/client/connection"
+	"github.com/concourse/concourse/atc/worker/gclient/connection"
 )
 
 type RetryableConnection struct {
-	gconn.Connection
+	connection.Connection
 }
 
-func NewRetryableConnection(connection gconn.Connection) gconn.Connection {
+func NewRetryableConnection(connection connection.Connection) connection.Connection {
 	return &RetryableConnection{
 		Connection: connection,
 	}
 }
 
-func (conn *RetryableConnection) Run(handle string, processSpec garden.ProcessSpec, processIO garden.ProcessIO) (garden.Process, error) {
-	innerProcess, err := conn.Connection.Run(handle, processSpec, processIO)
+func (conn *RetryableConnection) Run(ctx context.Context, handle string, processSpec garden.ProcessSpec, processIO garden.ProcessIO) (garden.Process, error) {
+	innerProcess, err := conn.Connection.Run(ctx, handle, processSpec, processIO)
 	if err != nil {
 		return nil, err
 	}
@@ -28,13 +29,13 @@ func (conn *RetryableConnection) Run(handle string, processSpec garden.ProcessSp
 		Process: innerProcess,
 
 		rehydrate: func() (garden.Process, error) {
-			return conn.Connection.Attach(handle, innerProcess.ID(), processIO)
+			return conn.Connection.Attach(ctx, handle, innerProcess.ID(), processIO)
 		},
 	}, nil
 }
 
-func (conn *RetryableConnection) Attach(handle string, processID string, processIO garden.ProcessIO) (garden.Process, error) {
-	innerProcess, err := conn.Connection.Attach(handle, processID, processIO)
+func (conn *RetryableConnection) Attach(ctx context.Context, handle string, processID string, processIO garden.ProcessIO) (garden.Process, error) {
+	innerProcess, err := conn.Connection.Attach(ctx, handle, processID, processIO)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +44,7 @@ func (conn *RetryableConnection) Attach(handle string, processID string, process
 		Process: innerProcess,
 
 		rehydrate: func() (garden.Process, error) {
-			return conn.Connection.Attach(handle, processID, processIO)
+			return conn.Connection.Attach(ctx, handle, processID, processIO)
 		},
 	}, nil
 }

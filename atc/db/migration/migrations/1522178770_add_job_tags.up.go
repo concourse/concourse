@@ -14,8 +14,8 @@ type GroupConfig struct {
 type GroupConfigs []GroupConfig
 
 type Pipeline struct {
-	ID     int          `json:"id"`
-	Groups GroupConfigs `json:"groups,omitempty"`
+	ID     int
+	Groups GroupConfigs
 }
 
 func (self *migrations) Up_1522178770() error {

@@ -53,7 +53,6 @@ flags =
     , notFoundImgSrc = ""
     , csrfToken = csrfToken
     , authToken = ""
-    , clusterName = ""
     , pipelineRunningKeyframes = ""
     }
 
@@ -279,7 +278,6 @@ all =
                     , csrfToken = csrfToken
                     , authToken = ""
                     , pipelineRunningKeyframes = ""
-                    , clusterName = ""
                     }
                     { protocol = Url.Http
                     , host = ""
@@ -391,7 +389,7 @@ all =
                                 )
                             )
                         |> Tuple.second
-                        |> Expect.equal [ Effects.FetchVersion ]
+                        |> Expect.equal [ Effects.FetchClusterInfo ]
             , describe "Legend" <|
                 let
                     clockTick =

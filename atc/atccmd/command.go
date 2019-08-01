@@ -49,7 +49,6 @@ import (
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/concourse/web"
-	"github.com/concourse/concourse/web/indexhandler"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -117,7 +116,8 @@ type RunCommand struct {
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceTypeCheckingInterval time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
 
-	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" description:"Method by which a worker is selected during container placement."`
+	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
+	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
@@ -626,7 +626,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
-	indexhandler.ClusterName = cmd.Server.ClusterName
 	webHandler, err := webHandler(logger)
 	if err != nil {
 		return nil, err
@@ -764,7 +763,10 @@ func (cmd *RunCommand) constructBackendMembers(
 		return nil, err
 	}
 
-	buildContainerStrategy := cmd.chooseBuildContainerStrategy()
+	buildContainerStrategy, err := cmd.chooseBuildContainerStrategy()
+	if err != nil {
+		return nil, err
+	}
 	checkContainerStrategy := worker.NewRandomPlacementStrategy()
 
 	engine := cmd.constructEngine(
@@ -777,6 +779,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		defaultLimits,
 		buildContainerStrategy,
 		resourceFactory,
+		lockFactory,
 	)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
@@ -1146,7 +1149,7 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 }
 
 func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
-	return atc.ContainerLimitsParser(map[string]interface{}{
+	return atc.ParseContainerLimits(map[string]interface{}{
 		"cpu":    cmd.DefaultCpuLimit,
 		"memory": cmd.DefaultMemoryLimit,
 	})
@@ -1296,18 +1299,26 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (cmd *RunCommand) chooseBuildContainerStrategy() worker.ContainerPlacementStrategy {
+func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
 	var strategy worker.ContainerPlacementStrategy
+	if cmd.ContainerPlacementStrategy != "limit-active-tasks" && cmd.MaxActiveTasksPerWorker != 0 {
+		return nil, errors.New("max-active-tasks-per-worker has only effect with limit-active-tasks strategy")
+	}
+	if cmd.MaxActiveTasksPerWorker < 0 {
+		return nil, errors.New("max-active-tasks-per-worker must be greater or equal than 0")
+	}
 	switch cmd.ContainerPlacementStrategy {
 	case "random":
 		strategy = worker.NewRandomPlacementStrategy()
 	case "fewest-build-containers":
 		strategy = worker.NewFewestBuildContainersPlacementStrategy()
+	case "limit-active-tasks":
+		strategy = worker.NewLimitActiveTasksPlacementStrategy(cmd.MaxActiveTasksPerWorker)
 	default:
 		strategy = worker.NewVolumeLocalityPlacementStrategy()
 	}
 
-	return strategy
+	return strategy, nil
 }
 
 func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
@@ -1343,6 +1354,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
+	lockFactory lock.LockFactory,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1361,6 +1373,7 @@ func (cmd *RunCommand) constructEngine(
 		stepFactory,
 		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
+		lockFactory,
 	)
 
 	return engine.NewEngine(stepBuilder)

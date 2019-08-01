@@ -5,7 +5,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 
@@ -566,8 +565,8 @@ var _ = Describe("WorkerFactory", func() {
 
 				BeforeEach(func() {
 					ownerExpiries := db.ContainerOwnerExpiries{
-						Min:       5 * time.Minute,
-						Max:       5 * time.Minute,
+						Min: 5 * time.Minute,
+						Max: 5 * time.Minute,
 					}
 
 					var err error
@@ -581,7 +580,7 @@ var _ = Describe("WorkerFactory", func() {
 								},
 							},
 						},
-					}, db.ConfigVersion(0), db.PipelineUnpaused)
+					}, db.ConfigVersion(0), false)
 					Expect(err).NotTo(HaveOccurred())
 
 					taggedWorkerSpec := atc.Worker{
@@ -624,7 +623,7 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					rcs, err := otherResource.SetResourceConfig(logger, atc.Source{"some": "source"}, creds.VersionedResourceTypes{})
+					rcs, err := otherResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
 					owner = db.NewResourceConfigCheckSessionContainerOwner(rcs.ResourceConfig(), ownerExpiries)

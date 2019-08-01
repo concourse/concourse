@@ -4,9 +4,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
@@ -26,7 +24,6 @@ var _ = Describe("VolumeFactory", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		usedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
-			logger,
 			db.ForBuild(build.ID()),
 			"some-type",
 			atc.Version{"some": "version"},
@@ -34,21 +31,18 @@ var _ = Describe("VolumeFactory", func() {
 				"some": "source",
 			},
 			atc.Params{"some": "params"},
-			creds.NewVersionedResourceTypes(
-				template.StaticVariables{},
-				atc.VersionedResourceTypes{
-					atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name: "some-type",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some-type": "source",
-							},
+			atc.VersionedResourceTypes{
+				atc.VersionedResourceType{
+					ResourceType: atc.ResourceType{
+						Name: "some-type",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some-type": "source",
 						},
-						Version: atc.Version{"some-type": "version"},
 					},
+					Version: atc.Version{"some-type": "version"},
 				},
-			),
+			},
 		)
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -493,7 +487,6 @@ var _ = Describe("VolumeFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			usedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
-				logger,
 				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
@@ -501,21 +494,18 @@ var _ = Describe("VolumeFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				creds.NewVersionedResourceTypes(
-					template.StaticVariables{"source-param": "some-secret-sauce"},
-					atc.VersionedResourceTypes{
-						atc.VersionedResourceType{
-							ResourceType: atc.ResourceType{
-								Name: "some-type",
-								Type: "some-base-resource-type",
-								Source: atc.Source{
-									"some-type": "source",
-								},
+				atc.VersionedResourceTypes{
+					atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name: "some-type",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some-type": "source",
 							},
-							Version: atc.Version{"some-type": "version"},
 						},
+						Version: atc.Version{"some-type": "version"},
 					},
-				),
+				},
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})

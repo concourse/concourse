@@ -6,22 +6,23 @@ import (
 	"io"
 	"os/exec"
 
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/go-archive/tgzfs"
+	"github.com/concourse/go-archive/tarfs"
 	"github.com/vbauerster/mpb/v4"
 )
 
-func Upload(bar *mpb.Bar, team concourse.Team, path string, includeIgnored bool) (atc.WorkerArtifact, error) {
+func Upload(bar *mpb.Bar, team concourse.Team, path string, includeIgnored bool, platform string) (atc.WorkerArtifact, error) {
 	files := getFiles(path, includeIgnored)
 
 	archiveStream, archiveWriter := io.Pipe()
 
 	go func() {
-		archiveWriter.CloseWithError(tgzfs.Compress(archiveWriter, path, files...))
+		archiveWriter.CloseWithError(tarfs.Compress(zstd.NewWriter(archiveWriter), path, files...))
 	}()
 
-	return team.CreateArtifact(bar.ProxyReader(archiveStream))
+	return team.CreateArtifact(bar.ProxyReader(archiveStream), platform)
 }
 
 func getFiles(dir string, includeIgnored bool) []string {

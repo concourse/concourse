@@ -1,6 +1,9 @@
 package creds
 
-import "github.com/concourse/concourse/atc"
+import (
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/vars"
+)
 
 type VersionedResourceType struct {
 	atc.VersionedResourceType
@@ -10,7 +13,7 @@ type VersionedResourceType struct {
 
 type VersionedResourceTypes []VersionedResourceType
 
-func NewVersionedResourceTypes(variables Variables, rawTypes atc.VersionedResourceTypes) VersionedResourceTypes {
+func NewVersionedResourceTypes(variables vars.Variables, rawTypes atc.VersionedResourceTypes) VersionedResourceTypes {
 	var types VersionedResourceTypes
 	for _, t := range rawTypes {
 		types = append(types, VersionedResourceType{
@@ -42,4 +45,25 @@ func (types VersionedResourceTypes) Without(name string) VersionedResourceTypes 
 	}
 
 	return newTypes
+}
+
+func (types VersionedResourceTypes) Evaluate() (atc.VersionedResourceTypes, error) {
+
+	var rawTypes atc.VersionedResourceTypes
+	for _, t := range types {
+		source, err := t.Source.Evaluate()
+		if err != nil {
+			return nil, err
+		}
+
+		resourceType := t.ResourceType
+		resourceType.Source = source
+
+		rawTypes = append(rawTypes, atc.VersionedResourceType{
+			ResourceType: resourceType,
+			Version:      t.Version,
+		})
+	}
+
+	return rawTypes, nil
 }

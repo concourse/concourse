@@ -55,6 +55,7 @@ jobs:
         - -c
         - |
           exit 2
+
 - name: exiter4
   plan:
   - get: timer
@@ -71,6 +72,7 @@ jobs:
         - -c
         - |
           exit 2
+
 - name: exiter5
   plan:
   - get: timer
@@ -87,6 +89,7 @@ jobs:
         - -c
         - |
           exit 2
+
 - name: exiter6
   plan:
   - get: timer

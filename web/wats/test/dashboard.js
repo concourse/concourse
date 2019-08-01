@@ -1,12 +1,12 @@
 import test from 'ava';
-import Fly from './helpers/fly'
-import Web from './helpers/web'
+import Fly from '../helpers/fly'
+import Web from '../helpers/web'
 import puppeteer from 'puppeteer';
 
-const Suite = require('./helpers/suite');
+const Suite = require('../helpers/suite');
 
 const color = require('color');
-const palette = require('./helpers/palette');
+const palette = require('../helpers/palette');
 
 test.beforeEach(async t => {
   t.context = new Suite();
@@ -92,11 +92,18 @@ test('auto-refreshes to reflect state changes', showsPipelineState, async t => {
 }, async (t, text, background, group) => {
   t.deepEqual(background, palette.green);
 
-  await t.throws(t.context.fly.run("trigger-job -w -j some-pipeline/failing"));
+  await t.throwsAsync(async () => await t.context.fly.run("trigger-job -w -j some-pipeline/failing"));
 
   await t.context.web.page.waitFor(10000);
 
   let newBanner = await t.context.web.page.$(`${group} .banner`);
   let newBackground = await t.context.web.computedStyle(newBanner, 'backgroundColor');
   t.deepEqual(color(newBackground), palette.red);
+});
+
+test('picks up cluster name from configuration', async t => {
+  await t.context.web.page.goto(t.context.web.route('/'));
+  const clusterName = await t.context.web.page.$eval(`#top-bar-app > div:nth-child(1)`, el => el.innerText);
+
+  t.is(clusterName, 'dev');
 });

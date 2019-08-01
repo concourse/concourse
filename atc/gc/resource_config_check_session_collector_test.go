@@ -7,7 +7,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/atccmd"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 
@@ -47,11 +46,10 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 			Expect(found).To(BeTrue())
 
 			resourceConfigScope, err = resource.SetResourceConfig(
-				logger,
 				atc.Source{
 					"some": "source",
 				},
-				creds.VersionedResourceTypes{})
+				atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			owner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ownerExpiries)
@@ -128,7 +126,7 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 					},
 				}
 
-				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, db.ConfigVersion(1), false)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

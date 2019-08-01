@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
@@ -71,6 +71,7 @@ params:
   FOO: bar
   BAZ: buzz
   X: 1
+  EMPTY:
 
 run:
   path: find
@@ -106,9 +107,10 @@ run:
 						{Name: "fixture"},
 					},
 					Params: map[string]string{
-						"FOO": "bar",
-						"BAZ": "buzz",
-						"X":   "1",
+						"FOO":   "bar",
+						"BAZ":   "buzz",
+						"X":     "1",
+						"EMPTY": "",
 					},
 					Run: atc.TaskRunConfig{
 						Path: "find",
@@ -132,10 +134,7 @@ run:
 				func(w http.ResponseWriter, req *http.Request) {
 					close(uploading)
 
-					gr, err := gzip.NewReader(req.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					tr := tar.NewReader(gr)
+					tr := tar.NewReader(zstd.NewReader(req.Body))
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())
@@ -375,10 +374,7 @@ run: {}
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
 
-								gr, err := gzip.NewReader(req.Body)
-								Expect(err).NotTo(HaveOccurred())
-
-								tr := tar.NewReader(gr)
+								tr := tar.NewReader(zstd.NewReader(req.Body))
 
 								var matchFound = false
 								for {
@@ -425,10 +421,9 @@ run: {}
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
 
-								gr, err := gzip.NewReader(req.Body)
-								Expect(err).NotTo(HaveOccurred())
+								Expect(req.FormValue("platform")).To(Equal("some-platform"))
 
-								tr := tar.NewReader(gr)
+								tr := tar.NewReader(zstd.NewReader(req.Body))
 
 								var matchFound = false
 								for {
@@ -593,6 +588,7 @@ params:
   FOO: bar
   BAZ: buzz
   X: 1
+  EMPTY:
 
 run:
   path: find
@@ -682,6 +678,7 @@ params:
   FOO: bar
   BAZ: buzz
   X: 1
+  EMPTY:
 
 run:
   path: find
@@ -783,9 +780,10 @@ run:
 	Context("when parameters are specified in the environment", func() {
 		BeforeEach(func() {
 			(*expectedPlan.Do)[1].Task.Config.Params = map[string]string{
-				"FOO": "newbar",
-				"BAZ": "buzz",
-				"X":   "",
+				"FOO":   "newbar",
+				"BAZ":   "buzz",
+				"X":     "",
+				"EMPTY": "",
 			}
 		})
 

@@ -84,11 +84,11 @@ func (v *volume) SetPrivileged(privileged bool) error {
 }
 
 func (v *volume) StreamIn(path string, tarStream io.Reader) error {
-	return v.bcVolume.StreamIn(path, tarStream)
+	return v.bcVolume.StreamIn(path, baggageclaim.ZstdEncoding, tarStream)
 }
 
 func (v *volume) StreamOut(path string) (io.ReadCloser, error) {
-	return v.bcVolume.StreamOut(path)
+	return v.bcVolume.StreamOut(path, baggageclaim.ZstdEncoding)
 }
 
 func (v *volume) Properties() (baggageclaim.VolumeProperties, error) {

@@ -2,7 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 	"os"
 	"sort"
 	"strings"

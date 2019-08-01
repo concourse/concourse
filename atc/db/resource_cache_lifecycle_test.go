@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -174,15 +172,11 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 			BeforeEach(func() {
 				var err error
 				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-					logger,
 					"some-base-resource-type",
 					atc.Source{
 						"some": "source",
 					},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{},
-					),
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -229,26 +223,22 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 		Context("when the cache is for a custom resource type", func() {
 			It("does not remove the cache if the type is still configured", func() {
 				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
-					logger,
 					"some-type",
 					atc.Source{
 						"some": "source",
 					},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{
-							atc.VersionedResourceType{
-								ResourceType: atc.ResourceType{
-									Name: "some-type",
-									Type: "some-base-resource-type",
-									Source: atc.Source{
-										"some": "source",
-									},
+					atc.VersionedResourceTypes{
+						atc.VersionedResourceType{
+							ResourceType: atc.ResourceType{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "source",
 								},
-								Version: atc.Version{"showme": "whatyougot"},
 							},
+							Version: atc.Version{"showme": "whatyougot"},
 						},
-					),
+					},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -261,26 +251,22 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 			It("removes the cache if the type is no longer configured", func() {
 				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
-					logger,
 					"some-type",
 					atc.Source{
 						"some": "source",
 					},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{
-							atc.VersionedResourceType{
-								ResourceType: atc.ResourceType{
-									Name: "some-type",
-									Type: "some-base-resource-type",
-									Source: atc.Source{
-										"some": "source",
-									},
+					atc.VersionedResourceTypes{
+						atc.VersionedResourceType{
+							ResourceType: atc.ResourceType{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "source",
 								},
-								Version: atc.Version{"showme": "whatyougot"},
 							},
+							Version: atc.Version{"showme": "whatyougot"},
 						},
-					),
+					},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -305,12 +291,8 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceConfigScope, err := defaultResource.SetResourceConfig(
-					logger,
 					atc.Source{"some": "source"},
-					creds.NewVersionedResourceTypes(
-						template.StaticVariables{"source-param": "some-secret-sauce"},
-						atc.VersionedResourceTypes{},
-					),
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -376,7 +358,6 @@ func countResourceCaches() int {
 
 func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.UsedResourceCache {
 	usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
-		logger,
 		resourceCacheUser,
 		"some-base-resource-type",
 		atc.Version{"some": "version"},
@@ -384,10 +365,7 @@ func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.Used
 			"some": "source",
 		},
 		atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
-		creds.NewVersionedResourceTypes(
-			template.StaticVariables{"source-param": "some-secret-sauce"},
-			atc.VersionedResourceTypes{},
-		),
+		atc.VersionedResourceTypes{},
 	)
 	Expect(err).ToNot(HaveOccurred())
 

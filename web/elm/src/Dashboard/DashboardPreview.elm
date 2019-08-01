@@ -4,6 +4,7 @@ import Concourse
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
+import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
@@ -12,7 +13,7 @@ import Message.Message exposing (DomID(..), Message(..))
 import Routes
 
 
-view : Maybe DomID -> List Concourse.Job -> Html Message
+view : HoverState.HoverState -> List Concourse.Job -> Html Message
 view hovered jobs =
     let
         layers : List (List Concourse.Job)
@@ -42,12 +43,12 @@ view hovered jobs =
         (List.map (viewJobLayer hovered) layers)
 
 
-viewJobLayer : Maybe DomID -> List Concourse.Job -> Html Message
+viewJobLayer : HoverState.HoverState -> List Concourse.Job -> Html Message
 viewJobLayer hovered jobs =
     Html.div [ class "parallel-grid" ] (List.map (viewJob hovered) jobs)
 
 
-viewJob : Maybe DomID -> Concourse.Job -> Html Message
+viewJob : HoverState.HoverState -> Concourse.Job -> Html Message
 viewJob hovered job =
     let
         latestBuild : Maybe Concourse.Build
@@ -75,7 +76,7 @@ viewJob hovered job =
     in
     Html.div
         (attribute "data-tooltip" job.name
-            :: Styles.jobPreview job (hovered == (Just <| JobPreview jobId))
+            :: Styles.jobPreview job (HoverState.isHovered (JobPreview jobId) hovered)
             ++ [ onMouseEnter <| Hover <| Just <| JobPreview jobId
                , onMouseLeave <| Hover Nothing
                ]

@@ -8,9 +8,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -19,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 
 	rfakes "github.com/concourse/concourse/atc/resource/resourcefakes"
 	. "github.com/onsi/ginkgo"
@@ -40,10 +39,11 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceConfigScope   *dbfakes.FakeResourceConfigScope
 		fakeClock                 *fakeclock.FakeClock
 		interval                  time.Duration
-		variables                 creds.Variables
+		variables                 vars.Variables
+		metadata                  db.ContainerMetadata
 
-		fakeResourceType      *dbfakes.FakeResourceType
-		versionedResourceType atc.VersionedResourceType
+		fakeResourceType          *dbfakes.FakeResourceType
+		interpolatedResourceTypes atc.VersionedResourceTypes
 
 		scanner Scanner
 
@@ -54,18 +54,20 @@ var _ = Describe("ResourceTypeScanner", func() {
 	BeforeEach(func() {
 		fakeLock = &lockfakes.FakeLock{}
 		interval = 1 * time.Minute
-		variables = template.StaticVariables{
+		variables = vars.StaticVariables{
 			"source-params": "some-secret-sauce",
 		}
 
-		versionedResourceType = atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name:   "some-custom-resource",
-				Type:   "registry-image",
-				Source: atc.Source{"custom": "((source-params))"},
-				Tags:   atc.Tags{"some-tag"},
+		interpolatedResourceTypes = atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-custom-resource",
+					Type:   "registry-image",
+					Source: atc.Source{"custom": "some-secret-sauce"},
+					Tags:   atc.Tags{"some-tag"},
+				},
+				Version: atc.Version{"custom": "version"},
 			},
-			Version: atc.Version{"custom": "version"},
 		}
 
 		fakeClock = fakeclock.NewFakeClock(epoch)
@@ -180,11 +182,11 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("constructs the resource of the correct type", func() {
 					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-					_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
+					resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-					Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 
-					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+					_, _, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",
@@ -194,12 +196,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "registry-image",
 						Tags:          []string{"some-tag"},
-						ResourceTypes: creds.VersionedResourceTypes{},
+						ResourceTypes: atc.VersionedResourceTypes{},
 						TeamID:        123,
 					}))
 
 					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-					_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+					_, _, _, owner, metadata, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
@@ -209,7 +211,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					}))
 					Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
 					Expect(containerSpec.TeamID).To(Equal(123))
-					Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 				})
 
 				Context("when the resource type overrides a base resource type", func() {
@@ -233,17 +235,15 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 					It("constructs the resource of the correct type", func() {
 						Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-						_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
+						resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 						Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-						Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-							versionedResourceType,
-						})))
+						Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
 						Expect(fakeResourceType.SetCheckSetupErrorCallCount()).To(Equal(1))
 						err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
 						Expect(err).To(BeNil())
 
-						_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+						_, _, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 						Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 							ResourceType: "registry-image",
@@ -251,12 +251,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 						Expect(containerSpec.TeamID).To(Equal(123))
 						Expect(workerSpec).To(Equal(worker.WorkerSpec{
 							ResourceType:  "registry-image",
-							ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+							ResourceTypes: interpolatedResourceTypes,
 							TeamID:        123,
 						}))
 
 						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-						_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+						_, _, _, owner, metadata, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
 						Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 						Expect(metadata).To(Equal(db.ContainerMetadata{
 							Type: db.ContainerTypeCheck,
@@ -265,9 +265,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 							ResourceType: "registry-image",
 						}))
 						Expect(containerSpec.TeamID).To(Equal(123))
-						Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-							versionedResourceType,
-						})))
+						Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 					})
 				})
 
@@ -280,9 +278,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 					It("leases for the configured interval", func() {
 						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 						Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
-
-						_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 
 						leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 						Expect(leaseInterval).To(Equal(10 * time.Millisecond))
@@ -317,9 +312,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 				It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
 					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 					Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
-
-					_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-					Expect(leaseInterval).To(Equal(interval))
 
 					leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 					Expect(leaseInterval).To(Equal(interval))
@@ -469,15 +461,15 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-				_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
+				resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 				Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 
 				Expect(fakeResourceType.SetCheckSetupErrorCallCount()).To(Equal(1))
 				err := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
 				Expect(err).To(BeNil())
 
-				_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+				_, _, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 					ResourceType: "registry-image",
@@ -487,12 +479,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					ResourceType:  "registry-image",
 					Tags:          []string{"some-tag"},
-					ResourceTypes: creds.VersionedResourceTypes{},
+					ResourceTypes: atc.VersionedResourceTypes{},
 					TeamID:        123,
 				}))
 
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, _, _, owner, metadata, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 				Expect(metadata).To(Equal(db.ContainerMetadata{
 					Type: db.ContainerTypeCheck,
@@ -502,7 +494,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				}))
 				Expect(containerSpec.Tags).To(Equal([]string{"some-tag"}))
 				Expect(containerSpec.TeamID).To(Equal(123))
-				Expect(resourceTypes).To(Equal(creds.VersionedResourceTypes{}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 			})
 
 			Context("when the resource type depends on another custom type", func() {
@@ -597,13 +589,11 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("constructs the resource of the correct type", func() {
 					Expect(fakeResourceType.SetResourceConfigCallCount()).To(Equal(1))
-					_, resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
+					resourceSource, resourceTypes := fakeResourceType.SetResourceConfigArgsForCall(0)
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
-					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-						versionedResourceType,
-					})))
+					Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
-					_, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+					_, _, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",
@@ -611,12 +601,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(containerSpec.TeamID).To(Equal(123))
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						ResourceType:  "registry-image",
-						ResourceTypes: creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{versionedResourceType}),
+						ResourceTypes: interpolatedResourceTypes,
 						TeamID:        123,
 					}))
 
 					Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-					_, _, _, owner, metadata, containerSpec, resourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
+					_, _, _, owner, metadata, containerSpec, resourceTypes = fakeWorker.FindOrCreateContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(metadata).To(Equal(db.ContainerMetadata{
 						Type: db.ContainerTypeCheck,
@@ -625,18 +615,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 						ResourceType: "registry-image",
 					}))
 					Expect(containerSpec.TeamID).To(Equal(123))
-					Expect(resourceTypes).To(Equal(creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
-						versionedResourceType,
-					})))
+					Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 				})
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
 				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 				Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
-
-				_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-				Expect(leaseInterval).To(Equal(interval))
 
 				leaseInterval, immediate := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
 				Expect(leaseInterval).To(Equal(interval))
@@ -776,7 +761,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					results <- true
 					close(results)
 
-					fakeResourceConfigScope.AcquireResourceCheckingLockStub = func(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
+					fakeResourceConfigScope.AcquireResourceCheckingLockStub = func(logger lager.Logger) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {
@@ -789,16 +774,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 				It("retries every second until it is", func() {
 					Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(3))
-
-					_, leaseInterval := fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(0)
-					Expect(leaseInterval).To(Equal(interval))
-
-					_, leaseInterval = fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(1)
-					Expect(leaseInterval).To(Equal(interval))
-
-					_, leaseInterval = fakeResourceConfigScope.AcquireResourceCheckingLockArgsForCall(2)
-					Expect(leaseInterval).To(Equal(interval))
-
 					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
 			})

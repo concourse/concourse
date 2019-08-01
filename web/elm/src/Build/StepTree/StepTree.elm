@@ -10,7 +10,6 @@ module Build.StepTree.StepTree exposing
     )
 
 import Ansi.Log
-import Application.Models exposing (Session)
 import Array exposing (Array)
 import Build.Models exposing (StepHeaderType(..))
 import Build.StepTree.Models
@@ -37,6 +36,7 @@ import Concourse
 import DateFormat
 import Dict exposing (Dict)
 import Duration
+import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -159,21 +159,21 @@ initBottom hl create id name =
             , expanded =
                 case hl of
                     HighlightNothing ->
-                        Nothing
+                        False
 
                     HighlightLine stepID _ ->
                         if id == stepID then
-                            Just True
+                            True
 
                         else
-                            Nothing
+                            False
 
                     HighlightRange stepID _ _ ->
                         if id == stepID then
-                            Just True
+                            True
 
                         else
-                            Nothing
+                            False
             , version = Nothing
             , metadata = []
             , firstOccurrence = False
@@ -318,10 +318,7 @@ finished root =
 
 toggleStep : StepID -> StepTreeModel -> ( StepTreeModel, List Effect )
 toggleStep id root =
-    ( updateAt
-        id
-        (map (\step -> { step | expanded = toggleExpanded step }))
-        root
+    ( updateAt id (map (\step -> { step | expanded = not step.expanded })) root
     , []
     )
 
@@ -373,13 +370,8 @@ extendHighlight id line root =
     ( { root | highlight = hl }, [ ModifyUrl (showHighlight hl) ] )
 
 
-toggleExpanded : Step -> Maybe Bool
-toggleExpanded { expanded, state } =
-    Just <| not <| Maybe.withDefault (autoExpanded state) expanded
-
-
 updateTooltip :
-    { a | hovered : Maybe DomID }
+    { a | hovered : HoverState.HoverState }
     -> { b | hoveredCounter : Int }
     -> StepTreeModel
     -> ( StepTreeModel, List Effect )
@@ -387,16 +379,30 @@ updateTooltip { hovered } { hoveredCounter } model =
     let
         newTooltip =
             case hovered of
-                Just (FirstOccurrenceIcon _) ->
+                HoverState.Tooltip (FirstOccurrenceIcon x) _ ->
                     if hoveredCounter > 0 then
-                        hovered
+                        Just (FirstOccurrenceIcon x)
 
                     else
                         Nothing
 
-                Just (StepState _) ->
+                HoverState.Hovered (FirstOccurrenceIcon x) ->
                     if hoveredCounter > 0 then
-                        hovered
+                        Just (FirstOccurrenceIcon x)
+
+                    else
+                        Nothing
+
+                HoverState.Tooltip (StepState x) _ ->
+                    if hoveredCounter > 0 then
+                        Just (StepState x)
+
+                    else
+                        Nothing
+
+                HoverState.Hovered (StepState x) ->
+                    if hoveredCounter > 0 then
+                        Just (StepState x)
 
                     else
                         Nothing
@@ -408,7 +414,7 @@ updateTooltip { hovered } { hoveredCounter } model =
 
 
 view :
-    Session
+    { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> StepTreeModel
     -> Html Message
 view session model =
@@ -416,7 +422,7 @@ view session model =
 
 
 viewTree :
-    Session
+    { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> StepTreeModel
     -> StepTree
     -> Html Message
@@ -486,7 +492,7 @@ viewTree session model tree =
 
 
 viewTab :
-    Session
+    { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> StepID
     -> Int
     -> Int
@@ -507,7 +513,7 @@ viewTab { hovered } id currentTab idx step =
          , onClick <| Click <| StepTab id tab
          ]
             ++ Styles.retryTab
-                { isHovered = hovered == (Just <| StepTab id tab)
+                { isHovered = HoverState.isHovered (StepTab id tab) hovered
                 , isCurrent = currentTab == tab
                 , isStarted = treeIsActive step
                 }
@@ -515,12 +521,12 @@ viewTab { hovered } id currentTab idx step =
         [ Html.text (String.fromInt tab) ]
 
 
-viewSeq : Session -> StepTreeModel -> StepTree -> Html Message
+viewSeq : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> StepTreeModel -> StepTree -> Html Message
 viewSeq session model tree =
     Html.div [ class "seq" ] [ viewTree session model tree ]
 
 
-viewHooked : Session -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
+viewHooked : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
 viewHooked session name model step hook =
     Html.div [ class "hooked" ]
         [ Html.div [ class "step" ] [ viewTree session model step ]
@@ -535,12 +541,7 @@ isActive state =
     state /= StepStatePending && state /= StepStateCancelled
 
 
-autoExpanded : StepState -> Bool
-autoExpanded state =
-    isActive state && state /= StepStateSucceeded
-
-
-viewStep : StepTreeModel -> Session -> Step -> StepHeaderType -> Html Message
+viewStep : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Step -> StepHeaderType -> Html Message
 viewStep model session { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
     Html.div
         [ classList
@@ -553,7 +554,7 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
             ([ class "header"
              , onClick <| Click <| StepHeader id
              ]
-                ++ Styles.stepHeader
+                ++ Styles.stepHeader state
             )
             [ Html.div
                 [ style "display" "flex" ]
@@ -566,15 +567,11 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
                 , viewStepState state id (viewDurationTooltip initialize start finish (model.tooltip == Just (StepState id)))
                 ]
             ]
-        , Html.div
-            [ classList
-                [ ( "step-body", True )
-                , ( "clearfix", True )
-                , ( "step-collapsed", not <| Maybe.withDefault (autoExpanded state) expanded )
+        , if expanded then
+            Html.div
+                [ class "step-body"
+                , class "clearfix"
                 ]
-            ]
-          <|
-            if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
                 [ viewMetadata metadata
                 , Html.pre [ class "timestamped-logs" ] <|
                     viewLogs log timestamps model.highlight session.timeZone id
@@ -586,8 +583,8 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
                         Html.span [ class "error" ] [ Html.pre [] [ Html.text msg ] ]
                 ]
 
-            else
-                []
+          else
+            Html.text ""
         ]
 
 
@@ -637,30 +634,34 @@ viewTimestampedLine { timestamps, highlight, id, lineNo, line, timeZone } =
                     hlId == id && lineNo >= hlLine1 && lineNo <= hlLine2
 
         ts =
-            Dict.get lineNo timestamps
+            Dict.get (lineNo - 1) timestamps
     in
-    Html.tr
-        [ classList
-            [ ( "timestamped-line", True )
-            , ( "highlighted-line", highlighted )
-            ]
-        , Html.Attributes.id <| id ++ ":" ++ String.fromInt lineNo
-        ]
-        [ viewTimestamp
-            { id = id
-            , line = lineNo
-            , date = ts
-            , timeZone = timeZone
-            }
-        , viewLine line
-        ]
+    case line of
+        ( [], _ ) ->
+            Html.text ""
+
+        _ ->
+            Html.tr
+                [ classList
+                    [ ( "timestamped-line", True )
+                    , ( "highlighted-line", highlighted )
+                    ]
+                , Html.Attributes.id <| id ++ ":" ++ String.fromInt lineNo
+                ]
+                [ viewTimestamp
+                    { id = id
+                    , line = lineNo
+                    , date = ts
+                    , timeZone = timeZone
+                    }
+                , viewLine line
+                ]
 
 
 viewLine : Ansi.Log.Line -> Html Message
 viewLine line =
     Html.td [ class "timestamped-content" ]
-        [ Ansi.Log.viewLine line
-        ]
+        [ Ansi.Log.viewLine line ]
 
 
 viewTimestamp :
@@ -855,6 +856,8 @@ viewDurationTooltip minit mstart mfinish tooltip =
                 [ Html.div
                     [ style "position" "inherit"
                     , style "margin-left" "-500px"
+                    , style "display" "flex"
+                    , style "justify-content" "flex-end"
                     ]
                     [ Html.div
                         Styles.durationTooltip

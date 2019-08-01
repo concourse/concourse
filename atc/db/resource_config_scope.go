@@ -34,7 +34,6 @@ type ResourceConfigScope interface {
 
 	AcquireResourceCheckingLock(
 		logger lager.Logger,
-		interval time.Duration,
 	) (lock.Lock, bool, error)
 
 	UpdateLastCheckStartTime(
@@ -176,7 +175,6 @@ func (r *resourceConfigScope) SetCheckError(cause error) error {
 
 func (r *resourceConfigScope) AcquireResourceCheckingLock(
 	logger lager.Logger,
-	interval time.Duration,
 ) (lock.Lock, bool, error) {
 	return r.lockFactory.Acquire(
 		logger,
@@ -268,7 +266,8 @@ func saveResourceVersion(tx Tx, r ResourceConfigScope, version atc.Version, meta
 	err = tx.QueryRow(`
 		INSERT INTO resource_config_versions (resource_config_scope_id, version, version_md5, metadata)
 		SELECT $1, $2, md5($3), $4
-		ON CONFLICT (resource_config_scope_id, version_md5) DO UPDATE SET metadata = $4
+		ON CONFLICT (resource_config_scope_id, version_md5)
+		DO UPDATE SET metadata = COALESCE(NULLIF(excluded.metadata, 'null'::jsonb), resource_config_versions.metadata)
 		RETURNING check_order
 		`, r.ID(), string(versionJSON), string(versionJSON), string(metadataJSON)).Scan(&checkOrder)
 	if err != nil {

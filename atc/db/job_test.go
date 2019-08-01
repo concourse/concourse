@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -80,7 +79,7 @@ var _ = Describe("Job", func() {
 					Type: "some-type",
 				},
 			},
-		}, db.ConfigVersion(0), db.PipelineUnpaused)
+		}, db.ConfigVersion(0), false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(created).To(BeTrue())
 
@@ -155,7 +154,7 @@ var _ = Describe("Job", func() {
 				Jobs: atc.JobConfigs{
 					{Name: "some-job"},
 				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			}, db.ConfigVersion(0), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 
@@ -381,7 +380,7 @@ var _ = Describe("Job", func() {
 					},
 				},
 			}
-			pipeline, _, err = team.SavePipeline("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			pipeline, _, err = team.SavePipeline("some-pipeline", config, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			job, found, err = pipeline.Job("some-job")
@@ -578,7 +577,7 @@ var _ = Describe("Job", func() {
 							Type: "some-type",
 						},
 					},
-				}, pipeline.ConfigVersion(), db.PipelineUnpaused)
+				}, pipeline.ConfigVersion(), false)
 				Expect(err).ToNot(HaveOccurred())
 			})
 		}
@@ -651,7 +650,7 @@ var _ = Describe("Job", func() {
 							Type: "some-type",
 						},
 					},
-				}, pipeline.ConfigVersion(), db.PipelineUnpaused)
+				}, pipeline.ConfigVersion(), false)
 				Expect(err).ToNot(HaveOccurred())
 			})
 		}
@@ -684,7 +683,7 @@ var _ = Describe("Job", func() {
 								Name: "some-job",
 							},
 						},
-					}, db.ConfigVersion(0), db.PipelineUnpaused)
+					}, db.ConfigVersion(0), false)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(created).To(BeTrue())
 
@@ -1114,7 +1113,7 @@ var _ = Describe("Job", func() {
 						Type: "some-type",
 					},
 				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			}, db.ConfigVersion(0), false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 
@@ -1127,7 +1126,7 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceConfigScope.SaveVersions([]atc.Version{
@@ -1137,7 +1136,7 @@ var _ = Describe("Job", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
+			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -1147,16 +1146,6 @@ var _ = Describe("Job", func() {
 		Describe("partial next build inputs", func() {
 			It("gets partial next build inputs for the given job name", func() {
 				inputVersions := db.InputMapping{
-					"some-input-1": db.InputResult{
-						Input: &db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToMD5(versions[0].Version)),
-								ResourceID: resource.ID(),
-							},
-							FirstOccurrence: false,
-						},
-						PassedBuildIDs: []int{},
-					},
 					"some-input-2": db.InputResult{
 						ResolveError: "disaster",
 					},
@@ -1166,12 +1155,6 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				buildInputs := []db.BuildInput{
-					{
-						Name:            "some-input-1",
-						ResourceID:      resource.ID(),
-						Version:         atc.Version{"version": "v1"},
-						FirstOccurrence: false,
-					},
 					{
 						Name:         "some-input-2",
 						ResolveError: "disaster",
@@ -1282,7 +1265,7 @@ var _ = Describe("Job", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfigScope, err = resource.SetResourceConfig(logger, atc.Source{}, creds.VersionedResourceTypes{})
+			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceConfigScope.SaveVersions([]atc.Version{
@@ -1298,10 +1281,10 @@ var _ = Describe("Job", func() {
 					Name:  "name1",
 					Value: "value1",
 				},
-			}, resourceConfigScope.ResourceConfig(), creds.VersionedResourceTypes{})
+			}, resourceConfigScope.ResourceConfig(), atc.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
-			reversions, _, found, err := resource.Versions(db.Page{Limit: 3})
+			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -1324,7 +1307,7 @@ var _ = Describe("Job", func() {
 				},
 			}
 
-			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, db.PipelineUnpaused)
+			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			resource2, found, err = pipeline2.Resource("some-resource")
@@ -1473,24 +1456,7 @@ var _ = Describe("Job", func() {
 		It("does not grab inputs if inputs were not successfully determined", func() {
 			inputVersions := db.InputMapping{
 				"some-input-1": db.InputResult{
-					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5(versions[0].Version)),
-							ResourceID: resource.ID(),
-						},
-						FirstOccurrence: false,
-					},
-					PassedBuildIDs: []int{},
-				},
-				"some-input-2": db.InputResult{
-					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5(versions[1].Version)),
-							ResourceID: resource.ID(),
-						},
-						FirstOccurrence: true,
-					},
-					PassedBuildIDs: []int{},
+					ResolveError: "disaster",
 				},
 			}
 			err := job.SaveNextInputMapping(inputVersions, false)
@@ -1524,7 +1490,7 @@ var _ = Describe("Job", func() {
 				},
 			}
 			var err error
-			otherPipeline, _, err = team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+			otherPipeline, _, err = team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			build1DB, err = job.CreateBuild()

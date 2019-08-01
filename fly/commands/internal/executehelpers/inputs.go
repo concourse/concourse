@@ -30,6 +30,7 @@ func DetermineInputs(
 	jobInputImage string,
 	inputsFrom flaghelpers.JobFlag,
 	includeIgnored bool,
+	platform string,
 ) ([]Input, map[string]string, *atc.ImageResource, error) {
 	inputMappings := ConvertInputMappings(userInputMappings)
 
@@ -55,7 +56,7 @@ func DetermineInputs(
 		})
 	}
 
-	inputsFromLocal, err := GenerateLocalInputs(fact, team, localInputMappings, includeIgnored)
+	inputsFromLocal, err := GenerateLocalInputs(fact, team, localInputMappings, includeIgnored, platform)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -138,6 +139,7 @@ func GenerateLocalInputs(
 	team concourse.Team,
 	inputMappings []flaghelpers.InputPairFlag,
 	includeIgnored bool,
+	platform string,
 ) (map[string]Input, error) {
 	inputs := map[string]Input{}
 
@@ -150,7 +152,7 @@ func GenerateLocalInputs(
 		path := mapping.Path
 
 		prog.Go("uploading "+name, func(bar *mpb.Bar) error {
-			artifact, err := Upload(bar, team, path, includeIgnored)
+			artifact, err := Upload(bar, team, path, includeIgnored, platform)
 			if err != nil {
 				return err
 			}

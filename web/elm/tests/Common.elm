@@ -70,7 +70,6 @@ init path =
         , notFoundImgSrc = "notfound.svg"
         , csrfToken = "csrf_token"
         , authToken = ""
-        , clusterName = ""
         , pipelineRunningKeyframes = "pipeline-running"
         }
         { protocol = Url.Http
@@ -102,7 +101,6 @@ iOpenTheBuildPage _ =
         , csrfToken = ""
         , authToken = ""
         , pipelineRunningKeyframes = ""
-        , clusterName = ""
         }
         { protocol = Url.Http
         , host = ""

@@ -71,7 +71,7 @@ var _ = Describe("Resolve", func() {
 					},
 				},
 			},
-		}, db.ConfigVersion(0), db.PipelineUnpaused)
+		}, db.ConfigVersion(0), false)
 		Expect(err).NotTo(HaveOccurred())
 
 		setupTx, err := dbConn.Begin()
@@ -217,7 +217,7 @@ var _ = Describe("Resolve", func() {
 				},
 			},
 			Resources: resourceConfigs,
-		}, db.ConfigVersion(1), db.PipelineUnpaused)
+		}, db.ConfigVersion(1), false)
 		Expect(err).NotTo(HaveOccurred())
 
 		dbResources := db.Resources{}

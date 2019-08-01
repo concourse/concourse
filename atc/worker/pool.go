@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -8,10 +9,12 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+
 	"github.com/concourse/concourse/atc/db"
 )
 
 //go:generate counterfeiter . WorkerProvider
+
 
 type WorkerProvider interface {
 	RunningWorkers(lager.Logger) ([]Worker, error)
@@ -42,7 +45,8 @@ type WorkerProvider interface {
 }
 
 var (
-	ErrNoWorkers = errors.New("no workers")
+	ErrNoWorkers             = errors.New("no workers")
+	ErrFailedAcquirePoolLock = errors.New("failed to acquire pool lock")
 )
 
 type NoCompatibleWorkersError struct {
@@ -56,27 +60,29 @@ func (err NoCompatibleWorkersError) Error() string {
 //go:generate counterfeiter . Pool
 
 type Pool interface {
+	FindOrChooseWorker(
+		lager.Logger,
+		WorkerSpec,
+	) (Worker, error)
+
 	FindOrChooseWorkerForContainer(
+		context.Context,
 		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
 		WorkerSpec,
 		ContainerPlacementStrategy,
 	) (Worker, error)
-
-	FindOrChooseWorker(
-		lager.Logger,
-		WorkerSpec,
-	) (Worker, error)
 }
 
 type pool struct {
 	provider WorkerProvider
-
-	rand *rand.Rand
+	rand     *rand.Rand
 }
 
-func NewPool(provider WorkerProvider) Pool {
+func NewPool(
+	provider WorkerProvider,
+) Pool {
 	return &pool{
 		provider: provider,
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -120,6 +126,7 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 }
 
 func (pool *pool) FindOrChooseWorkerForContainer(
+	ctx context.Context,
 	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,

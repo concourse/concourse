@@ -27,7 +27,7 @@ var _ = Describe("Artifacts", func() {
 			})
 
 			It("errors", func() {
-				_, err := team.CreateArtifact(bytes.NewBufferString("some-contents"))
+				_, err := team.CreateArtifact(bytes.NewBufferString("some-contents"), "some-platform")
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -45,7 +45,7 @@ var _ = Describe("Artifacts", func() {
 			})
 
 			It("returns json", func() {
-				artifact, err := team.CreateArtifact(bytes.NewBufferString("some-contents"))
+				artifact, err := team.CreateArtifact(bytes.NewBufferString("some-contents"), "some-platform")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(artifact.ID).To(Equal(17))
 			})

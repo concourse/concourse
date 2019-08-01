@@ -43,6 +43,7 @@ type PrometheusEmitter struct {
 
 	workerContainers  *prometheus.GaugeVec
 	workerVolumes     *prometheus.GaugeVec
+	workerTasks       *prometheus.GaugeVec
 	workersRegistered *prometheus.GaugeVec
 
 	workerLastSeen map[string]time.Time
@@ -167,7 +168,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "containers",
 			Help:      "Number of containers per worker",
 		},
-		[]string{"worker", "platform"},
+		[]string{"worker", "platform", "team", "tags"},
 	)
 	prometheus.MustRegister(workerContainers)
 
@@ -178,9 +179,20 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "volumes",
 			Help:      "Number of volumes per worker",
 		},
-		[]string{"worker", "platform"},
+		[]string{"worker", "platform", "team", "tags"},
 	)
 	prometheus.MustRegister(workerVolumes)
+
+	workerTasks := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "workers",
+			Name:      "tasks",
+			Help:      "Number of active tasks per worker",
+		},
+		[]string{"worker", "platform"},
+	)
+	prometheus.MustRegister(workerTasks)
 
 	workersRegistered := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -306,6 +318,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		workersRegistered: workersRegistered,
 		workerLastSeen:    map[string]time.Time{},
 		workerVolumes:     workerVolumes,
+		workerTasks:       workerTasks,
 	}
 	go emitter.periodicMetricGC()
 
@@ -334,6 +347,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workerContainersMetric(logger, event)
 	case "worker volumes":
 		emitter.workerVolumesMetric(logger, event)
+	case "worker tasks":
+		emitter.workerTasksMetric(logger, event)
 	case "worker state":
 		emitter.workersRegisteredMetric(logger, event)
 	case "http response time":
@@ -448,6 +463,12 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
 		return
 	}
+	team, exists := event.Attributes["team_name"]
+	if !exists {
+		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
+		return
+	}
+	tags, _ := event.Attributes["tags"]
 
 	containers, ok := event.Value.(int)
 	if !ok {
@@ -455,7 +476,7 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		return
 	}
 
-	emitter.workerContainers.WithLabelValues(worker, platform).Set(float64(containers))
+	emitter.workerContainers.WithLabelValues(worker, platform, team, tags).Set(float64(containers))
 }
 
 func (emitter *PrometheusEmitter) workersRegisteredMetric(logger lager.Logger, event metric.Event) {
@@ -485,6 +506,12 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
 		return
 	}
+	team, exists := event.Attributes["team_name"]
+	if !exists {
+		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
+		return
+	}
+	tags, _ := event.Attributes["tags"]
 
 	volumes, ok := event.Value.(int)
 	if !ok {
@@ -492,7 +519,28 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		return
 	}
 
-	emitter.workerVolumes.WithLabelValues(worker, platform).Set(float64(volumes))
+	emitter.workerVolumes.WithLabelValues(worker, platform, team, tags).Set(float64(volumes))
+}
+
+func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event metric.Event) {
+	worker, exists := event.Attributes["worker"]
+	if !exists {
+		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		return
+	}
+	platform, exists := event.Attributes["platform"]
+	if !exists || platform == "" {
+		logger.Error("failed-to-find-platform-in-event", fmt.Errorf("expected platform to exist in event.Attributes"))
+		return
+	}
+
+	tasks, ok := event.Value.(int)
+	if !ok {
+		logger.Error("worker-tasks-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+		return
+	}
+
+	emitter.workerTasks.WithLabelValues(worker, platform).Set(float64(tasks))
 }
 
 func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, event metric.Event) {
@@ -576,9 +624,9 @@ func (emitter *PrometheusEmitter) resourceMetric(logger lager.Logger, event metr
 		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
 		return
 	}
-	team, exists := event.Attributes["team"]
+	team, exists := event.Attributes["team_name"]
 	if !exists {
-		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
+		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
 		return
 	}
 
@@ -607,6 +655,7 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 				for _, platform := range []string{"linux", "windows", "darwin"} {
 					emitter.workerContainers.DeleteLabelValues(worker, platform)
 					emitter.workerVolumes.DeleteLabelValues(worker, platform)
+					emitter.workerTasks.DeleteLabelValues(worker, platform)
 				}
 				delete(emitter.workerLastSeen, worker)
 			}

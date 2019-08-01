@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/lib/pq"
+	"github.com/ghodss/yaml"
 )
 
 type InputVersionEmptyError struct {
@@ -989,7 +990,7 @@ func scanJob(j *job, row scannable) error {
 	}
 
 	var config atc.JobConfig
-	err = json.Unmarshal(decryptedConfig, &config)
+	err = yaml.Unmarshal(decryptedConfig, &config)
 	if err != nil {
 		return err
 	}

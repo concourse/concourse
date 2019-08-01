@@ -119,7 +119,7 @@ var _ = Describe("Resource Get", func() {
 
 	Describe("running", func() {
 		JustBeforeEach(func() {
-			fakeContainer.RunStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+			fakeContainer.RunStub = func(ctx context.Context, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 				if runInError != nil {
 					return nil, runInError
 				}
@@ -133,7 +133,7 @@ var _ = Describe("Resource Get", func() {
 				return inScriptProcess, nil
 			}
 
-			fakeContainer.AttachStub = func(pid string, io garden.ProcessIO) (garden.Process, error) {
+			fakeContainer.AttachStub = func(ctx context.Context, pid string, io garden.ProcessIO) (garden.Process, error) {
 				if attachInError != nil {
 					return nil, attachInError
 				}
@@ -196,7 +196,7 @@ var _ = Describe("Resource Get", func() {
 			It("reattaches to it", func() {
 				Expect(fakeContainer.AttachCallCount()).To(Equal(1))
 
-				pid, io := fakeContainer.AttachArgsForCall(0)
+				_, pid, io := fakeContainer.AttachArgsForCall(0)
 				Expect(pid).To(Equal(resource.ResourceProcessID))
 
 				// send request on stdin in case process hasn't read it yet
@@ -307,7 +307,7 @@ var _ = Describe("Resource Get", func() {
 			It("specifies the process id in the process spec", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
-				spec, _ := fakeContainer.RunArgsForCall(0)
+				_, spec, _ := fakeContainer.RunArgsForCall(0)
 				Expect(spec.ID).To(Equal(resource.ResourceProcessID))
 			})
 
@@ -333,7 +333,7 @@ var _ = Describe("Resource Get", func() {
 			It("runs /opt/resource/in <destination> with the request on stdin", func() {
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
-				spec, io := fakeContainer.RunArgsForCall(0)
+				_, spec, io := fakeContainer.RunArgsForCall(0)
 				Expect(spec.Path).To(Equal("/opt/resource/in"))
 				Expect(spec.Args).To(ConsistOf("/tmp/build/get"))
 
@@ -448,7 +448,8 @@ var _ = Describe("Resource Get", func() {
 			cancel()
 			<-done
 			Expect(fakeContainer.StopCallCount()).To(Equal(1))
-			Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
+			isStopped := fakeContainer.StopArgsForCall(0)
+			Expect(isStopped).To(BeFalse())
 		})
 
 		It("doesn't send garden terminate signal to process", func() {

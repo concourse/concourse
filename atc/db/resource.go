@@ -8,10 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
@@ -46,8 +44,9 @@ type Resource interface {
 	CurrentPinnedVersion() atc.Version
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
-	Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error)
-	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, creds.VersionedResourceTypes) (bool, error)
+	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
+	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, atc.VersionedResourceTypes) (bool, error)
+	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
 	EnableVersion(rcvID int) error
 	DisableVersion(rcvID int) error
@@ -55,14 +54,14 @@ type Resource interface {
 	PinVersion(rcvID int) error
 	UnpinVersion() error
 
-	SetResourceConfig(lager.Logger, atc.Source, creds.VersionedResourceTypes) (ResourceConfigScope, error)
+	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
 	NotifyScan() error
 
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, rs.last_check_start_time, rs.last_check_end_time, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, rs.check_error, rp.version, rp.comment_text").
+var resourcesQuery = psql.Select("r.id, r.name, r.type, r.config, r.check_error, rs.last_check_start_time, rs.last_check_end_time, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, rs.check_error, rp.version, rp.comment_text").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -177,7 +176,7 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
-func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, resourceTypes creds.VersionedResourceTypes) (ResourceConfigScope, error) {
+func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
 	if err != nil {
 		return nil, err
@@ -190,7 +189,7 @@ func (r *resource) SetResourceConfig(logger lager.Logger, source atc.Source, res
 
 	defer Rollback(tx)
 
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(logger, tx, r.lockFactory, r.conn)
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, r.lockFactory, r.conn)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +262,7 @@ func (r *resource) SetCheckSetupError(cause error) error {
 // index for the pipeline because we want to ignore these versions until the
 // check orders get updated. The bumping of the index will be done in
 // SaveOutput for the put step.
-func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes creds.VersionedResourceTypes) (bool, error) {
+func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes atc.VersionedResourceTypes) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
@@ -282,6 +281,37 @@ func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceCo
 	}
 
 	return newVersion, tx.Commit()
+}
+
+func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
+	versionJSON, err := json.Marshal(version)
+	if err != nil {
+		return false, err
+	}
+
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = psql.Update("resource_config_versions").
+		Set("metadata", string(metadataJSON)).
+		Where(sq.Eq{
+			"resource_config_scope_id": r.ResourceConfigScopeID(),
+		}).
+		Where(sq.Expr(
+			"version_md5 = md5(?)", versionJSON,
+		)).
+		RunWith(r.conn).
+		Exec()
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, error) {
@@ -328,7 +358,7 @@ func (r *resource) CurrentPinnedVersion() atc.Version {
 	return nil
 }
 
-func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error) {
+func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
 	query := `
 		SELECT v.id, v.version, v.metadata, v.check_order,
 			NOT EXISTS (
@@ -342,6 +372,16 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id AND v.check_order != 0
 	`
 
+	filterJSON := "{}"
+	if len(versionFilter) != 0 {
+		filterBytes, err := json.Marshal(versionFilter)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+
+		filterJSON = string(filterBytes)
+	}
+
 	var rows *sql.Rows
 	var err error
 	if page.Until != 0 {
@@ -349,22 +389,24 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			SELECT sub.*
 				FROM (
 						%s
+					AND version @> $4
 					AND v.check_order > (SELECT check_order FROM resource_config_versions WHERE id = $2)
 				ORDER BY v.check_order ASC
 				LIMIT $3
 			) sub
 			ORDER BY sub.check_order DESC
-		`, query), r.id, page.Until, page.Limit)
+		`, query), r.id, page.Until, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else if page.Since != 0 {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
+				AND version @> $4
 				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
-		`, query), r.id, page.Since, page.Limit)
+		`, query), r.id, page.Since, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
@@ -373,31 +415,34 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			SELECT sub.*
 				FROM (
 						%s
+					AND version @> $4
 					AND v.check_order >= (SELECT check_order FROM resource_config_versions WHERE id = $2)
 				ORDER BY v.check_order ASC
 				LIMIT $3
 			) sub
 			ORDER BY sub.check_order DESC
-		`, query), r.id, page.To, page.Limit)
+		`, query), r.id, page.To, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else if page.From != 0 {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
+				AND version @> $4
 				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
-		`, query), r.id, page.From, page.Limit)
+		`, query), r.id, page.From, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else {
 		rows, err = r.conn.Query(fmt.Sprintf(`
 			%s
+			AND version @> $3
 			ORDER BY v.check_order DESC
 			LIMIT $2
-		`, query), r.id, page.Limit)
+		`, query), r.id, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
@@ -588,7 +633,7 @@ func scanResource(r *resource, row scannable) error {
 		lastCheckStartTime, lastCheckEndTime                                        pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
 	if err != nil {
 		return err
 	}
@@ -615,7 +660,6 @@ func scanResource(r *resource, row scannable) error {
 	}
 
 	r.public = config.Public
-	r.type_ = config.Type
 	r.source = config.Source
 	r.checkEvery = config.CheckEvery
 	r.checkTimeout = config.CheckTimeout

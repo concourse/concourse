@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	. "github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -206,7 +205,7 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
-	Describe("FindContainerOnWorker/CreateContainer", func() {
+	Describe("FindContainer/CreateContainer", func() {
 		var (
 			containerMetadata ContainerMetadata
 			containerOwner    ContainerOwner
@@ -217,8 +216,8 @@ var _ = Describe("Worker", func() {
 		)
 
 		expiries := ContainerOwnerExpiries{
-			Min:       5 * time.Minute,
-			Max:       1 * time.Hour,
+			Min: 5 * time.Minute,
+			Max: 1 * time.Hour,
 		}
 
 		BeforeEach(func() {
@@ -237,10 +236,9 @@ var _ = Describe("Worker", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-				logger,
 				"some-resource-type",
 				atc.Source{"some": "source"},
-				creds.VersionedResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -249,7 +247,7 @@ var _ = Describe("Worker", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			foundCreatingContainer, foundCreatedContainer, err = worker.FindContainerOnWorker(containerOwner)
+			foundCreatingContainer, foundCreatedContainer, err = worker.FindContainer(containerOwner)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -384,6 +382,53 @@ var _ = Describe("Worker", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(teamID.Valid).To(BeTrue())
 				})
+			})
+		})
+	})
+
+	Describe("Active tasks", func() {
+		BeforeEach(func() {
+			var err error
+			worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when the worker registers", func() {
+			It("has no active tasks", func() {
+				at, err := worker.ActiveTasks()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(at).To(Equal(0))
+			})
+		})
+
+		Context("when the active task is increased", func() {
+			BeforeEach(func() {
+				err := worker.IncreaseActiveTasks()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("increase the active tasks counter", func() {
+				at, err := worker.ActiveTasks()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(at).To(Equal(1))
+			})
+			Context("when the active task is decreased", func() {
+				BeforeEach(func() {
+					err := worker.DecreaseActiveTasks()
+					Expect(err).ToNot(HaveOccurred())
+				})
+				It("reset the active tasks to 0", func() {
+					at, err := worker.ActiveTasks()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(at).To(Equal(0))
+				})
+			})
+		})
+
+		Context("when the active task is decreased below 0", func() {
+			It("raise an error", func() {
+				err := worker.DecreaseActiveTasks()
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})

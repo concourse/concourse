@@ -13,7 +13,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/creds"
@@ -21,6 +20,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/radar/radarfakes"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("Resources API", func() {
@@ -28,7 +28,7 @@ var _ = Describe("Resources API", func() {
 		fakePipeline *dbfakes.FakePipeline
 		resource1    *dbfakes.FakeResource
 		fakeaccess   = new(accessorfakes.FakeAccess)
-		variables    creds.Variables
+		variables    vars.Variables
 	)
 
 	BeforeEach(func() {
@@ -743,6 +743,7 @@ var _ = Describe("Resources API", func() {
 				})
 				resourceType1.CheckErrorReturns(nil)
 				resourceType1.CheckSetupErrorReturns(nil)
+				resourceType1.UniqueVersionHistoryReturns(true)
 
 				resourceType2 := new(dbfakes.FakeResourceType)
 				resourceType2.IDReturns(2)
@@ -802,10 +803,9 @@ var _ = Describe("Resources API", func() {
 					"name": "resource-type-1",
 					"type": "type-1",
 					"tags": ["tag1"],
-					"privileged": false,
 					"params": {"param-key-1": "param-value-1"},
 					"source": {"source-key-1": "source-value-1"},
-					"unique_version_history": false,
+					"unique_version_history": true,
 					"version": {
 						"version-key-1": "version-value-1",
 						"version-key-2": "version-value-2"
@@ -819,7 +819,6 @@ var _ = Describe("Resources API", func() {
 					"check_every": "10ms",
 					"params": {"param-key-2": "param-value-2"},
 					"source": {"source-key-2": "source-value-2"},
-					"unique_version_history": false,
 					"version": {
 						"version-key-2": "version-value-2"
 					}
@@ -852,10 +851,9 @@ var _ = Describe("Resources API", func() {
 				"name": "resource-type-1",
 				"type": "type-1",
 				"tags": ["tag1"],
-				"privileged": false,
 				"params": {"param-key-1": "param-value-1"},
 				"source": {"source-key-1": "source-value-1"},
-				"unique_version_history": false,
+				"unique_version_history": true,
 				"version": {
 					"version-key-1": "version-value-1",
 					"version-key-2": "version-value-2"
@@ -869,7 +867,6 @@ var _ = Describe("Resources API", func() {
 				"check_every": "10ms",
 				"params": {"param-key-2": "param-value-2"},
 				"source": {"source-key-2": "source-value-2"},
-				"unique_version_history": false,
 				"version": {
 					"version-key-2": "version-value-2"
 				},
@@ -1343,7 +1340,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				variables = template.StaticVariables{
+				variables = vars.StaticVariables{
 					"webhook-token": "fake-token",
 				}
 				token, err := creds.NewString(variables, "((webhook-token))").Evaluate()

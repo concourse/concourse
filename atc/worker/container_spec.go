@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type WorkerSpec struct {
@@ -14,7 +14,7 @@ type WorkerSpec struct {
 	ResourceType  string
 	Tags          []string
 	TeamID        int
-	ResourceTypes creds.VersionedResourceTypes
+	ResourceTypes atc.VersionedResourceTypes
 }
 
 type ContainerSpec struct {
@@ -23,6 +23,7 @@ type ContainerSpec struct {
 	TeamID    int
 	ImageSpec ImageSpec
 	Env       []string
+	Type      db.ContainerType
 
 	// Working directory for processes run in the container.
 	Dir string
@@ -71,7 +72,7 @@ type ImageSpec struct {
 
 type ImageResource struct {
 	Type    string
-	Source  creds.Source
+	Source  atc.Source
 	Params  *atc.Params
 	Version *atc.Version
 }

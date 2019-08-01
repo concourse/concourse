@@ -6,7 +6,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/resource"
@@ -36,7 +35,7 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Version{"some": "version"},
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
-			creds.VersionedResourceTypes{},
+			atc.VersionedResourceTypes{},
 			fakeResourceCache,
 			db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
 		)

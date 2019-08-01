@@ -5,7 +5,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/lib/pq"
 
@@ -22,17 +21,16 @@ var _ = Describe("ContainerRepository", func() {
 			)
 
 			expiries := db.ContainerOwnerExpiries{
-				Min:       5 * time.Minute,
-				Max:       1 * time.Hour,
+				Min: 5 * time.Minute,
+				Max: 1 * time.Hour,
 			}
 
 			BeforeEach(func() {
 				var err error
 				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
-					logger,
 					"some-base-resource-type",
 					atc.Source{"some": "source"},
-					creds.VersionedResourceTypes{},
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 

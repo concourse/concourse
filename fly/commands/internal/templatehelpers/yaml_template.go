@@ -2,12 +2,12 @@ package templatehelpers
 
 import (
 	"fmt"
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/template"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/vars"
+	"github.com/ghodss/yaml"
 )
 
 type YamlTemplateWithParams struct {
@@ -47,17 +47,17 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 		}
 	}
 
-	var params []boshtemplate.Variables
+	var params []vars.Variables
 
 	// first, we take explicitly specified variables on the command line
-	vars := boshtemplate.StaticVariables{}
+	flagVars := vars.StaticVariables{}
 	for _, f := range yamlTemplate.templateVariables {
-		vars[f.Name] = f.Value
+		flagVars[f.Name] = f.Value
 	}
 	for _, f := range yamlTemplate.yamlTemplateVariables {
-		vars[f.Name] = f.Value
+		flagVars[f.Name] = f.Value
 	}
-	params = append(params, vars)
+	params = append(params, flagVars)
 
 	// second, we take all files. with values in the files specified later on command line taking precedence over the
 	// same values in the files specified earlier on command line
@@ -68,7 +68,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 			return nil, fmt.Errorf("could not read template variables file (%s): %s", string(path), err.Error())
 		}
 
-		var staticVars boshtemplate.StaticVariables
+		var staticVars vars.StaticVariables
 		err = yaml.Unmarshal(templateVars, &staticVars)
 		if err != nil {
 			return nil, fmt.Errorf("could not unmarshal template variables (%s): %s", string(path), err.Error())
@@ -77,7 +77,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 		params = append(params, staticVars)
 	}
 
-	evaluatedConfig, err := template.NewTemplateResolver(config, params).Resolve(false, allowEmpty)
+	evaluatedConfig, err := vars.NewTemplateResolver(config, params).Resolve(false, allowEmpty)
 	if err != nil {
 		return nil, err
 	}

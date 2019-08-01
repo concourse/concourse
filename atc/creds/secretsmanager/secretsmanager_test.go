@@ -2,15 +2,16 @@ package secretsmanager_test
 
 import (
 	"errors"
-	"github.com/concourse/concourse/atc/creds"
 	"text/template"
+
+	"github.com/concourse/concourse/atc/creds"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
-	varTemplate "github.com/cloudfoundry/bosh-cli/director/template"
+	"github.com/concourse/concourse/vars"
 
 	. "github.com/concourse/concourse/atc/creds/secretsmanager"
 	. "github.com/onsi/ginkgo"
@@ -38,12 +39,12 @@ func (mock *MockSecretsManagerService) GetSecretValue(input *secretsmanager.GetS
 
 var _ = Describe("SecretsManager", func() {
 	var secretAccess *SecretsManager
-	var variables creds.Variables
-	var varDef varTemplate.VariableDefinition
+	var variables vars.Variables
+	var varDef vars.VariableDefinition
 	var mockService MockSecretsManagerService
 
 	JustBeforeEach(func() {
-		varDef = varTemplate.VariableDefinition{Name: "cheery"}
+		varDef = vars.VariableDefinition{Name: "cheery"}
 		t1, err := template.New("test").Parse(DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -75,10 +76,10 @@ var _ = Describe("SecretsManager", func() {
 					SecretBinary: []byte(`{"name": "yours", "pass": "truely"}`),
 				}, nil
 			}
-			value, found, err := variables.Get(varTemplate.VariableDefinition{Name: "user"})
+			value, found, err := variables.Get(vars.VariableDefinition{Name: "user"})
 			Expect(err).To(BeNil())
 			Expect(found).To(BeTrue())
-			Expect(value).To(BeEquivalentTo(map[interface{}]interface{}{
+			Expect(value).To(BeEquivalentTo(map[string]interface{}{
 				"name": "yours",
 				"pass": "truely",
 			}))

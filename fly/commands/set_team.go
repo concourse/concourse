@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/skymarshal/skycmd"
@@ -24,7 +25,7 @@ func WireTeamConnectors(command *flags.Command) {
 }
 
 type SetTeamCommand struct {
-	TeamName        string               `short:"n" long:"team-name" required:"true" description:"The team to create or modify"`
+	Team            flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true" description:"The team to create or modify"`
 	SkipInteractive bool                 `long:"non-interactive" description:"Force apply configuration"`
 	AuthFlags       skycmd.AuthTeamFlags `group:"Authentication"`
 }
@@ -52,7 +53,8 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 	sort.Strings(roles)
 
-	fmt.Println("setting team:", ui.Embolden("%s", command.TeamName))
+	teamName := command.Team.Name()
+	fmt.Println("setting team:", ui.Embolden("%s", teamName))
 
 	for _, role := range roles {
 		authUsers := authRoles[role]["users"]
@@ -95,7 +97,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	team := atc.Team{Auth: atc.TeamAuth(authRoles)}
 
-	_, created, updated, err := target.Client().Team(command.TeamName).CreateOrUpdate(team)
+	_, created, updated, err := target.Client().Team(teamName).CreateOrUpdate(team)
 	if err != nil {
 		return err
 	}

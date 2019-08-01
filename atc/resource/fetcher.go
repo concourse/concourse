@@ -8,7 +8,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -27,7 +27,7 @@ type Fetcher interface {
 		session Session,
 		gardenWorker worker.Worker,
 		containerSpec worker.ContainerSpec,
-		resourceTypes creds.VersionedResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		resourceInstance ResourceInstance,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (VersionedSource, error)
@@ -57,7 +57,7 @@ func (f *fetcher) Fetch(
 	session Session,
 	gardenWorker worker.Worker,
 	containerSpec worker.ContainerSpec,
-	resourceTypes creds.VersionedResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	resourceInstance ResourceInstance,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (VersionedSource, error) {

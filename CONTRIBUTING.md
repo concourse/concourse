@@ -169,16 +169,6 @@ $ yarn build
 When new assets are built locally, they will automatically propagate to the
 `web` container without requiring a restart.
 
-For a quicker feedback cycle, you'll probably want to use `watch` instead of
-`build`:
-
-```sh
-$ yarn watch
-```
-
-This will continuously monitor your local `.elm`/`.less` files and run `yarn
-build` whenever they change.
-
 ### Debugging with `dlv`
 
 With concourse already running, during local development is possible to attach
@@ -223,6 +213,45 @@ $ docker-compose rm db
 $ docker-compose start
 ```
 
+### Adding migrations
+
+Concourse database migrations live under `atc/db/migration/migrations`. They are
+generated using Concourse's own inbuilt migration library. The migration file 
+names are of the following format:
+```
+<migration_version>_<migration_name>.(up|down).(sql|go)
+```
+
+The migration version number is the timestamp of the time at which the migration
+files are created. This is to ensure that the migrations always run in order.
+There is a utility provided to generate migration files, located at 
+`atc/db/migration/cli`.
+
+To generate a migration:
+
+1. Build the CLI:
+
+```sh
+$ go build atc/db/migration/cli -o mig
+```
+2. Run the `generate` command. It takes the migration name, file type (SQL or Go)
+and optionally, the directory in which to put the migration files (by default, 
+new migrations are placed in `./migrations`):
+
+```sh
+$ ./mig generate -n my_migration_name -t sql
+```
+
+This should generate two files for you:
+``` 
+1510262030_my_migration_name.down.sql
+1510262030_my_migration_name.up.sql
+```
+
+Now that the migration files have been created in the right format, you can fill 
+the database up and down migrations in these files. On startup, `concourse web`
+will look for any new migrations in `atc/db/migration/migrations` and will run
+them in order.
 
 ## Testing your changes
 

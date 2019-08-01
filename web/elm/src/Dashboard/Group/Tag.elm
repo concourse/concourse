@@ -31,10 +31,10 @@ view : Bool -> Tag -> Html msg
 view isHd t =
     Html.div
         ([ style "border" ("1px solid " ++ Colors.white)
+         , style "display" "inline-block"
          , style "font-size" "0.7em"
-         , style "padding" "0.5em 0"
+         , style "padding" "0.5em"
          , style "line-height" "0.9em"
-         , style "width" "6em"
          , style "text-align" "center"
          , style "letter-spacing" "0.2em"
          ]

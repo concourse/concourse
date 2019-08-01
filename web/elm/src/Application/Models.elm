@@ -1,7 +1,7 @@
 module Application.Models exposing (Session)
 
 import Concourse
-import Message.Message as Message
+import HoverState
 import SideBar.SideBar as SideBar
 import Time
 import UserState exposing (UserState)
@@ -10,7 +10,7 @@ import UserState exposing (UserState)
 type alias Session =
     SideBar.Model
         { userState : UserState
-        , hovered : Maybe Message.DomID
+        , hovered : HoverState.HoverState
         , clusterName : String
         , turbulenceImgSrc : String
         , notFoundImgSrc : String

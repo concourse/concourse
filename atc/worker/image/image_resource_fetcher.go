@@ -2,15 +2,14 @@ package image
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
@@ -32,7 +31,7 @@ type ImageResourceFetcherFactory interface {
 		worker.ImageResource,
 		atc.Version,
 		int,
-		creds.VersionedResourceTypes,
+		atc.VersionedResourceTypes,
 		worker.ImageFetchingDelegate,
 	) ImageResourceFetcher
 }
@@ -74,7 +73,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	imageResource worker.ImageResource,
 	version atc.Version,
 	teamID int,
-	customTypes creds.VersionedResourceTypes,
+	customTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) ImageResourceFetcher {
 	return &imageResourceFetcher{
@@ -102,7 +101,7 @@ type imageResourceFetcher struct {
 	imageResource         worker.ImageResource
 	version               atc.Version
 	teamID                int
-	customTypes           creds.VersionedResourceTypes
+	customTypes           atc.VersionedResourceTypes
 	imageFetchingDelegate worker.ImageFetchingDelegate
 }
 
@@ -122,22 +121,16 @@ func (i *imageResourceFetcher) Fetch(
 		}
 	}
 
-	source, err := i.imageResource.Source.Evaluate()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
 	var params atc.Params
 	if i.imageResource.Params != nil {
 		params = *i.imageResource.Params
 	}
 
 	resourceCache, err := i.dbResourceCacheFactory.FindOrCreateResourceCache(
-		logger,
 		db.ForContainer(container.ID()),
 		i.imageResource.Type,
 		version,
-		source,
+		i.imageResource.Source,
 		params,
 		i.customTypes,
 	)
@@ -149,7 +142,7 @@ func (i *imageResourceFetcher) Fetch(
 	resourceInstance := resource.NewResourceInstance(
 		resource.ResourceType(i.imageResource.Type),
 		version,
-		source,
+		i.imageResource.Source,
 		params,
 		i.customTypes,
 		resourceCache,
@@ -201,21 +194,20 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	gzReader, err := gzip.NewReader(reader)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	tarReader := tar.NewReader(gzReader)
+	zstdReader := zstd.NewReader(reader)
+	tarReader := tar.NewReader(zstdReader)
 
 	_, err = tarReader.Next()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("could not read file \"%s\" from tar", ImageMetadataFile)
 	}
 
-	releasingReader := &readCloser{
-		Reader: tarReader,
-		Closer: reader,
+	releasingReader := &fileReadMultiCloser{
+		reader: tarReader,
+		closers: []io.Closer{
+			reader,
+			zstdReader,
+		},
 	}
 
 	return volume, releasingReader, version, nil
@@ -225,7 +217,7 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	ctx context.Context,
 	logger lager.Logger,
 	container db.CreatingContainer,
-	resourceType creds.VersionedResourceType,
+	resourceType atc.VersionedResourceType,
 ) error {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
@@ -237,11 +229,13 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		},
 	}
 
+	owner := db.NewImageCheckContainerOwner(container, i.teamID)
+
 	resourceTypeContainer, err := i.worker.FindOrCreateContainer(
 		ctx,
 		logger,
 		worker.NoopImageFetchingDelegate{},
-		db.NewImageCheckContainerOwner(container, i.teamID),
+		owner,
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
@@ -252,13 +246,8 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		return err
 	}
 
-	source, err := resourceType.Source.Evaluate()
-	if err != nil {
-		return err
-	}
-
 	checkResourceType := i.resourceFactory.NewResourceForContainer(resourceTypeContainer)
-	versions, err := checkResourceType.Check(context.TODO(), source, nil)
+	versions, err := checkResourceType.Check(context.TODO(), resourceType.Source, nil)
 	if err != nil {
 		return err
 	}
@@ -298,16 +287,13 @@ func (i *imageResourceFetcher) getLatestVersion(
 		},
 	}
 
-	source, err := i.imageResource.Source.Evaluate()
-	if err != nil {
-		return nil, err
-	}
+	owner := db.NewImageCheckContainerOwner(container, i.teamID)
 
 	imageContainer, err := i.worker.FindOrCreateContainer(
 		ctx,
 		logger,
 		i.imageFetchingDelegate,
-		db.NewImageCheckContainerOwner(container, i.teamID),
+		owner,
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},
@@ -319,7 +305,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 	}
 
 	checkingResource := i.resourceFactory.NewResourceForContainer(imageContainer)
-	versions, err := checkingResource.Check(context.TODO(), source, nil)
+	versions, err := checkingResource.Check(context.TODO(), i.imageResource.Source, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +317,22 @@ func (i *imageResourceFetcher) getLatestVersion(
 	return versions[0], nil
 }
 
-type readCloser struct {
-	io.Reader
-	io.Closer
+type fileReadMultiCloser struct {
+	reader  io.Reader
+	closers []io.Closer
+}
+
+func (frc fileReadMultiCloser) Read(p []byte) (n int, err error) {
+	return frc.reader.Read(p)
+}
+
+func (frc fileReadMultiCloser) Close() error {
+	for _, closer := range frc.closers {
+		err := closer.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

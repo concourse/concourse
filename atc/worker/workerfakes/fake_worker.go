@@ -6,35 +6,26 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
 type FakeWorker struct {
-	ActiveContainersStub        func() int
-	activeContainersMutex       sync.RWMutex
-	activeContainersArgsForCall []struct {
+	ActiveTasksStub        func() (int, error)
+	activeTasksMutex       sync.RWMutex
+	activeTasksArgsForCall []struct {
 	}
-	activeContainersReturns struct {
+	activeTasksReturns struct {
 		result1 int
+		result2 error
 	}
-	activeContainersReturnsOnCall map[int]struct {
+	activeTasksReturnsOnCall map[int]struct {
 		result1 int
-	}
-	ActiveVolumesStub        func() int
-	activeVolumesMutex       sync.RWMutex
-	activeVolumesArgsForCall []struct {
-	}
-	activeVolumesReturns struct {
-		result1 int
-	}
-	activeVolumesReturnsOnCall map[int]struct {
-		result1 int
+		result2 error
 	}
 	BuildContainersStub        func() int
 	buildContainersMutex       sync.RWMutex
@@ -77,6 +68,16 @@ type FakeWorker struct {
 		result1 worker.Volume
 		result2 error
 	}
+	DecreaseActiveTasksStub        func() error
+	decreaseActiveTasksMutex       sync.RWMutex
+	decreaseActiveTasksArgsForCall []struct {
+	}
+	decreaseActiveTasksReturns struct {
+		result1 error
+	}
+	decreaseActiveTasksReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DescriptionStub        func() string
 	descriptionMutex       sync.RWMutex
 	descriptionArgsForCall []struct {
@@ -86,6 +87,20 @@ type FakeWorker struct {
 	}
 	descriptionReturnsOnCall map[int]struct {
 		result1 string
+	}
+	EnsureDBContainerExistsStub        func(context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata) error
+	ensureDBContainerExistsMutex       sync.RWMutex
+	ensureDBContainerExistsArgsForCall []struct {
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.ContainerOwner
+		arg4 db.ContainerMetadata
+	}
+	ensureDBContainerExistsReturns struct {
+		result1 error
+	}
+	ensureDBContainerExistsReturnsOnCall map[int]struct {
+		result1 error
 	}
 	EphemeralStub        func() bool
 	ephemeralMutex       sync.RWMutex
@@ -114,7 +129,7 @@ type FakeWorker struct {
 		result2 bool
 		result3 error
 	}
-	FindOrCreateContainerStub        func(context.Context, lager.Logger, worker.ImageFetchingDelegate, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) (worker.Container, error)
+	FindOrCreateContainerStub        func(context.Context, lager.Logger, worker.ImageFetchingDelegate, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes) (worker.Container, error)
 	findOrCreateContainerMutex       sync.RWMutex
 	findOrCreateContainerArgsForCall []struct {
 		arg1 context.Context
@@ -123,7 +138,7 @@ type FakeWorker struct {
 		arg4 db.ContainerOwner
 		arg5 db.ContainerMetadata
 		arg6 worker.ContainerSpec
-		arg7 creds.VersionedResourceTypes
+		arg7 atc.VersionedResourceTypes
 	}
 	findOrCreateContainerReturns struct {
 		result1 worker.Container
@@ -168,15 +183,25 @@ type FakeWorker struct {
 		result2 bool
 		result3 error
 	}
-	GardenClientStub        func() garden.Client
+	GardenClientStub        func() gclient.Client
 	gardenClientMutex       sync.RWMutex
 	gardenClientArgsForCall []struct {
 	}
 	gardenClientReturns struct {
-		result1 garden.Client
+		result1 gclient.Client
 	}
 	gardenClientReturnsOnCall map[int]struct {
-		result1 garden.Client
+		result1 gclient.Client
+	}
+	IncreaseActiveTasksStub        func() error
+	increaseActiveTasksMutex       sync.RWMutex
+	increaseActiveTasksArgsForCall []struct {
+	}
+	increaseActiveTasksReturns struct {
+		result1 error
+	}
+	increaseActiveTasksReturnsOnCall map[int]struct {
+		result1 error
 	}
 	IsOwnedByTeamStub        func() bool
 	isOwnedByTeamMutex       sync.RWMutex
@@ -272,108 +297,59 @@ type FakeWorker struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeWorker) ActiveContainers() int {
-	fake.activeContainersMutex.Lock()
-	ret, specificReturn := fake.activeContainersReturnsOnCall[len(fake.activeContainersArgsForCall)]
-	fake.activeContainersArgsForCall = append(fake.activeContainersArgsForCall, struct {
+func (fake *FakeWorker) ActiveTasks() (int, error) {
+	fake.activeTasksMutex.Lock()
+	ret, specificReturn := fake.activeTasksReturnsOnCall[len(fake.activeTasksArgsForCall)]
+	fake.activeTasksArgsForCall = append(fake.activeTasksArgsForCall, struct {
 	}{})
-	fake.recordInvocation("ActiveContainers", []interface{}{})
-	fake.activeContainersMutex.Unlock()
-	if fake.ActiveContainersStub != nil {
-		return fake.ActiveContainersStub()
+	fake.recordInvocation("ActiveTasks", []interface{}{})
+	fake.activeTasksMutex.Unlock()
+	if fake.ActiveTasksStub != nil {
+		return fake.ActiveTasksStub()
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.activeContainersReturns
-	return fakeReturns.result1
+	fakeReturns := fake.activeTasksReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeWorker) ActiveContainersCallCount() int {
-	fake.activeContainersMutex.RLock()
-	defer fake.activeContainersMutex.RUnlock()
-	return len(fake.activeContainersArgsForCall)
+func (fake *FakeWorker) ActiveTasksCallCount() int {
+	fake.activeTasksMutex.RLock()
+	defer fake.activeTasksMutex.RUnlock()
+	return len(fake.activeTasksArgsForCall)
 }
 
-func (fake *FakeWorker) ActiveContainersCalls(stub func() int) {
-	fake.activeContainersMutex.Lock()
-	defer fake.activeContainersMutex.Unlock()
-	fake.ActiveContainersStub = stub
+func (fake *FakeWorker) ActiveTasksCalls(stub func() (int, error)) {
+	fake.activeTasksMutex.Lock()
+	defer fake.activeTasksMutex.Unlock()
+	fake.ActiveTasksStub = stub
 }
 
-func (fake *FakeWorker) ActiveContainersReturns(result1 int) {
-	fake.activeContainersMutex.Lock()
-	defer fake.activeContainersMutex.Unlock()
-	fake.ActiveContainersStub = nil
-	fake.activeContainersReturns = struct {
+func (fake *FakeWorker) ActiveTasksReturns(result1 int, result2 error) {
+	fake.activeTasksMutex.Lock()
+	defer fake.activeTasksMutex.Unlock()
+	fake.ActiveTasksStub = nil
+	fake.activeTasksReturns = struct {
 		result1 int
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeWorker) ActiveContainersReturnsOnCall(i int, result1 int) {
-	fake.activeContainersMutex.Lock()
-	defer fake.activeContainersMutex.Unlock()
-	fake.ActiveContainersStub = nil
-	if fake.activeContainersReturnsOnCall == nil {
-		fake.activeContainersReturnsOnCall = make(map[int]struct {
+func (fake *FakeWorker) ActiveTasksReturnsOnCall(i int, result1 int, result2 error) {
+	fake.activeTasksMutex.Lock()
+	defer fake.activeTasksMutex.Unlock()
+	fake.ActiveTasksStub = nil
+	if fake.activeTasksReturnsOnCall == nil {
+		fake.activeTasksReturnsOnCall = make(map[int]struct {
 			result1 int
+			result2 error
 		})
 	}
-	fake.activeContainersReturnsOnCall[i] = struct {
+	fake.activeTasksReturnsOnCall[i] = struct {
 		result1 int
-	}{result1}
-}
-
-func (fake *FakeWorker) ActiveVolumes() int {
-	fake.activeVolumesMutex.Lock()
-	ret, specificReturn := fake.activeVolumesReturnsOnCall[len(fake.activeVolumesArgsForCall)]
-	fake.activeVolumesArgsForCall = append(fake.activeVolumesArgsForCall, struct {
-	}{})
-	fake.recordInvocation("ActiveVolumes", []interface{}{})
-	fake.activeVolumesMutex.Unlock()
-	if fake.ActiveVolumesStub != nil {
-		return fake.ActiveVolumesStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.activeVolumesReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeWorker) ActiveVolumesCallCount() int {
-	fake.activeVolumesMutex.RLock()
-	defer fake.activeVolumesMutex.RUnlock()
-	return len(fake.activeVolumesArgsForCall)
-}
-
-func (fake *FakeWorker) ActiveVolumesCalls(stub func() int) {
-	fake.activeVolumesMutex.Lock()
-	defer fake.activeVolumesMutex.Unlock()
-	fake.ActiveVolumesStub = stub
-}
-
-func (fake *FakeWorker) ActiveVolumesReturns(result1 int) {
-	fake.activeVolumesMutex.Lock()
-	defer fake.activeVolumesMutex.Unlock()
-	fake.ActiveVolumesStub = nil
-	fake.activeVolumesReturns = struct {
-		result1 int
-	}{result1}
-}
-
-func (fake *FakeWorker) ActiveVolumesReturnsOnCall(i int, result1 int) {
-	fake.activeVolumesMutex.Lock()
-	defer fake.activeVolumesMutex.Unlock()
-	fake.ActiveVolumesStub = nil
-	if fake.activeVolumesReturnsOnCall == nil {
-		fake.activeVolumesReturnsOnCall = make(map[int]struct {
-			result1 int
-		})
-	}
-	fake.activeVolumesReturnsOnCall[i] = struct {
-		result1 int
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeWorker) BuildContainers() int {
@@ -560,6 +536,58 @@ func (fake *FakeWorker) CreateVolumeReturnsOnCall(i int, result1 worker.Volume, 
 	}{result1, result2}
 }
 
+func (fake *FakeWorker) DecreaseActiveTasks() error {
+	fake.decreaseActiveTasksMutex.Lock()
+	ret, specificReturn := fake.decreaseActiveTasksReturnsOnCall[len(fake.decreaseActiveTasksArgsForCall)]
+	fake.decreaseActiveTasksArgsForCall = append(fake.decreaseActiveTasksArgsForCall, struct {
+	}{})
+	fake.recordInvocation("DecreaseActiveTasks", []interface{}{})
+	fake.decreaseActiveTasksMutex.Unlock()
+	if fake.DecreaseActiveTasksStub != nil {
+		return fake.DecreaseActiveTasksStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.decreaseActiveTasksReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) DecreaseActiveTasksCallCount() int {
+	fake.decreaseActiveTasksMutex.RLock()
+	defer fake.decreaseActiveTasksMutex.RUnlock()
+	return len(fake.decreaseActiveTasksArgsForCall)
+}
+
+func (fake *FakeWorker) DecreaseActiveTasksCalls(stub func() error) {
+	fake.decreaseActiveTasksMutex.Lock()
+	defer fake.decreaseActiveTasksMutex.Unlock()
+	fake.DecreaseActiveTasksStub = stub
+}
+
+func (fake *FakeWorker) DecreaseActiveTasksReturns(result1 error) {
+	fake.decreaseActiveTasksMutex.Lock()
+	defer fake.decreaseActiveTasksMutex.Unlock()
+	fake.DecreaseActiveTasksStub = nil
+	fake.decreaseActiveTasksReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorker) DecreaseActiveTasksReturnsOnCall(i int, result1 error) {
+	fake.decreaseActiveTasksMutex.Lock()
+	defer fake.decreaseActiveTasksMutex.Unlock()
+	fake.DecreaseActiveTasksStub = nil
+	if fake.decreaseActiveTasksReturnsOnCall == nil {
+		fake.decreaseActiveTasksReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.decreaseActiveTasksReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeWorker) Description() string {
 	fake.descriptionMutex.Lock()
 	ret, specificReturn := fake.descriptionReturnsOnCall[len(fake.descriptionArgsForCall)]
@@ -609,6 +637,69 @@ func (fake *FakeWorker) DescriptionReturnsOnCall(i int, result1 string) {
 	}
 	fake.descriptionReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeWorker) EnsureDBContainerExists(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 db.ContainerMetadata) error {
+	fake.ensureDBContainerExistsMutex.Lock()
+	ret, specificReturn := fake.ensureDBContainerExistsReturnsOnCall[len(fake.ensureDBContainerExistsArgsForCall)]
+	fake.ensureDBContainerExistsArgsForCall = append(fake.ensureDBContainerExistsArgsForCall, struct {
+		arg1 context.Context
+		arg2 lager.Logger
+		arg3 db.ContainerOwner
+		arg4 db.ContainerMetadata
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("EnsureDBContainerExists", []interface{}{arg1, arg2, arg3, arg4})
+	fake.ensureDBContainerExistsMutex.Unlock()
+	if fake.EnsureDBContainerExistsStub != nil {
+		return fake.EnsureDBContainerExistsStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.ensureDBContainerExistsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) EnsureDBContainerExistsCallCount() int {
+	fake.ensureDBContainerExistsMutex.RLock()
+	defer fake.ensureDBContainerExistsMutex.RUnlock()
+	return len(fake.ensureDBContainerExistsArgsForCall)
+}
+
+func (fake *FakeWorker) EnsureDBContainerExistsCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata) error) {
+	fake.ensureDBContainerExistsMutex.Lock()
+	defer fake.ensureDBContainerExistsMutex.Unlock()
+	fake.EnsureDBContainerExistsStub = stub
+}
+
+func (fake *FakeWorker) EnsureDBContainerExistsArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata) {
+	fake.ensureDBContainerExistsMutex.RLock()
+	defer fake.ensureDBContainerExistsMutex.RUnlock()
+	argsForCall := fake.ensureDBContainerExistsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeWorker) EnsureDBContainerExistsReturns(result1 error) {
+	fake.ensureDBContainerExistsMutex.Lock()
+	defer fake.ensureDBContainerExistsMutex.Unlock()
+	fake.EnsureDBContainerExistsStub = nil
+	fake.ensureDBContainerExistsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorker) EnsureDBContainerExistsReturnsOnCall(i int, result1 error) {
+	fake.ensureDBContainerExistsMutex.Lock()
+	defer fake.ensureDBContainerExistsMutex.Unlock()
+	fake.EnsureDBContainerExistsStub = nil
+	if fake.ensureDBContainerExistsReturnsOnCall == nil {
+		fake.ensureDBContainerExistsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.ensureDBContainerExistsReturnsOnCall[i] = struct {
+		result1 error
 	}{result1}
 }
 
@@ -732,7 +823,7 @@ func (fake *FakeWorker) FindContainerByHandleReturnsOnCall(i int, result1 worker
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) FindOrCreateContainer(arg1 context.Context, arg2 lager.Logger, arg3 worker.ImageFetchingDelegate, arg4 db.ContainerOwner, arg5 db.ContainerMetadata, arg6 worker.ContainerSpec, arg7 creds.VersionedResourceTypes) (worker.Container, error) {
+func (fake *FakeWorker) FindOrCreateContainer(arg1 context.Context, arg2 lager.Logger, arg3 worker.ImageFetchingDelegate, arg4 db.ContainerOwner, arg5 db.ContainerMetadata, arg6 worker.ContainerSpec, arg7 atc.VersionedResourceTypes) (worker.Container, error) {
 	fake.findOrCreateContainerMutex.Lock()
 	ret, specificReturn := fake.findOrCreateContainerReturnsOnCall[len(fake.findOrCreateContainerArgsForCall)]
 	fake.findOrCreateContainerArgsForCall = append(fake.findOrCreateContainerArgsForCall, struct {
@@ -742,7 +833,7 @@ func (fake *FakeWorker) FindOrCreateContainer(arg1 context.Context, arg2 lager.L
 		arg4 db.ContainerOwner
 		arg5 db.ContainerMetadata
 		arg6 worker.ContainerSpec
-		arg7 creds.VersionedResourceTypes
+		arg7 atc.VersionedResourceTypes
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.recordInvocation("FindOrCreateContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.findOrCreateContainerMutex.Unlock()
@@ -762,13 +853,13 @@ func (fake *FakeWorker) FindOrCreateContainerCallCount() int {
 	return len(fake.findOrCreateContainerArgsForCall)
 }
 
-func (fake *FakeWorker) FindOrCreateContainerCalls(stub func(context.Context, lager.Logger, worker.ImageFetchingDelegate, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) (worker.Container, error)) {
+func (fake *FakeWorker) FindOrCreateContainerCalls(stub func(context.Context, lager.Logger, worker.ImageFetchingDelegate, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes) (worker.Container, error)) {
 	fake.findOrCreateContainerMutex.Lock()
 	defer fake.findOrCreateContainerMutex.Unlock()
 	fake.FindOrCreateContainerStub = stub
 }
 
-func (fake *FakeWorker) FindOrCreateContainerArgsForCall(i int) (context.Context, lager.Logger, worker.ImageFetchingDelegate, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, creds.VersionedResourceTypes) {
+func (fake *FakeWorker) FindOrCreateContainerArgsForCall(i int) (context.Context, lager.Logger, worker.ImageFetchingDelegate, db.ContainerOwner, db.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes) {
 	fake.findOrCreateContainerMutex.RLock()
 	defer fake.findOrCreateContainerMutex.RUnlock()
 	argsForCall := fake.findOrCreateContainerArgsForCall[i]
@@ -938,7 +1029,7 @@ func (fake *FakeWorker) FindVolumeForTaskCacheReturnsOnCall(i int, result1 worke
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) GardenClient() garden.Client {
+func (fake *FakeWorker) GardenClient() gclient.Client {
 	fake.gardenClientMutex.Lock()
 	ret, specificReturn := fake.gardenClientReturnsOnCall[len(fake.gardenClientArgsForCall)]
 	fake.gardenClientArgsForCall = append(fake.gardenClientArgsForCall, struct {
@@ -961,32 +1052,84 @@ func (fake *FakeWorker) GardenClientCallCount() int {
 	return len(fake.gardenClientArgsForCall)
 }
 
-func (fake *FakeWorker) GardenClientCalls(stub func() garden.Client) {
+func (fake *FakeWorker) GardenClientCalls(stub func() gclient.Client) {
 	fake.gardenClientMutex.Lock()
 	defer fake.gardenClientMutex.Unlock()
 	fake.GardenClientStub = stub
 }
 
-func (fake *FakeWorker) GardenClientReturns(result1 garden.Client) {
+func (fake *FakeWorker) GardenClientReturns(result1 gclient.Client) {
 	fake.gardenClientMutex.Lock()
 	defer fake.gardenClientMutex.Unlock()
 	fake.GardenClientStub = nil
 	fake.gardenClientReturns = struct {
-		result1 garden.Client
+		result1 gclient.Client
 	}{result1}
 }
 
-func (fake *FakeWorker) GardenClientReturnsOnCall(i int, result1 garden.Client) {
+func (fake *FakeWorker) GardenClientReturnsOnCall(i int, result1 gclient.Client) {
 	fake.gardenClientMutex.Lock()
 	defer fake.gardenClientMutex.Unlock()
 	fake.GardenClientStub = nil
 	if fake.gardenClientReturnsOnCall == nil {
 		fake.gardenClientReturnsOnCall = make(map[int]struct {
-			result1 garden.Client
+			result1 gclient.Client
 		})
 	}
 	fake.gardenClientReturnsOnCall[i] = struct {
-		result1 garden.Client
+		result1 gclient.Client
+	}{result1}
+}
+
+func (fake *FakeWorker) IncreaseActiveTasks() error {
+	fake.increaseActiveTasksMutex.Lock()
+	ret, specificReturn := fake.increaseActiveTasksReturnsOnCall[len(fake.increaseActiveTasksArgsForCall)]
+	fake.increaseActiveTasksArgsForCall = append(fake.increaseActiveTasksArgsForCall, struct {
+	}{})
+	fake.recordInvocation("IncreaseActiveTasks", []interface{}{})
+	fake.increaseActiveTasksMutex.Unlock()
+	if fake.IncreaseActiveTasksStub != nil {
+		return fake.IncreaseActiveTasksStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.increaseActiveTasksReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) IncreaseActiveTasksCallCount() int {
+	fake.increaseActiveTasksMutex.RLock()
+	defer fake.increaseActiveTasksMutex.RUnlock()
+	return len(fake.increaseActiveTasksArgsForCall)
+}
+
+func (fake *FakeWorker) IncreaseActiveTasksCalls(stub func() error) {
+	fake.increaseActiveTasksMutex.Lock()
+	defer fake.increaseActiveTasksMutex.Unlock()
+	fake.IncreaseActiveTasksStub = stub
+}
+
+func (fake *FakeWorker) IncreaseActiveTasksReturns(result1 error) {
+	fake.increaseActiveTasksMutex.Lock()
+	defer fake.increaseActiveTasksMutex.Unlock()
+	fake.IncreaseActiveTasksStub = nil
+	fake.increaseActiveTasksReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorker) IncreaseActiveTasksReturnsOnCall(i int, result1 error) {
+	fake.increaseActiveTasksMutex.Lock()
+	defer fake.increaseActiveTasksMutex.Unlock()
+	fake.IncreaseActiveTasksStub = nil
+	if fake.increaseActiveTasksReturnsOnCall == nil {
+		fake.increaseActiveTasksReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.increaseActiveTasksReturnsOnCall[i] = struct {
+		result1 error
 	}{result1}
 }
 
@@ -1442,18 +1585,20 @@ func (fake *FakeWorker) UptimeReturnsOnCall(i int, result1 time.Duration) {
 func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.activeContainersMutex.RLock()
-	defer fake.activeContainersMutex.RUnlock()
-	fake.activeVolumesMutex.RLock()
-	defer fake.activeVolumesMutex.RUnlock()
+	fake.activeTasksMutex.RLock()
+	defer fake.activeTasksMutex.RUnlock()
 	fake.buildContainersMutex.RLock()
 	defer fake.buildContainersMutex.RUnlock()
 	fake.certsVolumeMutex.RLock()
 	defer fake.certsVolumeMutex.RUnlock()
 	fake.createVolumeMutex.RLock()
 	defer fake.createVolumeMutex.RUnlock()
+	fake.decreaseActiveTasksMutex.RLock()
+	defer fake.decreaseActiveTasksMutex.RUnlock()
 	fake.descriptionMutex.RLock()
 	defer fake.descriptionMutex.RUnlock()
+	fake.ensureDBContainerExistsMutex.RLock()
+	defer fake.ensureDBContainerExistsMutex.RUnlock()
 	fake.ephemeralMutex.RLock()
 	defer fake.ephemeralMutex.RUnlock()
 	fake.findContainerByHandleMutex.RLock()
@@ -1466,6 +1611,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.findVolumeForTaskCacheMutex.RUnlock()
 	fake.gardenClientMutex.RLock()
 	defer fake.gardenClientMutex.RUnlock()
+	fake.increaseActiveTasksMutex.RLock()
+	defer fake.increaseActiveTasksMutex.RUnlock()
 	fake.isOwnedByTeamMutex.RLock()
 	defer fake.isOwnedByTeamMutex.RUnlock()
 	fake.isVersionCompatibleMutex.RLock()

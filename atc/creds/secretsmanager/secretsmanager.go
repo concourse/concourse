@@ -62,7 +62,7 @@ func (s *SecretsManager) Get(secretPath string) (interface{}, *time.Time, bool, 
 
 /*
 	Looks up secret by name. Depending on which field is filled it will either
-	return a string value (SecretString) or a map[interface{}]interface{} (SecretBinary).
+	return a string value (SecretString) or a map[string]interface{} (SecretBinary).
 
 	In case SecretBinary is set, it is expected to be a valid JSON object or it will error.
 */
@@ -88,16 +88,12 @@ func (s *SecretsManager) getSecretById(name string) (interface{}, *time.Time, bo
 	return nil, nil, false, err
 }
 
-func decodeJsonValue(data []byte) (map[interface{}]interface{}, error) {
+func decodeJsonValue(data []byte) (map[string]interface{}, error) {
 	var values map[string]interface{}
 	if err := json.Unmarshal(data, &values); err != nil {
 		return nil, err
 	}
-	evenLessTyped := map[interface{}]interface{}{}
-	for k, v := range values {
-		evenLessTyped[k] = v
-	}
-	return evenLessTyped, nil
+	return values, nil
 }
 
 // SecretLookupPathAws is an implementation which returns an evaluated go text template

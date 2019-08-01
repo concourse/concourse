@@ -45,12 +45,16 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		WorkerName: registration.Name,
 		Containers: registration.ActiveContainers,
 		Platform:   registration.Platform,
+		TeamName:   registration.Team,
+		Tags:       registration.Tags,
 	}.Emit(s.logger)
 
 	metric.WorkerVolumes{
 		WorkerName: registration.Name,
 		Volumes:    registration.ActiveVolumes,
 		Platform:   registration.Platform,
+		TeamName:   registration.Team,
+		Tags:       registration.Tags,
 	}.Emit(s.logger)
 
 	savedWorker, err := s.dbWorkerFactory.HeartbeatWorker(registration, ttl)
@@ -65,6 +69,18 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	activeTasks, err := savedWorker.ActiveTasks()
+
+	if err != nil {
+		logger.Info("failed-to-get-worker-active-tasks")
+	}
+
+	metric.WorkerTasks{
+		WorkerName: registration.Name,
+		Tasks:      activeTasks,
+		Platform:   registration.Platform,
+	}.Emit(s.logger)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

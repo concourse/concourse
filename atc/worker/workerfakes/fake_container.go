@@ -2,6 +2,7 @@
 package workerfakes
 
 import (
+	"context"
 	"io"
 	"sync"
 	"time"
@@ -11,11 +12,12 @@ import (
 )
 
 type FakeContainer struct {
-	AttachStub        func(string, garden.ProcessIO) (garden.Process, error)
+	AttachStub        func(context.Context, string, garden.ProcessIO) (garden.Process, error)
 	attachMutex       sync.RWMutex
 	attachArgsForCall []struct {
-		arg1 string
-		arg2 garden.ProcessIO
+		arg1 context.Context
+		arg2 string
+		arg3 garden.ProcessIO
 	}
 	attachReturns struct {
 		result1 garden.Process
@@ -201,11 +203,12 @@ type FakeContainer struct {
 	removePropertyReturnsOnCall map[int]struct {
 		result1 error
 	}
-	RunStub        func(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
+	RunStub        func(context.Context, garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
 	runMutex       sync.RWMutex
 	runArgsForCall []struct {
-		arg1 garden.ProcessSpec
-		arg2 garden.ProcessIO
+		arg1 context.Context
+		arg2 garden.ProcessSpec
+		arg3 garden.ProcessIO
 	}
 	runReturns struct {
 		result1 garden.Process
@@ -297,17 +300,18 @@ type FakeContainer struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainer) Attach(arg1 string, arg2 garden.ProcessIO) (garden.Process, error) {
+func (fake *FakeContainer) Attach(arg1 context.Context, arg2 string, arg3 garden.ProcessIO) (garden.Process, error) {
 	fake.attachMutex.Lock()
 	ret, specificReturn := fake.attachReturnsOnCall[len(fake.attachArgsForCall)]
 	fake.attachArgsForCall = append(fake.attachArgsForCall, struct {
-		arg1 string
-		arg2 garden.ProcessIO
-	}{arg1, arg2})
-	fake.recordInvocation("Attach", []interface{}{arg1, arg2})
+		arg1 context.Context
+		arg2 string
+		arg3 garden.ProcessIO
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Attach", []interface{}{arg1, arg2, arg3})
 	fake.attachMutex.Unlock()
 	if fake.AttachStub != nil {
-		return fake.AttachStub(arg1, arg2)
+		return fake.AttachStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -322,17 +326,17 @@ func (fake *FakeContainer) AttachCallCount() int {
 	return len(fake.attachArgsForCall)
 }
 
-func (fake *FakeContainer) AttachCalls(stub func(string, garden.ProcessIO) (garden.Process, error)) {
+func (fake *FakeContainer) AttachCalls(stub func(context.Context, string, garden.ProcessIO) (garden.Process, error)) {
 	fake.attachMutex.Lock()
 	defer fake.attachMutex.Unlock()
 	fake.AttachStub = stub
 }
 
-func (fake *FakeContainer) AttachArgsForCall(i int) (string, garden.ProcessIO) {
+func (fake *FakeContainer) AttachArgsForCall(i int) (context.Context, string, garden.ProcessIO) {
 	fake.attachMutex.RLock()
 	defer fake.attachMutex.RUnlock()
 	argsForCall := fake.attachArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeContainer) AttachReturns(result1 garden.Process, result2 error) {
@@ -1217,17 +1221,18 @@ func (fake *FakeContainer) RemovePropertyReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeContainer) Run(arg1 garden.ProcessSpec, arg2 garden.ProcessIO) (garden.Process, error) {
+func (fake *FakeContainer) Run(arg1 context.Context, arg2 garden.ProcessSpec, arg3 garden.ProcessIO) (garden.Process, error) {
 	fake.runMutex.Lock()
 	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
-		arg1 garden.ProcessSpec
-		arg2 garden.ProcessIO
-	}{arg1, arg2})
-	fake.recordInvocation("Run", []interface{}{arg1, arg2})
+		arg1 context.Context
+		arg2 garden.ProcessSpec
+		arg3 garden.ProcessIO
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Run", []interface{}{arg1, arg2, arg3})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		return fake.RunStub(arg1, arg2)
+		return fake.RunStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1242,17 +1247,17 @@ func (fake *FakeContainer) RunCallCount() int {
 	return len(fake.runArgsForCall)
 }
 
-func (fake *FakeContainer) RunCalls(stub func(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)) {
+func (fake *FakeContainer) RunCalls(stub func(context.Context, garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)) {
 	fake.runMutex.Lock()
 	defer fake.runMutex.Unlock()
 	fake.RunStub = stub
 }
 
-func (fake *FakeContainer) RunArgsForCall(i int) (garden.ProcessSpec, garden.ProcessIO) {
+func (fake *FakeContainer) RunArgsForCall(i int) (context.Context, garden.ProcessSpec, garden.ProcessIO) {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	argsForCall := fake.runArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeContainer) RunReturns(result1 garden.Process, result2 error) {

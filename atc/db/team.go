@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -34,7 +33,7 @@ type Team interface {
 		pipelineName string,
 		config atc.Config,
 		from ConfigVersion,
-		pausedState PipelinePausedState,
+		initiallyPaused bool,
 	) (Pipeline, bool, error)
 
 	Pipeline(pipelineName string) (Pipeline, bool, error)
@@ -54,12 +53,12 @@ type Team interface {
 	Workers() ([]Worker, error)
 	FindVolumeForWorkerArtifact(int) (CreatedVolume, bool, error)
 
-	Containers(lager.Logger) ([]Container, error)
+	Containers() ([]Container, error)
 	IsCheckContainer(string) (bool, error)
 	IsContainerWithinTeam(string, bool) (bool, error)
 
 	FindContainerByHandle(string) (Container, bool, error)
-	FindCheckContainers(lager.Logger, string, string, creds.Secrets) ([]Container, map[int]time.Time, error)
+	FindCheckContainers(string, string, creds.Secrets) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
@@ -152,9 +151,7 @@ func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
 	}))
 }
 
-func (t *team) Containers(
-	logger lager.Logger,
-) ([]Container, error) {
+func (t *team) Containers() ([]Container, error) {
 	rows, err := selectContainers("c").
 		Join("workers w ON c.worker_name = w.name").
 		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
@@ -344,7 +341,7 @@ func (t *team) SavePipeline(
 	pipelineName string,
 	config atc.Config,
 	from ConfigVersion,
-	pausedState PipelinePausedState,
+	initiallyPaused bool,
 ) (Pipeline, bool, error) {
 	groupsPayload, err := json.Marshal(config.Groups)
 	if err != nil {
@@ -380,17 +377,13 @@ func (t *team) SavePipeline(
 
 	var pipelineID int
 	if existingConfig == 0 {
-		if pausedState == PipelineNoChange {
-			pausedState = PipelinePaused
-		}
-
 		err = psql.Insert("pipelines").
 			SetMap(map[string]interface{}{
 				"name":     pipelineName,
 				"groups":   groupsPayload,
 				"version":  sq.Expr("nextval('config_version_seq')"),
 				"ordering": sq.Expr("currval('pipelines_id_seq')"),
-				"paused":   pausedState.Bool(),
+				"paused":   initiallyPaused,
 				"team_id":  t.id,
 			}).
 			Suffix("RETURNING id").
@@ -411,10 +404,6 @@ func (t *team) SavePipeline(
 				"team_id": t.id,
 			}).
 			Suffix("RETURNING id")
-
-		if pausedState != PipelineNoChange {
-			update = update.Set("paused", pausedState.Bool())
-		}
 
 		err = update.RunWith(tx).QueryRow().Scan(&pipelineID)
 		if err != nil {
@@ -809,7 +798,7 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 	return tx.Commit()
 }
 
-func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets) ([]Container, map[int]time.Time, error) {
+func (t *team) FindCheckContainers(pipelineName string, resourceName string, secretManager creds.Secrets) ([]Container, map[int]time.Time, error) {
 	pipeline, found, err := t.Pipeline(pipelineName)
 	if err != nil {
 		return nil, nil, err
@@ -840,12 +829,16 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		return nil, nil, err
 	}
 
+	resourceTypes, err := creds.NewVersionedResourceTypes(variables, versionedResourceTypes).Evaluate()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	resourceConfigFactory := NewResourceConfigFactory(t.conn, t.lockFactory)
 	resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-		logger,
 		resource.Type(),
 		source,
-		creds.NewVersionedResourceTypes(variables, versionedResourceTypes),
+		resourceTypes,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1065,9 +1058,9 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resources
-		SET config = $3, active = true, nonce = $4
+		SET config = $3, active = true, nonce = $4, type = $5
 		WHERE name = $1 AND pipeline_id = $2
-	`, resource.Name, pipelineID, encryptedPayload, nonce)
+	`, resource.Name, pipelineID, encryptedPayload, nonce, resource.Type)
 	if err != nil {
 		return err
 	}
@@ -1092,9 +1085,9 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO resources (name, pipeline_id, config, active, nonce)
-		VALUES ($1, $2, $3, true, $4)
-	`, resource.Name, pipelineID, encryptedPayload, nonce)
+		INSERT INTO resources (name, pipeline_id, config, active, nonce, type)
+		VALUES ($1, $2, $3, true, $4, $5)
+	`, resource.Name, pipelineID, encryptedPayload, nonce, resource.Type)
 
 	return swallowUniqueViolation(err)
 }

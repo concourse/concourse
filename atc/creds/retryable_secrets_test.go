@@ -2,12 +2,13 @@ package creds_test
 
 import (
 	"fmt"
-	"github.com/cloudfoundry/bosh-cli/director/template"
+	"time"
+
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
+	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"time"
 )
 
 func makeFlakySecretManager(numberOfFails int) creds.Secrets {
@@ -28,7 +29,7 @@ var _ = Describe("Re-retrieval of secrets on retryable errors", func() {
 	It("should retry receiving a parameter in case of retryable error", func() {
 		flakySecretManager := makeFlakySecretManager(3)
 		retryableSecretManager := creds.NewRetryableSecrets(flakySecretManager, creds.SecretRetryConfig{Attempts: 5, Interval: time.Millisecond})
-		varDef := template.VariableDefinition{Name: "somevar"}
+		varDef := vars.VariableDefinition{Name: "somevar"}
 		value, found, err := creds.NewVariables(retryableSecretManager, "team", "pipeline").Get(varDef)
 		Expect(value).To(BeEquivalentTo("received value"))
 		Expect(found).To(BeTrue())
@@ -38,7 +39,7 @@ var _ = Describe("Re-retrieval of secrets on retryable errors", func() {
 	It("should not receive a parameter if the number of retryable errors exceeded the number of allowed attempts", func() {
 		flakySecretManager := makeFlakySecretManager(10)
 		retryableSecretManager := creds.NewRetryableSecrets(flakySecretManager, creds.SecretRetryConfig{Attempts: 5, Interval: time.Millisecond})
-		varDef := template.VariableDefinition{Name: "somevar"}
+		varDef := vars.VariableDefinition{Name: "somevar"}
 		value, found, err := creds.NewVariables(retryableSecretManager, "team", "pipeline").Get(varDef)
 		Expect(value).To(BeNil())
 		Expect(found).To(BeFalse())

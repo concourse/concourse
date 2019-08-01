@@ -34,6 +34,7 @@ import Dashboard.Group.Tag as Tag
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
+import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
 import Html.Events exposing (on)
@@ -353,7 +354,7 @@ view :
     { dragState : DragState
     , dropState : DropState
     , now : Time.Posix
-    , hovered : Maybe DomID
+    , hovered : HoverState.HoverState
     , pipelineRunningKeyframes : String
     , userState : UserState
     }

@@ -1,9 +1,10 @@
 package vault
 
 import (
-	"github.com/concourse/concourse/atc/creds"
 	"path"
 	"time"
+
+	"github.com/concourse/concourse/atc/creds"
 
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -48,12 +49,7 @@ func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 		return val, expiration, true, nil
 	}
 
-	evenLessTyped := map[interface{}]interface{}{}
-	for k, v := range secret.Data {
-		evenLessTyped[k] = v
-	}
-
-	return evenLessTyped, expiration, true, nil
+	return secret.Data, expiration, true, nil
 }
 
 func (v Vault) findSecret(path string) (*vaultapi.Secret, *time.Time, bool, error) {

@@ -1,13 +1,12 @@
 package worker_test
 
 import (
-	"errors"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
+	//"code.cloudfoundry.org/garden/gardenfakes"
+	"context"
+	"errors"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -18,8 +17,8 @@ import (
 var _ = Describe("Pool", func() {
 	var (
 		logger       *lagertest.TestLogger
-		fakeProvider *workerfakes.FakeWorkerProvider
 		pool         Pool
+		fakeProvider *workerfakes.FakeWorkerProvider
 	)
 
 	BeforeEach(func() {
@@ -33,7 +32,7 @@ var _ = Describe("Pool", func() {
 		var (
 			spec          ContainerSpec
 			workerSpec    WorkerSpec
-			resourceTypes creds.VersionedResourceTypes
+			resourceTypes atc.VersionedResourceTypes
 			fakeOwner     *dbfakes.FakeContainerOwner
 
 			chosenWorker Worker
@@ -84,20 +83,16 @@ var _ = Describe("Pool", func() {
 				},
 			}
 
-			variables := template.StaticVariables{
-				"secret-source": "super-secret-source",
-			}
-
-			resourceTypes = creds.NewVersionedResourceTypes(variables, atc.VersionedResourceTypes{
+			resourceTypes = atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "custom-type-b",
 						Type:   "custom-type-a",
-						Source: atc.Source{"some": "((secret-source))"},
+						Source: atc.Source{"some": "super-secret-source"},
 					},
 					Version: atc.Version{"some": "version"},
 				},
-			})
+			}
 
 			workerSpec = WorkerSpec{
 				ResourceType:  "some-type",
@@ -115,12 +110,30 @@ var _ = Describe("Pool", func() {
 
 		JustBeforeEach(func() {
 			chosenWorker, chooseErr = pool.FindOrChooseWorkerForContainer(
+				context.TODO(),
 				logger,
 				fakeOwner,
 				spec,
 				workerSpec,
 				fakeStrategy,
 			)
+		})
+
+		Context("selects a worker in serial", func() {
+			var (
+				workerA *workerfakes.FakeWorker
+			)
+
+			BeforeEach(func() {
+				workerA = new(workerfakes.FakeWorker)
+				workerA.NameReturns("workerA")
+				workerA.SatisfiesReturns(true)
+
+				fakeProvider.FindWorkersForContainerByOwnerReturns([]Worker{workerA}, nil)
+				fakeProvider.RunningWorkersReturns([]Worker{workerA}, nil)
+				fakeStrategy.ChooseReturns(workerA, nil)
+			})
+
 		})
 
 		Context("when workers are found with the container", func() {
@@ -133,6 +146,7 @@ var _ = Describe("Pool", func() {
 			BeforeEach(func() {
 				workerA = new(workerfakes.FakeWorker)
 				workerA.NameReturns("workerA")
+				workerA.SatisfiesReturns(true)
 				workerB = new(workerfakes.FakeWorker)
 				workerB.NameReturns("workerB")
 				workerC = new(workerfakes.FakeWorker)
@@ -235,6 +249,7 @@ var _ = Describe("Pool", func() {
 					workerA = new(workerfakes.FakeWorker)
 					workerB = new(workerfakes.FakeWorker)
 					workerC = new(workerfakes.FakeWorker)
+					workerA.NameReturns("workerA")
 
 					workerA.SatisfiesReturns(true)
 					workerB.SatisfiesReturns(true)
@@ -414,4 +429,5 @@ var _ = Describe("Pool", func() {
 			})
 		})
 	})
+
 })

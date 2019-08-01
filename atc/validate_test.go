@@ -748,7 +748,7 @@ var _ = Describe("ValidateConfig", func() {
 						Task:           "lol",
 						TaskConfigPath: "task.yml",
 						TaskConfig: &TaskConfig{
-							Params: map[string]string{
+							Params: TaskEnv{
 								"param1": "value1",
 							},
 						},
@@ -769,7 +769,7 @@ var _ = Describe("ValidateConfig", func() {
 					job.Plan = append(job.Plan, PlanConfig{
 						Task: "some-resource",
 						TaskConfig: &TaskConfig{
-							Params: map[string]string{
+							Params: TaskEnv{
 								"param1": "value1",
 							},
 						},

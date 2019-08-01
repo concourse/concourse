@@ -1,6 +1,6 @@
 import test from 'ava';
-import Fly from './helpers/fly';
-import Web from './helpers/web';
+import Fly from '../helpers/fly';
+import Web from '../helpers/web';
 import puppeteer from 'puppeteer';
 
 test.beforeEach(async t => {

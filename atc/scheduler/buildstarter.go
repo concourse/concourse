@@ -79,6 +79,16 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		"build-name": nextPendingBuild.Name(),
 	})
 
+	if nextPendingBuild.IsAborted() {
+		logger.Debug("cancel-aborted-pending-build")
+		err := nextPendingBuild.Finish(db.BuildStatusAborted)
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
+	}
+
 	pipelinePaused, err := s.pipeline.CheckPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-is-paused", err)

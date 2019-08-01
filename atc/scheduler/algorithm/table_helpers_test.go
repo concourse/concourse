@@ -143,7 +143,7 @@ func (example Example) Run() {
 	team, err := teamFactory.CreateTeam(atc.Team{Name: "algorithm"})
 	Expect(err).NotTo(HaveOccurred())
 
-	pipeline, _, err := team.SavePipeline("algorithm", atc.Config{}, db.ConfigVersion(0), db.PipelineUnpaused)
+	pipeline, _, err := team.SavePipeline("algorithm", atc.Config{}, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	setupTx, err := dbConn.Begin()
@@ -539,7 +539,7 @@ func (example Example) Run() {
 	pipeline, _, err = team.SavePipeline("algorithm", atc.Config{
 		Jobs:      jobs,
 		Resources: resourceConfigs,
-	}, db.ConfigVersion(1), db.PipelineUnpaused)
+	}, db.ConfigVersion(1), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	dbResources := db.Resources{}
@@ -679,8 +679,8 @@ func (s setupDB) insertResource(name string) int {
 	Expect(err).ToNot(HaveOccurred())
 
 	_, err = s.psql.Insert("resources").
-		Columns("id", "name", "config", "pipeline_id", "resource_config_id", "resource_config_scope_id").
-		Values(resourceID, name, "{}", s.pipelineID, resourceID, resourceID).
+		Columns("id", "name", "type", "config", "pipeline_id", "resource_config_id", "resource_config_scope_id").
+		Values(resourceID, name, fmt.Sprintf("%s-type", name), "{}", s.pipelineID, resourceID, resourceID).
 		Suffix("ON CONFLICT DO NOTHING").
 		Exec()
 	Expect(err).ToNot(HaveOccurred())

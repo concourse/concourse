@@ -3,6 +3,7 @@ module Build.Styles exposing
     , body
     , durationTooltip
     , durationTooltipArrow
+    , errorLog
     , firstOccurrenceTooltip
     , firstOccurrenceTooltipArrow
     , header
@@ -18,6 +19,7 @@ module Build.Styles exposing
 
 import Application.Styles
 import Build.Models exposing (StepHeaderType(..))
+import Build.StepTree.Models exposing (StepState(..))
 import Colors
 import Concourse
 import Dashboard.Styles exposing (striped)
@@ -54,7 +56,10 @@ header status =
 
 body : List (Html.Attribute msg)
 body =
-    [ style "overflow-y" "auto", style "outline" "none" ]
+    [ style "overflow-y" "auto"
+    , style "outline" "none"
+    , style "-webkit-overflow-scrolling" "touch"
+    ]
 
 
 historyItem : Concourse.BuildStatus -> List (Html.Attribute msg)
@@ -137,10 +142,34 @@ triggerTooltip =
     ]
 
 
-stepHeader : List (Html.Attribute msg)
-stepHeader =
+stepHeader : StepState -> List (Html.Attribute msg)
+stepHeader state =
     [ style "display" "flex"
     , style "justify-content" "space-between"
+    , style "border" <|
+        "1px solid "
+            ++ (case state of
+                    StepStateFailed ->
+                        Colors.failure
+
+                    StepStateErrored ->
+                        Colors.error
+
+                    StepStatePending ->
+                        Colors.frame
+
+                    StepStateRunning ->
+                        Colors.frame
+
+                    StepStateInterrupted ->
+                        Colors.frame
+
+                    StepStateCancelled ->
+                        Colors.frame
+
+                    StepStateSucceeded ->
+                        Colors.frame
+               )
     ]
 
 
@@ -183,9 +212,8 @@ stepStatusIcon =
 
 firstOccurrenceTooltip : List (Html.Attribute msg)
 firstOccurrenceTooltip =
-    [ style "position" "absolute"
-    , style "left" "0"
-    , style "bottom" "100%"
+    [ style "position" "fixed"
+    , style "transform" "translate(0, -100%)"
     , style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
@@ -210,9 +238,8 @@ firstOccurrenceTooltipArrow =
 
 durationTooltip : List (Html.Attribute msg)
 durationTooltip =
-    [ style "position" "absolute"
-    , style "right" "0"
-    , style "bottom" "100%"
+    [ style "position" "fixed"
+    , style "transform" "translate(0, -100%)"
     , style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
@@ -232,6 +259,14 @@ durationTooltipArrow =
     , style "border-left" "5px solid transparent"
     , style "border-right" "5px solid transparent"
     , style "position" "absolute"
+    ]
+
+
+errorLog : List (Html.Attribute msg)
+errorLog =
+    [ style "color" Colors.errorLog
+    , style "background-color" Colors.frame
+    , style "padding" "5px 10px"
     ]
 
 

@@ -1,11 +1,13 @@
 package worker
 
 import (
+	"context"
 	"errors"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/worker/gclient"
 )
 
 var ErrMissingVolume = errors.New("volume mounted to container is missing")
@@ -13,7 +15,7 @@ var ErrMissingVolume = errors.New("volume mounted to container is missing")
 //go:generate counterfeiter . Container
 
 type Container interface {
-	garden.Container
+	gclient.Container
 
 	Destroy() error
 
@@ -25,11 +27,11 @@ type Container interface {
 }
 
 type gardenWorkerContainer struct {
-	garden.Container
+	gclient.Container
 	dbContainer db.CreatedContainer
 	dbVolumes   []db.CreatedVolume
 
-	gardenClient garden.Client
+	gardenClient gclient.Client
 
 	volumeMounts []VolumeMount
 
@@ -39,10 +41,10 @@ type gardenWorkerContainer struct {
 
 func newGardenWorkerContainer(
 	logger lager.Logger,
-	container garden.Container,
+	container gclient.Container,
 	dbContainer db.CreatedContainer,
 	dbContainerVolumes []db.CreatedVolume,
-	gardenClient garden.Client,
+	gardenClient gclient.Client,
 	volumeClient VolumeClient,
 	workerName string,
 ) (Container, error) {
@@ -89,9 +91,9 @@ func (container *gardenWorkerContainer) MarkAsHijacked() error {
 	return container.dbContainer.MarkAsHijacked()
 }
 
-func (container *gardenWorkerContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+func (container *gardenWorkerContainer) Run(ctx context.Context, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 	spec.User = container.user
-	return container.Container.Run(spec, io)
+	return container.Container.Run(ctx, spec, io)
 }
 
 func (container *gardenWorkerContainer) VolumeMounts() []VolumeMount {

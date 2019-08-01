@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	"code.cloudfoundry.org/garden"
-	"code.cloudfoundry.org/garden/gardenfakes"
+	gardenfakes "github.com/concourse/concourse/atc/worker/gclient/gclientfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/db/dbfakes"
