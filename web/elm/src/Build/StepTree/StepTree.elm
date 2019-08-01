@@ -856,6 +856,8 @@ viewDurationTooltip minit mstart mfinish tooltip =
                 [ Html.div
                     [ style "position" "inherit"
                     , style "margin-left" "-500px"
+                    , style "display" "flex"
+                    , style "justify-content" "flex-end"
                     ]
                     [ Html.div
                         Styles.durationTooltip
