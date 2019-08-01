@@ -552,6 +552,336 @@ var _ = Describe("Pipeline", func() {
 			}))
 		})
 
+		Context("DebugLoadVersionsDB", func() {
+			It("it can load all information about the current state of the db", func() {
+				job, found, err := dbPipeline.Job("some-job")
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				otherJob, found, err := dbPipeline.Job("some-other-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				aJob, found, err := dbPipeline.Job("a-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				sharedJob, found, err := dbPipeline.Job("shared-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				randomJob, found, err := dbPipeline.Job("random-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				otherSerialGroupJob, found, err := dbPipeline.Job("other-serial-group-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				differentSerialGroupJob, found, err := dbPipeline.Job("different-serial-group-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				versions, err := dbPipeline.LoadDebugVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(versions.ResourceVersions).To(BeEmpty())
+				Expect(versions.BuildOutputs).To(BeEmpty())
+				Expect(versions.ResourceIDs).To(Equal(map[string]int{
+					resource.Name():            resource.ID(),
+					otherResource.Name():       otherResource.ID(),
+					reallyOtherResource.Name(): reallyOtherResource.ID(),
+				}))
+
+				Expect(versions.JobIDs).To(Equal(map[string]int{
+					"some-job":                   job.ID(),
+					"some-other-job":             otherJob.ID(),
+					"a-job":                      aJob.ID(),
+					"shared-job":                 sharedJob.ID(),
+					"random-job":                 randomJob.ID(),
+					"other-serial-group-job":     otherSerialGroupJob.ID(),
+					"different-serial-group-job": differentSerialGroupJob.ID(),
+				}))
+
+				By("initially having no latest versioned resource")
+				_, found, err = resourceConfigScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+
+				By("including saved versioned resources of the current pipeline")
+				err = resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "1"}})
+				Expect(err).ToNot(HaveOccurred())
+
+				savedVR1, found, err := resourceConfigScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "2"}})
+				Expect(err).ToNot(HaveOccurred())
+
+				savedVR2, found, err := resourceConfigScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				versions, err = dbPipeline.LoadDebugVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(versions.ResourceVersions).To(ConsistOf([]atc.DebugResourceVersion{
+					{VersionID: savedVR1.ID(), ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder()},
+					{VersionID: savedVR2.ID(), ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder()},
+				}))
+
+				Expect(versions.BuildOutputs).To(BeEmpty())
+				Expect(versions.ResourceIDs).To(Equal(map[string]int{
+					resource.Name():            resource.ID(),
+					otherResource.Name():       otherResource.ID(),
+					reallyOtherResource.Name(): reallyOtherResource.ID(),
+				}))
+
+				Expect(versions.JobIDs).To(Equal(map[string]int{
+					"some-job":                   job.ID(),
+					"some-other-job":             otherJob.ID(),
+					"a-job":                      aJob.ID(),
+					"shared-job":                 sharedJob.ID(),
+					"random-job":                 randomJob.ID(),
+					"other-serial-group-job":     otherSerialGroupJob.ID(),
+					"different-serial-group-job": differentSerialGroupJob.ID(),
+				}))
+
+				By("not including saved versioned resources of other pipelines")
+				err = otherResourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "1"}})
+				Expect(err).ToNot(HaveOccurred())
+
+				_, found, err = otherResourceConfigScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				versions, err = dbPipeline.LoadDebugVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(versions.ResourceVersions).To(ConsistOf([]atc.DebugResourceVersion{
+					{VersionID: savedVR1.ID(), ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder()},
+					{VersionID: savedVR2.ID(), ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder()},
+				}))
+
+				Expect(versions.BuildOutputs).To(BeEmpty())
+				Expect(versions.ResourceIDs).To(Equal(map[string]int{
+					resource.Name():            resource.ID(),
+					otherResource.Name():       otherResource.ID(),
+					reallyOtherResource.Name(): reallyOtherResource.ID(),
+				}))
+
+				Expect(versions.JobIDs).To(Equal(map[string]int{
+					"some-job":                   job.ID(),
+					"some-other-job":             otherJob.ID(),
+					"a-job":                      aJob.ID(),
+					"shared-job":                 sharedJob.ID(),
+					"random-job":                 randomJob.ID(),
+					"other-serial-group-job":     otherSerialGroupJob.ID(),
+					"different-serial-group-job": differentSerialGroupJob.ID(),
+				}))
+
+				By("including outputs of successful builds")
+				build1DB, err := aJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				err = build1DB.SaveOutput("some-type", atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
+				Expect(err).ToNot(HaveOccurred())
+
+				err = build1DB.Finish(db.BuildStatusSucceeded)
+				Expect(err).ToNot(HaveOccurred())
+
+				versions, err = dbPipeline.LoadDebugVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(versions.ResourceVersions).To(ConsistOf([]atc.DebugResourceVersion{
+					{VersionID: savedVR1.ID(), ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder()},
+					{VersionID: savedVR2.ID(), ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder()},
+				}))
+
+				explicitOutput := atc.DebugBuildOutput{
+					DebugResourceVersion: atc.DebugResourceVersion{
+						VersionID:  savedVR1.ID(),
+						ResourceID: resource.ID(),
+						CheckOrder: savedVR1.CheckOrder(),
+					},
+					JobID:   aJob.ID(),
+					BuildID: build1DB.ID(),
+				}
+
+				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
+					explicitOutput,
+				}))
+
+				Expect(versions.ResourceIDs).To(Equal(map[string]int{
+					resource.Name():            resource.ID(),
+					otherResource.Name():       otherResource.ID(),
+					reallyOtherResource.Name(): reallyOtherResource.ID(),
+				}))
+
+				Expect(versions.JobIDs).To(Equal(map[string]int{
+					"some-job":                   job.ID(),
+					"a-job":                      aJob.ID(),
+					"some-other-job":             otherJob.ID(),
+					"shared-job":                 sharedJob.ID(),
+					"random-job":                 randomJob.ID(),
+					"other-serial-group-job":     otherSerialGroupJob.ID(),
+					"different-serial-group-job": differentSerialGroupJob.ID(),
+				}))
+
+				By("not including outputs of failed builds")
+				build2DB, err := aJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				err = build2DB.SaveOutput("some-type", atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
+				Expect(err).ToNot(HaveOccurred())
+
+				err = build2DB.Finish(db.BuildStatusFailed)
+				Expect(err).ToNot(HaveOccurred())
+
+				versions, err = dbPipeline.LoadDebugVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(versions.ResourceVersions).To(ConsistOf([]atc.DebugResourceVersion{
+					{VersionID: savedVR1.ID(), ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder()},
+					{VersionID: savedVR2.ID(), ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder()},
+				}))
+
+				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
+					{
+						DebugResourceVersion: atc.DebugResourceVersion{
+							VersionID:  savedVR1.ID(),
+							ResourceID: resource.ID(),
+							CheckOrder: savedVR1.CheckOrder(),
+						},
+						JobID:   aJob.ID(),
+						BuildID: build1DB.ID(),
+					},
+				}))
+
+				Expect(versions.ResourceIDs).To(Equal(map[string]int{
+					resource.Name():            resource.ID(),
+					otherResource.Name():       otherResource.ID(),
+					reallyOtherResource.Name(): reallyOtherResource.ID(),
+				}))
+
+				Expect(versions.JobIDs).To(Equal(map[string]int{
+					"some-job":                   job.ID(),
+					"a-job":                      aJob.ID(),
+					"some-other-job":             otherJob.ID(),
+					"shared-job":                 sharedJob.ID(),
+					"random-job":                 randomJob.ID(),
+					"other-serial-group-job":     otherSerialGroupJob.ID(),
+					"different-serial-group-job": differentSerialGroupJob.ID(),
+				}))
+
+				By("not including outputs of builds in other pipelines")
+				anotherJob, found, err := otherDBPipeline.Job("a-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				otherPipelineBuild, err := anotherJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				err = otherPipelineBuild.SaveOutput("some-type", atc.Source{"other-source-config": "some-other-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-other-resource")
+				Expect(err).ToNot(HaveOccurred())
+
+				err = otherPipelineBuild.Finish(db.BuildStatusSucceeded)
+				Expect(err).ToNot(HaveOccurred())
+
+				versions, err = dbPipeline.LoadDebugVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(versions.ResourceVersions).To(ConsistOf([]atc.DebugResourceVersion{
+					{VersionID: savedVR1.ID(), ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder()},
+					{VersionID: savedVR2.ID(), ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder()},
+				}))
+
+				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
+					{
+						DebugResourceVersion: atc.DebugResourceVersion{
+							VersionID:  savedVR1.ID(),
+							ResourceID: resource.ID(),
+							CheckOrder: savedVR1.CheckOrder(),
+						},
+						JobID:   aJob.ID(),
+						BuildID: build1DB.ID(),
+					},
+				}))
+
+				Expect(versions.ResourceIDs).To(Equal(map[string]int{
+					resource.Name():            resource.ID(),
+					otherResource.Name():       otherResource.ID(),
+					reallyOtherResource.Name(): reallyOtherResource.ID(),
+				}))
+
+				Expect(versions.JobIDs).To(Equal(map[string]int{
+					"some-job":                   job.ID(),
+					"a-job":                      aJob.ID(),
+					"some-other-job":             otherJob.ID(),
+					"shared-job":                 sharedJob.ID(),
+					"random-job":                 randomJob.ID(),
+					"other-serial-group-job":     otherSerialGroupJob.ID(),
+					"different-serial-group-job": differentSerialGroupJob.ID(),
+				}))
+
+				By("including build inputs")
+				aJob, found, err = dbPipeline.Job("a-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = aJob.SaveNextInputMapping(db.InputMapping{
+					"some-input-name": db.InputResult{
+						Input: &db.AlgorithmInput{
+							AlgorithmVersion: db.AlgorithmVersion{
+								Version:    db.ResourceVersion(convertToMD5(atc.Version{"version": "1"})),
+								ResourceID: resource.ID(),
+							},
+							FirstOccurrence: true,
+						},
+						PassedBuildIDs: []int{},
+					}}, true)
+				Expect(err).ToNot(HaveOccurred())
+
+				build1DB, err = aJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				_, found, err = build1DB.AdoptInputsAndPipes()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = build1DB.Finish(db.BuildStatusSucceeded)
+				Expect(err).ToNot(HaveOccurred())
+
+				versions, err = dbPipeline.LoadDebugVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(versions.BuildInputs).To(ConsistOf([]atc.DebugBuildInput{
+					{
+						DebugResourceVersion: atc.DebugResourceVersion{
+							VersionID:  savedVR1.ID(),
+							ResourceID: resource.ID(),
+							CheckOrder: savedVR1.CheckOrder(),
+						},
+						JobID:     aJob.ID(),
+						BuildID:   build1DB.ID(),
+						InputName: "some-input-name",
+					},
+				}))
+
+				By("including implicit outputs of successful builds")
+				implicitOutput := atc.DebugBuildOutput{
+					DebugResourceVersion: atc.DebugResourceVersion{
+						VersionID:  savedVR1.ID(),
+						ResourceID: resource.ID(),
+						CheckOrder: savedVR1.CheckOrder(),
+					},
+					JobID:   aJob.ID(),
+					BuildID: build1DB.ID(),
+				}
+
+				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
+					explicitOutput,
+					implicitOutput,
+				}))
+			})
+
+		})
+
 		It("can load up the latest versioned resource, enabled or not", func() {
 			By("initially having no latest versioned resource")
 			_, found, err := resourceConfigScope.LatestVersion()

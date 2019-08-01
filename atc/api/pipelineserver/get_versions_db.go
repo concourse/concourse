@@ -11,7 +11,7 @@ func (s *Server) GetVersionsDB(pipelineDB db.Pipeline) http.Handler {
 	logger := s.logger.Session("get-version-db")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		versionsDB, _ := pipelineDB.LoadVersionsDB()
+		versionsDB, _ := pipelineDB.LoadDebugVersionsDB()
 		w.Header().Set("Content-Type", "application/json")
 
 		err := json.NewEncoder(w).Encode(versionsDB)

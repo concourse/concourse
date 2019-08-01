@@ -91,35 +91,6 @@ func (mapping StringMapping) Name(id int) string {
 	panic(fmt.Sprintf("no name found for %d", id))
 }
 
-type LegacyVersionsDB struct {
-	ResourceVersions []LegacyResourceVersion
-	BuildOutputs     []LegacyBuildOutput
-	BuildInputs      []LegacyBuildInput
-	JobIDs           map[string]int
-	ResourceIDs      map[string]int
-}
-
-type LegacyResourceVersion struct {
-	VersionID  int
-	ResourceID int
-	CheckOrder int
-	Disabled   bool
-}
-
-type LegacyBuildOutput struct {
-	LegacyResourceVersion
-	BuildID int
-	JobID   int
-}
-
-type LegacyBuildInput struct {
-	LegacyResourceVersion
-	BuildID         int
-	JobID           int
-	InputName       string
-	FirstOccurrence bool
-}
-
 const CurrentJobName = "current"
 
 func (example Example) Run() {
@@ -169,7 +140,7 @@ func (example Example) Run() {
 		Expect(err).ToNot(HaveOccurred())
 
 		log.Println("LOADING DB", example.LoadDB)
-		var legacyDB LegacyVersionsDB
+		var legacyDB atc.DebugVersionsDB
 		err = json.NewDecoder(gr).Decode(&legacyDB)
 		Expect(err).ToNot(HaveOccurred())
 		log.Println("LOADED")
@@ -270,7 +241,7 @@ func (example Example) Run() {
 		Expect(err).ToNot(HaveOccurred())
 
 		for i, row := range legacyDB.BuildInputs {
-			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i), row.FirstOccurrence)
+			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i), false)
 			Expect(err).ToNot(HaveOccurred())
 		}
 
