@@ -26,6 +26,8 @@ func OnFailure(firstStep Step, secondStep Step) OnFailureStep {
 // If the first step fails (that is, its Success result is false), the second
 // step is executed. If the second step errors, its error is returned.
 func (o OnFailureStep) Run(ctx context.Context, state RunState) error {
+	o.updateGetStep(o.step)
+
 	err := o.step.Run(ctx, state)
 	if err != nil {
 		return err
@@ -42,4 +44,34 @@ func (o OnFailureStep) Run(ctx context.Context, state RunState) error {
 // completed successfully.
 func (o OnFailureStep) Succeeded() bool {
 	return o.step.Succeeded()
+}
+
+// Set GetStep's flag "registerUponFailure".
+func (o OnFailureStep) updateGetStep(step Step) {
+	switch step.(type) {
+	case AggregateStep:
+		for _, s := range ([]Step)(step.(AggregateStep)) {
+			o.updateGetStep(s)
+		}
+	case InParallelStep:
+		for _, s := range step.(InParallelStep).steps {
+			o.updateGetStep(s)
+		}
+	case LogErrorStep:
+		// Get is actually wrapped in a LogErrorStep, so we need to handle
+		// LogErrorStep.
+		o.updateGetStep(step.(LogErrorStep).Step)
+	case *GetStep:
+		step.(*GetStep).SetRegisterUponFailure(true)
+	case OnSuccessStep:
+		// For Put's implied Get, they are wired by an OnSuccessStep, Put as
+		// the first step, implied Get as the second step. That's reason why
+		// we need to handle both "step" and "hook".
+		o.updateGetStep(step.(OnSuccessStep).step)
+		o.updateGetStep(step.(OnSuccessStep).hook)
+	case *TimeoutStep:
+		o.updateGetStep(step.(*TimeoutStep).step)
+	case TryStep:
+		o.updateGetStep(step.(TryStep).step)
+	}
 }

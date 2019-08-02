@@ -58,6 +58,7 @@ type GetStep struct {
 	workerPool           worker.Pool
 	delegate             GetDelegate
 	succeeded            bool
+	registerUponFailure  bool // If true, register resource even if get fails.
 }
 
 func NewGetStep(
@@ -83,6 +84,7 @@ func NewGetStep(
 		strategy:             strategy,
 		workerPool:           workerPool,
 		delegate:             delegate,
+		registerUponFailure:  false,
 	}
 }
 
@@ -114,6 +116,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	logger = logger.Session("get-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
+
 	})
 
 	step.delegate.Initializing(logger)
@@ -207,6 +210,13 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	if err != nil {
 		logger.Error("failed-to-fetch-resource", err)
 
+		if step.GetRegisterUponFailure() {
+			state.Artifacts().RegisterSource(artifact.Name(step.plan.Name), &getArtifactSource{
+				resourceInstance: resourceInstance,
+				versionedSource:  versionedSource,
+			})
+		}
+
 		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
 			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), VersionInfo{})
 			return nil
@@ -239,6 +249,14 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 // Succeeded returns true if the resource was successfully fetched.
 func (step *GetStep) Succeeded() bool {
 	return step.succeeded
+}
+
+func (step *GetStep) GetRegisterUponFailure() bool {
+	return step.registerUponFailure
+}
+
+func (step *GetStep) SetRegisterUponFailure(b bool) {
+	step.registerUponFailure = b
 }
 
 type getArtifactSource struct {

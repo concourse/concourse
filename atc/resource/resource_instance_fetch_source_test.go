@@ -169,6 +169,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 		BeforeEach(func() {
 			fakeResourceInstance.ResourceTypeReturns(resource.ResourceType("fake-resource-type"))
+			fakeResourceInstance.VersionReturns(atc.Version{"v": "1"})
 		})
 
 		JustBeforeEach(func() {

@@ -172,25 +172,25 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (VersionedSour
 	)
 	if err != nil {
 		sLog.Error("failed-to-fetch-resource", err)
-		return nil, err
+		return versionedSource, err
 	}
 
 	err = volume.SetPrivileged(false)
 	if err != nil {
 		sLog.Error("failed-to-set-volume-unprivileged", err)
-		return nil, err
+		return versionedSource, err
 	}
 
 	err = volume.InitializeResourceCache(s.resourceInstance.ResourceCache())
 	if err != nil {
 		sLog.Error("failed-to-initialize-cache", err)
-		return nil, err
+		return versionedSource, err
 	}
 
 	err = s.dbResourceCacheFactory.UpdateResourceCacheMetadata(s.resourceInstance.ResourceCache(), versionedSource.Metadata())
 	if err != nil {
 		s.logger.Error("failed-to-update-resource-cache-metadata", err, lager.Data{"resource-cache": s.resourceInstance.ResourceCache()})
-		return nil, err
+		return versionedSource, err
 	}
 
 	return versionedSource, nil

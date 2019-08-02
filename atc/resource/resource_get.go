@@ -33,7 +33,9 @@ func (resource *resource) Get(
 		true,
 	)
 	if err != nil {
-		return nil, err
+		vs := NewGetVersionedSource(volume, version, []atc.MetadataField{})
+		version["_err"] = err.Error()
+		return vs, err
 	}
 
 	return NewGetVersionedSource(volume, vr.Version, vr.Metadata), nil

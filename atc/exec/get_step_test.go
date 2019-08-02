@@ -464,6 +464,35 @@ var _ = Describe("GetStep", func() {
 			It("is not successful", func() {
 				Expect(getStep.Succeeded()).To(BeFalse())
 			})
+
+			Context("when registerUponFailure is true", func() {
+				JustBeforeEach(func() {
+					plan := atc.Plan{
+						ID:  atc.PlanID(planID),
+						Get: getPlan,
+					}
+
+					getStep = exec.NewGetStep(
+						plan.ID,
+						*plan.Get,
+						stepMetadata,
+						containerMetadata,
+						fakeSecretManager,
+						fakeResourceFetcher,
+						fakeResourceCacheFactory,
+						fakeStrategy,
+						fakePool,
+						fakeDelegate,
+					)
+					getStep.(*exec.GetStep).SetRegisterUponFailure(true)
+
+					stepErr = getStep.Run(ctx, state)
+				})
+
+				It("should still register resource", func() {
+					Expect(state.ArtifactsCallCount()).To(Equal(1))
+				})
+			})
 		})
 	})
 

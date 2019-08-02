@@ -83,7 +83,7 @@ func (f *fetcher) Fetch(
 				if err == ErrFailedToGetLock {
 					break
 				}
-				return nil, err
+				return versionedSource, err
 			}
 
 			return versionedSource, nil
