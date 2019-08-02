@@ -22,6 +22,7 @@ import (
 type Config struct {
 	Logger      lager.Logger
 	TeamFactory db.TeamFactory
+	UserFactory db.UserFactory
 	Flags       skycmd.AuthFlags
 	ExternalURL string
 	HTTPClient  *http.Client
@@ -63,6 +64,7 @@ func NewServer(config *Config) (*Server, error) {
 		Logger:          config.Logger.Session("sky"),
 		TokenVerifier:   tokenVerifier,
 		TokenIssuer:     tokenIssuer,
+		UserFactory:     config.UserFactory,
 		SigningKey:      signingKey,
 		DexIssuerURL:    issuerURL,
 		DexClientID:     clientID,
