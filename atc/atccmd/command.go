@@ -1165,6 +1165,8 @@ func (cmd *RunCommand) constructDBConn(
 
 	// Prepare
 	dbConn.SetMaxOpenConns(maxConn)
+	dbConn.SetMaxIdleConns(maxConn)
+	dbConn.SetConnMaxLifetime(0)
 
 	return dbConn, nil
 }
