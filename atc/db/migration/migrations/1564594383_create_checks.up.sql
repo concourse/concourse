@@ -1,7 +1,7 @@
 BEGIN;
 
   CREATE TABLE checks (
-      id serial PRIMARY KEY,
+      id bigserial PRIMARY KEY,
       resource_config_scope_id integer REFERENCES resource_config_scopes(id) ON DELETE CASCADE,
       schema text NOT NULL,
       status text NOT NULL,
