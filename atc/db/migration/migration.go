@@ -368,6 +368,9 @@ func (self *migrator) Up() error {
 	if err != nil {
 		return err
 	}
+	if len(migrations) < 1 {
+		return nil
+	}
 	return self.Migrate(migrations[len(migrations)-1].Version)
 }
 
