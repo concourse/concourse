@@ -400,12 +400,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 32, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 0, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, 32, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, 0, "backend", lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -1165,7 +1165,7 @@ func (cmd *RunCommand) constructDBConn(
 
 	// Prepare
 	dbConn.SetMaxOpenConns(maxConn)
-	dbConn.SetMaxIdleConns(maxConn)
+	dbConn.SetMaxIdleConns(10)
 	dbConn.SetConnMaxLifetime(0)
 
 	return dbConn, nil
