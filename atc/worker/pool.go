@@ -64,6 +64,13 @@ type Pool interface {
 		WorkerSpec,
 	) (Worker, error)
 
+	ContainerInWorker(
+		lager.Logger,
+		db.ContainerOwner,
+		ContainerSpec,
+		WorkerSpec,
+	) (bool, error)
+
 	FindOrChooseWorkerForContainer(
 		context.Context,
 		lager.Logger,
@@ -122,6 +129,31 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	return nil, NoCompatibleWorkersError{
 		Spec: spec,
 	}
+}
+
+func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, containerSpec ContainerSpec, workerSpec WorkerSpec) (bool, error) {
+	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
+		logger.Session("find-worker"),
+		owner,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
+	if err != nil {
+		return false, err
+	}
+
+	for _, w := range workersWithContainer {
+		for _, c := range compatibleWorkers {
+			if w.Name() == c.Name() {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 func (pool *pool) FindOrChooseWorkerForContainer(

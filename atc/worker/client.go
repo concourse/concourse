@@ -255,10 +255,11 @@ func (client *client) chooseTaskWorker(
 	outputWriter io.Writer,
 ) (Worker, error) {
 	var (
-		chosenWorker    Worker
-		activeTasksLock lock.Lock
-		elapsed         time.Duration
-		err             error
+		chosenWorker      Worker
+		activeTasksLock   lock.Lock
+		elapsed           time.Duration
+		err               error
+		existingContainer bool
 	)
 
 	for {
@@ -272,6 +273,10 @@ func (client *client) chooseTaskWorker(
 			if !acquired {
 				time.Sleep(time.Second)
 				continue
+			}
+			existingContainer, err = client.pool.ContainerInWorker(logger, owner, containerSpec, workerSpec)
+			if err != nil {
+				return nil, err
 			}
 		}
 
@@ -308,9 +313,11 @@ func (client *client) chooseTaskWorker(
 				continue
 			}
 
-			err = chosenWorker.IncreaseActiveTasks()
-			if err != nil {
-				logger.Error("failed-to-increase-active-tasks", err)
+			if !existingContainer {
+				err = chosenWorker.IncreaseActiveTasks()
+				if err != nil {
+					logger.Error("failed-to-increase-active-tasks", err)
+				}
 			}
 
 			err = activeTasksLock.Release()
