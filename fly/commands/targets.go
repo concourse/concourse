@@ -1,12 +1,12 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"strconv"
 	"time"
 
-	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/dgrijalva/jwt-go"
@@ -31,7 +31,7 @@ func (command *TargetsCommand) Execute([]string) error {
 	}
 
 	for targetName, targetValues := range flyYAML.Targets {
-		expirationTime := GetExpirationFromString(targetValues.Token)
+		expirationTime := getExpirationFromString(targetValues.Token)
 
 		row := ui.TableRow{
 			{Contents: string(targetName)},
@@ -48,7 +48,7 @@ func (command *TargetsCommand) Execute([]string) error {
 	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
-func GetExpirationFromString(token *rc.TargetToken) string {
+func getExpirationFromString(token *rc.TargetToken) string {
 	if token == nil || token.Type == "" || token.Value == "" {
 		return "n/a"
 	}
@@ -58,8 +58,7 @@ func GetExpirationFromString(token *rc.TargetToken) string {
 	})
 
 	if err != nil && err.Error() != jwt.ErrInvalidKeyType.Error() {
-		displayhelpers.FailWithErrorf("please login again.\n\ntoken validation failed with error ", err)
-		return "n/a"
+		return fmt.Sprintf("n/a: %s", err)
 	}
 
 	claims := parsedToken.Claims.(jwt.MapClaims)
