@@ -195,6 +195,8 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 
 	if checkError != nil {
 		builder = builder.Set("check_error", checkError.Error())
+	} else {
+		builder = builder.Set("check_error", nil)
 	}
 
 	_, err = builder.

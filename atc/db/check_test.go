@@ -94,6 +94,12 @@ var _ = Describe("Check", func() {
 
 			Expect(defaultResource.LastCheckEndTime()).To(BeTemporally("~", time.Now(), time.Second))
 		})
+
+		It("clears out the check error", func() {
+			defaultResource.Reload()
+
+			Expect(defaultResource.CheckError()).To(BeNil())
+		})
 	})
 
 	Describe("FinishWithError", func() {
