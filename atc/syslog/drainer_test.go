@@ -3,13 +3,14 @@ package syslog_test
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/syslog"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"strconv"
 )
 
 func newFakeBuild(id int) db.Build {

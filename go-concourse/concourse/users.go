@@ -1,11 +1,12 @@
 package concourse
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/go-concourse/concourse/internal"
 )
 
 const inputDateLayout = "2006-01-02"

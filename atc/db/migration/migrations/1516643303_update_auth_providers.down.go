@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+
 	"github.com/hashicorp/go-multierror"
 )
 

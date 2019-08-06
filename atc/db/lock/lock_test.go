@@ -1,9 +1,10 @@
 package lock_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"sync"
 	"time"
+
+	"code.cloudfoundry.org/lager"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"

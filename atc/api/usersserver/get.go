@@ -2,11 +2,12 @@ package usersserver
 
 import (
 	"encoding/json"
+	"net/http"
+	"time"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
-	"net/http"
-	"time"
 )
 
 const since = "since"

@@ -1,9 +1,10 @@
 package api
 
 import (
-	"github.com/concourse/concourse/atc/api/usersserver"
 	"net/http"
 	"path/filepath"
+
+	"github.com/concourse/concourse/atc/api/usersserver"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"

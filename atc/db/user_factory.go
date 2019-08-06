@@ -1,8 +1,9 @@
 package db
 
 import (
-	sq "github.com/Masterminds/squirrel"
 	"time"
+
+	sq "github.com/Masterminds/squirrel"
 )
 
 //go:generate counterfeiter . UserFactory
