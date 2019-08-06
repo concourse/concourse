@@ -9,8 +9,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
 	"github.com/ghodss/yaml"
+	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . Job

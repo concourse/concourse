@@ -17,8 +17,8 @@ import (
 
 var _ = Describe("stream http client", func() {
 	var (
-		gServer *ghttp.Server
-		ctx context.Context
+		gServer    *ghttp.Server
+		ctx        context.Context
 		cancelFunc context.CancelFunc
 	)
 
@@ -36,7 +36,7 @@ var _ = Describe("stream http client", func() {
 		BeforeEach(func() {
 			gServer.Reset()
 			gServer.AppendHandlers(func(w http.ResponseWriter, r *http.Request) {
-				<- ctx.Done()
+				<-ctx.Done()
 			})
 		})
 

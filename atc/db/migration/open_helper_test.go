@@ -1,8 +1,9 @@
 package migration_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"database/sql"
+
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"

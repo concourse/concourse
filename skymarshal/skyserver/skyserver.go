@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/db"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/concourse/concourse/atc/db"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/skymarshal/token"

@@ -2,9 +2,10 @@ package setpipelinehelpers
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/fly/rc"
 	"net/url"
 	"os"
+
+	"github.com/concourse/concourse/fly/rc"
 
 	"github.com/ghodss/yaml"
 

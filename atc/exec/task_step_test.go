@@ -210,7 +210,7 @@ var _ = Describe("TaskStep", func() {
 							ImageURL:   "some-image",
 							Privileged: false,
 						},
-						Type: "task",
+						Type:    "task",
 						Dir:     "some-artifact-root",
 						Env:     []string{"SOME=params"},
 						Inputs:  []worker.InputSource{},
@@ -797,9 +797,9 @@ var _ = Describe("TaskStep", func() {
 				BeforeEach(func() {
 					taskStepStatus = 0
 					taskResult := worker.TaskResult{
-						Status: taskStepStatus,
+						Status:       taskStepStatus,
 						VolumeMounts: []worker.VolumeMount{},
-						Err: nil,
+						Err:          nil,
 					}
 					fakeClient.RunTaskStepReturns(taskResult)
 				})
@@ -1006,7 +1006,7 @@ var _ = Describe("TaskStep", func() {
 			Context("when the task exits with nonzero status", func() {
 				BeforeEach(func() {
 					taskStepStatus = 5
-					taskResult := worker.TaskResult{ Status: taskStepStatus, VolumeMounts: []worker.VolumeMount{}, Err: nil }
+					taskResult := worker.TaskResult{Status: taskStepStatus, VolumeMounts: []worker.VolumeMount{}, Err: nil}
 					fakeClient.RunTaskStepReturns(taskResult)
 				})
 				It("finishes the task via the delegate", func() {
@@ -1025,7 +1025,7 @@ var _ = Describe("TaskStep", func() {
 			disaster := errors.New("task run failed")
 
 			BeforeEach(func() {
-				taskResult := worker.TaskResult{ Status: -1, VolumeMounts: []worker.VolumeMount{}, Err: disaster }
+				taskResult := worker.TaskResult{Status: -1, VolumeMounts: []worker.VolumeMount{}, Err: disaster}
 				fakeClient.RunTaskStepReturns(taskResult)
 			})
 

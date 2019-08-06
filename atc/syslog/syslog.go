@@ -5,11 +5,12 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	sl "github.com/racksec/srslog"
 	"io/ioutil"
 	"strings"
 	"sync"
 	"time"
+
+	sl "github.com/racksec/srslog"
 )
 
 const rfc5424time = "2006-01-02T15:04:05.999999Z07:00"
