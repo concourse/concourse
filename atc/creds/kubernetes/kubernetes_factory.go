@@ -2,21 +2,22 @@ package kubernetes
 
 import (
 	"code.cloudfoundry.org/lager"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/concourse/concourse/atc/creds"
-	"k8s.io/client-go/kubernetes"
 )
 
 type kubernetesFactory struct {
-	clientset       *kubernetes.Clientset
-	logger          lager.Logger
+	logger lager.Logger
+
+	client          kubernetes.Interface
 	namespacePrefix string
 }
 
-func NewKubernetesFactory(logger lager.Logger, clientset *kubernetes.Clientset, namespacePrefix string) *kubernetesFactory {
+func NewKubernetesFactory(logger lager.Logger, client kubernetes.Interface, namespacePrefix string) *kubernetesFactory {
 	factory := &kubernetesFactory{
-		clientset:       clientset,
 		logger:          logger,
+		client:          client,
 		namespacePrefix: namespacePrefix,
 	}
 
@@ -25,8 +26,8 @@ func NewKubernetesFactory(logger lager.Logger, clientset *kubernetes.Clientset, 
 
 func (factory *kubernetesFactory) NewSecrets() creds.Secrets {
 	return &Kubernetes{
-		Clientset:       factory.clientset,
 		logger:          factory.logger,
+		client:          factory.client,
 		namespacePrefix: factory.namespacePrefix,
 	}
 }

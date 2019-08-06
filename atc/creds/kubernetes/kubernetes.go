@@ -9,14 +9,15 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 
 	v1 "k8s.io/api/core/v1"
-	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 type Kubernetes struct {
-	Clientset       *kubernetes.Clientset
-	logger          lager.Logger
+	logger lager.Logger
+
+	client          kubernetes.Interface
 	namespacePrefix string
 }
 
@@ -41,11 +42,10 @@ func (k Kubernetes) Get(secretPath string) (interface{}, *time.Time, bool, error
 	var secretName = parts[1]
 
 	secret, found, err := k.findSecret(namespace, secretName)
-
 	if err != nil {
-		k.logger.Error("unable to retrieve kubernetes secret", err, lager.Data{
-			"namespace":  namespace,
-			"secretName": secretName,
+		k.logger.Error("failed-to-fetch-secret", err, lager.Data{
+			"namespace":   namespace,
+			"secret-name": secretName,
 		})
 		return nil, nil, false, err
 	}
@@ -54,9 +54,9 @@ func (k Kubernetes) Get(secretPath string) (interface{}, *time.Time, bool, error
 		return k.getValueFromSecret(secret)
 	}
 
-	k.logger.Info("kubernetes secret not found", lager.Data{
-		"namespace":  namespace,
-		"secretName": secretName,
+	k.logger.Info("secret-not-found", lager.Data{
+		"namespace":   namespace,
+		"secret-name": secretName,
 	})
 
 	return nil, nil, false, nil
@@ -68,16 +68,21 @@ func (k Kubernetes) getValueFromSecret(secret *v1.Secret) (interface{}, *time.Ti
 		return string(val), nil, true, nil
 	}
 
-	return secret.Data, nil, true, nil
+	stringified := map[string]interface{}{}
+	for k, v := range secret.Data {
+		stringified[k] = string(v)
+	}
+
+	return stringified, nil, true, nil
 }
 
 func (k Kubernetes) findSecret(namespace, name string) (*v1.Secret, bool, error) {
 	var secret *v1.Secret
 	var err error
 
-	secret, err = k.Clientset.Core().Secrets(namespace).Get(name, meta_v1.GetOptions{})
+	secret, err = k.client.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
 
-	if err != nil && k8s_errors.IsNotFound(err) {
+	if err != nil && k8serr.IsNotFound(err) {
 		return nil, false, nil
 	} else if err != nil {
 		return nil, false, err
