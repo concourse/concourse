@@ -1056,7 +1056,6 @@ var _ = Describe("Team", func() {
 			Expect(oneOffBuild.Name()).To(Equal(strconv.Itoa(oneOffBuild.ID())))
 			Expect(oneOffBuild.TeamName()).To(Equal(team.Name()))
 			Expect(oneOffBuild.Status()).To(Equal(db.BuildStatusPending))
-			Expect(oneOffBuild.CreateTime()).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
 		})
 	})
 
