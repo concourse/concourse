@@ -937,7 +937,8 @@ a.github-user:hover {
   font-family: 'Roboto Slab', serif;
 }
 .hero-pill,
-.hero-pill:visited {
+.hero-pill:visited,
+.hero-pill:hover {
   color: white;
 }
 .hero-pill:hover {
@@ -945,7 +946,7 @@ a.github-user:hover {
   text-decoration: none;
 }
 .hero-pill .small {
-  font-size: 16px;
+  font-size: 20px;
 }
 .download-info {
   list-style-type: none;
