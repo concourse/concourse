@@ -89,7 +89,7 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 	)
 	if err != nil {
 		logger.Error("failed-to-create-image-artifact-replicated-volume", err)
-		return worker.FetchedImage{}, nil
+		return worker.FetchedImage{}, err
 	}
 
 	dest := artifactDestination{
@@ -99,7 +99,7 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 	err = i.imageSpec.ImageArtifactSource.StreamTo(logger, &dest)
 	if err != nil {
 		logger.Error("failed-to-stream-image-artifact-source", err)
-		return worker.FetchedImage{}, nil
+		return worker.FetchedImage{}, err
 	}
 
 	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(logger, ImageMetadataFile)
