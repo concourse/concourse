@@ -1,7 +1,7 @@
 module Build.Header.Header exposing (handleDelivery, update, viewBuildHeader)
 
 import Application.Models exposing (Session)
-import Build.Models exposing (Model)
+import Build.Header.Models exposing (Model)
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
@@ -42,7 +42,7 @@ historyId =
 
 viewBuildHeader :
     Session
-    -> Model
+    -> Model r
     -> Concourse.Build
     -> Html Message
 viewBuildHeader session model build =
@@ -168,7 +168,7 @@ viewBuildHeader session model build =
         ]
 
 
-currentJob : Model -> Maybe Concourse.JobIdentifier
+currentJob : Model r -> Maybe Concourse.JobIdentifier
 currentJob =
     .currentBuild
         >> RemoteData.toMaybe
@@ -203,7 +203,7 @@ viewHistoryItem currentBuild build =
         ]
 
 
-handleDelivery : Delivery -> ET Model
+handleDelivery : Delivery -> ET (Model r)
 handleDelivery delivery ( model, effects ) =
     case delivery of
         ElementVisible ( id, False ) ->
@@ -232,7 +232,7 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
-update : Message -> ET Model
+update : Message -> ET (Model r)
 update msg ( model, effects ) =
     case msg of
         ScrollBuilds event ->
