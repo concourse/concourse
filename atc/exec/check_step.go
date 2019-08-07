@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -142,11 +143,10 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	metric.ResourceCheck{
-		PipelineName: step.metadata.PipelineName,
-		ResourceName: step.plan.Name,
-		TeamName:     step.metadata.TeamName,
-		Success:      err == nil,
+	metric.CheckFinished{
+		CheckName:             step.plan.Name,
+		ResourceConfigScopeID: strconv.Itoa(step.metadata.ResourceConfigScopeID),
+		Success:               err == nil,
 	}.Emit(logger)
 
 	err = step.delegate.SaveVersions(versions)
