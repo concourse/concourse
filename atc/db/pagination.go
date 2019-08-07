@@ -7,7 +7,8 @@ type Page struct {
 	From int // inclusive
 	To   int // inclusive
 
-	Limit int
+	Limit   int
+	UseDate bool
 }
 
 type Pagination struct {

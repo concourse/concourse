@@ -17,13 +17,18 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-builds")
 
 	var (
-		err   error
-		until int
-		since int
-		limit int
+		err     error
+		until   int
+		since   int
+		limit   int
+		useDate bool
 	)
 
 	timestamps := r.FormValue(atc.PaginationQueryTimestamps)
+	if timestamps != "" {
+		useDate = true
+	}
+
 	urlUntil := r.FormValue(atc.PaginationQueryUntil)
 	until, _ = strconv.Atoi(urlUntil)
 
@@ -37,24 +42,16 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		limit = atc.PaginationAPIDefaultLimit
 	}
 
-	page := db.Page{Until: until, Since: since, Limit: limit}
+	page := db.Page{Until: until, Since: since, Limit: limit, UseDate: useDate}
 
 	var builds []db.Build
 	var pagination db.Pagination
 
 	acc := accessor.GetAccessor(r)
-	if timestamps == "" {
-		if acc.IsAdmin() {
-			builds, pagination, err =  s.buildFactory.AllBuilds(page)
-		} else {
-			builds, pagination, err = s.buildFactory.VisibleBuilds(acc.TeamNames(), page)
-		}
+	if acc.IsAdmin() {
+		builds, pagination, err = s.buildFactory.AllBuilds(page)
 	} else {
-		if acc.IsAdmin() {
-			builds, pagination, err = s.buildFactory.AllBuildsWithTime(page)
-		} else {
-			builds, pagination, err = s.buildFactory.VisibleBuildsWithTime(acc.TeamNames(), page)
-		}
+		builds, pagination, err = s.buildFactory.VisibleBuilds(acc.TeamNames(), page)
 	}
 
 	if err != nil {

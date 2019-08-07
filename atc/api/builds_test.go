@@ -219,6 +219,17 @@ var _ = Describe("Builds API", func() {
 						Limit: 8,
 					}))
 				})
+
+				Context("timestamp is provided", func() {
+					BeforeEach(func() {
+						queryParams = "?timestamps=true"
+					})
+
+					It("calls AllBuilds", func() {
+						_, page := dbBuildFactory.VisibleBuildsArgsForCall(0)
+						Expect(page.UseDate).To(Equal(true))
+					})
+				})
 			})
 
 			Context("when getting the builds succeeds", func() {
@@ -309,15 +320,6 @@ var _ = Describe("Builds API", func() {
 					Expect(dbBuildFactory.VisibleBuildsCallCount()).To(Equal(0))
 				})
 
-				Context("timestamp is provided", func() {
-					BeforeEach(func() {
-						queryParams = "?timestamps=true"
-					})
-					It("calls AllBuildsWithTime", func() {
-						Expect(dbBuildFactory.AllBuildsWithTimeCallCount()).To(Equal(1))
-						Expect(dbBuildFactory.VisibleBuildsWithTimeCallCount()).To(Equal(0))
-					})
-				})
 			})
 
 			Context("when no params are passed", func() {
