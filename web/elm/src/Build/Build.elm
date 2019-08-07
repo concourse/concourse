@@ -24,7 +24,6 @@ import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
-import Concourse.Pagination exposing (Paginated)
 import DateFormat
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
@@ -44,7 +43,6 @@ import Html.Attributes
 import Html.Lazy
 import Http
 import Keyboard
-import List.Extra
 import Login.Login as Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
@@ -205,13 +203,7 @@ getUpdateMessage model =
 
 handleCallback : Callback -> ET Model
 handleCallback action ( model, effects ) =
-    case action of
-        BuildTriggered (Ok build) ->
-            ( { model | history = build :: model.history }
-            , effects
-                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
-            )
-
+    (case action of
         BuildFetched (Ok ( browsingIndex, build )) ->
             handleBuildFetched browsingIndex build ( model, effects )
 
@@ -300,9 +292,6 @@ handleCallback action ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        BuildHistoryFetched (Ok history) ->
-            handleHistoryFetched history ( model, effects )
-
         BuildHistoryFetched (Err _) ->
             -- https://github.com/concourse/concourse/issues/3201
             ( { model | fetchingHistory = False }, effects )
@@ -318,6 +307,8 @@ handleCallback action ( model, effects ) =
 
         _ ->
             ( model, effects )
+    )
+        |> Header.handleCallback action
 
 
 handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
@@ -325,14 +316,6 @@ handleDelivery session delivery ( model, effects ) =
     (case delivery of
         KeyDown keyEvent ->
             handleKeyPressed keyEvent ( model, effects )
-
-        KeyUp keyEvent ->
-            case keyEvent.code of
-                Keyboard.T ->
-                    ( { model | previousTriggerBuildByKey = False }, effects )
-
-                _ ->
-                    ( model, effects )
 
         ClockTicked OneSecond time ->
             let
@@ -365,65 +348,119 @@ handleDelivery session delivery ( model, effects ) =
                         |> Result.map (List.map .data)
                         |> Result.map (List.member STModels.NetworkError)
                         |> Result.withDefault False
+
+                modelCorrectAuth =
+                    if eventSourceClosed && batchContainsNetworkError then
+                        { model | authorized = False }
+
+                    else
+                        model
+
+                scrollEffects =
+                    case getScrollBehavior model of
+                        ScrollWindow ->
+                            effects
+                                ++ [ Effects.Scroll
+                                        Effects.ToBottom
+                                        bodyId
+                                   ]
+
+                        ScrollToID id ->
+                            effects
+                                ++ [ Effects.Scroll
+                                        (Effects.ToId id)
+                                        bodyId
+                                   ]
+
+                        NoScroll ->
+                            effects
             in
             case result of
                 Ok envelopes ->
-                    updateOutput
-                        (Build.Output.Output.handleEnvelopes envelopes)
-                        ( if eventSourceClosed && batchContainsNetworkError then
-                            { model | authorized = False }
+                    let
+                        currentBuild =
+                            modelCorrectAuth.currentBuild |> RemoteData.toMaybe
+                    in
+                    case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
+                        ( Just cb, Just output ) ->
+                            let
+                                ( newOutput, outputEffects, outMsg ) =
+                                    Build.Output.Output.handleEnvelopes envelopes output
 
-                          else
-                            model
-                        , case getScrollBehavior model of
-                            ScrollWindow ->
-                                effects
-                                    ++ [ Effects.Scroll
-                                            Effects.ToBottom
-                                            bodyId
-                                       ]
+                                newModel =
+                                    { modelCorrectAuth
+                                        | currentBuild =
+                                            RemoteData.Success
+                                                { cb
+                                                    | output =
+                                                        -- cb.output must be equal-by-reference
+                                                        -- to its previous value when passed
+                                                        -- into `Html.Lazy.lazy3` below.
+                                                        if newOutput /= output then
+                                                            Output newOutput
 
-                            ScrollToID id ->
-                                effects
-                                    ++ [ Effects.Scroll
-                                            (Effects.ToId id)
-                                            bodyId
-                                       ]
+                                                        else
+                                                            cb.output
+                                                }
+                                    }
+                            in
+                            case outMsg of
+                                Build.Output.Output.OutNoop ->
+                                    ( newModel, scrollEffects ++ outputEffects )
 
-                            NoScroll ->
-                                effects
-                        )
+                                Build.Output.Output.OutBuildStatus status date ->
+                                    let
+                                        build =
+                                            cb.build
+
+                                        duration =
+                                            build.duration
+
+                                        newDuration =
+                                            if Concourse.BuildStatus.isRunning status then
+                                                duration
+
+                                            else
+                                                { duration | finishedAt = Just date }
+
+                                        newStatus =
+                                            if Concourse.BuildStatus.isRunning build.status then
+                                                status
+
+                                            else
+                                                build.status
+
+                                        newBuild =
+                                            { build | status = newStatus, duration = newDuration }
+                                    in
+                                    ( { modelCorrectAuth
+                                        | history = updateHistory newBuild modelCorrectAuth.history
+                                        , currentBuild =
+                                            RemoteData.Success
+                                                { cb
+                                                    | build = newBuild
+                                                    , output =
+                                                        -- cb.output must be equal-by-reference
+                                                        -- to its previous value when passed
+                                                        -- into `Html.Lazy.lazy3` below.
+                                                        if newOutput /= output then
+                                                            Output newOutput
+
+                                                        else
+                                                            cb.output
+                                                }
+                                      }
+                                    , if Concourse.BuildStatus.isRunning build.status then
+                                        scrollEffects ++ outputEffects ++ [ SetFavIcon (Just status) ]
+
+                                      else
+                                        scrollEffects ++ outputEffects
+                                    )
+
+                        _ ->
+                            ( modelCorrectAuth, scrollEffects )
 
                 _ ->
-                    ( model, effects )
-
-        ElementVisible ( id, True ) ->
-            let
-                lastBuildVisible =
-                    model.history
-                        |> List.Extra.last
-                        |> Maybe.map .id
-                        |> Maybe.map String.fromInt
-                        |> Maybe.map ((==) id)
-                        |> Maybe.withDefault False
-
-                hasNextPage =
-                    model.nextPage /= Nothing
-
-                needsToFetchMorePages =
-                    not model.fetchingHistory && lastBuildVisible && hasNextPage
-            in
-            case currentJob model of
-                Just job ->
-                    if needsToFetchMorePages then
-                        ( { model | fetchingHistory = True }
-                        , effects ++ [ FetchBuildHistory job model.nextPage ]
-                        )
-
-                    else
-                        ( model, effects )
-
-                Nothing ->
                     ( model, effects )
 
         _ ->
@@ -545,27 +582,27 @@ updateOutput updater ( model, effects ) =
     case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
         ( Just cb, Just output ) ->
             let
-                ( newOutput, outputEffects, outMsg ) =
+                ( newOutput, outputEffects, _ ) =
                     updater output
-            in
-            handleOutMsg outMsg
-                ( { model
-                    | currentBuild =
-                        RemoteData.Success
-                            { cb
-                                | output =
-                                    -- cb.output must be equal-by-reference
-                                    -- to its previous value when passed
-                                    -- into `Html.Lazy.lazy3` below.
-                                    if newOutput /= output then
-                                        Output newOutput
 
-                                    else
-                                        cb.output
-                            }
-                  }
-                , effects ++ outputEffects
-                )
+                newModel =
+                    { model
+                        | currentBuild =
+                            RemoteData.Success
+                                { cb
+                                    | output =
+                                        -- cb.output must be equal-by-reference
+                                        -- to its previous value when passed
+                                        -- into `Html.Lazy.lazy3` below.
+                                        if newOutput /= output then
+                                            Output newOutput
+
+                                        else
+                                            cb.output
+                                }
+                    }
+            in
+            ( newModel, effects ++ outputEffects )
 
         _ ->
             ( model, effects )
@@ -574,9 +611,6 @@ updateOutput updater ( model, effects ) =
 handleKeyPressed : Keyboard.KeyEvent -> ET Model
 handleKeyPressed keyEvent ( model, effects ) =
     let
-        currentBuild =
-            model.currentBuild |> RemoteData.toMaybe |> Maybe.map .build
-
         newModel =
             case ( model.previousKeyPress, keyEvent.shiftKey, keyEvent.code ) of
                 ( Nothing, False, Keyboard.G ) ->
@@ -586,68 +620,15 @@ handleKeyPressed keyEvent ( model, effects ) =
                     { model | previousKeyPress = Nothing }
     in
     if Keyboard.hasControlModifier keyEvent then
-        ( newModel, [] )
+        ( newModel, effects )
 
     else
         case ( keyEvent.code, keyEvent.shiftKey ) of
-            ( Keyboard.H, False ) ->
-                case Maybe.andThen (nextBuild newModel.history) currentBuild of
-                    Just build ->
-                        ( newModel
-                        , effects
-                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
-                        )
-
-                    Nothing ->
-                        ( newModel, [] )
-
-            ( Keyboard.L, False ) ->
-                case
-                    Maybe.andThen (prevBuild newModel.history) currentBuild
-                of
-                    Just build ->
-                        ( newModel
-                        , effects
-                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
-                        )
-
-                    Nothing ->
-                        ( newModel, [] )
-
             ( Keyboard.J, False ) ->
                 ( newModel, [ Scroll Down bodyId ] )
 
             ( Keyboard.K, False ) ->
                 ( newModel, [ Scroll Up bodyId ] )
-
-            ( Keyboard.T, True ) ->
-                if not newModel.previousTriggerBuildByKey then
-                    (currentJob model
-                        |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
-                        |> Maybe.withDefault identity
-                    )
-                        ( { newModel | previousTriggerBuildByKey = True }, effects )
-
-                else
-                    ( newModel, [] )
-
-            ( Keyboard.A, True ) ->
-                if currentBuild == List.head newModel.history then
-                    case currentBuild of
-                        Just _ ->
-                            (model.currentBuild
-                                |> RemoteData.toMaybe
-                                |> Maybe.map
-                                    (.build >> .id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
-                                |> Maybe.withDefault identity
-                            )
-                                ( newModel, effects )
-
-                        Nothing ->
-                            ( newModel, [] )
-
-                else
-                    ( newModel, [] )
 
             ( Keyboard.G, True ) ->
                 ( { newModel | autoScroll = True }, [ Scroll ToBottom bodyId ] )
@@ -660,41 +641,13 @@ handleKeyPressed keyEvent ( model, effects ) =
                     ( { newModel | autoScroll = False }, [ Scroll ToTop bodyId ] )
 
                 else
-                    ( newModel, [] )
+                    ( newModel, effects )
 
             ( Keyboard.Slash, True ) ->
-                ( { newModel | showHelp = not newModel.showHelp }, [] )
+                ( { newModel | showHelp = not newModel.showHelp }, effects )
 
             _ ->
-                ( newModel, [] )
-
-
-nextBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
-nextBuild builds build =
-    case builds of
-        first :: second :: rest ->
-            if second == build then
-                Just first
-
-            else
-                nextBuild (second :: rest) build
-
-        _ ->
-            Nothing
-
-
-prevBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
-prevBuild builds build =
-    case builds of
-        first :: second :: rest ->
-            if first == build then
-                Just second
-
-            else
-                prevBuild (second :: rest) build
-
-        _ ->
-            Nothing
+                ( newModel, effects )
 
 
 handleBuildFetched : Int -> Concourse.Build -> ET Model
@@ -713,10 +666,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                         { cb | build = build }
 
             withBuild =
-                { model
-                    | currentBuild = RemoteData.Success currentBuild
-                    , history = updateHistory build model.history
-                }
+                { model | currentBuild = RemoteData.Success currentBuild }
 
             fetchJobAndHistory =
                 case ( currentJob model, build.job ) of
@@ -787,31 +737,6 @@ initBuildOutput build ( model, effects ) =
       }
     , effects ++ outputCmd
     )
-
-
-handleHistoryFetched : Paginated Concourse.Build -> ET Model
-handleHistoryFetched history ( model, effects ) =
-    let
-        currentBuild =
-            model.currentBuild |> RemoteData.map .build
-
-        newModel =
-            { model
-                | history = List.append model.history history.content
-                , nextPage = history.pagination.nextPage
-                , fetchingHistory = False
-            }
-    in
-    case ( currentBuild, currentJob model ) of
-        ( RemoteData.Success build, Just job ) ->
-            if List.member build newModel.history then
-                ( newModel, effects ++ [ CheckIsVisible <| String.fromInt build.id ] )
-
-            else
-                ( { newModel | fetchingHistory = True }, effects ++ [ FetchBuildHistory job history.pagination.nextPage ] )
-
-        _ ->
-            ( newModel, effects )
 
 
 handleBuildPrepFetched : Int -> Concourse.BuildPrep -> ET Model
@@ -1276,54 +1201,6 @@ viewBuildPrepStatus status =
                 , style "background-size" "contain"
                 , title "not blocking"
                 ]
-
-
-handleOutMsg : Build.Output.Output.OutMsg -> ET Model
-handleOutMsg outMsg ( model, effects ) =
-    case outMsg of
-        Build.Output.Output.OutNoop ->
-            ( model, effects )
-
-        Build.Output.Output.OutBuildStatus status date ->
-            case model.currentBuild |> RemoteData.toMaybe of
-                Nothing ->
-                    ( model, effects )
-
-                Just currentBuild ->
-                    let
-                        build =
-                            currentBuild.build
-
-                        duration =
-                            build.duration
-
-                        newDuration =
-                            if Concourse.BuildStatus.isRunning status then
-                                duration
-
-                            else
-                                { duration | finishedAt = Just date }
-
-                        newStatus =
-                            if Concourse.BuildStatus.isRunning build.status then
-                                status
-
-                            else
-                                build.status
-
-                        newBuild =
-                            { build | status = newStatus, duration = newDuration }
-                    in
-                    ( { model
-                        | history = updateHistory newBuild model.history
-                        , currentBuild = RemoteData.Success { currentBuild | build = newBuild }
-                      }
-                    , if Concourse.BuildStatus.isRunning build.status then
-                        effects ++ [ SetFavIcon (Just status) ]
-
-                      else
-                        effects
-                    )
 
 
 updateHistory : Concourse.Build -> List Concourse.Build -> List Concourse.Build

@@ -6,6 +6,7 @@ module Build.Header.Models exposing
 
 import Build.Output.Models exposing (OutputModel)
 import Concourse
+import Concourse.Pagination exposing (Page)
 import RemoteData exposing (WebData)
 import Time
 
@@ -17,6 +18,10 @@ type alias Model r =
         , currentBuild : WebData CurrentBuild
         , disableManualTrigger : Bool
         , now : Maybe Time.Posix
+        , fetchingHistory : Bool
+        , nextPage : Maybe Page
+        , previousTriggerBuildByKey : Bool
+        , browsingIndex : Int
     }
 
 

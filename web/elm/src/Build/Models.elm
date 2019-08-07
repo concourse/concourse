@@ -28,7 +28,6 @@ type alias Model =
             , autoScroll : Bool
             , previousKeyPress : Maybe Keyboard.KeyEvent
             , shiftDown : Bool
-            , previousTriggerBuildByKey : Bool
             , showHelp : Bool
             , highlight : Highlight
             , hoveredCounter : Int

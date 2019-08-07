@@ -1,10 +1,11 @@
-module Build.Header.Header exposing (handleDelivery, update, viewBuildHeader)
+module Build.Header.Header exposing (handleCallback, handleDelivery, update, viewBuildHeader)
 
 import Application.Models exposing (Session)
 import Build.Header.Models exposing (Model)
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
+import Concourse.Pagination exposing (Paginated)
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
@@ -19,7 +20,9 @@ import Html.Attributes
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
+import Keyboard
 import List.Extra
+import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription
@@ -206,6 +209,46 @@ viewHistoryItem currentBuild build =
 handleDelivery : Delivery -> ET (Model r)
 handleDelivery delivery ( model, effects ) =
     case delivery of
+        KeyDown keyEvent ->
+            handleKeyPressed keyEvent ( model, effects )
+
+        KeyUp keyEvent ->
+            case keyEvent.code of
+                Keyboard.T ->
+                    ( { model | previousTriggerBuildByKey = False }, effects )
+
+                _ ->
+                    ( model, effects )
+
+        ElementVisible ( id, True ) ->
+            let
+                lastBuildVisible =
+                    model.history
+                        |> List.Extra.last
+                        |> Maybe.map .id
+                        |> Maybe.map String.fromInt
+                        |> Maybe.map ((==) id)
+                        |> Maybe.withDefault False
+
+                hasNextPage =
+                    model.nextPage /= Nothing
+
+                needsToFetchMorePages =
+                    not model.fetchingHistory && lastBuildVisible && hasNextPage
+            in
+            case currentJob model of
+                Just job ->
+                    if needsToFetchMorePages then
+                        ( { model | fetchingHistory = True }
+                        , effects ++ [ FetchBuildHistory job model.nextPage ]
+                        )
+
+                    else
+                        ( model, effects )
+
+                Nothing ->
+                    ( model, effects )
+
         ElementVisible ( id, False ) ->
             let
                 currentBuildInvisible =
@@ -232,6 +275,102 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
+handleKeyPressed : Keyboard.KeyEvent -> ET (Model r)
+handleKeyPressed keyEvent ( model, effects ) =
+    let
+        currentBuild =
+            model.currentBuild |> RemoteData.toMaybe |> Maybe.map .build
+    in
+    if Keyboard.hasControlModifier keyEvent then
+        ( model, effects )
+
+    else
+        case ( keyEvent.code, keyEvent.shiftKey ) of
+            ( Keyboard.H, False ) ->
+                case Maybe.andThen (nextBuild model.history) currentBuild of
+                    Just build ->
+                        ( model
+                        , effects
+                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                        )
+
+                    Nothing ->
+                        ( model, effects )
+
+            ( Keyboard.L, False ) ->
+                case
+                    Maybe.andThen (prevBuild model.history) currentBuild
+                of
+                    Just build ->
+                        ( model
+                        , effects
+                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                        )
+
+                    Nothing ->
+                        ( model, effects )
+
+            ( Keyboard.T, True ) ->
+                if not model.previousTriggerBuildByKey then
+                    (currentJob model
+                        |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
+                        |> Maybe.withDefault identity
+                    )
+                        ( { model | previousTriggerBuildByKey = True }, effects )
+
+                else
+                    ( model, effects )
+
+            ( Keyboard.A, True ) ->
+                if currentBuild == List.head model.history then
+                    case currentBuild of
+                        Just _ ->
+                            (model.currentBuild
+                                |> RemoteData.toMaybe
+                                |> Maybe.map
+                                    (.build >> .id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
+                                |> Maybe.withDefault identity
+                            )
+                                ( model, effects )
+
+                        Nothing ->
+                            ( model, effects )
+
+                else
+                    ( model, effects )
+
+            _ ->
+                ( model, effects )
+
+
+prevBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
+prevBuild builds build =
+    case builds of
+        first :: second :: rest ->
+            if first == build then
+                Just second
+
+            else
+                prevBuild (second :: rest) build
+
+        _ ->
+            Nothing
+
+
+nextBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
+nextBuild builds build =
+    case builds of
+        first :: second :: rest ->
+            if second == build then
+                Just first
+
+            else
+                nextBuild (second :: rest) build
+
+        _ ->
+            Nothing
+
+
 update : Message -> ET (Model r)
 update msg ( model, effects ) =
     case msg of
@@ -256,3 +395,69 @@ update msg ( model, effects ) =
 
         _ ->
             ( model, effects )
+
+
+handleCallback : Callback -> ET (Model r)
+handleCallback callback ( model, effects ) =
+    case callback of
+        BuildFetched (Ok ( browsingIndex, build )) ->
+            handleBuildFetched browsingIndex build ( model, effects )
+
+        BuildTriggered (Ok build) ->
+            ( { model | history = build :: model.history }
+            , effects
+                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+            )
+
+        BuildHistoryFetched (Ok history) ->
+            handleHistoryFetched history ( model, effects )
+
+        _ ->
+            ( model, effects )
+
+
+handleBuildFetched : Int -> Concourse.Build -> ET (Model r)
+handleBuildFetched browsingIndex build ( model, effects ) =
+    if browsingIndex == model.browsingIndex then
+        ( { model | history = updateHistory build model.history }
+        , effects
+        )
+
+    else
+        ( model, effects )
+
+
+handleHistoryFetched : Paginated Concourse.Build -> ET (Model r)
+handleHistoryFetched history ( model, effects ) =
+    let
+        currentBuild =
+            model.currentBuild |> RemoteData.map .build
+
+        newModel =
+            { model
+                | history = List.append model.history history.content
+                , nextPage = history.pagination.nextPage
+                , fetchingHistory = False
+            }
+    in
+    case ( currentBuild, currentJob model ) of
+        ( RemoteData.Success build, Just job ) ->
+            if List.member build newModel.history then
+                ( newModel, effects ++ [ CheckIsVisible <| String.fromInt build.id ] )
+
+            else
+                ( { newModel | fetchingHistory = True }, effects ++ [ FetchBuildHistory job history.pagination.nextPage ] )
+
+        _ ->
+            ( newModel, effects )
+
+
+updateHistory : Concourse.Build -> List Concourse.Build -> List Concourse.Build
+updateHistory newBuild =
+    List.map <|
+        \build ->
+            if build.id == newBuild.id then
+                newBuild
+
+            else
+                build
