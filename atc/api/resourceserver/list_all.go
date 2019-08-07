@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) ListAllResources(w http.ResponseWriter, r *http.Request) {
@@ -14,7 +15,15 @@ func (s *Server) ListAllResources(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 
-	dbResources, err := s.resourceFactory.VisibleResources(acc.TeamNames())
+	var (
+		dbResources []db.Resource
+		err         error
+	)
+	if acc.IsAdmin() {
+		dbResources, err = s.resourceFactory.AllResources()
+	} else {
+		dbResources, err = s.resourceFactory.VisibleResources(acc.TeamNames())
+	}
 	if err != nil {
 		logger.Error("failed-to-get-all-visible-resources", err)
 		w.WriteHeader(http.StatusInternalServerError)

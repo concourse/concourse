@@ -8,6 +8,18 @@ import (
 )
 
 type FakeResourceFactory struct {
+	AllResourcesStub        func() ([]db.Resource, error)
+	allResourcesMutex       sync.RWMutex
+	allResourcesArgsForCall []struct {
+	}
+	allResourcesReturns struct {
+		result1 []db.Resource
+		result2 error
+	}
+	allResourcesReturnsOnCall map[int]struct {
+		result1 []db.Resource
+		result2 error
+	}
 	VisibleResourcesStub        func([]string) ([]db.Resource, error)
 	visibleResourcesMutex       sync.RWMutex
 	visibleResourcesArgsForCall []struct {
@@ -23,6 +35,61 @@ type FakeResourceFactory struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeResourceFactory) AllResources() ([]db.Resource, error) {
+	fake.allResourcesMutex.Lock()
+	ret, specificReturn := fake.allResourcesReturnsOnCall[len(fake.allResourcesArgsForCall)]
+	fake.allResourcesArgsForCall = append(fake.allResourcesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("AllResources", []interface{}{})
+	fake.allResourcesMutex.Unlock()
+	if fake.AllResourcesStub != nil {
+		return fake.AllResourcesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.allResourcesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResourceFactory) AllResourcesCallCount() int {
+	fake.allResourcesMutex.RLock()
+	defer fake.allResourcesMutex.RUnlock()
+	return len(fake.allResourcesArgsForCall)
+}
+
+func (fake *FakeResourceFactory) AllResourcesCalls(stub func() ([]db.Resource, error)) {
+	fake.allResourcesMutex.Lock()
+	defer fake.allResourcesMutex.Unlock()
+	fake.AllResourcesStub = stub
+}
+
+func (fake *FakeResourceFactory) AllResourcesReturns(result1 []db.Resource, result2 error) {
+	fake.allResourcesMutex.Lock()
+	defer fake.allResourcesMutex.Unlock()
+	fake.AllResourcesStub = nil
+	fake.allResourcesReturns = struct {
+		result1 []db.Resource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceFactory) AllResourcesReturnsOnCall(i int, result1 []db.Resource, result2 error) {
+	fake.allResourcesMutex.Lock()
+	defer fake.allResourcesMutex.Unlock()
+	fake.AllResourcesStub = nil
+	if fake.allResourcesReturnsOnCall == nil {
+		fake.allResourcesReturnsOnCall = make(map[int]struct {
+			result1 []db.Resource
+			result2 error
+		})
+	}
+	fake.allResourcesReturnsOnCall[i] = struct {
+		result1 []db.Resource
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResourceFactory) VisibleResources(arg1 []string) ([]db.Resource, error) {
@@ -96,6 +163,8 @@ func (fake *FakeResourceFactory) VisibleResourcesReturnsOnCall(i int, result1 []
 func (fake *FakeResourceFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.allResourcesMutex.RLock()
+	defer fake.allResourcesMutex.RUnlock()
 	fake.visibleResourcesMutex.RLock()
 	defer fake.visibleResourcesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
