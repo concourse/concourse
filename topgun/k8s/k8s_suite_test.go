@@ -279,9 +279,9 @@ func getRunningWorkers(workers []Worker) (running []Worker) {
 func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
 	helmDestroy(releaseName)
 
-	onPks(func() {
+	if Environment.K8sEngine == "PKS" {
 		deleteFailedVolumesOnPKS(namespace)
-	})
+	}
 
 	Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
 
