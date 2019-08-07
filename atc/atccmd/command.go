@@ -1153,7 +1153,7 @@ func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
 func (cmd *RunCommand) constructDBConn(
 	driverName string,
 	logger lager.Logger,
-	maxConn int,
+	maxIdleConns int,
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.Conn, error) {
@@ -1172,7 +1172,8 @@ func (cmd *RunCommand) constructDBConn(
 	}
 
 	// Prepare
-	dbConn.SetMaxOpenConns(maxConn)
+	dbConn.SetMaxOpenConns(2 * maxIdleConns)
+	dbConn.SetMaxIdleConns(maxIdleConns)
 
 	return dbConn, nil
 }
@@ -1187,8 +1188,8 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	dbConn.SetMaxOpenConns(1)
-	dbConn.SetMaxIdleConns(1)
+	dbConn.SetMaxOpenConns(10)
+	dbConn.SetMaxIdleConns(5)
 	dbConn.SetConnMaxLifetime(0)
 
 	return dbConn, nil
