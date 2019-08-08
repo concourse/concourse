@@ -43,6 +43,7 @@ import Html.Attributes
 import Html.Lazy
 import Http
 import Keyboard
+import List.Extra
 import Login.Login as Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
@@ -380,11 +381,24 @@ handleDelivery session delivery ( model, effects ) =
                     let
                         currentBuild =
                             modelCorrectAuth.currentBuild |> RemoteData.toMaybe
+
+                        buildStatus =
+                            envelopes
+                                |> List.filterMap
+                                    (\{ data } ->
+                                        case data of
+                                            STModels.BuildStatus status date ->
+                                                Just ( status, date )
+
+                                            _ ->
+                                                Nothing
+                                    )
+                                |> List.Extra.last
                     in
                     case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
                         ( Just cb, Just output ) ->
                             let
-                                ( newOutput, outputEffects, outMsg ) =
+                                ( newOutput, outputEffects ) =
                                     Build.Output.Output.handleEnvelopes envelopes output
 
                                 newModel =
@@ -404,11 +418,11 @@ handleDelivery session delivery ( model, effects ) =
                                                 }
                                     }
                             in
-                            case outMsg of
-                                Build.Output.Output.OutNoop ->
+                            case buildStatus of
+                                Nothing ->
                                     ( newModel, scrollEffects ++ outputEffects )
 
-                                Build.Output.Output.OutBuildStatus status date ->
+                                Just ( status, date ) ->
                                     let
                                         build =
                                             cb.build
@@ -572,7 +586,7 @@ getScrollBehavior model =
 
 
 updateOutput :
-    (OutputModel -> ( OutputModel, List Effect, Build.Output.Output.OutMsg ))
+    (OutputModel -> ( OutputModel, List Effect ))
     -> ET Model
 updateOutput updater ( model, effects ) =
     let
@@ -582,7 +596,7 @@ updateOutput updater ( model, effects ) =
     case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
         ( Just cb, Just output ) ->
             let
-                ( newOutput, outputEffects, _ ) =
+                ( newOutput, outputEffects ) =
                     updater output
 
                 newModel =

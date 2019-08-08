@@ -1,6 +1,5 @@
 module Build.Output.Output exposing
-    ( OutMsg(..)
-    , handleEnvelopes
+    ( handleEnvelopes
     , handleStepTreeMsg
     , init
     , planAndResourcesFetched
@@ -30,11 +29,6 @@ import Message.Message exposing (Message(..))
 import Routes exposing (StepID)
 import Time
 import Views.LoadingIndicator as LoadingIndicator
-
-
-type OutMsg
-    = OutNoop
-    | OutBuildStatus Concourse.BuildStatus Time.Posix
 
 
 init : Routes.Highlight -> Concourse.Build -> ( OutputModel, List Effect )
@@ -68,7 +62,7 @@ init highlight build =
 handleStepTreeMsg :
     (StepTreeModel -> ( StepTreeModel, List Effect ))
     -> OutputModel
-    -> ( OutputModel, List Effect, OutMsg )
+    -> ( OutputModel, List Effect )
 handleStepTreeMsg action model =
     case model.steps of
         Just st ->
@@ -76,17 +70,17 @@ handleStepTreeMsg action model =
                 ( newModel, effects ) =
                     action st
             in
-            ( { model | steps = Just newModel }, effects, OutNoop )
+            ( { model | steps = Just newModel }, effects )
 
         _ ->
-            ( model, [], OutNoop )
+            ( model, [] )
 
 
 planAndResourcesFetched :
     Concourse.BuildId
     -> ( Concourse.BuildPlan, Concourse.BuildResources )
     -> OutputModel
-    -> ( OutputModel, List Effect, OutMsg )
+    -> ( OutputModel, List Effect )
 planAndResourcesFetched buildId ( plan, resources ) model =
     let
         url =
@@ -103,115 +97,102 @@ planAndResourcesFetched buildId ( plan, resources ) model =
         , eventStreamUrlPath = Just url
       }
     , []
-    , OutNoop
     )
 
 
 handleEnvelopes :
     List BuildEventEnvelope
     -> OutputModel
-    -> ( OutputModel, List Effect, OutMsg )
+    -> ( OutputModel, List Effect )
 handleEnvelopes envelopes model =
     envelopes
         |> List.reverse
-        |> List.foldr handleEnvelope ( model, [], OutNoop )
+        |> List.foldr handleEnvelope ( model, [] )
 
 
 handleEnvelope :
     BuildEventEnvelope
-    -> ( OutputModel, List Effect, OutMsg )
-    -> ( OutputModel, List Effect, OutMsg )
-handleEnvelope { url, data } ( model, effects, outmsg ) =
+    -> ( OutputModel, List Effect )
+    -> ( OutputModel, List Effect )
+handleEnvelope { url, data } ( model, effects ) =
     if
         model.eventStreamUrlPath
             |> Maybe.map (\p -> String.endsWith p url)
             |> Maybe.withDefault False
     then
-        handleEvent data ( model, effects, outmsg )
+        handleEvent data ( model, effects )
 
     else
-        ( model, effects, outmsg )
+        ( model, effects )
 
 
 handleEvent :
     BuildEvent
-    -> ( OutputModel, List Effect, OutMsg )
-    -> ( OutputModel, List Effect, OutMsg )
-handleEvent event ( model, effects, outmsg ) =
+    -> ( OutputModel, List Effect )
+    -> ( OutputModel, List Effect )
+handleEvent event ( model, effects ) =
     case event of
         Opened ->
             ( { model | eventSourceOpened = True }
             , effects
-            , outmsg
             )
 
         Log origin output time ->
             ( updateStep origin.id (setRunning << appendStepLog output time) model
             , effects
-            , outmsg
             )
 
         Error origin message time ->
             ( updateStep origin.id (setStepError message time) model
             , effects
-            , outmsg
             )
 
         InitializeTask origin time ->
             ( updateStep origin.id (setInitialize time) model
             , effects
-            , outmsg
             )
 
         StartTask origin time ->
             ( updateStep origin.id (setStart time) model
             , effects
-            , outmsg
             )
 
         FinishTask origin exitStatus time ->
             ( updateStep origin.id (finishStep exitStatus (Just time)) model
             , effects
-            , outmsg
             )
 
         InitializeGet origin time ->
             ( updateStep origin.id (setInitialize time) model
             , effects
-            , outmsg
             )
 
         StartGet origin time ->
             ( updateStep origin.id (setStart time) model
             , effects
-            , outmsg
             )
 
         FinishGet origin exitStatus version metadata time ->
             ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
             , effects
-            , outmsg
             )
 
         InitializePut origin time ->
             ( updateStep origin.id (setInitialize time) model
             , effects
-            , outmsg
             )
 
         StartPut origin time ->
             ( updateStep origin.id (setStart time) model
             , effects
-            , outmsg
             )
 
         FinishPut origin exitStatus version metadata time ->
             ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
             , effects
-            , outmsg
             )
 
-        BuildStatus status date ->
+        BuildStatus status _ ->
             let
                 newSt =
                     model.steps
@@ -224,16 +205,15 @@ handleEvent event ( model, effects, outmsg ) =
                                     Build.StepTree.StepTree.finished st
                             )
             in
-            ( { model | steps = newSt }, effects, OutBuildStatus status date )
+            ( { model | steps = newSt }, effects )
 
         End ->
             ( { model | state = StepsComplete, eventStreamUrlPath = Nothing }
             , effects
-            , outmsg
             )
 
         NetworkError ->
-            ( model, effects, outmsg )
+            ( model, effects )
 
 
 updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel
