@@ -81,7 +81,7 @@ var _ = Describe("Resource Get", func() {
 		Describe("streaming bits out", func() {
 			Context("when streaming out succeeds", func() {
 				BeforeEach(func() {
-					fakeVolume.StreamOutStub = func(path string) (io.ReadCloser, error) {
+					fakeVolume.StreamOutStub = func(ctx context.Context, path string) (io.ReadCloser, error) {
 						streamOut := new(bytes.Buffer)
 
 						if path == "some/subdir" {
@@ -93,7 +93,7 @@ var _ = Describe("Resource Get", func() {
 				})
 
 				It("returns the output stream of the resource directory", func() {
-					inStream, err := versionedSource.StreamOut("some/subdir")
+					inStream, err := versionedSource.StreamOut(context.TODO(), "some/subdir")
 					Expect(err).NotTo(HaveOccurred())
 
 					contents, err := ioutil.ReadAll(inStream)
@@ -110,7 +110,7 @@ var _ = Describe("Resource Get", func() {
 				})
 
 				It("returns the error", func() {
-					_, err := versionedSource.StreamOut("some/subdir")
+					_, err := versionedSource.StreamOut(context.TODO(), "some/subdir")
 					Expect(err.Error()).To(Equal("oh no!"))
 				})
 			})
@@ -312,17 +312,17 @@ var _ = Describe("Resource Get", func() {
 			})
 
 			It("uses the same working directory for all actions", func() {
-				err := versionedSource.StreamIn("a/path", &bytes.Buffer{})
+				err := versionedSource.StreamIn(context.TODO(), "a/path", &bytes.Buffer{})
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeVolume.StreamInCallCount()).To(Equal(1))
-				destPath, _ := fakeVolume.StreamInArgsForCall(0)
+				_, destPath, _ := fakeVolume.StreamInArgsForCall(0)
 
-				_, err = versionedSource.StreamOut("a/path")
+				_, err = versionedSource.StreamOut(context.TODO(), "a/path")
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
-				path := fakeVolume.StreamOutArgsForCall(0)
+				_, path := fakeVolume.StreamOutArgsForCall(0)
 				Expect(path).To(Equal("a/path"))
 
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))

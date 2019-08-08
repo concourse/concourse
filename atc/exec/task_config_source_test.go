@@ -124,7 +124,7 @@ var _ = Describe("TaskConfigSource", func() {
 				})
 
 				It("fetches the file via the correct path", func() {
-					_, dest := fakeArtifactSource.StreamFileArgsForCall(0)
+					_, _, dest := fakeArtifactSource.StreamFileArgsForCall(0)
 					Expect(dest).To(Equal("build.yml"))
 				})
 

@@ -44,7 +44,7 @@ require (
 	github.com/circonus-labs/circonusllhist v0.0.0-20180430145027-5eb751da55c6 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.6.2
+	github.com/concourse/baggageclaim v1.6.3
 	github.com/concourse/dex v0.0.0-20190417202333-2202f4ef4172
 	github.com/concourse/flag v1.0.0
 	github.com/concourse/go-archive v1.0.1

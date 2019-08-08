@@ -1409,14 +1409,14 @@ var _ = Describe("Worker", func() {
 
 				It("streams remote inputs into newly created container volumes", func() {
 					Expect(fakeRemoteInputAS.StreamToCallCount()).To(Equal(1))
-					_, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
+					_, _, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
 
-					err := ad.StreamIn(".", bytes.NewBufferString("some-stream"))
+					err := ad.StreamIn(context.TODO(), ".", bytes.NewBufferString("some-stream"))
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(fakeRemoteInputContainerVolume.StreamInCallCount()).To(Equal(1))
 
-					dst, from := fakeRemoteInputContainerVolume.StreamInArgsForCall(0)
+					_, dst, from := fakeRemoteInputContainerVolume.StreamInArgsForCall(0)
 					Expect(dst).To(Equal("."))
 					Expect(ioutil.ReadAll(from)).To(Equal([]byte("some-stream")))
 				})

@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -157,7 +158,7 @@ var _ = Describe("Artifacts API", func() {
 						BeforeEach(func() {
 							fakeVolume.StreamInReturns(nil)
 
-							fakeVolume.StreamInStub = func(path string, body io.Reader) error {
+							fakeVolume.StreamInStub = func(ctx context.Context, path string, body io.Reader) error {
 								Expect(path).To(Equal("/"))
 
 								contents, err := ioutil.ReadAll(body)
@@ -321,7 +322,7 @@ var _ = Describe("Artifacts API", func() {
 					It("streams out the contents of the volume from the root path", func() {
 						Expect(fakeWorkerVolume.StreamOutCallCount()).To(Equal(1))
 
-						path := fakeWorkerVolume.StreamOutArgsForCall(0)
+						_, path := fakeWorkerVolume.StreamOutArgsForCall(0)
 						Expect(path).To(Equal("/"))
 					})
 

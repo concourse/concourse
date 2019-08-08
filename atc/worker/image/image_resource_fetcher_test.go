@@ -297,7 +297,8 @@ var _ = Describe("Image", func() {
 
 							It("calls StreamOut on the versioned source with the right metadata path", func() {
 								Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
-								Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("metadata.json"))
+								_, src := fakeVersionedSource.StreamOutArgsForCall(0)
+								Expect(src).To(Equal("metadata.json"))
 							})
 
 							It("returns a tar stream containing the contents of metadata.json", func() {
@@ -543,7 +544,8 @@ var _ = Describe("Image", func() {
 
 					It("calls StreamOut on the versioned source with the right metadata path", func() {
 						Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
-						Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("metadata.json"))
+						_, src := fakeVersionedSource.StreamOutArgsForCall(0)
+						Expect(src).To(Equal("metadata.json"))
 					})
 
 					It("returns a tar stream containing the contents of metadata.json", func() {

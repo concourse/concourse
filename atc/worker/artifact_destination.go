@@ -1,6 +1,9 @@
 package worker
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
 //go:generate counterfeiter . ArtifactDestination
 
@@ -10,5 +13,5 @@ import "io"
 type ArtifactDestination interface {
 	// StreamIn is called with a destination directory and the tar stream to
 	// expand into the destination directory.
-	StreamIn(string, io.Reader) error
+	StreamIn(context.Context, string, io.Reader) error
 }

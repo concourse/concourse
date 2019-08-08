@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -79,7 +80,10 @@ func (configSource FileConfigSource) FetchConfig(logger lager.Logger, repo *arti
 		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
 	}
 
-	stream, err := source.StreamFile(logger, filePath)
+	// TODO: idk if we really want to pass a context in here. This is a very
+	// 		 shortlived stream. It would pollute the TaskConfigSource Interface
+	//		 as all the FetchConfigs will be need to have this passed in.
+	stream, err := source.StreamFile(context.TODO(), logger, filePath)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {
 			return atc.TaskConfig{}, fmt.Errorf("task config '%s/%s' not found", sourceName, filePath)

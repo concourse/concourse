@@ -450,18 +450,18 @@ func NewTaskArtifactSource(volume worker.Volume) *taskArtifactSource {
 	return &taskArtifactSource{volume}
 }
 
-func (src *taskArtifactSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
+func (src *taskArtifactSource) StreamTo(ctx context.Context, logger lager.Logger, destination worker.ArtifactDestination) error {
 	logger = logger.Session("task-artifact-streaming", lager.Data{
 		"src-volume": src.Handle(),
 		"src-worker": src.WorkerName(),
 	})
 
-	return streamToHelper(src, logger, destination)
+	return streamToHelper(ctx, src, logger, destination)
 }
 
-func (src *taskArtifactSource) StreamFile(logger lager.Logger, filename string) (io.ReadCloser, error) {
+func (src *taskArtifactSource) StreamFile(ctx context.Context, logger lager.Logger, filename string) (io.ReadCloser, error) {
 	logger.Debug("streaming-file-from-volume")
-	return streamFileHelper(src, logger, filename)
+	return streamFileHelper(ctx, src, logger, filename)
 }
 
 func (src *taskArtifactSource) VolumeOn(logger lager.Logger, w worker.Worker) (worker.Volume, bool, error) {
@@ -530,12 +530,12 @@ func newTaskCacheSource(
 	}
 }
 
-func (src *taskCacheSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
+func (src *taskCacheSource) StreamTo(ctx context.Context, logger lager.Logger, destination worker.ArtifactDestination) error {
 	// cache will be initialized every time on a new worker
 	return nil
 }
 
-func (src *taskCacheSource) StreamFile(logger lager.Logger, filename string) (io.ReadCloser, error) {
+func (src *taskCacheSource) StreamFile(ctx context.Context, logger lager.Logger, filename string) (io.ReadCloser, error) {
 	return nil, errors.New("taskCacheSource.StreamFile not implemented")
 }
 

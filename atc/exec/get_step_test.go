@@ -293,14 +293,15 @@ var _ = Describe("GetStep", func() {
 						})
 
 						It("streams the resource to the destination", func() {
-							err := artifactSource.StreamTo(testLogger, fakeDestination)
+							err := artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
-							Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("."))
+							_, path := fakeVersionedSource.StreamOutArgsForCall(0)
+							Expect(path).To(Equal("."))
 
 							Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-							dest, src := fakeDestination.StreamInArgsForCall(0)
+							_, dest, src := fakeDestination.StreamInArgsForCall(0)
 							Expect(dest).To(Equal("."))
 							Expect(src).To(Equal(streamedOut))
 						})
@@ -313,7 +314,7 @@ var _ = Describe("GetStep", func() {
 							})
 
 							It("returns the error", func() {
-								Expect(artifactSource.StreamTo(testLogger, fakeDestination)).To(Equal(disaster))
+								Expect(artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)).To(Equal(disaster))
 							})
 						})
 
@@ -325,7 +326,7 @@ var _ = Describe("GetStep", func() {
 							})
 
 							It("returns the error", func() {
-								Expect(artifactSource.StreamTo(testLogger, fakeDestination)).To(Equal(disaster))
+								Expect(artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)).To(Equal(disaster))
 							})
 						})
 					})
@@ -338,7 +339,7 @@ var _ = Describe("GetStep", func() {
 						})
 
 						It("returns the error", func() {
-							Expect(artifactSource.StreamTo(testLogger, fakeDestination)).To(Equal(disaster))
+							Expect(artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)).To(Equal(disaster))
 						})
 					})
 				})
@@ -376,17 +377,17 @@ var _ = Describe("GetStep", func() {
 							})
 
 							It("streams out the given path", func() {
-								reader, err := artifactSource.StreamFile(testLogger, "some-path")
+								reader, err := artifactSource.StreamFile(context.TODO(), testLogger, "some-path")
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
-
-								Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("some-path"))
+								_, path := fakeVersionedSource.StreamOutArgsForCall(0)
+								Expect(path).To(Equal("some-path"))
 							})
 
 							Describe("closing the stream", func() {
 								It("closes the stream from the versioned source", func() {
-									reader, err := artifactSource.StreamFile(testLogger, "some-path")
+									reader, err := artifactSource.StreamFile(context.TODO(), testLogger, "some-path")
 									Expect(err).NotTo(HaveOccurred())
 
 									Expect(tgzBuffer.Closed()).To(BeFalse())
@@ -401,7 +402,7 @@ var _ = Describe("GetStep", func() {
 
 						Context("but the stream is empty", func() {
 							It("returns ErrFileNotFound", func() {
-								_, err := artifactSource.StreamFile(testLogger, "some-path")
+								_, err := artifactSource.StreamFile(context.TODO(), testLogger, "some-path")
 								Expect(err).To(MatchError(exec.FileNotFoundError{Path: "some-path"}))
 							})
 						})
@@ -415,7 +416,7 @@ var _ = Describe("GetStep", func() {
 						})
 
 						It("returns the error", func() {
-							_, err := artifactSource.StreamFile(testLogger, "some-path")
+							_, err := artifactSource.StreamFile(context.TODO(), testLogger, "some-path")
 							Expect(err).To(Equal(disaster))
 						})
 					})

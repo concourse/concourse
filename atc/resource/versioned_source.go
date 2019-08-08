@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"io"
 	"path"
 
@@ -14,8 +15,8 @@ type VersionedSource interface {
 	Version() atc.Version
 	Metadata() []atc.MetadataField
 
-	StreamOut(string) (io.ReadCloser, error)
-	StreamIn(string, io.Reader) error
+	StreamOut(context.Context, string) (io.ReadCloser, error)
+	StreamIn(context.Context, string, io.Reader) error
 
 	Volume() worker.Volume
 }
@@ -53,8 +54,8 @@ func (vs *getVersionedSource) Metadata() []atc.MetadataField {
 	return vs.versionResult.Metadata
 }
 
-func (vs *getVersionedSource) StreamOut(src string) (io.ReadCloser, error) {
-	readCloser, err := vs.volume.StreamOut(src)
+func (vs *getVersionedSource) StreamOut(ctx context.Context, src string) (io.ReadCloser, error) {
+	readCloser, err := vs.volume.StreamOut(ctx, src)
 	if err != nil {
 		return nil, err
 	}
@@ -62,11 +63,8 @@ func (vs *getVersionedSource) StreamOut(src string) (io.ReadCloser, error) {
 	return readCloser, err
 }
 
-func (vs *getVersionedSource) StreamIn(dst string, src io.Reader) error {
-	return vs.volume.StreamIn(
-		path.Join(vs.resourceDir, dst),
-		src,
-	)
+func (vs *getVersionedSource) StreamIn(ctx context.Context, dst string, src io.Reader) error {
+	return vs.volume.StreamIn(ctx, path.Join(vs.resourceDir, dst), src)
 }
 
 func (vs *getVersionedSource) Volume() worker.Volume {

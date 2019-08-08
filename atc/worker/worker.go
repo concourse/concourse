@@ -583,10 +583,7 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	nonLocals []mountableRemoteInput,
 ) ([]VolumeMount, error) {
 	mounts := make([]VolumeMount, len(nonLocals))
-
-	// TODO: use the ctx returned by WithContext for the actual client requests
-	// 		 this will only cancel the groups goroutines but not the requests.
-	g, _ := errgroup.WithContext(ctx)
+	g, groupCtx := errgroup.WithContext(ctx)
 
 	for i, nonLocalInput := range nonLocals {
 		// this is to ensure each go func gets its own non changing copy of the iterator
@@ -610,7 +607,7 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 		}
 
 		g.Go(func() error {
-			err = nonLocalInput.desiredArtifact.StreamTo(logger.Session("stream-to", destData), inputVolume)
+			err = nonLocalInput.desiredArtifact.StreamTo(groupCtx, logger.Session("stream-to", destData), inputVolume)
 			if err != nil {
 				return err
 			}
