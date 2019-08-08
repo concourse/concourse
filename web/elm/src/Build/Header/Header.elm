@@ -280,6 +280,9 @@ handleDelivery delivery ( model, effects ) =
                         currentBuild =
                             model.currentBuild |> RemoteData.toMaybe
 
+                        currentOutput =
+                            model.output |> toMaybe
+
                         buildStatus =
                             envelopes
                                 |> List.filterMap
@@ -293,7 +296,7 @@ handleDelivery delivery ( model, effects ) =
                                     )
                                 |> List.Extra.last
                     in
-                    case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
+                    case ( currentBuild, currentOutput ) of
                         ( Just cb, Just _ ) ->
                             case buildStatus of
                                 Nothing ->

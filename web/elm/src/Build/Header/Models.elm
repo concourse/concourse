@@ -16,6 +16,7 @@ type alias Model r =
         | scrolledToCurrentBuild : Bool
         , history : List Concourse.Build
         , currentBuild : WebData CurrentBuild
+        , output : CurrentOutput
         , disableManualTrigger : Bool
         , now : Maybe Time.Posix
         , fetchingHistory : Bool
@@ -28,7 +29,6 @@ type alias Model r =
 type alias CurrentBuild =
     { build : Concourse.Build
     , prep : Maybe Concourse.BuildPrep
-    , output : CurrentOutput
     }
 
 

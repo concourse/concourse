@@ -93,6 +93,7 @@ init flags =
           , history = []
           , nextPage = Nothing
           , currentBuild = RemoteData.NotAsked
+          , output = Empty
           , browsingIndex = 0
           , autoScroll = True
           , previousKeyPress = Nothing
@@ -114,9 +115,8 @@ subscriptions : Model -> List Subscription
 subscriptions model =
     let
         buildEventsUrl =
-            model.currentBuild
-                |> RemoteData.toMaybe
-                |> Maybe.andThen (.output >> toMaybe)
+            model.output
+                |> toMaybe
                 |> Maybe.andThen .eventStreamUrlPath
     in
     [ OnClockTick OneSecond
@@ -146,12 +146,13 @@ changeToBuild { highlight, pageType } ( model, effects ) =
 
             newBuild =
                 RemoteData.map
-                    (\cb -> { cb | prep = Nothing, output = Empty })
+                    (\cb -> { cb | prep = Nothing })
                     model.currentBuild
         in
         ( { model
             | browsingIndex = newIndex
             , currentBuild = newBuild
+            , output = Empty
             , autoScroll = True
             , page = pageType
             , highlight = highlight
@@ -275,12 +276,7 @@ handleCallback action ( model, effects ) =
                                 |> RemoteData.withDefault False
                     in
                     if status.code == 404 && isAborted then
-                        ( { model
-                            | currentBuild =
-                                RemoteData.map
-                                    (\cb -> { cb | output = Cancelled })
-                                    model.currentBuild
-                          }
+                        ( { model | output = Cancelled }
                         , effects
                         )
 
@@ -335,122 +331,72 @@ handleDelivery session delivery ( model, effects ) =
         ClockTicked FiveSeconds _ ->
             ( model, effects ++ [ Effects.FetchPipelines ] )
 
-        EventsReceived result ->
+        EventsReceived (Ok envelopes) ->
             let
                 eventSourceClosed =
-                    model.currentBuild
-                        |> RemoteData.toMaybe
-                        |> Maybe.andThen (.output >> toMaybe)
+                    model.output
+                        |> toMaybe
                         |> Maybe.map (.eventSourceOpened >> not)
                         |> Maybe.withDefault False
 
-                batchContainsNetworkError =
-                    result
-                        |> Result.map (List.map .data)
-                        |> Result.map (List.member STModels.NetworkError)
-                        |> Result.withDefault False
+                buildStatus =
+                    envelopes
+                        |> List.filterMap
+                            (\{ data } ->
+                                case data of
+                                    STModels.BuildStatus status date ->
+                                        Just ( status, date )
 
-                modelCorrectAuth =
-                    if eventSourceClosed && batchContainsNetworkError then
-                        { model | authorized = False }
+                                    _ ->
+                                        Nothing
+                            )
+                        |> List.Extra.last
 
-                    else
-                        model
+                ( newModel, newEffects ) =
+                    updateOutput
+                        (Build.Output.Output.handleEnvelopes envelopes)
+                        ( if eventSourceClosed && (envelopes |> List.map .data |> List.member STModels.NetworkError) then
+                            { model | authorized = False }
 
-                scrollEffects =
-                    case getScrollBehavior model of
-                        ScrollWindow ->
-                            effects
-                                ++ [ Effects.Scroll
-                                        Effects.ToBottom
-                                        bodyId
-                                   ]
+                          else
+                            model
+                        , case getScrollBehavior model of
+                            ScrollWindow ->
+                                effects
+                                    ++ [ Effects.Scroll
+                                            Effects.ToBottom
+                                            bodyId
+                                       ]
 
-                        ScrollToID id ->
-                            effects
-                                ++ [ Effects.Scroll
-                                        (Effects.ToId id)
-                                        bodyId
-                                   ]
+                            ScrollToID id ->
+                                effects
+                                    ++ [ Effects.Scroll
+                                            (Effects.ToId id)
+                                            bodyId
+                                       ]
 
-                        NoScroll ->
-                            effects
+                            NoScroll ->
+                                effects
+                        )
             in
-            case result of
-                Ok envelopes ->
-                    let
-                        currentBuild =
-                            modelCorrectAuth.currentBuild |> RemoteData.toMaybe
+            case ( newModel.currentBuild |> RemoteData.toMaybe, buildStatus ) of
+                ( Just cb, Just ( status, date ) ) ->
+                    ( { newModel
+                        | currentBuild =
+                            RemoteData.Success
+                                { cb
+                                    | build = Concourse.receiveStatus status date cb.build
+                                }
+                      }
+                    , if Concourse.BuildStatus.isRunning cb.build.status then
+                        newEffects ++ [ SetFavIcon (Just status) ]
 
-                        buildStatus =
-                            envelopes
-                                |> List.filterMap
-                                    (\{ data } ->
-                                        case data of
-                                            STModels.BuildStatus status date ->
-                                                Just ( status, date )
-
-                                            _ ->
-                                                Nothing
-                                    )
-                                |> List.Extra.last
-                    in
-                    case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
-                        ( Just cb, Just output ) ->
-                            let
-                                ( newOutput, outputEffects ) =
-                                    Build.Output.Output.handleEnvelopes envelopes output
-
-                                newModel =
-                                    { modelCorrectAuth
-                                        | currentBuild =
-                                            RemoteData.Success
-                                                { cb
-                                                    | output =
-                                                        -- cb.output must be equal-by-reference
-                                                        -- to its previous value when passed
-                                                        -- into `Html.Lazy.lazy3` below.
-                                                        if newOutput /= output then
-                                                            Output newOutput
-
-                                                        else
-                                                            cb.output
-                                                }
-                                    }
-                            in
-                            case buildStatus of
-                                Nothing ->
-                                    ( newModel, scrollEffects ++ outputEffects )
-
-                                Just ( status, date ) ->
-                                    ( { modelCorrectAuth
-                                        | currentBuild =
-                                            RemoteData.Success
-                                                { cb
-                                                    | build = Concourse.receiveStatus status date cb.build
-                                                    , output =
-                                                        -- cb.output must be equal-by-reference
-                                                        -- to its previous value when passed
-                                                        -- into `Html.Lazy.lazy3` below.
-                                                        if newOutput /= output then
-                                                            Output newOutput
-
-                                                        else
-                                                            cb.output
-                                                }
-                                      }
-                                    , if Concourse.BuildStatus.isRunning cb.build.status then
-                                        scrollEffects ++ outputEffects ++ [ SetFavIcon (Just status) ]
-
-                                      else
-                                        scrollEffects ++ outputEffects
-                                    )
-
-                        _ ->
-                            ( modelCorrectAuth, scrollEffects )
+                      else
+                        newEffects
+                    )
 
                 _ ->
-                    ( model, effects )
+                    ( newModel, newEffects )
 
         _ ->
             ( model, effects )
@@ -567,28 +513,27 @@ updateOutput updater ( model, effects ) =
     let
         currentBuild =
             model.currentBuild |> RemoteData.toMaybe
+
+        currentOutput =
+            model.output |> toMaybe
     in
-    case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
-        ( Just cb, Just output ) ->
+    case ( currentBuild, currentOutput ) of
+        ( Just _, Just output ) ->
             let
                 ( newOutput, outputEffects ) =
                     updater output
 
                 newModel =
                     { model
-                        | currentBuild =
-                            RemoteData.Success
-                                { cb
-                                    | output =
-                                        -- cb.output must be equal-by-reference
-                                        -- to its previous value when passed
-                                        -- into `Html.Lazy.lazy3` below.
-                                        if newOutput /= output then
-                                            Output newOutput
+                        | output =
+                            -- model.output must be equal-by-reference
+                            -- to its previous value when passed
+                            -- into `Html.Lazy.lazy3` below.
+                            if newOutput /= output then
+                                Output newOutput
 
-                                        else
-                                            cb.output
-                                }
+                            else
+                                model.output
                     }
             in
             ( newModel, effects ++ outputEffects )
@@ -648,14 +593,24 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                     Nothing ->
                         { build = build
                         , prep = Nothing
-                        , output = Empty
                         }
 
                     Just cb ->
                         { cb | build = build }
 
+            output =
+                case model.currentBuild |> RemoteData.toMaybe of
+                    Nothing ->
+                        Empty
+
+                    Just _ ->
+                        model.output
+
             withBuild =
-                { model | currentBuild = RemoteData.Success currentBuild }
+                { model
+                    | currentBuild = RemoteData.Success currentBuild
+                    , output = output
+                }
 
             fetchJobAndHistory =
                 case ( currentJob model, build.job ) of
@@ -718,12 +673,7 @@ initBuildOutput build ( model, effects ) =
         ( output, outputCmd ) =
             Build.Output.Output.init model.highlight build
     in
-    ( { model
-        | currentBuild =
-            RemoteData.map
-                (\info -> { info | output = Output output })
-                model.currentBuild
-      }
+    ( { model | output = Output output }
     , effects ++ outputCmd
     )
 
@@ -834,6 +784,7 @@ viewBuildPage session model =
                 , body
                     session
                     { currentBuild = currentBuild
+                    , output = model.output
                     , authorized = model.authorized
                     , showHelp = model.showHelp
                     }
@@ -847,11 +798,12 @@ body :
     Session
     ->
         { currentBuild : CurrentBuild
+        , output : CurrentOutput
         , authorized : Bool
         , showHelp : Bool
         }
     -> Html Message
-body session { currentBuild, authorized, showHelp } =
+body session { currentBuild, output, authorized, showHelp } =
     Html.div
         ([ class "scrollable-body build-body"
          , id bodyId
@@ -867,7 +819,7 @@ body session { currentBuild, authorized, showHelp } =
                 viewBuildOutput
                 session.timeZone
                 (projectOntoBuildPage session.hovered)
-                currentBuild.output
+                output
             , keyboardHelp showHelp
             ]
                 ++ tombstone session.timeZone currentBuild
