@@ -221,7 +221,7 @@ func (t varsTracker) MissingError() error {
 		return nil
 	}
 
-	return fmt.Errorf("Expected to find variables: %s", t.list(t.missing))
+	return UndefinedVarsError{Vars: names(t.missing)}
 }
 
 func (t varsTracker) ExtraError() error {
@@ -246,15 +246,16 @@ func (t varsTracker) ExtraError() error {
 		return nil
 	}
 
-	return fmt.Errorf("Expected to use variables: %s", t.list(unusedNames))
+	return UnusedVarsError{Vars: names(unusedNames)}
 }
 
-func (t varsTracker) list(mapWithNames map[string]struct{}) string {
+func names(mapWithNames map[string]struct{}) []string {
 	var names []string
 	for name, _ := range mapWithNames {
 		names = append(names, name)
 	}
+
 	sort.Strings(names)
 
-	return strings.Join(names, ", ")
+	return names
 }
