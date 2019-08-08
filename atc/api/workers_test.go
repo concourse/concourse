@@ -31,7 +31,6 @@ var _ = Describe("Workers API", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
-
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/workers", nil)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -40,11 +39,28 @@ var _ = Describe("Workers API", func() {
 		})
 
 		Context("when authenticated", func() {
+			var (
+				teamWorker1 *dbfakes.FakeWorker
+				teamWorker2 *dbfakes.FakeWorker
+			)
+
 			BeforeEach(func() {
 				fakeaccess.IsAuthenticatedReturns(true)
 				fakeaccess.IsAuthorizedReturns(true)
 				fakeaccess.TeamNamesReturns([]string{"some-team"})
 				dbWorkerFactory.VisibleWorkersReturns(nil, nil)
+
+				teamWorker1 = new(dbfakes.FakeWorker)
+				gardenAddr1 := "1.2.3.4:7777"
+				teamWorker1.GardenAddrReturns(&gardenAddr1)
+				bcURL1 := "1.2.3.4:8888"
+				teamWorker1.BaggageclaimURLReturns(&bcURL1)
+
+				teamWorker2 = new(dbfakes.FakeWorker)
+				gardenAddr2 := "5.6.7.8:7777"
+				teamWorker2.GardenAddrReturns(&gardenAddr2)
+				bcURL2 := "5.6.7.8:8888"
+				teamWorker2.BaggageclaimURLReturns(&bcURL2)
 			})
 
 			It("fetches workers by team name from worker user context", func() {
@@ -54,25 +70,40 @@ var _ = Describe("Workers API", func() {
 				Expect(teamNames).To(ConsistOf("some-team"))
 			})
 
-			Context("when the workers can be listed", func() {
-				var (
-					teamWorker1 *dbfakes.FakeWorker
-					teamWorker2 *dbfakes.FakeWorker
-				)
-
+			Context("when user is an admin", func() {
 				BeforeEach(func() {
+					fakeaccess.IsAdminReturns(true)
+					dbWorkerFactory.WorkersReturns([]db.Worker{
+						teamWorker1,
+						teamWorker2,
+					}, nil)
+				})
 
-					teamWorker1 = new(dbfakes.FakeWorker)
-					gardenAddr1 := "1.2.3.4:7777"
-					teamWorker1.GardenAddrReturns(&gardenAddr1)
-					bcURL1 := "1.2.3.4:8888"
-					teamWorker1.BaggageclaimURLReturns(&bcURL1)
+				It("returns all the workers", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 
-					teamWorker2 = new(dbfakes.FakeWorker)
-					gardenAddr2 := "5.6.7.8:7777"
-					teamWorker2.GardenAddrReturns(&gardenAddr2)
-					bcURL2 := "5.6.7.8:8888"
-					teamWorker2.BaggageclaimURLReturns(&bcURL2)
+					Expect(dbWorkerFactory.WorkersCallCount()).To(Equal(1))
+
+					var returnedWorkers []atc.Worker
+					err := json.NewDecoder(response.Body).Decode(&returnedWorkers)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(returnedWorkers).To(Equal([]atc.Worker{
+						{
+							GardenAddr:      "1.2.3.4:7777",
+							BaggageclaimURL: "1.2.3.4:8888",
+						},
+						{
+							GardenAddr:      "5.6.7.8:7777",
+							BaggageclaimURL: "5.6.7.8:8888",
+						},
+					}))
+				})
+			})
+
+			Context("when the workers can be listed", func() {
+				BeforeEach(func() {
 					dbWorkerFactory.VisibleWorkersReturns([]db.Worker{
 						teamWorker1,
 						teamWorker2,
@@ -91,6 +122,8 @@ var _ = Describe("Workers API", func() {
 					var returnedWorkers []atc.Worker
 					err := json.NewDecoder(response.Body).Decode(&returnedWorkers)
 					Expect(err).NotTo(HaveOccurred())
+
+					Expect(dbWorkerFactory.VisibleWorkersCallCount()).To(Equal(1))
 
 					Expect(returnedWorkers).To(Equal([]atc.Worker{
 						{
@@ -205,16 +238,6 @@ var _ = Describe("Workers API", func() {
 			})
 
 			Context("when request is not from tsa", func() {
-				Context("when system claim is not present", func() {
-					BeforeEach(func() {
-						fakeaccess.IsSystemReturns(false)
-					})
-
-					It("return 403", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-					})
-				})
-
 				Context("when system claim is false", func() {
 					BeforeEach(func() {
 						fakeaccess.IsSystemReturns(false)
