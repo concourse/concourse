@@ -172,6 +172,8 @@ var _ = Describe("Pipelines API", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
+				Expect(dbPipelineFactory.VisiblePipelinesCallCount()).To(Equal(1))
+
 				Expect(body).To(MatchJSON(`[
 				{
 					"id": 3,
