@@ -7,12 +7,12 @@ module Job.Styles exposing
     )
 
 import Colors
-import Concourse
+import Concourse.BuildStatus exposing (BuildStatus)
 import Html
 import Html.Attributes exposing (style)
 
 
-triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List (Html.Attribute msg)
+triggerButton : Bool -> Bool -> BuildStatus -> List (Html.Attribute msg)
 triggerButton buttonDisabled hovered status =
     [ style "cursor" <|
         if buttonDisabled then

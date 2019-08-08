@@ -50,7 +50,7 @@ module Colors exposing
     , white
     )
 
-import Concourse exposing (BuildStatus(..))
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 
 

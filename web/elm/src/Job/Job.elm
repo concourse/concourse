@@ -15,7 +15,7 @@ module Job.Job exposing
 import Application.Models exposing (Session)
 import Colors
 import Concourse
-import Concourse.BuildStatus
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination
     exposing
         ( Page
@@ -554,11 +554,11 @@ viewMainJobsSection session model =
         ]
 
 
-headerBuildStatus : Maybe Concourse.Build -> Concourse.BuildStatus
+headerBuildStatus : Maybe Concourse.Build -> BuildStatus
 headerBuildStatus finishedBuild =
     case finishedBuild of
         Nothing ->
-            Concourse.BuildStatusPending
+            BuildStatusPending
 
         Just build ->
             build.status

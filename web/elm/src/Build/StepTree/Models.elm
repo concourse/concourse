@@ -24,6 +24,7 @@ module Build.StepTree.Models exposing
 import Ansi.Log
 import Array exposing (Array)
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus)
 import Dict exposing (Dict)
 import Message.Message exposing (DomID)
 import Routes exposing (Highlight, StepID)
@@ -120,7 +121,7 @@ type alias BuildEventEnvelope =
 
 
 type BuildEvent
-    = BuildStatus Concourse.BuildStatus Time.Posix
+    = BuildStatus BuildStatus Time.Posix
     | InitializeTask Origin Time.Posix
     | StartTask Origin Time.Posix
     | FinishTask Origin Int Time.Posix

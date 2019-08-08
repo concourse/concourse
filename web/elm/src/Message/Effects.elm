@@ -12,7 +12,7 @@ import Base64
 import Browser.Dom exposing (Viewport, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse
-import Concourse.BuildStatus
+import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Json.Encode
@@ -155,7 +155,7 @@ type Effect
     | GetScreenSize
     | PinTeamNames StickyHeaderConfig
     | Scroll ScrollDirection String
-    | SetFavIcon (Maybe Concourse.BuildStatus)
+    | SetFavIcon (Maybe BuildStatus)
     | SaveToken String
     | LoadToken
     | OpenBuildEventStream { url : String, eventTypes : List String }
@@ -473,7 +473,7 @@ scroll srcId idOfThingToScroll getX getY =
         |> Task.attempt (\_ -> EmptyCallback)
 
 
-faviconName : Maybe Concourse.BuildStatus -> String
+faviconName : Maybe BuildStatus -> String
 faviconName status =
     case status of
         Just bs ->

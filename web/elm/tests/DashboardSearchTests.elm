@@ -3,6 +3,7 @@ module DashboardSearchTests exposing (all)
 import Application.Application as Application
 import Common exposing (queryView)
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Expect exposing (Expectation)
 import Message.Callback as Callback
 import Message.Message
@@ -71,7 +72,7 @@ all =
                                                     , pipelineName = "pipeline"
                                                     , jobName = "job"
                                                     }
-                                            , status = Concourse.BuildStatusStarted
+                                            , status = BuildStatusStarted
                                             , duration =
                                                 { startedAt = Nothing
                                                 , finishedAt = Nothing

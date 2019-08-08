@@ -1,49 +1,93 @@
-module Concourse.BuildStatus exposing (isRunning, ordering, show)
+module Concourse.BuildStatus exposing
+    ( BuildStatus(..)
+    , decodeBuildStatus
+    , isRunning
+    , ordering
+    , show
+    )
 
-import Concourse
+import Json.Decode
 import Ordering exposing (Ordering)
 
 
-ordering : Ordering Concourse.BuildStatus
+type BuildStatus
+    = BuildStatusPending
+    | BuildStatusStarted
+    | BuildStatusSucceeded
+    | BuildStatusFailed
+    | BuildStatusErrored
+    | BuildStatusAborted
+
+
+ordering : Ordering BuildStatus
 ordering =
     Ordering.explicit
-        [ Concourse.BuildStatusFailed
-        , Concourse.BuildStatusErrored
-        , Concourse.BuildStatusAborted
-        , Concourse.BuildStatusSucceeded
-        , Concourse.BuildStatusPending
+        [ BuildStatusFailed
+        , BuildStatusErrored
+        , BuildStatusAborted
+        , BuildStatusSucceeded
+        , BuildStatusPending
         ]
 
 
-show : Concourse.BuildStatus -> String
+show : BuildStatus -> String
 show status =
     case status of
-        Concourse.BuildStatusPending ->
+        BuildStatusPending ->
             "pending"
 
-        Concourse.BuildStatusStarted ->
+        BuildStatusStarted ->
             "started"
 
-        Concourse.BuildStatusSucceeded ->
+        BuildStatusSucceeded ->
             "succeeded"
 
-        Concourse.BuildStatusFailed ->
+        BuildStatusFailed ->
             "failed"
 
-        Concourse.BuildStatusErrored ->
+        BuildStatusErrored ->
             "errored"
 
-        Concourse.BuildStatusAborted ->
+        BuildStatusAborted ->
             "aborted"
 
 
-isRunning : Concourse.BuildStatus -> Bool
+decodeBuildStatus : Json.Decode.Decoder BuildStatus
+decodeBuildStatus =
+    Json.Decode.string
+        |> Json.Decode.andThen
+            (\status ->
+                case status of
+                    "pending" ->
+                        Json.Decode.succeed BuildStatusPending
+
+                    "started" ->
+                        Json.Decode.succeed BuildStatusStarted
+
+                    "succeeded" ->
+                        Json.Decode.succeed BuildStatusSucceeded
+
+                    "failed" ->
+                        Json.Decode.succeed BuildStatusFailed
+
+                    "errored" ->
+                        Json.Decode.succeed BuildStatusErrored
+
+                    "aborted" ->
+                        Json.Decode.succeed BuildStatusAborted
+
+                    unknown ->
+                        Json.Decode.fail <| "unknown build status: " ++ unknown
+            )
+
+
+isRunning : BuildStatus -> Bool
 isRunning status =
     case status of
-        Concourse.BuildStatusPending ->
+        BuildStatusPending ->
             True
 
-        Concourse.BuildStatusStarted ->
+        BuildStatusStarted ->
             True
 
         _ ->

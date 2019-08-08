@@ -2,6 +2,8 @@ module Build.Header.Header exposing (handleCallback, handleDelivery, update, vie
 
 import Application.Models exposing (Session)
 import Build.Header.Models exposing (Model)
+import Build.Models exposing (BuildPageType(..), toMaybe)
+import Build.StepTree.Models as STModels
 import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
@@ -270,6 +272,48 @@ handleDelivery delivery ( model, effects ) =
                         []
                    )
             )
+
+        EventsReceived result ->
+            case result of
+                Ok envelopes ->
+                    let
+                        currentBuild =
+                            model.currentBuild |> RemoteData.toMaybe
+
+                        buildStatus =
+                            envelopes
+                                |> List.filterMap
+                                    (\{ data } ->
+                                        case data of
+                                            STModels.BuildStatus status date ->
+                                                Just ( status, date )
+
+                                            _ ->
+                                                Nothing
+                                    )
+                                |> List.Extra.last
+                    in
+                    case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
+                        ( Just cb, Just _ ) ->
+                            case buildStatus of
+                                Nothing ->
+                                    ( model, effects )
+
+                                Just ( status, date ) ->
+                                    ( { model
+                                        | history =
+                                            updateHistory
+                                                (Concourse.receiveStatus status date cb.build)
+                                                model.history
+                                      }
+                                    , effects
+                                    )
+
+                        _ ->
+                            ( model, effects )
+
+                _ ->
+                    ( model, effects )
 
         _ ->
             ( model, effects )

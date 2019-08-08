@@ -9,6 +9,7 @@ module Concourse.BuildEvents exposing
 
 import Build.StepTree.Models exposing (BuildEvent(..), BuildEventEnvelope, Origin)
 import Concourse
+import Concourse.BuildStatus
 import Dict
 import Json.Decode
 import Time
@@ -72,7 +73,7 @@ decodeBuildEvent =
                         Json.Decode.field
                             "data"
                             (Json.Decode.map2 BuildStatus
-                                (Json.Decode.field "status" Concourse.decodeBuildStatus)
+                                (Json.Decode.field "status" Concourse.BuildStatus.decodeBuildStatus)
                                 (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 

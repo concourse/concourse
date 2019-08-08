@@ -22,7 +22,6 @@ type alias Model =
     Login.Model
         (Build.Header.Models.Model
             { page : BuildPageType
-            , history : List Concourse.Build
             , nextPage : Maybe Page
             , browsingIndex : Int
             , autoScroll : Bool

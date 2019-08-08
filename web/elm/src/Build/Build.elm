@@ -23,7 +23,7 @@ import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse
-import Concourse.BuildStatus
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import DateFormat
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
@@ -270,7 +270,7 @@ handleCallback action ( model, effects ) =
                                 |> RemoteData.map
                                     (.build
                                         >> .status
-                                        >> (==) Concourse.BuildStatusAborted
+                                        >> (==) BuildStatusAborted
                                     )
                                 |> RemoteData.withDefault False
                     in
@@ -423,36 +423,11 @@ handleDelivery session delivery ( model, effects ) =
                                     ( newModel, scrollEffects ++ outputEffects )
 
                                 Just ( status, date ) ->
-                                    let
-                                        build =
-                                            cb.build
-
-                                        duration =
-                                            build.duration
-
-                                        newDuration =
-                                            if Concourse.BuildStatus.isRunning status then
-                                                duration
-
-                                            else
-                                                { duration | finishedAt = Just date }
-
-                                        newStatus =
-                                            if Concourse.BuildStatus.isRunning build.status then
-                                                status
-
-                                            else
-                                                build.status
-
-                                        newBuild =
-                                            { build | status = newStatus, duration = newDuration }
-                                    in
                                     ( { modelCorrectAuth
-                                        | history = updateHistory newBuild modelCorrectAuth.history
-                                        , currentBuild =
+                                        | currentBuild =
                                             RemoteData.Success
                                                 { cb
-                                                    | build = newBuild
+                                                    | build = Concourse.receiveStatus status date cb.build
                                                     , output =
                                                         -- cb.output must be equal-by-reference
                                                         -- to its previous value when passed
@@ -464,7 +439,7 @@ handleDelivery session delivery ( model, effects ) =
                                                             cb.output
                                                 }
                                       }
-                                    , if Concourse.BuildStatus.isRunning build.status then
+                                    , if Concourse.BuildStatus.isRunning cb.build.status then
                                         scrollEffects ++ outputEffects ++ [ SetFavIcon (Just status) ]
 
                                       else
@@ -572,10 +547,10 @@ getScrollBehavior model =
 
                     Just cb ->
                         case cb.build.status of
-                            Concourse.BuildStatusSucceeded ->
+                            BuildStatusSucceeded ->
                                 NoScroll
 
-                            Concourse.BuildStatusPending ->
+                            BuildStatusPending ->
                                 NoScroll
 
                             _ ->
@@ -693,7 +668,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                         []
 
             ( newModel, cmd ) =
-                if build.status == Concourse.BuildStatusPending then
+                if build.status == BuildStatusPending then
                     ( withBuild, effects ++ pollUntilStarted browsingIndex build.id )
 
                 else if build.reapTime == Nothing then
@@ -1047,16 +1022,16 @@ tombstone timeZone currentBuild =
                     [ class "epitaph" ]
                     [ Html.text <|
                         case build.status of
-                            Concourse.BuildStatusSucceeded ->
+                            BuildStatusSucceeded ->
                                 "It passed, and now it has passed on."
 
-                            Concourse.BuildStatusFailed ->
+                            BuildStatusFailed ->
                                 "It failed, and now has been forgotten."
 
-                            Concourse.BuildStatusErrored ->
+                            BuildStatusErrored ->
                                 "It errored, but has found forgiveness."
 
-                            Concourse.BuildStatusAborted ->
+                            BuildStatusAborted ->
                                 "It was never given a chance."
 
                             _ ->
@@ -1215,14 +1190,3 @@ viewBuildPrepStatus status =
                 , style "background-size" "contain"
                 , title "not blocking"
                 ]
-
-
-updateHistory : Concourse.Build -> List Concourse.Build -> List Concourse.Build
-updateHistory newBuild =
-    List.map <|
-        \build ->
-            if build.id == newBuild.id then
-                newBuild
-
-            else
-                build
