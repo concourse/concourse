@@ -116,9 +116,6 @@ func Deinitialize(logger lager.Logger) {
 }
 
 func emit(logger lager.Logger, event Event) {
-	logger.Debug("emit-event", lager.Data{
-		"event": event, "emitter": emitter,
-	})
 	if emitter == nil {
 		return
 	}
@@ -141,9 +138,6 @@ func emit(logger lager.Logger, event Event) {
 
 	select {
 	case emissions <- eventEmission{logger: logger, event: event}:
-		logger.Debug("emit-event-write-to-channel", lager.Data{
-			"event": event,
-		})
 	default:
 		logger.Error("queue-full", nil)
 	}
@@ -151,9 +145,6 @@ func emit(logger lager.Logger, event Event) {
 
 func emitLoop() {
 	for emission := range emissions {
-		emission.logger.Debug("emit-event-loop", lager.Data{
-			"event": emission.event,
-		})
 		emitter.Emit(emission.logger.Session("emit"), emission.event)
 	}
 }
