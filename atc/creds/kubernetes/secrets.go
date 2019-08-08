@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type Kubernetes struct {
+type Secrets struct {
 	logger lager.Logger
 
 	client          kubernetes.Interface
@@ -22,17 +22,17 @@ type Kubernetes struct {
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (k Kubernetes) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+func (secrets Secrets) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	if len(pipelineName) > 0 {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(k.namespacePrefix+teamName+":"+pipelineName+"."))
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+teamName+":"+pipelineName+"."))
 	}
-	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(k.namespacePrefix+teamName+":"))
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+teamName+":"))
 	return lookupPaths
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (k Kubernetes) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (secrets Secrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	parts := strings.Split(secretPath, ":")
 	if len(parts) != 2 {
 		return nil, nil, false, fmt.Errorf("unable to split kubernetes secret path into [namespace]:[secret]: %s", secretPath)
@@ -41,9 +41,9 @@ func (k Kubernetes) Get(secretPath string) (interface{}, *time.Time, bool, error
 	var namespace = parts[0]
 	var secretName = parts[1]
 
-	secret, found, err := k.findSecret(namespace, secretName)
+	secret, found, err := secrets.findSecret(namespace, secretName)
 	if err != nil {
-		k.logger.Error("failed-to-fetch-secret", err, lager.Data{
+		secrets.logger.Error("failed-to-fetch-secret", err, lager.Data{
 			"namespace":   namespace,
 			"secret-name": secretName,
 		})
@@ -51,10 +51,10 @@ func (k Kubernetes) Get(secretPath string) (interface{}, *time.Time, bool, error
 	}
 
 	if found {
-		return k.getValueFromSecret(secret)
+		return secrets.getValueFromSecret(secret)
 	}
 
-	k.logger.Info("secret-not-found", lager.Data{
+	secrets.logger.Info("secret-not-found", lager.Data{
 		"namespace":   namespace,
 		"secret-name": secretName,
 	})
@@ -62,7 +62,7 @@ func (k Kubernetes) Get(secretPath string) (interface{}, *time.Time, bool, error
 	return nil, nil, false, nil
 }
 
-func (k Kubernetes) getValueFromSecret(secret *v1.Secret) (interface{}, *time.Time, bool, error) {
+func (secrets Secrets) getValueFromSecret(secret *v1.Secret) (interface{}, *time.Time, bool, error) {
 	val, found := secret.Data["value"]
 	if found {
 		return string(val), nil, true, nil
@@ -76,11 +76,11 @@ func (k Kubernetes) getValueFromSecret(secret *v1.Secret) (interface{}, *time.Ti
 	return stringified, nil, true, nil
 }
 
-func (k Kubernetes) findSecret(namespace, name string) (*v1.Secret, bool, error) {
+func (secrets Secrets) findSecret(namespace, name string) (*v1.Secret, bool, error) {
 	var secret *v1.Secret
 	var err error
 
-	secret, err = k.client.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
+	secret, err = secrets.client.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
 
 	if err != nil && k8serr.IsNotFound(err) {
 		return nil, false, nil

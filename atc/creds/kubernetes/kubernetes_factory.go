@@ -25,7 +25,7 @@ func NewKubernetesFactory(logger lager.Logger, client kubernetes.Interface, name
 }
 
 func (factory *kubernetesFactory) NewSecrets() creds.Secrets {
-	return &Kubernetes{
+	return &Secrets{
 		logger:          factory.logger,
 		client:          factory.client,
 		namespacePrefix: factory.namespacePrefix,
