@@ -68,7 +68,7 @@ to consult \code{fly -h} to learn the short forms.
 
   After you've logged in you can use \code{--target example} (or \code{-t
   example} for short) to run a command against the saved target \code{example}.
-  For eample, \code{fly -t example builds} will list the last few builds on the
+  For example, \code{fly -t example builds} will list the last few builds on the
   \code{example} Concourse instance.
 
   The \code{-t} flag is intentionally stateless and must be explicitly added
@@ -171,7 +171,7 @@ to consult \code{fly -h} to learn the short forms.
   \title{\code{fly sync}}{fly-sync}
 
   Occasionally we add additional features to \code{fly} or make changes to the
-  communiction between it and Concourse's API server. To make sure you're
+  communication between it and Concourse's API server. To make sure you're
   running the latest and greatest version that works with the Concourse you
   are targeting we provide a command called \code{sync} that will update your
   local \code{fly}. It can be used like so:
