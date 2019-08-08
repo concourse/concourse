@@ -115,7 +115,6 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 	})
 }
 
-
 func (emitter *InfluxDBEmitter) Emit(logger lager.Logger, event metric.Event) {
 	batch = append(batch, event)
 	duration := time.Since(lastBatchTime)
