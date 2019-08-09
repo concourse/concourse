@@ -52,9 +52,10 @@ func (resource *resource) runScript(
 	}
 
 	if recoverable {
-		result, err := resource.container.Property(resourceResultPropertyName)
-		if err == nil {
-			return json.Unmarshal([]byte(result), &output)
+		result, _ := resource.container.Properties()
+		code := result[resourceResultPropertyName]
+		if code != "" {
+			return json.Unmarshal([]byte(code), &output)
 		}
 	}
 

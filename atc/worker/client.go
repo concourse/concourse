@@ -161,16 +161,18 @@ func (client *client) RunTaskStep(
 	}
 
 	// container already exited
-	exitStatusProp, err := container.Property(taskExitStatusPropertyName)
-	if err == nil {
-		logger.Info("already-exited", lager.Data{"status": exitStatusProp})
+	exitStatusProp, _ := container.Properties()
+	code := exitStatusProp[taskExitStatusPropertyName]
+	if code != "" {
+		logger.Info("already-exited", lager.Data{"status": taskExitStatusPropertyName})
 
-		status, err := strconv.Atoi(exitStatusProp)
+		status, err := strconv.Atoi(code)
 		if err != nil {
 			return TaskResult{-1, []VolumeMount{}, err}
 		}
 
 		return TaskResult{Status: status, VolumeMounts: container.VolumeMounts(), Err: nil}
+
 	}
 
 	processIO := garden.ProcessIO{
