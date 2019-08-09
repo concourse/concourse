@@ -886,52 +886,6 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
-	Describe("EnsureDBContainerExists", func() {
-		var err error
-
-		JustBeforeEach(func() {
-			err = gardenWorker.EnsureDBContainerExists(
-				ctx,
-				logger,
-				fakeContainerOwner,
-				containerMetadata,
-			)
-			Expect(err).ToNot(HaveOccurred())
-		})
-		Context("when neither a creating/created container exists", func() {
-			BeforeEach(func() {
-				fakeDBWorker.FindContainerReturns(nil, nil, nil)
-				fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
-			})
-			It("creates a creating container", func() {
-				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(1))
-				owner, metadata := fakeDBWorker.CreateContainerArgsForCall(0)
-				Expect(owner).To(Equal(fakeContainerOwner))
-				Expect(metadata).To(Equal(containerMetadata))
-			})
-
-		})
-
-		Context("when a creating container exists", func() {
-			BeforeEach(func() {
-				fakeDBWorker.FindContainerReturns(fakeCreatingContainer, nil, nil)
-			})
-			It("does not create a new db container", func() {
-				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("when a created container exists", func() {
-			BeforeEach(func() {
-				fakeDBWorker.FindContainerReturns(nil, fakeCreatedContainer, nil)
-			})
-			It("does not create a new db container", func() {
-				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
-			})
-
-		})
-	})
-
 	Describe("FindOrCreateContainer", func() {
 		CertsVolumeExists := func() {
 			fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
@@ -944,7 +898,7 @@ var _ = Describe("Worker", func() {
 				logger,
 				fakeImageFetchingDelegate,
 				fakeContainerOwner,
-				db.ContainerMetadata{},
+				containerMetadata,
 				containerSpec,
 				atcResourceTypes,
 			)
@@ -954,6 +908,10 @@ var _ = Describe("Worker", func() {
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
 				fakeDBWorker.FindContainerReturns(fakeCreatingContainer, nil, nil)
+			})
+
+			It("does not create a new db container", func() {
+				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
 			})
 
 			Context("when container exists in garden", func() {
@@ -1536,6 +1494,10 @@ var _ = Describe("Worker", func() {
 				fakeDBWorker.FindContainerReturns(nil, fakeCreatedContainer, nil)
 			})
 
+			It("does not create a new db container", func() {
+				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
+			})
+
 			Context("when container exists in garden", func() {
 				BeforeEach(func() {
 					fakeGardenClient.LookupReturns(fakeGardenContainer, nil)
@@ -1563,18 +1525,15 @@ var _ = Describe("Worker", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
+				fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 				fakeDBWorker.FindContainerReturns(nil, nil, nil)
 			})
 
-			// BeforeEach(func() {
-			// 	fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
-			// 	fakeCertsVolume.PathReturns("/the/certs/volume/path")
-			// 	fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
-			// })
-
-			It("creates container in database", func() {
-				Expect(findOrCreateErr).To(HaveOccurred())
-				Expect(findOrCreateErr.Error()).To(Equal("no db container was found for owner"))
+			It("creates a creating container in database", func() {
+				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(1))
+				owner, metadata := fakeDBWorker.CreateContainerArgsForCall(0)
+				Expect(owner).To(Equal(fakeContainerOwner))
+				Expect(metadata).To(Equal(containerMetadata))
 			})
 
 		})
