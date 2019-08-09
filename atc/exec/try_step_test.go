@@ -56,6 +56,11 @@ var _ = Describe("Try Step", func() {
 				err := step.Run(ctx, state)
 				Expect(err).To(Equal(context.Canceled))
 			})
+
+			It("does not succeed", func() {
+				step.Run(ctx, state)
+				Expect(step.Succeeded()).ShouldNot(BeTrue())
+			})
 		})
 
 		Context("when the inner step returns any other error", func() {
@@ -66,6 +71,11 @@ var _ = Describe("Try Step", func() {
 			It("swallows the error", func() {
 				err := step.Run(ctx, state)
 				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("succeeds", func() {
+				step.Run(ctx, state)
+				Expect(step.Succeeded()).Should(BeTrue())
 			})
 		})
 	})
