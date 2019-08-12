@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/jessevdk/go-flags"
@@ -31,12 +30,7 @@ type SetTeamCommand struct {
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	err = target.Validate()
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

@@ -8,24 +8,18 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/eventstream"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 )
 
 type TriggerJobCommand struct {
-	Job   flaghelpers.JobFlag `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to trigger"`
-	Watch bool                `short:"w" long:"watch" description:"Start watching the build output"`
+	Job   flaghelpers.JobFlag `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" env:"JOB" description:"Name of a job to trigger"`
+	Watch bool                `short:"w" long:"watch"                                                   description:"Start watching the build output"`
 }
 
 func (command *TriggerJobCommand) Execute(args []string) error {
 	pipelineName, jobName := command.Job.PipelineName, command.Job.JobName
 
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	err = target.Validate()
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

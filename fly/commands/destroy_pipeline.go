@@ -3,15 +3,14 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 )
 
 type DestroyPipelineCommand struct {
-	Pipeline        flaghelpers.PipelineFlag `short:"p"  long:"pipeline" required:"true" description:"Pipeline to destroy"`
-	SkipInteractive bool                     `short:"n"  long:"non-interactive"          description:"Destroy the pipeline without confirmation"`
+	Pipeline        flaghelpers.PipelineFlag `short:"p"  long:"pipeline" required:"true" env:"PIPELINE" description:"Pipeline to destroy"`
+	SkipInteractive bool                     `short:"n"  long:"non-interactive"                         description:"Destroy the pipeline without confirmation"`
 }
 
 func (command *DestroyPipelineCommand) Validate() error {
@@ -24,12 +23,7 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		return err
 
 	}
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	err = target.Validate()
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

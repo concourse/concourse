@@ -16,7 +16,6 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/config"
 	"github.com/concourse/concourse/fly/eventstream"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/fly/ui/progress"
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -39,12 +38,7 @@ type ExecuteCommand struct {
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	err = target.Validate()
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

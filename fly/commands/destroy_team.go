@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
@@ -18,7 +17,7 @@ type DestroyTeamCommand struct {
 }
 
 func (command *DestroyTeamCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

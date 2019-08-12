@@ -4,24 +4,18 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
 )
 
 type ClearTaskCacheCommand struct {
-	Job             flaghelpers.JobFlag `short:"j" long:"job"  required:"true"  description:"Job to clear cache from"`
-	StepName        string              `short:"s" long:"step"  required:"true" description:"Step name to clear cache from"`
-	CachePath       string              `short:"c" long:"cache-path"  default:"" description:"Cache directory to clear out"`
-	SkipInteractive bool                `short:"n"  long:"non-interactive"          description:"Destroy the task cache(s) without confirmation"`
+	Job             flaghelpers.JobFlag `short:"j" long:"job" required:"true" env:"JOB" description:"Job to clear cache from"`
+	StepName        string              `short:"s" long:"step" required:"true"          description:"Step name to clear cache from"`
+	CachePath       string              `short:"c" long:"cache-path"  default:""        description:"Cache directory to clear out"`
+	SkipInteractive bool                `short:"n"  long:"non-interactive"              description:"Destroy the task cache(s) without confirmation"`
 }
 
 func (command *ClearTaskCacheCommand) Execute([]string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	err = target.Validate()
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

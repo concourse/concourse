@@ -1,6 +1,11 @@
 package commands
 
-import "github.com/concourse/concourse/fly/rc"
+import (
+	"fmt"
+	"net/url"
+
+	"github.com/concourse/concourse/fly/rc"
+)
 
 type FlyCommand struct {
 	Help HelpCommand `command:"help" description:"Print this help message"`
@@ -9,6 +14,8 @@ type FlyCommand struct {
 	Targets      TargetsCommand      `command:"targets" alias:"ts" description:"List saved targets"`
 	DeleteTarget DeleteTargetCommand `command:"delete-target" alias:"dtg" description:"Delete target"`
 	EditTarget   EditTargetCommand   `command:"edit-target" alias:"etg" description:"Edit a target"`
+
+	Url string `short:"u" long:"url" description:"URL for the team, pipeline, job, build, or container to target"`
 
 	Version func() `short:"v" long:"version" description:"Print the version of Fly and exit"`
 
@@ -80,3 +87,38 @@ type FlyCommand struct {
 }
 
 var Fly FlyCommand
+
+func (fly *FlyCommand) RetrieveTarget() (rc.Target, error) {
+	var (
+		target rc.Target
+		name   rc.TargetName
+		err    error
+	)
+
+	if fly.Target == "" && fly.Url != "" {
+		u, err := url.Parse(fly.Url)
+		if err != nil {
+			return nil, err
+		}
+		urlMap := parseUrlPath(u.Path)
+		target, name, err = rc.LoadTargetFromURL(fmt.Sprintf("%s://%s", u.Scheme, u.Host), urlMap["teams"], fly.Verbose)
+		if err != nil {
+			return nil, err
+		}
+		fly.Target = name
+	} else {
+		target, err = rc.LoadTarget(fly.Target, fly.Verbose)
+		name = fly.Target
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = target.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	return target, nil
+
+}

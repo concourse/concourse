@@ -6,11 +6,10 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 )
 
 type ChecklistCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"The pipeline from which to generate the Checkfile"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" env:"PIPELINE" description:"The pipeline from which to generate the Checkfile"`
 }
 
 func (command *ChecklistCommand) Validate() error {
@@ -23,12 +22,7 @@ func (command *ChecklistCommand) Execute([]string) error {
 		return err
 	}
 
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	err = target.Validate()
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

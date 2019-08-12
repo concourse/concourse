@@ -5,12 +5,11 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 )
 
 type RenamePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"o"  long:"old-name" required:"true"  description:"Pipeline to rename"`
-	Name     flaghelpers.PipelineFlag `short:"n"  long:"new-name" required:"true"  description:"Name to set as pipeline name"`
+	Pipeline flaghelpers.PipelineFlag `short:"o" long:"old-name" required:"true" env:"PIPELINE" description:"Pipeline to rename"`
+	Name     flaghelpers.PipelineFlag `short:"n" long:"new-name" required:"true"                description:"Name to set as pipeline name"`
 }
 
 func (command *RenamePipelineCommand) Validate() error {
@@ -28,12 +27,7 @@ func (command *RenamePipelineCommand) Execute([]string) error {
 		return err
 	}
 
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	err = target.Validate()
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

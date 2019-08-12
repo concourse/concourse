@@ -7,22 +7,16 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/eventstream"
-	"github.com/concourse/concourse/fly/rc"
 )
 
 type WatchCommand struct {
-	Job       flaghelpers.JobFlag `short:"j" long:"job"         value-name:"PIPELINE/JOB"  description:"Watches builds of the given job"`
-	Build     string              `short:"b" long:"build"                                  description:"Watches a specific build"`
-	Timestamp bool                `short:"t" long:"timestamps"                             description:"Print with local timestamp"`
+	Job       flaghelpers.JobFlag `short:"j" long:"job"         value-name:"PIPELINE/JOB" env:"JOB" description:"Watches builds of the given job"`
+	Build     string              `short:"b" long:"build"                                           description:"Watches a specific build"`
+	Timestamp bool                `short:"t" long:"timestamps"                                      description:"Print with local timestamp"`
 }
 
 func (command *WatchCommand) Execute(args []string) error {
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	err = target.Validate()
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}

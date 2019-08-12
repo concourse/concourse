@@ -11,14 +11,13 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/mattn/go-isatty"
 )
 
 type GetPipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Get configuration of this pipeline"`
-	JSON     bool                     `short:"j" long:"json"                     description:"Print config as json instead of yaml"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" env:"PIPELINE" description:"Get configuration of this pipeline"`
+	JSON     bool                     `short:"j" long:"json"                                    description:"Print config as json instead of yaml"`
 }
 
 func (command *GetPipelineCommand) Validate() error {
@@ -34,12 +33,7 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 	asJSON := command.JSON
 	pipelineName := string(command.Pipeline)
 
-	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	err = target.Validate()
+	target, err := Fly.RetrieveTarget()
 	if err != nil {
 		return err
 	}
