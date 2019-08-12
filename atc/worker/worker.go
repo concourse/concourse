@@ -725,7 +725,7 @@ func (worker *gardenWorker) IsOwnedByTeam() bool {
 }
 
 func (worker *gardenWorker) Uptime() time.Duration {
-	return time.Since(time.Unix(worker.dbWorker.StartTime(), 0))
+	return time.Since(worker.dbWorker.StartTime())
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {

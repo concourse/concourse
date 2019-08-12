@@ -194,7 +194,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 	}
 
 	expiryStmt := fmt.Sprintf(
-		"NOW() + LEAST(GREATEST('%d seconds'::interval, NOW() - to_timestamp(max(start_time))), '%d seconds'::interval)",
+		"NOW() + LEAST(GREATEST('%d seconds'::interval, NOW() - max(start_time)), '%d seconds'::interval)",
 		int(c.expiries.Min.Seconds()),
 		int(c.expiries.Max.Seconds()),
 	)
