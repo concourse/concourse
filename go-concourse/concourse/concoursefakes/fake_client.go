@@ -145,6 +145,19 @@ type FakeClient struct {
 	landWorkerReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ListActiveUsersSinceStub        func(time.Time) ([]atc.User, error)
+	listActiveUsersSinceMutex       sync.RWMutex
+	listActiveUsersSinceArgsForCall []struct {
+		arg1 time.Time
+	}
+	listActiveUsersSinceReturns struct {
+		result1 []atc.User
+		result2 error
+	}
+	listActiveUsersSinceReturnsOnCall map[int]struct {
+		result1 []atc.User
+		result2 error
+	}
 	ListBuildArtifactsStub        func(string) ([]atc.WorkerArtifact, error)
 	listBuildArtifactsMutex       sync.RWMutex
 	listBuildArtifactsArgsForCall []struct {
@@ -877,6 +890,69 @@ func (fake *FakeClient) LandWorkerReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeClient) ListActiveUsersSince(arg1 time.Time) ([]atc.User, error) {
+	fake.listActiveUsersSinceMutex.Lock()
+	ret, specificReturn := fake.listActiveUsersSinceReturnsOnCall[len(fake.listActiveUsersSinceArgsForCall)]
+	fake.listActiveUsersSinceArgsForCall = append(fake.listActiveUsersSinceArgsForCall, struct {
+		arg1 time.Time
+	}{arg1})
+	fake.recordInvocation("ListActiveUsersSince", []interface{}{arg1})
+	fake.listActiveUsersSinceMutex.Unlock()
+	if fake.ListActiveUsersSinceStub != nil {
+		return fake.ListActiveUsersSinceStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.listActiveUsersSinceReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) ListActiveUsersSinceCallCount() int {
+	fake.listActiveUsersSinceMutex.RLock()
+	defer fake.listActiveUsersSinceMutex.RUnlock()
+	return len(fake.listActiveUsersSinceArgsForCall)
+}
+
+func (fake *FakeClient) ListActiveUsersSinceCalls(stub func(time.Time) ([]atc.User, error)) {
+	fake.listActiveUsersSinceMutex.Lock()
+	defer fake.listActiveUsersSinceMutex.Unlock()
+	fake.ListActiveUsersSinceStub = stub
+}
+
+func (fake *FakeClient) ListActiveUsersSinceArgsForCall(i int) time.Time {
+	fake.listActiveUsersSinceMutex.RLock()
+	defer fake.listActiveUsersSinceMutex.RUnlock()
+	argsForCall := fake.listActiveUsersSinceArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeClient) ListActiveUsersSinceReturns(result1 []atc.User, result2 error) {
+	fake.listActiveUsersSinceMutex.Lock()
+	defer fake.listActiveUsersSinceMutex.Unlock()
+	fake.ListActiveUsersSinceStub = nil
+	fake.listActiveUsersSinceReturns = struct {
+		result1 []atc.User
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) ListActiveUsersSinceReturnsOnCall(i int, result1 []atc.User, result2 error) {
+	fake.listActiveUsersSinceMutex.Lock()
+	defer fake.listActiveUsersSinceMutex.Unlock()
+	fake.ListActiveUsersSinceStub = nil
+	if fake.listActiveUsersSinceReturnsOnCall == nil {
+		fake.listActiveUsersSinceReturnsOnCall = make(map[int]struct {
+			result1 []atc.User
+			result2 error
+		})
+	}
+	fake.listActiveUsersSinceReturnsOnCall[i] = struct {
+		result1 []atc.User
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) ListBuildArtifacts(arg1 string) ([]atc.WorkerArtifact, error) {
 	fake.listBuildArtifactsMutex.Lock()
 	ret, specificReturn := fake.listBuildArtifactsReturnsOnCall[len(fake.listBuildArtifactsArgsForCall)]
@@ -1419,6 +1495,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.hTTPClientMutex.RUnlock()
 	fake.landWorkerMutex.RLock()
 	defer fake.landWorkerMutex.RUnlock()
+	fake.listActiveUsersSinceMutex.RLock()
+	defer fake.listActiveUsersSinceMutex.RUnlock()
 	fake.listBuildArtifactsMutex.RLock()
 	defer fake.listBuildArtifactsMutex.RUnlock()
 	fake.listPipelinesMutex.RLock()

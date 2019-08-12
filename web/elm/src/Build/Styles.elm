@@ -159,7 +159,7 @@ stepHeader state =
                         Colors.frame
 
                     StepStateRunning ->
-                        Colors.frame
+                        Colors.started
 
                     StepStateInterrupted ->
                         Colors.frame

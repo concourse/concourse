@@ -1,8 +1,9 @@
 package noop
 
 import (
-	"github.com/concourse/concourse/atc/creds"
 	"time"
+
+	"github.com/concourse/concourse/atc/creds"
 )
 
 type Noop struct{}

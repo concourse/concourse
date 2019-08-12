@@ -512,6 +512,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	secretManager creds.Secrets,
 ) ([]grouper.Member, error) {
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
+	userFactory := db.NewUserFactory(dbConn)
 
 	_, err := teamFactory.CreateDefaultTeamIfNotExists()
 	if err != nil {
@@ -530,6 +531,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	authHandler, err := skymarshal.NewServer(&skymarshal.Config{
 		Logger:      logger,
 		TeamFactory: teamFactory,
+		UserFactory: userFactory,
 		Flags:       cmd.Auth.AuthFlags,
 		ExternalURL: cmd.ExternalURL.String(),
 		HTTPClient:  httpClient,
@@ -615,6 +617,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		gcContainerDestroyer,
 		dbBuildFactory,
 		dbResourceConfigFactory,
+		userFactory,
 		workerClient,
 		radarScannerFactory,
 		secretManager,
@@ -1423,6 +1426,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	gcContainerDestroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
+	dbUserFactory db.UserFactory,
 	workerClient worker.Client,
 	radarScannerFactory radar.ScannerFactory,
 	secretManager creds.Secrets,
@@ -1475,6 +1479,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		gcContainerDestroyer,
 		dbBuildFactory,
 		resourceConfigFactory,
+		dbUserFactory,
 
 		buildserver.NewEventHandler,
 

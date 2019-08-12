@@ -1,11 +1,12 @@
 package validatepipelinehelpers_test
 
 import (
-	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
-	"github.com/concourse/concourse/fly/commands/internal/validatepipelinehelpers"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
+	"github.com/concourse/concourse/fly/commands/internal/validatepipelinehelpers"
 
 	"github.com/concourse/concourse/atc"
 

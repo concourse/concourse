@@ -1024,7 +1024,7 @@ var _ = Describe("Connection", func() {
 				stdout := gbytes.NewBuffer()
 				stderr := gbytes.NewBuffer()
 
-				process, err := connection.Run(context.TODO(),"foo-handle", spec, garden.ProcessIO{
+				process, err := connection.Run(context.TODO(), "foo-handle", spec, garden.ProcessIO{
 					Stdin:  bytes.NewBufferString("stdin data"),
 					Stdout: stdout,
 					Stderr: stderr,
@@ -1046,7 +1046,7 @@ var _ = Describe("Connection", func() {
 				stdout := gbytes.NewBuffer()
 				stderr := gbytes.NewBuffer()
 
-				process, err := connection.Run(context.TODO(),"foo-handle", spec, garden.ProcessIO{
+				process, err := connection.Run(context.TODO(), "foo-handle", spec, garden.ProcessIO{
 					Stdin:  bytes.NewBufferString("stdin data"),
 					Stdout: stdout,
 					Stderr: stderr,
@@ -1080,7 +1080,7 @@ var _ = Describe("Connection", func() {
 					stdout := gbytes.NewBuffer()
 					stderr := gbytes.NewBuffer()
 
-					process, err := connection.Run(context.TODO(),"foo-handle", spec, garden.ProcessIO{
+					process, err := connection.Run(context.TODO(), "foo-handle", spec, garden.ProcessIO{
 						Stdin:  bytes.NewBufferString("stdin data"),
 						Stdout: stdout,
 						Stderr: stderr,
@@ -1142,7 +1142,7 @@ var _ = Describe("Connection", func() {
 			})
 
 			It("sends the appropriate protocol message", func() {
-				process, err := connection.Run(context.TODO(),"foo-handle", garden.ProcessSpec{}, garden.ProcessIO{})
+				process, err := connection.Run(context.TODO(), "foo-handle", garden.ProcessSpec{}, garden.ProcessIO{})
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(process.ID()).To(Equal("process-handle"))
@@ -1197,7 +1197,7 @@ var _ = Describe("Connection", func() {
 			})
 
 			It("sends the appropriate protocol message", func() {
-				process, err := connection.Run(context.TODO(),"foo-handle", garden.ProcessSpec{}, garden.ProcessIO{})
+				process, err := connection.Run(context.TODO(), "foo-handle", garden.ProcessSpec{}, garden.ProcessIO{})
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(process.ID()).To(Equal("process-handle"))
@@ -1273,7 +1273,7 @@ var _ = Describe("Connection", func() {
 			})
 
 			It("sends the appropriate protocol message", func() {
-				process, err := connection.Run(context.TODO(),"foo-handle", spec, garden.ProcessIO{
+				process, err := connection.Run(context.TODO(), "foo-handle", spec, garden.ProcessIO{
 					Stdin:  bytes.NewBufferString("stdin data"),
 					Stdout: gbytes.NewBuffer(),
 					Stderr: gbytes.NewBuffer(),
@@ -1331,7 +1331,7 @@ var _ = Describe("Connection", func() {
 
 			Describe("waiting on the process", func() {
 				It("returns an error", func(done Done) {
-					process, err := connection.Run(context.TODO(),"foo-handle", garden.ProcessSpec{
+					process, err := connection.Run(context.TODO(), "foo-handle", garden.ProcessSpec{
 						Path: "lol",
 						Args: []string{"arg1", "arg2"},
 						Dir:  "/some/dir",
@@ -1373,7 +1373,7 @@ var _ = Describe("Connection", func() {
 
 			Describe("waiting on the process", func() {
 				It("returns an error", func() {
-					process, err := connection.Run(context.TODO(),"foo-handle", garden.ProcessSpec{
+					process, err := connection.Run(context.TODO(), "foo-handle", garden.ProcessSpec{
 						Path: "lol",
 						Args: []string{"arg1", "arg2"},
 						Dir:  "/some/dir",
@@ -1414,7 +1414,7 @@ var _ = Describe("Connection", func() {
 
 			Describe("waiting on the process", func() {
 				It("returns an error", func() {
-					process, err := connection.Run(context.TODO(),"foo-handle", garden.ProcessSpec{
+					process, err := connection.Run(context.TODO(), "foo-handle", garden.ProcessSpec{
 						Path: "lol",
 						Args: []string{"arg1", "arg2"},
 						Dir:  "/some/dir",
@@ -1438,7 +1438,7 @@ var _ = Describe("Connection", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := connection.Run(context.TODO(),"foo-handle", garden.ProcessSpec{
+				_, err := connection.Run(context.TODO(), "foo-handle", garden.ProcessSpec{
 					Path: "lol",
 					Args: []string{"arg1", "arg2"},
 					Dir:  "/some/dir",
@@ -1500,7 +1500,7 @@ var _ = Describe("Connection", func() {
 				stdout := gbytes.NewBuffer()
 				stderr := gbytes.NewBuffer()
 
-				process, err := connection.Attach(context.TODO(),"foo-handle", "process-handle", garden.ProcessIO{
+				process, err := connection.Attach(context.TODO(), "foo-handle", "process-handle", garden.ProcessIO{
 					Stdin:  bytes.NewBufferString("stdin data"),
 					Stdout: stdout,
 					Stderr: stderr,
@@ -1522,7 +1522,7 @@ var _ = Describe("Connection", func() {
 				stdout := gbytes.NewBuffer()
 				stderr := gbytes.NewBuffer()
 
-				process, err := connection.Attach(context.TODO(),"foo-handle", "process-handle", garden.ProcessIO{
+				process, err := connection.Attach(context.TODO(), "foo-handle", "process-handle", garden.ProcessIO{
 					Stdin:  bytes.NewBufferString("stdin data"),
 					Stdout: stdout,
 					Stderr: stderr,
@@ -1564,7 +1564,7 @@ var _ = Describe("Connection", func() {
 						},
 					),
 					stdoutStream("foo-handle", "process-handle", 123, func(conn net.Conn) {
-						<- streamContext.Done()
+						<-streamContext.Done()
 						conn.Write([]byte("stdout data"))
 					}),
 					emptyStderrStream("foo-handle", "process-handle", 123),
@@ -1581,19 +1581,19 @@ var _ = Describe("Connection", func() {
 
 				hijacker = fakeHijacker
 			})
-			AfterEach(func(){
+			AfterEach(func() {
 				streamCancelFunc()
 			})
 
 			It("should close all net.Conn from Attach and return from .Wait", func() {
 				ctx, cancelFunc := context.WithCancel(context.Background())
-				process, err := connection.Attach(ctx,"foo-handle", "process-handle", garden.ProcessIO{
+				process, err := connection.Attach(ctx, "foo-handle", "process-handle", garden.ProcessIO{
 					Stdin:  bytes.NewBufferString("stdin data"),
 					Stdout: gbytes.NewBuffer(),
 					Stderr: gbytes.NewBuffer(),
 				})
 				Expect(err).ToNot(HaveOccurred())
-				go func(){
+				go func() {
 					cancelFunc()
 				}()
 				process.Wait()
@@ -1644,7 +1644,7 @@ var _ = Describe("Connection", func() {
 
 				stdinR, stdinW := io.Pipe()
 
-				_, err := connection.Attach(context.TODO(),"foo-handle", "process-handle", garden.ProcessIO{
+				_, err := connection.Attach(context.TODO(), "foo-handle", "process-handle", garden.ProcessIO{
 					Stdin: stdinR,
 				})
 				Expect(err).ToNot(HaveOccurred())
@@ -1691,7 +1691,7 @@ var _ = Describe("Connection", func() {
 
 			Describe("waiting on the process", func() {
 				It("returns an error", func() {
-					process, err := connection.Attach(context.TODO(),"foo-handle", "process-handle", garden.ProcessIO{})
+					process, err := connection.Attach(context.TODO(), "foo-handle", "process-handle", garden.ProcessIO{})
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(process.ID()).To(Equal("process-handle"))
@@ -1741,7 +1741,7 @@ var _ = Describe("Connection", func() {
 
 			Describe("waiting on the process", func() {
 				It("returns an error", func() {
-					process, err := connection.Attach(context.TODO(),"foo-handle", "process-handle", garden.ProcessIO{})
+					process, err := connection.Attach(context.TODO(), "foo-handle", "process-handle", garden.ProcessIO{})
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(process.ID()).To(Equal("process-handle"))
@@ -1766,7 +1766,7 @@ var _ = Describe("Connection", func() {
 			})
 
 			It("returns a ProcessNotFoundError", func() {
-				_, err := connection.Attach(context.TODO(),"foo-handle", "idontexist", garden.ProcessIO{})
+				_, err := connection.Attach(context.TODO(), "foo-handle", "idontexist", garden.ProcessIO{})
 				Expect(err).To(MatchError(garden.ProcessNotFoundError{
 					ProcessID: "idontexist",
 				}))

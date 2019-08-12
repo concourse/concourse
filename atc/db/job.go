@@ -11,8 +11,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
 	"github.com/ghodss/yaml"
+	"github.com/lib/pq"
 )
 
 type InputVersionEmptyError struct {

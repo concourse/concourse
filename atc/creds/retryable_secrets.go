@@ -2,8 +2,9 @@ package creds
 
 import (
 	"fmt"
-	"github.com/concourse/retryhttp"
 	"time"
+
+	"github.com/concourse/retryhttp"
 )
 
 type SecretRetryConfig struct {

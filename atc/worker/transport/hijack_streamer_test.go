@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	gconn "github.com/concourse/concourse/atc/worker/gclient/connection"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	gconn "github.com/concourse/concourse/atc/worker/gclient/connection"
 	"github.com/concourse/concourse/atc/worker/transport"
 	"github.com/concourse/concourse/atc/worker/transport/transportfakes"
 	. "github.com/onsi/ginkgo"

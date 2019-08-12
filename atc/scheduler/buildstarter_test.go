@@ -154,8 +154,7 @@ var _ = Describe("BuildStarter", func() {
 
 					Context("when some of the resources are checked before build create time", func() {
 						BeforeEach(func() {
-							createdBuild.CreateTimeReturns(time.Now())
-							resource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute))
+							createdBuild.IsNewerThanLastCheckOfReturns(true)
 						})
 
 						It("does not save the next input mapping", func() {
@@ -185,9 +184,7 @@ var _ = Describe("BuildStarter", func() {
 
 							job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "other-resource"}}})
 
-							createdBuild.CreateTimeReturns(time.Now())
-
-							resource.LastCheckEndTimeReturns(time.Now().Add(time.Minute))
+							createdBuild.IsNewerThanLastCheckOfReturns(false)
 
 							otherResource := new(dbfakes.FakeResource)
 							otherResource.IDReturns(25)

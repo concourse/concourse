@@ -5,13 +5,13 @@ import (
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/rata"
-	"github.com/ghodss/yaml"
 )
 
 var _ = Describe("GetPipeline", func() {

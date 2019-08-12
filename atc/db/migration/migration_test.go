@@ -1,7 +1,6 @@
 package migration_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"database/sql"
 	"io/ioutil"
 	"math/rand"
@@ -9,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"

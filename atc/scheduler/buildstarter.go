@@ -126,7 +126,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 				continue
 			}
 
-			if resource.LastCheckEndTime().Before(nextPendingBuild.CreateTime()) {
+			if nextPendingBuild.IsNewerThanLastCheckOf(resource) {
 				return false, nil
 			}
 		}

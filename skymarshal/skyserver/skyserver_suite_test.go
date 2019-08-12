@@ -20,6 +20,7 @@ import (
 
 var (
 	fakeTeamFactory   *dbfakes.FakeTeamFactory
+	fakeUserFactory   *dbfakes.FakeUserFactory
 	fakeTokenVerifier *tokenfakes.FakeVerifier
 	fakeTokenIssuer   *tokenfakes.FakeIssuer
 	skyServer         *httptest.Server
@@ -48,6 +49,8 @@ var _ = BeforeEach(func() {
 	fakeTokenVerifier = new(tokenfakes.FakeVerifier)
 	fakeTokenIssuer = new(tokenfakes.FakeIssuer)
 
+	fakeUserFactory = new(dbfakes.FakeUserFactory)
+
 	dexServer = ghttp.NewTLSServer()
 	dexIssuerUrl := dexServer.URL() + "/sky/issuer"
 
@@ -61,6 +64,7 @@ var _ = BeforeEach(func() {
 		Logger:          lagertest.NewTestLogger("sky"),
 		TokenVerifier:   fakeTokenVerifier,
 		TokenIssuer:     fakeTokenIssuer,
+		UserFactory:     fakeUserFactory,
 		DexClientID:     "dex-client-id",
 		DexClientSecret: "dex-client-secret",
 		DexIssuerURL:    dexIssuerUrl,

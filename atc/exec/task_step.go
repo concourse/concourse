@@ -176,8 +176,6 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		config.Limits.Memory = step.defaultLimits.Memory
 	}
 
-
-
 	step.delegate.Initializing(logger, config)
 
 	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)

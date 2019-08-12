@@ -1,11 +1,12 @@
 package templatehelpers_test
 
 import (
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 
 	"github.com/concourse/concourse/atc"
 

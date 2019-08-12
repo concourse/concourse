@@ -49,14 +49,14 @@ func (w workerHelper) createGardenContainer(
 
 	return w.gardenClient.Create(
 		garden.ContainerSpec{
-		Handle:     handleToCreate,
-		RootFSPath: fetchedImage.URL,
-		Privileged: fetchedImage.Privileged,
-		BindMounts: bindMounts,
-		Limits:     containerSpec.Limits.ToGardenLimits(),
-		Env:        env,
-		Properties: gardenProperties,
-	})
+			Handle:     handleToCreate,
+			RootFSPath: fetchedImage.URL,
+			Privileged: fetchedImage.Privileged,
+			BindMounts: bindMounts,
+			Limits:     containerSpec.Limits.ToGardenLimits(),
+			Env:        env,
+			Properties: gardenProperties,
+		})
 }
 
 func (w workerHelper) constructGardenWorkerContainer(

@@ -15,7 +15,6 @@ import (
 
 //go:generate counterfeiter . WorkerProvider
 
-
 type WorkerProvider interface {
 	RunningWorkers(lager.Logger) ([]Worker, error)
 

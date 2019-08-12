@@ -140,8 +140,8 @@ type resourceConfigCheckSessionContainerOwner struct {
 }
 
 type ContainerOwnerExpiries struct {
-	Min       time.Duration
-	Max       time.Duration
+	Min time.Duration
+	Max time.Duration
 }
 
 func (c resourceConfigCheckSessionContainerOwner) Find(conn Conn) (sq.Eq, bool, error) {

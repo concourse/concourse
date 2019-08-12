@@ -2,6 +2,7 @@ package image_test
 
 import (
 	"context"
+	"errors"
 	"io/ioutil"
 	"strings"
 
@@ -166,6 +167,18 @@ var _ = Describe("Image", func() {
 			Expect(path).To(Equal("/"))
 		})
 
+		Context("when VolumeClient fails to create a volume", func() {
+			BeforeEach(func() {
+				fakeVolumeClient.FindOrCreateVolumeForContainerReturns(nil, errors.New("some error"))
+			})
+
+			It("returns an error", func() {
+				_, err := img.FetchForContainer(ctx, logger, fakeContainer)
+				Expect(err).To(HaveOccurred())
+				Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
+			})
+		})
+
 		It("streams the volume from another worker", func() {
 			_, err := img.FetchForContainer(ctx, logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
@@ -175,6 +188,18 @@ var _ = Describe("Image", func() {
 			_, artifactDestination := fakeImageArtifactSource.StreamToArgsForCall(0)
 			artifactDestination.StreamIn("fake-path", strings.NewReader("fake-tar-stream"))
 			Expect(fakeContainerRootfsVolume.StreamInCallCount()).To(Equal(1))
+		})
+
+		Context("when streamTo fails", func() {
+			BeforeEach(func() {
+				fakeImageArtifactSource.StreamFileReturns(nil, errors.New("some error"))
+			})
+
+			It("returns an error", func() {
+				_, err := img.FetchForContainer(ctx, logger, fakeContainer)
+				Expect(err).To(HaveOccurred())
+				Expect(fakeImageArtifactSource.StreamToCallCount()).To(Equal(1))
+			})
 		})
 
 		It("returns fetched image", func() {

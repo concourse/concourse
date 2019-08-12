@@ -1501,7 +1501,6 @@ var _ = Describe("Job", func() {
 			Expect(build1DB.Name()).To(Equal("1"))
 			Expect(build1DB.Status()).To(Equal(db.BuildStatusPending))
 			Expect(build1DB.IsScheduled()).To(BeFalse())
-			Expect(build1DB.CreateTime()).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
 
 			var found bool
 			otherJob, found, err = otherPipeline.Job("some-job")

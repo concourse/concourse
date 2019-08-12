@@ -80,8 +80,8 @@ Concourse instance to the next.
 
 ### Learn More
 
-* The [Official Site](https://concourse-ci.org) for documentation and
-  reference material.
+* The [Official Site](https://concourse-ci.org) for documentation,
+  reference material, and example pipelines (which no longer live in this repository).
 * The [Concourse Tutorial](https://concoursetutorial.com) by Stark & Wayne is
   great for a guided introduction to all the core concepts.
 * See Concourse in action with our [production pipelines](https://ci.concourse-ci.org/)

@@ -8,8 +8,8 @@ import (
 
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
-	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -81,13 +81,13 @@ var _ = Describe("Fly CLI", func() {
 				flyrcFixture = "./fixtures/flyrc-badtoken.yml"
 			})
 
-			It("shows an error message", func() {
+			It("shows error message from jwt parsing library but does not fail", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess).Should(gexec.Exit(1))
+				Eventually(sess).Should(gexec.Exit(0))
 
-				Expect(sess.Err).To(gbytes.Say("token validation failed"))
+				Expect(sess).Should(gbytes.Say("n/a: token contains an invalid number of segments"))
 			})
 		})
 

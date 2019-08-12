@@ -80,16 +80,6 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
-	CreateTimeStub        func() time.Time
-	createTimeMutex       sync.RWMutex
-	createTimeArgsForCall []struct {
-	}
-	createTimeReturns struct {
-		result1 time.Time
-	}
-	createTimeReturnsOnCall map[int]struct {
-		result1 time.Time
-	}
 	DeleteStub        func() (bool, error)
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
@@ -206,6 +196,17 @@ type FakeBuild struct {
 		result1 bool
 	}
 	isManuallyTriggeredReturnsOnCall map[int]struct {
+		result1 bool
+	}
+	IsNewerThanLastCheckOfStub        func(db.Resource) bool
+	isNewerThanLastCheckOfMutex       sync.RWMutex
+	isNewerThanLastCheckOfArgsForCall []struct {
+		arg1 db.Resource
+	}
+	isNewerThanLastCheckOfReturns struct {
+		result1 bool
+	}
+	isNewerThanLastCheckOfReturnsOnCall map[int]struct {
 		result1 bool
 	}
 	IsRunningStub        func() bool
@@ -796,58 +797,6 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 		result1 []db.WorkerArtifact
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeBuild) CreateTime() time.Time {
-	fake.createTimeMutex.Lock()
-	ret, specificReturn := fake.createTimeReturnsOnCall[len(fake.createTimeArgsForCall)]
-	fake.createTimeArgsForCall = append(fake.createTimeArgsForCall, struct {
-	}{})
-	fake.recordInvocation("CreateTime", []interface{}{})
-	fake.createTimeMutex.Unlock()
-	if fake.CreateTimeStub != nil {
-		return fake.CreateTimeStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.createTimeReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) CreateTimeCallCount() int {
-	fake.createTimeMutex.RLock()
-	defer fake.createTimeMutex.RUnlock()
-	return len(fake.createTimeArgsForCall)
-}
-
-func (fake *FakeBuild) CreateTimeCalls(stub func() time.Time) {
-	fake.createTimeMutex.Lock()
-	defer fake.createTimeMutex.Unlock()
-	fake.CreateTimeStub = stub
-}
-
-func (fake *FakeBuild) CreateTimeReturns(result1 time.Time) {
-	fake.createTimeMutex.Lock()
-	defer fake.createTimeMutex.Unlock()
-	fake.CreateTimeStub = nil
-	fake.createTimeReturns = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeBuild) CreateTimeReturnsOnCall(i int, result1 time.Time) {
-	fake.createTimeMutex.Lock()
-	defer fake.createTimeMutex.Unlock()
-	fake.CreateTimeStub = nil
-	if fake.createTimeReturnsOnCall == nil {
-		fake.createTimeReturnsOnCall = make(map[int]struct {
-			result1 time.Time
-		})
-	}
-	fake.createTimeReturnsOnCall[i] = struct {
-		result1 time.Time
-	}{result1}
 }
 
 func (fake *FakeBuild) Delete() (bool, error) {
@@ -1443,6 +1392,66 @@ func (fake *FakeBuild) IsManuallyTriggeredReturnsOnCall(i int, result1 bool) {
 		})
 	}
 	fake.isManuallyTriggeredReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) IsNewerThanLastCheckOf(arg1 db.Resource) bool {
+	fake.isNewerThanLastCheckOfMutex.Lock()
+	ret, specificReturn := fake.isNewerThanLastCheckOfReturnsOnCall[len(fake.isNewerThanLastCheckOfArgsForCall)]
+	fake.isNewerThanLastCheckOfArgsForCall = append(fake.isNewerThanLastCheckOfArgsForCall, struct {
+		arg1 db.Resource
+	}{arg1})
+	fake.recordInvocation("IsNewerThanLastCheckOf", []interface{}{arg1})
+	fake.isNewerThanLastCheckOfMutex.Unlock()
+	if fake.IsNewerThanLastCheckOfStub != nil {
+		return fake.IsNewerThanLastCheckOfStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.isNewerThanLastCheckOfReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) IsNewerThanLastCheckOfCallCount() int {
+	fake.isNewerThanLastCheckOfMutex.RLock()
+	defer fake.isNewerThanLastCheckOfMutex.RUnlock()
+	return len(fake.isNewerThanLastCheckOfArgsForCall)
+}
+
+func (fake *FakeBuild) IsNewerThanLastCheckOfCalls(stub func(db.Resource) bool) {
+	fake.isNewerThanLastCheckOfMutex.Lock()
+	defer fake.isNewerThanLastCheckOfMutex.Unlock()
+	fake.IsNewerThanLastCheckOfStub = stub
+}
+
+func (fake *FakeBuild) IsNewerThanLastCheckOfArgsForCall(i int) db.Resource {
+	fake.isNewerThanLastCheckOfMutex.RLock()
+	defer fake.isNewerThanLastCheckOfMutex.RUnlock()
+	argsForCall := fake.isNewerThanLastCheckOfArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuild) IsNewerThanLastCheckOfReturns(result1 bool) {
+	fake.isNewerThanLastCheckOfMutex.Lock()
+	defer fake.isNewerThanLastCheckOfMutex.Unlock()
+	fake.IsNewerThanLastCheckOfStub = nil
+	fake.isNewerThanLastCheckOfReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) IsNewerThanLastCheckOfReturnsOnCall(i int, result1 bool) {
+	fake.isNewerThanLastCheckOfMutex.Lock()
+	defer fake.isNewerThanLastCheckOfMutex.Unlock()
+	fake.IsNewerThanLastCheckOfStub = nil
+	if fake.isNewerThanLastCheckOfReturnsOnCall == nil {
+		fake.isNewerThanLastCheckOfReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isNewerThanLastCheckOfReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
 }
@@ -2890,8 +2899,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
 	defer fake.artifactsMutex.RUnlock()
-	fake.createTimeMutex.RLock()
-	defer fake.createTimeMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	fake.endTimeMutex.RLock()
@@ -2914,6 +2921,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.isDrainedMutex.RUnlock()
 	fake.isManuallyTriggeredMutex.RLock()
 	defer fake.isManuallyTriggeredMutex.RUnlock()
+	fake.isNewerThanLastCheckOfMutex.RLock()
+	defer fake.isNewerThanLastCheckOfMutex.RUnlock()
 	fake.isRunningMutex.RLock()
 	defer fake.isRunningMutex.RUnlock()
 	fake.isScheduledMutex.RLock()
