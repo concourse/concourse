@@ -355,6 +355,15 @@ var _ = Describe("Client", func() {
 				It("increase the active tasks on the worker", func() {
 					Expect(fakeWorker.IncreaseActiveTasksCallCount()).To(Equal(1))
 				})
+
+				Context("when the container is already present on the worker", func() {
+					BeforeEach(func() {
+						fakePool.ContainerInWorkerReturns(true, nil)
+					})
+					It("does not increase the active tasks on the worker", func() {
+						Expect(fakeWorker.IncreaseActiveTasksCallCount()).To(Equal(0))
+					})
+				})
 			})
 
 			Context("when finding or choosing the worker fails", func() {
