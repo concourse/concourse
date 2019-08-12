@@ -3264,6 +3264,26 @@ all =
                         >> Query.find [ class "header" ]
                         >> Query.has
                             [ style "border" <| "1px solid " ++ Colors.failure ]
+                , test "started step has a yellow border" <|
+                    fetchPlanWithTaskStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ class "header" ]
+                        >> Query.has
+                            [ style "border" <| "1px solid " ++ Colors.started ]
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
