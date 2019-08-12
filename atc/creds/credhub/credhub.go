@@ -1,9 +1,10 @@
 package credhub
 
 import (
-	"github.com/concourse/concourse/atc/creds"
 	"path"
 	"time"
+
+	"github.com/concourse/concourse/atc/creds"
 
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
@@ -42,22 +43,7 @@ func (c CredHubAtc) Get(secretPath string) (interface{}, *time.Time, bool, error
 		return nil, nil, false, nil
 	}
 
-	var result = cred.Value
-
-	if standardMap, ok := cred.Value.(map[string]interface{}); ok {
-		// TODO - we should do this recursively since the cpp4life go-path library
-		// does not support map[string]interface{} types when looking for
-		// nested values
-		evenLessTyped := map[interface{}]interface{}{}
-
-		for k, v := range standardMap {
-			evenLessTyped[k] = v
-		}
-
-		result = evenLessTyped
-	}
-
-	return result, nil, true, nil
+	return cred.Value, nil, true, nil
 }
 
 func (c CredHubAtc) findCred(path string) (credentials.Credential, bool, error) {

@@ -172,7 +172,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	step.delegate.Starting(logger)
 
 	putResource := step.resourceFactory.NewResourceForContainer(container)
-	versionedSource, err := putResource.Put(
+	versionResult, err := putResource.Put(
 		ctx,
 		resource.IOConfig{
 			Stdout: step.delegate.Stdout(),
@@ -194,8 +194,8 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	versionInfo := VersionInfo{
-		Version:  versionedSource.Version(),
-		Metadata: versionedSource.Metadata(),
+		Version:  versionResult.Version,
+		Metadata: versionResult.Metadata,
 	}
 
 	if step.plan.Resource != "" {

@@ -69,7 +69,7 @@ type Build interface {
 	HasPlan() bool
 	Status() BuildStatus
 	StartTime() time.Time
-	CreateTime() time.Time
+	IsNewerThanLastCheckOf(input Resource) bool
 	EndTime() time.Time
 	ReapTime() time.Time
 	IsManuallyTriggered() bool
@@ -171,16 +171,18 @@ func (b *build) Schema() string               { return b.schema }
 func (b *build) PrivatePlan() atc.Plan        { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
 func (b *build) HasPlan() bool                { return string(*b.publicPlan) != "{}" }
-func (b *build) CreateTime() time.Time        { return b.createTime }
-func (b *build) StartTime() time.Time         { return b.startTime }
-func (b *build) EndTime() time.Time           { return b.endTime }
-func (b *build) ReapTime() time.Time          { return b.reapTime }
-func (b *build) Status() BuildStatus          { return b.status }
-func (b *build) IsScheduled() bool            { return b.scheduled }
-func (b *build) IsDrained() bool              { return b.drained }
-func (b *build) IsRunning() bool              { return !b.completed }
-func (b *build) IsAborted() bool              { return b.aborted }
-func (b *build) IsCompleted() bool            { return b.completed }
+func (b *build) IsNewerThanLastCheckOf(input Resource) bool {
+	return b.createTime.After(input.LastCheckEndTime())
+}
+func (b *build) StartTime() time.Time { return b.startTime }
+func (b *build) EndTime() time.Time   { return b.endTime }
+func (b *build) ReapTime() time.Time  { return b.reapTime }
+func (b *build) Status() BuildStatus  { return b.status }
+func (b *build) IsScheduled() bool    { return b.scheduled }
+func (b *build) IsDrained() bool      { return b.drained }
+func (b *build) IsRunning() bool      { return !b.completed }
+func (b *build) IsAborted() bool      { return b.aborted }
+func (b *build) IsCompleted() bool    { return b.completed }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -646,7 +648,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 				}
 
 				// input is blocking if its last check time is before build create time
-				if resource.LastCheckEndTime().Before(b.CreateTime()) {
+				if b.IsNewerThanLastCheckOf(resource) {
 					inputs[buildInput.Name] = BuildPreparationStatusBlocking
 					missingInputReasons.RegisterNoResourceCheckFinished(buildInput.Name)
 					inputsSatisfiedStatus = BuildPreparationStatusBlocking

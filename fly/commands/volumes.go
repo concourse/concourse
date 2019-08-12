@@ -2,10 +2,11 @@ package commands
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/ghodss/yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"

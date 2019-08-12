@@ -11,9 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/concourse/concourse/atc/db"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/skymarshal/token"
-	oidc "github.com/coreos/go-oidc"
+	"github.com/coreos/go-oidc"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -22,6 +24,7 @@ type SkyConfig struct {
 	Logger          lager.Logger
 	TokenVerifier   token.Verifier
 	TokenIssuer     token.Issuer
+	UserFactory     db.UserFactory
 	SigningKey      *rsa.PrivateKey
 	SecureCookies   bool
 	DexClientID     string
@@ -221,6 +224,12 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, err = s.config.UserFactory.CreateOrUpdateUser(verifiedClaims.UserName, verifiedClaims.ConnectorID, verifiedClaims.Sub); err != nil {
+		logger.Error("failed-to-save-user-to-database", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	s.Redirect(w, r, skyToken, decode(stateToken).RedirectURI)
 }
 
@@ -338,8 +347,13 @@ func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
+	if _, err = s.config.UserFactory.CreateOrUpdateUser(verifiedClaims.UserName, verifiedClaims.ConnectorID, verifiedClaims.Sub); err != nil {
+		logger.Error("failed-to-save-user-to-database", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
+	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(skyToken)
 }
 
@@ -393,8 +407,9 @@ func (s *SkyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
 
 func (s *SkyServer) endpoint() oauth2.Endpoint {
 	return oauth2.Endpoint{
-		AuthURL:  strings.TrimRight(s.config.DexIssuerURL, "/") + "/auth",
-		TokenURL: strings.TrimRight(s.config.DexIssuerURL, "/") + "/token",
+		AuthURL:   strings.TrimRight(s.config.DexIssuerURL, "/") + "/auth",
+		TokenURL:  strings.TrimRight(s.config.DexIssuerURL, "/") + "/token",
+		AuthStyle: oauth2.AuthStyleInHeader,
 	}
 }
 

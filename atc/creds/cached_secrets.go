@@ -1,8 +1,9 @@
 package creds
 
 import (
-	"github.com/patrickmn/go-cache"
 	"time"
+
+	"github.com/patrickmn/go-cache"
 )
 
 type SecretCacheConfig struct {

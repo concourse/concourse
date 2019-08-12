@@ -2,6 +2,7 @@ package metric
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc/db/lock"
@@ -115,6 +116,8 @@ type WorkerContainers struct {
 	WorkerName string
 	Platform   string
 	Containers int
+	TeamName   string
+	Tags       []string
 }
 
 func (event WorkerContainers) Emit(logger lager.Logger) {
@@ -125,8 +128,10 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 			Value: event.Containers,
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"worker":   event.WorkerName,
-				"platform": event.Platform,
+				"worker":    event.WorkerName,
+				"platform":  event.Platform,
+				"team_name": event.TeamName,
+				"tags":      strings.Join(event.Tags[:], "/"),
 			},
 		},
 	)
@@ -136,6 +141,8 @@ type WorkerVolumes struct {
 	WorkerName string
 	Platform   string
 	Volumes    int
+	TeamName   string
+	Tags       []string
 }
 
 func (event WorkerVolumes) Emit(logger lager.Logger) {
@@ -144,6 +151,29 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 		Event{
 			Name:  "worker volumes",
 			Value: event.Volumes,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"worker":    event.WorkerName,
+				"platform":  event.Platform,
+				"team_name": event.TeamName,
+				"tags":      strings.Join(event.Tags[:], "/"),
+			},
+		},
+	)
+}
+
+type WorkerTasks struct {
+	WorkerName string
+	Platform   string
+	Tasks      int
+}
+
+func (event WorkerTasks) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("worker-tasks"),
+		Event{
+			Name:  "worker tasks",
+			Value: event.Tasks,
 			State: EventStateOK,
 			Attributes: map[string]string{
 				"worker":   event.WorkerName,
@@ -431,9 +461,9 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 			Value: 1,
 			State: state,
 			Attributes: map[string]string{
-				"pipeline": event.PipelineName,
-				"resource": event.ResourceName,
-				"team":     event.TeamName,
+				"pipeline":  event.PipelineName,
+				"resource":  event.ResourceName,
+				"team_name": event.TeamName,
 			},
 		},
 	)

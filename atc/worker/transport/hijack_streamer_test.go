@@ -2,6 +2,7 @@ package transport_test
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,8 +15,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	gconn "github.com/concourse/concourse/atc/worker/gclient/connection"
 	"github.com/concourse/concourse/atc/worker/transport"
 	"github.com/concourse/concourse/atc/worker/transport/transportfakes"
 	. "github.com/onsi/ginkgo"
@@ -210,7 +211,7 @@ var _ = Describe("hijackStreamer", func() {
 		})
 
 		JustBeforeEach(func() {
-			actualHijackedConn, actualResponseReader, hijackError = hijackStreamer.Hijack(handler, body, params, query, contentType)
+			actualHijackedConn, actualResponseReader, hijackError = hijackStreamer.Hijack(context.TODO(), handler, body, params, query, contentType)
 		})
 
 		Context("when request is successful", func() {

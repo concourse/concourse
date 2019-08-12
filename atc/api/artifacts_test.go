@@ -6,12 +6,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -45,6 +47,10 @@ var _ = Describe("Artifacts API", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			request.Header.Set("Content-Type", "application/json")
+
+			q := url.Values{}
+			q.Add("platform", "some-platform")
+			request.URL.RawQuery = q.Encode()
 
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
@@ -98,9 +104,12 @@ var _ = Describe("Artifacts API", func() {
 				It("creates the volume using the worker client", func() {
 					Expect(fakeWorkerClient.CreateVolumeCallCount()).To(Equal(1))
 
-					_, volumeSpec, teamID, volumeType := fakeWorkerClient.CreateVolumeArgsForCall(0)
+					_, volumeSpec, workerSpec, volumeType := fakeWorkerClient.CreateVolumeArgsForCall(0)
 					Expect(volumeSpec.Strategy).To(Equal(baggageclaim.EmptyStrategy{}))
-					Expect(teamID).To(Equal(734))
+					Expect(workerSpec).To(Equal(worker.WorkerSpec{
+						TeamID:   734,
+						Platform: "some-platform",
+					}))
 					Expect(volumeType).To(Equal(db.VolumeTypeArtifact))
 				})
 

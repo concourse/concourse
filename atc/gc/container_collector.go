@@ -11,7 +11,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/worker"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/hashicorp/go-multierror"
 )
 
 const HijackedContainerTimeout = 5 * time.Minute
@@ -201,7 +202,7 @@ func destroyHijackedCreatedContainers(logger lager.Logger, containers []db.Creat
 func markHijackedContainerAsDestroying(
 	logger lager.Logger,
 	hijackedContainer db.CreatedContainer,
-	gardenClient garden.Client,
+	gardenClient gclient.Client,
 ) (db.DestroyingContainer, error) {
 
 	gardenContainer, found, err := findContainer(gardenClient, hijackedContainer.Handle())
@@ -237,7 +238,7 @@ func markHijackedContainerAsDestroying(
 	return nil, nil
 }
 
-func findContainer(gardenClient garden.Client, handle string) (garden.Container, bool, error) {
+func findContainer(gardenClient gclient.Client, handle string) (gclient.Container, bool, error) {
 	gardenContainer, err := gardenClient.Lookup(handle)
 	if err != nil {
 		if _, ok := err.(garden.ContainerNotFoundError); ok {

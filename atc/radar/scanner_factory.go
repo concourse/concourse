@@ -31,8 +31,8 @@ type scannerFactory struct {
 }
 
 var ContainerExpiries = db.ContainerOwnerExpiries{
-	Min:       5 * time.Minute,
-	Max:       1 * time.Hour,
+	Min: 5 * time.Minute,
+	Max: 1 * time.Hour,
 }
 
 func NewScannerFactory(

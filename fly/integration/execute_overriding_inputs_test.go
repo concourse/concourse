@@ -164,6 +164,8 @@ run:
 				func(w http.ResponseWriter, req *http.Request) {
 					close(uploading)
 
+					Expect(req.FormValue("platform")).To(Equal("some-platform"))
+
 					tr := tar.NewReader(zstd.NewReader(req.Body))
 
 					hdr, err := tr.Next()

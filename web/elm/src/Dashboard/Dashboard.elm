@@ -28,6 +28,7 @@ import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
 import Dashboard.Text as Text
 import EffectTransformer exposing (ET)
+import HoverState
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -524,7 +525,7 @@ clusterNameView session =
 
 
 dashboardView :
-    { a | hovered : Maybe DomID, screenSize : ScreenSize }
+    { a | hovered : HoverState.HoverState, screenSize : ScreenSize }
     -> Model
     -> Html Message
 dashboardView session model =
@@ -558,7 +559,7 @@ dashboardView session model =
 
 
 welcomeCard :
-    { a | hovered : Maybe DomID }
+    { a | hovered : HoverState.HoverState }
     ->
         { b
             | groups : List Group
@@ -567,7 +568,7 @@ welcomeCard :
     -> Html Message
 welcomeCard { hovered } { groups, userState } =
     let
-        cliIcon : Maybe DomID -> Cli.Cli -> Html Message
+        cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
             Html.a
                 ([ href <| Cli.downloadUrl cli
@@ -579,8 +580,9 @@ welcomeCard { hovered } { groups, userState } =
                  ]
                     ++ Styles.topCliIcon
                         { hovered =
-                            hoverable
-                                == (Just <| Message.WelcomeCardCliIcon cli)
+                            HoverState.isHovered
+                                (Message.WelcomeCardCliIcon cli)
+                                hoverable
                         , cli = cli
                         }
                 )
@@ -674,7 +676,7 @@ turbulenceView path =
 pipelinesView :
     { groups : List Group
     , substate : Models.SubState
-    , hovered : Maybe DomID
+    , hovered : HoverState.HoverState
     , pipelineRunningKeyframes : String
     , query : String
     , userState : UserState.UserState

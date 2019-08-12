@@ -8,9 +8,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -19,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 
 	rfakes "github.com/concourse/concourse/atc/resource/resourcefakes"
 	. "github.com/onsi/ginkgo"
@@ -40,8 +39,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceConfigScope   *dbfakes.FakeResourceConfigScope
 		fakeClock                 *fakeclock.FakeClock
 		interval                  time.Duration
-		variables                 creds.Variables
-		metadata				  db.ContainerMetadata
+		variables                 vars.Variables
+		metadata                  db.ContainerMetadata
 
 		fakeResourceType          *dbfakes.FakeResourceType
 		interpolatedResourceTypes atc.VersionedResourceTypes
@@ -55,7 +54,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 	BeforeEach(func() {
 		fakeLock = &lockfakes.FakeLock{}
 		interval = 1 * time.Minute
-		variables = template.StaticVariables{
+		variables = vars.StaticVariables{
 			"source-params": "some-secret-sauce",
 		}
 
@@ -594,7 +593,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Expect(resourceSource).To(Equal(atc.Source{"custom": "some-secret-sauce"}))
 					Expect(resourceTypes).To(Equal(interpolatedResourceTypes))
 
-					_, _,  owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+					_, _, owner, containerSpec, workerSpec, _ := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 					Expect(owner).To(Equal(db.NewResourceConfigCheckSessionContainerOwner(fakeResourceConfig, ContainerExpiries)))
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ResourceType: "registry-image",

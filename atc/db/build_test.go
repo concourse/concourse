@@ -391,7 +391,7 @@ var _ = Describe("Build", func() {
 			}
 
 			var err error
-			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			var found bool
@@ -530,7 +530,7 @@ var _ = Describe("Build", func() {
 				},
 			}
 
-			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			var found bool
@@ -632,7 +632,7 @@ var _ = Describe("Build", func() {
 							Name: "some-job",
 						},
 					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)
+				}, db.ConfigVersion(1), false)
 				Expect(err).ToNot(HaveOccurred())
 
 				job, found, err := createdPipeline.Job("some-job")
@@ -739,7 +739,7 @@ var _ = Describe("Build", func() {
 							Name: "some-job",
 						},
 					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)
+				}, db.ConfigVersion(1), false)
 				Expect(err).ToNot(HaveOccurred())
 
 				var found bool
@@ -945,7 +945,7 @@ var _ = Describe("Build", func() {
 								Name: "some-job",
 							},
 						},
-					}, db.ConfigVersion(2), db.PipelineUnpaused)
+					}, db.ConfigVersion(2), false)
 					Expect(err).ToNot(HaveOccurred())
 					expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
 				})
@@ -998,7 +998,7 @@ var _ = Describe("Build", func() {
 						},
 					}
 
-					pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(2), db.PipelineUnpaused)
+					pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(2), false)
 					Expect(err).ToNot(HaveOccurred())
 
 					setupTx, err := dbConn.Begin()
@@ -1036,7 +1036,7 @@ var _ = Describe("Build", func() {
 					err = resourceConfig1.SaveVersions([]atc.Version{{"version": "v1"}})
 					Expect(err).NotTo(HaveOccurred())
 
-					versions, _, found, err := resource1.Versions(db.Page{Limit: 1})
+					versions, _, found, err := resource1.Versions(db.Page{Limit: 1}, nil)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(versions).To(HaveLen(1))
@@ -1087,7 +1087,7 @@ var _ = Describe("Build", func() {
 							Name: "some-job",
 						},
 					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)
+				}, db.ConfigVersion(1), false)
 				Expect(err).ToNot(HaveOccurred())
 
 				job, found, err := pipeline.Job("some-job")
@@ -1163,7 +1163,7 @@ var _ = Describe("Build", func() {
 			}
 
 			var err error
-			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			job, found, err := pipeline.Job("some-job")

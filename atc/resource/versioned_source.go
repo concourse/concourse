@@ -4,7 +4,6 @@ import (
 	"io"
 	"path"
 
-	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -21,44 +20,10 @@ type VersionedSource interface {
 	Volume() worker.Volume
 }
 
-type versionResult struct {
+type VersionResult struct {
 	Version atc.Version `json:"version"`
 
 	Metadata []atc.MetadataField `json:"metadata,omitempty"`
-}
-
-type putVersionedSource struct {
-	versionResult versionResult
-
-	container garden.Container
-
-	resourceDir string
-}
-
-func (vs *putVersionedSource) Version() atc.Version {
-	return vs.versionResult.Version
-}
-
-func (vs *putVersionedSource) Metadata() []atc.MetadataField {
-	return vs.versionResult.Metadata
-}
-
-func (vs *putVersionedSource) StreamOut(src string) (io.ReadCloser, error) {
-	return vs.container.StreamOut(garden.StreamOutSpec{
-		// don't use path.Join; it strips trailing slashes
-		Path: vs.resourceDir + "/" + src,
-	})
-}
-
-func (vs *putVersionedSource) Volume() worker.Volume {
-	return nil
-}
-
-func (vs *putVersionedSource) StreamIn(dst string, src io.Reader) error {
-	return vs.container.StreamIn(garden.StreamInSpec{
-		Path:      path.Join(vs.resourceDir, dst),
-		TarStream: src,
-	})
 }
 
 func NewGetVersionedSource(volume worker.Volume, version atc.Version, metadata []atc.MetadataField) VersionedSource {
@@ -66,7 +31,7 @@ func NewGetVersionedSource(volume worker.Volume, version atc.Version, metadata [
 		volume:      volume,
 		resourceDir: ResourcesDir("get"),
 
-		versionResult: versionResult{
+		versionResult: VersionResult{
 			Version:  version,
 			Metadata: metadata,
 		},
@@ -74,7 +39,7 @@ func NewGetVersionedSource(volume worker.Volume, version atc.Version, metadata [
 }
 
 type getVersionedSource struct {
-	versionResult versionResult
+	versionResult VersionResult
 
 	volume      worker.Volume
 	resourceDir string

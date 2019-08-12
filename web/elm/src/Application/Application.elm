@@ -14,6 +14,7 @@ import Application.Models exposing (Session)
 import Browser
 import Concourse
 import EffectTransformer exposing (ET)
+import HoverState
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
@@ -61,7 +62,7 @@ init flags url =
 
         session =
             { userState = UserStateUnknown
-            , hovered = Nothing
+            , hovered = HoverState.NoHover
             , clusterName = ""
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
@@ -293,48 +294,30 @@ subpageHandleCallback callback ( model, effects ) =
 update : TopLevelMessage -> Model -> ( Model, List Effect )
 update msg model =
     case msg of
-        Update (Message.Click Message.HamburgerMenu) ->
-            let
-                session =
-                    model.session
-
-                newSession =
-                    { session | isSideBarOpen = not session.isSideBarOpen }
-            in
-            ( { model | session = newSession }
-            , [ SaveSideBarState <| not session.isSideBarOpen ]
-            )
-
         Update (Message.Hover hovered) ->
             let
                 session =
                     model.session
 
-                newSession =
-                    { session | hovered = hovered }
+                newHovered =
+                    case hovered of
+                        Just h ->
+                            HoverState.Hovered h
+
+                        Nothing ->
+                            HoverState.NoHover
+
+                ( newSession, sideBarEffects ) =
+                    { session | hovered = newHovered }
+                        |> SideBar.update (Message.Hover hovered)
 
                 ( subModel, subEffects ) =
                     ( model.subModel, [] )
                         |> SubPage.update model.session (Message.Hover hovered)
             in
-            ( { model | subModel = subModel, session = newSession }, subEffects )
-
-        Update (Message.Click (Message.SideBarTeam teamName)) ->
-            let
-                session =
-                    model.session
-
-                newSession =
-                    { session
-                        | expandedTeams =
-                            if Set.member teamName session.expandedTeams then
-                                Set.remove teamName session.expandedTeams
-
-                            else
-                                Set.insert teamName session.expandedTeams
-                    }
-            in
-            ( { model | session = newSession }, [] )
+            ( { model | subModel = subModel, session = newSession }
+            , subEffects ++ sideBarEffects
+            )
 
         Update m ->
             let
@@ -342,8 +325,13 @@ update msg model =
                     ( model.subModel, [] )
                         |> SubPage.update model.session m
                         |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
+
+                ( session, sessionEffects ) =
+                    SideBar.update m model.session
             in
-            ( { model | subModel = subModel }, subEffects )
+            ( { model | subModel = subModel, session = session }
+            , subEffects ++ sessionEffects
+            )
 
         Callback callback ->
             handleCallback callback model

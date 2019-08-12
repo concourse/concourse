@@ -1,11 +1,13 @@
 package worker_test
 
 import (
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
+
+	//"code.cloudfoundry.org/garden/gardenfakes"
 	"context"
 	"errors"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
@@ -16,9 +18,9 @@ import (
 
 var _ = Describe("Pool", func() {
 	var (
-		logger          *lagertest.TestLogger
-		fakeProvider    *workerfakes.FakeWorkerProvider
-		pool            Pool
+		logger       *lagertest.TestLogger
+		pool         Pool
+		fakeProvider *workerfakes.FakeWorkerProvider
 	)
 
 	BeforeEach(func() {
@@ -429,4 +431,5 @@ var _ = Describe("Pool", func() {
 			})
 		})
 	})
+
 })

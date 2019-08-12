@@ -2,15 +2,15 @@ package creds
 
 import (
 	"github.com/concourse/concourse/atc"
-	"github.com/mitchellh/mapstructure"
+	"github.com/concourse/concourse/vars"
 )
 
 type Params struct {
-	variablesResolver Variables
+	variablesResolver vars.Variables
 	rawParams         atc.Params
 }
 
-func NewParams(variables Variables, params atc.Params) Params {
+func NewParams(variables vars.Variables, params atc.Params) Params {
 	return Params{
 		variablesResolver: variables,
 		rawParams:         params,
@@ -18,29 +18,9 @@ func NewParams(variables Variables, params atc.Params) Params {
 }
 
 func (p Params) Evaluate() (atc.Params, error) {
-	var untypedInput interface{}
-
-	err := evaluate(p.variablesResolver, p.rawParams, &untypedInput)
-	if err != nil {
-		return nil, err
-	}
-
-	var metadata mapstructure.Metadata
 	var params atc.Params
-
-	msConfig := &mapstructure.DecoderConfig{
-		Metadata:         &metadata,
-		Result:           &params,
-		WeaklyTypedInput: true,
-		DecodeHook:       atc.SanitizeDecodeHook,
-	}
-
-	decoder, err := mapstructure.NewDecoder(msConfig)
+	err := evaluate(p.variablesResolver, p.rawParams, &params)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := decoder.Decode(untypedInput); err != nil {
 		return nil, err
 	}
 

@@ -2,13 +2,14 @@ package integration_test
 
 import (
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/tedsuo/ifrit"
 	"math/rand"
 	"net/http"
 	"os"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/tedsuo/ifrit"
 )
 
 var _ = XDescribe("ATC 3.13 Team Migration Test", func() {

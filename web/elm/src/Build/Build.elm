@@ -33,6 +33,7 @@ import Concourse.Pagination exposing (Paginated)
 import DateFormat
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
+import HoverState
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -331,7 +332,7 @@ handleCallback action ( model, effects ) =
             ( model, effects )
 
 
-handleDelivery : { a | hovered : Maybe DomID } -> Delivery -> ET Model
+handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
 handleDelivery session delivery ( model, effects ) =
     case delivery of
         KeyDown keyEvent ->
@@ -463,7 +464,7 @@ handleDelivery session delivery ( model, effects ) =
             ( model, effects )
 
 
-update : { a | hovered : Maybe DomID } -> Message -> ET Model
+update : { a | hovered : HoverState.HoverState } -> Message -> ET Model
 update session msg ( model, effects ) =
     case msg of
         Click (BuildTab build) ->
@@ -597,7 +598,21 @@ updateOutput updater ( model, effects ) =
                     updater output
             in
             handleOutMsg outMsg
-                ( { model | currentBuild = RemoteData.Success { cb | output = Output newOutput } }
+                ( { model
+                    | currentBuild =
+                        RemoteData.Success
+                            { cb
+                                | output =
+                                    -- cb.output must be equal-by-reference
+                                    -- to its previous value when passed
+                                    -- into `Html.Lazy.lazy3` below.
+                                    if newOutput /= output then
+                                        Output newOutput
+
+                                    else
+                                        cb.output
+                            }
+                  }
                 , effects ++ outputEffects
                 )
 
@@ -983,13 +998,51 @@ body session { currentBuild, authorized, showHelp } =
     <|
         if authorized then
             [ viewBuildPrep currentBuild.prep
-            , Html.Lazy.lazy2 viewBuildOutput session currentBuild.output
+            , Html.Lazy.lazy3
+                viewBuildOutput
+                session.timeZone
+                (projectOntoBuildPage session.hovered)
+                currentBuild.output
             , keyboardHelp showHelp
             ]
                 ++ tombstone session.timeZone currentBuild
 
         else
             [ NotAuthorized.view ]
+
+
+projectOntoBuildPage : HoverState.HoverState -> HoverState.HoverState
+projectOntoBuildPage hovered =
+    case hovered of
+        HoverState.Hovered (FirstOccurrenceIcon _) ->
+            hovered
+
+        HoverState.TooltipPending (FirstOccurrenceIcon _) ->
+            hovered
+
+        HoverState.Tooltip (FirstOccurrenceIcon _) _ ->
+            hovered
+
+        HoverState.Hovered (StepState _) ->
+            hovered
+
+        HoverState.TooltipPending (StepState _) ->
+            hovered
+
+        HoverState.Tooltip (StepState _) _ ->
+            hovered
+
+        HoverState.Hovered (StepTab _ _) ->
+            hovered
+
+        HoverState.TooltipPending (StepTab _ _) ->
+            hovered
+
+        HoverState.Tooltip (StepTab _ _) _ ->
+            hovered
+
+        _ ->
+            HoverState.NoHover
 
 
 keyboardHelp : Bool -> Html Message
@@ -1144,11 +1197,13 @@ mmDDYY =
         ]
 
 
-viewBuildOutput : Session -> CurrentOutput -> Html Message
-viewBuildOutput session output =
+viewBuildOutput : Time.Zone -> HoverState.HoverState -> CurrentOutput -> Html Message
+viewBuildOutput timeZone hovered output =
     case output of
         Output o ->
-            Build.Output.Output.view session o
+            Build.Output.Output.view
+                { timeZone = timeZone, hovered = hovered }
+                o
 
         Cancelled ->
             Html.div
@@ -1287,7 +1342,9 @@ viewBuildHeader session model build =
                             model.disableManualTrigger
 
                         buttonHovered =
-                            session.hovered == Just TriggerBuildButton
+                            HoverState.isHovered
+                                TriggerBuildButton
+                                session.hovered
                     in
                     Html.button
                         ([ attribute "role" "button"
@@ -1329,7 +1386,7 @@ viewBuildHeader session model build =
                     Html.text ""
 
         abortHovered =
-            session.hovered == Just AbortBuildButton
+            HoverState.isHovered AbortBuildButton session.hovered
 
         abortButton =
             if Concourse.BuildStatus.isRunning build.status then

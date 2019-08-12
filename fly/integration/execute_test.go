@@ -71,6 +71,7 @@ params:
   FOO: bar
   BAZ: buzz
   X: 1
+  EMPTY:
 
 run:
   path: find
@@ -106,9 +107,10 @@ run:
 						{Name: "fixture"},
 					},
 					Params: map[string]string{
-						"FOO": "bar",
-						"BAZ": "buzz",
-						"X":   "1",
+						"FOO":   "bar",
+						"BAZ":   "buzz",
+						"X":     "1",
+						"EMPTY": "",
 					},
 					Run: atc.TaskRunConfig{
 						Path: "find",
@@ -419,6 +421,8 @@ run: {}
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
 
+								Expect(req.FormValue("platform")).To(Equal("some-platform"))
+
 								tr := tar.NewReader(zstd.NewReader(req.Body))
 
 								var matchFound = false
@@ -584,6 +588,7 @@ params:
   FOO: bar
   BAZ: buzz
   X: 1
+  EMPTY:
 
 run:
   path: find
@@ -673,6 +678,7 @@ params:
   FOO: bar
   BAZ: buzz
   X: 1
+  EMPTY:
 
 run:
   path: find
@@ -774,9 +780,10 @@ run:
 	Context("when parameters are specified in the environment", func() {
 		BeforeEach(func() {
 			(*expectedPlan.Do)[1].Task.Config.Params = map[string]string{
-				"FOO": "newbar",
-				"BAZ": "buzz",
-				"X":   "",
+				"FOO":   "newbar",
+				"BAZ":   "buzz",
+				"X":     "",
+				"EMPTY": "",
 			}
 		})
 

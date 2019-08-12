@@ -121,10 +121,11 @@ type FakeTeam struct {
 		result1 int64
 		result2 error
 	}
-	CreateArtifactStub        func(io.Reader) (atc.WorkerArtifact, error)
+	CreateArtifactStub        func(io.Reader, string) (atc.WorkerArtifact, error)
 	createArtifactMutex       sync.RWMutex
 	createArtifactArgsForCall []struct {
 		arg1 io.Reader
+		arg2 string
 	}
 	createArtifactReturns struct {
 		result1 atc.WorkerArtifact
@@ -1120,16 +1121,17 @@ func (fake *FakeTeam) ClearTaskCacheReturnsOnCall(i int, result1 int64, result2 
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) CreateArtifact(arg1 io.Reader) (atc.WorkerArtifact, error) {
+func (fake *FakeTeam) CreateArtifact(arg1 io.Reader, arg2 string) (atc.WorkerArtifact, error) {
 	fake.createArtifactMutex.Lock()
 	ret, specificReturn := fake.createArtifactReturnsOnCall[len(fake.createArtifactArgsForCall)]
 	fake.createArtifactArgsForCall = append(fake.createArtifactArgsForCall, struct {
 		arg1 io.Reader
-	}{arg1})
-	fake.recordInvocation("CreateArtifact", []interface{}{arg1})
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("CreateArtifact", []interface{}{arg1, arg2})
 	fake.createArtifactMutex.Unlock()
 	if fake.CreateArtifactStub != nil {
-		return fake.CreateArtifactStub(arg1)
+		return fake.CreateArtifactStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1144,17 +1146,17 @@ func (fake *FakeTeam) CreateArtifactCallCount() int {
 	return len(fake.createArtifactArgsForCall)
 }
 
-func (fake *FakeTeam) CreateArtifactCalls(stub func(io.Reader) (atc.WorkerArtifact, error)) {
+func (fake *FakeTeam) CreateArtifactCalls(stub func(io.Reader, string) (atc.WorkerArtifact, error)) {
 	fake.createArtifactMutex.Lock()
 	defer fake.createArtifactMutex.Unlock()
 	fake.CreateArtifactStub = stub
 }
 
-func (fake *FakeTeam) CreateArtifactArgsForCall(i int) io.Reader {
+func (fake *FakeTeam) CreateArtifactArgsForCall(i int) (io.Reader, string) {
 	fake.createArtifactMutex.RLock()
 	defer fake.createArtifactMutex.RUnlock()
 	argsForCall := fake.createArtifactArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeTeam) CreateArtifactReturns(result1 atc.WorkerArtifact, result2 error) {

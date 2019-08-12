@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	boshtemplate "github.com/cloudfoundry/bosh-cli/director/template"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/artifact"
-	"github.com/concourse/concourse/atc/template"
+	"github.com/concourse/concourse/vars"
+	"github.com/ghodss/yaml"
 )
 
 //go:generate counterfeiter . TaskConfigSource
@@ -122,7 +122,7 @@ func (configSource *OverrideParamsConfigSource) FetchConfig(logger lager.Logger,
 	}
 
 	if taskConfig.Params == nil {
-		taskConfig.Params = map[string]string{}
+		taskConfig.Params = atc.TaskEnv{}
 	}
 
 	for key, val := range configSource.Params {
@@ -158,7 +158,7 @@ func (configSource OverrideParamsConfigSource) Warnings() []string {
 // InterpolateTemplateConfigSource represents a config source interpolated by template vars
 type InterpolateTemplateConfigSource struct {
 	ConfigSource TaskConfigSource
-	Vars         []boshtemplate.Variables
+	Vars         []vars.Variables
 }
 
 // FetchConfig returns the interpolated configuration
@@ -168,13 +168,13 @@ func (configSource InterpolateTemplateConfigSource) FetchConfig(logger lager.Log
 		return atc.TaskConfig{}, err
 	}
 
-	byteConfig, err := json.Marshal(taskConfig)
+	byteConfig, err := yaml.Marshal(taskConfig)
 	if err != nil {
 		return atc.TaskConfig{}, fmt.Errorf("failed to marshal task config: %s", err)
 	}
 
 	// process task config using the provided variables
-	byteConfig, err = template.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(true, true)
+	byteConfig, err = vars.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(true, true)
 	if err != nil {
 		return atc.TaskConfig{}, fmt.Errorf("failed to interpolate task config: %s", err)
 	}

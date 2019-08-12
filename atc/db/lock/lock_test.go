@@ -1,9 +1,10 @@
 package lock_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"sync"
 	"time"
+
+	"code.cloudfoundry.org/lager"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
@@ -74,7 +75,7 @@ var _ = Describe("Locks", func() {
 					},
 				},
 			},
-		}, db.ConfigVersion(0), db.PipelineUnpaused)
+		}, db.ConfigVersion(0), false)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

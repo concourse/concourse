@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -12,8 +13,8 @@ import (
 )
 
 type DestroyTeamCommand struct {
-	TeamName        string `short:"n" long:"team-name" required:"true"        description:"The team to delete"`
-	SkipInteractive bool   `long:"non-interactive"        description:"Force apply configuration"`
+	Team            flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true"        description:"The team to delete"`
+	SkipInteractive bool                 `long:"non-interactive"        description:"Force apply configuration"`
 }
 
 func (command *DestroyTeamCommand) Execute([]string) error {
@@ -27,7 +28,7 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	teamName := command.TeamName
+	teamName := command.Team.Name()
 	fmt.Printf("!!! this will remove all data for team `%s`\n\n", teamName)
 
 	if !command.SkipInteractive {

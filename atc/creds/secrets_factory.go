@@ -1,7 +1,6 @@
 package creds
 
 import (
-	"github.com/cloudfoundry/bosh-cli/director/template"
 	"time"
 )
 
@@ -21,5 +20,3 @@ type Secrets interface {
 	// NewSecretLookupPaths returns an instance of lookup policy, which can transform pipeline ((var)) into one or more secret paths, based on team name and pipeline name
 	NewSecretLookupPaths(string, string) []SecretLookupPath
 }
-
-type Variables = template.Variables

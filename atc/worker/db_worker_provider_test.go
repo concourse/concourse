@@ -490,14 +490,6 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					err := workers[0].EnsureDBContainerExists(
-						context.TODO(),
-						logger,
-						db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
-						db.ContainerMetadata{},
-					)
-					Expect(err).NotTo(HaveOccurred())
-
 					container, err := workers[0].FindOrCreateContainer(
 						context.TODO(),
 						logger,

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"strconv"
@@ -30,7 +31,7 @@ func (command *TargetsCommand) Execute([]string) error {
 	}
 
 	for targetName, targetValues := range flyYAML.Targets {
-		expirationTime := GetExpirationFromString(targetValues.Token)
+		expirationTime := getExpirationFromString(targetValues.Token)
 
 		row := ui.TableRow{
 			{Contents: string(targetName)},
@@ -47,14 +48,18 @@ func (command *TargetsCommand) Execute([]string) error {
 	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
-func GetExpirationFromString(token *rc.TargetToken) string {
+func getExpirationFromString(token *rc.TargetToken) string {
 	if token == nil || token.Type == "" || token.Value == "" {
 		return "n/a"
 	}
 
-	parsedToken, _ := jwt.Parse(token.Value, func(token *jwt.Token) (interface{}, error) {
-		return "", nil
+	parsedToken, err := jwt.Parse(token.Value, func(token *jwt.Token) (interface{}, error) {
+		return "", token.Claims.Valid()
 	})
+
+	if err != nil && err.Error() != jwt.ErrInvalidKeyType.Error() {
+		return fmt.Sprintf("n/a: %s", err)
+	}
 
 	claims := parsedToken.Claims.(jwt.MapClaims)
 	expClaim, ok := claims["exp"]

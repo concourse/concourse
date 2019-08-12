@@ -13,12 +13,12 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 
-	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/gclient/gclientfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/cppforlife/go-semi-semantic/version"
 	. "github.com/onsi/ginkgo"
@@ -39,7 +39,7 @@ var _ = Describe("Worker", func() {
 		workerStartTime           int64
 		gardenWorker              Worker
 		workerVersion             string
-		fakeGardenClient          *gardenfakes.FakeClient
+		fakeGardenClient          *gclientfakes.FakeClient
 		fakeImageFactory          *workerfakes.FakeImageFactory
 		fakeImage                 *workerfakes.FakeImage
 		fakeDBWorker              *dbfakes.FakeWorker
@@ -48,7 +48,7 @@ var _ = Describe("Worker", func() {
 		fakeDBTeam                *dbfakes.FakeTeam
 		fakeCreatingContainer     *dbfakes.FakeCreatingContainer
 		fakeCreatedContainer      *dbfakes.FakeCreatedContainer
-		fakeGardenContainer       *gardenfakes.FakeContainer
+		fakeGardenContainer       *gclientfakes.FakeContainer
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 		fakeBaggageclaimClient    *baggageclaimfakes.FakeClient
 
@@ -96,7 +96,7 @@ var _ = Describe("Worker", func() {
 		workerVersion = "1.2.3"
 		fakeDBWorker = new(dbfakes.FakeWorker)
 
-		fakeGardenClient = new(gardenfakes.FakeClient)
+		fakeGardenClient = new(gclientfakes.FakeClient)
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage = new(workerfakes.FakeImage)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
@@ -246,7 +246,7 @@ var _ = Describe("Worker", func() {
 			},
 		}
 
-		fakeGardenContainer = new(gardenfakes.FakeContainer)
+		fakeGardenContainer = new(gclientfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 	})
 
@@ -358,11 +358,11 @@ var _ = Describe("Worker", func() {
 		})
 		Context("when the gardenClient returns a container and no error", func() {
 			var (
-				fakeContainer *gardenfakes.FakeContainer
+				fakeContainer *gclientfakes.FakeContainer
 			)
 
 			BeforeEach(func() {
-				fakeContainer = new(gardenfakes.FakeContainer)
+				fakeContainer = new(gclientfakes.FakeContainer)
 				fakeContainer.HandleReturns("provider-handle")
 
 				fakeDBVolumeRepository.FindVolumesForContainerReturns([]db.CreatedVolume{}, nil)
@@ -384,7 +384,8 @@ var _ = Describe("Worker", func() {
 
 					By("destroying via garden")
 					Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
-					Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("provider-handle"))
+					actualHandle := fakeGardenClient.DestroyArgsForCall(0)
+					Expect(actualHandle).To(Equal("provider-handle"))
 				})
 			})
 
@@ -467,13 +468,13 @@ var _ = Describe("Worker", func() {
 				})
 
 				JustBeforeEach(func() {
-					foundContainer.Run(actualSpec, actualIO)
+					foundContainer.Run(context.TODO(), actualSpec, actualIO)
 				})
 
 				Describe("Run", func() {
 					It("calls Run() on the garden container and injects the user", func() {
 						Expect(fakeContainer.RunCallCount()).To(Equal(1))
-						spec, io := fakeContainer.RunArgsForCall(0)
+						_, spec, io := fakeContainer.RunArgsForCall(0)
 						Expect(spec).To(Equal(garden.ProcessSpec{
 							Path: "some-path",
 							Args: []string{"some", "args"},
@@ -506,13 +507,13 @@ var _ = Describe("Worker", func() {
 				})
 
 				JustBeforeEach(func() {
-					foundContainer.Run(actualSpec, actualIO)
+					foundContainer.Run(context.TODO(), actualSpec, actualIO)
 				})
 
 				Describe("Run", func() {
 					It("calls Run() on the garden container and injects the default user", func() {
 						Expect(fakeContainer.RunCallCount()).To(Equal(1))
-						spec, io := fakeContainer.RunArgsForCall(0)
+						_, spec, io := fakeContainer.RunArgsForCall(0)
 						Expect(spec).To(Equal(garden.ProcessSpec{
 							Path: "some-path",
 							Args: []string{"some", "args"},
@@ -885,52 +886,6 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
-	Describe("EnsureDBContainerExists", func() {
-		var err error
-
-		JustBeforeEach(func() {
-			err = gardenWorker.EnsureDBContainerExists(
-				ctx,
-				logger,
-				fakeContainerOwner,
-				containerMetadata,
-			)
-			Expect(err).ToNot(HaveOccurred())
-		})
-		Context("when neither a creating/created container exists", func() {
-			BeforeEach(func() {
-				fakeDBWorker.FindContainerReturns(nil, nil, nil)
-				fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
-			})
-			It("creates a creating container", func() {
-				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(1))
-				owner, metadata := fakeDBWorker.CreateContainerArgsForCall(0)
-				Expect(owner).To(Equal(fakeContainerOwner))
-				Expect(metadata).To(Equal(containerMetadata))
-			})
-
-		})
-
-		Context("when a creating container exists", func() {
-			BeforeEach(func() {
-				fakeDBWorker.FindContainerReturns(fakeCreatingContainer, nil, nil)
-			})
-			It("does not create a new db container", func() {
-				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("when a created container exists", func() {
-			BeforeEach(func() {
-				fakeDBWorker.FindContainerReturns(nil, fakeCreatedContainer, nil)
-			})
-			It("does not create a new db container", func() {
-				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
-			})
-
-		})
-	})
-
 	Describe("FindOrCreateContainer", func() {
 		CertsVolumeExists := func() {
 			fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
@@ -943,7 +898,7 @@ var _ = Describe("Worker", func() {
 				logger,
 				fakeImageFetchingDelegate,
 				fakeContainerOwner,
-				db.ContainerMetadata{},
+				containerMetadata,
 				containerSpec,
 				atcResourceTypes,
 			)
@@ -953,6 +908,10 @@ var _ = Describe("Worker", func() {
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
 				fakeDBWorker.FindContainerReturns(fakeCreatingContainer, nil, nil)
+			})
+
+			It("does not create a new db container", func() {
+				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
 			})
 
 			Context("when container exists in garden", func() {
@@ -1535,6 +1494,10 @@ var _ = Describe("Worker", func() {
 				fakeDBWorker.FindContainerReturns(nil, fakeCreatedContainer, nil)
 			})
 
+			It("does not create a new db container", func() {
+				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(0))
+			})
+
 			Context("when container exists in garden", func() {
 				BeforeEach(func() {
 					fakeGardenClient.LookupReturns(fakeGardenContainer, nil)
@@ -1562,18 +1525,15 @@ var _ = Describe("Worker", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
+				fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 				fakeDBWorker.FindContainerReturns(nil, nil, nil)
 			})
 
-			// BeforeEach(func() {
-			// 	fakeCertsVolume := new(baggageclaimfakes.FakeVolume)
-			// 	fakeCertsVolume.PathReturns("/the/certs/volume/path")
-			// 	fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
-			// })
-
-			It("creates container in database", func() {
-				Expect(findOrCreateErr).To(HaveOccurred())
-				Expect(findOrCreateErr.Error()).To(Equal("no db container was found for owner"))
+			It("creates a creating container in database", func() {
+				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(1))
+				owner, metadata := fakeDBWorker.CreateContainerArgsForCall(0)
+				Expect(owner).To(Equal(fakeContainerOwner))
+				Expect(metadata).To(Equal(containerMetadata))
 			})
 
 		})

@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "Concourse web UI acceptance tests",
   "dependencies": {
-    "ava": "^0.25.0",
+    "ava": "^2.2.0",
     "child-process-promise": "^2.2.1",
-    "color": "^2.0.0",
-    "puppeteer": "^1.12.2",
-    "tmp-promise": "^1.0.3",
-    "uuid": "^3.1.0"
+    "color": "^3.1.2",
+    "puppeteer": "^1.19.0",
+    "tmp-promise": "^2.0.2",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {},
   "scripts": {

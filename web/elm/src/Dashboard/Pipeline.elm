@@ -10,6 +10,7 @@ import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
 import Duration
+import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, href, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -76,7 +77,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
 pipelineView :
     { now : Time.Posix
     , pipeline : Pipeline
-    , hovered : Maybe DomID
+    , hovered : HoverState.HoverState
     , pipelineRunningKeyframes : String
     , userState : UserState
     }
@@ -121,7 +122,7 @@ headerView pipeline =
         ]
 
 
-bodyView : Maybe DomID -> Pipeline -> Html Message
+bodyView : HoverState.HoverState -> Pipeline -> Html Message
 bodyView hovered pipeline =
     Html.div
         (class "card-body" :: Styles.pipelineCardBody)
@@ -132,7 +133,7 @@ footerView :
     UserState
     -> Pipeline
     -> Time.Posix
-    -> Maybe DomID
+    -> HoverState.HoverState
     -> Html Message
 footerView userState pipeline now hovered =
     let
@@ -160,7 +161,7 @@ footerView userState pipeline now hovered =
                         pipeline.status == PipelineStatus.PipelineStatusPaused
                     , pipeline = pipelineId
                     , isToggleHovered =
-                        hovered == (Just <| PipelineButton pipelineId)
+                        HoverState.isHovered (PipelineButton pipelineId) hovered
                     , isToggleLoading = pipeline.isToggleLoading
                     , tooltipPosition = Views.Styles.Above
                     , margin = "0"
@@ -176,7 +177,7 @@ footerView userState pipeline now hovered =
                                 , userState = userState
                                 }
                     , isHovered =
-                        hovered == (Just <| VisibilityButton pipelineId)
+                        HoverState.isHovered (VisibilityButton pipelineId) hovered
                     , isVisibilityLoading = pipeline.isVisibilityLoading
                     }
                 ]

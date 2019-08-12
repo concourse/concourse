@@ -166,9 +166,9 @@ var _ = Describe("PutStep", func() {
 
 		Context("when the tracker can initialize the resource", func() {
 			var (
-				fakeResource        *resourcefakes.FakeResource
-				fakeResourceConfig  *dbfakes.FakeResourceConfig
-				fakeVersionedSource *resourcefakes.FakeVersionedSource
+				fakeResource       *resourcefakes.FakeResource
+				fakeResourceConfig *dbfakes.FakeResourceConfig
+				fakeVersionResult  resource.VersionResult
 			)
 
 			BeforeEach(func() {
@@ -177,15 +177,16 @@ var _ = Describe("PutStep", func() {
 
 				fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
-				fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
-				fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
-				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{Name: "some", Value: "metadata"}})
+				fakeVersionResult = resource.VersionResult{
+					Version:  atc.Version{"some": "version"},
+					Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+				}
 
 				fakeWorker.NameReturns("some-worker")
 				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 				fakeResource = new(resourcefakes.FakeResource)
-				fakeResource.PutReturns(fakeVersionedSource, nil)
+				fakeResource.PutReturns(fakeVersionResult, nil)
 				fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
 			})
 
@@ -331,7 +332,7 @@ var _ = Describe("PutStep", func() {
 
 			Context("when performing the put exits unsuccessfully", func() {
 				BeforeEach(func() {
-					fakeResource.PutReturns(nil, resource.ErrResourceScriptFailed{
+					fakeResource.PutReturns(resource.VersionResult{}, resource.ErrResourceScriptFailed{
 						ExitStatus: 42,
 					})
 				})
@@ -356,7 +357,7 @@ var _ = Describe("PutStep", func() {
 				disaster := errors.New("oh no")
 
 				BeforeEach(func() {
-					fakeResource.PutReturns(nil, disaster)
+					fakeResource.PutReturns(resource.VersionResult{}, disaster)
 				})
 
 				It("does not finish the step via the delegate", func() {

@@ -316,6 +316,28 @@ all =
                         , containing [ text "log message" ]
                         ]
                     |> Query.has [ class "highlighted-line" ]
+        , test "has equal number of timestamps as build events" <|
+            \_ ->
+                threeBuildEvents
+                    |> Query.findAll [ class "timestamp" ]
+                    |> Query.count (Expect.equal 3)
+        , test "has equal number of build lines as build events" <|
+            \_ ->
+                threeBuildEvents
+                    |> Query.findAll [ class "timestamped-content" ]
+                    |> Query.count (Expect.equal 3)
+        , test "build log ids start at 1" <|
+            \_ ->
+                threeBuildEvents
+                    |> Query.find [ class "timestamped-logs" ]
+                    |> Query.children []
+                    |> Query.first
+                    |> Query.has [ id "stepid:1" ]
+        , test "build log ids do not have contain a 0" <|
+            \_ ->
+                threeBuildEvents
+                    |> Query.findAll [ id "stepid:0" ]
+                    |> Query.count (Expect.equal 0)
         , test "scrolls to highlighted line" <|
             \_ ->
                 Application.init
@@ -1486,7 +1508,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , test """page contents lay out vertically, filling available 
+                , test """page contents lay out vertically, filling available
                           space without scrolling horizontally""" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
@@ -2733,14 +2755,11 @@ all =
                                 [ style "position" "relative"
                                 , containing
                                     [ containing [ text "new version" ]
-                                    , style "position" "absolute"
-                                    , style "left" "0"
-                                    , style "bottom" "100%"
+                                    , style "position" "fixed"
                                     , style "background-color" tooltipGreyHex
                                     , style "padding" "5px"
                                     , style "z-index" "100"
                                     , style "width" "6em"
-                                    , style "pointer-events" "none"
                                     , style "cursor" "default"
                                     , style "user-select" "none"
                                     , style "-ms-user-select" "none"
@@ -2748,6 +2767,12 @@ all =
                                     , style "-khtml-user-select" "none"
                                     , style "-webkit-user-select" "none"
                                     , style "-webkit-touch-callout" "none"
+                                    , style "transform" "translate(0, -100%)"
+                                    , style "background-color" Colors.tooltipBackground
+                                    , style "padding" "5px"
+                                    , style "z-index" "100"
+                                    , style "width" "6em"
+                                    , style "pointer-events" "none"
                                     ]
                                 , containing
                                     [ style "width" "0"
@@ -3194,6 +3219,51 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
+                , test "successful step has no border" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url =
+                                            eventsUrl
+                                      , data =
+                                            STModels.FinishGet
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                                0
+                                                Dict.empty
+                                                []
+                                                Nothing
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ class "header" ]
+                        >> Query.has
+                            [ style "border" <| "1px solid " ++ Colors.frame ]
+                , test "failing step has a red border" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.FinishGet
+                                                { source = "stdout", id = "plan" }
+                                                1
+                                                Dict.empty
+                                                []
+                                                Nothing
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ class "header" ]
+                        >> Query.has
+                            [ style "border" <| "1px solid " ++ Colors.failure ]
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
@@ -3416,3 +3486,92 @@ receiveEvent :
     -> ( Application.Model, List Effects.Effect )
 receiveEvent envelope =
     Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])
+
+
+threeBuildEvents =
+    Common.init "/builds/1"
+        |> Application.handleCallback
+            (Callback.BuildFetched <|
+                Ok
+                    ( 1
+                    , { id = 1
+                      , name = "1"
+                      , job = Nothing
+                      , status = Concourse.BuildStatusStarted
+                      , duration =
+                            { startedAt =
+                                Just <| Time.millisToPosix 0
+                            , finishedAt = Nothing
+                            }
+                      , reapTime = Nothing
+                      }
+                    )
+            )
+        |> Tuple.first
+        |> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok <|
+                    ( { id = "stepid"
+                      , step =
+                            Concourse.BuildStepTask
+                                "step"
+                      }
+                    , { inputs = [], outputs = [] }
+                    )
+            )
+        |> Tuple.first
+        |> receiveEvent
+            { url = "http://localhost:8080/api/v1/builds/1/events"
+            , data =
+                STModels.StartTask
+                    { id = "stepid"
+                    , source = ""
+                    }
+                    (Time.millisToPosix 0)
+            }
+        |> Tuple.first
+        |> receiveEvent
+            { url = "http://localhost:8080/api/v1/builds/1/events"
+            , data =
+                STModels.Log
+                    { id = "stepid"
+                    , source = "stdout"
+                    }
+                    "log message\n"
+                    (Just <| Time.millisToPosix 0)
+            }
+        |> Tuple.first
+        |> receiveEvent
+            { url = "http://localhost:8080/api/v1/builds/1/events"
+            , data =
+                STModels.Log
+                    { id = "stepid"
+                    , source = "stdout"
+                    }
+                    "log message\n"
+                    (Just <| Time.millisToPosix 0)
+            }
+        |> Tuple.first
+        |> receiveEvent
+            { url = "http://localhost:8080/api/v1/builds/1/events"
+            , data =
+                STModels.Log
+                    { id = "stepid"
+                    , source = "stdout"
+                    }
+                    "log message\n"
+                    (Just <| Time.millisToPosix 0)
+            }
+        |> Tuple.first
+        |> Application.handleCallback
+            (Callback.GotCurrentTimeZone <|
+                Time.customZone (5 * 60) []
+            )
+        |> Tuple.first
+        |> Application.update
+            (Msgs.Update <|
+                Message.Message.Click <|
+                    Message.Message.StepHeader "stepid"
+            )
+        |> Tuple.first
+        |> Common.queryView

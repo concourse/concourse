@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/concourse/concourse/atc/api/usersserver"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/artifactserver"
@@ -48,6 +50,7 @@ func NewHandler(
 	destroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
+	dbUserFactory db.UserFactory,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
@@ -92,6 +95,7 @@ func NewHandler(
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
 	artifactServer := artifactserver.NewServer(logger, workerClient)
+	usersServer := usersserver.NewServer(logger, dbUserFactory)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
@@ -174,6 +178,8 @@ func NewHandler(
 		atc.DownloadCLI:  http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:      http.HandlerFunc(infoServer.Info),
 		atc.GetInfoCreds: http.HandlerFunc(infoServer.Creds),
+
+		atc.ListActiveUsersSince: http.HandlerFunc(usersServer.GetUsersSince),
 
 		atc.ListContainers:           teamHandlerFactory.HandlerFor(containerServer.ListContainers),
 		atc.GetContainer:             teamHandlerFactory.HandlerFor(containerServer.GetContainer),

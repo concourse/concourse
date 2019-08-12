@@ -1,8 +1,9 @@
 package k8s_test
 
 import (
-	"github.com/onsi/gomega/gexec"
 	"time"
+
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"

@@ -131,6 +131,8 @@ run:
 		atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 			ghttp.CombineHandlers(
 				func(w http.ResponseWriter, req *http.Request) {
+					Expect(req.FormValue("platform")).To(Equal("some-platform"))
+
 					tr := tar.NewReader(zstd.NewReader(req.Body))
 
 					hdr, err := tr.Next()

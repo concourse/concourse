@@ -467,6 +467,12 @@ var _ = Describe("login Command", func() {
 					Expect(sess.ExitCode()).To(Equal(0))
 				})
 
+				It("flyrc is backwards-compatible with pre-v5.4.0", func() {
+					flyRcContents, err := ioutil.ReadFile(homeDir + "/.flyrc")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(flyRcContents)).To(HavePrefix("targets:"))
+				})
+
 				Describe("running other commands", func() {
 					BeforeEach(func() {
 						loginATCServer.AppendHandlers(
