@@ -8,7 +8,6 @@ module Build.Models exposing
 import Build.Header.Models exposing (CurrentOutput(..))
 import Build.Output.Models exposing (OutputModel)
 import Concourse
-import Concourse.Pagination exposing (Page)
 import Keyboard
 import Login.Login as Login
 import Routes exposing (Highlight)
@@ -22,7 +21,6 @@ type alias Model =
     Login.Model
         (Build.Header.Models.Model
             { page : BuildPageType
-            , nextPage : Maybe Page
             , browsingIndex : Int
             , autoScroll : Bool
             , previousKeyPress : Maybe Keyboard.KeyEvent
@@ -30,7 +28,6 @@ type alias Model =
             , showHelp : Bool
             , highlight : Highlight
             , hoveredCounter : Int
-            , fetchingHistory : Bool
             , authorized : Bool
             }
         )

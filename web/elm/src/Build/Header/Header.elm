@@ -1,4 +1,4 @@
-module Build.Header.Header exposing (handleCallback, handleDelivery, update, viewBuildHeader)
+module Build.Header.Header exposing (handleCallback, handleDelivery, update, view)
 
 import Application.Models exposing (Session)
 import Build.Header.Models exposing (Model)
@@ -45,12 +45,12 @@ historyId =
     "builds"
 
 
-viewBuildHeader :
+view :
     Session
     -> Model r
     -> Concourse.Build
     -> Html Message
-viewBuildHeader session model build =
+view session model build =
     let
         triggerButton =
             case currentJob model of
@@ -459,6 +459,10 @@ handleCallback callback ( model, effects ) =
         BuildHistoryFetched (Ok history) ->
             handleHistoryFetched history ( model, effects )
 
+        BuildHistoryFetched (Err _) ->
+            -- https://github.com/concourse/concourse/issues/3201
+            ( { model | fetchingHistory = False }, effects )
+
         _ ->
             ( model, effects )
 
@@ -466,7 +470,10 @@ handleCallback callback ( model, effects ) =
 handleBuildFetched : Int -> Concourse.Build -> ET (Model r)
 handleBuildFetched browsingIndex build ( model, effects ) =
     if browsingIndex == model.browsingIndex then
-        ( { model | history = updateHistory build model.history }
+        ( { model
+            | history = updateHistory build model.history
+            , fetchingHistory = True
+          }
         , effects
         )
 

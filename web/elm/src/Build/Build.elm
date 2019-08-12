@@ -289,10 +289,6 @@ handleCallback action ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        BuildHistoryFetched (Err _) ->
-            -- https://github.com/concourse/concourse/issues/3201
-            ( { model | fetchingHistory = False }, effects )
-
         BuildJobDetailsFetched (Ok job) ->
             ( { model | disableManualTrigger = job.disableManualTrigger }
             , effects
@@ -652,7 +648,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                 else
                     ( withBuild, effects )
         in
-        ( { newModel | fetchingHistory = True }
+        ( newModel
         , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status), Focus bodyId ]
         )
 
@@ -780,7 +776,7 @@ viewBuildPage session model =
                 , style "flex-direction" "column"
                 , style "overflow" "hidden"
                 ]
-                [ Header.viewBuildHeader session model currentBuild.build
+                [ Header.view session model currentBuild.build
                 , body
                     session
                     { currentBuild = currentBuild
