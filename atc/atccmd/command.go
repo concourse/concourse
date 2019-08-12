@@ -98,7 +98,7 @@ type RunCommand struct {
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
-	MaxOpenConnections int `long:"max-conns" description:"The maximum number of open connections for a conneciton pool." default:"32"`
+	MaxOpenConnections int `long:"max-conns" description:"The maximum number of open connections for a connection pool." default:"32"`
 
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
