@@ -93,6 +93,7 @@ init flags =
           , history = []
           , nextPage = Nothing
           , currentBuild = RemoteData.NotAsked
+          , build = RemoteData.NotAsked
           , output = Empty
           , browsingIndex = 0
           , autoScroll = True
@@ -174,9 +175,9 @@ changeToBuild { highlight, pageType } ( model, effects ) =
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model, model.page ) of
-        ( Just build, Just { jobName }, _ ) ->
-            jobName ++ " #" ++ build.build.name
+    case ( model.build, currentJob model, model.page ) of
+        ( RemoteData.Success build, Just { jobName }, _ ) ->
+            jobName ++ " #" ++ build.name
 
         ( _, _, JobBuildPage { jobName, buildName } ) ->
             jobName ++ " #" ++ buildName
@@ -187,15 +188,14 @@ extractTitle model =
 
 currentJob : Model -> Maybe Concourse.JobIdentifier
 currentJob =
-    .currentBuild
+    .build
         >> RemoteData.toMaybe
-        >> Maybe.map .build
         >> Maybe.andThen .job
 
 
 getUpdateMessage : Model -> UpdateMsg
 getUpdateMessage model =
-    case model.currentBuild of
+    case model.build of
         RemoteData.Failure _ ->
             UpdateMsg.NotFound
 
@@ -216,7 +216,10 @@ handleCallback action ( model, effects ) =
                         ( model, effects ++ [ RedirectToLogin ] )
 
                     else if status.code == 404 then
-                        ( { model | currentBuild = RemoteData.Failure err }
+                        ( { model
+                            | currentBuild = RemoteData.Failure err
+                            , build = RemoteData.Failure err
+                          }
                         , effects
                         )
 
@@ -267,12 +270,9 @@ handleCallback action ( model, effects ) =
                 Http.BadStatus { status } ->
                     let
                         isAborted =
-                            model.currentBuild
+                            model.build
                                 |> RemoteData.map
-                                    (.build
-                                        >> .status
-                                        >> (==) BuildStatusAborted
-                                    )
+                                    (.status >> (==) BuildStatusAborted)
                                 |> RemoteData.withDefault False
                     in
                     if status.code == 404 && isAborted then
@@ -375,16 +375,14 @@ handleDelivery session delivery ( model, effects ) =
                                 effects
                         )
             in
-            case ( newModel.currentBuild |> RemoteData.toMaybe, buildStatus ) of
-                ( Just cb, Just ( status, date ) ) ->
+            case ( newModel.build, buildStatus ) of
+                ( RemoteData.Success build, Just ( status, date ) ) ->
                     ( { newModel
-                        | currentBuild =
-                            RemoteData.Success
-                                { cb
-                                    | build = Concourse.receiveStatus status date cb.build
-                                }
+                        | build =
+                            RemoteData.Success <|
+                                Concourse.receiveStatus status date build
                       }
-                    , if Concourse.BuildStatus.isRunning cb.build.status then
+                    , if Concourse.BuildStatus.isRunning build.status then
                         newEffects ++ [ SetFavIcon (Just status) ]
 
                       else
@@ -426,10 +424,10 @@ update session msg ( model, effects ) =
                 ( model, effects )
 
         Click AbortBuildButton ->
-            (model.currentBuild
+            (model.build
                 |> RemoteData.toMaybe
                 |> Maybe.map
-                    (.build >> .id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
+                    (.id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
                 |> Maybe.withDefault identity
             )
                 ( model, effects )
@@ -483,12 +481,9 @@ getScrollBehavior model =
 
         Routes.HighlightNothing ->
             if model.autoScroll then
-                case model.currentBuild |> RemoteData.toMaybe of
-                    Nothing ->
-                        NoScroll
-
-                    Just cb ->
-                        case cb.build.status of
+                case model.build of
+                    RemoteData.Success build ->
+                        case build.status of
                             BuildStatusSucceeded ->
                                 NoScroll
 
@@ -498,6 +493,9 @@ getScrollBehavior model =
                             _ ->
                                 ScrollWindow
 
+                    _ ->
+                        NoScroll
+
             else
                 NoScroll
 
@@ -506,15 +504,8 @@ updateOutput :
     (OutputModel -> ( OutputModel, List Effect ))
     -> ET Model
 updateOutput updater ( model, effects ) =
-    let
-        currentBuild =
-            model.currentBuild |> RemoteData.toMaybe
-
-        currentOutput =
-            model.output |> toMaybe
-    in
-    case ( currentBuild, currentOutput ) of
-        ( Just _, Just output ) ->
+    case model.output of
+        Output output ->
             let
                 ( newOutput, outputEffects ) =
                     updater output
@@ -587,24 +578,23 @@ handleBuildFetched browsingIndex build ( model, effects ) =
             currentBuild =
                 case model.currentBuild |> RemoteData.toMaybe of
                     Nothing ->
-                        { build = build
-                        , prep = Nothing
-                        }
+                        { prep = Nothing }
 
                     Just cb ->
-                        { cb | build = build }
+                        cb
 
             output =
-                case model.currentBuild |> RemoteData.toMaybe of
-                    Nothing ->
-                        Empty
-
-                    Just _ ->
+                case model.build of
+                    RemoteData.Success _ ->
                         model.output
+
+                    _ ->
+                        Empty
 
             withBuild =
                 { model
                     | currentBuild = RemoteData.Success currentBuild
+                    , build = RemoteData.Success build
                     , output = output
                 }
 
@@ -766,20 +756,21 @@ breadcrumbs model =
 
 viewBuildPage : Session -> Model -> Html Message
 viewBuildPage session model =
-    case model.currentBuild |> RemoteData.toMaybe of
-        Just currentBuild ->
+    case ( model.currentBuild, model.build ) of
+        ( RemoteData.Success currentBuild, RemoteData.Success build ) ->
             Html.div
                 [ class "with-fixed-header"
-                , attribute "data-build-name" currentBuild.build.name
+                , attribute "data-build-name" build.name
                 , style "flex-grow" "1"
                 , style "display" "flex"
                 , style "flex-direction" "column"
                 , style "overflow" "hidden"
                 ]
-                [ Header.view session model currentBuild.build
+                [ Header.view session model build
                 , body
                     session
                     { currentBuild = currentBuild
+                    , build = build
                     , output = model.output
                     , authorized = model.authorized
                     , showHelp = model.showHelp
@@ -794,12 +785,13 @@ body :
     Session
     ->
         { currentBuild : CurrentBuild
+        , build : Concourse.Build
         , output : CurrentOutput
         , authorized : Bool
         , showHelp : Bool
         }
     -> Html Message
-body session { currentBuild, output, authorized, showHelp } =
+body session { currentBuild, build, output, authorized, showHelp } =
     Html.div
         ([ class "scrollable-body build-body"
          , id bodyId
@@ -818,7 +810,7 @@ body session { currentBuild, output, authorized, showHelp } =
                 output
             , keyboardHelp showHelp
             ]
-                ++ tombstone session.timeZone currentBuild
+                ++ tombstone session.timeZone build
 
         else
             [ NotAuthorized.view ]
@@ -925,12 +917,9 @@ keyboardHelp showHelp =
         ]
 
 
-tombstone : Time.Zone -> CurrentBuild -> List (Html Message)
-tombstone timeZone currentBuild =
+tombstone : Time.Zone -> Concourse.Build -> List (Html Message)
+tombstone timeZone build =
     let
-        build =
-            currentBuild.build
-
         maybeBirthDate =
             Maybe.Extra.or build.duration.startedAt build.duration.finishedAt
     in

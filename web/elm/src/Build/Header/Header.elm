@@ -175,9 +175,8 @@ view session model build =
 
 currentJob : Model r -> Maybe Concourse.JobIdentifier
 currentJob =
-    .currentBuild
+    .build
         >> RemoteData.toMaybe
-        >> Maybe.map .build
         >> Maybe.andThen .job
 
 
@@ -254,9 +253,9 @@ handleDelivery delivery ( model, effects ) =
         ElementVisible ( id, False ) ->
             let
                 currentBuildInvisible =
-                    model.currentBuild
+                    model.build
                         |> RemoteData.toMaybe
-                        |> Maybe.map (.build >> .id >> String.fromInt)
+                        |> Maybe.map (.id >> String.fromInt)
                         |> Maybe.map ((==) id)
                         |> Maybe.withDefault False
 
@@ -274,45 +273,32 @@ handleDelivery delivery ( model, effects ) =
             )
 
         EventsReceived result ->
-            case result of
-                Ok envelopes ->
-                    let
-                        currentBuild =
-                            model.currentBuild |> RemoteData.toMaybe
+            case ( model.build, result ) of
+                ( RemoteData.Success build, Ok envelopes ) ->
+                    case
+                        envelopes
+                            |> List.filterMap
+                                (\{ data } ->
+                                    case data of
+                                        STModels.BuildStatus status date ->
+                                            Just ( status, date )
 
-                        currentOutput =
-                            model.output |> toMaybe
+                                        _ ->
+                                            Nothing
+                                )
+                            |> List.Extra.last
+                    of
+                        Just ( status, date ) ->
+                            ( { model
+                                | history =
+                                    updateHistory
+                                        (Concourse.receiveStatus status date build)
+                                        model.history
+                              }
+                            , effects
+                            )
 
-                        buildStatus =
-                            envelopes
-                                |> List.filterMap
-                                    (\{ data } ->
-                                        case data of
-                                            STModels.BuildStatus status date ->
-                                                Just ( status, date )
-
-                                            _ ->
-                                                Nothing
-                                    )
-                                |> List.Extra.last
-                    in
-                    case ( currentBuild, currentOutput ) of
-                        ( Just cb, Just _ ) ->
-                            case buildStatus of
-                                Nothing ->
-                                    ( model, effects )
-
-                                Just ( status, date ) ->
-                                    ( { model
-                                        | history =
-                                            updateHistory
-                                                (Concourse.receiveStatus status date cb.build)
-                                                model.history
-                                      }
-                                    , effects
-                                    )
-
-                        _ ->
+                        Nothing ->
                             ( model, effects )
 
                 _ ->
@@ -326,7 +312,7 @@ handleKeyPressed : Keyboard.KeyEvent -> ET (Model r)
 handleKeyPressed keyEvent ( model, effects ) =
     let
         currentBuild =
-            model.currentBuild |> RemoteData.toMaybe |> Maybe.map .build
+            model.build |> RemoteData.toMaybe
     in
     if Keyboard.hasControlModifier keyEvent then
         ( model, effects )
@@ -372,10 +358,10 @@ handleKeyPressed keyEvent ( model, effects ) =
                 if currentBuild == List.head model.history then
                     case currentBuild of
                         Just _ ->
-                            (model.currentBuild
+                            (model.build
                                 |> RemoteData.toMaybe
                                 |> Maybe.map
-                                    (.build >> .id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
+                                    (.id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
                                 |> Maybe.withDefault identity
                             )
                                 ( model, effects )
@@ -484,9 +470,6 @@ handleBuildFetched browsingIndex build ( model, effects ) =
 handleHistoryFetched : Paginated Concourse.Build -> ET (Model r)
 handleHistoryFetched history ( model, effects ) =
     let
-        currentBuild =
-            model.currentBuild |> RemoteData.map .build
-
         newModel =
             { model
                 | history = List.append model.history history.content
@@ -494,7 +477,7 @@ handleHistoryFetched history ( model, effects ) =
                 , fetchingHistory = False
             }
     in
-    case ( currentBuild, currentJob model ) of
+    case ( model.build, currentJob model ) of
         ( RemoteData.Success build, Just job ) ->
             if List.member build newModel.history then
                 ( newModel, effects ++ [ CheckIsVisible <| String.fromInt build.id ] )

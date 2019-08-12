@@ -29,6 +29,7 @@ type alias Model =
             , highlight : Highlight
             , hoveredCounter : Int
             , authorized : Bool
+            , output : CurrentOutput
             }
         )
 

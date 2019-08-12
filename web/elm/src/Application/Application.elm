@@ -259,8 +259,7 @@ sideBarHandleCallback callback ( model, effects ) =
 
                         SubPage.BuildModel buildModel ->
                             SideBar.handleCallback callback
-                                (buildModel.currentBuild
-                                    |> RemoteData.map .build
+                                (buildModel.build
                                     |> RemoteData.andThen
                                         (\b ->
                                             case b.job of
