@@ -9,6 +9,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . WorkerFactory
@@ -136,8 +137,8 @@ func scanWorker(worker *worker, row scannable) error {
 		tags          []byte
 		teamName      sql.NullString
 		teamID        sql.NullInt64
-		startTime     sql.NullInt64
-		expiresAt     *time.Time
+		startTime     pq.NullTime
+		expiresAt     pq.NullTime
 		ephemeral     sql.NullBool
 	)
 
@@ -183,14 +184,8 @@ func scanWorker(worker *worker, row scannable) error {
 	}
 
 	worker.state = WorkerState(state)
-
-	if startTime.Valid {
-		worker.startTime = startTime.Int64
-	}
-
-	if expiresAt != nil {
-		worker.expiresAt = *expiresAt
-	}
+	worker.startTime = startTime.Time
+	worker.expiresAt = expiresAt.Time
 
 	if httpProxyURL.Valid {
 		worker.httpProxyURL = httpProxyURL.String
@@ -385,6 +380,8 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
 	}
 
+	startTime := fmt.Sprintf(`to_timestamp(%d)`, atcWorker.StartTime)
+
 	var workerState WorkerState
 	if atcWorker.State != "" {
 		workerState = WorkerState(atcWorker.State)
@@ -411,7 +408,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		atcWorker.NoProxy,
 		atcWorker.Name,
 		workerVersion,
-		atcWorker.StartTime,
 		string(workerState),
 		teamID,
 		atcWorker.Ephemeral,
@@ -429,6 +425,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	rows, err := psql.Insert("workers").
 		Columns(
 			"expires",
+			"start_time",
 			"addr",
 			"active_containers",
 			"active_volumes",
@@ -442,15 +439,18 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"no_proxy",
 			"name",
 			"version",
-			"start_time",
 			"state",
 			"team_id",
 			"ephemeral",
 		).
-		Values(append([]interface{}{sq.Expr(expires)}, values...)...).
+		Values(append([]interface{}{
+			sq.Expr(expires),
+			sq.Expr(startTime),
+		}, values...)...).
 		Suffix(`
 			ON CONFLICT (name) DO UPDATE SET
 				expires = `+expires+`,
+				start_time = `+startTime+`,
 				addr = ?,
 				active_containers = ?,
 				active_volumes = ?,
@@ -464,7 +464,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				no_proxy = ?,
 				name = ?,
 				version = ?,
-				start_time = ?,
 				state = ?,
 				team_id = ?,
 				ephemeral = ?
@@ -508,7 +507,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		tags:             atcWorker.Tags,
 		teamName:         atcWorker.Team,
 		teamID:           workerTeamID,
-		startTime:        atcWorker.StartTime,
+		startTime:        time.Unix(atcWorker.StartTime, 0),
 		ephemeral:        atcWorker.Ephemeral,
 		conn:             conn,
 	}

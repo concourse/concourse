@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -36,7 +35,6 @@ var _ = Describe("Worker", func() {
 		teamID                    int
 		ephemeral                 bool
 		workerName                string
-		workerStartTime           int64
 		gardenWorker              Worker
 		workerVersion             string
 		fakeGardenClient          *gclientfakes.FakeClient
@@ -92,7 +90,6 @@ var _ = Describe("Worker", func() {
 		teamID = 17
 		ephemeral = true
 		workerName = "some-worker"
-		workerStartTime = time.Now().Unix()
 		workerVersion = "1.2.3"
 		fakeDBWorker = new(dbfakes.FakeWorker)
 
@@ -258,7 +255,6 @@ var _ = Describe("Worker", func() {
 		fakeDBWorker.EphemeralReturns(ephemeral)
 		fakeDBWorker.TeamIDReturns(teamID)
 		fakeDBWorker.NameReturns(workerName)
-		fakeDBWorker.StartTimeReturns(workerStartTime)
 		fakeDBWorker.VersionReturns(&workerVersion)
 		fakeDBWorker.HTTPProxyURLReturns("http://proxy.com")
 		fakeDBWorker.HTTPSProxyURLReturns("https://proxy.com")
