@@ -62,7 +62,7 @@ func (r *individualResolver) Resolve(depth int) (map[string]*versionCandidate, d
 		var found bool
 		version, found, err = r.vdb.LatestVersionOfResource(r.inputConfig.ResourceID)
 		if err != nil {
-			return nil, "", nil
+			return nil, "", err
 		}
 
 		if !found {
