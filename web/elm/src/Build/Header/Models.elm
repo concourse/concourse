@@ -1,6 +1,5 @@
 module Build.Header.Models exposing
-    ( CurrentBuild
-    , CurrentOutput(..)
+    ( CurrentOutput(..)
     , Model
     )
 
@@ -15,7 +14,6 @@ type alias Model r =
     { r
         | scrolledToCurrentBuild : Bool
         , history : List Concourse.Build
-        , currentBuild : WebData CurrentBuild
         , build : WebData Concourse.Build
         , disableManualTrigger : Bool
         , now : Maybe Time.Posix
@@ -24,10 +22,6 @@ type alias Model r =
         , previousTriggerBuildByKey : Bool
         , browsingIndex : Int
     }
-
-
-type alias CurrentBuild =
-    { prep : Maybe Concourse.BuildPrep }
 
 
 type CurrentOutput

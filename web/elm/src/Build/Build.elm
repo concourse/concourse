@@ -15,7 +15,7 @@ module Build.Build exposing
 
 import Application.Models exposing (Session)
 import Build.Header.Header as Header
-import Build.Header.Models exposing (CurrentBuild, CurrentOutput(..))
+import Build.Header.Models exposing (CurrentOutput(..))
 import Build.Models exposing (BuildPageType(..), Model, toMaybe)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
@@ -92,7 +92,7 @@ init flags =
           , disableManualTrigger = False
           , history = []
           , nextPage = Nothing
-          , currentBuild = RemoteData.NotAsked
+          , prep = Nothing
           , build = RemoteData.NotAsked
           , output = Empty
           , browsingIndex = 0
@@ -144,15 +144,10 @@ changeToBuild { highlight, pageType } ( model, effects ) =
         let
             newIndex =
                 model.browsingIndex + 1
-
-            newBuild =
-                RemoteData.map
-                    (\cb -> { cb | prep = Nothing })
-                    model.currentBuild
         in
         ( { model
             | browsingIndex = newIndex
-            , currentBuild = newBuild
+            , prep = Nothing
             , output = Empty
             , autoScroll = True
             , page = pageType
@@ -217,7 +212,7 @@ handleCallback action ( model, effects ) =
 
                     else if status.code == 404 then
                         ( { model
-                            | currentBuild = RemoteData.Failure err
+                            | prep = Nothing
                             , build = RemoteData.Failure err
                           }
                         , effects
@@ -575,14 +570,6 @@ handleBuildFetched : Int -> Concourse.Build -> ET Model
 handleBuildFetched browsingIndex build ( model, effects ) =
     if browsingIndex == model.browsingIndex then
         let
-            currentBuild =
-                case model.currentBuild |> RemoteData.toMaybe of
-                    Nothing ->
-                        { prep = Nothing }
-
-                    Just cb ->
-                        cb
-
             output =
                 case model.build of
                     RemoteData.Success _ ->
@@ -593,8 +580,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
 
             withBuild =
                 { model
-                    | currentBuild = RemoteData.Success currentBuild
-                    , build = RemoteData.Success build
+                    | build = RemoteData.Success build
                     , output = output
                 }
 
@@ -613,11 +599,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                     ( withBuild, effects ++ pollUntilStarted browsingIndex build.id )
 
                 else if build.reapTime == Nothing then
-                    case
-                        model.currentBuild
-                            |> RemoteData.toMaybe
-                            |> Maybe.andThen .prep
-                    of
+                    case model.prep of
                         Nothing ->
                             initBuildOutput build ( withBuild, effects )
 
@@ -667,12 +649,7 @@ initBuildOutput build ( model, effects ) =
 handleBuildPrepFetched : Int -> Concourse.BuildPrep -> ET Model
 handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
     if browsingIndex == model.browsingIndex then
-        ( { model
-            | currentBuild =
-                RemoteData.map
-                    (\info -> { info | prep = Just buildPrep })
-                    model.currentBuild
-          }
+        ( { model | prep = Just buildPrep }
         , effects
         )
 
@@ -756,8 +733,8 @@ breadcrumbs model =
 
 viewBuildPage : Session -> Model -> Html Message
 viewBuildPage session model =
-    case ( model.currentBuild, model.build ) of
-        ( RemoteData.Success currentBuild, RemoteData.Success build ) ->
+    case model.build of
+        RemoteData.Success build ->
             Html.div
                 [ class "with-fixed-header"
                 , attribute "data-build-name" build.name
@@ -769,7 +746,7 @@ viewBuildPage session model =
                 [ Header.view session model build
                 , body
                     session
-                    { currentBuild = currentBuild
+                    { prep = model.prep
                     , build = build
                     , output = model.output
                     , authorized = model.authorized
@@ -784,14 +761,14 @@ viewBuildPage session model =
 body :
     Session
     ->
-        { currentBuild : CurrentBuild
+        { prep : Maybe Concourse.BuildPrep
         , build : Concourse.Build
         , output : CurrentOutput
         , authorized : Bool
         , showHelp : Bool
         }
     -> Html Message
-body session { currentBuild, build, output, authorized, showHelp } =
+body session { prep, build, output, authorized, showHelp } =
     Html.div
         ([ class "scrollable-body build-body"
          , id bodyId
@@ -802,7 +779,7 @@ body session { currentBuild, build, output, authorized, showHelp } =
         )
     <|
         if authorized then
-            [ viewBuildPrep currentBuild.prep
+            [ viewBuildPrep prep
             , Html.Lazy.lazy3
                 viewBuildOutput
                 session.timeZone

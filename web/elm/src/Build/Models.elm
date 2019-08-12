@@ -30,6 +30,7 @@ type alias Model =
             , hoveredCounter : Int
             , authorized : Bool
             , output : CurrentOutput
+            , prep : Maybe Concourse.BuildPrep
             }
         )
 
