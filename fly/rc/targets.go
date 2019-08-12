@@ -16,6 +16,7 @@ import (
 var (
 	ErrNoTargetSpecified = errors.New("no target specified")
 	ErrNoTargetFromURL   = errors.New("no target matching url")
+	ErrTargetTeamMismatch = errors.New("team in URL doesn't match the current team of the target")
 )
 
 type UnknownTargetError struct {

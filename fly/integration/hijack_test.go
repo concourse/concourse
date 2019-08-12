@@ -273,14 +273,14 @@ var _ = Describe("Hijacking", func() {
 				Expect(sess.Err).To(gbytes.Say("no target matching url"))
 			})
 
-			It("returns an error when team name from url is not found", func() {
+			It("returns an error when team name from url does NOT match .flyrc team", func() {
 				flyCmd := exec.Command(flyPath, "hijack", "-s", "some-step", "-u", fmt.Sprintf("%s/teams/%s/builds/0", atcServer.URL(), "faketeam"))
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess).Should(gexec.Exit(1))
 
-				Expect(sess.Err).To(gbytes.Say("no target matching url"))
+				Expect(sess.Err).To(gbytes.Say("team in URL doesn't match the current team of the target"))
 			})
 		})
 	})

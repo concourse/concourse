@@ -157,4 +157,33 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 			})
 		})
 	})
+
+	Describe("LoadTargetFromURL", func() {
+		BeforeEach(func() {
+			flyrcContents := `targets:
+  some-target-a: { team: my-team, api: https://ci.concourse-ci.org }
+  `
+			ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+		})
+
+		It("returns Target & TargetName when given a valid url", func(){
+
+			target, targetName, err := rc.LoadTargetFromURL("https://ci.concourse-ci.org", "my-team", false)
+			Expect(target.URL()).To(Equal("https://ci.concourse-ci.org"))
+			Expect(target.Team().Name()).To(Equal("my-team"))
+			Expect(targetName).To(BeEquivalentTo("some-target-a"))
+			Expect(err).NotTo(HaveOccurred())
+
+		})
+
+		It("returns error when URL's team conflicts with current team", func() {
+			_, _, err := rc.LoadTargetFromURL("https://ci.concourse-ci.org", "not-my-team", false)
+			Expect(err).To(MatchError("team in URL doesn't match the current team of the target"))
+		})
+
+		It("returns error when URL's target does NOT match .flyrc targets", func() {
+			_, _, err := rc.LoadTargetFromURL("https://some-fake-target.org", "not-my-team", false)
+			Expect(err).To(MatchError("no target matching url"))
+		})
+	})
 })

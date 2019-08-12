@@ -96,10 +96,16 @@ func LoadTargetFromURL(url, team string, tracing bool) (Target, TargetName, erro
 	}
 
 	for name, props := range flyTargets.Targets {
-		if props.API == url && props.TeamName == team {
-			target, err := LoadTarget(name, tracing)
-			return target, name, err
+		if props.API != url {
+			continue
 		}
+
+		if props.TeamName != team {
+			return nil, "", ErrTargetTeamMismatch
+		}
+
+		target, err := LoadTarget(name, tracing)
+		return target, name, err
 	}
 
 	return nil, "", ErrNoTargetFromURL
