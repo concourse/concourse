@@ -103,7 +103,7 @@ var _ = Describe("Sky Server API", func() {
 				})
 
 				It("doesn't modify the cookie", func() {
-					Expect(cookies[0].Name).To(Equal("skymarshal_auth"))
+					Expect(cookies[0].Name).To(Equal("skymarshal_auth0"))
 					Expect(cookies[0].HttpOnly).To(BeTrue())
 					Expect(cookies[0].Value).To(Equal(cookieValue))
 				})
@@ -152,7 +152,7 @@ var _ = Describe("Sky Server API", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					request.AddCookie(&http.Cookie{
-						Name:     "skymarshal_auth",
+						Name:     "skymarshal_auth0",
 						Value:    cookieValue,
 						Path:     "/",
 						Expires:  cookieExpiration,
@@ -163,7 +163,7 @@ var _ = Describe("Sky Server API", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					cookies = response.Cookies()
-					Expect(cookies).To(HaveLen(1))
+					Expect(cookies).To(HaveLen(15))
 				})
 
 				Context("which is not a valid bearer token", func() {

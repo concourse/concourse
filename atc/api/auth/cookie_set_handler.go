@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
+	"github.com/concourse/concourse/skymarshal/skyserver"
 	"net/http"
+	"strconv"
 )
 
 type CookieSetHandler struct {
@@ -10,14 +12,17 @@ type CookieSetHandler struct {
 }
 
 func (handler CookieSetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(AuthCookieName)
-	if err == nil {
-		ctx := context.WithValue(r.Context(), CSRFRequiredKey, handler.isCSRFRequired(r))
-		r = r.WithContext(ctx)
-
-		if r.Header.Get("Authorization") == "" {
-			r.Header.Set("Authorization", cookie.Value)
+	if r.Header.Get("Authorization") == "" {
+		authCookie := ""
+		for i := 0; i < skyserver.NumCookies; i++ {
+			cookie, err := r.Cookie(AuthCookieName + strconv.Itoa(i))
+			if err == nil {
+				ctx := context.WithValue(r.Context(), CSRFRequiredKey, handler.isCSRFRequired(r))
+				r = r.WithContext(ctx)
+				authCookie += cookie.Value
+			}
 		}
+		r.Header.Set("Authorization", authCookie)
 	}
 
 	handler.Handler.ServeHTTP(w, r)

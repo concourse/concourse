@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,6 +37,8 @@ type SkyConfig struct {
 
 const stateCookieName = "skymarshal_state"
 const authCookieName = "skymarshal_auth"
+const NumCookies = 15
+const maxCookieSize = 4000
 
 func NewSkyHandler(server *SkyServer) http.Handler {
 	handler := http.NewServeMux()
@@ -243,8 +246,6 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 		return
 	}
 
-	tokenStr := token.TokenType + " " + token.AccessToken
-
 	csrfToken, ok := token.Extra("csrf").(string)
 	if !ok {
 		logger.Error("failed-to-extract-csrf-token", err)
@@ -252,14 +253,38 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     authCookieName,
-		Value:    tokenStr,
-		Path:     "/",
-		Expires:  token.Expiry,
-		HttpOnly: true,
-		Secure:   s.config.SecureCookies,
-	})
+	tokenStr := token.TokenType + " " + token.AccessToken
+	tokenLength := len(tokenStr)
+	if tokenLength > maxCookieSize * NumCookies {
+		logger.Error("invalid-token", errors.New("token is too long to fit in cookies"))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("got-token-of-length", lager.Data{"tokenlength": tokenLength})
+	for i := 0; i < NumCookies; i++ {
+		if len(tokenStr) > maxCookieSize {
+			http.SetCookie(w, &http.Cookie{
+				Name:     authCookieName + strconv.Itoa(i),
+				Value:    tokenStr[:maxCookieSize],
+				Path:     "/",
+				Expires:  token.Expiry,
+				HttpOnly: true,
+				Secure:   s.config.SecureCookies,
+			})
+			tokenStr = tokenStr[maxCookieSize:]
+		} else {
+			http.SetCookie(w, &http.Cookie{
+				Name:     authCookieName + strconv.Itoa(i),
+				Value:    tokenStr,
+				Path:     "/",
+				Expires:  token.Expiry,
+				HttpOnly: true,
+				Secure:   s.config.SecureCookies,
+			})
+			break
+		}
+	}
 
 	if redirectURL.Host != "" {
 		logger.Error("invalid-redirect", fmt.Errorf("Unsupported redirect uri: %s", redirectURI))
@@ -358,13 +383,15 @@ func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *SkyServer) Logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     authCookieName,
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   s.config.SecureCookies,
-		HttpOnly: true,
-	})
+	for i := 0; i < NumCookies; i++ {
+		http.SetCookie(w, &http.Cookie{
+			Name:     authCookieName + strconv.Itoa(i),
+			Path:     "/",
+			MaxAge:   -1,
+			Secure:   s.config.SecureCookies,
+			HttpOnly: true,
+		})
+	}
 }
 
 func (s *SkyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
