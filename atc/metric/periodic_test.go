@@ -24,6 +24,8 @@ var _ = Describe("Periodic emission of metrics", func() {
 	)
 
 	BeforeEach(func() {
+		testLogger := lager.NewLogger("test")
+
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitter = &metricfakes.FakeEmitter{}
 
@@ -35,7 +37,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 		b := &dbfakes.FakeConn{}
 		b.NameReturns("B")
 		metric.Databases = []db.Conn{a, b}
-		metric.Initialize(nil, "test", map[string]string{})
+		metric.Initialize(testLogger, "test", map[string]string{}, 1000)
 
 		process = ifrit.Invoke(metric.PeriodicallyEmit(lager.NewLogger("dont care"), 250*time.Millisecond))
 	})

@@ -42,7 +42,7 @@ var _ = Describe("MetricsHandler", func() {
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
 
-		metric.Initialize(dummyLogger, "test", map[string]string{})
+		metric.Initialize(dummyLogger, "test", map[string]string{}, 1000)
 
 		ts = httptest.NewServer(
 			WrapHandler(dummyLogger, "ApiEndpoint", http.HandlerFunc(noopHandler)))
