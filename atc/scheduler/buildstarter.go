@@ -13,7 +13,6 @@ type BuildStarter interface {
 		logger lager.Logger,
 		job db.Job,
 		resources db.Resources,
-		resourceTypes atc.VersionedResourceTypes,
 	) error
 }
 
@@ -21,6 +20,12 @@ type BuildStarter interface {
 
 type BuildFactory interface {
 	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+}
+
+type Build interface {
+	db.Build
+
+	BuildInputs(lager.Logger) ([]db.BuildInput, bool, error)
 }
 
 func NewBuildStarter(
@@ -45,7 +50,6 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	logger lager.Logger,
 	job db.Job,
 	resources db.Resources,
-	resourceTypes atc.VersionedResourceTypes,
 ) error {
 	nextPendingBuilds, err := job.GetPendingBuilds()
 	if err != nil {
@@ -53,8 +57,10 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		return err
 	}
 
-	for _, nextPendingBuild := range nextPendingBuilds {
-		started, err := s.tryStartNextPendingBuild(logger, nextPendingBuild, job, resources, resourceTypes)
+	schedulableBuilds := s.constructBuilds(job, resources, nextPendingBuilds)
+
+	for _, nextSchedulableBuild := range schedulableBuilds {
+		started, err := s.tryStartNextPendingBuild(logger, nextSchedulableBuild, job, resources)
 		if err != nil {
 			return err
 		}
@@ -67,12 +73,37 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	return nil
 }
 
+func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, builds []db.Build) []Build {
+	schedulableBuilds := []Build{}
+
+	for _, nextPendingBuild := range builds {
+		if nextPendingBuild.IsManuallyTriggered() {
+			schedulableBuilds = append(schedulableBuilds, &manualTriggerBuild{
+				Build:     nextPendingBuild,
+				pipeline:  s.pipeline,
+				algorithm: s.algorithm,
+				job:       job,
+				resources: resources,
+			})
+		} else if nextPendingBuild.RetriggerOf() != 0 {
+			schedulableBuilds = append(schedulableBuilds, &retriggerBuild{
+				Build: nextPendingBuild,
+			})
+		} else {
+			schedulableBuilds = append(schedulableBuilds, &schedulerBuild{
+				Build: nextPendingBuild,
+			})
+		}
+	}
+
+	return schedulableBuilds
+}
+
 func (s *buildStarter) tryStartNextPendingBuild(
 	logger lager.Logger,
-	nextPendingBuild db.Build,
+	nextPendingBuild Build,
 	job db.Job,
 	resources db.Resources,
-	resourceTypes atc.VersionedResourceTypes,
 ) (bool, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
 		"build-id":   nextPendingBuild.ID(),
@@ -113,49 +144,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	if nextPendingBuild.IsManuallyTriggered() {
-		for _, input := range job.Config().Inputs() {
-			resource, found := resources.Lookup(input.Resource)
-
-			if !found {
-				logger.Debug("failed-to-find-resource")
-				return false, nil
-			}
-
-			if resource.CurrentPinnedVersion() != nil {
-				continue
-			}
-
-			if nextPendingBuild.IsNewerThanLastCheckOf(resource) {
-				return false, nil
-			}
-		}
-
-		versions, err := s.pipeline.LoadVersionsDB()
-		if err != nil {
-			logger.Error("failed-to-load-versions-db", err)
-			return false, err
-		}
-
-		inputMapping, resolved, err := s.algorithm.Compute(versions, job, resources)
-		if err != nil {
-			return false, err
-		}
-
-		err = job.SaveNextInputMapping(inputMapping, resolved)
-		if err != nil {
-			logger.Error("failed-to-save-next-input-mapping", err)
-			return false, err
-		}
-
-		dbResourceTypes, err := s.pipeline.ResourceTypes()
-		if err != nil {
-			return false, err
-		}
-		resourceTypes = dbResourceTypes.Deserialize()
-	}
-
-	buildInputs, found, err := nextPendingBuild.AdoptInputsAndPipes()
+	buildInputs, found, err := nextPendingBuild.BuildInputs(logger)
 	if err != nil {
 		logger.Error("failed-to-adopt-build-pipes", err)
 		return false, err
@@ -164,6 +153,12 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	if !found {
 		return false, nil
 	}
+
+	dbResourceTypes, err := s.pipeline.ResourceTypes()
+	if err != nil {
+		return false, err
+	}
+	resourceTypes := dbResourceTypes.Deserialize()
 
 	resourceConfigs := atc.ResourceConfigs{}
 	for _, v := range resources {

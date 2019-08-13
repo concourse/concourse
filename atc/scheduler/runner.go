@@ -152,12 +152,6 @@ func (runner *Runner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock,
 		return
 	}
 
-	resourceTypes, err := runner.Pipeline.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resource-types", err)
-		return
-	}
-
 	sLog := logger.Session("scheduling")
 	jStart := time.Now()
 
@@ -166,7 +160,6 @@ func (runner *Runner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock,
 		versions,
 		job,
 		resources,
-		resourceTypes.Deserialize(),
 	)
 
 	metric.SchedulingJobDuration{

@@ -22,7 +22,6 @@ func (s *Scheduler) Schedule(
 	versions *db.VersionsDB,
 	job db.Job,
 	resources db.Resources,
-	resourceTypes atc.VersionedResourceTypes,
 ) error {
 	inputMapping, resolved, err := s.Algorithm.Compute(versions, job, resources)
 	if err != nil {
@@ -40,7 +39,7 @@ func (s *Scheduler) Schedule(
 		return err
 	}
 
-	err = s.BuildStarter.TryStartPendingBuildsForJob(logger, job, resources, resourceTypes)
+	err = s.BuildStarter.TryStartPendingBuildsForJob(logger, job, resources)
 	if err != nil {
 		return err
 	}

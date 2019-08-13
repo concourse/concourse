@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -504,6 +505,51 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(build).To(BeNil())
+			})
+		})
+	})
+
+	Describe("RetriggerBuild", func() {
+		var firstBuild db.Build
+		var retriggeredErr error
+		var retriggeredBuild db.Build
+		var buildToRetrigger db.Build
+
+		JustBeforeEach(func() {
+			retriggeredBuild, retriggeredErr = job.RetriggerBuild(buildToRetrigger)
+		})
+
+		Context("when the first build exists", func() {
+			BeforeEach(func() {
+				var err error
+				firstBuild, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				buildToRetrigger = firstBuild
+			})
+
+			It("finds the build", func() {
+				Expect(retriggeredErr).ToNot(HaveOccurred())
+				Expect(retriggeredBuild.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
+
+				build, found, err := job.Build(retriggeredBuild.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build.ID()).To(Equal(firstBuild.ID()))
+				Expect(build.Status()).To(Equal(firstBuild.Status()))
+			})
+
+			Context("when there is an existing retriggered build", func() {
+				BeforeEach(func() {
+					retrigger1, err := job.RetriggerBuild(buildToRetrigger)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(retrigger1.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
+				})
+
+				It("increments the name", func() {
+					Expect(retriggeredErr).ToNot(HaveOccurred())
+					Expect(retriggeredBuild.Name()).To(Equal(fmt.Sprintf("%s.2", firstBuild.Name())))
+				})
 			})
 		})
 	})

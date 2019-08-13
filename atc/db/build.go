@@ -44,7 +44,7 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained, b.aborted, b.completed, b.inputs_ready").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained, b.aborted, b.completed, b.inputs_ready, b.retrigger_of").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -78,6 +78,7 @@ type Build interface {
 	IsRunning() bool
 	IsCompleted() bool
 	InputsReady() bool
+	RetriggerOf() int
 
 	Reload() (bool, error)
 
@@ -99,6 +100,7 @@ type Build interface {
 
 	SaveOutput(string, atc.Source, atc.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
 	AdoptInputsAndPipes() ([]BuildInput, bool, error)
+	AdoptRetriggerInputsAndPipes() ([]BuildInput, bool, error)
 
 	Resources() ([]BuildInput, []BuildOutput, error)
 	SaveImageResourceVersion(UsedResourceCache) error
@@ -130,6 +132,7 @@ type build struct {
 	jobName      string
 
 	isManuallyTriggered bool
+	retriggerOf         int
 
 	schema      string
 	privatePlan atc.Plan
@@ -186,6 +189,7 @@ func (b *build) IsRunning() bool      { return !b.completed }
 func (b *build) IsAborted() bool      { return b.aborted }
 func (b *build) IsCompleted() bool    { return b.completed }
 func (b *build) InputsReady() bool    { return b.inputsReady }
+func (b *build) RetriggerOf() int     { return b.retriggerOf }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -1098,6 +1102,139 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 	return buildInputs, true, nil
 }
 
+func (b *build) AdoptRetriggerInputsAndPipes() ([]BuildInput, bool, error) {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	var ready bool
+	err = psql.Select("inputs_ready").
+		From("builds").
+		Where(sq.Eq{
+			"id": b.retriggerOf,
+		}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&ready)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !ready {
+		return nil, false, nil
+	}
+
+	_, err = psql.Delete("build_resource_config_version_inputs").
+		Where(sq.Eq{"build_id": b.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	rows, err := psql.Insert("build_resource_config_version_inputs").
+		Columns("resource_id", "version_md5", "name", "first_occurrence", "build_id").
+		Select(psql.Select("i.resource_id", "i.version_md5", "i.input_name", "i.first_occurrence").
+			Column("?", b.id).
+			From("build_resource_config_version_inputs i").
+			Where(sq.Eq{"i.build_id": b.retriggerOf})).
+		Suffix("ON CONFLICT (build_id, resource_id, version_md5, name) DO UPDATE SET first_occurrence = EXCLUDED.first_occurrence").
+		Suffix("RETURNING name, resource_id, version_md5, first_occurrence").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, false, err
+	}
+
+	inputs := InputMapping{}
+	for rows.Next() {
+		var (
+			inputName       string
+			firstOccurrence bool
+			versionMD5      string
+			resourceID      int
+		)
+
+		err := rows.Scan(&inputName, &resourceID, &versionMD5, &firstOccurrence)
+		if err != nil {
+			return nil, false, err
+		}
+
+		inputs[inputName] = InputResult{
+			Input: &AlgorithmInput{
+				AlgorithmVersion: AlgorithmVersion{
+					ResourceID: resourceID,
+					Version:    ResourceVersion(versionMD5),
+				},
+				FirstOccurrence: firstOccurrence,
+			},
+		}
+	}
+
+	buildInputs := []BuildInput{}
+	for inputName, input := range inputs {
+		var versionBlob string
+
+		err = psql.Select("v.version").
+			From("resource_config_versions v").
+			Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
+			Where(sq.Eq{
+				"v.version_md5": input.Input.Version,
+				"r.id":          input.Input.ResourceID,
+			}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&versionBlob)
+		if err != nil {
+			return nil, false, err
+		}
+
+		var version atc.Version
+		err = json.Unmarshal([]byte(versionBlob), &version)
+		if err != nil {
+			return nil, false, err
+		}
+
+		buildInputs = append(buildInputs, BuildInput{
+			Name:            inputName,
+			ResourceID:      input.Input.ResourceID,
+			Version:         version,
+			FirstOccurrence: input.Input.FirstOccurrence,
+		})
+	}
+
+	_, err = psql.Delete("build_pipes").
+		Where(sq.Eq{"to_build_id": b.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = psql.Insert("build_pipes").
+		Columns("from_build_id", "to_build_id").
+		Select(psql.Select("bp.from_build_id").
+			Column("?", b.id).
+			From("build_pipes bp").
+			Where(sq.Eq{"bp.to_build_id": b.retriggerOf})).
+		Suffix("ON CONFLICT DO NOTHING").
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return buildInputs, true, nil
+}
+
 func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	inputs := []BuildInput{}
 	outputs := []BuildOutput{}
@@ -1209,7 +1346,7 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, pipelineID                                      sql.NullInt64
+		jobID, pipelineID, retriggerOf                         sql.NullInt64
 		schema, privatePlan, jobName, pipelineName, publicPlan sql.NullString
 		createTime, startTime, endTime, reapTime               pq.NullTime
 		nonce                                                  sql.NullString
@@ -1217,7 +1354,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		status                                                 string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained, &aborted, &completed, &b.inputsReady)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained, &aborted, &completed, &b.inputsReady, &retriggerOf)
 	if err != nil {
 		return err
 	}
@@ -1235,6 +1372,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.drained = drained
 	b.aborted = aborted
 	b.completed = completed
+	b.retriggerOf = int(retriggerOf.Int64)
 
 	var (
 		noncense      *string

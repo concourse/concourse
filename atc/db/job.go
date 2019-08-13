@@ -45,6 +45,7 @@ type Job interface {
 
 	ScheduleBuild(Build) (bool, error)
 	CreateBuild() (Build, error)
+	RetriggerBuild(Build) (Build, error)
 
 	Builds(page Page) ([]Build, Pagination, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
@@ -532,6 +533,45 @@ func (j *job) CreateBuild() (Build, error) {
 	return build, nil
 }
 
+func (j *job) RetriggerBuild(buildToRetrigger Build) (Build, error) {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	retriggerBuildName, err := j.getNewRetriggerBuildName(tx, buildToRetrigger.ID())
+	if err != nil {
+		return nil, err
+	}
+
+	retriggerBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
+	err = createBuild(tx, retriggerBuild, map[string]interface{}{
+		"name":         fmt.Sprintf("%s.%s", buildToRetrigger.Name(), retriggerBuildName),
+		"job_id":       j.id,
+		"pipeline_id":  j.pipelineID,
+		"team_id":      j.teamID,
+		"status":       BuildStatusPending,
+		"retrigger_of": buildToRetrigger.ID(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateNextBuildForJob(tx, j.id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return retriggerBuild, nil
+}
+
 func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
@@ -897,6 +937,21 @@ func (j *job) finishedBuild() (Build, error) {
 	}
 
 	return finished, nil
+}
+
+func (j *job) getNewRetriggerBuildName(tx Tx, buildID int) (string, error) {
+	var buildName string
+	err := psql.Update("builds").
+		Set("build_number_seq", sq.Expr("build_number_seq + 1")).
+		Where(sq.Eq{
+			"id": buildID,
+		}).
+		Suffix("RETURNING build_number_seq").
+		RunWith(tx).
+		QueryRow().
+		Scan(&buildName)
+
+	return buildName, err
 }
 
 func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
