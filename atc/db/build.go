@@ -44,7 +44,7 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained, b.aborted, b.completed").
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained, b.aborted, b.completed, b.inputs_ready").
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -77,6 +77,7 @@ type Build interface {
 	IsScheduled() bool
 	IsRunning() bool
 	IsCompleted() bool
+	InputsReady() bool
 
 	Reload() (bool, error)
 
@@ -114,10 +115,11 @@ type Build interface {
 }
 
 type build struct {
-	id        int
-	name      string
-	status    BuildStatus
-	scheduled bool
+	id          int
+	name        string
+	status      BuildStatus
+	scheduled   bool
+	inputsReady bool
 
 	teamID   int
 	teamName string
@@ -183,6 +185,7 @@ func (b *build) IsDrained() bool      { return b.drained }
 func (b *build) IsRunning() bool      { return !b.completed }
 func (b *build) IsAborted() bool      { return b.aborted }
 func (b *build) IsCompleted() bool    { return b.completed }
+func (b *build) InputsReady() bool    { return b.inputsReady }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -1076,6 +1079,17 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 		return nil, false, err
 	}
 
+	_, err = psql.Update("builds").
+		Set("inputs_ready", true).
+		Where(sq.Eq{
+			"id": b.id,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, false, err
@@ -1203,7 +1217,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		status                                                 string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained, &aborted, &completed)
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained, &aborted, &completed, &b.inputsReady)
 	if err != nil {
 		return err
 	}

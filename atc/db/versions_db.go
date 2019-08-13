@@ -246,8 +246,9 @@ func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
 	err := psql.Select("b.id").
 		From("builds b").
 		Where(sq.Eq{
-			"b.job_id":    jobID,
-			"b.scheduled": true,
+			"b.job_id":       jobID,
+			"b.inputs_ready": true,
+			"b.scheduled":    true,
 		}).
 		OrderBy("b.id DESC").
 		Limit(100).

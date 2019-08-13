@@ -1584,6 +1584,8 @@ var _ = Describe("Build", func() {
 				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
+
+				Expect(build.InputsReady()).To(BeTrue())
 			})
 		})
 
@@ -1608,6 +1610,8 @@ var _ = Describe("Build", func() {
 				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes).To(HaveLen(0))
+
+				Expect(build.InputsReady()).To(BeFalse())
 			})
 		})
 	})

@@ -705,8 +705,8 @@ func (s setupDB) insertRowBuild(row DBRow) {
 
 	var existingJobID int
 	err := s.psql.Insert("builds").
-		Columns("team_id", "id", "job_id", "name", "status", "scheduled").
-		Values(s.teamID, row.BuildID, jobID, "some-name", "succeeded", true).
+		Columns("team_id", "id", "job_id", "name", "status", "scheduled", "inputs_ready").
+		Values(s.teamID, row.BuildID, jobID, "some-name", "succeeded", true, true).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = excluded.name").
 		Suffix("RETURNING job_id").
 		QueryRow().

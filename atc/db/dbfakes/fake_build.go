@@ -146,6 +146,16 @@ type FakeBuild struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
+	InputsReadyStub        func() bool
+	inputsReadyMutex       sync.RWMutex
+	inputsReadyArgsForCall []struct {
+	}
+	inputsReadyReturns struct {
+		result1 bool
+	}
+	inputsReadyReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	InterceptibleStub        func() (bool, error)
 	interceptibleMutex       sync.RWMutex
 	interceptibleArgsForCall []struct {
@@ -1130,6 +1140,58 @@ func (fake *FakeBuild) IDReturnsOnCall(i int, result1 int) {
 	}
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) InputsReady() bool {
+	fake.inputsReadyMutex.Lock()
+	ret, specificReturn := fake.inputsReadyReturnsOnCall[len(fake.inputsReadyArgsForCall)]
+	fake.inputsReadyArgsForCall = append(fake.inputsReadyArgsForCall, struct {
+	}{})
+	fake.recordInvocation("InputsReady", []interface{}{})
+	fake.inputsReadyMutex.Unlock()
+	if fake.InputsReadyStub != nil {
+		return fake.InputsReadyStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.inputsReadyReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) InputsReadyCallCount() int {
+	fake.inputsReadyMutex.RLock()
+	defer fake.inputsReadyMutex.RUnlock()
+	return len(fake.inputsReadyArgsForCall)
+}
+
+func (fake *FakeBuild) InputsReadyCalls(stub func() bool) {
+	fake.inputsReadyMutex.Lock()
+	defer fake.inputsReadyMutex.Unlock()
+	fake.InputsReadyStub = stub
+}
+
+func (fake *FakeBuild) InputsReadyReturns(result1 bool) {
+	fake.inputsReadyMutex.Lock()
+	defer fake.inputsReadyMutex.Unlock()
+	fake.InputsReadyStub = nil
+	fake.inputsReadyReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) InputsReadyReturnsOnCall(i int, result1 bool) {
+	fake.inputsReadyMutex.Lock()
+	defer fake.inputsReadyMutex.Unlock()
+	fake.InputsReadyStub = nil
+	if fake.inputsReadyReturnsOnCall == nil {
+		fake.inputsReadyReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.inputsReadyReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -2911,6 +2973,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.hasPlanMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.inputsReadyMutex.RLock()
+	defer fake.inputsReadyMutex.RUnlock()
 	fake.interceptibleMutex.RLock()
 	defer fake.interceptibleMutex.RUnlock()
 	fake.isAbortedMutex.RLock()
