@@ -16,9 +16,8 @@ type Template struct {
 }
 
 type EvaluateOpts struct {
-	ExpectAllKeys      bool
-	ExpectAllVarsUsed  bool
-	UnescapedMultiline bool
+	ExpectAllKeys     bool
+	ExpectAllVarsUsed bool
 }
 
 func NewTemplate(bytes []byte) Template {
@@ -36,10 +35,6 @@ func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 	obj, err = t.interpolateRoot(obj, newVarsTracker(vars, opts.ExpectAllKeys, opts.ExpectAllVarsUsed))
 	if err != nil {
 		return []byte{}, err
-	}
-
-	if _, ok := obj.(string); opts.UnescapedMultiline && ok {
-		return []byte(fmt.Sprintf("%s\n", obj)), nil
 	}
 
 	bytes, err := yaml.Marshal(obj)
@@ -113,8 +108,10 @@ func (i interpolator) Interpolate(node interface{}, varsLookup varsLookup) (inte
 					typedNode = strings.Replace(typedNode, fmt.Sprintf("((%s))", name), foundValStr, -1)
 					typedNode = strings.Replace(typedNode, fmt.Sprintf("((!%s))", name), foundValStr, -1)
 				default:
-					errMsg := "Invalid type '%T' for value '%v' and variable '%s'. Supported types for interpolation within a string are integers and strings."
-					return nil, fmt.Errorf(errMsg, foundVal, foundVal, name)
+					return nil, InvalidInterpolationError{
+						Path:  name,
+						Value: foundVal,
+					}
 				}
 			}
 		}
@@ -139,8 +136,16 @@ type varsLookup struct {
 	varsTracker
 }
 
+var ErrEmptyVar = errors.New("empty var")
+
 func (l varsLookup) Get(name string) (interface{}, bool, error) {
 	splitName := strings.Split(name, ".")
+
+	// this should be impossible since interpolationRegex only matches non-empty
+	// vars, but better to error than to panic
+	if len(splitName) == 0 {
+		return nil, false, ErrEmptyVar
+	}
 
 	val, found, err := l.varsTracker.Get(splitName[0])
 	if !found || err != nil {
@@ -153,16 +158,26 @@ func (l varsLookup) Get(name string) (interface{}, bool, error) {
 			var found bool
 			val, found = v[seg]
 			if !found {
-				return nil, false, fmt.Errorf("Expected to find a map key '%s'", seg)
+				return nil, false, MissingFieldError{
+					Path:  name,
+					Field: seg,
+				}
 			}
 		case map[string]interface{}:
 			var found bool
 			val, found = v[seg]
 			if !found {
-				return nil, false, fmt.Errorf("Expected to find a map key '%s'", seg)
+				return nil, false, MissingFieldError{
+					Path:  name,
+					Field: seg,
+				}
 			}
 		default:
-			return nil, false, fmt.Errorf("Cannot access field '%s' of type %T in path '%s'", seg, val, name)
+			return nil, false, InvalidFieldError{
+				Path:  name,
+				Field: seg,
+				Value: val,
+			}
 		}
 	}
 

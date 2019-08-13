@@ -635,7 +635,7 @@ this is super secure
 							path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 							Expect(err).NotTo(HaveOccurred())
 
-							configResponse := atc.SaveConfigResponse{Errors: []string{"Expected to find variables: param-b"}}
+							configResponse := atc.SaveConfigResponse{Errors: []string{"some-error"}}
 							atcServer.RouteToHandler("PUT", path,
 								ghttp.CombineHandlers(
 									ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
@@ -670,7 +670,7 @@ this is super secure
 								Expect(err).NotTo(HaveOccurred())
 
 								Eventually(sess.Err).Should(gbytes.Say(`error: invalid pipeline config:`))
-								Eventually(sess.Err).Should(gbytes.Say(`Expected to find variables: param-b`))
+								Eventually(sess.Err).Should(gbytes.Say(`some-error`))
 
 								<-sess.Exited
 								Expect(sess.ExitCode()).NotTo(Equal(0))
