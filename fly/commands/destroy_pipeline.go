@@ -9,8 +9,8 @@ import (
 )
 
 type DestroyPipelineCommand struct {
-	Pipeline        flaghelpers.PipelineFlag `short:"p"  long:"pipeline" required:"true" description:"Pipeline to destroy"`
-	SkipInteractive bool                     `short:"n"  long:"non-interactive"          description:"Destroy the pipeline without confirmation"`
+	Pipeline        flaghelpers.PipelineFlag `short:"p"  long:"pipeline" required:"true" env:"PIPELINE" description:"Pipeline to destroy"`
+	SkipInteractive bool                     `short:"n"  long:"non-interactive"                         description:"Destroy the pipeline without confirmation"`
 }
 
 func (command *DestroyPipelineCommand) Validate() error {

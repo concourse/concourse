@@ -14,8 +14,8 @@ type SetPipelineCommand struct {
 
 	CheckCredentials bool `long:"check-creds"  description:"Validate credential variables against credential manager"`
 
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Pipeline to configure"`
-	Config   atc.PathFlag             `short:"c" long:"config"   required:"true" description:"Pipeline configuration file"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" env:"PIPELINE" description:"Pipeline to configure"`
+	Config   atc.PathFlag             `short:"c" long:"config"   required:"true"                description:"Pipeline configuration file"`
 
 	Var     []flaghelpers.VariablePairFlag     `short:"v"  long:"var"       value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline"`
 	YAMLVar []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`

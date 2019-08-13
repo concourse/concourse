@@ -9,7 +9,7 @@ import (
 )
 
 type ChecklistCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"The pipeline from which to generate the Checkfile"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" env:"PIPELINE" description:"The pipeline from which to generate the Checkfile"`
 }
 
 func (command *ChecklistCommand) Validate() error {

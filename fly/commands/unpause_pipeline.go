@@ -8,7 +8,7 @@ import (
 )
 
 type UnpausePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Pipeline to unpause"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" env:"PIPELINE" description:"Pipeline to unpause"`
 }
 
 func (command *UnpausePipelineCommand) Validate() error {

@@ -22,7 +22,7 @@ import (
 )
 
 type HijackCommand struct {
-	Job            flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB" description:"Name of a job to hijack"`
+	Job            flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB" env:"JOB" description:"Name of a job to hijack"`
 	Handle         string                   `          long:"handle"                                    description:"Handle id of a job to hijack"`
 	Check          flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK"         description:"Name of a resource's checking container to hijack"`
 	Build          string                   `short:"b" long:"build"                                     description:"Build number within the job, or global build ID"`

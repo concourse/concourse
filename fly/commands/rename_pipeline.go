@@ -8,7 +8,7 @@ import (
 )
 
 type RenamePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"o" long:"old-name" required:"true" description:"Pipeline to rename"`
+	Pipeline flaghelpers.PipelineFlag `short:"o" long:"old-name" required:"true" env:"PIPELINE" description:"Pipeline to rename"`
 	Name     flaghelpers.PipelineFlag `short:"n" long:"new-name" required:"true"                description:"Name to set as pipeline name"`
 }
 

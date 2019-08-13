@@ -8,8 +8,8 @@ import (
 )
 
 type CheckResourceTypeCommand struct {
-	ResourceType flaghelpers.ResourceFlag `short:"r" long:"resource-type" required:"true" value-name:"PIPELINE/RESOURCE-TYPE" description:"Name of a resource-type to check"`
-	Version      *atc.Version             `short:"f" long:"from"                          value-name:"VERSION"                description:"Version of the resource type to check from, e.g. digest:sha256@..."`
+	ResourceType flaghelpers.ResourceFlag `short:"r" long:"resource-type" required:"true" value-name:"PIPELINE/RESOURCE-TYPE" env:"RESOURCE_TYPE" description:"Name of a resource-type to check"`
+	Version      *atc.Version             `short:"f" long:"from"                          value-name:"VERSION"                                    description:"Version of the resource type to check from, e.g. digest:sha256@..."`
 }
 
 func (command *CheckResourceTypeCommand) Execute(args []string) error {
