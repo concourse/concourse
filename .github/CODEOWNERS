@@ -1,16 +1,16 @@
-.github/*          @vito
+.github/           @vito
 CODE_OF_CONDUCT.md @vito
 CONTRIBUTING.md    @concourse/pivotal
-web/*              @concourse/ux
+web/               @concourse/ux
 package.json       @concourse/ux
 yarn.lock          @concourse/ux
-fly/*              @concourse/core-api @concourse/ux
-go-concourse/*     @concourse/core-api
-atc/*              @concourse/core-api
-skymarshal/*       @concourse/core-api
-vars/*             @concourse/core-api
-atc/exec/*         @concourse/runtime @concourse/core-api
-atc/worker/*       @concourse/runtime
-atc/runtime/*      @concourse/runtime
-worker/*           @concourse/runtime
-tsa/*              @concourse/runtime
+fly/               @concourse/core-api @concourse/ux
+go-concourse/      @concourse/core-api
+atc/               @concourse/core-api
+skymarshal/        @concourse/core-api
+vars/              @concourse/core-api
+atc/exec/          @concourse/runtime @concourse/core-api
+atc/worker/        @concourse/runtime
+atc/runtime/       @concourse/runtime
+worker/            @concourse/runtime
+tsa/               @concourse/runtime
