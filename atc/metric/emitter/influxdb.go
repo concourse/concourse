@@ -110,9 +110,6 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
 		return
 	}
-	logger.Info("influxdb-emitter-fork-influxdb-batch-emitted", lager.Data{
-		"size": len(events),
-	})
 }
 
 func (emitter *InfluxDBEmitter) Emit(logger lager.Logger, event metric.Event) {
