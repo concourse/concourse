@@ -16,8 +16,8 @@ import (
 )
 
 type GetPipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" env:"PIPELINE" description:"Get configuration of this pipeline"`
-	JSON     bool                     `short:"j" long:"json"                                    description:"Print config as json instead of yaml"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Get configuration of this pipeline"`
+	JSON     bool                     `short:"j" long:"json"                     description:"Print config as json instead of yaml"`
 }
 
 func (command *GetPipelineCommand) Validate() error {

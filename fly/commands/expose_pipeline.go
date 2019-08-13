@@ -8,7 +8,7 @@ import (
 )
 
 type ExposePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" env:"PIPELINE" description:"Pipeline to expose"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Pipeline to expose"`
 }
 
 func (command *ExposePipelineCommand) Validate() error {

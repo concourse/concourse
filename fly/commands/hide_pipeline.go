@@ -8,7 +8,7 @@ import (
 )
 
 type HidePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" env:"PIPELINE" description:"Pipeline to hide"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Pipeline to hide"`
 }
 
 func (command *HidePipelineCommand) Validate() error {
