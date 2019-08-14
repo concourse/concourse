@@ -59,11 +59,13 @@ func NewServer(config *Config) (*Server, error) {
 
 	tokenVerifier := token.NewVerifier(clientID, issuerURL)
 	tokenIssuer := token.NewIssuer(config.TeamFactory, token.NewGenerator(signingKey), config.Flags.Expiration)
+	tokenMiddleware := token.NewMiddleware(config.Flags.SecureCookies)
 
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
 		Logger:          config.Logger.Session("sky"),
 		TokenVerifier:   tokenVerifier,
 		TokenIssuer:     tokenIssuer,
+		TokenMiddleware: tokenMiddleware,
 		UserFactory:     config.UserFactory,
 		SigningKey:      signingKey,
 		DexIssuerURL:    issuerURL,
