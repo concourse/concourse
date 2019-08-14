@@ -3,20 +3,22 @@ package auth
 import (
 	"context"
 	"net/http"
+
+	"github.com/concourse/concourse/skymarshal/token"
 )
 
-type CookieSetHandler struct {
+type WebAuthHandler struct {
 	Handler http.Handler
 }
 
-func (handler CookieSetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(AuthCookieName)
-	if err == nil {
+func (handler WebAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	tokenString := token.NewMiddleware(true).GetToken(r)
+	if tokenString != "" {
 		ctx := context.WithValue(r.Context(), CSRFRequiredKey, handler.isCSRFRequired(r))
 		r = r.WithContext(ctx)
 
 		if r.Header.Get("Authorization") == "" {
-			r.Header.Set("Authorization", cookie.Value)
+			r.Header.Set("Authorization", tokenString)
 		}
 	}
 
@@ -25,7 +27,7 @@ func (handler CookieSetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 // We don't validate CSRF token for GET requests
 // since they are not changing the state
-func (handler CookieSetHandler) isCSRFRequired(r *http.Request) bool {
+func (handler WebAuthHandler) isCSRFRequired(r *http.Request) bool {
 	return (r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions)
 }
 

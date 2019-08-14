@@ -234,8 +234,6 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 		return
 	}
 
-	tokenStr := token.TokenType + " " + token.AccessToken
-
 	csrfToken, ok := token.Extra("csrf").(string)
 	if !ok {
 		logger.Error("failed-to-extract-csrf-token", err)
