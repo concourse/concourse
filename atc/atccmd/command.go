@@ -98,6 +98,8 @@ type RunCommand struct {
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
+	MaxOpenConnections int `long:"max-conns" description:"The maximum number of open connections for a connection pool." default:"32"`
+
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
 
@@ -402,12 +404,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 32, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.MaxOpenConnections, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, 32, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.MaxOpenConnections, "backend", lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -1174,6 +1176,7 @@ func (cmd *RunCommand) constructDBConn(
 
 	// Prepare
 	dbConn.SetMaxOpenConns(maxConn)
+	dbConn.SetMaxIdleConns(maxConn / 2)
 
 	return dbConn, nil
 }
