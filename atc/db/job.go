@@ -541,19 +541,24 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 
 	defer Rollback(tx)
 
-	rerunBuildName, err := j.getNewRerunBuildName(tx, buildToRerun.ID())
+	buildToRerunID := buildToRerun.ID()
+	if buildToRerun.RerunOf() != 0 {
+		buildToRerunID = buildToRerun.RerunOf()
+	}
+
+	rerunBuildName, err := j.getNewRerunBuildName(tx, buildToRerunID)
 	if err != nil {
 		return nil, err
 	}
 
 	rerunBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
 	err = createBuild(tx, rerunBuild, map[string]interface{}{
-		"name":        fmt.Sprintf("%s.%s", buildToRerun.Name(), rerunBuildName),
+		"name":        rerunBuildName,
 		"job_id":      j.id,
 		"pipeline_id": j.pipelineID,
 		"team_id":     j.teamID,
 		"status":      BuildStatusPending,
-		"rerun_of":    buildToRerun.ID(),
+		"rerun_of":    buildToRerunID,
 	})
 	if err != nil {
 		return nil, err
@@ -940,18 +945,19 @@ func (j *job) finishedBuild() (Build, error) {
 }
 
 func (j *job) getNewRerunBuildName(tx Tx, buildID int) (string, error) {
+	var rerunName string
 	var buildName string
 	err := psql.Update("builds").
 		Set("rerun_build_number_seq", sq.Expr("rerun_build_number_seq + 1")).
 		Where(sq.Eq{
 			"id": buildID,
 		}).
-		Suffix("RETURNING rerun_build_number_seq").
+		Suffix("RETURNING name, rerun_build_number_seq").
 		RunWith(tx).
 		QueryRow().
-		Scan(&buildName)
+		Scan(&buildName, &rerunName)
 
-	return buildName, err
+	return buildName + "." + rerunName, err
 }
 
 func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {

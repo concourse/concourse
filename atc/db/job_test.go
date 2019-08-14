@@ -551,6 +551,21 @@ var _ = Describe("Job", func() {
 					Expect(rerunBuild.Name()).To(Equal(fmt.Sprintf("%s.2", firstBuild.Name())))
 				})
 			})
+
+			Context("when we try to rerun a rerun build", func() {
+				BeforeEach(func() {
+					rerun1, err := job.RerunBuild(buildToRerun)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(rerun1.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
+
+					buildToRerun = rerun1
+				})
+
+				It("increments the name", func() {
+					Expect(rerunErr).ToNot(HaveOccurred())
+					Expect(rerunBuild.Name()).To(Equal(fmt.Sprintf("%s.2", firstBuild.Name())))
+				})
+			})
 		})
 	})
 
