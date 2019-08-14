@@ -509,14 +509,14 @@ var _ = Describe("Job", func() {
 		})
 	})
 
-	Describe("RetriggerBuild", func() {
+	Describe("RerunBuild", func() {
 		var firstBuild db.Build
-		var retriggeredErr error
-		var retriggeredBuild db.Build
-		var buildToRetrigger db.Build
+		var rerunErr error
+		var rerunBuild db.Build
+		var buildToRerun db.Build
 
 		JustBeforeEach(func() {
-			retriggeredBuild, retriggeredErr = job.RetriggerBuild(buildToRetrigger)
+			rerunBuild, rerunErr = job.RerunBuild(buildToRerun)
 		})
 
 		Context("when the first build exists", func() {
@@ -525,30 +525,30 @@ var _ = Describe("Job", func() {
 				firstBuild, err = job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				buildToRetrigger = firstBuild
+				buildToRerun = firstBuild
 			})
 
 			It("finds the build", func() {
-				Expect(retriggeredErr).ToNot(HaveOccurred())
-				Expect(retriggeredBuild.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
+				Expect(rerunErr).ToNot(HaveOccurred())
+				Expect(rerunBuild.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
 
-				build, found, err := job.Build(retriggeredBuild.Name())
+				build, found, err := job.Build(rerunBuild.Name())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(build.ID()).To(Equal(firstBuild.ID()))
-				Expect(build.Status()).To(Equal(firstBuild.Status()))
+				Expect(build.ID()).To(Equal(rerunBuild.ID()))
+				Expect(build.Status()).To(Equal(rerunBuild.Status()))
 			})
 
-			Context("when there is an existing retriggered build", func() {
+			Context("when there is an existing rerun build", func() {
 				BeforeEach(func() {
-					retrigger1, err := job.RetriggerBuild(buildToRetrigger)
+					rerun1, err := job.RerunBuild(buildToRerun)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(retrigger1.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
+					Expect(rerun1.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
 				})
 
 				It("increments the name", func() {
-					Expect(retriggeredErr).ToNot(HaveOccurred())
-					Expect(retriggeredBuild.Name()).To(Equal(fmt.Sprintf("%s.2", firstBuild.Name())))
+					Expect(rerunErr).ToNot(HaveOccurred())
+					Expect(rerunBuild.Name()).To(Equal(fmt.Sprintf("%s.2", firstBuild.Name())))
 				})
 			})
 		})

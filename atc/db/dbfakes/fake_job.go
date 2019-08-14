@@ -273,6 +273,19 @@ type FakeJob struct {
 		result1 bool
 		result2 error
 	}
+	RerunBuildStub        func(db.Build) (db.Build, error)
+	rerunBuildMutex       sync.RWMutex
+	rerunBuildArgsForCall []struct {
+		arg1 db.Build
+	}
+	rerunBuildReturns struct {
+		result1 db.Build
+		result2 error
+	}
+	rerunBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 error
+	}
 	SaveNextInputMappingStub        func(db.InputMapping, bool) error
 	saveNextInputMappingMutex       sync.RWMutex
 	saveNextInputMappingArgsForCall []struct {
@@ -1601,6 +1614,69 @@ func (fake *FakeJob) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeJob) RerunBuild(arg1 db.Build) (db.Build, error) {
+	fake.rerunBuildMutex.Lock()
+	ret, specificReturn := fake.rerunBuildReturnsOnCall[len(fake.rerunBuildArgsForCall)]
+	fake.rerunBuildArgsForCall = append(fake.rerunBuildArgsForCall, struct {
+		arg1 db.Build
+	}{arg1})
+	fake.recordInvocation("RerunBuild", []interface{}{arg1})
+	fake.rerunBuildMutex.Unlock()
+	if fake.RerunBuildStub != nil {
+		return fake.RerunBuildStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.rerunBuildReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeJob) RerunBuildCallCount() int {
+	fake.rerunBuildMutex.RLock()
+	defer fake.rerunBuildMutex.RUnlock()
+	return len(fake.rerunBuildArgsForCall)
+}
+
+func (fake *FakeJob) RerunBuildCalls(stub func(db.Build) (db.Build, error)) {
+	fake.rerunBuildMutex.Lock()
+	defer fake.rerunBuildMutex.Unlock()
+	fake.RerunBuildStub = stub
+}
+
+func (fake *FakeJob) RerunBuildArgsForCall(i int) db.Build {
+	fake.rerunBuildMutex.RLock()
+	defer fake.rerunBuildMutex.RUnlock()
+	argsForCall := fake.rerunBuildArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeJob) RerunBuildReturns(result1 db.Build, result2 error) {
+	fake.rerunBuildMutex.Lock()
+	defer fake.rerunBuildMutex.Unlock()
+	fake.RerunBuildStub = nil
+	fake.rerunBuildReturns = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJob) RerunBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
+	fake.rerunBuildMutex.Lock()
+	defer fake.rerunBuildMutex.Unlock()
+	fake.RerunBuildStub = nil
+	if fake.rerunBuildReturnsOnCall == nil {
+		fake.rerunBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 error
+		})
+	}
+	fake.rerunBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeJob) SaveNextInputMapping(arg1 db.InputMapping, arg2 bool) error {
 	fake.saveNextInputMappingMutex.Lock()
 	ret, specificReturn := fake.saveNextInputMappingReturnsOnCall[len(fake.saveNextInputMappingArgsForCall)]
@@ -2100,6 +2176,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.publicMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
+	fake.rerunBuildMutex.RLock()
+	defer fake.rerunBuildMutex.RUnlock()
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
 	fake.scheduleBuildMutex.RLock()

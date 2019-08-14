@@ -5,20 +5,18 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeBuildScheduler struct {
-	ScheduleStub        func(lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) error
+	ScheduleStub        func(lager.Logger, *db.VersionsDB, db.Job, db.Resources) error
 	scheduleMutex       sync.RWMutex
 	scheduleArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 *db.VersionsDB
 		arg3 db.Job
 		arg4 db.Resources
-		arg5 atc.VersionedResourceTypes
 	}
 	scheduleReturns struct {
 		result1 error
@@ -30,7 +28,7 @@ type FakeBuildScheduler struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *db.VersionsDB, arg3 db.Job, arg4 db.Resources, arg5 atc.VersionedResourceTypes) error {
+func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *db.VersionsDB, arg3 db.Job, arg4 db.Resources) error {
 	fake.scheduleMutex.Lock()
 	ret, specificReturn := fake.scheduleReturnsOnCall[len(fake.scheduleArgsForCall)]
 	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
@@ -38,12 +36,11 @@ func (fake *FakeBuildScheduler) Schedule(arg1 lager.Logger, arg2 *db.VersionsDB,
 		arg2 *db.VersionsDB
 		arg3 db.Job
 		arg4 db.Resources
-		arg5 atc.VersionedResourceTypes
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("Schedule", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Schedule", []interface{}{arg1, arg2, arg3, arg4})
 	fake.scheduleMutex.Unlock()
 	if fake.ScheduleStub != nil {
-		return fake.ScheduleStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.ScheduleStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
@@ -58,17 +55,17 @@ func (fake *FakeBuildScheduler) ScheduleCallCount() int {
 	return len(fake.scheduleArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) ScheduleCalls(stub func(lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) error) {
+func (fake *FakeBuildScheduler) ScheduleCalls(stub func(lager.Logger, *db.VersionsDB, db.Job, db.Resources) error) {
 	fake.scheduleMutex.Lock()
 	defer fake.scheduleMutex.Unlock()
 	fake.ScheduleStub = stub
 }
 
-func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *db.VersionsDB, db.Job, db.Resources, atc.VersionedResourceTypes) {
+func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *db.VersionsDB, db.Job, db.Resources) {
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
 	argsForCall := fake.scheduleArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeBuildScheduler) ScheduleReturns(result1 error) {

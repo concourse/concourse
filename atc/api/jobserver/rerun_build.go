@@ -8,11 +8,10 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-// XXX ADD TESTS
-func (s *Server) RetriggerBuild(pipeline db.Pipeline) http.Handler {
+func (s *Server) RerunJobBuild(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		logger := s.logger.Session("trigger-build")
+		logger := s.logger.Session("rerun-build")
 
 		jobName := r.FormValue(":job_name")
 		buildName := r.FormValue(":build_name")
@@ -29,9 +28,9 @@ func (s *Server) RetriggerBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		buildToRetrigger, found, err := job.Build(buildName)
+		buildToRerun, found, err := job.Build(buildName)
 		if err != nil {
-			logger.Error("failed-to-get-build-to-retrigger", err)
+			logger.Error("failed-to-get-build-to-rerun", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -41,7 +40,7 @@ func (s *Server) RetriggerBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		build, err := job.RetriggerBuild(buildToRetrigger)
+		build, err := job.RerunBuild(buildToRerun)
 		if err != nil {
 			logger.Error("failed-to-retrigger-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

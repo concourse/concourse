@@ -85,8 +85,8 @@ func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, build
 				job:       job,
 				resources: resources,
 			})
-		} else if nextPendingBuild.RetriggerOf() != 0 {
-			schedulableBuilds = append(schedulableBuilds, &retriggerBuild{
+		} else if nextPendingBuild.RerunOf() != 0 {
+			schedulableBuilds = append(schedulableBuilds, &rerunBuild{
 				Build: nextPendingBuild,
 			})
 		} else {

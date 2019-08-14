@@ -1616,7 +1616,7 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("AdoptRetriggerInputsAndPipes", func() {
+	Describe("AdoptRerunInputsAndPipes", func() {
 		var build, retriggerBuild, otherBuild db.Build
 		var pipeline db.Pipeline
 		var job, otherJob db.Job
@@ -1652,7 +1652,8 @@ var _ = Describe("Build", func() {
 			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
-			otherJob, found, err := pipeline.Job("some-job")
+			var found bool
+			otherJob, found, err = pipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -1666,12 +1667,12 @@ var _ = Describe("Build", func() {
 			build, err = job.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			retriggerBuild, err = job.RetriggerBuild(build)
+			retriggerBuild, err = job.RerunBuild(build)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
-			buildInputs, adoptFound, err = retriggerBuild.AdoptRetriggerInputsAndPipes()
+			buildInputs, adoptFound, err = retriggerBuild.AdoptRerunInputsAndPipes()
 			Expect(err).ToNot(HaveOccurred())
 
 			reloadFound, err = build.Reload()
@@ -1813,8 +1814,9 @@ var _ = Describe("Build", func() {
 				versionsDB, err := pipeline.LoadVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 
-				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
+				buildPipes, err := versionsDB.LatestBuildPipes(retriggerBuild.ID())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(buildPipes).To(HaveLen(1))
 				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
 			})
 		})

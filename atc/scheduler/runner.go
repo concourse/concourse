@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
@@ -20,7 +19,6 @@ type BuildScheduler interface {
 		versions *db.VersionsDB,
 		job db.Job,
 		resources db.Resources,
-		resourceTypes atc.VersionedResourceTypes,
 	) error
 }
 

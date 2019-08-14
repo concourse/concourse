@@ -5,19 +5,17 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler"
 )
 
 type FakeBuildStarter struct {
-	TryStartPendingBuildsForJobStub        func(lager.Logger, db.Job, db.Resources, atc.VersionedResourceTypes) error
+	TryStartPendingBuildsForJobStub        func(lager.Logger, db.Job, db.Resources) error
 	tryStartPendingBuildsForJobMutex       sync.RWMutex
 	tryStartPendingBuildsForJobArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 db.Job
 		arg3 db.Resources
-		arg4 atc.VersionedResourceTypes
 	}
 	tryStartPendingBuildsForJobReturns struct {
 		result1 error
@@ -29,19 +27,18 @@ type FakeBuildStarter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(arg1 lager.Logger, arg2 db.Job, arg3 db.Resources, arg4 atc.VersionedResourceTypes) error {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(arg1 lager.Logger, arg2 db.Job, arg3 db.Resources) error {
 	fake.tryStartPendingBuildsForJobMutex.Lock()
 	ret, specificReturn := fake.tryStartPendingBuildsForJobReturnsOnCall[len(fake.tryStartPendingBuildsForJobArgsForCall)]
 	fake.tryStartPendingBuildsForJobArgsForCall = append(fake.tryStartPendingBuildsForJobArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 db.Job
 		arg3 db.Resources
-		arg4 atc.VersionedResourceTypes
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("TryStartPendingBuildsForJob", []interface{}{arg1, arg2, arg3, arg4})
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("TryStartPendingBuildsForJob", []interface{}{arg1, arg2, arg3})
 	fake.tryStartPendingBuildsForJobMutex.Unlock()
 	if fake.TryStartPendingBuildsForJobStub != nil {
-		return fake.TryStartPendingBuildsForJobStub(arg1, arg2, arg3, arg4)
+		return fake.TryStartPendingBuildsForJobStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -56,17 +53,17 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCallCount() int {
 	return len(fake.tryStartPendingBuildsForJobArgsForCall)
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCalls(stub func(lager.Logger, db.Job, db.Resources, atc.VersionedResourceTypes) error) {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCalls(stub func(lager.Logger, db.Job, db.Resources) error) {
 	fake.tryStartPendingBuildsForJobMutex.Lock()
 	defer fake.tryStartPendingBuildsForJobMutex.Unlock()
 	fake.TryStartPendingBuildsForJobStub = stub
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lager.Logger, db.Job, db.Resources, atc.VersionedResourceTypes) {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lager.Logger, db.Job, db.Resources) {
 	fake.tryStartPendingBuildsForJobMutex.RLock()
 	defer fake.tryStartPendingBuildsForJobMutex.RUnlock()
 	argsForCall := fake.tryStartPendingBuildsForJobArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturns(result1 error) {

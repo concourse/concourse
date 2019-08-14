@@ -20,9 +20,9 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		fakePipeline *dbfakes.FakePipeline
-		scheduler    *schedulerfakes.FakeBuildScheduler
-		noop         bool
+		fakePipeline  *dbfakes.FakePipeline
+		fakeScheduler *schedulerfakes.FakeBuildScheduler
+		noop          bool
 
 		lock *lockfakes.FakeLock
 
@@ -74,7 +74,7 @@ var _ = Describe("Runner", func() {
 			fakeDBResourceType(versionedResourceTypes[2]),
 		}, nil)
 
-		scheduler = new(schedulerfakes.FakeBuildScheduler)
+		fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
 		noop = false
 
 		someVersions = &db.VersionsDB{
@@ -111,7 +111,7 @@ var _ = Describe("Runner", func() {
 		process = ginkgomon.Invoke(&Runner{
 			Logger:    lagertest.NewTestLogger("test"),
 			Pipeline:  fakePipeline,
-			Scheduler: scheduler,
+			Scheduler: fakeScheduler,
 			Noop:      noop,
 			Interval:  100 * time.Millisecond,
 		})
@@ -146,7 +146,7 @@ var _ = Describe("Runner", func() {
 			It("does not do any scheduling", func() {
 				Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(2))
 
-				Expect(scheduler.ScheduleCallCount()).To(BeZero())
+				Expect(fakeScheduler.ScheduleCallCount()).To(BeZero())
 			})
 		})
 
@@ -158,7 +158,7 @@ var _ = Describe("Runner", func() {
 			It("does not do any scheduling", func() {
 				Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(2))
 
-				Expect(scheduler.ScheduleCallCount()).To(BeZero())
+				Expect(fakeScheduler.ScheduleCallCount()).To(BeZero())
 			})
 		})
 
@@ -169,19 +169,17 @@ var _ = Describe("Runner", func() {
 			})
 
 			It("schedules pending builds", func() {
-				Eventually(scheduler.ScheduleCallCount).Should(Equal(2))
+				Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(2))
 
 				jobs := []string{}
-				_, versions, job, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
+				_, versions, job, resources := fakeScheduler.ScheduleArgsForCall(0)
 				Expect(versions).To(Equal(someVersions))
 				Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
-				Expect(resourceTypes).To(Equal(versionedResourceTypes))
 				jobs = append(jobs, job.Name())
 
-				_, versions, job, resources, resourceTypes = scheduler.ScheduleArgsForCall(1)
+				_, versions, job, resources = fakeScheduler.ScheduleArgsForCall(1)
 				Expect(versions).To(Equal(someVersions))
 				Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
-				Expect(resourceTypes).To(Equal(versionedResourceTypes))
 				jobs = append(jobs, job.Name())
 
 				Expect(jobs).To(ConsistOf([]string{"some-job", "some-other-job"}))
@@ -195,13 +193,12 @@ var _ = Describe("Runner", func() {
 			})
 
 			It("schedules pending builds for one job", func() {
-				Eventually(scheduler.ScheduleCallCount).Should(Equal(1))
+				Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(1))
 
-				_, versions, job, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
+				_, versions, job, resources := fakeScheduler.ScheduleArgsForCall(0)
 				Expect(versions).To(Equal(someVersions))
 				Expect(job).To(Equal(fakeJob2))
 				Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
-				Expect(resourceTypes).To(Equal(versionedResourceTypes))
 			})
 		})
 	})
@@ -212,7 +209,7 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("does not start scheduling builds", func() {
-			Consistently(scheduler.ScheduleCallCount).Should(Equal(0))
+			Consistently(fakeScheduler.ScheduleCallCount).Should(Equal(0))
 		})
 	})
 

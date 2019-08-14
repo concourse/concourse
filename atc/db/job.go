@@ -45,7 +45,7 @@ type Job interface {
 
 	ScheduleBuild(Build) (bool, error)
 	CreateBuild() (Build, error)
-	RetriggerBuild(Build) (Build, error)
+	RerunBuild(Build) (Build, error)
 
 	Builds(page Page) ([]Build, Pagination, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
@@ -533,7 +533,7 @@ func (j *job) CreateBuild() (Build, error) {
 	return build, nil
 }
 
-func (j *job) RetriggerBuild(buildToRetrigger Build) (Build, error) {
+func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -541,19 +541,19 @@ func (j *job) RetriggerBuild(buildToRetrigger Build) (Build, error) {
 
 	defer Rollback(tx)
 
-	retriggerBuildName, err := j.getNewRetriggerBuildName(tx, buildToRetrigger.ID())
+	rerunBuildName, err := j.getNewRerunBuildName(tx, buildToRerun.ID())
 	if err != nil {
 		return nil, err
 	}
 
-	retriggerBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
-	err = createBuild(tx, retriggerBuild, map[string]interface{}{
-		"name":         fmt.Sprintf("%s.%s", buildToRetrigger.Name(), retriggerBuildName),
-		"job_id":       j.id,
-		"pipeline_id":  j.pipelineID,
-		"team_id":      j.teamID,
-		"status":       BuildStatusPending,
-		"retrigger_of": buildToRetrigger.ID(),
+	rerunBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
+	err = createBuild(tx, rerunBuild, map[string]interface{}{
+		"name":        fmt.Sprintf("%s.%s", buildToRerun.Name(), rerunBuildName),
+		"job_id":      j.id,
+		"pipeline_id": j.pipelineID,
+		"team_id":     j.teamID,
+		"status":      BuildStatusPending,
+		"rerun_of":    buildToRerun.ID(),
 	})
 	if err != nil {
 		return nil, err
@@ -569,7 +569,7 @@ func (j *job) RetriggerBuild(buildToRetrigger Build) (Build, error) {
 		return nil, err
 	}
 
-	return retriggerBuild, nil
+	return rerunBuild, nil
 }
 
 func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
@@ -939,14 +939,14 @@ func (j *job) finishedBuild() (Build, error) {
 	return finished, nil
 }
 
-func (j *job) getNewRetriggerBuildName(tx Tx, buildID int) (string, error) {
+func (j *job) getNewRerunBuildName(tx Tx, buildID int) (string, error) {
 	var buildName string
 	err := psql.Update("builds").
-		Set("build_number_seq", sq.Expr("build_number_seq + 1")).
+		Set("rerun_build_number_seq", sq.Expr("rerun_build_number_seq + 1")).
 		Where(sq.Eq{
 			"id": buildID,
 		}).
-		Suffix("RETURNING build_number_seq").
+		Suffix("RETURNING rerun_build_number_seq").
 		RunWith(tx).
 		QueryRow().
 		Scan(&buildName)

@@ -1905,6 +1905,150 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
+	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds/:build_name", func() {
+		var request *http.Request
+		var response *http.Response
+
+		BeforeEach(func() {
+			var err error
+
+			request, err = http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/some-build", nil)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authorized and authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthorizedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when getting the job fails", func() {
+				BeforeEach(func() {
+					fakePipeline.JobReturns(nil, false, errors.New("errorrr"))
+				})
+
+				It("returns a 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the job is not found", func() {
+				BeforeEach(func() {
+					fakePipeline.JobReturns(nil, false, nil)
+				})
+
+				It("returns a 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when getting the job succeeds", func() {
+				BeforeEach(func() {
+					fakeJob.NameReturns("some-job")
+					fakePipeline.JobReturns(fakeJob, true, nil)
+				})
+
+				It("tries to get the build to rerun", func() {
+					Expect(fakeJob.BuildCallCount()).To(Equal(1))
+				})
+
+				Context("when getting the build to rerun fails", func() {
+					BeforeEach(func() {
+						fakeJob.BuildReturns(nil, false, errors.New("oops"))
+					})
+
+					It("returns a 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the build to rerun is not found", func() {
+					BeforeEach(func() {
+						fakeJob.BuildReturns(nil, false, nil)
+					})
+
+					It("returns a 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when getting the build to rerun succeeds", func() {
+					BeforeEach(func() {
+						build := new(dbfakes.FakeBuild)
+						build.IDReturns(1)
+						build.NameReturns("1")
+						build.JobNameReturns("some-job")
+						build.PipelineNameReturns("a-pipeline")
+						build.TeamNameReturns("some-team")
+						build.StatusReturns(db.BuildStatusStarted)
+						build.StartTimeReturns(time.Unix(1, 0))
+						build.EndTimeReturns(time.Unix(100, 0))
+
+						fakeJob.BuildReturns(build, true, nil)
+					})
+
+					Context("when creating the rerun build fails", func() {
+						BeforeEach(func() {
+							fakeJob.RerunBuildReturns(nil, errors.New("nopers"))
+						})
+
+						It("returns a 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when creating the rerun build succeeds", func() {
+						BeforeEach(func() {
+							build := new(dbfakes.FakeBuild)
+							build.IDReturns(2)
+							build.NameReturns("1.1")
+							build.JobNameReturns("some-job")
+							build.PipelineNameReturns("a-pipeline")
+							build.TeamNameReturns("some-team")
+							build.StatusReturns(db.BuildStatusStarted)
+							build.StartTimeReturns(time.Unix(1, 0))
+							build.EndTimeReturns(time.Unix(100, 0))
+
+							fakeJob.RerunBuildReturns(build, nil)
+						})
+
+						It("returns 200 OK", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						})
+
+						It("returns the build", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{
+							"id": 2,
+							"name": "1.1",
+							"job_name": "some-job",
+							"status": "started",
+							"api_url": "/api/v1/builds/2",
+							"pipeline_name": "a-pipeline",
+							"team_name": "some-team",
+							"start_time": 1,
+							"end_time": 100
+						}`))
+						})
+					})
+				})
+			})
+		})
+	})
+
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/pause", func() {
 		var response *http.Response
 

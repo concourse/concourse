@@ -151,6 +151,7 @@ var requiredRoles = map[string]string{
 	atc.GetBuildPreparation:           "viewer",
 	atc.GetJob:                        "viewer",
 	atc.CreateJobBuild:                "pipeline-operator",
+	atc.RerunJobBuild:                 "pipeline-operator",
 	atc.ListAllJobs:                   "viewer",
 	atc.ListJobs:                      "viewer",
 	atc.ListJobBuilds:                 "viewer",

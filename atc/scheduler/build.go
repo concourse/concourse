@@ -61,10 +61,10 @@ func (s *schedulerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool
 	return s.AdoptInputsAndPipes()
 }
 
-type retriggerBuild struct {
+type rerunBuild struct {
 	db.Build
 }
 
-func (r *retriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
-	return r.AdoptRetriggerInputsAndPipes()
+func (r *rerunBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
+	return r.AdoptRerunInputsAndPipes()
 }

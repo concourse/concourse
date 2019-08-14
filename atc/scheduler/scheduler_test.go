@@ -37,21 +37,13 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("Schedule", func() {
 		var (
-			versionsDB             *db.VersionsDB
-			fakeJob                *dbfakes.FakeJob
-			fakeResource           *dbfakes.FakeResource
-			scheduleErr            error
-			versionedResourceTypes atc.VersionedResourceTypes
+			versionsDB   *db.VersionsDB
+			fakeJob      *dbfakes.FakeJob
+			fakeResource *dbfakes.FakeResource
+			scheduleErr  error
 		)
 
 		BeforeEach(func() {
-			versionedResourceTypes = atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{Name: "some-resource-type"},
-					Version:      atc.Version{"some": "version"},
-				},
-			}
-
 			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("some-resource")
 		})
@@ -66,7 +58,6 @@ var _ = Describe("Scheduler", func() {
 				versionsDB,
 				fakeJob,
 				db.Resources{fakeResource},
-				versionedResourceTypes,
 			)
 			if waiter != nil {
 				waiter.Wait()
@@ -163,10 +154,9 @@ var _ = Describe("Scheduler", func() {
 
 							It("started all pending builds", func() {
 								Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
-								_, actualJob, actualResources, actualResourceTypes := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
+								_, actualJob, actualResources := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
 								Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
 								Expect(actualResources).To(Equal(db.Resources{fakeResource}))
-								Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 							})
 						})
 
