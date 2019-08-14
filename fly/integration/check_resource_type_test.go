@@ -64,7 +64,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-f", "ref:fake-ref")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-f", "ref:fake-ref", "--shallow", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -102,7 +102,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -126,7 +126,7 @@ var _ = Describe("CheckResourceType", func() {
 		})
 	})
 
-	Context("when watching the check succeed", func() {
+	Context("when the check succeed", func() {
 		BeforeEach(func() {
 			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
 			atcServer.AppendHandlers(
@@ -150,7 +150,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-w")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -173,7 +173,7 @@ var _ = Describe("CheckResourceType", func() {
 		})
 	})
 
-	Context("when watching the check fail", func() {
+	Context("when the check fail", func() {
 		BeforeEach(func() {
 			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
 			atcServer.AppendHandlers(
@@ -198,7 +198,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-w")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -266,7 +266,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--recursive")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -341,7 +341,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--recursive")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -377,7 +377,7 @@ var _ = Describe("CheckResourceType", func() {
 		})
 
 		It("fails with error", func() {
-			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -399,7 +399,7 @@ var _ = Describe("CheckResourceType", func() {
 		})
 
 		It("outputs error in response body", func() {
-			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 

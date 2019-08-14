@@ -66,7 +66,7 @@ var _ = Describe("CheckResource", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "-f", "ref:fake-ref")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "-f", "ref:fake-ref", "-a", "--shallow")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -104,7 +104,7 @@ var _ = Describe("CheckResource", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "--shallow", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -128,7 +128,7 @@ var _ = Describe("CheckResource", func() {
 		})
 	})
 
-	Context("when watching the check succeed", func() {
+	Context("when the check succeed", func() {
 		BeforeEach(func() {
 			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"
 			atcServer.AppendHandlers(
@@ -152,7 +152,7 @@ var _ = Describe("CheckResource", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "-w")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "--shallow")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -176,7 +176,7 @@ var _ = Describe("CheckResource", func() {
 		})
 	})
 
-	Context("when watching the check fail", func() {
+	Context("when the check fail", func() {
 		BeforeEach(func() {
 			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"
 			atcServer.AppendHandlers(
@@ -201,7 +201,7 @@ var _ = Describe("CheckResource", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "-w")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "--shallow")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -273,7 +273,7 @@ var _ = Describe("CheckResource", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "--recursive")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -352,7 +352,7 @@ var _ = Describe("CheckResource", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "--recursive")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -390,7 +390,7 @@ var _ = Describe("CheckResource", func() {
 
 		It("sends correct check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "-f", "ref1:fake-ref-1", "-f", "ref2:fake-ref-2")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "-f", "ref1:fake-ref-1", "-f", "ref2:fake-ref-2", "--shallow", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -424,7 +424,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("fails with error", func() {
-			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "--shallow")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -446,7 +446,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("outputs error in response body", func() {
-			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource", "--shallow")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 

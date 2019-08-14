@@ -14,10 +14,10 @@ import (
 )
 
 type CheckResourceCommand struct {
-	Resource  flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to check version for"`
-	Version   *atc.Version             `short:"f" long:"from"                     value-name:"VERSION"           description:"Version of the resource to check from, e.g. ref:abcd or path:thing-1.2.3.tgz"`
-	Watch     bool                     `short:"w" long:"watch"                    value-name:"WATCH"             description:"Watch for the status of the check to succeed/fail"`
-	Recursive bool                     `long:"recursive"                          value-name:"RECURSIVE"         description:"Check and wait for versions of all parent types"`
+	Resource flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to check version for"`
+	Version  *atc.Version             `short:"f" long:"from"                     value-name:"VERSION"           description:"Version of the resource to check from, e.g. ref:abcd or path:thing-1.2.3.tgz"`
+	Async    bool                     `short:"a" long:"async"                    value-name:"ASYNC"             description:"Return the check without waiting for its result"`
+	Shallow  bool                     `long:"shallow"                          value-name:"SHALLOW"         description:"Check the resource itself only"`
 }
 
 func (command *CheckResourceCommand) Execute(args []string) error {
@@ -36,7 +36,7 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		version = *command.Version
 	}
 
-	if command.Recursive {
+	if !command.Shallow {
 		err = command.checkParent(target)
 		if err != nil {
 			return err
@@ -54,7 +54,7 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 
 	var checkID = strconv.Itoa(check.ID)
 
-	if command.Watch {
+	if !command.Async {
 		for check.Status == "started" {
 			time.Sleep(time.Second)
 
@@ -125,8 +125,6 @@ func (command *CheckResourceCommand) checkParent(target rc.Target) error {
 			ResourceName: parentType.Name,
 			PipelineName: command.Resource.PipelineName,
 		},
-		Recursive: true,
-		Watch:     true,
 	}
 
 	return cmd.Execute(nil)

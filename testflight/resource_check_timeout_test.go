@@ -29,7 +29,7 @@ var _ = Describe("A resource check which times out", func() {
 		})
 
 		It("prints an error and cancels the check", func() {
-			check := spawnFly("check-resource", "-r", inPipeline("my-resource"), "-w")
+			check := spawnFly("check-resource", "-r", inPipeline("my-resource"))
 			<-check.Exited
 			Expect(check).To(gexec.Exit(1))
 			Expect(check.Out).To(gbytes.Say("errored"))
@@ -43,7 +43,7 @@ var _ = Describe("A resource check which times out", func() {
 		})
 
 		It("succeeds", func() {
-			fly("check-resource", "-r", inPipeline("my-resource"), "-w")
+			fly("check-resource", "-r", inPipeline("my-resource"))
 		})
 	})
 })

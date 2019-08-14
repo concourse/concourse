@@ -23,7 +23,7 @@ var _ = Describe("Checking a resource", func() {
 		})
 
 		It("can check a resource recursively", func() {
-			watch := fly("check-resource", "-r", inPipeline("some-git-resource"), "-w", "--recursive")
+			watch := fly("check-resource", "-r", inPipeline("some-git-resource"))
 			Expect(watch).To(gbytes.Say("some-git-resource.*succeeded"))
 		})
 	})

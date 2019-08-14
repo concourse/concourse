@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Configuring a resource type in a pipeline config", func() {
@@ -34,9 +35,16 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 		})
 
 		It("can check for resources having a custom type recursively", func() {
-			checkResource := fly("check-resource", "-r", inPipeline("my-resource"), "-w", "--recursive")
+			checkResource := fly("check-resource", "-r", inPipeline("my-resource"))
 			Expect(checkResource).To(gbytes.Say("custom-resource-type.*succeeded"))
 			Expect(checkResource).To(gbytes.Say("my-resource.*succeeded"))
+		})
+
+		It("can check for resources having a custom type shallowly and error out", func() {
+			checkResource := spawnFly("check-resource", "-r", inPipeline("my-resource"), "--shallow")
+			<-checkResource.Exited
+			Expect(checkResource).To(gexec.Exit(1))
+			Expect(checkResource.Err).To(gbytes.Say("parent type has no version"))
 		})
 	})
 

@@ -16,8 +16,8 @@ import (
 type CheckResourceTypeCommand struct {
 	ResourceType flaghelpers.ResourceFlag `short:"r" long:"resource-type" required:"true" value-name:"PIPELINE/RESOURCE-TYPE" description:"Name of a resource-type to check"`
 	Version      *atc.Version             `short:"f" long:"from"                     value-name:"VERSION"           description:"Version of the resource type to check from, e.g. digest:sha256@..."`
-	Watch        bool                     `short:"w" long:"watch"                     value-name:"WATCH"           description:"Watch for the status of the check to succeed/fail"`
-	Recursive    bool                     `long:"recursive"                          value-name:"RECURSIVE"         description:"Check and wait for versions of all parent types"`
+	Async        bool                     `short:"a" long:"async"                    value-name:"ASYNC"             description:"Return the check without waiting for its result"`
+	Shallow      bool                     `long:"shallow"                          value-name:"SHALLOW"         description:"Check the resource type itself only"`
 }
 
 func (command *CheckResourceTypeCommand) Execute(args []string) error {
@@ -37,7 +37,7 @@ func (command *CheckResourceTypeCommand) Execute(args []string) error {
 		version = *command.Version
 	}
 
-	if command.Recursive {
+	if !command.Shallow {
 		err = command.checkParent(target)
 		if err != nil {
 			return err
@@ -55,7 +55,7 @@ func (command *CheckResourceTypeCommand) Execute(args []string) error {
 
 	var checkID = strconv.Itoa(check.ID)
 
-	if command.Watch {
+	if !command.Async {
 		for check.Status == "started" {
 			time.Sleep(time.Second)
 
@@ -122,8 +122,6 @@ func (command *CheckResourceTypeCommand) checkParent(target rc.Target) error {
 			ResourceName: parentType.Name,
 			PipelineName: command.ResourceType.PipelineName,
 		},
-		Recursive: true,
-		Watch:     true,
 	}
 
 	return cmd.Execute(nil)
