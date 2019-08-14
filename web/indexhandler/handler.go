@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/gobuffalo/packr"
 )
 
@@ -52,19 +51,9 @@ func NewHandler(logger lager.Logger) (http.Handler, error) {
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.Session("index")
 
-	// csrfToken passed after logging in. Its validity is verified on server
-	// based on auth token in Cookie.
-	csrfToken := r.FormValue("csrf_token")
-
-	authToken := ""
-	authCookie, _ := r.Cookie(auth.AuthCookieName)
-	if authCookie != nil {
-		authToken = authCookie.Value
-	}
-
 	err := h.template.Execute(w, templateData{
-		CSRFToken:   csrfToken,
-		AuthToken:   authToken,
+		CSRFToken: r.FormValue("csrf_token"),
+		AuthToken: r.Header.Get("Authorization"),
 		ClusterName: ClusterName,
 	})
 
