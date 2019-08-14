@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/web/indexhandler"
 	"github.com/concourse/concourse/web/publichandler"
 	"github.com/concourse/concourse/web/robotshandler"
@@ -26,6 +25,6 @@ func NewHandler(logger lager.Logger) (http.Handler, error) {
 	webMux := http.NewServeMux()
 	webMux.Handle("/public/", publicHandler)
 	webMux.Handle("/robots.txt", robotsHandler)
-	webMux.Handle("/", auth.CookieSetHandler{indexHandler})
+	webMux.Handle("/", indexHandler)
 	return webMux, nil
 }

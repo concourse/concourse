@@ -1296,7 +1296,7 @@ func (cmd *RunCommand) constructHTTPHandler(
 
 			// proxy Authorization header to/from auth cookie,
 			// to support auth from JS (EventSource) and custom JWT auth
-			Handler: auth.CookieSetHandler{
+			Handler: auth.WebAuthHandler{
 				Handler: webMux,
 			},
 		},

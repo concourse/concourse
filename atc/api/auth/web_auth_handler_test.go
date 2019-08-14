@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 )
 
-var _ = Describe("CookieSetHandler", func() {
+var _ = Describe("WebAuthHandler", func() {
 	var (
 		givenRequest *http.Request
 	)
@@ -25,7 +25,7 @@ var _ = Describe("CookieSetHandler", func() {
 	var server *httptest.Server
 
 	BeforeEach(func() {
-		server = httptest.NewServer(auth.CookieSetHandler{
+		server = httptest.NewServer(auth.WebAuthHandler{
 			Handler: simpleHandler,
 		})
 	})
