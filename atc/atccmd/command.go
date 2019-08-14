@@ -1190,6 +1190,7 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 		return nil, err
 	}
 
+	dbConn.SetMaxOpenConns(1)
 	dbConn.SetMaxIdleConns(1)
 	dbConn.SetConnMaxLifetime(0)
 
