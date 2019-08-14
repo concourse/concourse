@@ -22,6 +22,7 @@ type SkyConfig struct {
 	Logger          lager.Logger
 	TokenVerifier   token.Verifier
 	TokenIssuer     token.Issuer
+	TokenMiddleware token.Middleware
 	SigningKey      *rsa.PrivateKey
 	SecureCookies   bool
 	DexClientID     string
@@ -32,7 +33,6 @@ type SkyConfig struct {
 }
 
 const stateCookieName = "skymarshal_state"
-const authCookieName = "skymarshal_auth"
 
 func NewSkyHandler(server *SkyServer) http.Handler {
 	handler := http.NewServeMux()
@@ -56,8 +56,8 @@ func (s *SkyServer) Login(w http.ResponseWriter, r *http.Request) {
 
 	logger := s.config.Logger.Session("login")
 
-	authCookie, err := r.Cookie(authCookieName)
-	if err != nil {
+	tokenString := s.config.TokenMiddleware.GetToken(r)
+	if tokenString == "" {
 		s.NewLogin(w, r)
 		return
 	}
@@ -67,7 +67,7 @@ func (s *SkyServer) Login(w http.ResponseWriter, r *http.Request) {
 		redirectURI = "/"
 	}
 
-	parts := strings.Split(authCookie.Value, " ")
+	parts := strings.Split(tokenString, " ")
 
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
 		logger.Info("failed-to-parse-cookie")
@@ -243,14 +243,12 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     authCookieName,
-		Value:    tokenStr,
-		Path:     "/",
-		Expires:  token.Expiry,
-		HttpOnly: true,
-		Secure:   s.config.SecureCookies,
-	})
+	err = s.config.TokenMiddleware.SetToken(w, token.TokenType + " " + token.AccessToken, token.Expiry)
+	if err != nil {
+		logger.Error("invalid-token", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	if redirectURL.Host != "" {
 		logger.Error("invalid-redirect", fmt.Errorf("Unsupported redirect uri: %s", redirectURI))
@@ -344,13 +342,7 @@ func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *SkyServer) Logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     authCookieName,
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   s.config.SecureCookies,
-		HttpOnly: true,
-	})
+	s.config.TokenMiddleware.UnsetToken(w)
 }
 
 func (s *SkyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
