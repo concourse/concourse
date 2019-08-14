@@ -65,6 +65,7 @@ type FlyCommand struct {
 
 	Builds     BuildsCommand     `command:"builds"      alias:"bs" description:"List builds data"`
 	AbortBuild AbortBuildCommand `command:"abort-build" alias:"ab" description:"Abort a build"`
+	RerunBuild RerunBuildCommand `command:"rerun-build" alias:"rb" description:"Rerun a build"`
 
 	TriggerJob TriggerJobCommand `command:"trigger-job" alias:"tj" description:"Start a job in a pipeline"`
 
