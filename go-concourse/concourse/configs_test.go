@@ -227,19 +227,15 @@ var _ = Describe("ATC Handler Configs", func() {
 					checkCredentials = true
 				})
 
-				Context("when credential doesn't exist in credentials manager", func() {
-					BeforeEach(func() {
-						returnHeader = http.StatusBadRequest
-						returnBody = []byte(`{"errors":["Expected to find variables: BAR"]}`)
-					})
+				It("submits with check_creds query param set", func() {
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
 
-					It("returns an error", func() {
-						_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("Expected to find variables: BAR"))
-					})
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+					Expect(atcServer.ReceivedRequests()[0].URL.RawQuery).To(Equal("check_creds="))
 				})
-
 			})
 		})
 
@@ -285,19 +281,15 @@ var _ = Describe("ATC Handler Configs", func() {
 					checkCredentials = true
 				})
 
-				Context("when credential doesn't exist in credentials manager", func() {
-					BeforeEach(func() {
-						returnHeader = http.StatusBadRequest
-						returnBody = []byte(`{"errors":["Expected to find variables: BAR"]}`)
-					})
+				It("submits with check_creds query param set", func() {
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
 
-					It("returns an error", func() {
-						_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("Expected to find variables: BAR"))
-					})
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+					Expect(atcServer.ReceivedRequests()[0].URL.RawQuery).To(Equal("check_creds="))
 				})
-
 			})
 		})
 

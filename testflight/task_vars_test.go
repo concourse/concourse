@@ -89,7 +89,7 @@ run:
 				execS := spawnFly("trigger-job", "-w", "-j", pipelineName+"/external-task-failure")
 				<-execS.Exited
 				Expect(execS).To(gexec.Exit(2))
-				Expect(execS.Out).To(gbytes.Say("Expected to find variables: echo_text"))
+				Expect(execS.Out).To(gbytes.Say("undefined vars: echo_text"))
 			})
 		})
 
@@ -122,7 +122,7 @@ echo_text: Hello World From Command Line
 				execS := spawnFlyIn(fixture, "execute", "-c", "task.yml", "-v", "image_resource_type=mock")
 				<-execS.Exited
 				Expect(execS).To(gexec.Exit(2))
-				Expect(execS.Out).To(gbytes.Say("Expected to find variables: echo_text"))
+				Expect(execS.Out).To(gbytes.Say("undefined vars: echo_text"))
 			})
 		})
 

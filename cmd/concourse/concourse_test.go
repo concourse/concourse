@@ -73,14 +73,7 @@ var _ = Describe("Web Command", func() {
 			os.Remove(filepath.Dir(hostPubKeyFile))
 		})
 
-		Context("but no session signing key is provided", func() {
-			It("should fail due to missing db credentials", func() {
-				Eventually(concourseRunner.Buffer(), "10s", "2s").Should(gbytes.Say("dial tcp 127.0.0.1:5432: connect: connection refused"))
-			})
-		})
-
 		Context("and all other required flags are provided", func() {
-
 			var (
 				postgresRunner postgresrunner.Runner
 				dbProcess      ifrit.Process
@@ -93,7 +86,8 @@ var _ = Describe("Web Command", func() {
 				dbProcess = ifrit.Invoke(postgresRunner)
 				postgresRunner.CreateTestDB()
 
-				args = append(args, "--postgres-user", "postgres",
+				args = append(args,
+					"--postgres-user", "postgres",
 					"--postgres-database", "testdb",
 					"--postgres-port", strconv.Itoa(5433+GinkgoParallelNode()),
 					"--main-team-local-user", "test",
@@ -119,7 +113,6 @@ var _ = Describe("Web Command", func() {
 			It("TSA should start up", func() {
 				Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
 			})
-
 		})
 	})
 })
