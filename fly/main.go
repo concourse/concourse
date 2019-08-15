@@ -47,12 +47,12 @@ func handleError(helpParser *flags.Parser, err error) {
 		if err == concourse.ErrUnauthorized {
 			fmt.Fprintln(ui.Stderr, "not authorized. run the following to log in:")
 			fmt.Fprintln(ui.Stderr, "")
-			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s login", commands.Fly.Target))
+			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("%s -t %s login", os.Args[0], commands.Fly.Target))
 			fmt.Fprintln(ui.Stderr, "")
 		} else if err == rc.ErrNoTargetSpecified {
 			fmt.Fprintln(ui.Stderr, "no target specified. specify the target with "+ui.Embolden("-t")+" or log in like so:")
 			fmt.Fprintln(ui.Stderr, "")
-			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t (alias) login -c (concourse url)"))
+			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("%s -t (alias) login -c (concourse url)", os.Args[0]))
 			fmt.Fprintln(ui.Stderr, "")
 		} else if versionErr, ok := err.(rc.ErrVersionMismatch); ok {
 			fmt.Fprintln(ui.Stderr, versionErr.Error())

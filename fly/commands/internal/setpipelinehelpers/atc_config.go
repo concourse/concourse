@@ -89,7 +89,7 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 }
 
 func (atcConfig ATCConfig) UnpausePipelineCommand() string {
-	return fmt.Sprintf("fly -t %s unpause-pipeline -p %s", atcConfig.TargetName, atcConfig.PipelineName)
+	return fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, atcConfig.PipelineName)
 }
 
 func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool) {
