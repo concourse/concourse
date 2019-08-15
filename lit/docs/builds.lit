@@ -126,7 +126,7 @@ sure you intercept while it's running if you want to debug.
   \title{\code{fly watch}}{fly-watch}
 
   Concourse emits streaming colored logs on the website but it can be helpful
-  to have the logs availiable to the command line. (e.g. so that they can be
+  to have the logs available to the command line. (e.g. so that they can be
   processed by other commands).
 
   The \code{watch} command can be used to do just this. You can also view
