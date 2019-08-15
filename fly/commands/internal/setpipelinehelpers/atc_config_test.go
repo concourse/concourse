@@ -1,7 +1,9 @@
 package setpipelinehelpers_test
 
 import (
+	"fmt"
 	. "github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,6 +33,7 @@ var _ = Describe("UnpausePipelineCommand", func() {
 			TargetName:   "my-target",
 			PipelineName: "my-pipeline",
 		}
-		Expect(atcConfig.UnpausePipelineCommand()).To(Equal("fly -t my-target unpause-pipeline -p my-pipeline"))
+		expected := fmt.Sprintf("%s -t my-target unpause-pipeline -p my-pipeline", os.Args[0])
+		Expect(atcConfig.UnpausePipelineCommand()).To(Equal(expected))
 	})
 })

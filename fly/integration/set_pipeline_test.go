@@ -1028,7 +1028,7 @@ this is super secure
 
 							Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
 							Eventually(sess).Should(gbytes.Say("  - run the unpause-pipeline command:"))
-							Eventually(sess).Should(gbytes.Say("    fly -t " + targetName + " unpause-pipeline -p awesome-pipeline"))
+							Eventually(sess).Should(gbytes.Say("    %s -t %s unpause-pipeline -p awesome-pipeline", flyPath, targetName))
 							Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
 
 							<-sess.Exited
