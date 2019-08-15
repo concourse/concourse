@@ -586,7 +586,7 @@ var _ = Describe("login Command", func() {
 
 				Eventually(sess).Should(gexec.Exit(0))
 				Expect(sess.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, atcVersion))
-				Expect(sess.Err).To(gbytes.Say(`fly -t some-target sync\n`))
+				Expect(sess.Err).To(gbytes.Say(`fly.* -t some-target sync\n`))
 			})
 		})
 	})
