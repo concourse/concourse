@@ -448,9 +448,14 @@ func (b *build) Finish(status BuildStatus) error {
 			return err
 		}
 
+		var rerunOf sql.NullInt64
+		if b.rerunOf != 0 {
+			rerunOf = sql.NullInt64{Int64: int64(b.rerunOf), Valid: true}
+		}
+
 		_, err = psql.Insert("successful_build_outputs").
-			Columns("build_id", "job_id", "outputs").
-			Values(b.id, b.jobID, outputsJSON).
+			Columns("build_id", "job_id", "rerun_of", "outputs").
+			Values(b.id, b.jobID, rerunOf, outputsJSON).
 			RunWith(tx).
 			Exec()
 		if err != nil {
@@ -1137,11 +1142,11 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 
 	rows, err := psql.Insert("build_resource_config_version_inputs").
 		Columns("resource_id", "version_md5", "name", "first_occurrence", "build_id").
-		Select(psql.Select("i.resource_id", "i.version_md5", "i.name", "i.first_occurrence").
+		Select(psql.Select("i.resource_id", "i.version_md5", "i.name", "false").
 			Column("?", b.id).
 			From("build_resource_config_version_inputs i").
 			Where(sq.Eq{"i.build_id": b.rerunOf})).
-		Suffix("ON CONFLICT (build_id, resource_id, version_md5, name) DO UPDATE SET first_occurrence = EXCLUDED.first_occurrence").
+		Suffix("ON CONFLICT (build_id, resource_id, version_md5, name) DO NOTHING").
 		Suffix("RETURNING name, resource_id, version_md5, first_occurrence").
 		RunWith(tx).
 		Query()

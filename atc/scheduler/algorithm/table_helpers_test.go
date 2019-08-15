@@ -3,6 +3,7 @@ package algorithm_test
 import (
 	"compress/gzip"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -27,16 +28,17 @@ type DB struct {
 }
 
 type DBRow struct {
-	Job         string
-	BuildID     int
-	Resource    string
-	Version     string
-	CheckOrder  int
-	VersionID   int
-	Disabled    bool
-	FromBuildID int
-	ToBuildID   int
-	Pinned      bool
+	Job            string
+	BuildID        int
+	Resource       string
+	Version        string
+	CheckOrder     int
+	VersionID      int
+	Disabled       bool
+	FromBuildID    int
+	ToBuildID      int
+	Pinned         bool
+	RerunOfBuildID int
 }
 
 type Example struct {
@@ -339,6 +341,7 @@ func (example Example) Run() {
 
 		buildOutputs := map[int]map[string][]string{}
 		buildToJobID := map[int]int{}
+		buildToRerunOf := map[int]int{}
 		for _, row := range example.DB.BuildOutputs {
 			setup.insertRowVersion(resources, row)
 			setup.insertRowBuild(row)
@@ -364,6 +367,10 @@ func (example Example) Run() {
 
 			outputs[key] = append(outputs[key], convertToMD5(row.Version))
 			buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
+
+			if row.RerunOfBuildID != 0 {
+				buildToRerunOf[row.BuildID] = row.RerunOfBuildID
+			}
 		}
 
 		for _, row := range example.DB.BuildInputs {
@@ -391,15 +398,24 @@ func (example Example) Run() {
 
 			outputs[key] = append(outputs[key], convertToMD5(row.Version))
 			buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
+
+			if row.RerunOfBuildID != 0 {
+				buildToRerunOf[row.BuildID] = row.RerunOfBuildID
+			}
 		}
 
 		for buildID, outputs := range buildOutputs {
 			outputsJSON, err := json.Marshal(outputs)
 			Expect(err).ToNot(HaveOccurred())
 
+			var rerunOf sql.NullInt64
+			if buildToRerunOf[buildID] != 0 {
+				rerunOf.Int64 = int64(buildToRerunOf[buildID])
+			}
+
 			_, err = setup.psql.Insert("successful_build_outputs").
-				Columns("build_id", "job_id", "outputs").
-				Values(buildID, buildToJobID[buildID], outputsJSON).
+				Columns("build_id", "job_id", "rerun_of", "outputs").
+				Values(buildID, buildToJobID[buildID], rerunOf, outputsJSON).
 				Suffix("ON CONFLICT DO NOTHING").
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
@@ -703,10 +719,15 @@ func (s setupDB) insertRowVersion(resources map[string]atc.ResourceConfig, row D
 func (s setupDB) insertRowBuild(row DBRow) {
 	jobID := s.insertJob(row.Job)
 
+	var rerunOf sql.NullInt64
+	if row.RerunOfBuildID != 0 {
+		rerunOf = sql.NullInt64{Int64: int64(row.RerunOfBuildID), Valid: true}
+	}
+
 	var existingJobID int
 	err := s.psql.Insert("builds").
-		Columns("team_id", "id", "job_id", "name", "status", "scheduled", "inputs_ready").
-		Values(s.teamID, row.BuildID, jobID, "some-name", "succeeded", true, true).
+		Columns("team_id", "id", "job_id", "name", "status", "scheduled", "inputs_ready", "rerun_of").
+		Values(s.teamID, row.BuildID, jobID, "some-name", "succeeded", true, true, rerunOf).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = excluded.name").
 		Suffix("RETURNING job_id").
 		QueryRow().

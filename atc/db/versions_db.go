@@ -63,17 +63,17 @@ func (versions VersionsDB) LatestVersionOfResource(resourceID int) (ResourceVers
 }
 
 func (versions VersionsDB) SuccessfulBuilds(jobID int) PaginatedBuilds {
-	builder := psql.Select("b.id").
-		From("builds b").
+	builder := psql.Select("id").
+		From("builds").
 		Where(sq.Eq{
-			"b.job_id": jobID,
-			"b.status": "succeeded",
+			"job_id": jobID,
+			"status": "succeeded",
 		}).
-		OrderBy("b.id DESC")
+		OrderBy("COALESCE(rerun_of, id) DESC, id DESC")
 
 	return PaginatedBuilds{
 		builder: builder,
-		column:  "b.id",
+		column:  "id",
 
 		limitRows: versions.LimitRows,
 		conn:      versions.Conn,
@@ -92,7 +92,7 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, constra
 		Where(sq.Eq{
 			"job_id": jobID,
 		}).
-		OrderBy("build_id DESC")
+		OrderBy("COALESCE(rerun_of, build_id) DESC, build_id DESC")
 
 	return PaginatedBuilds{
 		builder: builder,
@@ -250,7 +250,7 @@ func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
 			"b.inputs_ready": true,
 			"b.scheduled":    true,
 		}).
-		OrderBy("b.id DESC").
+		OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
 		Limit(100).
 		RunWith(versions.Conn).
 		QueryRow().
@@ -380,13 +380,30 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 	rows, err := psql.Select("id").
 		From("builds").
 		Where(sq.And{
-			sq.Gt{"id": buildID},
 			sq.Eq{
 				"job_id": jobID,
 				"status": "succeeded",
 			},
+			sq.Or{
+				sq.And{
+					sq.Gt{
+						"rerun_of": buildID,
+					},
+					sq.NotEq{
+						"rerun_of": nil,
+					},
+				},
+				sq.And{
+					sq.Gt{
+						"id": buildID,
+					},
+					sq.Eq{
+						"rerun_of": nil,
+					},
+				},
+			},
 		}).
-		OrderBy("id ASC").
+		OrderBy("COALESCE(rerun_of, id) ASC, id ASC").
 		Limit(algorithmLimitRows).
 		RunWith(versions.Conn).
 		Query()
@@ -414,7 +431,7 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 				"status": "succeeded",
 			},
 		}).
-		OrderBy("id DESC")
+		OrderBy("COALESCE(rerun_of, id) DESC, id DESC")
 
 	return PaginatedBuilds{
 		builder:  builder,
@@ -439,10 +456,25 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		Where(sq.Eq{
 			"job_id": jobID,
 		}).
-		Where(sq.Gt{
-			"build_id": buildID,
+		Where(sq.Or{
+			sq.And{
+				sq.Gt{
+					"rerun_of": buildID,
+				},
+				sq.NotEq{
+					"rerun_of": nil,
+				},
+			},
+			sq.And{
+				sq.Gt{
+					"build_id": buildID,
+				},
+				sq.Eq{
+					"rerun_of": nil,
+				},
+			},
 		}).
-		OrderBy("build_id ASC").
+		OrderBy("COALESCE(rerun_of, build_id) ASC, build_id ASC").
 		RunWith(versions.Conn).
 		Query()
 	if err != nil {
@@ -469,7 +501,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		Where(sq.LtOrEq{
 			"build_id": buildID,
 		}).
-		OrderBy("build_id DESC")
+		OrderBy("COALESCE(rerun_of, build_id) DESC, build_id DESC")
 
 	return PaginatedBuilds{
 		builder:  builder,
@@ -533,8 +565,23 @@ func (bs *PaginatedBuilds) Next() (int, bool, error) {
 		builder := bs.builder
 
 		if len(bs.buildIDs) > 0 {
-			builder = bs.builder.Where(sq.Lt{
-				bs.column: bs.buildIDs[len(bs.buildIDs)-1],
+			builder = bs.builder.Where(sq.Or{
+				sq.And{
+					sq.Lt{
+						"rerun_of": bs.buildIDs[len(bs.buildIDs)-1],
+					},
+					sq.NotEq{
+						"rerun_of": nil,
+					},
+				},
+				sq.And{
+					sq.Lt{
+						bs.column: bs.buildIDs[len(bs.buildIDs)-1],
+					},
+					sq.Eq{
+						"rerun_of": nil,
+					},
+				},
 			})
 		}
 

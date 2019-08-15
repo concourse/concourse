@@ -2,6 +2,7 @@ package algorithm_test
 
 import (
 	"crypto/md5"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"strconv"
@@ -24,6 +25,7 @@ var _ = Describe("Resolve", func() {
 		Version      string
 		ResourceName string
 		CheckOrder   int
+		RerunBuildID int
 	}
 
 	type buildOutput struct {
@@ -107,6 +109,7 @@ var _ = Describe("Resolve", func() {
 
 		succeessfulBuildOutputs := map[int]map[string][]string{}
 		buildToJobID := map[int]int{}
+		buildToRerunOf := map[int]int{}
 		// Set up build outputs
 		for _, buildOutput := range buildOutputs {
 			setup.insertRowBuild(DBRow{
@@ -146,8 +149,9 @@ var _ = Describe("Resolve", func() {
 		// Set up build inputs
 		for _, buildInput := range buildInputs {
 			setup.insertRowBuild(DBRow{
-				Job:     buildInput.JobName,
-				BuildID: buildInput.BuildID,
+				Job:            buildInput.JobName,
+				BuildID:        buildInput.BuildID,
+				RerunOfBuildID: buildInput.RerunBuildID,
 			})
 
 			setup.insertRowVersion(resources, DBRow{
@@ -177,15 +181,24 @@ var _ = Describe("Resolve", func() {
 
 			outputs[key] = append(outputs[key], convertToMD5(buildInput.Version))
 			buildToJobID[buildInput.BuildID] = setup.jobIDs.ID(buildInput.JobName)
+
+			if buildInput.RerunBuildID != 0 {
+				buildToRerunOf[buildInput.BuildID] = buildInput.RerunBuildID
+			}
 		}
 
 		for buildID, outputs := range succeessfulBuildOutputs {
 			outputsJSON, err := json.Marshal(outputs)
 			Expect(err).ToNot(HaveOccurred())
 
+			var rerunOf sql.NullInt64
+			if buildToRerunOf[buildID] != 0 {
+				rerunOf.Int64 = int64(buildToRerunOf[buildID])
+			}
+
 			_, err = setup.psql.Insert("successful_build_outputs").
-				Columns("build_id", "job_id", "outputs").
-				Values(buildID, buildToJobID[buildID], outputsJSON).
+				Columns("build_id", "job_id", "rerun_of", "outputs").
+				Values(buildID, buildToJobID[buildID], rerunOf, outputsJSON).
 				Suffix("ON CONFLICT DO NOTHING").
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
@@ -244,7 +257,17 @@ var _ = Describe("Resolve", func() {
 		Expect(ok).To(BeTrue())
 	})
 
-	Context("when the version was an input of the same job with the same name", func() {
+	// All these contexts are under the assumption that the algorithm is being
+	// run for job "j1" that has a resource called "r1". In the database, there
+	// are two jobs ("j1" and j2"), one resource ("r1") and two versions ("v1",
+	// "v2") for that resource.
+
+	// The build inputs that is being set in the contexts are the build inputs
+	// that the algorithm will see and use to determine whether the computed set
+	// of inputs for this job ("r1" with version "v2" because v2 is the latest
+	// version) will be first occurrence.
+
+	Context("when the version computed from the algorithm was the same version and resource as an existing input with the same job and the same name", func() {
 		BeforeEach(func() {
 			buildInputs = []buildInput{
 				{
@@ -290,7 +313,7 @@ var _ = Describe("Resolve", func() {
 		})
 	})
 
-	Context("when the version was an input of the same job with a different name", func() {
+	Context("when the version computed from the algorithm was the same version and resource as an existing input with the same job but a different name", func() {
 		BeforeEach(func() {
 			buildInputs = []buildInput{
 				{
@@ -319,7 +342,7 @@ var _ = Describe("Resolve", func() {
 		})
 	})
 
-	Context("when the version was an input of a different job with the same name", func() {
+	Context("when the version computed from the algorithm was the same version and resource as existing input but with a different job with the same name", func() {
 		BeforeEach(func() {
 			buildInputs = []buildInput{
 				{
@@ -348,7 +371,7 @@ var _ = Describe("Resolve", func() {
 		})
 	})
 
-	Context("when a different version was an input of the same job with the same name", func() {
+	Context("when the version computed from the algorithm was a different version was an existing input of the same job with the same name", func() {
 		BeforeEach(func() {
 			buildInputs = []buildInput{
 				{
@@ -377,7 +400,7 @@ var _ = Describe("Resolve", func() {
 		})
 	})
 
-	Context("when a different version was an output of the same job", func() {
+	Context("when the version computed from the algorithm was not the same version as an existing output of the same job", func() {
 		BeforeEach(func() {
 			buildOutputs = []buildOutput{
 				{
@@ -390,7 +413,7 @@ var _ = Describe("Resolve", func() {
 			}
 		})
 
-		It("sets FirstOccurrence to true", func() {
+		It("sets FirstOccurrence to false", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
@@ -398,6 +421,52 @@ var _ = Describe("Resolve", func() {
 							Version:    db.ResourceVersion(convertToMD5("v2")),
 							ResourceID: 1},
 						FirstOccurrence: true,
+					},
+					PassedBuildIDs: []int{},
+				},
+			}))
+		})
+	})
+
+	Context("when a version computed is equal to an existing input from a rerun build", func() {
+		BeforeEach(func() {
+			buildInputs = []buildInput{
+				{
+					Version:      "v1",
+					ResourceName: "r1",
+					CheckOrder:   1,
+					BuildID:      30,
+					JobName:      "j1",
+					InputName:    "some-input",
+				},
+				{
+					Version:      "v2",
+					ResourceName: "r1",
+					CheckOrder:   1,
+					BuildID:      31,
+					JobName:      "j1",
+					InputName:    "some-input",
+				},
+				{
+					Version:      "v1",
+					ResourceName: "r1",
+					CheckOrder:   1,
+					BuildID:      32,
+					JobName:      "j1",
+					InputName:    "some-input",
+					RerunBuildID: 30,
+				},
+			}
+		})
+
+		It("sets FirstOccurrence to false", func() {
+			Expect(inputMapping).To(Equal(db.InputMapping{
+				"some-input": db.InputResult{
+					Input: &db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version:    db.ResourceVersion(convertToMD5("v2")),
+							ResourceID: 1},
+						FirstOccurrence: false,
 					},
 					PassedBuildIDs: []int{},
 				},

@@ -2460,4 +2460,188 @@ var _ = DescribeTable("Input resolving",
 			},
 		},
 	}),
+
+	Entry("with very every and passed, it does not use retrigger builds as latest build", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+
+			BuildPipes: []DBRow{
+				{FromBuildID: 4, ToBuildID: 100},
+			},
+
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "simple-a", BuildID: 5, Resource: "resource-x", Version: "rxv2", CheckOrder: 2, RerunOfBuildID: 2},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Every: true},
+				Passed:   []string{"simple-a"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv4",
+			},
+		},
+	}),
+
+	Entry("with very every and passed, it does not use retrigger builds as latest build when there are multiple passed jobs", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+
+			BuildPipes: []DBRow{
+				{FromBuildID: 4, ToBuildID: 100},
+				{FromBuildID: 9, ToBuildID: 100},
+			},
+
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "simple-a", BuildID: 5, Resource: "resource-x", Version: "rxv2", CheckOrder: 2, RerunOfBuildID: 2},
+
+				{Job: "simple-b", BuildID: 6, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 7, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-b", BuildID: 8, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "simple-b", BuildID: 9, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "simple-b", BuildID: 10, Resource: "resource-x", Version: "rxv2", CheckOrder: 2, RerunOfBuildID: 7},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Every: true},
+				Passed:   []string{"simple-a", "simple-b"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv4",
+			},
+		},
+	}),
+
+	Entry("with passed constraints, it does not use the retrigger build as latest build", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
+
+			BuildPipes: []DBRow{
+				{FromBuildID: 1, ToBuildID: 100},
+			},
+
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "simple-a", BuildID: 5, Resource: "resource-x", Version: "rxv2", CheckOrder: 2, RerunOfBuildID: 2},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Passed:   []string{"simple-a"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv4",
+			},
+		},
+	}),
+
+	Entry("with multiple passed constraints, it does not use retrigger builds as latest build when there are multiple passed jobs", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
+
+			BuildPipes: []DBRow{
+				{FromBuildID: 1, ToBuildID: 100},
+				{FromBuildID: 6, ToBuildID: 100},
+			},
+
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "simple-a", BuildID: 5, Resource: "resource-x", Version: "rxv2", CheckOrder: 2, RerunOfBuildID: 2},
+
+				{Job: "simple-b", BuildID: 6, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 7, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-b", BuildID: 8, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "simple-b", BuildID: 9, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "simple-b", BuildID: 10, Resource: "resource-x", Version: "rxv2", CheckOrder: 2, RerunOfBuildID: 7},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Passed:   []string{"simple-a", "simple-b"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv4",
+			},
+		},
+	}),
 )
