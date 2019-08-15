@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -12,7 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 )
 
-var _ = Describe("CookieSetHandler", func() {
+var _ = Describe("WebAuthHandler", func() {
 	var (
 		givenRequest *http.Request
 	)
@@ -24,7 +25,7 @@ var _ = Describe("CookieSetHandler", func() {
 	var server *httptest.Server
 
 	BeforeEach(func() {
-		server = httptest.NewServer(auth.CookieSetHandler{
+		server = httptest.NewServer(auth.WebAuthHandler{
 			Handler: simpleHandler,
 		})
 	})
@@ -65,9 +66,15 @@ var _ = Describe("CookieSetHandler", func() {
 		Context("with the auth cookie", func() {
 			BeforeEach(func() {
 				request.AddCookie(&http.Cookie{
-					Name:  auth.AuthCookieName,
+					Name:  auth.AuthCookieName + "0",
 					Value: "username:password",
 				})
+				for i := 1; i < 15; i++ {
+					request.AddCookie(&http.Cookie{
+						Name:  auth.AuthCookieName + strconv.Itoa(i),
+						Value: "",
+					})
+				}
 			})
 
 			It("sets the Authorization header with the value from the cookie", func() {

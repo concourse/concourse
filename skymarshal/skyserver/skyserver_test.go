@@ -29,7 +29,7 @@ var _ = Describe("Sky Server API", func() {
 			var params url.Values
 			var response *http.Response
 			var cookies []*http.Cookie
-			var cookieValue string
+			var tokenString string
 			var defaultRedirect = "/teams"
 
 			BeforeEach(func() {
@@ -39,6 +39,7 @@ var _ = Describe("Sky Server API", func() {
 
 			ExpectNewLogin := func() {
 				It("stores a state cookie", func() {
+					Expect(cookies).To(HaveLen(1))
 					Expect(cookies[0].Name).To(Equal("skymarshal_state"))
 					Expect(cookies[0].Secure).To(Equal(config.SecureCookies))
 					Expect(cookies[0].HttpOnly).To(BeTrue())
@@ -88,28 +89,7 @@ var _ = Describe("Sky Server API", func() {
 				})
 			}
 
-			ExpectAlreadyLoggedIn := func() {
-				It("redirects the request to the provided redirect_uri", func() {
-					redirectURL, err := response.Location()
-					Expect(err).NotTo(HaveOccurred())
-
-					atcURL, err := url.Parse(skyServer.URL)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(redirectURL.Host).To(Equal(atcURL.Host))
-
-					redirectValues := redirectURL.Query()
-					Expect(redirectValues.Get("token")).To(Equal(""))
-					Expect(redirectValues.Get("csrf_token")).To(Equal("some-csrf"))
-				})
-
-				It("doesn't modify the cookie", func() {
-					Expect(cookies[0].Name).To(Equal("skymarshal_auth"))
-					Expect(cookies[0].HttpOnly).To(BeTrue())
-					Expect(cookies[0].Value).To(Equal(cookieValue))
-				})
-			}
-
-			Context("without an existing auth cookie", func() {
+			Context("without an existing token", func() {
 				BeforeEach(func() {
 					dexServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -140,7 +120,7 @@ var _ = Describe("Sky Server API", func() {
 				ExpectNewLogin()
 			})
 
-			Context("with an existing auth cookie", func() {
+			Context("with existing token", func() {
 				var cookieExpiration time.Time
 
 				JustBeforeEach(func() {
@@ -151,31 +131,24 @@ var _ = Describe("Sky Server API", func() {
 					request, err := http.NewRequest("GET", skyServer.URL+"/sky/login?"+params.Encode(), nil)
 					Expect(err).NotTo(HaveOccurred())
 
-					request.AddCookie(&http.Cookie{
-						Name:     "skymarshal_auth",
-						Value:    cookieValue,
-						Path:     "/",
-						Expires:  cookieExpiration,
-						HttpOnly: true,
-					})
+					fakeTokenMiddleware.GetTokenReturns(tokenString)
 
 					response, err = client.Do(request)
 					Expect(err).NotTo(HaveOccurred())
 
 					cookies = response.Cookies()
-					Expect(cookies).To(HaveLen(1))
 				})
 
 				Context("which is not a valid bearer token", func() {
 					BeforeEach(func() {
-						cookieValue = "NotBearer some-token"
+						tokenString = "NotBearer some-token"
 					})
 					ExpectNewLogin()
 				})
 
 				Context("which is not a signed auth token", func() {
 					BeforeEach(func() {
-						cookieValue = "Bearer some-token"
+						tokenString = "Bearer some-token"
 					})
 					ExpectNewLogin()
 				})
@@ -191,7 +164,7 @@ var _ = Describe("Sky Server API", func() {
 						})
 						Expect(err).NotTo(HaveOccurred())
 
-						cookieValue = oauthToken.TokenType + " " + oauthToken.AccessToken
+						tokenString = oauthToken.TokenType + " " + oauthToken.AccessToken
 					})
 					ExpectNewLogin()
 				})
@@ -207,10 +180,21 @@ var _ = Describe("Sky Server API", func() {
 						})
 						Expect(err).NotTo(HaveOccurred())
 
-						cookieValue = oauthToken.TokenType + " " + oauthToken.AccessToken
+						tokenString = oauthToken.TokenType + " " + oauthToken.AccessToken
 					})
 
-					ExpectAlreadyLoggedIn()
+					It("redirects the request to the provided redirect_uri", func() {
+						redirectURL, err := response.Location()
+						Expect(err).NotTo(HaveOccurred())
+
+						atcURL, err := url.Parse(skyServer.URL)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(redirectURL.Host).To(Equal(atcURL.Host))
+
+						redirectValues := redirectURL.Query()
+						Expect(redirectValues.Get("token")).To(Equal(""))
+						Expect(redirectValues.Get("csrf_token")).To(Equal("some-csrf"))
+					})
 				})
 			})
 		})
@@ -225,14 +209,10 @@ var _ = Describe("Sky Server API", func() {
 				})
 				Expect(cookieJar.Cookies(skyURL)).NotTo(BeEmpty())
 
-				response, err := client.Get(skyServer.URL + "/sky/logout")
+				_, err = client.Get(skyServer.URL + "/sky/logout")
 				Expect(err).NotTo(HaveOccurred())
 
-				cookieResponse := response.Header.Get("Set-Cookie")
-				Expect(strings.Contains(cookieResponse, "HttpOnly")).To(BeTrue())
-				Expect(strings.Contains(cookieResponse, "Secure")).To(Equal(config.SecureCookies))
-
-				Expect(cookieJar.Cookies(skyURL)).To(BeEmpty())
+				Expect(fakeTokenMiddleware.UnsetTokenCallCount()).To(Equal(1))
 			})
 		})
 
@@ -433,16 +413,16 @@ var _ = Describe("Sky Server API", func() {
 						reqPath = "/sky/callback?code=some-code&state=" + stateToken
 					})
 
-					It("only has one cookie containing the auth token (state cookie is gone)", func() {
+					It("sets auth token and clears the state cookie", func() {
 						serverURL, err := url.Parse(skyServer.URL)
 						Expect(err).NotTo(HaveOccurred())
 
 						cookies := cookieJar.Cookies(serverURL)
-						Expect(cookies).To(HaveLen(1))
+						Expect(cookies).To(HaveLen(0))
 
-						authCookie := cookies[0]
-						Expect(authCookie.Name).To(Equal("skymarshal_auth"))
-						Expect(authCookie.Value).To(Equal("some-type some-token"))
+						Expect(fakeTokenMiddleware.SetTokenCallCount()).To(Equal(1))
+						_, tokenString, _ := fakeTokenMiddleware.SetTokenArgsForCall(0)
+						Expect(tokenString).To(Equal("some-type some-token"))
 					})
 
 					It("redirects to redirect_uri from state token with only the csrf_token", func() {

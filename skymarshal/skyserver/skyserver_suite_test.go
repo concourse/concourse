@@ -19,16 +19,17 @@ import (
 )
 
 var (
-	fakeTeamFactory   *dbfakes.FakeTeamFactory
-	fakeUserFactory   *dbfakes.FakeUserFactory
-	fakeTokenVerifier *tokenfakes.FakeVerifier
-	fakeTokenIssuer   *tokenfakes.FakeIssuer
-	skyServer         *httptest.Server
-	dexServer         *ghttp.Server
-	client            *http.Client
-	cookieJar         *cookiejar.Jar
-	signingKey        *rsa.PrivateKey
-	config            *skyserver.SkyConfig
+	fakeTeamFactory     *dbfakes.FakeTeamFactory
+	fakeUserFactory     *dbfakes.FakeUserFactory
+	fakeTokenVerifier   *tokenfakes.FakeVerifier
+	fakeTokenIssuer     *tokenfakes.FakeIssuer
+	fakeTokenMiddleware *tokenfakes.FakeMiddleware
+	skyServer           *httptest.Server
+	dexServer           *ghttp.Server
+	client              *http.Client
+	cookieJar           *cookiejar.Jar
+	signingKey          *rsa.PrivateKey
+	config              *skyserver.SkyConfig
 )
 
 func TestSkyServer(t *testing.T) {
@@ -48,6 +49,7 @@ var _ = BeforeEach(func() {
 
 	fakeTokenVerifier = new(tokenfakes.FakeVerifier)
 	fakeTokenIssuer = new(tokenfakes.FakeIssuer)
+	fakeTokenMiddleware = new(tokenfakes.FakeMiddleware)
 
 	fakeUserFactory = new(dbfakes.FakeUserFactory)
 
@@ -64,6 +66,7 @@ var _ = BeforeEach(func() {
 		Logger:          lagertest.NewTestLogger("sky"),
 		TokenVerifier:   fakeTokenVerifier,
 		TokenIssuer:     fakeTokenIssuer,
+		TokenMiddleware: fakeTokenMiddleware,
 		UserFactory:     fakeUserFactory,
 		DexClientID:     "dex-client-id",
 		DexClientSecret: "dex-client-secret",
