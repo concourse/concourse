@@ -32,6 +32,7 @@ type Worker struct {
 	GardenAddress   string `json:"addr"`
 	BaggageclaimUrl string `json:"baggageclaim_url"`
 	Team            string `json:"team"`
+	ActiveTasks     int    `json:"active_tasks"`
 }
 
 type Pipeline struct {

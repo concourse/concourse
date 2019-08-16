@@ -1,0 +1,197 @@
+resources:
+- name: timer
+  type: time
+  source:
+    interval: 12h
+
+jobs:
+- name: sleeper1
+  plan:
+  - get: timer
+    trigger: true
+  - task: sleep
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          sleep 30
+
+- name: sleeper2
+  plan:
+  - get: timer
+    trigger: true
+  - task: sleep
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          sleep 30
+
+- name: sleeper3
+  plan:
+  - get: timer
+    trigger: true
+  - task: sleep
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          sleep 30
+
+- name: sleeper4
+  plan:
+  - get: timer
+    trigger: true
+  - in_parallel:
+    - task: sleep
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: concourse/dev}
+        run:
+          path: /bin/sh
+          args:
+          - -c
+          - |
+            sleep 30
+    - task: sleep
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: concourse/dev}
+        run:
+          path: /bin/sh
+          args:
+          - -c
+          - |
+            sleep 30
+    - task: sleep
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: {repository: concourse/dev}
+        run:
+          path: /bin/sh
+          args:
+          - -c
+          - |
+            sleep 30
+
+- name: sleeper5
+  plan:
+  - get: timer
+    trigger: true
+  - task: sleep
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          sleep 30
+
+- name: sleeper6
+  plan:
+  - get: timer
+    trigger: true
+  - task: sleep
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          sleep 30
+- name: sleeper7
+  plan:
+  - get: timer
+    trigger: true
+  - task: sleep
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          sleep 30
+- name: sleeper8
+  plan:
+  - get: timer
+    trigger: true
+  - task: sleep
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          sleep 30
+- name: sleeper9
+  plan:
+  - get: timer
+    trigger: true
+  - task: sleep
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          sleep 30
+- name: sleeper10
+  plan:
+  - get: timer
+    trigger: true
+  - task: sleep
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: concourse/dev}
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          sleep 30

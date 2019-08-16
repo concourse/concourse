@@ -73,3 +73,38 @@ var _ = XDescribe("Fewest Build Containers Found Placement Strategy", func() {
 
 	})
 })
+
+var _ = XDescribe("Limit active tasks placement strategy", func() {
+	BeforeEach(func() {
+		Deploy("deployments/concourse.yml", "-o", "operations/worker-instances.yml", "-v", "worker_instances=2", "-o", "operations/limit-active-tasks.yml")
+	})
+
+	Context("when there is a deployment and a pipeline with several tasks is executed", func() {
+		It("ensures the workers execute one tasks at a time each", func() {
+
+			By("setting a pipeline with many containers")
+			fly.Run("set-pipeline", "-n", "main", "-c", "pipelines/lots-ata-time-sleeping.yml", "-p", "many-containers-pipeline")
+
+			By("unpausing the pipeline")
+			fly.Run("unpause-pipeline", "-p", "many-containers-pipeline")
+
+			By("waiting for the tasks to start")
+			workers := fly.GetWorkers()
+			for workers[0].ActiveTasks < 1 {
+				time.Sleep(10 * time.Second)
+			}
+
+			By("waiting for all the tasks to complete")
+			for workers[0].ActiveTasks > 0 && workers[1].ActiveTasks > 0 {
+				Expect(workers[0].ActiveTasks).To(BeNumerically("<", 2)) // No worker should ever have more than 1 task
+				time.Sleep(10 * time.Second)
+			}
+
+			By("verifying that the active tasks on the workers are reset")
+			Expect(workers[0].ActiveTasks).To(BeZero())
+			Expect(workers[1].ActiveTasks).To(BeZero())
+
+		})
+
+	})
+})

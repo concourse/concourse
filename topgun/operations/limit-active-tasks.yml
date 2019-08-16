@@ -1,0 +1,7 @@
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/container_placement_strategy?
+  value: limit-active-tasks
+
+- type: replace
+  path: /instance_groups/name=web/jobs/name=web/properties/max-active-tasks-per-worker?
+  value: 1
