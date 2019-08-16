@@ -7,7 +7,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = FDescribe("Rerunning a build", func() {
+var _ = Describe("Rerunning a build", func() {
 	var hash string
 
 	BeforeEach(func() {
@@ -37,7 +37,7 @@ var _ = FDescribe("Rerunning a build", func() {
 		It("creates a rerun of the first build", func() {
 			By("confirming that there are no rerun builds")
 			build := fly("builds", "-j", inPipeline("some-passing-job"))
-			Expect(build).ToNot(gbytes.Say("1.1"))
+			Expect(build).ToNot(gbytes.Say(`1\.1`))
 
 			fly("rerun-build", "-j", inPipeline("some-passing-job"), "-b", "1", "-w")
 			watch := waitForBuildAndWatch("some-passing-job")
@@ -45,7 +45,7 @@ var _ = FDescribe("Rerunning a build", func() {
 
 			By("running again to see if the rerun build appeared")
 			build = fly("builds", "-j", inPipeline("some-passing-job"))
-			Expect(build).To(gbytes.Say("1.1"))
+			Expect(build).To(gbytes.Say(`1\.1`))
 		})
 
 		Context("when there is a rerun build", func() {
@@ -56,13 +56,13 @@ var _ = FDescribe("Rerunning a build", func() {
 
 				By("running again to see if the rerun build appeared")
 				build := fly("builds", "-j", inPipeline("some-passing-job"))
-				Expect(build).To(gbytes.Say("1.1"))
+				Expect(build).To(gbytes.Say(`1\.1`))
 			})
 
 			It("rerunning a rerun will create a rerun of the first build", func() {
 				By("confirming that there is a rerun build")
 				build := fly("builds", "-j", inPipeline("some-passing-job"))
-				Expect(build).To(gbytes.Say("1.1"))
+				Expect(build).To(gbytes.Say(`1\.1`))
 
 				fly("rerun-build", "-j", inPipeline("some-passing-job"), "-b", "1.1", "-w")
 				watch := waitForBuildAndWatch("some-passing-job")
@@ -70,7 +70,7 @@ var _ = FDescribe("Rerunning a build", func() {
 
 				By("running again to see if the rerun build appeared")
 				build = fly("builds", "-j", inPipeline("some-passing-job"))
-				Expect(build).To(gbytes.Say("1.2"))
+				Expect(build).To(gbytes.Say(`1\.2`))
 			})
 		})
 	})

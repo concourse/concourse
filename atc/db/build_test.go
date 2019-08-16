@@ -1800,12 +1800,12 @@ var _ = Describe("Build", func() {
 						Name:            "some-input-3",
 						ResourceID:      otherResource.ID(),
 						Version:         otherVersions[0].Version,
-						FirstOccurrence: true,
+						FirstOccurrence: false,
 					},
 				}
 			})
 
-			It("deletes existing build inputs and uses the build inputs and pipes of the build to retrigger off of as it's own build inputs", func() {
+			It("deletes existing build inputs and uses the build inputs and pipes of the build to retrigger off of as it's own build inputs but sets first occurrence to false", func() {
 				Expect(adoptFound).To(BeTrue())
 				Expect(reloadFound).To(BeTrue())
 

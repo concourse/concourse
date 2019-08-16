@@ -1,0 +1,28 @@
+---
+resources:
+- name: some-resource
+  type: mock
+  source: {}
+
+jobs:
+- name: pushing-job
+  plan:
+  - get: some-resource
+  - put: some-resource
+    params: {version: first-version}
+
+- name: downstream-job
+  plan:
+  - get: some-resource
+    passed: [pushing-job]
+  - task: print-version
+    config:
+      platform: linux
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+      inputs:
+      - name: some-resource
+      run:
+        path: cat
+        args: [some-resource/version]
