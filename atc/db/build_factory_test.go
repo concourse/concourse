@@ -215,6 +215,7 @@ var _ = Describe("BuildFactory", func() {
 		var build2 db.Build
 		var build3 db.Build
 		var build4 db.Build
+		var build5 db.Build
 
 		BeforeEach(func() {
 			build1, err = team.CreateOneOffBuild()
@@ -248,14 +249,22 @@ var _ = Describe("BuildFactory", func() {
 
 			build4, err = otherTeam.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
+
+			build5, err = privateJob.RerunBuild(build2)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns visible builds for the given teams", func() {
 			builds, _, err := buildFactory.VisibleBuilds([]string{"some-team"}, db.Page{Limit: 10})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(builds).To(HaveLen(3))
-			Expect(builds).To(ConsistOf(build1, build2, build3))
+			Expect(builds).To(HaveLen(4))
+
+			buildIDs := []int{}
+			for _, build := range builds {
+				buildIDs = append(buildIDs, build.ID())
+			}
+			Expect(buildIDs).To(Equal([]int{build3.ID(), build5.ID(), build2.ID(), build1.ID()}))
 			Expect(builds).NotTo(ContainElement(build4))
 		})
 	})

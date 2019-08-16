@@ -151,7 +151,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 	if page.Since != 0 {
 		sinceRow, err := buildsQuery.
 			Where(sq.Expr("b.start_time >= to_timestamp(" + strconv.Itoa(page.Since) + ")")).
-			OrderBy("b.id ASC").
+			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
 			Limit(1).
 			RunWith(conn).
 			Query()
@@ -187,7 +187,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 	if page.Until != 0 {
 		untilRow, err := buildsQuery.
 			Where(sq.Expr("b.start_time <= to_timestamp(" + strconv.Itoa(page.Until) + ")")).
-			OrderBy("b.id DESC").
+			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
 			Limit(1).
 			RunWith(conn).
 			Query()
@@ -230,16 +230,16 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 
 	if page.Since == 0 && page.Until == 0 { // none
 		buildsQuery = buildsQuery.
-			OrderBy("b.id DESC")
+			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC")
 	} else if page.Until != 0 && page.Since == 0 { // only until
 		buildsQuery = buildsQuery.
 			Where(sq.Gt{"b.id": uint64(page.Until)}).
-			OrderBy("b.id ASC")
+			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC")
 		reverse = true
 	} else if page.Since != 0 && page.Until == 0 { // only since
 		buildsQuery = buildsQuery.
 			Where(sq.Lt{"b.id": page.Since}).
-			OrderBy("b.id DESC")
+			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC")
 	} else if page.Until != 0 && page.Since != 0 { // both
 		if page.Until > page.Since {
 			return nil, Pagination{}, fmt.Errorf("Invalid range boundaries")
@@ -250,7 +250,7 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 				sq.Gt{"b.id": uint64(page.Until)},
 				sq.Lt{"b.id": uint64(page.Since)},
 			}).
-			OrderBy("b.id ASC")
+			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC")
 	}
 
 	rows, err = buildsQuery.RunWith(conn).Query()
