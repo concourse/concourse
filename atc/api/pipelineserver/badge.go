@@ -60,6 +60,7 @@ func (s *Server) PipelineBadge(pipeline db.Pipeline) http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		badge.CustomizeWithQueryParams(r.URL.Query())
 
 		fmt.Fprint(w, badge)
 	})

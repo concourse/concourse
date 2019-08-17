@@ -3,24 +3,27 @@ package jobserver
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"net/http"
+	"net/url"
 	"text/template"
 
 	"github.com/concourse/concourse/atc/db"
 )
 
 var (
-	badgePassing = Badge{width: 88, fillColor: `#44cc11`, status: `passing`}
-	badgeFailing = Badge{width: 80, fillColor: `#e05d44`, status: `failing`}
-	badgeUnknown = Badge{width: 98, fillColor: `#9f9f9f`, status: `unknown`}
-	badgeAborted = Badge{width: 90, fillColor: `#8f4b2d`, status: `aborted`}
-	badgeErrored = Badge{width: 88, fillColor: `#fe7d37`, status: `errored`}
+	badgePassing = Badge{width: 88, fillColor: `#44cc11`, status: `passing`, title: `build`}
+	badgeFailing = Badge{width: 80, fillColor: `#e05d44`, status: `failing`, title: `build`}
+	badgeUnknown = Badge{width: 98, fillColor: `#9f9f9f`, status: `unknown`, title: `build`}
+	badgeAborted = Badge{width: 90, fillColor: `#8f4b2d`, status: `aborted`, title: `build`}
+	badgeErrored = Badge{width: 88, fillColor: `#fe7d37`, status: `errored`, title: `build`}
 )
 
 type Badge struct {
 	width     int
 	fillColor string
 	status    string
+	title     string
 }
 
 func (b *Badge) statusWidth() int {
@@ -45,9 +48,16 @@ func (b *Badge) String() string {
 		Status:          b.status,
 		StatusWidth:     b.statusWidth(),
 		StatusTextWidth: b.statusTextWidth(),
+		Title:           b.title,
 	})
 
 	return buffer.String()
+}
+
+func (b *Badge) CustomizeWithQueryParams(params url.Values) {
+	if title := params.Get("title"); title != "" {
+		b.title = html.EscapeString(title)
+	}
 }
 
 func BadgeForBuild(build db.Build) *Badge {
@@ -82,8 +92,8 @@ const badgeTemplate = `<?xml version="1.0" encoding="UTF-8"?>
       <path fill="url(#b)" d="M0 0h{{ .Width }}v20H0z" />
    </g>
    <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-      <text x="18.5" y="14">build</text>
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">{{ .Title }}</text>
+      <text x="18.5" y="14">{{ .Title }}</text>
       <text x="{{ .StatusTextWidth }}" y="15" fill="#010101" fill-opacity=".3">{{ .Status }}</text>
       <text x="{{ .StatusTextWidth }}" y="14">{{ .Status }}</text>
    </g>
@@ -95,6 +105,7 @@ type badgeTemplateConfig struct {
 	StatusTextWidth string
 	Status          string
 	FillColor       string
+	Title           string
 }
 
 func (s *Server) JobBadge(pipeline db.Pipeline) http.Handler {
@@ -128,6 +139,8 @@ func (s *Server) JobBadge(pipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		fmt.Fprint(w, BadgeForBuild(build))
+		badge := BadgeForBuild(build)
+		badge.CustomizeWithQueryParams(r.URL.Query())
+		fmt.Fprint(w, badge)
 	})
 }
