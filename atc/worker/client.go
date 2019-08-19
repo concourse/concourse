@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"path"
 	"strconv"
 	"time"
 
@@ -260,7 +259,7 @@ func (client *client) RunTaskStep(
 				Path: processSpec.Path,
 				Args: processSpec.Args,
 
-				Dir: path.Join(metadata.WorkingDirectory, processSpec.Dir),
+				Dir: processSpec.Dir,
 
 				// Guardian sets the default TTY window size to width: 80, height: 24,
 				// which creates ANSI control sequences that do not work with other window sizes

@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"crypto/sha1"
 	"fmt"
 	"io"
 	"path"
@@ -15,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
@@ -181,6 +183,13 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		config.Limits.Memory = step.defaultLimits.Memory
 	}
 
+	if filepath.IsAbs(config.Run.Dir) {
+		step.containerMetadata.WorkingDirectory = config.Run.Dir
+	} else {
+		sum := sha1.Sum([]byte(step.plan.Name))
+		step.containerMetadata.WorkingDirectory = filepath.Join(resource.ResourcesDir(fmt.Sprintf("%x", sum[:4])), config.Run.Dir)
+	}
+
 	step.delegate.Initializing(logger)
 
 	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)
@@ -196,7 +205,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	processSpec := runtime.ProcessSpec{
 		Path:         config.Run.Path,
 		Args:         config.Run.Args,
-		Dir:          config.Run.Dir,
+		Dir:          step.containerMetadata.WorkingDirectory,
 		StdoutWriter: step.delegate.Stdout(),
 		StderrWriter: step.delegate.Stderr(),
 	}

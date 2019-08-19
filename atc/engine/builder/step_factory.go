@@ -1,10 +1,6 @@
 package builder
 
 import (
-	"crypto/sha1"
-	"fmt"
-	"path/filepath"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -123,9 +119,6 @@ func (factory *stepFactory) TaskStep(
 	containerMetadata db.ContainerMetadata,
 	delegate exec.TaskDelegate,
 ) exec.Step {
-	sum := sha1.Sum([]byte(plan.Task.Name))
-	containerMetadata.WorkingDirectory = filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
-
 	taskStep := exec.NewTaskStep(
 		plan.ID,
 		*plan.Task,
