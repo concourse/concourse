@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db/lock"
 )
@@ -43,7 +42,7 @@ func (r *resourceFactory) VisibleResources(teamNames []string) ([]Resource, erro
 		return nil, err
 	}
 
-	return r.parseResources(rows)
+	return scanResources(rows, r.conn, r.lockFactory)
 }
 
 func (r *resourceFactory) AllResources() ([]Resource, error) {
@@ -55,14 +54,14 @@ func (r *resourceFactory) AllResources() ([]Resource, error) {
 		return nil, err
 	}
 
-	return r.parseResources(rows)
+	return scanResources(rows, r.conn, r.lockFactory)
 }
 
-func (r *resourceFactory) parseResources(resourceRows *sql.Rows) ([]Resource, error) {
+func scanResources(resourceRows *sql.Rows, conn Conn, lockFactory lock.LockFactory) ([]Resource, error) {
 	var resources []Resource
 
 	for resourceRows.Next() {
-		resource := &resource{conn: r.conn, lockFactory: r.lockFactory}
+		resource := &resource{conn: conn, lockFactory: lockFactory}
 
 		err := scanResource(resource, resourceRows)
 		if err != nil {
