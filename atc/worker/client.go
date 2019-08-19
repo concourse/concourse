@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/runtime"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 const taskProcessID = "task"
@@ -278,6 +279,10 @@ func (client *client) chooseTaskWorker(
 			}
 			existingContainer, err = client.pool.ContainerInWorker(logger, owner, containerSpec, workerSpec)
 			if err != nil {
+				release_err := activeTasksLock.Release()
+				if release_err != nil {
+					err = multierror.Append(err, release_err)
+				}
 				return nil, err
 			}
 		}
