@@ -302,6 +302,17 @@ func (client *client) chooseTaskWorker(
 		if strategy.ModifiesActiveTasks() {
 			waitWorker := time.Duration(5 * time.Second) // Workers polling frequency
 
+			select {
+			case <-ctx.Done():
+				logger.Info("aborted-waiting-worker")
+				err = activeTasksLock.Release()
+				if err != nil {
+					return nil, err
+				}
+				return nil, ctx.Err()
+			default:
+			}
+
 			if chosenWorker == nil {
 				err = activeTasksLock.Release()
 				if err != nil {
