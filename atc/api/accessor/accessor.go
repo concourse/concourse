@@ -42,19 +42,23 @@ func (a *access) Claims() jwt.MapClaims {
 }
 
 func (a *access) IsAuthorized(team string) bool {
+	if a.IsAdmin() {
+		return true
+	}
 	for teamName, teamRoles := range a.TeamRoles() {
-		if teamName == team {
-			for _, teamRole := range teamRoles {
-				if a.HasPermission(teamRole) {
-					return true
-				}
+		if teamName != team {
+			continue
+		}
+		for _, teamRole := range teamRoles {
+			if a.hasPermission(teamRole) {
+				return true
 			}
 		}
 	}
 	return false
 }
 
-func (a *access) HasPermission(role string) bool {
+func (a *access) hasPermission(role string) bool {
 	switch requiredRoles[a.action] {
 	case "owner":
 		return role == "owner"

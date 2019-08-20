@@ -13,11 +13,19 @@ import (
 func (s *Server) ListWorkers(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-workers")
 
-	var workers []db.Worker
+	var (
+		workers []db.Worker
+		err     error
+	)
 
 	acc := accessor.GetAccessor(r)
 
-	workers, err := s.dbWorkerFactory.VisibleWorkers(acc.TeamNames())
+	if acc.IsAdmin() {
+		workers, err = s.dbWorkerFactory.Workers()
+	} else {
+		workers, err = s.dbWorkerFactory.VisibleWorkers(acc.TeamNames())
+	}
+
 	if err != nil {
 		logger.Error("failed-to-get-workers", err)
 		w.WriteHeader(http.StatusInternalServerError)

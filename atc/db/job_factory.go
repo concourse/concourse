@@ -9,6 +9,7 @@ import (
 
 type JobFactory interface {
 	VisibleJobs([]string) (Dashboard, error)
+	AllActiveJobs() (Dashboard, error)
 }
 
 type jobFactory struct {
@@ -24,6 +25,22 @@ func NewJobFactory(conn Conn, lockFactory lock.LockFactory) JobFactory {
 }
 
 func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
+	currentTeamJobs, err := j.teamJobs(teamNames)
+	if err != nil {
+		return nil, err
+	}
+
+	otherTeamPublicJobs, err := j.otherTeamPublicJobs(teamNames)
+	if err != nil {
+		return nil, err
+	}
+
+	jobs := append(currentTeamJobs, otherTeamPublicJobs...)
+
+	return j.buildDashboard(jobs)
+}
+
+func (j *jobFactory) teamJobs(teamNames []string) (Jobs, error) {
 	rows, err := jobsQuery.
 		Where(sq.Eq{
 			"t.name":   teamNames,
@@ -36,12 +53,11 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 		return nil, err
 	}
 
-	currentTeamJobs, err := scanJobs(j.conn, j.lockFactory, rows)
-	if err != nil {
-		return nil, err
-	}
+	return scanJobs(j.conn, j.lockFactory, rows)
+}
 
-	rows, err = jobsQuery.
+func (j *jobFactory) otherTeamPublicJobs(teamNames []string) (Jobs, error) {
+	rows, err := jobsQuery.
 		Where(sq.NotEq{
 			"t.name": teamNames,
 		}).
@@ -56,13 +72,30 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 		return nil, err
 	}
 
-	otherTeamPublicJobs, err := scanJobs(j.conn, j.lockFactory, rows)
+	return scanJobs(j.conn, j.lockFactory, rows)
+}
+
+func (j *jobFactory) AllActiveJobs() (Dashboard, error) {
+	rows, err := jobsQuery.
+		Where(sq.Eq{
+			"j.active": true,
+		}).
+		OrderBy("j.id ASC").
+		RunWith(j.conn).
+		Query()
 	if err != nil {
 		return nil, err
 	}
 
-	jobs := append(currentTeamJobs, otherTeamPublicJobs...)
+	jobs, err := scanJobs(j.conn, j.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
 
+	return j.buildDashboard(jobs)
+}
+
+func (j *jobFactory) buildDashboard(jobs Jobs) (Dashboard, error) {
 	var jobIDs []int
 	for _, job := range jobs {
 		jobIDs = append(jobIDs, job.ID())

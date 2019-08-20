@@ -25,9 +25,10 @@ var _ = Describe("Pipelines API", func() {
 		fakeTeam   *dbfakes.FakeTeam
 		fakeaccess *accessorfakes.FakeAccess
 
-		publicPipeline        *dbfakes.FakePipeline
-		anotherPublicPipeline *dbfakes.FakePipeline
-		privatePipeline       *dbfakes.FakePipeline
+		publicPipeline                 *dbfakes.FakePipeline
+		anotherPublicPipeline          *dbfakes.FakePipeline
+		privatePipeline                *dbfakes.FakePipeline
+		privatePipelineFromAnotherTeam *dbfakes.FakePipeline
 	)
 	BeforeEach(func() {
 		dbPipeline = new(dbfakes.FakePipeline)
@@ -68,6 +69,13 @@ var _ = Describe("Pipelines API", func() {
 				Resources: []string{"resource1", "resource2"},
 			},
 		})
+
+		privatePipelineFromAnotherTeam = new(dbfakes.FakePipeline)
+		privatePipelineFromAnotherTeam.IDReturns(3)
+		privatePipelineFromAnotherTeam.PausedReturns(false)
+		privatePipelineFromAnotherTeam.PublicReturns(false)
+		privatePipelineFromAnotherTeam.TeamNameReturns("main")
+		privatePipelineFromAnotherTeam.NameReturns("private-pipeline")
 
 		fakeTeam.PipelinesReturns([]db.Pipeline{
 			privatePipeline,
@@ -164,6 +172,8 @@ var _ = Describe("Pipelines API", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
+				Expect(dbPipelineFactory.VisiblePipelinesCallCount()).To(Equal(1))
+
 				Expect(body).To(MatchJSON(`[
 				{
 					"id": 3,
@@ -200,6 +210,28 @@ var _ = Describe("Pipelines API", func() {
 					"public": true,
 					"team_name": "another"
 				}]`))
+			})
+
+			Context("user has the Admin privilege", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAdminReturns(true)
+					dbPipelineFactory.AllPipelinesReturns(
+						[]db.Pipeline{publicPipeline, privatePipeline, anotherPublicPipeline, privatePipelineFromAnotherTeam},
+						nil)
+				})
+
+				It("user can see all private and public pipelines from all teams", func() {
+					Expect(dbPipelineFactory.AllPipelinesCallCount()).To(Equal(1),
+						"Expected AllPipelines() to be called once")
+
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					var pipelinesResponse []atc.Pipeline
+					err = json.Unmarshal(body, &pipelinesResponse)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(len(pipelinesResponse)).To(Equal(4))
+				})
 			})
 
 			Context("when the call to get active pipelines fails", func() {

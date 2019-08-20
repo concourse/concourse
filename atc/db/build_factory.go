@@ -15,7 +15,7 @@ import (
 type BuildFactory interface {
 	Build(int) (Build, bool, error)
 	VisibleBuilds([]string, Page) ([]Build, Pagination, error)
-	VisibleBuildsWithTime([]string, Page) ([]Build, Pagination, error)
+	AllBuilds(Page) ([]Build, Pagination, error)
 	PublicBuilds(Page) ([]Build, Pagination, error)
 	GetAllStartedBuilds() ([]Build, error)
 	GetDrainableBuilds() ([]Build, error)
@@ -59,15 +59,6 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 	return build, true, nil
 }
 
-func (f *buildFactory) VisibleBuildsWithTime(teamNames []string, page Page) ([]Build, Pagination, error) {
-	newBuildsQuery := buildsQuery.
-		Where(sq.Or{
-			sq.Eq{"p.public": true},
-			sq.Eq{"t.name": teamNames},
-		})
-	return getBuildsWithDates(newBuildsQuery, minMaxIdQuery, page, f.conn, f.lockFactory)
-}
-
 func (f *buildFactory) VisibleBuilds(teamNames []string, page Page) ([]Build, Pagination, error) {
 	newBuildsQuery := buildsQuery.
 		Where(sq.Or{
@@ -75,7 +66,20 @@ func (f *buildFactory) VisibleBuilds(teamNames []string, page Page) ([]Build, Pa
 			sq.Eq{"t.name": teamNames},
 		})
 
-	return getBuildsWithPagination(newBuildsQuery, minMaxIdQuery,
+	if page.UseDate {
+		return getBuildsWithDates(newBuildsQuery, minMaxIdQuery, page, f.conn,
+			f.lockFactory)
+	}
+	return getBuildsWithPagination(newBuildsQuery, minMaxIdQuery, page, f.conn,
+		f.lockFactory)
+}
+
+func (f *buildFactory) AllBuilds(page Page) ([]Build, Pagination, error) {
+	if page.UseDate {
+		return getBuildsWithDates(buildsQuery, minMaxIdQuery, page, f.conn,
+			f.lockFactory)
+	}
+	return getBuildsWithPagination(buildsQuery, minMaxIdQuery,
 		page, f.conn, f.lockFactory)
 }
 
