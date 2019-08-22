@@ -3,15 +3,18 @@ package builder
 import (
 	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 	"unicode/utf8"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/vars"
 )
 
 func NewDelegateFactory() *delegateFactory {
@@ -20,29 +23,29 @@ func NewDelegateFactory() *delegateFactory {
 
 type delegateFactory struct{}
 
-func (delegate *delegateFactory) GetDelegate(build db.Build, planID atc.PlanID) exec.GetDelegate {
-	return NewGetDelegate(build, planID, clock.NewClock())
+func (delegate *delegateFactory) GetDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.GetDelegate {
+	return NewGetDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
-func (delegate *delegateFactory) PutDelegate(build db.Build, planID atc.PlanID) exec.PutDelegate {
-	return NewPutDelegate(build, planID, clock.NewClock())
+func (delegate *delegateFactory) PutDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.PutDelegate {
+	return NewPutDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
-func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID) exec.TaskDelegate {
-	return NewTaskDelegate(build, planID, clock.NewClock())
+func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.TaskDelegate {
+	return NewTaskDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
 func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID) exec.CheckDelegate {
 	return NewCheckDelegate(check, planID, clock.NewClock())
 }
 
-func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.PlanID) exec.BuildStepDelegate {
-	return NewBuildStepDelegate(build, planID, clock.NewClock())
+func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.BuildStepDelegate {
+	return NewBuildStepDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
-func NewGetDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.GetDelegate {
+func NewGetDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.GetDelegate {
 	return &getDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, credVarsTracker, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -138,9 +141,9 @@ func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info exe
 	}
 }
 
-func NewPutDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.PutDelegate {
+func NewPutDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.PutDelegate {
 	return &putDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, credVarsTracker, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -221,9 +224,9 @@ func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.
 	}
 }
 
-func NewTaskDelegate(build db.Build, planID atc.PlanID, clock clock.Clock) exec.TaskDelegate {
+func NewTaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.TaskDelegate {
 	return &taskDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, credVarsTracker, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -288,6 +291,8 @@ func NewCheckDelegate(check db.Check, planID atc.PlanID, clock clock.Clock) exec
 }
 
 type checkDelegate struct {
+	exec.BuildStepDelegate
+
 	check       db.Check
 	eventOrigin event.Origin
 	clock       clock.Clock
@@ -305,23 +310,44 @@ func (*checkDelegate) Errored(lager.Logger, string)                      { retur
 func NewBuildStepDelegate(
 	build db.Build,
 	planID atc.PlanID,
+	credVarsTracker vars.CredVarsTracker,
 	clock clock.Clock,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
-		build:  build,
-		planID: planID,
-		clock:  clock,
+		build:           build,
+		planID:          planID,
+		clock:           clock,
+		credVarsTracker: credVarsTracker,
 	}
 }
 
 type buildStepDelegate struct {
-	build  db.Build
-	planID atc.PlanID
-	clock  clock.Clock
+	build           db.Build
+	planID          atc.PlanID
+	clock           clock.Clock
+	credVarsTracker vars.CredVarsTracker
+}
+
+func (delegate *buildStepDelegate) Variables() vars.CredVarsTracker {
+	return delegate.credVarsTracker
 }
 
 func (delegate *buildStepDelegate) ImageVersionDetermined(resourceCache db.UsedResourceCache) error {
 	return delegate.build.SaveImageResourceVersion(resourceCache)
+}
+
+type credVarsIterator struct {
+	line string
+}
+
+func (it *credVarsIterator) YieldCred(k, v string) {
+	it.line = strings.Replace(it.line, v, "[**redacted**]", -1)
+}
+
+func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
+	it := &credVarsIterator{line: str}
+	delegate.credVarsTracker.IterateInterpolatedCreds(it)
+	return it.line
 }
 
 func (delegate *buildStepDelegate) Stdout() io.Writer {
@@ -332,6 +358,7 @@ func (delegate *buildStepDelegate) Stdout() io.Writer {
 			ID:     event.OriginID(delegate.planID),
 		},
 		delegate.clock,
+		delegate.buildOutputFilter,
 	)
 }
 
@@ -343,6 +370,7 @@ func (delegate *buildStepDelegate) Stderr() io.Writer {
 			ID:     event.OriginID(delegate.planID),
 		},
 		delegate.clock,
+		delegate.buildOutputFilter,
 	)
 }
 
@@ -359,11 +387,12 @@ func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) 
 	}
 }
 
-func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock) io.Writer {
+func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.Writer {
 	return &dbEventWriter{
 		build:  build,
 		origin: origin,
 		clock:  clock,
+		filter: filter,
 	}
 }
 
@@ -372,6 +401,7 @@ type dbEventWriter struct {
 	origin   event.Origin
 	clock    clock.Clock
 	dangling []byte
+	filter   exec.BuildOutputFilter
 }
 
 func (writer *dbEventWriter) Write(data []byte) (int, error) {
@@ -385,9 +415,14 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 
 	writer.dangling = nil
 
+	payload := string(text)
+	if writer.filter != nil {
+		payload = writer.filter(payload)
+	}
+
 	err := writer.build.SaveEvent(event.Log{
 		Time:    writer.clock.Now().Unix(),
-		Payload: string(text),
+		Payload: payload,
 		Origin:  writer.origin,
 	})
 	if err != nil {

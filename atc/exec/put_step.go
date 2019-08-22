@@ -30,7 +30,6 @@ type PutStep struct {
 	plan                  atc.PutPlan
 	metadata              StepMetadata
 	containerMetadata     db.ContainerMetadata
-	secrets               creds.Secrets
 	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
@@ -44,7 +43,6 @@ func NewPutStep(
 	plan atc.PutPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	secrets creds.Secrets,
 	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
@@ -56,7 +54,6 @@ func NewPutStep(
 		plan:                  plan,
 		metadata:              metadata,
 		containerMetadata:     containerMetadata,
-		secrets:               secrets,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		pool:                  pool,
@@ -82,7 +79,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 	step.delegate.Initializing(logger)
 
-	variables := creds.NewVariables(step.secrets, step.metadata.TeamName, step.metadata.PipelineName)
+	variables := step.delegate.Variables()
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
@@ -21,13 +20,14 @@ type CheckStep struct {
 	plan              atc.CheckPlan
 	metadata          StepMetadata
 	containerMetadata db.ContainerMetadata
-	secrets           creds.Secrets
 	resourceFactory   resource.ResourceFactory
 	strategy          worker.ContainerPlacementStrategy
 	pool              worker.Pool
 	delegate          CheckDelegate
 	succeeded         bool
 }
+
+//go:generate counterfeiter . CheckDelegate
 
 type CheckDelegate interface {
 	BuildStepDelegate
@@ -40,7 +40,6 @@ func NewCheckStep(
 	plan atc.CheckPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	secrets creds.Secrets,
 	resourceFactory resource.ResourceFactory,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
@@ -50,7 +49,6 @@ func NewCheckStep(
 		planID:            planID,
 		plan:              plan,
 		metadata:          metadata,
-		secrets:           secrets,
 		containerMetadata: containerMetadata,
 		resourceFactory:   resourceFactory,
 		pool:              pool,
