@@ -646,7 +646,7 @@ var _ = Describe("login Command", func() {
 		var teamHandler = func(teams []atc.Team) http.HandlerFunc {
 			return ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/api/v1/teams"),
-				ghttp.VerifyHeaderKV("Authorization", "Bearer foo." + encodedString),
+				ghttp.VerifyHeaderKV("Authorization", "Bearer foo."+encodedString),
 				ghttp.RespondWithJSONEncoded(200, teams),
 			)
 		}
