@@ -144,7 +144,7 @@ func (client *client) RunTaskStep(
 	}
 
 	if strategy.ModifiesActiveTasks() {
-		defer decreaseActiveTasks(logger.Session("decrease-active-tasks"), lockFactory, chosenWorker)
+		defer decreaseActiveTasks(logger.Session("decrease-active-tasks"), chosenWorker)
 	}
 
 	container, err := chosenWorker.FindOrCreateContainer(
@@ -346,40 +346,12 @@ func (client *client) chooseTaskWorker(
 	return chosenWorker, nil
 }
 
-func decreaseActiveTasks(logger lager.Logger, lockFactory lock.LockFactory, w Worker) {
-	var (
-		activeTasksLock lock.Lock
-		err             error
-		acquired        bool
-	)
-	for {
-		activeTasksLock, acquired, err = lockFactory.Acquire(logger, lock.NewActiveTasksLockID())
-		if err != nil {
-			logger.Error("failed-to-acquire-active-tasks-lock", err)
-			return
-		}
-
-		if !acquired {
-			time.Sleep(time.Second)
-			continue
-		} else {
-			break
-		}
-	}
-
-	err = w.DecreaseActiveTasks()
+func decreaseActiveTasks(logger lager.Logger, w Worker) {
+	err := w.DecreaseActiveTasks()
 	if err != nil {
 		logger.Error("failed-to-decrease-active-tasks", err)
 		return
 	}
-
-	err = activeTasksLock.Release()
-	if err != nil {
-		logger.Error("failed-to-release-active-tasks-lock", err)
-		return
-	}
-
-	return
 }
 
 type processStatus struct {
