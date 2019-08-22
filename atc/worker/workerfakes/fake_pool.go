@@ -11,6 +11,22 @@ import (
 )
 
 type FakePool struct {
+	ContainerInWorkerStub        func(lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec) (bool, error)
+	containerInWorkerMutex       sync.RWMutex
+	containerInWorkerArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 db.ContainerOwner
+		arg3 worker.ContainerSpec
+		arg4 worker.WorkerSpec
+	}
+	containerInWorkerReturns struct {
+		result1 bool
+		result2 error
+	}
+	containerInWorkerReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	FindOrChooseWorkerStub        func(lager.Logger, worker.WorkerSpec) (worker.Worker, error)
 	findOrChooseWorkerMutex       sync.RWMutex
 	findOrChooseWorkerArgsForCall []struct {
@@ -45,6 +61,72 @@ type FakePool struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakePool) ContainerInWorker(arg1 lager.Logger, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 worker.WorkerSpec) (bool, error) {
+	fake.containerInWorkerMutex.Lock()
+	ret, specificReturn := fake.containerInWorkerReturnsOnCall[len(fake.containerInWorkerArgsForCall)]
+	fake.containerInWorkerArgsForCall = append(fake.containerInWorkerArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 db.ContainerOwner
+		arg3 worker.ContainerSpec
+		arg4 worker.WorkerSpec
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("ContainerInWorker", []interface{}{arg1, arg2, arg3, arg4})
+	fake.containerInWorkerMutex.Unlock()
+	if fake.ContainerInWorkerStub != nil {
+		return fake.ContainerInWorkerStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.containerInWorkerReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePool) ContainerInWorkerCallCount() int {
+	fake.containerInWorkerMutex.RLock()
+	defer fake.containerInWorkerMutex.RUnlock()
+	return len(fake.containerInWorkerArgsForCall)
+}
+
+func (fake *FakePool) ContainerInWorkerCalls(stub func(lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec) (bool, error)) {
+	fake.containerInWorkerMutex.Lock()
+	defer fake.containerInWorkerMutex.Unlock()
+	fake.ContainerInWorkerStub = stub
+}
+
+func (fake *FakePool) ContainerInWorkerArgsForCall(i int) (lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec) {
+	fake.containerInWorkerMutex.RLock()
+	defer fake.containerInWorkerMutex.RUnlock()
+	argsForCall := fake.containerInWorkerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakePool) ContainerInWorkerReturns(result1 bool, result2 error) {
+	fake.containerInWorkerMutex.Lock()
+	defer fake.containerInWorkerMutex.Unlock()
+	fake.ContainerInWorkerStub = nil
+	fake.containerInWorkerReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePool) ContainerInWorkerReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.containerInWorkerMutex.Lock()
+	defer fake.containerInWorkerMutex.Unlock()
+	fake.ContainerInWorkerStub = nil
+	if fake.containerInWorkerReturnsOnCall == nil {
+		fake.containerInWorkerReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.containerInWorkerReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePool) FindOrChooseWorker(arg1 lager.Logger, arg2 worker.WorkerSpec) (worker.Worker, error) {
@@ -182,6 +264,8 @@ func (fake *FakePool) FindOrChooseWorkerForContainerReturnsOnCall(i int, result1
 func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.containerInWorkerMutex.RLock()
+	defer fake.containerInWorkerMutex.RUnlock()
 	fake.findOrChooseWorkerMutex.RLock()
 	defer fake.findOrChooseWorkerMutex.RUnlock()
 	fake.findOrChooseWorkerForContainerMutex.RLock()

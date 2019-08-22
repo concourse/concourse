@@ -35,21 +35,44 @@ var _ = Describe("Resource Factory", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns resources in the provided teams and resources in public pipelines", func() {
-			visibleResources, err := resourceFactory.VisibleResources([]string{"default-team"})
-			Expect(err).ToNot(HaveOccurred())
+		Context("VisibleResources", func() {
+			It("returns resources in the provided teams and resources in public pipelines", func() {
+				visibleResources, err := resourceFactory.VisibleResources([]string{"default-team"})
+				Expect(err).ToNot(HaveOccurred())
 
-			Expect(len(visibleResources)).To(Equal(2))
-			Expect(visibleResources[0].Name()).To(Equal("some-resource"))
-			Expect(visibleResources[1].Name()).To(Equal("public-pipeline-resource"))
+				Expect(len(visibleResources)).To(Equal(2))
+				Expect(visibleResources[0].Name()).To(Equal("some-resource"))
+				Expect(visibleResources[1].Name()).To(Equal("public-pipeline-resource"))
+			})
+
+			It("returns team name and groups for each resource", func() {
+				visibleResources, err := resourceFactory.VisibleResources([]string{"default-team"})
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(visibleResources[0].TeamName()).To(Equal("default-team"))
+				Expect(visibleResources[1].TeamName()).To(Equal("other-team"))
+			})
+
 		})
 
-		It("returns team name and groups for each resource", func() {
-			visibleResources, err := resourceFactory.VisibleResources([]string{"default-team"})
-			Expect(err).ToNot(HaveOccurred())
+		Context("AllResources", func() {
+			It("returns all private and public resources from all teams", func() {
+				visibleResources, err := resourceFactory.AllResources()
+				Expect(err).ToNot(HaveOccurred())
 
-			Expect(visibleResources[0].TeamName()).To(Equal("default-team"))
-			Expect(visibleResources[1].TeamName()).To(Equal("other-team"))
+				Expect(len(visibleResources)).To(Equal(3))
+				Expect(visibleResources[0].Name()).To(Equal("some-resource"))
+				Expect(visibleResources[1].Name()).To(Equal("public-pipeline-resource"))
+				Expect(visibleResources[2].Name()).To(Equal("private-pipeline-resource"))
+			})
+
+			It("returns team name and groups for each resource", func() {
+				visibleResources, err := resourceFactory.AllResources()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(visibleResources[0].TeamName()).To(Equal("default-team"))
+				Expect(visibleResources[1].TeamName()).To(Equal("other-team"))
+			})
 		})
 	})
 })

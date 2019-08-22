@@ -267,15 +267,15 @@ type FakeWorker struct {
 	retireReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StartTimeStub        func() int64
+	StartTimeStub        func() time.Time
 	startTimeMutex       sync.RWMutex
 	startTimeArgsForCall []struct {
 	}
 	startTimeReturns struct {
-		result1 int64
+		result1 time.Time
 	}
 	startTimeReturnsOnCall map[int]struct {
-		result1 int64
+		result1 time.Time
 	}
 	StateStub        func() db.WorkerState
 	stateMutex       sync.RWMutex
@@ -1617,7 +1617,7 @@ func (fake *FakeWorker) RetireReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeWorker) StartTime() int64 {
+func (fake *FakeWorker) StartTime() time.Time {
 	fake.startTimeMutex.Lock()
 	ret, specificReturn := fake.startTimeReturnsOnCall[len(fake.startTimeArgsForCall)]
 	fake.startTimeArgsForCall = append(fake.startTimeArgsForCall, struct {
@@ -1640,32 +1640,32 @@ func (fake *FakeWorker) StartTimeCallCount() int {
 	return len(fake.startTimeArgsForCall)
 }
 
-func (fake *FakeWorker) StartTimeCalls(stub func() int64) {
+func (fake *FakeWorker) StartTimeCalls(stub func() time.Time) {
 	fake.startTimeMutex.Lock()
 	defer fake.startTimeMutex.Unlock()
 	fake.StartTimeStub = stub
 }
 
-func (fake *FakeWorker) StartTimeReturns(result1 int64) {
+func (fake *FakeWorker) StartTimeReturns(result1 time.Time) {
 	fake.startTimeMutex.Lock()
 	defer fake.startTimeMutex.Unlock()
 	fake.StartTimeStub = nil
 	fake.startTimeReturns = struct {
-		result1 int64
+		result1 time.Time
 	}{result1}
 }
 
-func (fake *FakeWorker) StartTimeReturnsOnCall(i int, result1 int64) {
+func (fake *FakeWorker) StartTimeReturnsOnCall(i int, result1 time.Time) {
 	fake.startTimeMutex.Lock()
 	defer fake.startTimeMutex.Unlock()
 	fake.StartTimeStub = nil
 	if fake.startTimeReturnsOnCall == nil {
 		fake.startTimeReturnsOnCall = make(map[int]struct {
-			result1 int64
+			result1 time.Time
 		})
 	}
 	fake.startTimeReturnsOnCall[i] = struct {
-		result1 int64
+		result1 time.Time
 	}{result1}
 }
 

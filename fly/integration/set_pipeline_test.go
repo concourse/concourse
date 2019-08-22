@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -635,7 +636,7 @@ this is super secure
 							path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 							Expect(err).NotTo(HaveOccurred())
 
-							configResponse := atc.SaveConfigResponse{Errors: []string{"Expected to find variables: param-b"}}
+							configResponse := atc.SaveConfigResponse{Errors: []string{"some-error"}}
 							atcServer.RouteToHandler("PUT", path,
 								ghttp.CombineHandlers(
 									ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
@@ -670,7 +671,7 @@ this is super secure
 								Expect(err).NotTo(HaveOccurred())
 
 								Eventually(sess.Err).Should(gbytes.Say(`error: invalid pipeline config:`))
-								Eventually(sess.Err).Should(gbytes.Say(`Expected to find variables: param-b`))
+								Eventually(sess.Err).Should(gbytes.Say(`some-error`))
 
 								<-sess.Exited
 								Expect(sess.ExitCode()).NotTo(Equal(0))
@@ -1028,7 +1029,7 @@ this is super secure
 
 							Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
 							Eventually(sess).Should(gbytes.Say("  - run the unpause-pipeline command:"))
-							Eventually(sess).Should(gbytes.Say("    fly -t " + targetName + " unpause-pipeline -p awesome-pipeline"))
+							Eventually(sess).Should(gbytes.Say("    %s -t %s unpause-pipeline -p awesome-pipeline", regexp.QuoteMeta(flyPath), targetName))
 							Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
 
 							<-sess.Exited

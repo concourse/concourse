@@ -23,7 +23,7 @@ func Worker(workerInfo db.Worker) atc.Worker {
 		activeTasks = 0
 	}
 
-	return atc.Worker{
+	atcWorker := atc.Worker{
 		GardenAddr:       gardenAddr,
 		BaggageclaimURL:  baggageclaimURL,
 		HTTPProxyURL:     workerInfo.HTTPProxyURL(),
@@ -38,8 +38,13 @@ func Worker(workerInfo db.Worker) atc.Worker {
 		Name:             workerInfo.Name(),
 		Team:             workerInfo.TeamName(),
 		State:            string(workerInfo.State()),
-		StartTime:        workerInfo.StartTime(),
 		Version:          version,
 		Ephemeral:        workerInfo.Ephemeral(),
 	}
+
+	if !workerInfo.StartTime().IsZero() {
+		atcWorker.StartTime = workerInfo.StartTime().Unix()
+	}
+
+	return atcWorker
 }

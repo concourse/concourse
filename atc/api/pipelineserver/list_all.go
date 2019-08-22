@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
+	"github.com/concourse/concourse/atc/db"
 )
 
 // show all public pipelines and team private pipelines if authorized
@@ -14,7 +15,15 @@ func (s *Server) ListAllPipelines(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 
-	pipelines, err := s.pipelineFactory.VisiblePipelines(acc.TeamNames())
+	var pipelines []db.Pipeline
+	var err error
+
+	if acc.IsAdmin() {
+		pipelines, err = s.pipelineFactory.AllPipelines()
+	} else {
+		pipelines, err = s.pipelineFactory.VisiblePipelines(acc.TeamNames())
+	}
+
 	if err != nil {
 		logger.Error("failed-to-get-all-visible-pipelines", err)
 		w.WriteHeader(http.StatusInternalServerError)

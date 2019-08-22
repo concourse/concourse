@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/runtime"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 const taskProcessID = "task"
@@ -143,7 +144,7 @@ func (client *client) RunTaskStep(
 	}
 
 	if strategy.ModifiesActiveTasks() {
-		defer decreaseActiveTasks(logger.Session("decrease-active-tasks"), lockFactory, chosenWorker)
+		defer decreaseActiveTasks(logger.Session("decrease-active-tasks"), chosenWorker)
 	}
 
 	container, err := chosenWorker.FindOrCreateContainer(
@@ -257,10 +258,11 @@ func (client *client) chooseTaskWorker(
 	outputWriter io.Writer,
 ) (Worker, error) {
 	var (
-		chosenWorker    Worker
-		activeTasksLock lock.Lock
-		elapsed         time.Duration
-		err             error
+		chosenWorker      Worker
+		activeTasksLock   lock.Lock
+		elapsed           time.Duration
+		err               error
+		existingContainer bool
 	)
 
 	for {
@@ -274,6 +276,14 @@ func (client *client) chooseTaskWorker(
 			if !acquired {
 				time.Sleep(time.Second)
 				continue
+			}
+			existingContainer, err = client.pool.ContainerInWorker(logger, owner, containerSpec, workerSpec)
+			if err != nil {
+				release_err := activeTasksLock.Release()
+				if release_err != nil {
+					err = multierror.Append(err, release_err)
+				}
+				return nil, err
 			}
 		}
 
@@ -310,9 +320,11 @@ func (client *client) chooseTaskWorker(
 				continue
 			}
 
-			err = chosenWorker.IncreaseActiveTasks()
-			if err != nil {
-				logger.Error("failed-to-increase-active-tasks", err)
+			if !existingContainer {
+				err = chosenWorker.IncreaseActiveTasks()
+				if err != nil {
+					logger.Error("failed-to-increase-active-tasks", err)
+				}
 			}
 
 			err = activeTasksLock.Release()
@@ -334,40 +346,12 @@ func (client *client) chooseTaskWorker(
 	return chosenWorker, nil
 }
 
-func decreaseActiveTasks(logger lager.Logger, lockFactory lock.LockFactory, w Worker) {
-	var (
-		activeTasksLock lock.Lock
-		err             error
-		acquired        bool
-	)
-	for {
-		activeTasksLock, acquired, err = lockFactory.Acquire(logger, lock.NewActiveTasksLockID())
-		if err != nil {
-			logger.Error("failed-to-acquire-active-tasks-lock", err)
-			return
-		}
-
-		if !acquired {
-			time.Sleep(time.Second)
-			continue
-		} else {
-			break
-		}
-	}
-
-	err = w.DecreaseActiveTasks()
+func decreaseActiveTasks(logger lager.Logger, w Worker) {
+	err := w.DecreaseActiveTasks()
 	if err != nil {
 		logger.Error("failed-to-decrease-active-tasks", err)
 		return
 	}
-
-	err = activeTasksLock.Release()
-	if err != nil {
-		logger.Error("failed-to-release-active-tasks-lock", err)
-		return
-	}
-
-	return
 }
 
 type processStatus struct {

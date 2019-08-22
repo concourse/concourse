@@ -164,6 +164,16 @@ var _ = Describe("Resources API", func() {
 					Expect(dbResourceFactory.VisibleResourcesCallCount()).To(Equal(1))
 					Expect(dbResourceFactory.VisibleResourcesArgsForCall(0)).To(ContainElement("some-team"))
 				})
+
+				Context("when user has admin privilege", func() {
+					BeforeEach(func() {
+						fakeaccess.IsAdminReturns(true)
+					})
+
+					It("returns all resources", func() {
+						Expect(dbResourceFactory.AllResourcesCallCount()).To(Equal(1))
+					})
+				})
 			})
 		})
 	})

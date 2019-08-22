@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"time"
 
@@ -34,7 +35,9 @@ func NewErrVersionMismatch(flyVersion string, atcVersion string, targetName Targ
 }
 
 func (e ErrVersionMismatch) Error() string {
-	return fmt.Sprintf("fly version (%s) is out of sync with the target (%s). to sync up, run the following:\n\n    fly -t %s sync\n", ui.Embolden(e.flyVersion), ui.Embolden(e.atcVersion), e.targetName)
+	return fmt.Sprintf(
+		"fly version (%s) is out of sync with the target (%s). to sync up, run the following:\n\n    %s -t %s sync\n",
+		ui.Embolden(e.flyVersion), ui.Embolden(e.atcVersion), os.Args[0], e.targetName)
 }
 
 type Target interface {

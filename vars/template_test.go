@@ -98,7 +98,7 @@ dup-key: ((key3))
 
 		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllKeys: true})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("Expected to find variables: key, key2, key4, key_in_array"))
+		Expect(err.Error()).To(Equal("undefined vars: key, key2, key4, key_in_array"))
 	})
 
 	It("does not return error if there are missing variable keys and ExpectAllKeys is false", func() {
@@ -116,7 +116,7 @@ dup-key: ((key3))
 
 		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllVarsUsed: true})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("Expected to use variables: key1, key3"))
+		Expect(err.Error()).To(Equal("unused vars: key1, key3"))
 	})
 
 	It("does not return error if there are unused variable keys and ExpectAllVarsUsed is false", func() {
@@ -134,8 +134,8 @@ dup-key: ((key3))
 
 		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllKeys: true, ExpectAllVarsUsed: true})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Expected to find variables: key2"))
-		Expect(err.Error()).To(ContainSubstring("Expected to use variables: key1, key3"))
+		Expect(err.Error()).To(ContainSubstring("undefined vars: key2"))
+		Expect(err.Error()).To(ContainSubstring("unused vars: key1, key3"))
 	})
 
 	Context("When template is a number", func() {
@@ -237,7 +237,7 @@ dup-key: ((key3))
 
 		_, err := template.Evaluate(vars, EvaluateOpts{})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("2.717"))
+		Expect(err.Error()).To(ContainSubstring("float64"))
 		Expect(err.Error()).To(ContainSubstring("eulers_number"))
 	})
 
@@ -308,18 +308,6 @@ dup-key: ((key3))
 		Expect(result).To(Equal([]byte("abc: val\nxyz:\n- val\n")))
 	})
 
-	It("returns raw bytes of a string if UnescapedMultiline is true", func() {
-		template := NewTemplate([]byte("value"))
-
-		result, err := template.Evaluate(StaticVariables{}, EvaluateOpts{})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal([]byte("value\n")))
-
-		result, err = template.Evaluate(StaticVariables{}, EvaluateOpts{UnescapedMultiline: true})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal([]byte("value\n")))
-	})
-
 	It("allows to access sub key of an interpolated value via dot syntax", func() {
 		template := NewTemplate([]byte("((key.subkey))"))
 		vars := StaticVariables{
@@ -337,7 +325,7 @@ dup-key: ((key3))
 
 		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllKeys: true})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Expected to find variables: key"))
+		Expect(err.Error()).To(ContainSubstring("undefined vars: key"))
 	})
 
 	It("returns an error if accessing sub key of an interpolated value fails", func() {
@@ -348,7 +336,7 @@ dup-key: ((key3))
 
 		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllKeys: true})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Expected to find a map key 'subkey_not_found'"))
+		Expect(err.Error()).To(ContainSubstring("missing field 'subkey_not_found' in var: key.subkey_not_found"))
 	})
 
 	It("returns error if finding variable fails", func() {

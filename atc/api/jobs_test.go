@@ -251,6 +251,16 @@ var _ = Describe("Jobs API", func() {
 				Expect(dbJobFactory.VisibleJobsCallCount()).To(Equal(1))
 				Expect(dbJobFactory.VisibleJobsArgsForCall(0)).To(ContainElement("some-team"))
 			})
+
+			Context("user has the admin privilege", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAdminReturns(true)
+				})
+
+				It("returns all jobs from public and private pipelines from unauthenticated teams", func() {
+					Expect(dbJobFactory.AllActiveJobsCallCount()).To(Equal(1))
+				})
+			})
 		})
 	})
 

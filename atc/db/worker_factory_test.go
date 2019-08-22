@@ -45,7 +45,7 @@ var _ = Describe("WorkerFactory", func() {
 			Platform:  "some-platform",
 			Tags:      atc.Tags{"some", "tags"},
 			Name:      "some-name",
-			StartTime: 55,
+			StartTime: 1565367209,
 		}
 	})
 
@@ -242,7 +242,7 @@ var _ = Describe("WorkerFactory", func() {
 				}))
 				Expect(foundWorker.Platform()).To(Equal("some-platform"))
 				Expect(foundWorker.Tags()).To(Equal([]string{"some", "tags"}))
-				Expect(foundWorker.StartTime()).To(Equal(int64(55)))
+				Expect(foundWorker.StartTime().Unix()).To(Equal(int64(1565367209)))
 				Expect(foundWorker.State()).To(Equal(db.WorkerStateRunning))
 			})
 

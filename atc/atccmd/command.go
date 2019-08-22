@@ -99,6 +99,9 @@ type RunCommand struct {
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
+	APIMaxOpenConnections     int `long:"api-max-conns" description:"The maximum number of open connections for the api connection pool." default:"10"`
+	BackendMaxOpenConnections int `long:"backend-max-conns" description:"The maximum number of open connections for the backend connection pool." default:"50"`
+
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
 
@@ -135,6 +138,7 @@ type RunCommand struct {
 	Metrics struct {
 		HostName            string            `long:"metrics-host-name" description:"Host string to attach to emitted metrics."`
 		Attributes          map[string]string `long:"metrics-attribute" description:"A key-value attribute to attach to emitted metrics. Can be specified multiple times." value-name:"NAME:VALUE"`
+		BufferSize          uint32            `long:"metrics-buffer-size" default:"1000" description:"The size of the buffer used in emitting event metrics."`
 		CaptureErrorMetrics bool              `long:"capture-error-metrics" description:"Enable capturing of error log metrics"`
 	} `group:"Metrics & Diagnostics"`
 
@@ -410,12 +414,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, 10, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, 50, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.BackendMaxOpenConnections, "backend", lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -1252,7 +1256,7 @@ func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
 		host, _ = os.Hostname()
 	}
 
-	return metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
+	return metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
 }
 
 func (cmd *RunCommand) constructDBConn(
@@ -1278,6 +1282,7 @@ func (cmd *RunCommand) constructDBConn(
 
 	// Prepare
 	dbConn.SetMaxOpenConns(maxConn)
+	dbConn.SetMaxIdleConns(maxConn / 2)
 
 	// Add connection to the connection pool list
 	cmd.closeDBConns = append(cmd.closeDBConns, dbConn)
@@ -1404,7 +1409,7 @@ func (cmd *RunCommand) constructHTTPHandler(
 
 			// proxy Authorization header to/from auth cookie,
 			// to support auth from JS (EventSource) and custom JWT auth
-			Handler: auth.CookieSetHandler{
+			Handler: auth.WebAuthHandler{
 				Handler: webMux,
 			},
 		},
