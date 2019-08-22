@@ -30,6 +30,7 @@ var _ = Describe("Client", func() {
 		fakePool        *workerfakes.FakePool
 		fakeProvider    *workerfakes.FakeWorkerProvider
 		client          worker.Client
+		fakeLock        *lockfakes.FakeLock
 		fakeLockFactory *lockfakes.FakeLockFactory
 	)
 
@@ -320,9 +321,8 @@ var _ = Describe("Client", func() {
 				return nil
 			}
 
-			fakeLock := new(lockfakes.FakeLock)
-
 			fakeLockFactory = new(lockfakes.FakeLockFactory)
+			fakeLock = new(lockfakes.FakeLock)
 			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
 			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
@@ -341,27 +341,39 @@ var _ = Describe("Client", func() {
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
 			})
 
-			Context("when 'limit-active-tasks' strategy is chosen and a worker found", func() {
+			Context("when 'limit-active-tasks' strategy is chosen", func() {
 				BeforeEach(func() {
-					fakeWorker.NameReturns("some-worker")
-					fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
-
-					fakeContainer := new(workerfakes.FakeContainer)
-					fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
-					fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
-
 					fakeStrategy.ModifiesActiveTasksReturns(true)
 				})
-				It("increase the active tasks on the worker", func() {
-					Expect(fakeWorker.IncreaseActiveTasksCallCount()).To(Equal(1))
+				Context("when a worker is found", func() {
+					BeforeEach(func() {
+						fakeWorker.NameReturns("some-worker")
+						fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
+
+						fakeContainer := new(workerfakes.FakeContainer)
+						fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+						fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
+					})
+					It("increase the active tasks on the worker", func() {
+						Expect(fakeWorker.IncreaseActiveTasksCallCount()).To(Equal(1))
+					})
+
+					Context("when the container is already present on the worker", func() {
+						BeforeEach(func() {
+							fakePool.ContainerInWorkerReturns(true, nil)
+						})
+						It("does not increase the active tasks on the worker", func() {
+							Expect(fakeWorker.IncreaseActiveTasksCallCount()).To(Equal(0))
+						})
+					})
 				})
 
-				Context("when the container is already present on the worker", func() {
+				Context("when a container in worker returns an error", func() {
 					BeforeEach(func() {
-						fakePool.ContainerInWorkerReturns(true, nil)
+						fakePool.ContainerInWorkerReturns(false, errors.New("nope"))
 					})
-					It("does not increase the active tasks on the worker", func() {
-						Expect(fakeWorker.IncreaseActiveTasksCallCount()).To(Equal(0))
+					It("release the task-step lock every time it acquires it", func() {
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
 					})
 				})
 			})
