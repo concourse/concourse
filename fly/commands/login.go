@@ -258,6 +258,7 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 			w.Header().Set("Access-Control-Allow-Origin", targetUrl)
 			tokenChannel <- r.FormValue("token")
 			w.WriteHeader(200)
+			_,_ = fmt.Fprint(w, "token received by fly")
 		}),
 	}
 
