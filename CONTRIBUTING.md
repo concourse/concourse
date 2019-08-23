@@ -31,6 +31,10 @@ on.
   * All commits must have a signature certifying agreement to the [DCO][dco].
     For more information, see [Signing your work](#signing-your-work).
 
+  * Write release notes by adding onto the `latest.md` file in the 
+    `release-notes/` directory! For formatting and style examples,
+    see previous release notes in the same directory.
+
   * *Optional: check out our [Go style guide][style-guide]!*
 
 * When you're ready, [submit a pull request][how-to-pr]!
