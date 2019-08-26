@@ -13,3 +13,8 @@ We have changed our release notes flow! Now, contributors can add draft release 
 #### <sub><sup><a name="v550-note-3" href="#v550-note-3">:link:</a></sup></sub> feature
 
 PLACEHOLDER: Super admin #4238, first steps
+
+#### <sub><sup><a name="v550-note-4" href="#v550-note-4">:link:</a></sup></sub> feature
+We noticed after #4058 (where build steps are collapsed by default) that it wasn't very easy to see failing steps.
+
+Now a failing step has a red border around its header, an erroring step has an orange border, and a running step has a yellow border. #4164, #4250
