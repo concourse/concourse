@@ -31,3 +31,7 @@
 #### <sub><sup><a name="v550-note-8" href="#v550-note-8">:link:</a></sup></sub> fix
 
 * The web UI used to [silently break](https://github.com/concourse/concourse/issues/3141) when your token (which includes a potentially-long JSON-encoded string detailing all the teams you are part of and what roles you have on them) was longer than the size of a single cookie (4096 bytes on most browsers!). This limit has been increased 15-fold, which should unblock most users on clusters with a lot of teams #4280.
+
+#### <sub><sup><a name="v550-note-9" href="#v550-note-9">:link:</a></sup></sub> fix
+
+For the past few releases, the web nodes have allowed themselves to make up to 64 parallel connections to the database, to allow for parallelizing work like GC and scheduling within a single node. @ebilling has configured the web node's tolerance for idle connections to be more lenient: If a node has been using more than 32 of its available connections, up to 32 connections will be allowed to stay idly open. Anecdotally, CPU savings (resulting from less opening/closing of connections) of up to 30% have been observed on web nodes because of this change. Furthermore, the total max connection pool size has been made configurable - this should allow operators to avoid overloading the max connection limit on the database side #4232.
