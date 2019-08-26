@@ -26,3 +26,7 @@ On particularly busy clusters, users have observed [metrics events](https://gith
 #### <sub><sup><a name="v550-note-6" href="#v550-note-6">:link:</a></sup></sub> feature
 
 @rudolfv also added some features for the special case of InfluxDB metrics. To decrease the request load on InfluxDB, you can configure the number of events to batch into a single InfluxDB request, or you can specify a hardcoded interval at which to emit events, regardless of how many have accumulated #3937.
+
+#### <sub><sup><a name="v550-note-7" href="#v550-note-7">:link:</a></sup></sub> fix
+
+@evanchaoli improved `fly` - when outputting sample commands to the terminal, the CLI is aware of the path from which it is being executed #4284.
