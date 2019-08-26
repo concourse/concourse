@@ -12,7 +12,7 @@ We have changed our release notes flow! Now, contributors can add draft release 
 
 #### <sub><sup><a name="v550-note-3" href="#v550-note-3">:link:</a></sup></sub> feature
 
-PLACEHOLDER: Super admin #4238, first steps
+In the past, owners of the `main` team had permission to modify the auth configuration for other teams in the same cluster. Now, owners of the `main` team also have full control over pipelines, jobs, resources, builds, etc for all teams #4238.
 
 #### <sub><sup><a name="v550-note-4" href="#v550-note-4">:link:</a></sup></sub> feature
 We noticed after #4058 (where build steps are collapsed by default) that it wasn't very easy to see failing steps.
