@@ -9,3 +9,7 @@ Thanks to @aledeganopix4d for all their hard work on this feature! #4118, #4148,
 #### <sub><sup><a name="v550-note-2" href="#v550-note-2">:link:</a></sup></sub> feature
 
 We have changed our release notes flow! Now, contributors can add draft release notes right in their PRs, by modifying the `release-notes/latest.md` file in the `concourse/concourse` repo #4312.
+
+#### <sub><sup><a name="v550-note-3" href="#v550-note-3">:link:</a></sup></sub> feature
+
+PLACEHOLDER: Super admin #4238, first steps
