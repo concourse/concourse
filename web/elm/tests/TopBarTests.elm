@@ -1335,6 +1335,7 @@ all =
                                 , userName = "test"
                                 , name = "test"
                                 , email = "test"
+                                , isAdmin = False
                                 , teams =
                                     Dict.fromList
                                         [ ( "t", [ "member" ] ) ]
@@ -1350,6 +1351,7 @@ all =
                                 , userName = "test"
                                 , name = "test"
                                 , email = "test"
+                                , isAdmin = False
                                 , teams =
                                     Dict.fromList
                                         [ ( "s", [ "member" ] ) ]
@@ -1607,7 +1609,7 @@ eachHasStyle property value =
 
 sampleUser : Concourse.User
 sampleUser =
-    { id = "1", userName = "test", name = "Bob", email = "bob@bob.com", teams = Dict.empty }
+    { id = "1", userName = "test", name = "Bob", isAdmin = False, email = "bob@bob.com", teams = Dict.empty }
 
 
 pipelineBreadcrumbSelector : List Selector.Selector

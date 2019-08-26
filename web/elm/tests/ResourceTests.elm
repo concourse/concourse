@@ -172,6 +172,7 @@ all =
                                     , userName = "test"
                                     , name = "test"
                                     , email = "test"
+                                    , isAdmin = False
                                     , teams =
                                         Dict.fromList
                                             [ ( teamName, [ "member" ] )
@@ -2321,6 +2322,7 @@ all =
                                         , userName = "some-user"
                                         , name = "some-user"
                                         , email = "some-user"
+                                        , isAdmin = False
                                         , teams =
                                             Dict.fromList
                                                 [ ( "some-team"
@@ -2652,6 +2654,7 @@ all =
                         , userName = "test"
                         , name = "test"
                         , email = "test"
+                        , isAdmin = False
                         , teams = Dict.fromList [ ( teamName, [ "member" ] ) ]
                         }
                 in
@@ -2966,6 +2969,7 @@ all =
                         , userName = "test"
                         , name = "test"
                         , email = "test"
+                        , isAdmin = False
                         , teams = Dict.fromList [ ( teamName, [ "viewer" ] ) ]
                         }
                 in
@@ -3169,6 +3173,7 @@ givenUserIsAuthorized =
                 , userName = "test"
                 , name = "test"
                 , email = "test"
+                , isAdmin = False
                 , teams =
                     Dict.fromList
                         [ ( teamName, [ "member" ] )
