@@ -212,4 +212,26 @@ metrics pipeline.
       }
     }
   }
+
+  \define-metric{worker tasks}{
+    This metric is emitted each time a worker registers or heartbeats. It
+    contains the number of active task containers on the worker in question.
+    Particularly if \code{max-active-tasks-per-worker} is set, this can be
+    useful for debugging containers stuck in a pending state.
+
+    \larger{Attributes}
+    \definitions{
+      \definition{
+        \code{worker}
+      }{
+        The name of the worker registering/heartbeating.
+      }
+    }{
+      \definition{
+        \code{platform}
+      }{
+        The OS platform of the worker in question (i.e. windows/linux/darwin).
+      }
+    }
+  }
 }
