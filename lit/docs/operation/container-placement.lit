@@ -74,14 +74,6 @@ on the configured strategy.
   Note that the parameter does not apply to \code{get} and \code{put} steps which will always
   be scheduled on the worker with the fewest active tasks.
 
-  \warn{
-    In the event where the \reference{web-node} restarts and
-    a task completes while the restart is ongoing, then the counter
-    on the worker \bold{will not be decreased}.
-    If that happens the worker must be retired and re-registered
-    to reset the counter.
-  }
-
   \codeblock{bash}{{{
   CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=limit-active-tasks
   }}}
