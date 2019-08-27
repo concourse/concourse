@@ -337,6 +337,7 @@ func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetada
 		containerID,
 		handle.String(),
 		worker.name,
+		"",
 		*metadata,
 		worker.conn,
 	), nil
@@ -344,10 +345,11 @@ func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetada
 
 func (worker *worker) findContainer(whereClause sq.Sqlizer) (CreatingContainer, CreatedContainer, error) {
 	creating, created, destroying, _, err := scanContainer(
-		selectContainers().
+		selectContainers(nil).
 			Where(whereClause).
 			RunWith(worker.conn).
 			QueryRow(),
+		false,
 		worker.conn,
 	)
 	if err != nil {

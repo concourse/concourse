@@ -3,6 +3,7 @@ package atc
 type Container struct {
 	ID         string `json:"id"`
 	WorkerName string `json:"worker_name"`
+	TeamName   string `json:"team_name,omitempty"`
 
 	State string `json:"state,omitempty"`
 	Type  string `json:"type,omitempty"`

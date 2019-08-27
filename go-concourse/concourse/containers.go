@@ -45,3 +45,16 @@ func (team *team) GetContainer(handle string) (atc.Container, error) {
 
 	return container, err
 }
+
+func (client *client) ListAllContainers() ([]atc.Container, error) {
+	var containers []atc.Container
+
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.ListAllContainers,
+		Query:       url.Values{},
+		Params:      rata.Params{},
+	}, &internal.Response{
+		Result: &containers,
+	})
+	return containers, err
+}

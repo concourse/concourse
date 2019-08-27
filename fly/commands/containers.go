@@ -1,10 +1,14 @@
 package commands
 
 import (
+	"errors"
 	"os"
 	"sort"
 	"strconv"
 
+	"github.com/concourse/concourse/go-concourse/concourse"
+
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
@@ -13,6 +17,7 @@ import (
 
 type ContainersCommand struct {
 	Json bool `long:"json" description:"Print command result as JSON"`
+	TeamsParam
 }
 
 func (command *ContainersCommand) Execute([]string) error {
@@ -26,9 +31,33 @@ func (command *ContainersCommand) Execute([]string) error {
 		return err
 	}
 
-	containers, err := target.Team().ListContainers(map[string]string{})
-	if err != nil {
-		return err
+	if len(command.TeamsFlags) > 0 && command.AllTeams {
+		return errors.New("cannot specify both --all-teams and --team")
+	}
+
+	var containers []atc.Container
+	client := target.Client()
+	if command.AllTeams {
+		containers, err = client.ListAllContainers()
+		if err != nil {
+			return err
+		}
+	} else {
+		var teams []concourse.Team
+		if len(command.TeamsFlags) > 0 {
+			for _, teamName := range command.TeamsFlags {
+				teams = append(teams, client.Team(teamName))
+			}
+		} else {
+			teams = append(teams, target.Team())
+		}
+		for _, team := range teams {
+			teamContainers, err := team.ListContainers(map[string]string{})
+			if err != nil {
+				return err
+			}
+			containers = append(containers, teamContainers...)
+		}
 	}
 
 	if command.Json {
@@ -50,6 +79,7 @@ func (command *ContainersCommand) Execute([]string) error {
 			{Contents: "type", Color: color.New(color.Bold)},
 			{Contents: "name", Color: color.New(color.Bold)},
 			{Contents: "attempt", Color: color.New(color.Bold)},
+			{Contents: "team", Color: color.New(color.Bold)},
 		},
 	}
 
@@ -64,6 +94,7 @@ func (command *ContainersCommand) Execute([]string) error {
 			{Contents: c.Type},
 			stringOrDefault(c.StepName + c.ResourceName),
 			stringOrDefault(c.Attempt, "n/a"),
+			stringOrDefault(c.TeamName, "n/a"),
 		}
 
 		table.Data = append(table.Data, row)

@@ -173,6 +173,18 @@ type FakeClient struct {
 		result1 []atc.User
 		result2 error
 	}
+	ListAllContainersStub        func() ([]atc.Container, error)
+	listAllContainersMutex       sync.RWMutex
+	listAllContainersArgsForCall []struct {
+	}
+	listAllContainersReturns struct {
+		result1 []atc.Container
+		result2 error
+	}
+	listAllContainersReturnsOnCall map[int]struct {
+		result1 []atc.Container
+		result2 error
+	}
 	ListBuildArtifactsStub        func(string) ([]atc.WorkerArtifact, error)
 	listBuildArtifactsMutex       sync.RWMutex
 	listBuildArtifactsArgsForCall []struct {
@@ -1034,6 +1046,61 @@ func (fake *FakeClient) ListActiveUsersSinceReturnsOnCall(i int, result1 []atc.U
 	}{result1, result2}
 }
 
+func (fake *FakeClient) ListAllContainers() ([]atc.Container, error) {
+	fake.listAllContainersMutex.Lock()
+	ret, specificReturn := fake.listAllContainersReturnsOnCall[len(fake.listAllContainersArgsForCall)]
+	fake.listAllContainersArgsForCall = append(fake.listAllContainersArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ListAllContainers", []interface{}{})
+	fake.listAllContainersMutex.Unlock()
+	if fake.ListAllContainersStub != nil {
+		return fake.ListAllContainersStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.listAllContainersReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) ListAllContainersCallCount() int {
+	fake.listAllContainersMutex.RLock()
+	defer fake.listAllContainersMutex.RUnlock()
+	return len(fake.listAllContainersArgsForCall)
+}
+
+func (fake *FakeClient) ListAllContainersCalls(stub func() ([]atc.Container, error)) {
+	fake.listAllContainersMutex.Lock()
+	defer fake.listAllContainersMutex.Unlock()
+	fake.ListAllContainersStub = stub
+}
+
+func (fake *FakeClient) ListAllContainersReturns(result1 []atc.Container, result2 error) {
+	fake.listAllContainersMutex.Lock()
+	defer fake.listAllContainersMutex.Unlock()
+	fake.ListAllContainersStub = nil
+	fake.listAllContainersReturns = struct {
+		result1 []atc.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) ListAllContainersReturnsOnCall(i int, result1 []atc.Container, result2 error) {
+	fake.listAllContainersMutex.Lock()
+	defer fake.listAllContainersMutex.Unlock()
+	fake.ListAllContainersStub = nil
+	if fake.listAllContainersReturnsOnCall == nil {
+		fake.listAllContainersReturnsOnCall = make(map[int]struct {
+			result1 []atc.Container
+			result2 error
+		})
+	}
+	fake.listAllContainersReturnsOnCall[i] = struct {
+		result1 []atc.Container
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) ListBuildArtifacts(arg1 string) ([]atc.WorkerArtifact, error) {
 	fake.listBuildArtifactsMutex.Lock()
 	ret, specificReturn := fake.listBuildArtifactsReturnsOnCall[len(fake.listBuildArtifactsArgsForCall)]
@@ -1580,6 +1647,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.landWorkerMutex.RUnlock()
 	fake.listActiveUsersSinceMutex.RLock()
 	defer fake.listActiveUsersSinceMutex.RUnlock()
+	fake.listAllContainersMutex.RLock()
+	defer fake.listAllContainersMutex.RUnlock()
 	fake.listBuildArtifactsMutex.RLock()
 	defer fake.listBuildArtifactsMutex.RUnlock()
 	fake.listPipelinesMutex.RLock()

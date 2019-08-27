@@ -33,6 +33,7 @@ type Client interface {
 	UserInfo() (map[string]interface{}, error)
 	ListActiveUsersSince(since time.Time) ([]atc.User, error)
 	Check(checkID string) (atc.Check, bool, error)
+	ListAllContainers() ([]atc.Container, error)
 }
 
 type client struct {

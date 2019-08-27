@@ -290,9 +290,8 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("instructs the user to use either --all-teams or --team", func() {
-					Eventually(session.Err).Should(gbytes.Say("Cannot specify both --all-teams and --team"))
+					Eventually(session.Err).Should(gbytes.Say("cannot specify both --all-teams and --team"))
 					Eventually(session).Should(gexec.Exit(1))
-
 				})
 			})
 

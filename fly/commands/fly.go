@@ -81,4 +81,9 @@ type FlyCommand struct {
 	Completion CompletionCommand `command:"completion" description:"generate shell completion code"`
 }
 
+type TeamsParam struct {
+	AllTeams   bool     `short:"a" long:"all-teams" description:"Run the command for all teams"`
+	TeamsFlags []string `long:"team" description:"Run the command for a list of teams"`
+}
+
 var Fly FlyCommand

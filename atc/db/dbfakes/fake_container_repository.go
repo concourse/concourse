@@ -9,6 +9,18 @@ import (
 )
 
 type FakeContainerRepository struct {
+	AllContainersStub        func() ([]db.Container, error)
+	allContainersMutex       sync.RWMutex
+	allContainersArgsForCall []struct {
+	}
+	allContainersReturns struct {
+		result1 []db.Container
+		result2 error
+	}
+	allContainersReturnsOnCall map[int]struct {
+		result1 []db.Container
+		result2 error
+	}
 	DestroyFailedContainersStub        func() (int, error)
 	destroyFailedContainersMutex       sync.RWMutex
 	destroyFailedContainersArgsForCall []struct {
@@ -103,8 +115,76 @@ type FakeContainerRepository struct {
 	updateContainersMissingSinceReturnsOnCall map[int]struct {
 		result1 error
 	}
+	VisibleContainersStub        func([]string) ([]db.Container, error)
+	visibleContainersMutex       sync.RWMutex
+	visibleContainersArgsForCall []struct {
+		arg1 []string
+	}
+	visibleContainersReturns struct {
+		result1 []db.Container
+		result2 error
+	}
+	visibleContainersReturnsOnCall map[int]struct {
+		result1 []db.Container
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeContainerRepository) AllContainers() ([]db.Container, error) {
+	fake.allContainersMutex.Lock()
+	ret, specificReturn := fake.allContainersReturnsOnCall[len(fake.allContainersArgsForCall)]
+	fake.allContainersArgsForCall = append(fake.allContainersArgsForCall, struct {
+	}{})
+	fake.recordInvocation("AllContainers", []interface{}{})
+	fake.allContainersMutex.Unlock()
+	if fake.AllContainersStub != nil {
+		return fake.AllContainersStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.allContainersReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeContainerRepository) AllContainersCallCount() int {
+	fake.allContainersMutex.RLock()
+	defer fake.allContainersMutex.RUnlock()
+	return len(fake.allContainersArgsForCall)
+}
+
+func (fake *FakeContainerRepository) AllContainersCalls(stub func() ([]db.Container, error)) {
+	fake.allContainersMutex.Lock()
+	defer fake.allContainersMutex.Unlock()
+	fake.AllContainersStub = stub
+}
+
+func (fake *FakeContainerRepository) AllContainersReturns(result1 []db.Container, result2 error) {
+	fake.allContainersMutex.Lock()
+	defer fake.allContainersMutex.Unlock()
+	fake.AllContainersStub = nil
+	fake.allContainersReturns = struct {
+		result1 []db.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerRepository) AllContainersReturnsOnCall(i int, result1 []db.Container, result2 error) {
+	fake.allContainersMutex.Lock()
+	defer fake.allContainersMutex.Unlock()
+	fake.AllContainersStub = nil
+	if fake.allContainersReturnsOnCall == nil {
+		fake.allContainersReturnsOnCall = make(map[int]struct {
+			result1 []db.Container
+			result2 error
+		})
+	}
+	fake.allContainersReturnsOnCall[i] = struct {
+		result1 []db.Container
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeContainerRepository) DestroyFailedContainers() (int, error) {
@@ -553,9 +633,79 @@ func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturnsOnCall(i
 	}{result1}
 }
 
+func (fake *FakeContainerRepository) VisibleContainers(arg1 []string) ([]db.Container, error) {
+	var arg1Copy []string
+	if arg1 != nil {
+		arg1Copy = make([]string, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	fake.visibleContainersMutex.Lock()
+	ret, specificReturn := fake.visibleContainersReturnsOnCall[len(fake.visibleContainersArgsForCall)]
+	fake.visibleContainersArgsForCall = append(fake.visibleContainersArgsForCall, struct {
+		arg1 []string
+	}{arg1Copy})
+	fake.recordInvocation("VisibleContainers", []interface{}{arg1Copy})
+	fake.visibleContainersMutex.Unlock()
+	if fake.VisibleContainersStub != nil {
+		return fake.VisibleContainersStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.visibleContainersReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeContainerRepository) VisibleContainersCallCount() int {
+	fake.visibleContainersMutex.RLock()
+	defer fake.visibleContainersMutex.RUnlock()
+	return len(fake.visibleContainersArgsForCall)
+}
+
+func (fake *FakeContainerRepository) VisibleContainersCalls(stub func([]string) ([]db.Container, error)) {
+	fake.visibleContainersMutex.Lock()
+	defer fake.visibleContainersMutex.Unlock()
+	fake.VisibleContainersStub = stub
+}
+
+func (fake *FakeContainerRepository) VisibleContainersArgsForCall(i int) []string {
+	fake.visibleContainersMutex.RLock()
+	defer fake.visibleContainersMutex.RUnlock()
+	argsForCall := fake.visibleContainersArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeContainerRepository) VisibleContainersReturns(result1 []db.Container, result2 error) {
+	fake.visibleContainersMutex.Lock()
+	defer fake.visibleContainersMutex.Unlock()
+	fake.VisibleContainersStub = nil
+	fake.visibleContainersReturns = struct {
+		result1 []db.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerRepository) VisibleContainersReturnsOnCall(i int, result1 []db.Container, result2 error) {
+	fake.visibleContainersMutex.Lock()
+	defer fake.visibleContainersMutex.Unlock()
+	fake.VisibleContainersStub = nil
+	if fake.visibleContainersReturnsOnCall == nil {
+		fake.visibleContainersReturnsOnCall = make(map[int]struct {
+			result1 []db.Container
+			result2 error
+		})
+	}
+	fake.visibleContainersReturnsOnCall[i] = struct {
+		result1 []db.Container
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.allContainersMutex.RLock()
+	defer fake.allContainersMutex.RUnlock()
 	fake.destroyFailedContainersMutex.RLock()
 	defer fake.destroyFailedContainersMutex.RUnlock()
 	fake.destroyUnknownContainersMutex.RLock()
@@ -570,6 +720,8 @@ func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	defer fake.removeMissingContainersMutex.RUnlock()
 	fake.updateContainersMissingSinceMutex.RLock()
 	defer fake.updateContainersMissingSinceMutex.RUnlock()
+	fake.visibleContainersMutex.RLock()
+	defer fake.visibleContainersMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

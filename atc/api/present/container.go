@@ -13,6 +13,7 @@ func Container(container db.Container, expiresAt time.Time) atc.Container {
 	atcContainer := atc.Container{
 		ID:         container.Handle(),
 		WorkerName: container.WorkerName(),
+		TeamName:   container.TeamName(),
 
 		Type:  string(meta.Type),
 		State: container.State(),

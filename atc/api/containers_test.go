@@ -42,6 +42,34 @@ var _ = Describe("Containers API", func() {
 		fakeContainer2 *dbfakes.FakeContainer
 	)
 
+	sampleJsonString := `[
+	{
+		"id": "some-handle",
+		"worker_name": "some-worker-name",
+		"type": "task",
+		"step_name": "some-step",
+		"attempt": "1.5",
+		"pipeline_id": 1111,
+		"job_id": 2222,
+		"state": "container-state",
+		"build_id": 3333,
+		"working_directory": "/tmp/build/my-favorite-guid",
+		"user": "snoopy"
+	},
+	{
+		"id": "some-other-handle",
+		"worker_name": "some-other-worker-name",
+		"type": "task",
+		"step_name": "some-step-other",
+		"attempt": "1.5.1",
+		"pipeline_id": 1112,
+		"job_id": 2223,
+		"build_id": 3334,
+		"working_directory": "/tmp/build/my-favorite-guid/other",
+		"user": "snoopy-other"
+		}
+	]`
+
 	BeforeEach(func() {
 		fakeaccess = new(accessorfakes.FakeAccess)
 		fakeContainer1 = new(dbfakes.FakeContainer)
@@ -81,6 +109,109 @@ var _ = Describe("Containers API", func() {
 	})
 	JustBeforeEach(func() {
 		fakeAccessor.CreateReturns(fakeaccess)
+	})
+
+	Describe("GET /api/v1/containers", func() {
+		BeforeEach(func() {
+			var err error
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers", nil)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-type", "application/json")
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				response, err := client.Do(req)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+				fakeaccess.IsAuthorizedReturns(true)
+				fakeaccess.IsAdminReturns(false)
+			})
+
+			Context("when no errors are returned", func() {
+				BeforeEach(func() {
+					fakeContainerRepository.VisibleContainersReturns([]db.Container{fakeContainer1, fakeContainer2}, nil)
+				})
+
+				It("returns 200", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns Content-Type application/json", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
+				It("returns all containers", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(sampleJsonString))
+				})
+			})
+
+			Context("when no containers are found", func() {
+				BeforeEach(func() {
+					fakeContainerRepository.VisibleContainersReturns([]db.Container{}, nil)
+				})
+
+				It("returns 200", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns an empty array", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`
+						  []
+						`))
+				})
+			})
+
+			Context("when there is an error", func() {
+				var (
+					expectedErr error
+				)
+
+				BeforeEach(func() {
+					expectedErr = errors.New("some error")
+					fakeContainerRepository.VisibleContainersReturns([]db.Container{}, expectedErr)
+				})
+
+				It("returns 500", func() {
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
 	})
 
 	Describe("GET /api/v1/teams/a-team/containers", func() {
@@ -137,35 +268,7 @@ var _ = Describe("Containers API", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(body).To(MatchJSON(`
-							[
-								{
-									"id": "some-handle",
-									"worker_name": "some-worker-name",
-									"type": "task",
-									"step_name": "some-step",
-									"attempt": "1.5",
-									"pipeline_id": 1111,
-									"job_id": 2222,
-									"state": "container-state",
-									"build_id": 3333,
-									"working_directory": "/tmp/build/my-favorite-guid",
-									"user": "snoopy"
-								},
-								{
-									"id": "some-other-handle",
-									"worker_name": "some-other-worker-name",
-									"type": "task",
-									"step_name": "some-step-other",
-									"attempt": "1.5.1",
-									"pipeline_id": 1112,
-									"job_id": 2223,
-									"build_id": 3334,
-									"working_directory": "/tmp/build/my-favorite-guid/other",
-									"user": "snoopy-other"
-								}
-							]
-						`))
+						Expect(body).To(MatchJSON(sampleJsonString))
 					})
 				})
 

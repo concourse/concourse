@@ -209,6 +209,7 @@ var requiredRoles = map[string]string{
 	atc.DownloadCLI:                   "viewer",
 	atc.GetInfo:                       "viewer",
 	atc.GetInfoCreds:                  "viewer",
+	atc.ListAllContainers:             "viewer",
 	atc.ListContainers:                "viewer",
 	atc.GetContainer:                  "viewer",
 	atc.HijackContainer:               "member",

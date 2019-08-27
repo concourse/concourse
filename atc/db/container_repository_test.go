@@ -1173,4 +1173,118 @@ var _ = Describe("ContainerRepository", func() {
 			})
 		})
 	})
+
+	Describe("Containers from different teams", func() {
+		var insertDataToTable = func(tableName string, dataMap map[string]interface{}, conn sq.BaseRunner) {
+			result, err := psql.Insert(tableName).SetMap(dataMap).RunWith(conn).Exec()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+		}
+
+		BeforeEach(func() {
+			insertDataToTable("teams", map[string]interface{}{
+				"id":   11,
+				"name": "team1",
+			}, dbConn)
+			insertDataToTable("teams", map[string]interface{}{
+				"id":   22,
+				"name": "team2",
+			}, dbConn)
+			insertDataToTable("teams", map[string]interface{}{
+				"id":   33,
+				"name": "team3",
+			}, dbConn)
+
+			insertDataToTable("resource_configs", map[string]interface{}{
+				"id":          1,
+				"source_hash": "111222333",
+			}, dbConn)
+			insertDataToTable("resource_configs", map[string]interface{}{
+				"id":          1000,
+				"source_hash": "111222333",
+			}, dbConn)
+
+			insertDataToTable("resource_config_check_sessions", map[string]interface{}{
+				"id":                 1,
+				"resource_config_id": 1,
+			}, dbConn)
+
+			insertDataToTable("pipelines", map[string]interface{}{
+				"id":      666,
+				"team_id": 11,
+				"name":    "pipeline-1",
+			}, dbConn)
+
+			insertDataToTable("resources", map[string]interface{}{
+				"resource_config_id": 1,
+				"pipeline_id":        666,
+				"name":               "resource-1",
+				"config":             "some-config.yml",
+				"type":               "task",
+			}, dbConn)
+
+			insertDataToTable("workers", map[string]interface{}{
+				"name":    "worker1",
+				"team_id": 11,
+			}, dbConn)
+			insertDataToTable("workers", map[string]interface{}{
+				"name":    "worker2",
+				"team_id": 22,
+			}, dbConn)
+
+			insertDataToTable("containers", map[string]interface{}{
+				"worker_name":                      "worker1",
+				"meta_type":                        "check",
+				"resource_config_check_session_id": 1,
+				"handle":                           "some-handle-1",
+			}, dbConn)
+			insertDataToTable("containers", map[string]interface{}{
+				"worker_name": "worker2",
+				"meta_type":   "task",
+				"team_id":     22,
+				"handle":      "some-handle-2",
+			}, dbConn)
+
+			insertDataToTable("resource_types", map[string]interface{}{
+				"resource_config_id": 1000,
+				"pipeline_id":        666,
+				"name":               "resource-type-1",
+				"config":             "some-config.yml",
+				"type":               "task",
+			}, dbConn)
+		})
+
+		Context("AllContainers", func() {
+			It("returns all containers", func() {
+				allContainers, err := containerRepository.AllContainers()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(allContainers)).To(Equal(2))
+				Expect(allContainers[0].TeamName()).To(Equal("team1"))
+				Expect(allContainers[1].TeamName()).To(Equal("team2"))
+			})
+		})
+
+		Context("VisibleContainers", func() {
+			BeforeEach(func() {
+				insertDataToTable("workers", map[string]interface{}{
+					"name":    "worker3",
+					"team_id": 33,
+				}, dbConn)
+				insertDataToTable("containers", map[string]interface{}{
+					"worker_name":                      "worker3",
+					"meta_type":                        "check",
+					"resource_config_check_session_id": 1,
+					"handle":                           "some-handle-3",
+				}, dbConn)
+			})
+
+			It("returns visible containers for the given teams", func() {
+				visibleContainers, err := containerRepository.VisibleContainers([]string{"team1", "team2"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(visibleContainers).To(HaveLen(2))
+				Expect(visibleContainers[0].TeamName()).To(Equal("team1"))
+				Expect(visibleContainers[1].TeamName()).To(Equal("team2"))
+			})
+		})
+	})
 })

@@ -162,6 +162,5 @@ func parseIntParam(r *http.Request, name string) (int, error) {
 			return 0, fmt.Errorf("non-numeric '%s' param (%s): %s", name, param, err)
 		}
 	}
-
 	return val, nil
 }

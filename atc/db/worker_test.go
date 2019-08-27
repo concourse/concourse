@@ -309,7 +309,7 @@ var _ = Describe("Worker", func() {
 					_, err = creatingContainer.Failed()
 					Expect(err).ToNot(HaveOccurred())
 
-					containerRepository := NewContainerRepository(dbConn)
+					containerRepository := NewContainerRepository(dbConn, lockFactory)
 					containersDestroyed, err := containerRepository.DestroyFailedContainers()
 					Expect(containersDestroyed).To(Equal(1))
 					Expect(err).ToNot(HaveOccurred())

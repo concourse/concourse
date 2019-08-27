@@ -185,6 +185,7 @@ func NewHandler(
 		atc.ListActiveUsersSince: http.HandlerFunc(usersServer.GetUsersSince),
 
 		atc.ListContainers:           teamHandlerFactory.HandlerFor(containerServer.ListContainers),
+		atc.ListAllContainers:        http.HandlerFunc(containerServer.ListAllContainers),
 		atc.GetContainer:             teamHandlerFactory.HandlerFor(containerServer.GetContainer),
 		atc.HijackContainer:          teamHandlerFactory.HandlerFor(containerServer.HijackContainer),
 		atc.ListDestroyingContainers: http.HandlerFunc(containerServer.ListDestroyingContainers),

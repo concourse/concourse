@@ -151,77 +151,7 @@ func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
 }
 
 func (t *team) Containers() ([]Container, error) {
-	rows, err := selectContainers("c").
-		Join("workers w ON c.worker_name = w.name").
-		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
-		Join("resources r ON r.resource_config_id = rccs.resource_config_id").
-		Join("pipelines p ON p.id = r.pipeline_id").
-		Where(sq.Eq{
-			"p.team_id": t.id,
-		}).
-		Where(sq.Or{
-			sq.Eq{
-				"w.team_id": t.id,
-			}, sq.Eq{
-				"w.team_id": nil,
-			},
-		}).
-		Distinct().
-		RunWith(t.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	var containers []Container
-	containers, err = scanContainers(rows, t.conn, containers)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err = selectContainers("c").
-		Join("workers w ON c.worker_name = w.name").
-		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
-		Join("resource_types rt ON rt.resource_config_id = rccs.resource_config_id").
-		Join("pipelines p ON p.id = rt.pipeline_id").
-		Where(sq.Eq{
-			"p.team_id": t.id,
-		}).
-		Where(sq.Or{
-			sq.Eq{
-				"w.team_id": t.id,
-			}, sq.Eq{
-				"w.team_id": nil,
-			},
-		}).
-		Distinct().
-		RunWith(t.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	containers, err = scanContainers(rows, t.conn, containers)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err = selectContainers("c").
-		Where(sq.Eq{
-			"c.team_id": t.id,
-		}).
-		RunWith(t.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	containers, err = scanContainers(rows, t.conn, containers)
-	if err != nil {
-		return nil, err
-	}
-
-	return containers, nil
+	return getContainersByTeamIds([]int{t.id}, false, t.conn)
 }
 
 func (t *team) IsCheckContainer(handle string) (bool, error) {
@@ -303,7 +233,7 @@ func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container
 	eq := sq.Eq(metadata.SQLMap())
 	eq["team_id"] = t.id
 
-	rows, err := selectContainers().
+	rows, err := selectContainers(nil).
 		Where(eq).
 		RunWith(t.conn).
 		Query()
@@ -313,7 +243,7 @@ func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container
 
 	var containers []Container
 
-	containers, err = scanContainers(rows, t.conn, containers)
+	containers, err = scanContainers(rows, t.conn, false, containers)
 	if err != nil {
 		return nil, err
 	}
@@ -809,7 +739,7 @@ func (t *team) FindCheckContainers(pipelineName string, resourceName string, sec
 		return nil, nil, err
 	}
 
-	rows, err := selectContainers("c").
+	rows, err := selectContainers(nil, "c").
 		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Where(sq.Eq{
 			"rccs.resource_config_id": resourceConfig.ID(),
@@ -823,7 +753,7 @@ func (t *team) FindCheckContainers(pipelineName string, resourceName string, sec
 
 	var containers []Container
 
-	containers, err = scanContainers(rows, t.conn, containers)
+	containers, err = scanContainers(rows, t.conn, false, containers)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1124,10 +1054,11 @@ func swallowUniqueViolation(err error) error {
 
 func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, CreatedContainer, error) {
 	creating, created, destroying, _, err := scanContainer(
-		selectContainers().
+		selectContainers(nil).
 			Where(whereClause).
 			RunWith(t.conn).
 			QueryRow(),
+		false,
 		t.conn,
 	)
 	if err != nil {
@@ -1183,13 +1114,13 @@ func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]P
 	return pipelines, nil
 }
 
-func scanContainers(rows *sql.Rows, conn Conn, initContainers []Container) ([]Container, error) {
+func scanContainers(rows *sql.Rows, conn Conn, scanTeamName bool, initContainers []Container) ([]Container, error) {
 	containers := initContainers
 
 	defer Close(rows)
 
 	for rows.Next() {
-		creating, created, destroying, _, err := scanContainer(rows, conn)
+		creating, created, destroying, _, err := scanContainer(rows, scanTeamName, conn)
 		if err != nil {
 			return []Container{}, err
 		}
