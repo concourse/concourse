@@ -1,11 +1,11 @@
 package event_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 )
 
 type fakeEvent struct {
@@ -48,4 +48,25 @@ var _ = Describe("ParseEvent", func() {
 			KnownVersions: []string{"5.1"},
 		}))
 	})
+
+	DescribeTable("should register all non-deprecated events successfully",
+		func(eventType atc.Event) {
+			parsedEvent, err := event.ParseEvent(eventType.Version(), eventType.EventType(), []byte("{}"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(parsedEvent).To(BeAssignableToTypeOf(eventType))
+		},
+
+		Entry("InitializeTask", event.InitializeTask{}),
+		Entry("StartTask", event.StartTask{}),
+		Entry("FinishTask", event.FinishTask{}),
+		Entry("InitializeGet", event.InitializeGet{}),
+		Entry("StartGet", event.StartGet{}),
+		Entry("FinishGet", event.FinishGet{}),
+		Entry("InitializePut", event.InitializePut{}),
+		Entry("StartPut", event.StartPut{}),
+		Entry("FinishPut", event.FinishPut{}),
+		Entry("Status", event.Status{}),
+		Entry("Log", event.Log{}),
+		Entry("Error", event.Error{}),
+	)
 })

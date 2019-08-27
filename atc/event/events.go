@@ -117,7 +117,7 @@ type InitializeGet struct {
 }
 
 func (InitializeGet) EventType() atc.EventType  { return EventTypeInitializeGet }
-func (InitializeGet) Version() atc.EventVersion { return "1.0" }
+func (InitializeGet) Version() atc.EventVersion { return "2.0" }
 
 type StartGet struct {
 	Origin Origin `json:"origin"`
@@ -144,7 +144,7 @@ type InitializePut struct {
 }
 
 func (InitializePut) EventType() atc.EventType  { return EventTypeInitializePut }
-func (InitializePut) Version() atc.EventVersion { return "1.0" }
+func (InitializePut) Version() atc.EventVersion { return "2.0" }
 
 type StartPut struct {
 	Origin Origin `json:"origin"`
