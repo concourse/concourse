@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -13,6 +14,7 @@ import (
 type WatchCommand struct {
 	Job       flaghelpers.JobFlag `short:"j" long:"job"         value-name:"PIPELINE/JOB"  description:"Watches builds of the given job"`
 	Build     string              `short:"b" long:"build"                                  description:"Watches a specific build"`
+	Url       string              `short:"u" long:"url"                                    description:"URL for the build or job to watch"`
 	Timestamp bool                `short:"t" long:"timestamps"                             description:"Print with local timestamp"`
 }
 
@@ -29,7 +31,7 @@ func (command *WatchCommand) Execute(args []string) error {
 
 	var buildId int
 	client := target.Client()
-	if command.Job.JobName != "" || command.Build == "" {
+	if command.Job.JobName != "" || command.Build == "" && command.Url == "" {
 		build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineName)
 		if err != nil {
 			return err
@@ -40,6 +42,30 @@ func (command *WatchCommand) Execute(args []string) error {
 
 		if err != nil {
 			return err
+		}
+	} else if command.Url != "" {
+		u, err := url.Parse(command.Url)
+		if err != nil {
+			return err
+		}
+		urlMap := parseUrlPath(u.Path)
+
+		pipelines := urlMap["pipelines"]
+		jobs := urlMap["jobs"]
+		raw_build := urlMap["builds"]
+		if pipelines != "" && jobs != "" {
+			build, err := GetBuild(client, target.Team(), jobs, raw_build, pipelines)
+			if err != nil {
+				return err
+			}
+			buildId = build.ID
+		} else if raw_build != "" {
+			buildId, err = strconv.Atoi(raw_build)
+			if err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("No build found in %s", command.Url)
 		}
 	}
 
