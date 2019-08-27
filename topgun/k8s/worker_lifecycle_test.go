@@ -126,7 +126,7 @@ var _ = Describe("Worker lifecycle", func() {
 				By("seeing that the worker disappeared")
 				startSession := fly.Start("watch", "-j", "some-pipeline/simple-job")
 				<-startSession.Exited
-				Expect(startSession.Out).To(gbytes.Say("disappeared"))
+				Expect(startSession.Out).To(gbytes.Say("errored"))
 			})
 		})
 	})
