@@ -21,7 +21,6 @@ const (
 	LockTypeContainerCreating
 	LockTypeDatabaseMigration
 	LockTypeActiveTasks
-	LockTypeTaskStep
 	LockTypeResourceScanning
 )
 

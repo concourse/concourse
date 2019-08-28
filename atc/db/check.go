@@ -121,9 +121,8 @@ func (c *check) Start() error {
 
 	defer Rollback(tx)
 
-	now := time.Now()
 	_, err = psql.Update("checks").
-		Set("start_time", now).
+		Set("start_time", sq.Expr("now()")).
 		Where(sq.Eq{
 			"id": c.id,
 		}).
@@ -134,7 +133,7 @@ func (c *check) Start() error {
 	}
 
 	_, err = psql.Update("resource_config_scopes").
-		Set("last_check_start_time", now).
+		Set("last_check_start_time", sq.Expr("now()")).
 		Where(sq.Eq{
 			"id": c.resourceConfigScopeID,
 		}).
@@ -168,10 +167,9 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 
 	defer Rollback(tx)
 
-	now := time.Now()
 	builder := psql.Update("checks").
 		Set("status", status).
-		Set("end_time", now).
+		Set("end_time", sq.Expr("now()")).
 		Where(sq.Eq{
 			"id": c.id,
 		})
@@ -188,7 +186,7 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 	}
 
 	builder = psql.Update("resource_config_scopes").
-		Set("last_check_end_time", now).
+		Set("last_check_end_time", sq.Expr("now()")).
 		Where(sq.Eq{
 			"id": c.resourceConfigScopeID,
 		})
