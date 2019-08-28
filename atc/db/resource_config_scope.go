@@ -65,7 +65,7 @@ func (r *resourceConfigScope) CheckError() error              { return r.checkEr
 //
 // In the case of a check resource from an older version, the versions
 // that already exist in the DB will be re-ordered using
-// incrementCheckOrderWhenNewerVersion to input the correct check order
+// incrementCheckOrder to input the correct check order
 func (r *resourceConfigScope) SaveVersions(versions []atc.Version) error {
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -293,7 +293,7 @@ func incrementCheckOrder(tx Tx, r ResourceConfigScope, version string) error {
 		SET check_order = mc.co + 1
 		FROM max_checkorder mc
 		WHERE resource_config_scope_id = $1
-		AND version = $2
+		AND version_md5 = md5($2)
 		AND check_order <= mc.co;`, r.ID(), version)
 	return err
 }

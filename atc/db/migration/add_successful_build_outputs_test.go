@@ -8,8 +8,8 @@ import (
 )
 
 var _ = Describe("Add successful build outputs", func() {
-	const preMigrationVersion = 1564686443
-	const postMigrationVersion = 1564686445
+	const preMigrationVersion = 1566605038
+	const postMigrationVersion = 1566605039
 
 	var (
 		db *sql.DB
