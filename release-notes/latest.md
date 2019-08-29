@@ -60,6 +60,10 @@
 
 * @SimonXming fixed up the [worker containers](https://concourse-ci.org/metrics.html#worker%20containers) and [worker volumes](https://concourse-ci.org/metrics.html#worker%20volumes) metrics to include metadata for the tag(s) on the worker and/or the team the worker belongs to (if any) #3037.
 
-#### <sub><sup><a name="v550-note-15" href="#v550-note-15">:link:</a></sup></sub> fix
+#### <sub><sup><a name="v550-note-16" href="#v550-note-16">:link:</a></sup></sub> fix
 
 Since the [pipeline-operator](https://concourse-ci.org/user-roles.html#team-pipeline-operator-role) role was introduced in [v5.2.0](https://github.com/concourse/concourse/releases#v520-note-3), the tag that appears on the dashboard pages has been improperly formatted. Thanks to @paroxp for noticing and fixing this #4170.
+
+#### <sub><sup><a name="v550-note-17" href="#v550-note-17">:link:</a></sup></sub> fix
+
+Thanks to @osis for noticing that the [sidebar becomes unclickable](https://github.com/concourse/concourse/issues/4190) when viewing a build for which you are unauthorized to see the logs, and fixing it too! #4201
