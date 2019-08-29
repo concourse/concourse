@@ -55,3 +55,7 @@
 #### <sub><sup><a name="v550-note-14" href="#v550-note-14">:link:</a></sup></sub> feature
 
 * Concourse admins can now run [`fly active-users`](https://concourse-ci.org/managing-teams.html#fly-active-users) and get a summary of all the users on the cluster, filtering by their last login time (the last 2 months by default) #4096.
+
+#### <sub><sup><a name="v550-note-15" href="#v550-note-15">:link:</a></sup></sub> feature
+
+* @SimonXming fixed up the [worker containers](https://concourse-ci.org/metrics.html#worker%20containers) and [worker volumes](https://concourse-ci.org/metrics.html#worker%20volumes) metrics to include metadata for the tag(s) on the worker and/or the team the worker belongs to (if any) #3037.
