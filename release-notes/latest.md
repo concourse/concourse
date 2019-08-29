@@ -34,20 +34,24 @@
 
 #### <sub><sup><a name="v550-note-9" href="#v550-note-9">:link:</a></sup></sub> fix
 
-For the past few releases, the web nodes have allowed themselves to make up to 64 parallel connections to the database, to allow for parallelizing work like GC and scheduling within a single node. @ebilling has configured the web node's tolerance for idle connections to be more lenient: If a node has been using more than 32 of its available connections, up to 32 connections will be allowed to stay idly open. Anecdotally, CPU savings (resulting from less opening/closing of connections) of up to 30% have been observed on web nodes because of this change. Furthermore, the total max connection pool size has been made configurable - this should allow operators to avoid overloading the max connection limit on the database side #4232.
+* For the past few releases, the web nodes have allowed themselves to make up to 64 parallel connections to the database, to allow for parallelizing work like GC and scheduling within a single node. @ebilling has configured the web node's tolerance for idle connections to be more lenient: If a node has been using more than 32 of its available connections, up to 32 connections will be allowed to stay idly open. Anecdotally, CPU savings (resulting from less opening/closing of connections) of up to 30% have been observed on web nodes because of this change. Furthermore, the total max connection pool size has been made configurable - this should allow operators to avoid overloading the max connection limit on the database side #4232.
 
 #### <sub><sup><a name="v550-note-10" href="#v550-note-10">:link:</a></sup></sub> fix
 
-@josecv found and fixed a subtle bug where, if you had a [`try`](https://concourse-ci.org/try-step.html) step and you aborted while the hooked step was running, your whole web node would [crash](https://github.com/concourse/concourse/issues/3989)! Good catch #4252.
+* @josecv found and fixed a subtle bug where, if you had a [`try`](https://concourse-ci.org/try-step.html) step and you aborted while the hooked step was running, your whole web node would [crash](https://github.com/concourse/concourse/issues/3989)! Good catch #4252.
 
 #### <sub><sup><a name="v550-note-11" href="#v550-note-11">:link:</a></sup></sub> fix
 
-@aledeganopix4d fixed an [issue](https://github.com/concourse/concourse/issues/4180) where the logs for a Windows or Darwin worker get populated with irrelevant error messages #4167.
+* @aledeganopix4d fixed an [issue](https://github.com/concourse/concourse/issues/4180) where the logs for a Windows or Darwin worker get populated with irrelevant error messages #4167.
 
 #### <sub><sup><a name="v550-note-12" href="#v550-note-12">:link:</a></sup></sub> feature
 
-@nazrhom improved the output of `fly targets` to show an error message in the table if your token for a given target is invalid #4181, #4228.
+* @nazrhom improved the output of `fly targets` to show an error message in the table if your token for a given target is invalid #4181, #4228.
 
 #### <sub><sup><a name="v550-note-13" href="#v550-note-13">:link:</a></sup></sub> fix
 
-Since introducing [Zstandard compression for volume streaming](https://github.com/concourse/concourse/releases#v540-note-1), we noticed a [new class of baggageclaim errors](https://github.com/concourse/retryhttp/issues/8) saying `http: unexpected EOF reading trailer` cropping up in our own CI environment, so we updated our http clients to retry requests on this error #4233.
+* Since introducing [Zstandard compression for volume streaming](https://github.com/concourse/concourse/releases#v540-note-1), we noticed a [new class of baggageclaim errors](https://github.com/concourse/retryhttp/issues/8) saying `http: unexpected EOF reading trailer` cropping up in our own CI environment, so we updated our http clients to retry requests on this error #4233.
+
+#### <sub><sup><a name="v550-note-14" href="#v550-note-14">:link:</a></sup></sub> feature
+
+* Concourse admins can now run [`fly active-users`](https://concourse-ci.org/managing-teams.html#fly-active-users) and get a summary of all the users on the cluster, filtering by their last login time (the last 2 months by default) #4096.
