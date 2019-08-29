@@ -75,3 +75,7 @@
 #### <sub><sup><a name="v550-note-19" href="#v550-note-19">:link:</a></sup></sub> feature, breaking
 
 * Now requests from the web nodes to the garden servers inside workers (i.e. when creating containers) will time out after 5 minutes. This means that if you have a lot of latency or your garden servers are slow, _your builds and/or resource checks will start to fail_. In general, we have found that failing earlier in cases like this is preferable to hanging forever or failing silently #4137.
+
+#### <sub><sup><a name="v550-note-20" href="#v550-note-20">:link:</a></sup></sub> feature
+
+* Fly has the ability to [autocomplete](https://concourse-ci.org/fly.html#fly-completion) certain configurations for certain shells. @cappyzawa added some more, allowing team and worker names to be autocompleted in fly commands #4087.
