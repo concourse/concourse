@@ -71,3 +71,7 @@
 #### <sub><sup><a name="v550-note-18" href="#v550-note-18">:link:</a></sup></sub> fix
 
 * Fixed a bug where the [timestamps](https://github.com/concourse/concourse/issues/3942) on build logs were off by one #4088.
+
+#### <sub><sup><a name="v550-note-19" href="#v550-note-19">:link:</a></sup></sub> feature, breaking
+
+* Now requests from the web nodes to the garden servers inside workers (i.e. when creating containers) will time out after 5 minutes. This means that if you have a lot of latency or your garden servers are slow, _your builds and/or resource checks will start to fail_. In general, we have found that failing earlier in cases like this is preferable to hanging forever or failing silently #4137.
