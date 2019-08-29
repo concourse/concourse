@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/concourse/flag"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/mitchellh/mapstructure"
 )

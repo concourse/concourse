@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/vars"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 //go:generate counterfeiter . TaskConfigSource
