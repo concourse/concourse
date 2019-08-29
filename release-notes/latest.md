@@ -62,8 +62,12 @@
 
 #### <sub><sup><a name="v550-note-16" href="#v550-note-16">:link:</a></sup></sub> fix
 
-Since the [pipeline-operator](https://concourse-ci.org/user-roles.html#team-pipeline-operator-role) role was introduced in [v5.2.0](https://github.com/concourse/concourse/releases#v520-note-3), the tag that appears on the dashboard pages has been improperly formatted. Thanks to @paroxp for noticing and fixing this #4170.
+* Since the [pipeline-operator](https://concourse-ci.org/user-roles.html#team-pipeline-operator-role) role was introduced in [v5.2.0](https://github.com/concourse/concourse/releases#v520-note-3), the tag that appears on the dashboard pages has been improperly formatted. Thanks to @paroxp for noticing and fixing this #4170.
 
 #### <sub><sup><a name="v550-note-17" href="#v550-note-17">:link:</a></sup></sub> fix
 
-Thanks to @osis for noticing that the [sidebar becomes unclickable](https://github.com/concourse/concourse/issues/4190) when viewing a build for which you are unauthorized to see the logs, and fixing it too! #4201
+* Thanks to @osis for noticing that the [sidebar becomes unclickable](https://github.com/concourse/concourse/issues/4190) when viewing a build for which you are unauthorized to see the logs, and fixing it too! #4201
+
+#### <sub><sup><a name="v550-note-18" href="#v550-note-18">:link:</a></sup></sub> fix
+
+* Fixed a bug where the [timestamps](https://github.com/concourse/concourse/issues/3942) on build logs were off by one #4088.
