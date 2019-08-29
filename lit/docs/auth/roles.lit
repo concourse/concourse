@@ -51,6 +51,7 @@ Concourse comes with five roles: Concourse Admin, Team Owner, Team Member, Pipel
   \better-table{
     \table-row{\reference{fly-cli} command      }{Anon}{Admin}{\code{owner}}{\code{member}}{\code{pipeline-operator}}{\code{viewer}}
     \table-row{\reference{fly-abort-build}      }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{\reference{fly-active-users}     }{✘   }{✓    }{✘           }{✘            }{✘                       }{✘            }
     \table-row{\reference{fly-builds}           }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{\reference{fly-check-resource}   }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
     \table-row{\reference{fly-containers}       }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
@@ -60,6 +61,7 @@ Concourse comes with five roles: Concourse Admin, Team Owner, Team Member, Pipel
     \table-row{\reference{fly-expose-pipeline}  }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
     \table-row{\reference{fly-format-pipeline}  }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{\reference{fly-get-pipeline}     }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-get-team}         }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{\reference{fly-hide-pipeline}    }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
     \table-row{\reference{fly-intercept}        }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
     \table-row{\reference{fly-jobs}             }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
@@ -78,7 +80,6 @@ Concourse comes with five roles: Concourse Admin, Team Owner, Team Member, Pipel
     \table-row{\reference{fly-sync}             }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{\reference{fly-targets}          }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{\reference{fly-teams}            }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-get-team}         }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{\reference{fly-trigger-job}      }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
     \table-row{\reference{fly-unpause-job}      }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
     \table-row{\reference{fly-unpause-pipeline} }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
