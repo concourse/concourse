@@ -10,7 +10,7 @@
 
 #### <sub><sup><a name="v550-note-3" href="#v550-note-3">:link:</a></sup></sub> feature
 
-* In the past, [admins](https://concourse-ci.org/user-roles.html#concourse-admin) (owners of the `main` team) had permission to modify the auth configuration for other teams in the same cluster. Now, admins also have full control over pipelines, jobs, resources, builds, etc for all teams #4238.
+* In the past, [admins](https://concourse-ci.org/user-roles.html#concourse-admin) (owners of the `main` team) had permission to modify the auth configuration for other teams in the same cluster. Now, admins also have full control over pipelines, jobs, resources, builds, etc for all teams. Using `fly`, they can log in to any team on the cluster as though they are an owner #4238, #4273.
 
 #### <sub><sup><a name="v550-note-4" href="#v550-note-4">:link:</a></sup></sub> feature
 * We noticed after #4058 (where build steps are collapsed by default) that it wasn't very easy to see failing steps.
