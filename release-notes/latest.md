@@ -47,3 +47,7 @@ For the past few releases, the web nodes have allowed themselves to make up to 6
 #### <sub><sup><a name="v550-note-12" href="#v550-note-12">:link:</a></sup></sub> feature
 
 @nazrhom improved the output of `fly targets` to show an error message in the table if your token for a given target is invalid #4181, #4228.
+
+#### <sub><sup><a name="v550-note-13" href="#v550-note-13">:link:</a></sup></sub> fix
+
+Since introducing [Zstandard compression for volume streaming](https://github.com/concourse/concourse/releases#v540-note-1), we noticed a [new class of baggageclaim errors](https://github.com/concourse/retryhttp/issues/8) saying `http: unexpected EOF reading trailer` cropping up in our own CI environment, so we updated our http clients to retry requests on this error #4233.
