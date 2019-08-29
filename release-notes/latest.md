@@ -59,3 +59,7 @@
 #### <sub><sup><a name="v550-note-15" href="#v550-note-15">:link:</a></sup></sub> feature
 
 * @SimonXming fixed up the [worker containers](https://concourse-ci.org/metrics.html#worker%20containers) and [worker volumes](https://concourse-ci.org/metrics.html#worker%20volumes) metrics to include metadata for the tag(s) on the worker and/or the team the worker belongs to (if any) #3037.
+
+#### <sub><sup><a name="v550-note-15" href="#v550-note-15">:link:</a></sup></sub> fix
+
+Since the [pipeline-operator](https://concourse-ci.org/user-roles.html#team-pipeline-operator-role) role was introduced in [v5.2.0](https://github.com/concourse/concourse/releases#v520-note-3), the tag that appears on the dashboard pages has been improperly formatted. Thanks to @paroxp for noticing and fixing this #4170.
