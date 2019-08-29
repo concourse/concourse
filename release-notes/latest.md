@@ -43,3 +43,7 @@ For the past few releases, the web nodes have allowed themselves to make up to 6
 #### <sub><sup><a name="v550-note-11" href="#v550-note-11">:link:</a></sup></sub> fix
 
 @aledeganopix4d fixed an [issue](https://github.com/concourse/concourse/issues/4180) where the logs for a Windows or Darwin worker get populated with irrelevant error messages #4167.
+
+#### <sub><sup><a name="v550-note-12" href="#v550-note-12">:link:</a></sup></sub> feature
+
+@nazrhom improved the output of `fly targets` to show an error message in the table if your token for a given target is invalid #4181, #4228.
