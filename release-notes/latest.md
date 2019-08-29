@@ -39,3 +39,7 @@ For the past few releases, the web nodes have allowed themselves to make up to 6
 #### <sub><sup><a name="v550-note-10" href="#v550-note-10">:link:</a></sup></sub> fix
 
 @josecv found and fixed a subtle bug where, if you had a [`try`](https://concourse-ci.org/try-step.html) step and you aborted while the hooked step was running, your whole web node would [crash](https://github.com/concourse/concourse/issues/3989)! Good catch #4252.
+
+#### <sub><sup><a name="v550-note-11" href="#v550-note-11">:link:</a></sup></sub> fix
+
+@aledeganopix4d fixed an [issue](https://github.com/concourse/concourse/issues/4180) where the logs for a Windows or Darwin worker get populated with irrelevant error messages #4167.
