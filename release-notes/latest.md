@@ -79,3 +79,7 @@
 #### <sub><sup><a name="v550-note-20" href="#v550-note-20">:link:</a></sup></sub> feature
 
 * Fly has the ability to [autocomplete](https://concourse-ci.org/fly.html#fly-completion) certain configurations for certain shells. @cappyzawa added some more, allowing team and worker names to be autocompleted in fly commands #4087.
+
+#### <sub><sup><a name="v550-note-21" href="#v550-note-21">:link:</a></sup></sub> fix
+
+* The `get-team` command for fly will now take `team-name` as an argument for the team name instead of just `team`. Thanks to @cappyzawa for finding this inconsistency! #4086
