@@ -268,7 +268,7 @@ func (client *client) chooseTaskWorker(
 	for {
 		if strategy.ModifiesActiveTasks() {
 			var acquired bool
-			activeTasksLock, acquired, err = lockFactory.Acquire(logger, lock.NewActiveTasksLockID())
+			activeTasksLock, acquired, err = lockFactory.Acquire(logger, lock.NewActiveTasksLockID(workerSpec.Platform, workerSpec.TeamID))
 			if err != nil {
 				return nil, err
 			}

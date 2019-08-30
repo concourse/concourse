@@ -49,8 +49,8 @@ func NewDatabaseMigrationLockID() LockID {
 	return LockID{LockTypeDatabaseMigration}
 }
 
-func NewActiveTasksLockID() LockID {
-	return LockID{LockTypeActiveTasks}
+func NewActiveTasksLockID(platform string, teamID int) LockID {
+	return LockID{LockTypeActiveTasks, lockIDFromString(platform + strconv.Itoa(teamID))}
 }
 
 //go:generate counterfeiter . LockFactory

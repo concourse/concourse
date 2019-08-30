@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/runtime"
@@ -385,6 +386,27 @@ var _ = Describe("Client", func() {
 					})
 					It("release the task-step lock every time it acquires it", func() {
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
+					})
+				})
+
+				Context("when tasks belong to different teams", func() {
+					Context("when running on team 1 and platform Darwin", func() {
+						BeforeEach(func() {
+							fakeWorkerSpec = worker.WorkerSpec{TeamID: 1, Platform: "darwin"}
+						})
+						It("creates a task-step lock unique for platform darwin and team 1", func() {
+							_, lockID := fakeLockFactory.AcquireArgsForCall(0)
+							Expect(lockID).To(Equal(lock.NewActiveTasksLockID("darwin", 1)))
+						})
+					})
+					Context("when running on team 2 and platform Linux", func() {
+						BeforeEach(func() {
+							fakeWorkerSpec = worker.WorkerSpec{Platform: "linux", TeamID: 2}
+						})
+						It("creates a task-step lock unique for platform linux and team 2", func() {
+							_, lockID := fakeLockFactory.AcquireArgsForCall(0)
+							Expect(lockID).To(Equal(lock.NewActiveTasksLockID("linux", 2)))
+						})
 					})
 				})
 			})
