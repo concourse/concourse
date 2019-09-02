@@ -15,6 +15,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/fetcher"
+	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
@@ -28,7 +30,7 @@ import (
 
 var _ = Describe("Image", func() {
 	var fakeResourceFactory *resourcefakes.FakeResourceFactory
-	var fakeResourceFetcher *resourcefakes.FakeFetcher
+	var fakeResourceFetcher *fetcherfakes.FakeFetcher
 	var fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 	var fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 	var fakeCreatingContainer *dbfakes.FakeCreatingContainer
@@ -55,7 +57,7 @@ var _ = Describe("Image", func() {
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
-		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
+		fakeResourceFetcher = new(fetcherfakes.FakeFetcher)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		stderrBuf = gbytes.NewBuffer()
@@ -217,11 +219,11 @@ var _ = Describe("Image", func() {
 
 					Context("when fetching resource fails", func() {
 						BeforeEach(func() {
-							fakeResourceFetcher.FetchReturns(nil, resource.ErrInterrupted)
+							fakeResourceFetcher.FetchReturns(nil, fetcher.ErrInterrupted)
 						})
 
 						It("returns error", func() {
-							Expect(fetchErr).To(Equal(resource.ErrInterrupted))
+							Expect(fetchErr).To(Equal(fetcher.ErrInterrupted))
 						})
 					})
 
@@ -483,11 +485,11 @@ var _ = Describe("Image", func() {
 
 			Context("when fetching resource fails", func() {
 				BeforeEach(func() {
-					fakeResourceFetcher.FetchReturns(nil, resource.ErrInterrupted)
+					fakeResourceFetcher.FetchReturns(nil, fetcher.ErrInterrupted)
 				})
 
 				It("returns error", func() {
-					Expect(fetchErr).To(Equal(resource.ErrInterrupted))
+					Expect(fetchErr).To(Equal(fetcher.ErrInterrupted))
 				})
 			})
 

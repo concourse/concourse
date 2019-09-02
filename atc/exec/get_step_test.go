@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
@@ -36,7 +37,7 @@ var _ = Describe("GetStep", func() {
 		fakeWorker               *workerfakes.FakeWorker
 		fakePool                 *workerfakes.FakePool
 		fakeStrategy             *workerfakes.FakeContainerPlacementStrategy
-		fakeResourceFetcher      *resourcefakes.FakeFetcher
+		fakeResourceFetcher      *fetcherfakes.FakeFetcher
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeSecretManager        *credsfakes.FakeSecrets
 		fakeDelegate             *execfakes.FakeGetDelegate
@@ -75,7 +76,7 @@ var _ = Describe("GetStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeWorker = new(workerfakes.FakeWorker)
-		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
+		fakeResourceFetcher = new(fetcherfakes.FakeFetcher)
 		fakePool = new(workerfakes.FakePool)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)

@@ -23,8 +23,8 @@ func batchPointAt(influxDBClient *emitterfakes.FakeInfluxDBClient, index int) st
 var _ = Describe("InfluxDBEmitter", func() {
 	var (
 		influxDBEmitter *emitter.InfluxDBEmitter
-		influxDBClient	*emitterfakes.FakeInfluxDBClient
-		testLogger 	lager.Logger
+		influxDBClient  *emitterfakes.FakeInfluxDBClient
+		testLogger      lager.Logger
 	)
 
 	BeforeEach(func() {
@@ -37,8 +37,8 @@ var _ = Describe("InfluxDBEmitter", func() {
 		Context("with batch size 2", func() {
 			BeforeEach(func() {
 				influxDBEmitter = &emitter.InfluxDBEmitter{
-					Client:   influxDBClient,
-					BatchSize: 2,
+					Client:        influxDBClient,
+					BatchSize:     2,
 					BatchDuration: 300 * time.Second,
 				}
 			})
@@ -95,11 +95,11 @@ var _ = Describe("InfluxDBEmitter", func() {
 					Host: "localhost",
 				})
 
-				Eventually(func () string {
+				Eventually(func() string {
 					return batchPointAt(influxDBClient, 0)
 				}).Should(Equal(`build\ started,build_id=123,build_name=build1,host=localhost,job=job1,pipeline=test1,team_name=team1 state="ok",value="123"`))
 
-				Eventually(func () string {
+				Eventually(func() string {
 					return batchPointAt(influxDBClient, 1)
 				}).Should(Equal(`build\ finished,build_id=456,build_name=build2,build_status=succeeded,host=localhost,job=job2,pipeline=test2,team_name=team2 state="ok",value=100i`))
 			})
@@ -108,8 +108,8 @@ var _ = Describe("InfluxDBEmitter", func() {
 		Context("with batch duration 1 nanosecond", func() {
 			BeforeEach(func() {
 				influxDBEmitter = &emitter.InfluxDBEmitter{
-					Client:   influxDBClient,
-					BatchSize: 5000,
+					Client:        influxDBClient,
+					BatchSize:     5000,
 					BatchDuration: 1 * time.Nanosecond,
 				}
 			})
