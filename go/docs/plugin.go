@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -87,14 +88,32 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 
 	client := github.NewClient(tc)
 
-	release, _, err := client.Repositories.GetLatestRelease(ctx, "concourse", "concourse")
+	var latestRelease *github.RepositoryRelease
+	var latestVersion semver.Version
+	releases, _, err := client.Repositories.ListReleases(ctx, "concourse", "concourse", nil)
 	if err != nil {
 		return nil, err
+	}
+	if len(releases) == 0 {
+		return nil, errors.New("no releases found!")
+	}
+	for _, release := range releases {
+		if release.TagName == nil {
+			return nil, fmt.Errorf("no tag name for release %V", release)
+		}
+		version, err := semver.ParseTolerant(*release.TagName)
+		if err != nil {
+			return nil, err
+		}
+		if latestRelease == nil || version.GT(latestVersion) {
+			latestRelease = release
+			latestVersion = version
+		}
 	}
 
 	var linuxURL, darwinURL, windowsURL string
 	var flyLinuxURL, flyDarwinURL, flyWindowsURL string
-	for _, asset := range release.Assets {
+	for _, asset := range latestRelease.Assets {
 		name := asset.GetName()
 
 		if strings.Contains(name, "concourse") && strings.Contains(name, "linux") && strings.HasSuffix(name, ".tgz") {
@@ -126,12 +145,12 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 		Style: "download-links",
 		Block: true,
 		Content: booklit.Link{
-			Target:  release.GetHTMLURL(),
-			Content: booklit.String(release.GetName()),
+			Target:  latestRelease.GetHTMLURL(),
+			Content: booklit.String(latestRelease.GetName()),
 		},
 		Partials: booklit.Partials{
-			"Version":         booklit.String(release.GetName()),
-			"ReleaseNotesURL": booklit.String(release.GetHTMLURL()),
+			"Version":         booklit.String(latestRelease.GetName()),
+			"ReleaseNotesURL": booklit.String(latestRelease.GetHTMLURL()),
 			"LinuxURL":        booklit.String(linuxURL),
 			"DarwinURL":       booklit.String(darwinURL),
 			"WindowsURL":      booklit.String(windowsURL),
