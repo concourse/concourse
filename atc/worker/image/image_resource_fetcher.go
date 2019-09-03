@@ -11,6 +11,7 @@ import (
 	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/fetcher"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -50,14 +51,14 @@ type ImageResourceFetcher interface {
 type imageResourceFetcherFactory struct {
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
-	resourceFetcher         resource.Fetcher
+	resourceFetcher         fetcher.Fetcher
 	resourceFactory         resource.ResourceFactory
 }
 
 func NewImageResourceFetcherFactory(
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
-	resourceFetcher resource.Fetcher,
+	resourceFetcher fetcher.Fetcher,
 	resourceFactory resource.ResourceFactory,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
@@ -94,7 +95,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 type imageResourceFetcher struct {
 	worker                  worker.Worker
 	resourceFactory         resource.ResourceFactory
-	resourceFetcher         resource.Fetcher
+	resourceFetcher         fetcher.Fetcher
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 

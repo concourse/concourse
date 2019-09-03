@@ -1,4 +1,4 @@
-package resource_test
+package fetcher_test
 
 import (
 	"context"
@@ -11,11 +11,13 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
+	. "github.com/concourse/concourse/atc/fetcher"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -24,14 +26,14 @@ var _ = Describe("Fetcher", func() {
 	var (
 		fakeClock             *fakeclock.FakeClock
 		fakeLockFactory       *lockfakes.FakeLockFactory
-		fetcher               resource.Fetcher
+		fetcher               Fetcher
 		ctx                   context.Context
 		cancel                func()
 		fakeVersionedSource   *resourcefakes.FakeVersionedSource
 		fakeBuildStepDelegate *workerfakes.FakeImageFetchingDelegate
 
 		fakeWorker             *workerfakes.FakeWorker
-		fakeFetchSourceFactory *resourcefakes.FakeFetchSourceFactory
+		fakeFetchSourceFactory *fetcherfakes.FakeFetchSourceFactory
 
 		versionedSource resource.VersionedSource
 		fetchErr        error
@@ -41,12 +43,12 @@ var _ = Describe("Fetcher", func() {
 	BeforeEach(func() {
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
-		fakeFetchSourceFactory = new(resourcefakes.FakeFetchSourceFactory)
+		fakeFetchSourceFactory = new(fetcherfakes.FakeFetchSourceFactory)
 
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.NameReturns("some-worker")
 
-		fetcher = resource.NewFetcher(
+		fetcher = NewFetcher(
 			fakeClock,
 			fakeLockFactory,
 			fakeFetchSourceFactory,
@@ -74,10 +76,10 @@ var _ = Describe("Fetcher", func() {
 	})
 
 	Context("when getting source", func() {
-		var fakeFetchSource *resourcefakes.FakeFetchSource
+		var fakeFetchSource *fetcherfakes.FakeFetchSource
 
 		BeforeEach(func() {
-			fakeFetchSource = new(resourcefakes.FakeFetchSource)
+			fakeFetchSource = new(fetcherfakes.FakeFetchSource)
 			fakeFetchSourceFactory.NewFetchSourceReturns(fakeFetchSource)
 
 			fakeFetchSource.FindReturns(nil, false, nil)
@@ -91,7 +93,7 @@ var _ = Describe("Fetcher", func() {
 					callCount := 0
 					fakeLockFactory.AcquireStub = func(lager.Logger, lock.LockID) (lock.Lock, bool, error) {
 						callCount++
-						fakeClock.Increment(resource.GetResourceLockInterval)
+						fakeClock.Increment(GetResourceLockInterval)
 						if callCount == 1 {
 							return nil, false, nil
 						}
@@ -114,7 +116,7 @@ var _ = Describe("Fetcher", func() {
 					callCount := 0
 					fakeLockFactory.AcquireStub = func(lager.Logger, lock.LockID) (lock.Lock, bool, error) {
 						callCount++
-						fakeClock.Increment(resource.GetResourceLockInterval)
+						fakeClock.Increment(GetResourceLockInterval)
 						if callCount == 1 {
 							return nil, false, errors.New("disaster")
 						}

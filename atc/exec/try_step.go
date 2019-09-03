@@ -6,14 +6,14 @@ import (
 
 // TryStep wraps another step, ignores its errors, and always succeeds.
 type TryStep struct {
-	step Step
+	step    Step
 	aborted bool
 }
 
 // Try constructs a TryStep.
 func Try(step Step) Step {
 	return &TryStep{
-		step: step,
+		step:    step,
 		aborted: false,
 	}
 }

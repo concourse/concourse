@@ -11,9 +11,9 @@ import (
 )
 
 type InfluxDBEmitter struct {
-	Client   influxclient.Client
-	Database string
-	BatchSize int
+	Client        influxclient.Client
+	Database      string
+	BatchSize     int
 	BatchDuration time.Duration
 }
 
@@ -27,12 +27,12 @@ type InfluxDBConfig struct {
 
 	InsecureSkipVerify bool `long:"influxdb-insecure-skip-verify" description:"Skip SSL verification when emitting to InfluxDB."`
 
-	BatchSize uint32 `long:"influxdb-batch-size" default:"5000" description:"Number of points to batch together when emitting to InfluxDB."`
+	BatchSize     uint32        `long:"influxdb-batch-size" default:"5000" description:"Number of points to batch together when emitting to InfluxDB."`
 	BatchDuration time.Duration `long:"influxdb-batch-duration" default:"300s" description:"The duration to wait before emitting a batch of points to InfluxDB, disregarding influxdb-batch-size."`
 }
 
 var (
-	batch []metric.Event
+	batch         []metric.Event
 	lastBatchTime time.Time
 )
 
@@ -58,10 +58,10 @@ func (config *InfluxDBConfig) NewEmitter() (metric.Emitter, error) {
 	}
 
 	return &InfluxDBEmitter{
-		Client:   	client,
-		Database: 	config.Database,
-		BatchSize: 	int(config.BatchSize),
-		BatchDuration: 	config.BatchDuration,
+		Client:        client,
+		Database:      config.Database,
+		BatchSize:     int(config.BatchSize),
+		BatchDuration: config.BatchDuration,
 	}, nil
 }
 
@@ -117,10 +117,10 @@ func (emitter *InfluxDBEmitter) Emit(logger lager.Logger, event metric.Event) {
 	duration := time.Since(lastBatchTime)
 	if len(batch) >= emitter.BatchSize || duration >= emitter.BatchDuration {
 		logger.Debug("influxdb-pre-emit-batch", lager.Data{
-			"influxdb-batch-size": emitter.BatchSize,
-			"current-batch-size": len(batch),
+			"influxdb-batch-size":     emitter.BatchSize,
+			"current-batch-size":      len(batch),
 			"influxdb-batch-duration": emitter.BatchDuration,
-			"current-duration": duration,
+			"current-duration":        duration,
 		})
 		emitter.SubmitBatch(logger)
 	}
@@ -133,4 +133,3 @@ func (emitter *InfluxDBEmitter) SubmitBatch(logger lager.Logger) {
 	lastBatchTime = time.Now()
 	go emitBatch(emitter, logger, batchToSubmit)
 }
-

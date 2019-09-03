@@ -1,4 +1,4 @@
-package resource_test
+package fetcher_test
 
 import (
 	"context"
@@ -15,14 +15,15 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
+	. "github.com/concourse/concourse/atc/fetcher"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("ResourceInstanceFetchSource", func() {
 	var (
-		fetchSourceFactory resource.FetchSourceFactory
-		fetchSource        resource.FetchSource
+		fetchSourceFactory FetchSourceFactory
+		fetchSource        FetchSource
 
 		fakeContainer            *workerfakes.FakeContainer
 		fakeVolume               *workerfakes.FakeVolume
@@ -99,7 +100,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		}
 
 		resourceFactory := resource.NewResourceFactory()
-		fetchSourceFactory = resource.NewFetchSourceFactory(fakeResourceCacheFactory, resourceFactory)
+		fetchSourceFactory = NewFetchSourceFactory(fakeResourceCacheFactory, resourceFactory)
 		metadata = db.ContainerMetadata{Type: db.ContainerTypeGet}
 		fetchSource = fetchSourceFactory.NewFetchSource(
 			logger,
