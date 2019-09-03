@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"errors"
+	"context"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
@@ -66,14 +67,14 @@ var _ = Describe("TaskConfigSource", func() {
 
 		It("fetches task config successfully", func() {
 			configSource := StaticConfigSource{Config: &taskConfig}
-			fetchedConfig, fetchErr := configSource.FetchConfig(logger, repo)
+			fetchedConfig, fetchErr := configSource.FetchConfig(context.TODO(), logger, repo)
 			Expect(fetchErr).ToNot(HaveOccurred())
 			Expect(fetchedConfig).To(Equal(taskConfig))
 		})
 
 		It("fetches config of nil task successfully", func() {
 			configSource := StaticConfigSource{Config: nil}
-			fetchedConfig, fetchErr := configSource.FetchConfig(logger, repo)
+			fetchedConfig, fetchErr := configSource.FetchConfig(context.TODO(), logger, repo)
 			Expect(fetchErr).ToNot(HaveOccurred())
 			Expect(fetchedConfig).To(Equal(atc.TaskConfig{}))
 		})
@@ -91,7 +92,7 @@ var _ = Describe("TaskConfigSource", func() {
 		})
 
 		JustBeforeEach(func() {
-			_, fetchErr = configSource.FetchConfig(logger, repo)
+			_, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
 		})
 
 		Context("when the path does not indicate an artifact source", func() {
@@ -261,7 +262,7 @@ run: {path: a/file}
 			})
 
 			JustBeforeEach(func() {
-				fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+				fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
 			})
 
 			It("succeeds", func() {
@@ -286,7 +287,7 @@ run: {path: a/file}
 			})
 
 			JustBeforeEach(func() {
-				fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+				fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
 			})
 
 			It("succeeds", func() {
@@ -317,7 +318,7 @@ run: {path: a/file}
 				})
 
 				JustBeforeEach(func() {
-					fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+					fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
 				})
 
 				It("succeeds", func() {
@@ -350,7 +351,7 @@ run: {path: a/file}
 		})
 
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+			fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
 		})
 
 		Context("when the config is valid", func() {
@@ -413,7 +414,7 @@ run: {path: a/file}
 		JustBeforeEach(func() {
 			configSource = StaticConfigSource{Config: &taskConfig}
 			configSource = InterpolateTemplateConfigSource{ConfigSource: configSource, Vars: []vars.Variables{vars.StaticVariables(taskVars)}}
-			fetchedConfig, fetchErr = configSource.FetchConfig(logger, repo)
+			fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
 		})
 
 		It("fetches task config successfully", func() {

@@ -159,7 +159,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	repository := state.Artifacts()
 
-	config, err := taskConfigSource.FetchConfig(logger, repository)
+	config, err := taskConfigSource.FetchConfig(ctx, logger, repository)
 
 	for _, warning := range taskConfigSource.Warnings() {
 		fmt.Fprintln(step.delegate.Stderr(), "[WARNING]", warning)
