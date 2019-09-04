@@ -68,7 +68,6 @@
 
 * Thanks to @osis for noticing that the [sidebar becomes unclickable](https://github.com/concourse/concourse/issues/4190) when viewing a build for which you are unauthorized to see the logs, and fixing it too! #4201
 
-
 #### <sub><sup><a name="v550-note-18" href="#v550-note-18">:link:</a></sup></sub> feature, breaking
 
 * Now requests from the web nodes to the garden servers inside workers (i.e. when creating containers) will time out after 5 minutes. This means that if you have a lot of latency or your garden servers are slow, _your builds and/or resource checks will start to fail_. In general, we have found that failing earlier in cases like this is preferable to hanging forever or failing silently #4137.
@@ -95,8 +94,12 @@
 
 #### <sub><sup><a name="v550-note-24" href="#v550-note-24">:link:</a></sup></sub> feature
 
-* @ThePhilderbeast added proxy support to the github-release-resource concourse/github-release-resource#84. 
+* @ThePhilderbeast added proxy support to the Github release resource concourse/github-release-resource#84.
 
 #### <sub><sup><a name="v550-note-25" href="#v550-note-25">:link:</a></sup></sub> feature
 
-* The number of assets listed per release was raised by @oppegard from 30 to 100 on the github-release-resource. This will hopefully prevent most issues where the resource would not have the full list of assets to download concourse/github-release-resource#85.
+* The number of assets listed per release was raised by @oppegard from 30 to 100 on the Github release resource. This will hopefully prevent most issues where the resource would not have the full list of assets to download concourse/github-release-resource#85.
+
+#### <sub><sup><a name="v550-note-26" href="#v550-note-26">:link:</a></sup></sub> feature
+
+* @dprotaso added annotated tag support to the Github release resource concourse/github-release-resource#88, where previously only lightweight tags were supported.
