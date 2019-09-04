@@ -25,6 +25,7 @@ all =
                         , userName = "test"
                         , name = "test"
                         , email = "test"
+                        , isAdmin = False
                         , teams = Dict.fromList [ ( "team", [ "viewer" ] ) ]
                         }
             in
