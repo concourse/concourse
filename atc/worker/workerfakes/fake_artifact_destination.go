@@ -2,6 +2,7 @@
 package workerfakes
 
 import (
+	"context"
 	"io"
 	"sync"
 
@@ -9,11 +10,12 @@ import (
 )
 
 type FakeArtifactDestination struct {
-	StreamInStub        func(string, io.Reader) error
+	StreamInStub        func(context.Context, string, io.Reader) error
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
-		arg1 string
-		arg2 io.Reader
+		arg1 context.Context
+		arg2 string
+		arg3 io.Reader
 	}
 	streamInReturns struct {
 		result1 error
@@ -25,17 +27,18 @@ type FakeArtifactDestination struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeArtifactDestination) StreamIn(arg1 string, arg2 io.Reader) error {
+func (fake *FakeArtifactDestination) StreamIn(arg1 context.Context, arg2 string, arg3 io.Reader) error {
 	fake.streamInMutex.Lock()
 	ret, specificReturn := fake.streamInReturnsOnCall[len(fake.streamInArgsForCall)]
 	fake.streamInArgsForCall = append(fake.streamInArgsForCall, struct {
-		arg1 string
-		arg2 io.Reader
-	}{arg1, arg2})
-	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2})
+		arg1 context.Context
+		arg2 string
+		arg3 io.Reader
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2, arg3})
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
-		return fake.StreamInStub(arg1, arg2)
+		return fake.StreamInStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -50,17 +53,17 @@ func (fake *FakeArtifactDestination) StreamInCallCount() int {
 	return len(fake.streamInArgsForCall)
 }
 
-func (fake *FakeArtifactDestination) StreamInCalls(stub func(string, io.Reader) error) {
+func (fake *FakeArtifactDestination) StreamInCalls(stub func(context.Context, string, io.Reader) error) {
 	fake.streamInMutex.Lock()
 	defer fake.streamInMutex.Unlock()
 	fake.StreamInStub = stub
 }
 
-func (fake *FakeArtifactDestination) StreamInArgsForCall(i int) (string, io.Reader) {
+func (fake *FakeArtifactDestination) StreamInArgsForCall(i int) (context.Context, string, io.Reader) {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
 	argsForCall := fake.streamInArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeArtifactDestination) StreamInReturns(result1 error) {

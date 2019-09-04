@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/hashicorp/go-multierror"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
@@ -190,7 +192,7 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
-	reader, err := versionedSource.StreamOut(ImageMetadataFile)
+	reader, err := versionedSource.StreamOut(ctx, ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -328,12 +330,14 @@ func (frc fileReadMultiCloser) Read(p []byte) (n int, err error) {
 }
 
 func (frc fileReadMultiCloser) Close() error {
+	var closeErrors error
+
 	for _, closer := range frc.closers {
 		err := closer.Close()
 		if err != nil {
-			return err
+			closeErrors = multierror.Append(closeErrors, err)
 		}
 	}
 
-	return nil
+	return closeErrors
 }

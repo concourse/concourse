@@ -908,15 +908,15 @@ var _ = Describe("TaskStep", func() {
 						})
 
 						It("streams the data from the volumes to the destination", func() {
-							err := artifactSource1.StreamTo(logger, fakeDestination)
+							err := artifactSource1.StreamTo(context.TODO(), logger, fakeDestination)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(fakeVolume1.StreamOutCallCount()).To(Equal(1))
-							path := fakeVolume1.StreamOutArgsForCall(0)
+							_, path := fakeVolume1.StreamOutArgsForCall(0)
 							Expect(path).To(Equal("."))
 
 							Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-							dest, src := fakeDestination.StreamInArgsForCall(0)
+							_, dest, src := fakeDestination.StreamInArgsForCall(0)
 							Expect(dest).To(Equal("."))
 							Expect(src).To(Equal(streamedOut))
 						})
@@ -955,18 +955,18 @@ var _ = Describe("TaskStep", func() {
 								})
 
 								It("streams out the given path", func() {
-									reader, err := artifactSource1.StreamFile(logger, "some-path")
+									reader, err := artifactSource1.StreamFile(context.TODO(), logger, "some-path")
 									Expect(err).NotTo(HaveOccurred())
 
 									Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
 
-									path := fakeVolume1.StreamOutArgsForCall(0)
+									_, path := fakeVolume1.StreamOutArgsForCall(0)
 									Expect(path).To(Equal("some-path"))
 								})
 
 								Describe("closing the stream", func() {
 									It("closes the stream from the versioned source", func() {
-										reader, err := artifactSource1.StreamFile(logger, "some-path")
+										reader, err := artifactSource1.StreamFile(context.TODO(), logger, "some-path")
 										Expect(err).NotTo(HaveOccurred())
 
 										Expect(tgzBuffer.Closed()).To(BeFalse())
@@ -981,7 +981,7 @@ var _ = Describe("TaskStep", func() {
 
 							Context("but the stream is empty", func() {
 								It("returns ErrFileNotFound", func() {
-									_, err := artifactSource1.StreamFile(logger, "some-path")
+									_, err := artifactSource1.StreamFile(context.TODO(), logger, "some-path")
 									Expect(err).To(MatchError(exec.FileNotFoundError{Path: "some-path"}))
 								})
 							})
@@ -995,7 +995,7 @@ var _ = Describe("TaskStep", func() {
 							})
 
 							It("returns the error", func() {
-								_, err := artifactSource1.StreamFile(logger, "some-path")
+								_, err := artifactSource1.StreamFile(context.TODO(), logger, "some-path")
 								Expect(err).To(Equal(disaster))
 							})
 						})

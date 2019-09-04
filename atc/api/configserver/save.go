@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"context"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -190,7 +191,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 				taskConfigSource = exec.StaticConfigSource{Config: plan.TaskConfig}
 				taskConfigSource = exec.InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: embeddedTaskVars}
 				taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}
-				_, err = taskConfigSource.FetchConfig(session, nil)
+				_, err = taskConfigSource.FetchConfig(context.TODO(), session, nil)
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}

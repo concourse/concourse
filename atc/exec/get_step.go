@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/hashicorp/go-multierror"
+
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/DataDog/zstd"
@@ -254,23 +256,28 @@ func (s *getArtifactSource) VolumeOn(logger lager.Logger, worker worker.Worker) 
 }
 
 // StreamTo streams the resource's data to the destination.
-func (s *getArtifactSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
-	return streamToHelper(s.versionedSource, logger, destination)
+func (s *getArtifactSource) StreamTo(ctx context.Context, logger lager.Logger, destination worker.ArtifactDestination) error {
+	return streamToHelper(ctx, s.versionedSource, logger, destination)
 }
 
 // StreamFile streams a single file out of the resource.
-func (s *getArtifactSource) StreamFile(logger lager.Logger, path string) (io.ReadCloser, error) {
-	return streamFileHelper(s.versionedSource, logger, path)
+func (s *getArtifactSource) StreamFile(ctx context.Context, logger lager.Logger, path string) (io.ReadCloser, error) {
+	return streamFileHelper(ctx, s.versionedSource, logger, path)
 }
 
-func streamToHelper(s interface {
-	StreamOut(string) (io.ReadCloser, error)
-}, logger lager.Logger, destination worker.ArtifactDestination) error {
+func streamToHelper(
+	ctx context.Context,
+	s interface {
+		StreamOut(context.Context, string) (io.ReadCloser, error)
+	},
+	logger lager.Logger,
+	destination worker.ArtifactDestination,
+) error {
 	logger.Debug("start")
 
 	defer logger.Debug("end")
 
-	out, err := s.StreamOut(".")
+	out, err := s.StreamOut(ctx, ".")
 	if err != nil {
 		logger.Error("failed", err)
 		return err
@@ -278,7 +285,7 @@ func streamToHelper(s interface {
 
 	defer out.Close()
 
-	err = destination.StreamIn(".", out)
+	err = destination.StreamIn(ctx, ".", out)
 	if err != nil {
 		logger.Error("failed", err)
 		return err
@@ -286,10 +293,15 @@ func streamToHelper(s interface {
 	return nil
 }
 
-func streamFileHelper(s interface {
-	StreamOut(string) (io.ReadCloser, error)
-}, logger lager.Logger, path string) (io.ReadCloser, error) {
-	out, err := s.StreamOut(path)
+func streamFileHelper(
+	ctx context.Context,
+	s interface {
+		StreamOut(context.Context, string) (io.ReadCloser, error)
+	},
+	logger lager.Logger,
+	path string,
+) (io.ReadCloser, error) {
+	out, err := s.StreamOut(ctx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -321,12 +333,14 @@ func (frc fileReadMultiCloser) Read(p []byte) (n int, err error) {
 }
 
 func (frc fileReadMultiCloser) Close() error {
+	var closeErrors error
+
 	for _, closer := range frc.closers {
 		err := closer.Close()
 		if err != nil {
-			return err
+			closeErrors = multierror.Append(closeErrors, err)
 		}
 	}
 
-	return nil
+	return closeErrors
 }

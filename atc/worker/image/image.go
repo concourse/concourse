@@ -43,7 +43,7 @@ func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
 		return worker.FetchedImage{}, err
 	}
 
-	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(logger, ImageMetadataFile)
+	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, logger, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return worker.FetchedImage{}, err
@@ -96,13 +96,13 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 		destination: imageVolume,
 	}
 
-	err = i.imageSpec.ImageArtifactSource.StreamTo(logger, &dest)
+	err = i.imageSpec.ImageArtifactSource.StreamTo(ctx, logger, &dest)
 	if err != nil {
 		logger.Error("failed-to-stream-image-artifact-source", err)
 		return worker.FetchedImage{}, err
 	}
 
-	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(logger, ImageMetadataFile)
+	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, logger, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return worker.FetchedImage{}, err
@@ -260,6 +260,6 @@ type artifactDestination struct {
 	destination worker.Volume
 }
 
-func (wad *artifactDestination) StreamIn(path string, tarStream io.Reader) error {
-	return wad.destination.StreamIn(path, tarStream)
+func (wad *artifactDestination) StreamIn(ctx context.Context, path string, tarStream io.Reader) error {
+	return wad.destination.StreamIn(ctx, path, tarStream)
 }
