@@ -68,26 +68,23 @@
 
 * Thanks to @osis for noticing that the [sidebar becomes unclickable](https://github.com/concourse/concourse/issues/4190) when viewing a build for which you are unauthorized to see the logs, and fixing it too! #4201
 
-#### <sub><sup><a name="v550-note-18" href="#v550-note-18">:link:</a></sup></sub> fix
 
-* Fixed a bug where the [timestamps](https://github.com/concourse/concourse/issues/3942) on build logs were off by one #4088.
-
-#### <sub><sup><a name="v550-note-19" href="#v550-note-19">:link:</a></sup></sub> feature, breaking
+#### <sub><sup><a name="v550-note-18" href="#v550-note-18">:link:</a></sup></sub> feature, breaking
 
 * Now requests from the web nodes to the garden servers inside workers (i.e. when creating containers) will time out after 5 minutes. This means that if you have a lot of latency or your garden servers are slow, _your builds and/or resource checks will start to fail_. In general, we have found that failing earlier in cases like this is preferable to hanging forever or failing silently #4137.
 
-#### <sub><sup><a name="v550-note-20" href="#v550-note-20">:link:</a></sup></sub> feature
+#### <sub><sup><a name="v550-note-19" href="#v550-note-19">:link:</a></sup></sub> feature
 
 * Fly has the ability to [autocomplete](https://concourse-ci.org/fly.html#fly-completion) certain configurations for certain shells. @cappyzawa added some more, allowing team and worker names to be autocompleted in fly commands #4087.
 
-#### <sub><sup><a name="v550-note-21" href="#v550-note-21">:link:</a></sup></sub> fix
+#### <sub><sup><a name="v550-note-20" href="#v550-note-20">:link:</a></sup></sub> fix
 
 * The `get-team` command for fly will now take `team-name` as an argument for the team name instead of just `team`. Thanks to @cappyzawa for finding this inconsistency! #4086
 
+#### <sub><sup><a name="v550-note-21" href="#v550-note-21">:link:</a></sup></sub> feature
+
+* @brunocous added an option to skip SSL verification for the git driver on the [semver-resource](https://github.com/concourse/semver-resource) concourse/semver-resource#97.
+
 #### <sub><sup><a name="v550-note-22" href="#v550-note-22">:link:</a></sup></sub> feature
 
-@brunocous added an option to skip SSL verification for the git driver on the [semver-resource](https://github.com/concourse/semver-resource) concourse/semver-resource#97.
-
-#### <sub><sup><a name="v550-note-23" href="#v550-note-23">:link:</a></sup></sub> feature
-
-@mgsolid added a [`pre_without_version`](https://github.com/concourse/semver-resource#parameters) param to the `get` and `put` steps associated to the semver resource. This allows for notating pre-releases without an associated "RC number" (like the `-SNAPSHOT` suffix often seen on pre-release builds managed by Maven) concourse/semver-resource#94.
+* @mgsolid added a [`pre_without_version`](https://github.com/concourse/semver-resource#parameters) param to the `get` and `put` steps associated to the semver resource. This allows for notating pre-releases without an associated "RC number" (like the `-SNAPSHOT` suffix often seen on pre-release builds managed by Maven) concourse/semver-resource#94.
