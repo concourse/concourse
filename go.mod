@@ -219,7 +219,9 @@ require (
 	gotest.tools v2.1.0+incompatible // indirect
 	k8s.io/api v0.0.0-20171027084545-218912509d74
 	k8s.io/apimachinery v0.0.0-20171027084411-18a564baac72
-	k8s.io/client-go v2.0.0-alpha.0.0.20171101191150-72e1c2a1ef30+incompatible
+	k8s.io/client-go v0.0.0-20171101191150-72e1c2a1ef30
 	k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c // indirect
 	layeh.com/radius v0.0.0-20190101232339-d3a4fc175dc9 // indirect
 )
+
+go 1.13
