@@ -83,3 +83,11 @@
 #### <sub><sup><a name="v550-note-21" href="#v550-note-21">:link:</a></sup></sub> fix
 
 * The `get-team` command for fly will now take `team-name` as an argument for the team name instead of just `team`. Thanks to @cappyzawa for finding this inconsistency! #4086
+
+#### <sub><sup><a name="v550-note-22" href="#v550-note-22">:link:</a></sup></sub> feature
+
+@brunocous added an option to skip SSL verification for the git driver on the [semver-resource](https://github.com/concourse/semver-resource) concourse/semver-resource#97.
+
+#### <sub><sup><a name="v550-note-23" href="#v550-note-23">:link:</a></sup></sub> feature
+
+@mgsolid added a [`pre_without_version`](https://github.com/concourse/semver-resource#parameters) param to the `get` and `put` steps associated to the semver resource. This allows for notating pre-releases without an associated "RC number" (like the `-SNAPSHOT` suffix often seen on pre-release builds managed by Maven) concourse/semver-resource#94.
