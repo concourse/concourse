@@ -103,3 +103,11 @@
 #### <sub><sup><a name="v550-note-26" href="#v550-note-26">:link:</a></sup></sub> feature
 
 * @dprotaso added annotated tag support to the Github release resource concourse/github-release-resource#88, where previously only lightweight tags were supported.
+
+#### <sub><sup><a name="v550-note-27" href="#v550-note-27">:link:</a></sup></sub> feature
+
+* The `evolve` extension has been added to the Mercurial resource by @xavierzwirtz concourse/hg-resource#12.
+
+#### <sub><sup><a name="v550-note-28" href="#v550-note-28">:link:</a></sup></sub> fix
+
+* @xavierzwirtz also fixed `hg.pull` by passing the `sourceUri` in the Mercurial resource. This could fix some issues where Mercurial wasn't saving the full uri in the `hgrc` file concourse/hg-resource#13.
