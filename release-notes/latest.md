@@ -88,3 +88,7 @@
 #### <sub><sup><a name="v550-note-22" href="#v550-note-22">:link:</a></sup></sub> feature
 
 * @mgsolid added a [`pre_without_version`](https://github.com/concourse/semver-resource#parameters) param to the `get` and `put` steps associated to the semver resource. This allows for notating pre-releases without an associated "RC number" (like the `-SNAPSHOT` suffix often seen on pre-release builds managed by Maven) concourse/semver-resource#94.
+
+#### <sub><sup><a name="v550-note-23" href="#v550-note-23">:link:</a></sup></sub> feature
+
+* A [`depth`](https://github.com/concourse/pool-resource#parameters) parameter was added by @maryamklabib to the `get` steps associated with the pool resource. This allows you to get a specified number of commits when fetching a repository concourse/pool-resource#50.
