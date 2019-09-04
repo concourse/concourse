@@ -96,3 +96,7 @@
 #### <sub><sup><a name="v550-note-24" href="#v550-note-24">:link:</a></sup></sub> feature
 
 * @ThePhilderbeast added proxy support to the github-release-resource concourse/github-release-resource#84. 
+
+#### <sub><sup><a name="v550-note-25" href="#v550-note-25">:link:</a></sup></sub> feature
+
+* The number of assets listed per release was raised by @oppegard from 30 to 100 on the github-release-resource. This will hopefully prevent most issues where the resource would not have the full list of assets to download concourse/github-release-resource#85.
