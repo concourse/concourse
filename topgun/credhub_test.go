@@ -18,7 +18,7 @@ import (
 
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"

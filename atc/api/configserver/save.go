@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/vars"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 	"github.com/hashicorp/go-multierror"
 	"github.com/tedsuo/rata"
 )

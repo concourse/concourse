@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, output bool) error {

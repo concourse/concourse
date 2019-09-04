@@ -5,7 +5,7 @@ import (
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"

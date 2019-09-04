@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/urljoiner"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"

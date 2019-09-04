@@ -9,7 +9,7 @@ import (
 
 	"github.com/aryann/difflib"
 	"github.com/concourse/concourse/atc"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gexec"
 )
