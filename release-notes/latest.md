@@ -92,3 +92,7 @@
 #### <sub><sup><a name="v550-note-23" href="#v550-note-23">:link:</a></sup></sub> feature
 
 * A [`depth`](https://github.com/concourse/pool-resource#parameters) parameter was added by @maryamklabib to the `get` steps associated with the pool resource. This allows you to get a specified number of commits when fetching a repository concourse/pool-resource#50.
+
+#### <sub><sup><a name="v550-note-24" href="#v550-note-24">:link:</a></sup></sub> feature
+
+* @ThePhilderbeast added proxy support to the github-release-resource concourse/github-release-resource#84. 
