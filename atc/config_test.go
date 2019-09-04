@@ -4,45 +4,39 @@ import (
 	"encoding/json"
 
 	. "github.com/concourse/concourse/atc"
-	"sigs.k8s.io/yaml"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Config", func() {
 	Describe("VersionConfig", func() {
-		Context("when unmarshaling a pinned version from YAML", func() {
-			It("produces the correct version config without error", func() {
-				var versionConfig VersionConfig
-				bs := []byte(`some: version`)
-				err := yaml.Unmarshal(bs, &versionConfig)
-				Expect(err).NotTo(HaveOccurred())
-
-				expected := VersionConfig{
-					Pinned: Version{
-						"some": "version",
-					},
-				}
-
-				Expect(versionConfig).To(Equal(expected))
-			})
-		})
-
 		Context("when unmarshaling a pinned version from JSON", func() {
-			It("produces the correct version config without error", func() {
-				var versionConfig VersionConfig
-				bs := []byte(`{ "some": "version" }`)
-				err := json.Unmarshal(bs, &versionConfig)
-				Expect(err).NotTo(HaveOccurred())
+			Context("when the version is all string", func() {
+				It("produces the correct version config without error", func() {
+					var versionConfig VersionConfig
+					bs := []byte(`{ "some": "  version  ", "other": "8" }`)
+					err := json.Unmarshal(bs, &versionConfig)
+					Expect(err).NotTo(HaveOccurred())
 
-				expected := VersionConfig{
-					Pinned: Version{
-						"some": "version",
-					},
-				}
+					expected := VersionConfig{
+						Pinned: Version{
+							"some":  "version",
+							"other": "8",
+						},
+					}
 
-				Expect(versionConfig).To(Equal(expected))
+					Expect(versionConfig).To(Equal(expected))
+				})
+			})
+
+			Context("when the version contains not all string", func() {
+				It("produces an error", func() {
+					var versionConfig VersionConfig
+					bs := []byte(`{ "some": 8 }`)
+					err := json.Unmarshal(bs, &versionConfig)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("the value 8 of some is not a string"))
+				})
 			})
 		})
 	})
