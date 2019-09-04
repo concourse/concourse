@@ -159,8 +159,9 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     they're all pointing to the same PostgreSQL server.
 
     Furthermore, you may wish to configure the max number of parallel database
-    connections that each node makes, depending on how many simultaneous
-    connections your Postgres server will allow, via something like
+    connections that each node makes. The number you choose should not be
+    greater than the maximum number of simultaneous connections your Postgres
+    server will allow. For example:
 
     \codeblock{bash}{{{
     CONCOURSE_MAX_OPEN_CONNECTIONS=32
