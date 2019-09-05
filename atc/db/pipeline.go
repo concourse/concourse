@@ -547,13 +547,20 @@ func (p *pipeline) Jobs() (Jobs, error) {
 func (p *pipeline) Dashboard() (Dashboard, error) {
 	dashboard := Dashboard{}
 
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
 	rows, err := jobsQuery.
 		Where(sq.Eq{
 			"pipeline_id": p.id,
 			"active":      true,
 		}).
 		OrderBy("j.id ASC").
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -564,12 +571,17 @@ func (p *pipeline) Dashboard() (Dashboard, error) {
 		return nil, err
 	}
 
-	nextBuilds, err := p.getBuildsFrom("next_build_id")
+	nextBuilds, err := p.getBuildsFrom(tx, "next_build_id")
 	if err != nil {
 		return nil, err
 	}
 
-	finishedBuilds, err := p.getBuildsFrom("latest_completed_build_id")
+	finishedBuilds, err := p.getBuildsFrom(tx, "latest_completed_build_id")
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -1042,13 +1054,13 @@ func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, re
 	return err
 }
 
-func (p *pipeline) getBuildsFrom(col string) (map[string]Build, error) {
+func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 	rows, err := buildsQuery.
 		Where(sq.Eq{
 			"b.pipeline_id": p.id,
 		}).
 		Where(sq.Expr("j." + col + " = b.id")).
-		RunWith(p.conn).Query()
+		RunWith(tx).Query()
 	if err != nil {
 		return nil, err
 	}
