@@ -39,7 +39,6 @@ type Team interface {
 	Pipeline(pipelineName string) (Pipeline, bool, error)
 	Pipelines() ([]Pipeline, error)
 	PublicPipelines() ([]Pipeline, error)
-	VisiblePipelines() ([]Pipeline, error)
 	OrderPipelines([]string) error
 
 	CreateOneOffBuild() (Build, error)
@@ -585,39 +584,6 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 	}
 
 	return pipelines, nil
-}
-
-func (t *team) VisiblePipelines() ([]Pipeline, error) {
-	rows, err := pipelinesQuery.
-		Where(sq.Eq{"team_id": t.id}).
-		OrderBy("team_id ASC", "ordering ASC").
-		RunWith(t.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	currentTeamPipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err = pipelinesQuery.
-		Where(sq.NotEq{"team_id": t.id}).
-		Where(sq.Eq{"public": true}).
-		OrderBy("team_id ASC", "ordering ASC").
-		RunWith(t.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	otherTeamPublicPipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(currentTeamPipelines, otherTeamPublicPipelines...), nil
 }
 
 func (t *team) OrderPipelines(pipelineNames []string) error {
