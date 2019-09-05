@@ -198,9 +198,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	versionedSource, err := step.resourceFetcher.Fetch(
 		ctx,
 		logger,
-		resource.Session{
-			Metadata: step.containerMetadata,
-		},
+		step.containerMetadata,
 		chosenWorker,
 		containerSpec,
 		resourceTypes,

@@ -157,10 +157,8 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	getSess := resource.Session{
-		Metadata: db.ContainerMetadata{
-			Type: db.ContainerTypeGet,
-		},
+	containerMetadata := db.ContainerMetadata{
+		Type: db.ContainerTypeGet,
 	}
 
 	containerSpec := worker.ContainerSpec{
@@ -175,7 +173,7 @@ func (i *imageResourceFetcher) Fetch(
 	versionedSource, err := i.resourceFetcher.Fetch(
 		ctx,
 		logger.Session("init-image"),
-		getSess,
+		containerMetadata,
 		i.worker,
 		containerSpec,
 		i.customTypes,

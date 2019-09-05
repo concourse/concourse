@@ -344,12 +344,12 @@ var _ = Describe("Image", func() {
 
 							It("fetches resource with correct session", func() {
 								Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-								_, _, session, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
-								Expect(session).To(Equal(resource.Session{
-									Metadata: db.ContainerMetadata{
+								_, _, actualContainerMetadata, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+								Expect(actualContainerMetadata).To(Equal(
+									db.ContainerMetadata{
 										Type: db.ContainerTypeGet,
 									},
-								}))
+								))
 								Expect(actualWorker.Name()).To(Equal("some-worker"))
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ResourceType: "docker",
@@ -565,12 +565,12 @@ var _ = Describe("Image", func() {
 
 					It("fetches resource with correct session", func() {
 						Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-						_, _, session, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
-						Expect(session).To(Equal(resource.Session{
-							Metadata: db.ContainerMetadata{
+						_, _, actualContainerMetadata, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+						Expect(actualContainerMetadata).To(Equal(
+							db.ContainerMetadata{
 								Type: db.ContainerTypeGet,
 							},
-						}))
+						))
 						Expect(actualWorker.Name()).To(Equal("some-worker"))
 						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 							ResourceType: "docker",

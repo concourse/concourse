@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -19,10 +18,6 @@ type Resource interface {
 }
 
 type ResourceType string
-
-type Session struct {
-	Metadata db.ContainerMetadata
-}
 
 type Metadata interface {
 	Env() []string
