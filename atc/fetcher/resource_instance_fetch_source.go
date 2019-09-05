@@ -27,7 +27,7 @@ type FetchSourceFactory interface {
 		resourceInstance resource.ResourceInstance,
 		resourceTypes atc.VersionedResourceTypes,
 		containerSpec worker.ContainerSpec,
-		session resource.Session,
+		containerMetadata db.ContainerMetadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) FetchSource
 }
@@ -53,7 +53,7 @@ func (r *fetchSourceFactory) NewFetchSource(
 	resourceInstance resource.ResourceInstance,
 	resourceTypes atc.VersionedResourceTypes,
 	containerSpec worker.ContainerSpec,
-	session resource.Session,
+	containerMetadata db.ContainerMetadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) FetchSource {
 	return &resourceInstanceFetchSource{
@@ -62,7 +62,7 @@ func (r *fetchSourceFactory) NewFetchSource(
 		resourceInstance:       resourceInstance,
 		resourceTypes:          resourceTypes,
 		containerSpec:          containerSpec,
-		session:                session,
+		containerMetadata:      containerMetadata,
 		imageFetchingDelegate:  imageFetchingDelegate,
 		dbResourceCacheFactory: r.resourceCacheFactory,
 		resourceFactory:        r.resourceFactory,
@@ -75,7 +75,7 @@ type resourceInstanceFetchSource struct {
 	resourceInstance       resource.ResourceInstance
 	resourceTypes          atc.VersionedResourceTypes
 	containerSpec          worker.ContainerSpec
-	session                resource.Session
+	containerMetadata      db.ContainerMetadata
 	imageFetchingDelegate  worker.ImageFetchingDelegate
 	dbResourceCacheFactory db.ResourceCacheFactory
 	resourceFactory        resource.ResourceFactory
@@ -136,7 +136,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (resource.Vers
 		s.logger,
 		s.imageFetchingDelegate,
 		s.resourceInstance.ContainerOwner(),
-		s.session.Metadata,
+		s.containerMetadata,
 		s.containerSpec,
 		s.resourceTypes,
 	)

@@ -117,9 +117,7 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 					"resource": resource.ResourcesDir("get"),
 				},
 			},
-			resource.Session{
-				Metadata: metadata,
-			},
+			metadata,
 			fakeDelegate,
 		)
 	})

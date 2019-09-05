@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
@@ -64,7 +65,7 @@ var _ = Describe("Fetcher", func() {
 		versionedSource, fetchErr = fetcher.Fetch(
 			ctx,
 			lagertest.NewTestLogger("test"),
-			resource.Session{},
+			db.ContainerMetadata{},
 			fakeWorker,
 			worker.ContainerSpec{
 				TeamID: teamID,

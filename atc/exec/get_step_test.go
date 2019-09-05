@@ -182,15 +182,14 @@ var _ = Describe("GetStep", func() {
 			Expect(stepErr).ToNot(HaveOccurred())
 
 			Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-			fctx, _, sid, actualWorker, actualContainerSpec, actualResourceTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+			fctx, _, actualContainerMetadata, actualWorker, actualContainerSpec, actualResourceTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
 			Expect(fctx).To(Equal(ctx))
-			Expect(sid).To(Equal(resource.Session{
-				Metadata: db.ContainerMetadata{
+			Expect(actualContainerMetadata).To(Equal(
+				db.ContainerMetadata{
 					PipelineID:       4567,
 					Type:             db.ContainerTypeGet,
 					StepName:         "some-step",
 					WorkingDirectory: "/tmp/build/get",
-				},
 			}))
 			Expect(actualWorker.Name()).To(Equal("some-worker"))
 			Expect(actualContainerSpec).To(Equal(worker.ContainerSpec{
