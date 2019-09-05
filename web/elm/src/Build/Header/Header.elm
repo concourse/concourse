@@ -2,26 +2,15 @@ module Build.Header.Header exposing (handleCallback, handleDelivery, update, vie
 
 import Application.Models exposing (Session)
 import Build.Header.Models exposing (Model)
+import Build.Header.Views as Views
 import Build.Models exposing (BuildPageType(..), toMaybe)
 import Build.StepTree.Models as STModels
-import Build.Styles as Styles
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Paginated)
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
-import Html.Attributes
-    exposing
-        ( attribute
-        , class
-        , classList
-        , href
-        , id
-        , style
-        )
-import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
-import Html.Lazy
 import Keyboard
 import List.Extra
 import Message.Callback exposing (Callback(..))
@@ -35,9 +24,6 @@ import Message.Subscription
         )
 import RemoteData
 import Routes
-import StrictEvents exposing (onLeftClick, onMouseWheel)
-import Views.BuildDuration as BuildDuration
-import Views.Icon as Icon
 
 
 historyId : String
@@ -51,126 +37,62 @@ view :
     -> Concourse.Build
     -> Html Message
 view session model build =
-    let
-        triggerButton =
-            case currentJob model of
-                Just _ ->
-                    let
-                        buttonDisabled =
-                            model.disableManualTrigger
+    Views.viewHeader
+        { leftWidgets =
+            [ Views.Title build.name (currentJob model)
+            , Views.Duration session.timeZone build.duration model.now
+            ]
+        , rightWidgets =
+            [ Views.Button
+                (if Concourse.BuildStatus.isRunning build.status then
+                    Just
+                        { type_ = Views.Abort
+                        , isClickable = True
+                        , backgroundShade =
+                            if
+                                HoverState.isHovered
+                                    AbortBuildButton
+                                    session.hovered
+                            then
+                                Views.Dark
 
-                        buttonHovered =
+                            else
+                                Views.Light
+                        , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
+                        , tooltip = False
+                        }
+
+                 else
+                    Nothing
+                )
+            , Views.Button
+                (if currentJob model /= Nothing then
+                    let
+                        isHovered =
                             HoverState.isHovered
                                 TriggerBuildButton
                                 session.hovered
                     in
-                    Html.button
-                        ([ attribute "role" "button"
-                         , attribute "tabindex" "0"
-                         , attribute "aria-label" "Trigger Build"
-                         , attribute "title" "Trigger Build"
-                         , onLeftClick <| Click TriggerBuildButton
-                         , onMouseEnter <| Hover <| Just TriggerBuildButton
-                         , onFocus <| Hover <| Just TriggerBuildButton
-                         , onMouseLeave <| Hover Nothing
-                         , onBlur <| Hover Nothing
-                         ]
-                            ++ Styles.triggerButton
-                                buttonDisabled
-                                buttonHovered
-                                build.status
-                        )
-                    <|
-                        [ Icon.icon
-                            { sizePx = 40
-                            , image = "ic-add-circle-outline-white.svg"
-                            }
-                            []
-                        ]
-                            ++ (if buttonDisabled && buttonHovered then
-                                    [ Html.div
-                                        Styles.triggerTooltip
-                                        [ Html.text <|
-                                            "manual triggering disabled "
-                                                ++ "in job config"
-                                        ]
-                                    ]
+                    Just
+                        { type_ = Views.Trigger
+                        , isClickable = not model.disableManualTrigger
+                        , backgroundShade =
+                            if isHovered then
+                                Views.Dark
 
-                                else
-                                    []
-                               )
-
-                Nothing ->
-                    Html.text ""
-
-        abortHovered =
-            HoverState.isHovered AbortBuildButton session.hovered
-
-        abortButton =
-            if Concourse.BuildStatus.isRunning build.status then
-                Html.button
-                    ([ onLeftClick (Click <| AbortBuildButton)
-                     , attribute "role" "button"
-                     , attribute "tabindex" "0"
-                     , attribute "aria-label" "Abort Build"
-                     , attribute "title" "Abort Build"
-                     , onMouseEnter <| Hover <| Just AbortBuildButton
-                     , onFocus <| Hover <| Just AbortBuildButton
-                     , onMouseLeave <| Hover Nothing
-                     , onBlur <| Hover Nothing
-                     ]
-                        ++ Styles.abortButton abortHovered
-                    )
-                    [ Icon.icon
-                        { sizePx = 40
-                        , image = "ic-abort-circle-outline-white.svg"
+                            else
+                                Views.Light
+                        , backgroundColor = build.status
+                        , tooltip = isHovered && model.disableManualTrigger
                         }
-                        []
-                    ]
 
-            else
-                Html.text ""
-
-        buildTitle =
-            case build.job of
-                Just jobId ->
-                    let
-                        jobRoute =
-                            Routes.Job { id = jobId, page = Nothing }
-                    in
-                    Html.a
-                        [ href <| Routes.toString jobRoute ]
-                        [ Html.span [ class "build-name" ] [ Html.text jobId.jobName ]
-                        , Html.text (" #" ++ build.name)
-                        ]
-
-                _ ->
-                    Html.text ("build #" ++ String.fromInt build.id)
-    in
-    Html.div [ class "fixed-header" ]
-        [ Html.div
-            ([ id "build-header"
-             , class "build-header"
-             ]
-                ++ Styles.header build.status
-            )
-            [ Html.div []
-                [ Html.h1 [] [ buildTitle ]
-                , case model.now of
-                    Just n ->
-                        BuildDuration.view session.timeZone build.duration n
-
-                    Nothing ->
-                        Html.text ""
-                ]
-            , Html.div
-                [ style "display" "flex" ]
-                [ abortButton, triggerButton ]
+                 else
+                    Nothing
+                )
             ]
-        , Html.div
-            [ onMouseWheel ScrollBuilds ]
-            [ lazyViewHistory build model.history ]
-        ]
+        , backgroundColor = build.status
+        , history = Views.History build model.history
+        }
 
 
 currentJob : Model r -> Maybe Concourse.JobIdentifier
@@ -178,33 +100,6 @@ currentJob =
     .build
         >> RemoteData.toMaybe
         >> Maybe.andThen .job
-
-
-lazyViewHistory : Concourse.Build -> List Concourse.Build -> Html Message
-lazyViewHistory currentBuild builds =
-    Html.Lazy.lazy2 viewHistory currentBuild builds
-
-
-viewHistory : Concourse.Build -> List Concourse.Build -> Html Message
-viewHistory currentBuild builds =
-    Html.ul [ id historyId ]
-        (List.map (viewHistoryItem currentBuild) builds)
-
-
-viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Message
-viewHistoryItem currentBuild build =
-    Html.li
-        ([ classList [ ( "current", build.id == currentBuild.id ) ]
-         , id <| String.fromInt build.id
-         ]
-            ++ Styles.historyItem build.status
-        )
-        [ Html.a
-            [ onLeftClick <| Click <| BuildTab build
-            , href <| Routes.toString <| Routes.buildRoute build
-            ]
-            [ Html.text build.name ]
-        ]
 
 
 handleDelivery : Delivery -> ET (Model r)
