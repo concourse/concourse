@@ -57,7 +57,7 @@ available under whatever name \code{put} specifies, just like as with
 }{put-step-put}
 
 \define-attribute{resource: string}{
-  \italic{Optional. Defaults to \code{name}.} The resource to update, as
+  \italic{Optional. Defaults to the value of \code{put}.} The resource to update, as
   configured in \reference{pipeline-resources}.
 }{put-step-resource}
 
