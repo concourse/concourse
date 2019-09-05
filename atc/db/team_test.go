@@ -928,68 +928,6 @@ var _ = Describe("Team", func() {
 		})
 	})
 
-	Describe("VisiblePipelines", func() {
-		var (
-			pipelines []db.Pipeline
-			pipeline1 db.Pipeline
-			pipeline2 db.Pipeline
-		)
-
-		JustBeforeEach(func() {
-			var err error
-			pipelines, err = team.VisiblePipelines()
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when the team has configured pipelines", func() {
-			BeforeEach(func() {
-				var err error
-				pipeline1, _, err = team.SavePipeline("fake-pipeline", atc.Config{
-					Jobs: atc.JobConfigs{
-						{Name: "job-name"},
-					},
-				}, db.ConfigVersion(1), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				pipeline2, _, err = otherTeam.SavePipeline("fake-pipeline-two", atc.Config{
-					Jobs: atc.JobConfigs{
-						{Name: "job-fake"},
-					},
-				}, db.ConfigVersion(1), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(pipeline2.Expose()).To(Succeed())
-				Expect(pipeline2.Reload()).To(BeTrue())
-			})
-
-			It("returns the pipelines", func() {
-				Expect(pipelines).To(Equal([]db.Pipeline{pipeline1, pipeline2}))
-			})
-
-			Context("when the other team has a private pipeline", func() {
-				BeforeEach(func() {
-					var err error
-					_, _, err = otherTeam.SavePipeline("fake-pipeline-three", atc.Config{
-						Jobs: atc.JobConfigs{
-							{Name: "job-fake-again"},
-						},
-					}, db.ConfigVersion(1), false)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("does not return the other team private pipeline", func() {
-					Expect(pipelines).To(Equal([]db.Pipeline{pipeline1, pipeline2}))
-				})
-			})
-		})
-
-		Context("when the team has no configured pipelines", func() {
-			It("returns no pipelines", func() {
-				Expect(pipelines).To(Equal([]db.Pipeline{}))
-			})
-		})
-	})
-
 	Describe("OrderPipelines", func() {
 		var pipeline1 db.Pipeline
 		var pipeline2 db.Pipeline
