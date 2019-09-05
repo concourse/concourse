@@ -77,6 +77,28 @@
 }
 
 \section{
+  \title{\code{fly active-users}}{fly-active-users}
+
+  To list all users that have logged into your instance in the last two months,
+  run:
+
+  \codeblock{bash}{{
+  $ fly -t example active-users
+  }}
+
+  The output will include the username, connector (which method they used to
+  authenticate) and the date of their last login.
+
+  You can list users whose last login was within a different range by using:
+
+  \codeblock{bash}{{
+  $ fly -t example active-users --since yyyy-MM-dd
+  }}
+
+  This can be helpful to get a sense of how active your cluster is. 
+}
+
+\section{
   \title{\code{fly teams}}{fly-teams}
 
   To list all the teams, run:

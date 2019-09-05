@@ -22,6 +22,12 @@ metrics pipeline.
   to the logs at \code{DEBUG} level, which can be enabled with the
   \code{--emit-to-logs} flag.
 
+  Regardless of your metrics emitter, you can set
+  \code{CONCOURSE_METRICS_BUFFER_SIZE} to determine how many metrics emissions
+  are sent at a time. Increasing this number can be helpful if sending metrics
+  is regularly failing (due to rate limiting or network failures) or if latency
+  is particularly high.
+
   There are various flags for different emitters; run \code{concourse web
   --help} and look for "Metric Emitter" to see what's available.
 }
@@ -203,6 +209,28 @@ metrics pipeline.
         \code{path}
       }{
         The literal path of the HTTP request. i.e. /builds/1234
+      }
+    }
+  }
+
+  \define-metric{worker tasks}{
+    This metric is emitted each time a worker registers or heartbeats. It
+    contains the number of active task containers on the worker in question.
+    Particularly if \code{max-active-tasks-per-worker} is set, this can be
+    useful for debugging containers stuck in a pending state.
+
+    \larger{Attributes}
+    \definitions{
+      \definition{
+        \code{worker}
+      }{
+        The name of the worker registering/heartbeating.
+      }
+    }{
+      \definition{
+        \code{platform}
+      }{
+        The OS platform of the worker in question (i.e. windows/linux/darwin).
       }
     }
   }

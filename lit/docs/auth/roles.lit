@@ -50,69 +50,70 @@ Concourse comes with five roles: Concourse Admin, Team Owner, Team Member, Pipel
 
   \better-table{
     \table-row{\reference{fly-cli} command      }{Anon}{Admin}{\code{owner}}{\code{member}}{\code{pipeline-operator}}{\code{viewer}}
-    \table-row{\reference{fly-abort-build}      }{✘   }{     }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{\reference{fly-builds}           }{✓   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-check-resource}   }{✘   }{     }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{\reference{fly-containers}       }{✘   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-destroy-pipeline} }{✘   }{     }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{\reference{fly-abort-build}      }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{\reference{fly-active-users}     }{✘   }{✓    }{✘           }{✘            }{✘                       }{✘            }
+    \table-row{\reference{fly-builds}           }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-check-resource}   }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{\reference{fly-containers}       }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-destroy-pipeline} }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
     \table-row{\reference{fly-destroy-team}     }{✘   }{✓    }{✘           }{✘            }{✘                       }{✘            }
-    \table-row{\reference{fly-execute}          }{✘   }{     }{✓           }{✓            }{✘                       }{✘            }
-    \table-row{\reference{fly-expose-pipeline}  }{✘   }{     }{✓           }{✓            }{✘                       }{✘            }
-    \table-row{\reference{fly-format-pipeline}  }{✘   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-get-pipeline}     }{✘   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-hide-pipeline}    }{✘   }{     }{✓           }{✓            }{✘                       }{✘            }
-    \table-row{\reference{fly-intercept}        }{✘   }{     }{✓           }{✓            }{✘                       }{✘            }
-    \table-row{\reference{fly-jobs}             }{✓   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-login}            }{✓   }{     }{            }{             }{                        }{             }
-    \table-row{\reference{fly-logout}           }{✘   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-order-pipelines}  }{✘   }{     }{✓           }{✓            }{✘                       }{✘            }
-    \table-row{\reference{fly-pause-job}        }{✘   }{     }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{\reference{fly-pause-pipeline}   }{✘   }{     }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{\reference{fly-pipelines}        }{✓   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-prune-worker}     }{✘   }{     }{✓           }{✓            }{✘                       }{✘            }
-    \table-row{\reference{fly-rename-pipeline}  }{✘   }{     }{✓           }{✓            }{✘                       }{✘            }
-    \table-row{\reference{fly-rename-team}      }{✘   }{✓    }{✘           }{✘            }{✘                       }{✘            }
-    \table-row{\reference{fly-set-pipeline}     }{✘   }{     }{✓           }{✓            }{✘                       }{✘            }
-    \table-row{\reference{fly-set-team}         }{✘   }{✓    }{✓           }{✘            }{✘                       }{✘            }
-    \table-row{\reference{fly-status}           }{✓   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-sync}             }{✓   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-targets}          }{✓   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-teams}            }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-execute}          }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{\reference{fly-expose-pipeline}  }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{\reference{fly-format-pipeline}  }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-get-pipeline}     }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{\reference{fly-get-team}         }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-trigger-job}      }{✘   }{     }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{\reference{fly-unpause-job}      }{✘   }{     }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{\reference{fly-unpause-pipeline} }{✘   }{     }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{\reference{fly-validate-pipeline}}{✓   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-volumes}          }{✘   }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-watch}            }{✓*  }{     }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{\reference{fly-workers}          }{✘   }{     }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-hide-pipeline}    }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{\reference{fly-intercept}        }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{\reference{fly-jobs}             }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-login}            }{✓   }{✓    }{            }{             }{                        }{             }
+    \table-row{\reference{fly-logout}           }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-order-pipelines}  }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{\reference{fly-pause-job}        }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{\reference{fly-pause-pipeline}   }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{\reference{fly-pipelines}        }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-prune-worker}     }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{\reference{fly-rename-pipeline}  }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{\reference{fly-rename-team}      }{✘   }{✓    }{✘           }{✘            }{✘                       }{✘            }
+    \table-row{\reference{fly-set-pipeline}     }{✘   }{✓    }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{\reference{fly-set-team}         }{✘   }{✓    }{✓           }{✘            }{✘                       }{✘            }
+    \table-row{\reference{fly-status}           }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-sync}             }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-targets}          }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-teams}            }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-trigger-job}      }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{\reference{fly-unpause-job}      }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{\reference{fly-unpause-pipeline} }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{\reference{fly-validate-pipeline}}{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-volumes}          }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-watch}            }{✓*  }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{\reference{fly-workers}          }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
   }
 
   \better-table{
-    \table-row{Web UI page        }{Action                  }{\code{owner}}{\code{member}}{\code{pipeline-operator}}{\code{viewer}}
-    \table-row{Home (HD/Dashboard)}{View                    }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Login                   }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Logout                  }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Download \reference{fly}}{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Pause Pipeline          }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{                   }{Resume Pipeline         }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{                   }{Reorder Pipeline        }{✓           }{✓            }{✘                       }{✘            }
-    \table-row{Pipeline Page      }{View                    }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Click to Resource       }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Click to Build          }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Click on Group          }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{Resource Page      }{View Resource           }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{View Version Details    }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Pin Version             }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{                   }{Paginate (<- ->)        }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{Build Page         }{Trigger new Build       }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{                   }{View Build              }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Build Details           }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Abort Build             }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{Job Page           }{View Job Page           }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Pause Job               }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{                   }{Trigger new Build       }{✓           }{✓            }{✓                       }{✘            }
-    \table-row{                   }{Build History           }{✓           }{✓            }{✓                       }{✓            }
-    \table-row{                   }{Paginate (<- ->)        }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{Web UI page        }{Action                  }{Admin}{\code{owner}}{\code{member}}{\code{pipeline-operator}}{\code{viewer}}
+    \table-row{Home (HD/Dashboard)}{View                    }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Login                   }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Logout                  }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Download \reference{fly}}{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Pause Pipeline          }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{                   }{Resume Pipeline         }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{                   }{Reorder Pipeline        }{✓    }{✓           }{✓            }{✘                       }{✘            }
+    \table-row{Pipeline Page      }{View                    }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Click to Resource       }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Click to Build          }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Click on Group          }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{Resource Page      }{View Resource           }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{View Version Details    }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Pin Version             }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{                   }{Paginate (<- ->)        }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{Build Page         }{Trigger new Build       }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{                   }{View Build              }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Build Details           }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Abort Build             }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{Job Page           }{View Job Page           }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Pause Job               }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{                   }{Trigger new Build       }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{                   }{Build History           }{✓    }{✓           }{✓            }{✓                       }{✓            }
+    \table-row{                   }{Paginate (<- ->)        }{✓    }{✓           }{✓            }{✓                       }{✓            }
   }
 }
