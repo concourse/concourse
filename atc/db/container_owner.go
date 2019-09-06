@@ -125,18 +125,21 @@ func (c buildStepContainerOwner) sqlMap() map[string]interface{} {
 // worker base resource type disappear, or the expiry is reached, the container
 // can be removed.
 func NewResourceConfigCheckSessionContainerOwner(
-	resourceConfig ResourceConfig,
+	resourceConfigID int,
+	baseResourceTypeID int,
 	expiries ContainerOwnerExpiries,
 ) ContainerOwner {
 	return resourceConfigCheckSessionContainerOwner{
-		resourceConfig: resourceConfig,
-		expiries:       expiries,
+		resourceConfigID:   resourceConfigID,
+		baseResourceTypeID: baseResourceTypeID,
+		expiries:           expiries,
 	}
 }
 
 type resourceConfigCheckSessionContainerOwner struct {
-	resourceConfig ResourceConfig
-	expiries       ContainerOwnerExpiries
+	resourceConfigID   int
+	baseResourceTypeID int
+	expiries           ContainerOwnerExpiries
 }
 
 type ContainerOwnerExpiries struct {
@@ -149,7 +152,7 @@ func (c resourceConfigCheckSessionContainerOwner) Find(conn Conn) (sq.Eq, bool, 
 	rows, err := psql.Select("id").
 		From("resource_config_check_sessions").
 		Where(sq.And{
-			sq.Eq{"resource_config_id": c.resourceConfig.ID()},
+			sq.Eq{"resource_config_id": c.resourceConfigID},
 			sq.Expr("expires_at > NOW()"),
 		}).
 		RunWith(conn).
@@ -183,7 +186,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 		From("worker_base_resource_types").
 		Where(sq.Eq{
 			"worker_name":           workerName,
-			"base_resource_type_id": c.resourceConfig.OriginBaseResourceType().ID,
+			"base_resource_type_id": c.baseResourceTypeID,
 		}).
 		Suffix("FOR SHARE").
 		RunWith(tx).
@@ -202,7 +205,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 	var rccsID int
 	err = psql.Insert("resource_config_check_sessions").
 		SetMap(map[string]interface{}{
-			"resource_config_id":           c.resourceConfig.ID(),
+			"resource_config_id":           c.resourceConfigID,
 			"worker_base_resource_type_id": wbrtID,
 			"expires_at":                   sq.Expr("(SELECT " + expiryStmt + " FROM workers)"),
 		}).
@@ -211,7 +214,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 				resource_config_id = ?,
 				worker_base_resource_type_id = ?
 			RETURNING id
-		`, c.resourceConfig.ID(), wbrtID).
+		`, c.resourceConfigID, wbrtID).
 		RunWith(tx).
 		QueryRow().
 		Scan(&rccsID)

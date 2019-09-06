@@ -69,7 +69,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 					worker, err := workerFactory.SaveWorker(defaultWorkerPayload, 0)
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = worker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ownerExpiries), db.ContainerMetadata{})
+					_, err = worker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfig.ID(), resourceConfig.OriginBaseResourceType().ID, ownerExpiries), db.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -112,7 +112,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 					worker, err := workerFactory.SaveWorker(defaultWorkerPayload, 0)
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = worker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, ownerExpiries), db.ContainerMetadata{})
+					_, err = worker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfig.ID(), resourceConfig.OriginBaseResourceType().ID, ownerExpiries), db.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 
 					tx, err := dbConn.Begin()

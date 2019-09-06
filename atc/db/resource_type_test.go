@@ -55,7 +55,7 @@ var _ = Describe("ResourceType", func() {
 	})
 
 	Describe("(Pipeline).ResourceTypes", func() {
-		var resourceTypes []db.ResourceType
+		var resourceTypes db.ResourceTypes
 
 		JustBeforeEach(func() {
 			var err error
@@ -127,6 +127,109 @@ var _ = Describe("ResourceType", func() {
 			It("does not return inactive resource types", func() {
 				Expect(resourceTypes).To(HaveLen(1))
 				Expect(resourceTypes[0].Name()).To(Equal("some-type"))
+			})
+		})
+
+		Context("when building the dependency tree from resource types list", func() {
+			BeforeEach(func() {
+				var (
+					created bool
+					err     error
+				)
+
+				otherPipeline, created, err := defaultTeam.SavePipeline(
+					"pipeline-with-duplicate-type-name",
+					atc.Config{
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:       "some-custom-type",
+								Type:       "some-different-foo-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: "10ms",
+							},
+						},
+					},
+					db.ConfigVersion(0),
+					false,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+				Expect(otherPipeline).NotTo(BeNil())
+
+				pipeline, created, err = defaultTeam.SavePipeline(
+					"pipeline-with-types",
+					atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-custom-type",
+								Source: atc.Source{},
+							},
+						},
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:   "registry-image",
+								Type:   "registry-image",
+								Source: atc.Source{"some": "repository"},
+							},
+							{
+								Name:       "some-other-type",
+								Type:       "registry-image",
+								Privileged: true,
+								Source:     atc.Source{"some": "other-repository"},
+							},
+							{
+								Name:   "some-type-with-params",
+								Type:   "s3",
+								Source: atc.Source{"some": "repository"},
+								Params: atc.Params{"unpack": "true"},
+							},
+							{
+								Name:       "some-type-with-custom-check",
+								Type:       "registry-image",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: "10ms",
+							},
+							{
+								Name:       "some-custom-type",
+								Type:       "some-other-foo-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: "10ms",
+							},
+							{
+								Name:       "some-other-foo-type",
+								Type:       "some-other-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: "10ms",
+							},
+						},
+					},
+					pipeline.ConfigVersion(),
+					false,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeFalse())
+			})
+
+			It("returns the resource types tree given a resource", func() {
+				resource, found, err := pipeline.Resource("some-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				tree := resourceTypes.Filter(resource)
+				Expect(len(tree)).To(Equal(4))
+
+				Expect(tree[0].Name()).To(Equal("some-custom-type"))
+				Expect(tree[0].Type()).To(Equal("some-other-foo-type"))
+
+				Expect(tree[1].Name()).To(Equal("some-other-foo-type"))
+				Expect(tree[1].Type()).To(Equal("some-other-type"))
+
+				Expect(tree[2].Name()).To(Equal("some-other-type"))
+				Expect(tree[2].Type()).To(Equal("registry-image"))
+
+				Expect(tree[3].Name()).To(Equal("registry-image"))
+				Expect(tree[3].Type()).To(Equal("registry-image"))
 			})
 		})
 	})

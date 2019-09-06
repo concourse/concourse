@@ -259,6 +259,33 @@ var _ = Describe("DelegateFactory", func() {
 		})
 	})
 
+	Describe("CheckDelegate", func() {
+		var (
+			delegate  exec.CheckDelegate
+			fakeCheck *dbfakes.FakeCheck
+			versions  []atc.Version
+		)
+
+		BeforeEach(func() {
+			fakeCheck = new(dbfakes.FakeCheck)
+
+			delegate = builder.NewCheckDelegate(fakeCheck, "some-plan-id", fakeClock)
+			versions = []atc.Version{{"some": "version"}}
+		})
+
+		Describe("SaveVersions", func() {
+			JustBeforeEach(func() {
+				Expect(delegate.SaveVersions(versions)).To(Succeed())
+			})
+
+			It("saves an event", func() {
+				Expect(fakeCheck.SaveVersionsCallCount()).To(Equal(1))
+				actualVersions := fakeCheck.SaveVersionsArgsForCall(0)
+				Expect(actualVersions).To(Equal(versions))
+			})
+		})
+	})
+
 	Describe("BuildStepDelegate", func() {
 		var (
 			delegate exec.BuildStepDelegate

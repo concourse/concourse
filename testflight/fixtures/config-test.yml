@@ -2,7 +2,8 @@
 resources:
 - name: some-resource
   type: mock
-  source: {}
+  source:
+    no_initial_version: true
 
 jobs:
 - name: upstream-job

@@ -16,13 +16,11 @@ type BuildFactory interface {
 }
 
 type buildFactory struct {
-	PipelineID  int
 	planFactory atc.PlanFactory
 }
 
-func NewBuildFactory(pipelineID int, planFactory atc.PlanFactory) BuildFactory {
+func NewBuildFactory(planFactory atc.PlanFactory) BuildFactory {
 	return &buildFactory{
-		PipelineID:  pipelineID,
 		planFactory: planFactory,
 	}
 }

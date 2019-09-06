@@ -320,7 +320,11 @@ func (scanner *resourceScanner) check(
 		TeamID:        scanner.dbPipeline.TeamID(),
 	}
 
-	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
+	owner := db.NewResourceConfigCheckSessionContainerOwner(
+		resourceConfigScope.ResourceConfig().ID(),
+		resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		ContainerExpiries,
+	)
 
 	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(
 		context.Background(),

@@ -23,12 +23,16 @@ import (
 var _ = Describe("Engine", func() {
 	var (
 		fakeBuild       *dbfakes.FakeBuild
+		fakeCheck       *dbfakes.FakeCheck
 		fakeStepBuilder *enginefakes.FakeStepBuilder
 	)
 
 	BeforeEach(func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(128)
+
+		fakeCheck = new(dbfakes.FakeCheck)
+		fakeCheck.IDReturns(128)
 
 		fakeStepBuilder = new(enginefakes.FakeStepBuilder)
 	})
@@ -47,12 +51,27 @@ var _ = Describe("Engine", func() {
 			build = engine.NewBuild(fakeBuild)
 		})
 
-		// It("succeeds", func() {
-		// 	Expect(err).NotTo(HaveOccurred())
-		// })
-
 		It("returns a build", func() {
 			Expect(build).NotTo(BeNil())
+		})
+	})
+
+	Describe("NewCheck", func() {
+		var (
+			check  Runnable
+			engine Engine
+		)
+
+		BeforeEach(func() {
+			engine = NewEngine(fakeStepBuilder)
+		})
+
+		JustBeforeEach(func() {
+			check = engine.NewCheck(fakeCheck)
+		})
+
+		It("returns a build", func() {
+			Expect(check).NotTo(BeNil())
 		})
 	})
 
@@ -322,6 +341,166 @@ var _ = Describe("Engine", func() {
 				It("does not build the step", func() {
 					Expect(fakeStepBuilder.BuildStepCallCount()).To(BeZero())
 				})
+			})
+		})
+	})
+
+	Describe("Check", func() {
+		var (
+			check     Runnable
+			release   chan bool
+			cancel    chan bool
+			waitGroup *sync.WaitGroup
+		)
+
+		BeforeEach(func() {
+
+			ctx := context.Background()
+			cancel = make(chan bool)
+			release = make(chan bool)
+			trackedStates := new(sync.Map)
+			waitGroup = new(sync.WaitGroup)
+
+			check = NewCheck(
+				ctx,
+				func() { cancel <- true },
+				fakeCheck,
+				fakeStepBuilder,
+				release,
+				trackedStates,
+				waitGroup,
+			)
+		})
+
+		Describe("Run", func() {
+			var logger lager.Logger
+
+			BeforeEach(func() {
+				logger = lagertest.NewTestLogger("test")
+			})
+
+			JustBeforeEach(func() {
+				check.Run(logger)
+			})
+
+			Context("when acquiring the lock succeeds", func() {
+				var fakeLock *lockfakes.FakeLock
+
+				BeforeEach(func() {
+					fakeLock = new(lockfakes.FakeLock)
+
+					fakeCheck.AcquireTrackingLockReturns(fakeLock, true, nil)
+				})
+
+				Context("when the check is started", func() {
+					BeforeEach(func() {
+						fakeCheck.StartReturns(nil)
+					})
+
+					Context("when converting the plan to a step succeeds", func() {
+						var fakeStep *execfakes.FakeStep
+
+						BeforeEach(func() {
+							fakeStep = new(execfakes.FakeStep)
+
+							fakeStepBuilder.CheckStepReturns(fakeStep, nil)
+						})
+
+						It("releases the lock", func() {
+							waitGroup.Wait()
+							Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+						})
+
+						Context("when the check is released", func() {
+							BeforeEach(func() {
+								readyToRelease := make(chan bool)
+
+								go func() {
+									<-readyToRelease
+									release <- true
+								}()
+
+								fakeStep.RunStub = func(context.Context, exec.RunState) error {
+									close(readyToRelease)
+									<-time.After(time.Hour)
+									return nil
+								}
+							})
+
+							It("does not finish the check", func() {
+								waitGroup.Wait()
+								Expect(fakeCheck.FinishCallCount()).To(Equal(0))
+							})
+						})
+
+						Context("when the check finishes without error", func() {
+							BeforeEach(func() {
+								fakeStep.RunReturns(nil)
+							})
+
+							It("finishes the check", func() {
+								waitGroup.Wait()
+								Expect(fakeCheck.FinishCallCount()).To(Equal(1))
+							})
+						})
+
+						Context("when the check finishes with error", func() {
+							BeforeEach(func() {
+								fakeStep.RunReturns(errors.New("nope"))
+							})
+
+							It("finishes the check", func() {
+								waitGroup.Wait()
+								Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
+							})
+						})
+
+						Context("when the check finishes with cancelled error", func() {
+							BeforeEach(func() {
+								fakeStep.RunReturns(context.Canceled)
+							})
+
+							It("finishes the check", func() {
+								waitGroup.Wait()
+								Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
+							})
+						})
+					})
+
+					Context("when converting the plan to a step fails", func() {
+						BeforeEach(func() {
+							fakeStepBuilder.CheckStepReturns(nil, errors.New("nope"))
+						})
+
+						It("releases the lock", func() {
+							Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+						})
+					})
+				})
+
+				Context("when the check can't be started", func() {
+					BeforeEach(func() {
+						fakeCheck.StartReturns(errors.New("nope"))
+					})
+
+					It("does not create the check step", func() {
+						Expect(fakeStepBuilder.CheckStepCallCount()).To(BeZero())
+					})
+
+					It("releases the lock", func() {
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+					})
+				})
+			})
+		})
+
+		Context("when acquiring the lock fails", func() {
+			BeforeEach(func() {
+				fakeCheck.AcquireTrackingLockReturns(nil, false, errors.New("no lock for you"))
+			})
+
+			It("does not create the check step", func() {
+				Expect(fakeStepBuilder.CheckStepCallCount()).To(BeZero())
 			})
 		})
 	})

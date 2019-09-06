@@ -9,7 +9,8 @@ resource_types:
 resources:
 - name: my-resource
   type: mock
-  source: {}
+  source:
+    initial_version: ((hash))
 
 jobs:
 - name: resource-getter

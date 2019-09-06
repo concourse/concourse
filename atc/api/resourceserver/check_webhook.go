@@ -1,11 +1,12 @@
 package resourceserver
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
@@ -25,7 +26,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		pipelineResource, found, err := dbPipeline.Resource(resourceName)
+		dbResource, found, err := dbPipeline.Resource(resourceName)
 		if err != nil {
 			logger.Error("database-error", err, lager.Data{"resource-name": resourceName})
 			w.WriteHeader(http.StatusInternalServerError)
@@ -39,45 +40,47 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 		}
 
 		variables := creds.NewVariables(s.secretManager, dbPipeline.TeamName(), dbPipeline.Name())
-		token, err := creds.NewString(variables, pipelineResource.WebhookToken()).Evaluate()
+		token, err := creds.NewString(variables, dbResource.WebhookToken()).Evaluate()
 		if token != webhookToken {
 			logger.Info("invalid-token", lager.Data{"error": fmt.Sprintf("invalid token for webhook %s", webhookToken)})
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		go func() {
-			var fromVersion atc.Version
-			resourceConfigID := pipelineResource.ResourceConfigID()
-			resourceConfig, found, err := s.resourceConfigFactory.FindResourceConfigByID(resourceConfigID)
-			if err != nil {
-				logger.Error("failed-to-get-resource-config", err, lager.Data{"resource-config-id": resourceConfigID})
-				return
-			}
+		dbResourceTypes, err := dbPipeline.ResourceTypes()
+		if err != nil {
+			logger.Error("failed-to-get-resource-types", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-			if found {
-				resourceConfigScope, found, err := resourceConfig.FindResourceConfigScopeByID(pipelineResource.ResourceConfigScopeID(), pipelineResource)
-				if err != nil {
-					logger.Error("failed-to-get-resource-config-scope", err, lager.Data{"resource-config-scope-id": pipelineResource.ResourceConfigScopeID()})
-					return
-				}
+		check, created, err := s.checkFactory.TryCreateCheck(dbResource, dbResourceTypes, nil, true)
+		if err != nil {
+			s.logger.Error("failed-to-create-check", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
 
-				if found {
-					latestVersion, found, err := resourceConfigScope.LatestVersion()
-					if err != nil {
-						logger.Error("failed-to-get-latest-resource-version", err, lager.Data{"resource-config-id": resourceConfigID})
-						return
-					}
-					if found {
-						fromVersion = atc.Version(latestVersion.Version())
-					}
-				}
-			}
+		if !created {
+			s.logger.Info("check-not-created")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-			scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
-			scanner.ScanFromVersion(logger, pipelineResource.ID(), fromVersion)
-		}()
+		err = s.checkFactory.NotifyChecker()
+		if err != nil {
+			s.logger.Error("failed-to-notify-checker", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusCreated)
+
+		err = json.NewEncoder(w).Encode(present.Check(check))
+		if err != nil {
+			logger.Error("failed-to-encode-check", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

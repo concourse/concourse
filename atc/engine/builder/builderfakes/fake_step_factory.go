@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/exec"
 )
@@ -38,6 +37,20 @@ type FakeStepFactory struct {
 	artifactOutputStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
+	CheckStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.CheckDelegate) exec.Step
+	checkStepMutex       sync.RWMutex
+	checkStepArgsForCall []struct {
+		arg1 atc.Plan
+		arg2 exec.StepMetadata
+		arg3 db.ContainerMetadata
+		arg4 exec.CheckDelegate
+	}
+	checkStepReturns struct {
+		result1 exec.Step
+	}
+	checkStepReturnsOnCall map[int]struct {
+		result1 exec.Step
+	}
 	GetStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.Step
 	getStepMutex       sync.RWMutex
 	getStepArgsForCall []struct {
@@ -66,14 +79,13 @@ type FakeStepFactory struct {
 	putStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
-	TaskStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate, lock.LockFactory) exec.Step
+	TaskStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
 	taskStepMutex       sync.RWMutex
 	taskStepArgsForCall []struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
 		arg4 exec.TaskDelegate
-		arg5 lock.LockFactory
 	}
 	taskStepReturns struct {
 		result1 exec.Step
@@ -209,6 +221,69 @@ func (fake *FakeStepFactory) ArtifactOutputStepReturnsOnCall(i int, result1 exec
 	}{result1}
 }
 
+func (fake *FakeStepFactory) CheckStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 exec.CheckDelegate) exec.Step {
+	fake.checkStepMutex.Lock()
+	ret, specificReturn := fake.checkStepReturnsOnCall[len(fake.checkStepArgsForCall)]
+	fake.checkStepArgsForCall = append(fake.checkStepArgsForCall, struct {
+		arg1 atc.Plan
+		arg2 exec.StepMetadata
+		arg3 db.ContainerMetadata
+		arg4 exec.CheckDelegate
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CheckStep", []interface{}{arg1, arg2, arg3, arg4})
+	fake.checkStepMutex.Unlock()
+	if fake.CheckStepStub != nil {
+		return fake.CheckStepStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.checkStepReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeStepFactory) CheckStepCallCount() int {
+	fake.checkStepMutex.RLock()
+	defer fake.checkStepMutex.RUnlock()
+	return len(fake.checkStepArgsForCall)
+}
+
+func (fake *FakeStepFactory) CheckStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.CheckDelegate) exec.Step) {
+	fake.checkStepMutex.Lock()
+	defer fake.checkStepMutex.Unlock()
+	fake.CheckStepStub = stub
+}
+
+func (fake *FakeStepFactory) CheckStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.CheckDelegate) {
+	fake.checkStepMutex.RLock()
+	defer fake.checkStepMutex.RUnlock()
+	argsForCall := fake.checkStepArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeStepFactory) CheckStepReturns(result1 exec.Step) {
+	fake.checkStepMutex.Lock()
+	defer fake.checkStepMutex.Unlock()
+	fake.CheckStepStub = nil
+	fake.checkStepReturns = struct {
+		result1 exec.Step
+	}{result1}
+}
+
+func (fake *FakeStepFactory) CheckStepReturnsOnCall(i int, result1 exec.Step) {
+	fake.checkStepMutex.Lock()
+	defer fake.checkStepMutex.Unlock()
+	fake.CheckStepStub = nil
+	if fake.checkStepReturnsOnCall == nil {
+		fake.checkStepReturnsOnCall = make(map[int]struct {
+			result1 exec.Step
+		})
+	}
+	fake.checkStepReturnsOnCall[i] = struct {
+		result1 exec.Step
+	}{result1}
+}
+
 func (fake *FakeStepFactory) GetStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 exec.GetDelegate) exec.Step {
 	fake.getStepMutex.Lock()
 	ret, specificReturn := fake.getStepReturnsOnCall[len(fake.getStepArgsForCall)]
@@ -335,7 +410,7 @@ func (fake *FakeStepFactory) PutStepReturnsOnCall(i int, result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 exec.TaskDelegate, arg5 lock.LockFactory) exec.Step {
+func (fake *FakeStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 exec.TaskDelegate) exec.Step {
 	fake.taskStepMutex.Lock()
 	ret, specificReturn := fake.taskStepReturnsOnCall[len(fake.taskStepArgsForCall)]
 	fake.taskStepArgsForCall = append(fake.taskStepArgsForCall, struct {
@@ -343,12 +418,11 @@ func (fake *FakeStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
 		arg4 exec.TaskDelegate
-		arg5 lock.LockFactory
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("TaskStep", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("TaskStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.taskStepMutex.Unlock()
 	if fake.TaskStepStub != nil {
-		return fake.TaskStepStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.TaskStepStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
@@ -363,17 +437,17 @@ func (fake *FakeStepFactory) TaskStepCallCount() int {
 	return len(fake.taskStepArgsForCall)
 }
 
-func (fake *FakeStepFactory) TaskStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate, lock.LockFactory) exec.Step) {
+func (fake *FakeStepFactory) TaskStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step) {
 	fake.taskStepMutex.Lock()
 	defer fake.taskStepMutex.Unlock()
 	fake.TaskStepStub = stub
 }
 
-func (fake *FakeStepFactory) TaskStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate, lock.LockFactory) {
+func (fake *FakeStepFactory) TaskStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) {
 	fake.taskStepMutex.RLock()
 	defer fake.taskStepMutex.RUnlock()
 	argsForCall := fake.taskStepArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeStepFactory) TaskStepReturns(result1 exec.Step) {
@@ -406,6 +480,8 @@ func (fake *FakeStepFactory) Invocations() map[string][][]interface{} {
 	defer fake.artifactInputStepMutex.RUnlock()
 	fake.artifactOutputStepMutex.RLock()
 	defer fake.artifactOutputStepMutex.RUnlock()
+	fake.checkStepMutex.RLock()
+	defer fake.checkStepMutex.RUnlock()
 	fake.getStepMutex.RLock()
 	defer fake.getStepMutex.RUnlock()
 	fake.putStepMutex.RLock()

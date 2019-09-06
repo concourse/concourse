@@ -2,6 +2,7 @@ package builder
 
 import (
 	"io"
+	"io/ioutil"
 	"time"
 	"unicode/utf8"
 
@@ -29,6 +30,10 @@ func (delegate *delegateFactory) PutDelegate(build db.Build, planID atc.PlanID) 
 
 func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID) exec.TaskDelegate {
 	return NewTaskDelegate(build, planID, clock.NewClock())
+}
+
+func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID) exec.CheckDelegate {
+	return NewCheckDelegate(check, planID, clock.NewClock())
 }
 
 func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.PlanID) exec.BuildStepDelegate {
@@ -273,6 +278,29 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
+
+func NewCheckDelegate(check db.Check, planID atc.PlanID, clock clock.Clock) exec.CheckDelegate {
+	return &checkDelegate{
+		eventOrigin: event.Origin{ID: event.OriginID(planID)},
+		check:       check,
+		clock:       clock,
+	}
+}
+
+type checkDelegate struct {
+	check       db.Check
+	eventOrigin event.Origin
+	clock       clock.Clock
+}
+
+func (d *checkDelegate) SaveVersions(versions []atc.Version) error {
+	return d.check.SaveVersions(versions)
+}
+
+func (*checkDelegate) Stdout() io.Writer                                 { return ioutil.Discard }
+func (*checkDelegate) Stderr() io.Writer                                 { return ioutil.Discard }
+func (*checkDelegate) ImageVersionDetermined(db.UsedResourceCache) error { return nil }
+func (*checkDelegate) Errored(lager.Logger, string)                      { return }
 
 func NewBuildStepDelegate(
 	build db.Build,

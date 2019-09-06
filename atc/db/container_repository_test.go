@@ -34,7 +34,14 @@ var _ = Describe("ContainerRepository", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultWorker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiries), fullMetadata)
+				creatingContainer, err = defaultWorker.CreateContainer(
+					db.NewResourceConfigCheckSessionContainerOwner(
+						resourceConfig.ID(),
+						resourceConfig.OriginBaseResourceType().ID,
+						expiries,
+					),
+					fullMetadata,
+				)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

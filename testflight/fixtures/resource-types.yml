@@ -21,6 +21,8 @@ resources:
   type: custom-resource-type
   source:
     mirror_self: true
+    create_files:
+      unique: ((hash))
 
 
 jobs:

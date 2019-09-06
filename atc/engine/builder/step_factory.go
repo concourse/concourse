@@ -25,6 +25,7 @@ type stepFactory struct {
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
 	resourceFactory       resource.ResourceFactory
+	lockFactory           lock.LockFactory
 }
 
 func NewStepFactory(
@@ -37,6 +38,7 @@ func NewStepFactory(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
+	lockFactory lock.LockFactory,
 ) *stepFactory {
 	return &stepFactory{
 		pool:                  pool,
@@ -48,6 +50,7 @@ func NewStepFactory(
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		resourceFactory:       resourceFactory,
+		lockFactory:           lockFactory,
 	}
 }
 
@@ -99,12 +102,34 @@ func (factory *stepFactory) PutStep(
 	return exec.LogError(putStep, delegate)
 }
 
+func (factory *stepFactory) CheckStep(
+	plan atc.Plan,
+	stepMetadata exec.StepMetadata,
+	containerMetadata db.ContainerMetadata,
+	delegate exec.CheckDelegate,
+) exec.Step {
+	containerMetadata.WorkingDirectory = resource.ResourcesDir("check")
+
+	checkStep := exec.NewCheckStep(
+		plan.ID,
+		*plan.Check,
+		stepMetadata,
+		containerMetadata,
+		factory.secretManager,
+		factory.resourceFactory,
+		worker.NewRandomPlacementStrategy(),
+		factory.pool,
+		delegate,
+	)
+
+	return checkStep
+}
+
 func (factory *stepFactory) TaskStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.TaskDelegate,
-	lockFactory lock.LockFactory,
 ) exec.Step {
 	sum := sha1.Sum([]byte(plan.Task.Name))
 	containerMetadata.WorkingDirectory = filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
@@ -119,7 +144,7 @@ func (factory *stepFactory) TaskStep(
 		factory.strategy,
 		factory.client,
 		delegate,
-		lockFactory,
+		factory.lockFactory,
 	)
 
 	return exec.LogError(taskStep, delegate)

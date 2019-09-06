@@ -7,7 +7,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 )
 
@@ -18,7 +17,8 @@ const supportedSchema = "exec.v2"
 type StepFactory interface {
 	GetStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.Step
 	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step
-	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate, lock.LockFactory) exec.Step
+	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
+	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.CheckDelegate) exec.Step
 	ArtifactInputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 	ArtifactOutputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 }
@@ -29,6 +29,7 @@ type DelegateFactory interface {
 	GetDelegate(db.Build, atc.PlanID) exec.GetDelegate
 	PutDelegate(db.Build, atc.PlanID) exec.PutDelegate
 	TaskDelegate(db.Build, atc.PlanID) exec.TaskDelegate
+	CheckDelegate(db.Check, atc.PlanID) exec.CheckDelegate
 	BuildStepDelegate(db.Build, atc.PlanID) exec.BuildStepDelegate
 }
 
@@ -36,13 +37,11 @@ func NewStepBuilder(
 	stepFactory StepFactory,
 	delegateFactory DelegateFactory,
 	externalURL string,
-	lockFactory lock.LockFactory,
 ) *stepBuilder {
 	return &stepBuilder{
 		stepFactory:     stepFactory,
 		delegateFactory: delegateFactory,
 		externalURL:     externalURL,
-		lockFactory:     lockFactory,
 	}
 }
 
@@ -50,7 +49,6 @@ type stepBuilder struct {
 	stepFactory     StepFactory
 	delegateFactory DelegateFactory
 	externalURL     string
-	lockFactory     lock.LockFactory
 }
 
 func (builder *stepBuilder) BuildStep(build db.Build) (exec.Step, error) {
@@ -64,6 +62,19 @@ func (builder *stepBuilder) BuildStep(build db.Build) (exec.Step, error) {
 	}
 
 	return builder.buildStep(build, build.PrivatePlan()), nil
+}
+
+func (builder *stepBuilder) CheckStep(check db.Check) (exec.Step, error) {
+
+	if check == nil {
+		return exec.IdentityStep{}, errors.New("Must provide a check")
+	}
+
+	if check.Schema() != supportedSchema {
+		return exec.IdentityStep{}, errors.New("Schema not supported")
+	}
+
+	return builder.buildCheckStep(check, check.Plan()), nil
 }
 
 func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan) exec.Step {
@@ -285,6 +296,28 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan) exec.Ste
 	)
 }
 
+func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan) exec.Step {
+
+	containerMetadata := db.ContainerMetadata{
+		Type: db.ContainerTypeCheck,
+	}
+
+	stepMetadata := exec.StepMetadata{
+		TeamID:                check.TeamID(),
+		ResourceConfigScopeID: check.ResourceConfigScopeID(),
+		ResourceConfigID:      check.ResourceConfigID(),
+		BaseResourceTypeID:    check.BaseResourceTypeID(),
+		ExternalURL:           builder.externalURL,
+	}
+
+	return builder.stepFactory.CheckStep(
+		plan,
+		stepMetadata,
+		containerMetadata,
+		builder.delegateFactory.CheckDelegate(check, plan.ID),
+	)
+}
+
 func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.Step {
 
 	containerMetadata := builder.containerMetadata(
@@ -304,7 +337,6 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.St
 		stepMetadata,
 		containerMetadata,
 		builder.delegateFactory.TaskDelegate(build, plan.ID),
-		builder.lockFactory,
 	)
 }
 

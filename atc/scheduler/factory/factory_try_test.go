@@ -21,7 +21,7 @@ var _ = Describe("Factory Try Step", func() {
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(123)
 		expectedPlanFactory = atc.NewPlanFactory(123)
-		buildFactory = factory.NewBuildFactory(42, actualPlanFactory)
+		buildFactory = factory.NewBuildFactory(actualPlanFactory)
 
 		resourceTypes = atc.VersionedResourceTypes{
 			{

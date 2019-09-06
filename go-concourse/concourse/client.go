@@ -32,6 +32,7 @@ type Client interface {
 	Team(teamName string) Team
 	UserInfo() (map[string]interface{}, error)
 	ListActiveUsersSince(since time.Time) ([]atc.User, error)
+	Check(checkID string) (atc.Check, bool, error)
 }
 
 type client struct {

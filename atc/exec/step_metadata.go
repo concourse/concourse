@@ -5,19 +5,26 @@ import (
 )
 
 type StepMetadata struct {
-	BuildID      int
-	BuildName    string
-	TeamID       int
-	TeamName     string
-	JobID        int
-	JobName      string
-	PipelineID   int
-	PipelineName string
-	ExternalURL  string
+	BuildID               int
+	BuildName             string
+	TeamID                int
+	TeamName              string
+	JobID                 int
+	JobName               string
+	PipelineID            int
+	PipelineName          string
+	ResourceConfigScopeID int
+	ResourceConfigID      int
+	BaseResourceTypeID    int
+	ExternalURL           string
 }
 
 func (metadata StepMetadata) Env() []string {
-	env := []string{fmt.Sprintf("BUILD_ID=%d", metadata.BuildID)}
+	env := []string{}
+
+	if metadata.BuildID != 0 {
+		env = append(env, fmt.Sprintf("BUILD_ID=%d", metadata.BuildID))
+	}
 
 	if metadata.BuildName != "" {
 		env = append(env, "BUILD_NAME="+metadata.BuildName)

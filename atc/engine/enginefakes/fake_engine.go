@@ -21,6 +21,17 @@ type FakeEngine struct {
 	newBuildReturnsOnCall map[int]struct {
 		result1 engine.Runnable
 	}
+	NewCheckStub        func(db.Check) engine.Runnable
+	newCheckMutex       sync.RWMutex
+	newCheckArgsForCall []struct {
+		arg1 db.Check
+	}
+	newCheckReturns struct {
+		result1 engine.Runnable
+	}
+	newCheckReturnsOnCall map[int]struct {
+		result1 engine.Runnable
+	}
 	ReleaseAllStub        func(lager.Logger)
 	releaseAllMutex       sync.RWMutex
 	releaseAllArgsForCall []struct {
@@ -90,6 +101,66 @@ func (fake *FakeEngine) NewBuildReturnsOnCall(i int, result1 engine.Runnable) {
 	}{result1}
 }
 
+func (fake *FakeEngine) NewCheck(arg1 db.Check) engine.Runnable {
+	fake.newCheckMutex.Lock()
+	ret, specificReturn := fake.newCheckReturnsOnCall[len(fake.newCheckArgsForCall)]
+	fake.newCheckArgsForCall = append(fake.newCheckArgsForCall, struct {
+		arg1 db.Check
+	}{arg1})
+	fake.recordInvocation("NewCheck", []interface{}{arg1})
+	fake.newCheckMutex.Unlock()
+	if fake.NewCheckStub != nil {
+		return fake.NewCheckStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.newCheckReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeEngine) NewCheckCallCount() int {
+	fake.newCheckMutex.RLock()
+	defer fake.newCheckMutex.RUnlock()
+	return len(fake.newCheckArgsForCall)
+}
+
+func (fake *FakeEngine) NewCheckCalls(stub func(db.Check) engine.Runnable) {
+	fake.newCheckMutex.Lock()
+	defer fake.newCheckMutex.Unlock()
+	fake.NewCheckStub = stub
+}
+
+func (fake *FakeEngine) NewCheckArgsForCall(i int) db.Check {
+	fake.newCheckMutex.RLock()
+	defer fake.newCheckMutex.RUnlock()
+	argsForCall := fake.newCheckArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeEngine) NewCheckReturns(result1 engine.Runnable) {
+	fake.newCheckMutex.Lock()
+	defer fake.newCheckMutex.Unlock()
+	fake.NewCheckStub = nil
+	fake.newCheckReturns = struct {
+		result1 engine.Runnable
+	}{result1}
+}
+
+func (fake *FakeEngine) NewCheckReturnsOnCall(i int, result1 engine.Runnable) {
+	fake.newCheckMutex.Lock()
+	defer fake.newCheckMutex.Unlock()
+	fake.NewCheckStub = nil
+	if fake.newCheckReturnsOnCall == nil {
+		fake.newCheckReturnsOnCall = make(map[int]struct {
+			result1 engine.Runnable
+		})
+	}
+	fake.newCheckReturnsOnCall[i] = struct {
+		result1 engine.Runnable
+	}{result1}
+}
+
 func (fake *FakeEngine) ReleaseAll(arg1 lager.Logger) {
 	fake.releaseAllMutex.Lock()
 	fake.releaseAllArgsForCall = append(fake.releaseAllArgsForCall, struct {
@@ -126,6 +197,8 @@ func (fake *FakeEngine) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.newBuildMutex.RLock()
 	defer fake.newBuildMutex.RUnlock()
+	fake.newCheckMutex.RLock()
+	defer fake.newCheckMutex.RUnlock()
 	fake.releaseAllMutex.RLock()
 	defer fake.releaseAllMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

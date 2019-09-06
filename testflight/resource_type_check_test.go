@@ -21,7 +21,7 @@ var _ = Describe("Resource-types checks", func() {
 
 	It("can check the resource-type", func() {
 		checkS := fly("check-resource-type", "-r", inPipeline("custom-resource-type"))
-		Eventually(checkS).Should(gbytes.Say("checked 'custom-resource-type'"))
+		Eventually(checkS).Should(gbytes.Say("succeeded"))
 	})
 
 	Context("when there is a new version", func() {
@@ -45,8 +45,7 @@ var _ = Describe("Resource-types checks", func() {
 	Context("when the resource-type check fails", func() {
 		It("fails", func() {
 			watch := spawnFly("check-resource-type", "-r", inPipeline("failing-custom-resource-type"))
-			Eventually(watch.Err).Should(gbytes.Say("resource script.*failed.*exit status 1"))
-			Eventually(watch.Err).Should(gbytes.Say("im totally failing to check"))
+			Eventually(watch.Out).Should(gbytes.Say("errored"))
 			Eventually(watch).Should(gexec.Exit(1))
 		})
 	})
