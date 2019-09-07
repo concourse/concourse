@@ -26,7 +26,25 @@ func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	urlMap := parseUrlPath(u.Path)
+
+	parsedTargetUrl := url.URL{
+		Scheme: u.Scheme,
+		Host:   u.Host,
+	}
+
+	host := parsedTargetUrl.String()
+	if host != target.URL() {
+		err = fmt.Errorf("URL doesn't match target (%s, %s)", urlParam, target.URL())
+		return 0, err
+	}
+
+	team := urlMap["teams"]
+	if team != "" && team != target.Team().Name() {
+		err = fmt.Errorf("Team in URL doesn't match the current team of the target (%s, %s)", urlParam, team)
+		return 0, err
+	}
 
 	if urlMap["pipelines"] != "" && urlMap["jobs"] != "" {
 		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], urlMap["pipelines"])
