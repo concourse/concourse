@@ -18,6 +18,35 @@ type WatchCommand struct {
 	Timestamp bool                `short:"t" long:"timestamps"                             description:"Print with local timestamp"`
 }
 
+func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
+	var buildId int
+	client := target.Client()
+
+	u, err := url.Parse(urlParam)
+	if err != nil {
+		return 0, err
+	}
+	urlMap := parseUrlPath(u.Path)
+
+	if urlMap["pipelines"] != "" && urlMap["jobs"] != "" {
+		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], urlMap["pipelines"])
+
+		if err != nil {
+			return 0, err
+		}
+		buildId = build.ID
+	} else if urlMap["builds"] != "" {
+		buildId, err = strconv.Atoi(urlMap["builds"])
+
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		return 0, fmt.Errorf("No build found in %s", urlParam)
+	}
+	return buildId, nil
+}
+
 func (command *WatchCommand) Execute(args []string) error {
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
@@ -44,28 +73,10 @@ func (command *WatchCommand) Execute(args []string) error {
 			return err
 		}
 	} else if command.Url != "" {
-		u, err := url.Parse(command.Url)
+		buildId, err = getBuildIDFromURL(target, command.Url)
+
 		if err != nil {
 			return err
-		}
-		urlMap := parseUrlPath(u.Path)
-
-		pipelines := urlMap["pipelines"]
-		jobs := urlMap["jobs"]
-		raw_build := urlMap["builds"]
-		if pipelines != "" && jobs != "" {
-			build, err := GetBuild(client, target.Team(), jobs, raw_build, pipelines)
-			if err != nil {
-				return err
-			}
-			buildId = build.ID
-		} else if raw_build != "" {
-			buildId, err = strconv.Atoi(raw_build)
-			if err != nil {
-				return err
-			}
-		} else {
-			return fmt.Errorf("No build found in %s", command.Url)
 		}
 	}
 
