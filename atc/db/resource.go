@@ -347,15 +347,17 @@ func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, erro
 
 	var id int
 
-	query := `
-		SELECT rcv.id
-		FROM resource_config_versions rcv
-		JOIN resources r ON rcv.resource_config_scope_id = r.resource_config_scope_id
-		WHERE r.id = $1 AND version @> $2 AND rcv.check_order <> 0
-		ORDER BY rcv.check_order DESC
-	`
-	err = r.conn.QueryRow(query, r.ID(), requestedVersion).
+	err = psql.Select("rcv.id").
+		From("resource_config_versions rcv").
+		Join("resources r ON rcv.resource_config_scope_id = r.resource_config_scope_id").
+		Where(sq.Eq{"r.id": r.ID()}).
+		Where(sq.Expr("version @> ?", requestedVersion)).
+		Where(sq.NotEq{"rcv.check_order": 0}).
+		OrderBy("rcv.check_order DESC").
+		RunWith(r.conn).
+		QueryRow().
 		Scan(&id)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, false, nil
