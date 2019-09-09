@@ -54,10 +54,7 @@ build =
     , name = "0"
     , job = Nothing
     , status = BuildStatusPending
-    , duration =
-        { startedAt = Nothing
-        , finishedAt = Nothing
-        }
+    , duration = { startedAt = Nothing, finishedAt = Nothing }
     , reapTime = Nothing
     }
 
@@ -68,6 +65,7 @@ model =
     , scrolledToCurrentBuild = False
     , history = []
     , build = RemoteData.Success build -- TODO remove duplication
+    , duration = { startedAt = Nothing, finishedAt = Nothing }
     , disableManualTrigger = False
     , now = Nothing
     , fetchingHistory = False

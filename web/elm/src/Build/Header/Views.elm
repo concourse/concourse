@@ -47,7 +47,7 @@ type alias Header =
 type Widget
     = Button (Maybe ButtonView)
     | Title String (Maybe Concourse.JobIdentifier)
-    | Duration Time.Zone BuildDuration (Maybe Time.Posix)
+    | Duration Time.Zone BuildDuration (Maybe Time.Posix) -- TODO this type should not depend on time zone or current time, it should just contain timestamps
 
 
 type History

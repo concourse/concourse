@@ -17,6 +17,7 @@ type alias Model r =
         , scrolledToCurrentBuild : Bool
         , history : List Concourse.Build
         , build : WebData Concourse.Build
+        , duration : Concourse.BuildDuration
         , disableManualTrigger : Bool
         , now : Maybe Time.Posix
         , fetchingHistory : Bool

@@ -41,7 +41,7 @@ header : Session -> Model r -> Concourse.Build -> Views.Header
 header session model build =
     { leftWidgets =
         [ Views.Title (name model) (currentJob model)
-        , Views.Duration session.timeZone build.duration model.now
+        , Views.Duration session.timeZone model.duration model.now
         ]
     , rightWidgets =
         [ Views.Button
