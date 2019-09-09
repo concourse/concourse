@@ -42,7 +42,7 @@ type Checkable interface {
 type CheckFactory interface {
 	Check(int) (Check, bool, error)
 	StartedChecks() ([]Check, error)
-	CreateCheck(int, int, int, int, bool, atc.Plan) (Check, bool, error)
+	CreateCheck(int, bool, atc.Plan, CheckMetadata) (Check, bool, error)
 	TryCreateCheck(Checkable, ResourceTypes, atc.Version, bool) (Check, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
@@ -190,22 +190,28 @@ func (c *checkFactory) TryCreateCheck(checkable Checkable, resourceTypes Resourc
 		Check: &atc.CheckPlan{
 			Name:        checkable.Name(),
 			Type:        checkable.Type(),
-			Source:      source,
+			Source:      checkable.Source(),
 			Tags:        checkable.Tags(),
 			Timeout:     timeout.String(),
 			FromVersion: fromVersion,
 
-			VersionedResourceTypes: versionedResourceTypes,
+			VersionedResourceTypes: filteredTypes,
 		},
+	}
+
+	meta := CheckMetadata{
+		TeamID:             checkable.TeamID(),
+		TeamName:           checkable.TeamName(),
+		PipelineName:       checkable.PipelineName(),
+		ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
+		BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
 	}
 
 	check, created, err := c.CreateCheck(
 		resourceConfigScope.ID(),
-		resourceConfigScope.ResourceConfig().ID(),
-		resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-		checkable.TeamID(),
 		manuallyTriggered,
 		plan,
+		meta,
 	)
 	if err != nil {
 		return nil, false, err
@@ -214,7 +220,12 @@ func (c *checkFactory) TryCreateCheck(checkable Checkable, resourceTypes Resourc
 	return check, created, nil
 }
 
-func (c *checkFactory) CreateCheck(resourceConfigScopeID, resourceConfigID, baseResourceTypeID, teamID int, manuallyTriggered bool, plan atc.Plan) (Check, bool, error) {
+func (c *checkFactory) CreateCheck(
+	resourceConfigScopeID int,
+	manuallyTriggered bool,
+	plan atc.Plan,
+	meta CheckMetadata,
+) (Check, bool, error) {
 	tx, err := c.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -233,11 +244,7 @@ func (c *checkFactory) CreateCheck(resourceConfigScopeID, resourceConfigID, base
 		return nil, false, err
 	}
 
-	metadata, err := json.Marshal(map[string]interface{}{
-		"team_id":               teamID,
-		"resource_config_id":    resourceConfigID,
-		"base_resource_type_id": baseResourceTypeID,
-	})
+	metadata, err := json.Marshal(meta)
 	if err != nil {
 		return nil, false, err
 	}
@@ -284,14 +291,12 @@ func (c *checkFactory) CreateCheck(resourceConfigScopeID, resourceConfigID, base
 
 	return &check{
 		id:                    id,
-		teamID:                teamID,
 		resourceConfigScopeID: resourceConfigScopeID,
-		resourceConfigID:      resourceConfigID,
-		baseResourceTypeID:    baseResourceTypeID,
 		schema:                schema,
 		status:                CheckStatusStarted,
 		plan:                  plan,
 		createTime:            createTime,
+		metadata:              meta,
 
 		conn:        c.conn,
 		lockFactory: c.lockFactory,

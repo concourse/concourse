@@ -35,8 +35,8 @@ func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID,
 	return NewTaskDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
-func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID) exec.CheckDelegate {
-	return NewCheckDelegate(check, planID, clock.NewClock())
+func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.CheckDelegate {
+	return NewCheckDelegate(check, planID, credVarsTracker, clock.NewClock())
 }
 
 func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.BuildStepDelegate {
@@ -282,8 +282,10 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func NewCheckDelegate(check db.Check, planID atc.PlanID, clock clock.Clock) exec.CheckDelegate {
+func NewCheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.CheckDelegate {
 	return &checkDelegate{
+		BuildStepDelegate: NewBuildStepDelegate(nil, planID, credVarsTracker, clock),
+
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		check:       check,
 		clock:       clock,

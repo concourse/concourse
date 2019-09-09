@@ -26,6 +26,8 @@ const (
 type Check interface {
 	ID() int
 	TeamID() int
+	TeamName() string
+	PipelineName() string
 	ResourceConfigScopeID() int
 	ResourceConfigID() int
 	BaseResourceTypeID() int
@@ -58,18 +60,14 @@ var checksQuery = psql.Select(
 	"c.plan",
 	"c.nonce",
 	"c.check_error",
-	"(c.metadata->>'team_id')::int",
-	"(c.metadata->>'resource_config_id')::int",
-	"(c.metadata->>'base_resource_type_id')::int",
+	"c.metadata",
 ).
 	From("checks c")
 
 type check struct {
 	id                    int
-	teamID                int
 	resourceConfigScopeID int
-	resourceConfigID      int
-	baseResourceTypeID    int
+	metadata              CheckMetadata
 
 	status     CheckStatus
 	schema     string
@@ -84,11 +82,16 @@ type check struct {
 	lockFactory lock.LockFactory
 }
 
+type CheckMetadata struct {
+	TeamID             int    `json:"team_id"`
+	TeamName           string `json:"team_name"`
+	PipelineName       string `json:"pipeline_name"`
+	ResourceConfigID   int    `json:"resource_config_id"`
+	BaseResourceTypeID int    `json:"base_resource_type_id"`
+}
+
 func (c *check) ID() int                    { return c.id }
-func (c *check) TeamID() int                { return c.teamID }
 func (c *check) ResourceConfigScopeID() int { return c.resourceConfigScopeID }
-func (c *check) ResourceConfigID() int      { return c.resourceConfigID }
-func (c *check) BaseResourceTypeID() int    { return c.baseResourceTypeID }
 func (c *check) Status() CheckStatus        { return c.status }
 func (c *check) Schema() string             { return c.schema }
 func (c *check) Plan() atc.Plan             { return c.plan }
@@ -96,6 +99,26 @@ func (c *check) CreateTime() time.Time      { return c.createTime }
 func (c *check) StartTime() time.Time       { return c.startTime }
 func (c *check) EndTime() time.Time         { return c.endTime }
 func (c *check) CheckError() error          { return c.checkError }
+
+func (c *check) TeamID() int {
+	return c.metadata.TeamID
+}
+
+func (c *check) TeamName() string {
+	return c.metadata.TeamName
+}
+
+func (c *check) PipelineName() string {
+	return c.metadata.PipelineName
+}
+
+func (c *check) ResourceConfigID() int {
+	return c.metadata.ResourceConfigID
+}
+
+func (c *check) BaseResourceTypeID() int {
+	return c.metadata.BaseResourceTypeID
+}
 
 func (c *check) Reload() (bool, error) {
 	row := checksQuery.Where(sq.Eq{"c.id": c.id}).
@@ -285,13 +308,25 @@ func (c *check) SaveVersions(versions []atc.Version) error {
 
 func scanCheck(c *check, row scannable) error {
 	var (
-		createTime, startTime, endTime               pq.NullTime
-		schema, plan, nonce, checkError              sql.NullString
-		status                                       string
-		teamID, resourceConfigID, baseResourceTypeID sql.NullInt64
+		createTime, startTime, endTime  pq.NullTime
+		schema, plan, nonce, checkError sql.NullString
+		status                          string
+		metadata                        sql.NullString
 	)
 
-	err := row.Scan(&c.id, &c.resourceConfigScopeID, &status, &schema, &createTime, &startTime, &endTime, &plan, &nonce, &checkError, &teamID, &resourceConfigID, &baseResourceTypeID)
+	err := row.Scan(
+		&c.id,
+		&c.resourceConfigScopeID,
+		&status,
+		&schema,
+		&createTime,
+		&startTime,
+		&endTime,
+		&plan,
+		&nonce,
+		&checkError,
+		&metadata,
+	)
 	if err != nil {
 		return err
 	}
@@ -314,6 +349,13 @@ func scanCheck(c *check, row scannable) error {
 		}
 	}
 
+	if len(metadata.String) > 0 {
+		err = json.Unmarshal([]byte(metadata.String), &c.metadata)
+		if err != nil {
+			return err
+		}
+	}
+
 	if checkError.Valid {
 		c.checkError = errors.New(checkError.String)
 	} else {
@@ -325,9 +367,6 @@ func scanCheck(c *check, row scannable) error {
 	c.createTime = createTime.Time
 	c.startTime = startTime.Time
 	c.endTime = endTime.Time
-	c.teamID = int(teamID.Int64)
-	c.resourceConfigID = int(resourceConfigID.Int64)
-	c.baseResourceTypeID = int(baseResourceTypeID.Int64)
 
 	return nil
 }

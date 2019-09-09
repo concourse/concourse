@@ -41,15 +41,13 @@ type FakeCheckFactory struct {
 		result2 bool
 		result3 error
 	}
-	CreateCheckStub        func(int, int, int, int, bool, atc.Plan) (db.Check, bool, error)
+	CreateCheckStub        func(int, bool, atc.Plan, db.CheckMetadata) (db.Check, bool, error)
 	createCheckMutex       sync.RWMutex
 	createCheckArgsForCall []struct {
 		arg1 int
-		arg2 int
-		arg3 int
-		arg4 int
-		arg5 bool
-		arg6 atc.Plan
+		arg2 bool
+		arg3 atc.Plan
+		arg4 db.CheckMetadata
 	}
 	createCheckReturns struct {
 		result1 db.Check
@@ -261,21 +259,19 @@ func (fake *FakeCheckFactory) CheckReturnsOnCall(i int, result1 db.Check, result
 	}{result1, result2, result3}
 }
 
-func (fake *FakeCheckFactory) CreateCheck(arg1 int, arg2 int, arg3 int, arg4 int, arg5 bool, arg6 atc.Plan) (db.Check, bool, error) {
+func (fake *FakeCheckFactory) CreateCheck(arg1 int, arg2 bool, arg3 atc.Plan, arg4 db.CheckMetadata) (db.Check, bool, error) {
 	fake.createCheckMutex.Lock()
 	ret, specificReturn := fake.createCheckReturnsOnCall[len(fake.createCheckArgsForCall)]
 	fake.createCheckArgsForCall = append(fake.createCheckArgsForCall, struct {
 		arg1 int
-		arg2 int
-		arg3 int
-		arg4 int
-		arg5 bool
-		arg6 atc.Plan
-	}{arg1, arg2, arg3, arg4, arg5, arg6})
-	fake.recordInvocation("CreateCheck", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
+		arg2 bool
+		arg3 atc.Plan
+		arg4 db.CheckMetadata
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CreateCheck", []interface{}{arg1, arg2, arg3, arg4})
 	fake.createCheckMutex.Unlock()
 	if fake.CreateCheckStub != nil {
-		return fake.CreateCheckStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.CreateCheckStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -290,17 +286,17 @@ func (fake *FakeCheckFactory) CreateCheckCallCount() int {
 	return len(fake.createCheckArgsForCall)
 }
 
-func (fake *FakeCheckFactory) CreateCheckCalls(stub func(int, int, int, int, bool, atc.Plan) (db.Check, bool, error)) {
+func (fake *FakeCheckFactory) CreateCheckCalls(stub func(int, bool, atc.Plan, db.CheckMetadata) (db.Check, bool, error)) {
 	fake.createCheckMutex.Lock()
 	defer fake.createCheckMutex.Unlock()
 	fake.CreateCheckStub = stub
 }
 
-func (fake *FakeCheckFactory) CreateCheckArgsForCall(i int) (int, int, int, int, bool, atc.Plan) {
+func (fake *FakeCheckFactory) CreateCheckArgsForCall(i int) (int, bool, atc.Plan, db.CheckMetadata) {
 	fake.createCheckMutex.RLock()
 	defer fake.createCheckMutex.RUnlock()
 	argsForCall := fake.createCheckArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeCheckFactory) CreateCheckReturns(result1 db.Check, result2 bool, result3 error) {
