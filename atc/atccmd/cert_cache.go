@@ -22,7 +22,7 @@ func newDbCache(conn db.Conn) (autocert.Cache, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.put, err = conn.Prepare("INSERT INTO cert_cache (domain, cert, nonce) VALUES ($1, $2, $3)")
+	c.put, err = conn.Prepare("INSERT INTO cert_cache (domain, cert, nonce) VALUES ($1, $2, $3) ON CONFLICT (domain) DO UPDATE SET domain = EXCLUDED.domain, cert = EXCLUDED.cert, nonce = EXCLUDED.nonce")
 	if err != nil {
 		return nil, err
 	}
