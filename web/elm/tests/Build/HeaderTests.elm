@@ -64,7 +64,8 @@ build =
 
 model : Models.Model {}
 model =
-    { scrolledToCurrentBuild = False
+    { page = Models.OneOffBuildPage 0
+    , scrolledToCurrentBuild = False
     , history = []
     , build = RemoteData.Success build -- TODO remove duplication
     , disableManualTrigger = False

@@ -1,5 +1,6 @@
 module Build.Header.Models exposing
-    ( CurrentOutput(..)
+    ( BuildPageType(..)
+    , CurrentOutput(..)
     , Model
     )
 
@@ -12,7 +13,8 @@ import Time
 
 type alias Model r =
     { r
-        | scrolledToCurrentBuild : Bool
+        | page : BuildPageType
+        , scrolledToCurrentBuild : Bool
         , history : List Concourse.Build
         , build : WebData Concourse.Build
         , disableManualTrigger : Bool
@@ -28,3 +30,8 @@ type CurrentOutput
     = Empty
     | Cancelled
     | Output OutputModel
+
+
+type BuildPageType
+    = OneOffBuildPage Concourse.BuildId
+    | JobBuildPage Concourse.JobBuildIdentifier

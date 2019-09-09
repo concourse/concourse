@@ -1,11 +1,10 @@
 module Build.Models exposing
-    ( BuildPageType(..)
-    , Model
+    ( Model
     , StepHeaderType(..)
     , toMaybe
     )
 
-import Build.Header.Models exposing (CurrentOutput(..))
+import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
 import Build.Output.Models exposing (OutputModel)
 import Concourse
 import Keyboard
@@ -46,11 +45,6 @@ toMaybe currentOutput =
 
         Output outputModel ->
             Just outputModel
-
-
-type BuildPageType
-    = OneOffBuildPage Concourse.BuildId
-    | JobBuildPage Concourse.JobBuildIdentifier
 
 
 type StepHeaderType

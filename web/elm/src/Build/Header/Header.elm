@@ -7,9 +7,9 @@ module Build.Header.Header exposing
     )
 
 import Application.Models exposing (Session)
-import Build.Header.Models exposing (Model)
+import Build.Header.Models exposing (BuildPageType(..), Model)
 import Build.Header.Views as Views
-import Build.Models exposing (BuildPageType(..), toMaybe)
+import Build.Models exposing (toMaybe)
 import Build.StepTree.Models as STModels
 import Concourse
 import Concourse.BuildStatus
@@ -40,7 +40,7 @@ historyId =
 header : Session -> Model r -> Concourse.Build -> Views.Header
 header session model build =
     { leftWidgets =
-        [ Views.Title build.name (currentJob model)
+        [ Views.Title (name model) (currentJob model)
         , Views.Duration session.timeZone build.duration model.now
         ]
     , rightWidgets =
@@ -94,6 +94,16 @@ header session model build =
     , backgroundColor = build.status
     , history = Views.History build model.history
     }
+
+
+name : Model r -> String
+name { page } =
+    case page of
+        OneOffBuildPage id ->
+            String.fromInt id
+
+        JobBuildPage { buildName } ->
+            buildName
 
 
 view : Session -> Model r -> Concourse.Build -> Html Message

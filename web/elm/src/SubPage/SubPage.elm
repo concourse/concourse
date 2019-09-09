@@ -13,6 +13,7 @@ module SubPage.SubPage exposing
 import Application.Models exposing (Session)
 import Browser
 import Build.Build as Build
+import Build.Header.Models
 import Build.Models
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models
@@ -53,14 +54,14 @@ init session route =
         Routes.Build { id, highlight } ->
             Build.init
                 { highlight = highlight
-                , pageType = Build.Models.JobBuildPage id
+                , pageType = Build.Header.Models.JobBuildPage id
                 }
                 |> Tuple.mapFirst BuildModel
 
         Routes.OneOffBuild { id, highlight } ->
             Build.init
                 { highlight = highlight
-                , pageType = Build.Models.OneOffBuildPage id
+                , pageType = Build.Header.Models.OneOffBuildPage id
                 }
                 |> Tuple.mapFirst BuildModel
 
@@ -251,7 +252,7 @@ urlUpdate route =
         (case route of
             Routes.Build { id, highlight } ->
                 Build.changeToBuild
-                    { pageType = Build.Models.JobBuildPage id
+                    { pageType = Build.Header.Models.JobBuildPage id
                     , highlight = highlight
                     }
 

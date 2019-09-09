@@ -15,8 +15,8 @@ module Build.Build exposing
 
 import Application.Models exposing (Session)
 import Build.Header.Header as Header
-import Build.Header.Models exposing (CurrentOutput(..))
-import Build.Models exposing (BuildPageType(..), Model, toMaybe)
+import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
+import Build.Models exposing (Model, toMaybe)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.Models as STModels
