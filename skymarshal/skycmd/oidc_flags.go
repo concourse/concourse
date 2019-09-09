@@ -80,8 +80,8 @@ func (flag *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OIDCTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of whitelisted OIDC users" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of whitelisted OIDC groups" value-name:"GROUP_NAME"`
+	Users  []string `json:"users" long:"user" description:"A whitelisted OIDC user" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"A whitelisted OIDC group" value-name:"GROUP_NAME"`
 }
 
 func (flag *OIDCTeamFlags) GetUsers() []string {

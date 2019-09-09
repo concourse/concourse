@@ -59,9 +59,9 @@ func (flag *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GithubTeamFlags struct {
-	Users []string `long:"user" description:"List of whitelisted GitHub users" value-name:"USERNAME"`
-	Orgs  []string `long:"org" description:"List of whitelisted GitHub orgs" value-name:"ORG_NAME"`
-	Teams []string `long:"team" description:"List of whitelisted GitHub teams" value-name:"ORG_NAME:TEAM_NAME"`
+	Users []string `long:"user" description:"A whitelisted GitHub user" value-name:"USERNAME"`
+	Orgs  []string `long:"org" description:"A whitelisted GitHub org" value-name:"ORG_NAME"`
+	Teams []string `long:"team" description:"A whitelisted GitHub team" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
 func (flag *GithubTeamFlags) GetUsers() []string {

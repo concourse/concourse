@@ -92,8 +92,8 @@ func (flag *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OAuthTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"List of whitelisted OAuth2 users" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"List of whitelisted OAuth2 groups" value-name:"GROUP_NAME"`
+	Users  []string `json:"users" long:"user" description:"A whitelisted OAuth2 user" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"A whitelisted OAuth2 group" value-name:"GROUP_NAME"`
 }
 
 func (flag *OAuthTeamFlags) GetUsers() []string {
