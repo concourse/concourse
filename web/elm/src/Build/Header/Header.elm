@@ -1,4 +1,10 @@
-module Build.Header.Header exposing (handleCallback, handleDelivery, update, view)
+module Build.Header.Header exposing
+    ( handleCallback
+    , handleDelivery
+    , header
+    , update
+    , view
+    )
 
 import Application.Models exposing (Session)
 import Build.Header.Models exposing (Model)
@@ -31,68 +37,68 @@ historyId =
     "builds"
 
 
-view :
-    Session
-    -> Model r
-    -> Concourse.Build
-    -> Html Message
-view session model build =
-    Views.viewHeader
-        { leftWidgets =
-            [ Views.Title build.name (currentJob model)
-            , Views.Duration session.timeZone build.duration model.now
-            ]
-        , rightWidgets =
-            [ Views.Button
-                (if Concourse.BuildStatus.isRunning build.status then
-                    Just
-                        { type_ = Views.Abort
-                        , isClickable = True
-                        , backgroundShade =
-                            if
-                                HoverState.isHovered
-                                    AbortBuildButton
-                                    session.hovered
-                            then
-                                Views.Dark
-
-                            else
-                                Views.Light
-                        , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
-                        , tooltip = False
-                        }
-
-                 else
-                    Nothing
-                )
-            , Views.Button
-                (if currentJob model /= Nothing then
-                    let
-                        isHovered =
+header : Session -> Model r -> Concourse.Build -> Views.Header
+header session model build =
+    { leftWidgets =
+        [ Views.Title build.name (currentJob model)
+        , Views.Duration session.timeZone build.duration model.now
+        ]
+    , rightWidgets =
+        [ Views.Button
+            (if Concourse.BuildStatus.isRunning build.status then
+                Just
+                    { type_ = Views.Abort
+                    , isClickable = True
+                    , backgroundShade =
+                        if
                             HoverState.isHovered
-                                TriggerBuildButton
+                                AbortBuildButton
                                 session.hovered
-                    in
-                    Just
-                        { type_ = Views.Trigger
-                        , isClickable = not model.disableManualTrigger
-                        , backgroundShade =
-                            if isHovered then
-                                Views.Dark
+                        then
+                            Views.Dark
 
-                            else
-                                Views.Light
-                        , backgroundColor = build.status
-                        , tooltip = isHovered && model.disableManualTrigger
-                        }
+                        else
+                            Views.Light
+                    , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
+                    , tooltip = False
+                    }
 
-                 else
-                    Nothing
-                )
-            ]
-        , backgroundColor = build.status
-        , history = Views.History build model.history
-        }
+             else
+                Nothing
+            )
+        , Views.Button
+            (if currentJob model /= Nothing then
+                let
+                    isHovered =
+                        HoverState.isHovered
+                            TriggerBuildButton
+                            session.hovered
+                in
+                Just
+                    { type_ = Views.Trigger
+                    , isClickable = not model.disableManualTrigger
+                    , backgroundShade =
+                        if isHovered then
+                            Views.Dark
+
+                        else
+                            Views.Light
+                    , backgroundColor = build.status
+                    , tooltip = isHovered && model.disableManualTrigger
+                    }
+
+             else
+                Nothing
+            )
+        ]
+    , backgroundColor = build.status
+    , history = Views.History build model.history
+    }
+
+
+view : Session -> Model r -> Concourse.Build -> Html Message
+view session model build =
+    header session model build |> Views.viewHeader
 
 
 currentJob : Model r -> Maybe Concourse.JobIdentifier

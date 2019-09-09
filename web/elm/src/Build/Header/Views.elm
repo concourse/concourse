@@ -1,6 +1,7 @@
 module Build.Header.Views exposing
     ( BackgroundShade(..)
     , ButtonType(..)
+    , Header
     , History(..)
     , Widget(..)
     , viewHeader
