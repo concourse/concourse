@@ -148,7 +148,8 @@ type RunCommand struct {
 		ClusterName   string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 	} `group:"Web Server"`
 
-	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
+	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
+	LogClusterName bool `long:"log-cluster-name" description:"Log cluster name."`
 
 	GC struct {
 		Interval time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
@@ -367,6 +368,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	logger, reconfigurableSink := cmd.Logger.Logger("atc")
+	if cmd.LogClusterName {
+		logger = logger.WithData(lager.Data{
+			"cluster": cmd.Server.ClusterName,
+		})
+	}
 
 	commandSession := logger.Session("cmd")
 	startTime := time.Now()

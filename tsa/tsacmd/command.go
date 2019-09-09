@@ -38,6 +38,9 @@ type TSACommand struct {
 	SessionSigningKey *flag.PrivateKey `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
 
 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
+
+	ClusterName    string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
+	LogClusterName bool   `long:"log-cluster-name" description:"Log cluster name."`
 }
 
 type TeamAuthKeys struct {
@@ -121,6 +124,11 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
 	logger, reconfigurableSink := cmd.Logger.Logger("tsa")
+	if cmd.LogClusterName {
+		logger = logger.WithData(lager.Data{
+			"cluster": cmd.ClusterName,
+		})
+	}
 
 	return logger, reconfigurableSink
 }
