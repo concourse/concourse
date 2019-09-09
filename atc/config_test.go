@@ -14,7 +14,7 @@ var _ = Describe("Config", func() {
 			Context("when the version is all string", func() {
 				It("produces the correct version config without error", func() {
 					var versionConfig VersionConfig
-					bs := []byte(`{ "some": "  version  ", "other": "8" }`)
+					bs := []byte(`{ "some": "version", "other": "8" }`)
 					err := json.Unmarshal(bs, &versionConfig)
 					Expect(err).NotTo(HaveOccurred())
 
