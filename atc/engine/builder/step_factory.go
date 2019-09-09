@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
@@ -21,7 +20,6 @@ type stepFactory struct {
 	resourceFetcher       fetcher.Fetcher
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
-	secretManager         creds.Secrets
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
 	resourceFactory       resource.ResourceFactory
@@ -34,7 +32,6 @@ func NewStepFactory(
 	resourceFetcher fetcher.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
-	secretManager creds.Secrets,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
@@ -46,7 +43,6 @@ func NewStepFactory(
 		resourceFetcher:       resourceFetcher,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
-		secretManager:         secretManager,
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		resourceFactory:       resourceFactory,
@@ -67,7 +63,6 @@ func (factory *stepFactory) GetStep(
 		*plan.Get,
 		stepMetadata,
 		containerMetadata,
-		factory.secretManager,
 		factory.resourceFetcher,
 		factory.resourceCacheFactory,
 		factory.strategy,
@@ -91,7 +86,6 @@ func (factory *stepFactory) PutStep(
 		*plan.Put,
 		stepMetadata,
 		containerMetadata,
-		factory.secretManager,
 		factory.resourceFactory,
 		factory.resourceConfigFactory,
 		factory.strategy,
@@ -115,7 +109,6 @@ func (factory *stepFactory) CheckStep(
 		*plan.Check,
 		stepMetadata,
 		containerMetadata,
-		factory.secretManager,
 		factory.resourceFactory,
 		worker.NewRandomPlacementStrategy(),
 		factory.pool,
@@ -140,7 +133,6 @@ func (factory *stepFactory) TaskStep(
 		factory.defaultLimits,
 		stepMetadata,
 		containerMetadata,
-		factory.secretManager,
 		factory.strategy,
 		factory.client,
 		delegate,

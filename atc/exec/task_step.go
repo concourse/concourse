@@ -68,7 +68,6 @@ type TaskStep struct {
 	defaultLimits     atc.ContainerLimits
 	metadata          StepMetadata
 	containerMetadata db.ContainerMetadata
-	secrets           creds.Secrets
 	strategy          worker.ContainerPlacementStrategy
 	workerClient      worker.Client
 	delegate          TaskDelegate
@@ -82,7 +81,6 @@ func NewTaskStep(
 	defaultLimits atc.ContainerLimits,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	secrets creds.Secrets,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
 	delegate TaskDelegate,
@@ -94,7 +92,6 @@ func NewTaskStep(
 		defaultLimits:     defaultLimits,
 		metadata:          metadata,
 		containerMetadata: containerMetadata,
-		secrets:           secrets,
 		strategy:          strategy,
 		workerClient:      workerClient,
 		delegate:          delegate,
@@ -124,7 +121,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	variables := creds.NewVariables(step.secrets, step.metadata.TeamName, step.metadata.PipelineName)
+	variables := step.delegate.Variables()
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {

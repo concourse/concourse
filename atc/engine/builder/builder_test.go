@@ -1,15 +1,16 @@
 package builder_test
 
 import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/exec"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 type StepBuilder interface {
@@ -26,6 +27,7 @@ var _ = Describe("Builder", func() {
 
 			fakeStepFactory     *builderfakes.FakeStepFactory
 			fakeDelegateFactory *builderfakes.FakeDelegateFactory
+			fakeSecretManager   *credsfakes.FakeSecrets
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -34,11 +36,14 @@ var _ = Describe("Builder", func() {
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
+			fakeSecretManager = new(credsfakes.FakeSecrets)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				fakeDelegateFactory,
 				"http://example.com",
+				fakeSecretManager,
+				false,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
@@ -755,6 +760,7 @@ var _ = Describe("Builder", func() {
 
 			fakeStepFactory     *builderfakes.FakeStepFactory
 			fakeDelegateFactory *builderfakes.FakeDelegateFactory
+			fakeSecretManager   *credsfakes.FakeSecrets
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -763,11 +769,14 @@ var _ = Describe("Builder", func() {
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
+			fakeSecretManager = new(credsfakes.FakeSecrets)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				fakeDelegateFactory,
 				"http://example.com",
+				fakeSecretManager,
+				false,
 			)
 
 			planFactory = atc.NewPlanFactory(123)

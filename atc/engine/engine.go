@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
@@ -37,8 +38,7 @@ type StepBuilder interface {
 
 func NewEngine(builder StepBuilder) Engine {
 	return &engine{
-		builder: builder,
-
+		builder:       builder,
 		release:       make(chan bool),
 		trackedStates: new(sync.Map),
 		waitGroup:     new(sync.WaitGroup),
@@ -46,8 +46,7 @@ func NewEngine(builder StepBuilder) Engine {
 }
 
 type engine struct {
-	builder StepBuilder
-
+	builder       StepBuilder
 	release       chan bool
 	trackedStates *sync.Map
 	waitGroup     *sync.WaitGroup

@@ -16,7 +16,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
@@ -24,6 +23,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("TaskStep", func() {
@@ -40,9 +40,8 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory *lockfakes.FakeLockFactory
 
-		fakeSecretManager *credsfakes.FakeSecrets
-		fakeDelegate      *execfakes.FakeTaskDelegate
-		taskPlan          *atc.TaskPlan
+		fakeDelegate *execfakes.FakeTaskDelegate
+		taskPlan     *atc.TaskPlan
 
 		interpolatedResourceTypes atc.VersionedResourceTypes
 
@@ -51,6 +50,8 @@ var _ = Describe("TaskStep", func() {
 
 		taskStep exec.Step
 		stepErr  error
+
+		credVarsTracker vars.CredVarsTracker
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
@@ -79,10 +80,11 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
-		fakeSecretManager = new(credsfakes.FakeSecrets)
-		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
+		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
+		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
+		fakeDelegate.VariablesReturns(credVarsTracker)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
@@ -135,7 +137,6 @@ var _ = Describe("TaskStep", func() {
 			atc.ContainerLimits{},
 			stepMetadata,
 			containerMetadata,
-			fakeSecretManager,
 			fakeStrategy,
 			fakeClient,
 			fakeDelegate,
@@ -220,6 +221,12 @@ var _ = Describe("TaskStep", func() {
 				})
 			})
 
+		})
+
+		It("secrets are tracked", func() {
+			mapit := vars.NewMapCredVarsTrackerIterator()
+			credVarsTracker.IterateInterpolatedCreds(mapit)
+			Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a containerSpec with the correct parameters", func() {

@@ -9,10 +9,13 @@ import (
 	"io"
 	"io/ioutil"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
@@ -23,9 +26,7 @@ import (
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("GetStep", func() {
@@ -39,7 +40,6 @@ var _ = Describe("GetStep", func() {
 		fakeStrategy             *workerfakes.FakeContainerPlacementStrategy
 		fakeResourceFetcher      *fetcherfakes.FakeFetcher
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeSecretManager        *credsfakes.FakeSecrets
 		fakeDelegate             *execfakes.FakeGetDelegate
 		getPlan                  *atc.GetPlan
 
@@ -51,6 +51,8 @@ var _ = Describe("GetStep", func() {
 
 		getStep exec.Step
 		stepErr error
+
+		credVarsTracker vars.CredVarsTracker
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: resource.ResourcesDir("get"),
@@ -81,8 +83,8 @@ var _ = Describe("GetStep", func() {
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
-		fakeSecretManager = new(credsfakes.FakeSecrets)
-		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
+		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
+		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 
 		artifactRepository = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -92,6 +94,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
+		fakeDelegate.VariablesReturns(credVarsTracker)
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -141,7 +144,6 @@ var _ = Describe("GetStep", func() {
 			*plan.Get,
 			stepMetadata,
 			containerMetadata,
-			fakeSecretManager,
 			fakeResourceFetcher,
 			fakeResourceCacheFactory,
 			fakeStrategy,
@@ -184,12 +186,11 @@ var _ = Describe("GetStep", func() {
 			Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
 			fctx, _, actualContainerMetadata, actualWorker, actualContainerSpec, actualResourceTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
 			Expect(fctx).To(Equal(ctx))
-			Expect(actualContainerMetadata).To(Equal(
-				db.ContainerMetadata{
-					PipelineID:       4567,
-					Type:             db.ContainerTypeGet,
-					StepName:         "some-step",
-					WorkingDirectory: "/tmp/build/get",
+			Expect(actualContainerMetadata).To(Equal(db.ContainerMetadata{
+				PipelineID:       4567,
+				Type:             db.ContainerTypeGet,
+				StepName:         "some-step",
+				WorkingDirectory: "/tmp/build/get",
 			}))
 			Expect(actualWorker.Name()).To(Equal("some-worker"))
 			Expect(actualContainerSpec).To(Equal(worker.ContainerSpec{
@@ -217,6 +218,12 @@ var _ = Describe("GetStep", func() {
 			)
 
 			Expect(resourceInstance.LockName("fake-worker")).To(Equal(expectedLockName))
+		})
+
+		It("secrets are tracked", func() {
+			mapit := vars.NewMapCredVarsTrackerIterator()
+			credVarsTracker.IterateInterpolatedCreds(mapit)
+			Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		Context("when fetching resource succeeds", func() {

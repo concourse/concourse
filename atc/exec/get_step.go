@@ -54,7 +54,6 @@ type GetStep struct {
 	plan                 atc.GetPlan
 	metadata             StepMetadata
 	containerMetadata    db.ContainerMetadata
-	secrets              creds.Secrets
 	resourceFetcher      fetcher.Fetcher
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
@@ -68,7 +67,6 @@ func NewGetStep(
 	plan atc.GetPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	secrets creds.Secrets,
 	resourceFetcher fetcher.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
@@ -80,7 +78,6 @@ func NewGetStep(
 		plan:                 plan,
 		metadata:             metadata,
 		containerMetadata:    containerMetadata,
-		secrets:              secrets,
 		resourceFetcher:      resourceFetcher,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
@@ -121,7 +118,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 
 	step.delegate.Initializing(logger)
 
-	variables := creds.NewVariables(step.secrets, step.metadata.TeamName, step.metadata.PipelineName)
+	variables := step.delegate.Variables()
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
 	if err != nil {

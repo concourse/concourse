@@ -115,7 +115,6 @@ var _ = Describe("CheckStep", func() {
 			*plan.Check,
 			stepMetadata,
 			containerMetadata,
-			fakeSecretManager,
 			fakeResourceFactory,
 			fakeStrategy,
 			fakePool,

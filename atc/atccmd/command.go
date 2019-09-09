@@ -195,6 +195,8 @@ type RunCommand struct {
 		AuthFlags     skycmd.AuthFlags
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
+
+	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -1301,7 +1303,6 @@ func (cmd *RunCommand) constructEngine(
 		resourceFetcher,
 		resourceCacheFactory,
 		resourceConfigFactory,
-		secretManager,
 		defaultLimits,
 		strategy,
 		resourceFactory,
@@ -1312,6 +1313,8 @@ func (cmd *RunCommand) constructEngine(
 		stepFactory,
 		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
+		secretManager,
+		cmd.EnableRedactSecrets,
 	)
 
 	return engine.NewEngine(stepBuilder)
