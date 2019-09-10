@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
@@ -15,6 +16,7 @@ import (
 type TriggerJobCommand struct {
 	Job   flaghelpers.JobFlag `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to trigger"`
 	Watch bool                `short:"w" long:"watch" description:"Start watching the build output"`
+	TeamFlag
 }
 
 func (command *TriggerJobCommand) Execute(args []string) error {
@@ -30,11 +32,14 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	build, err := target.Team().CreateJobBuild(pipelineName, jobName)
+	var build atc.Build
+	team := command.TeamTarget(target)
+	build, err = team.CreateJobBuild(pipelineName, jobName)
 	if err != nil {
 		return err
+	} else {
+		fmt.Printf("started %s/%s #%s\n", pipelineName, jobName, build.Name)
 	}
-	fmt.Printf("started %s/%s #%s\n", pipelineName, jobName, build.Name)
 
 	if command.Watch {
 		terminate := make(chan os.Signal, 1)
