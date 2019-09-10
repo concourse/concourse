@@ -1,4 +1,4 @@
-#### <sub><sup><a name="v551-note-1" href="#v551-note-1">:link:</a></sup></sub> fix
+#### <sub><sup><a name="v551-note-4326" href="#v551-note-4326">:link:</a></sup></sub> fix
 
 * If you are using LetsEncrypt, you will want to upgrade to this version because it includes a fix for a [bug](https://github.com/concourse/concourse/issues/4326) where updating existing autocert/acme certificates fails #4395.
 
