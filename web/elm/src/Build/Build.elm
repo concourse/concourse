@@ -95,6 +95,7 @@ init flags =
           , prep = Nothing
           , build = RemoteData.NotAsked
           , duration = { startedAt = Nothing, finishedAt = Nothing }
+          , status = BuildStatusPending
           , output = Empty
           , browsingIndex = 0
           , autoScroll = True
@@ -583,6 +584,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                 { model
                     | build = RemoteData.Success build
                     , duration = build.duration
+                    , status = build.status
                     , output = output
                 }
 

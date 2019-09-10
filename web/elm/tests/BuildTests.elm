@@ -99,7 +99,7 @@ all =
                 , status = BuildStatusStarted
                 , duration =
                     { startedAt = Just <| Time.millisToPosix 0
-                    , finishedAt = Just <| Time.millisToPosix 0
+                    , finishedAt = Nothing
                     }
                 , reapTime = Nothing
                 }
@@ -1294,6 +1294,47 @@ all =
                     >> Common.queryView
                     >> Query.find [ id "build-header" ]
                     >> Query.has [ style "display" "flex" ]
+            , test "when build finishes, shows finished timestamp" <|
+                \_ ->
+                    initFromApplication
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        |> Tuple.first
+                        |> receiveEvent
+                            { url = "http://localhost:8080/api/v1/builds/1/events"
+                            , data = STModels.BuildStatus BuildStatusSucceeded (Time.millisToPosix 0)
+                            }
+                        |> Tuple.first
+                        |> Application.update
+                            (Msgs.DeliveryReceived <|
+                                ClockTicked
+                                    OneSecond
+                                    (Time.millisToPosix (2 * 1000))
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ class "build-duration" ]
+                        |> Query.find [ tag "tr", containing [ text "finished" ] ]
+                        |> Query.has [ text "2s ago" ]
+            , test "when build finishes succesfully, header background is green" <|
+                \_ ->
+                    initFromApplication
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        |> Tuple.first
+                        |> receiveEvent
+                            { url = "http://localhost:8080/api/v1/builds/1/events"
+                            , data = STModels.BuildStatus BuildStatusSucceeded (Time.millisToPosix 0)
+                            }
+                        |> Tuple.first
+                        |> Application.update
+                            (Msgs.DeliveryReceived <|
+                                ClockTicked
+                                    OneSecond
+                                    (Time.millisToPosix (2 * 1000))
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "build-header" ]
+                        |> Query.has [ style "background-color" Colors.success ]
             , test "when less than 24h old, shows relative time since build" <|
                 \_ ->
                     initFromApplication

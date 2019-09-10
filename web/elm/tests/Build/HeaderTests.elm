@@ -66,6 +66,7 @@ model =
     , history = []
     , build = RemoteData.Success build -- TODO remove duplication
     , duration = { startedAt = Nothing, finishedAt = Nothing }
+    , status = BuildStatusPending
     , disableManualTrigger = False
     , now = Nothing
     , fetchingHistory = False

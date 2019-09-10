@@ -45,7 +45,7 @@ header session model build =
         ]
     , rightWidgets =
         [ Views.Button
-            (if Concourse.BuildStatus.isRunning build.status then
+            (if Concourse.BuildStatus.isRunning model.status then
                 Just
                     { type_ = Views.Abort
                     , isClickable = True
@@ -83,7 +83,7 @@ header session model build =
 
                         else
                             Views.Light
-                    , backgroundColor = build.status
+                    , backgroundColor = model.status
                     , tooltip = isHovered && model.disableManualTrigger
                     }
 
@@ -91,7 +91,7 @@ header session model build =
                 Nothing
             )
         ]
-    , backgroundColor = build.status
+    , backgroundColor = model.status
     , history = Views.History build model.history
     }
 
@@ -200,11 +200,15 @@ handleDelivery delivery ( model, effects ) =
                             |> List.Extra.last
                     of
                         Just ( status, date ) ->
-                            ( { model
+                            ( let
+                                newBuild =
+                                    Concourse.receiveStatus status date build
+                              in
+                              { model
                                 | history =
-                                    updateHistory
-                                        (Concourse.receiveStatus status date build)
-                                        model.history
+                                    updateHistory newBuild model.history
+                                , duration = newBuild.duration
+                                , status = newBuild.status
                               }
                             , effects
                             )
