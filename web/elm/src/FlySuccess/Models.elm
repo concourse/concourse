@@ -18,6 +18,7 @@ type alias Model =
         { buttonState : ButtonState
         , authToken : String
         , tokenTransfer : TokenTransfer
+        , flyPort : (Maybe Int)
         }
 
 

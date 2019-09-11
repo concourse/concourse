@@ -7,6 +7,8 @@ module FlySuccess.Text exposing
     , secondParagraphFailure
     , secondParagraphSuccess
     , title
+    , flyLoginLinkText
+    , flyLoginLinkDescription
     )
 
 import FlySuccess.Models as Models
@@ -72,3 +74,12 @@ button buttonState =
 
     else
         "copy token to clipboard"
+
+
+flyLoginLinkDescription : Line
+flyLoginLinkDescription =
+    "Or try manually sending the token to fly:"
+
+flyLoginLinkText : Line
+flyLoginLinkText =
+    "send token to fly directly"

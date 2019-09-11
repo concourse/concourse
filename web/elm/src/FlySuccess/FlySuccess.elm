@@ -17,7 +17,7 @@ import FlySuccess.Models
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, id, style)
+import Html.Attributes exposing (attribute, id, style, href)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -31,7 +31,6 @@ import Views.Icon as Icon
 import Views.Styles
 import Views.TopBar as TopBar
 
-
 init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
 init { authToken, flyPort } =
     ( { buttonState = Unhovered
@@ -44,6 +43,7 @@ init { authToken, flyPort } =
                 Nothing ->
                     RemoteData.Failure NoFlyPort
       , isUserMenuExpanded = False
+      , flyPort = flyPort
       }
     , case flyPort of
         Just fp ->
@@ -168,6 +168,7 @@ body model =
                         }
                   , True
                   )
+                , (flyLoginLink model, True)
                 ]
 
 
@@ -199,3 +200,24 @@ button { authToken, buttonState } =
             ]
         , Html.text <| Text.button buttonState
         ]
+
+flyLoginLink : Model -> Html Message
+flyLoginLink { flyPort, authToken } =
+    case flyPort of
+        Just fp ->
+            Html.div
+                [ id "fly-direct-link" ]
+                [ Html.p
+                    Styles.paragraph
+                    [ Html.text Text.flyLoginLinkDescription ]
+                , Html.a
+                    [ href (Routes.tokenToFlyRoute authToken fp)
+                    , style "text-decoration" "underline"
+                    ]
+                    [ Html.text Text.flyLoginLinkText ]
+                ]
+
+        Nothing ->
+            Html.div[][]
+
+
