@@ -113,8 +113,10 @@ type RunCommand struct {
 
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
-	EnableGlobalResources bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
-	EnableLidar           bool `long:"enable-lidar" description:"The Future™ of resource checking."`
+	EnableGlobalResources bool          `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+	EnableLidar           bool          `long:"enable-lidar" description:"The Future™ of resource checking."`
+	LidarScannerInterval  time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
+	LidarCheckerInterval  time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
 	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -886,13 +888,13 @@ func (cmd *RunCommand) constructBackendMembers(
 				cmd.GlobalResourceCheckTimeout,
 				cmd.ResourceCheckingInterval,
 			),
-			time.Minute,
+			cmd.LidarScannerInterval,
 			lidar.NewChecker(
 				logger.Session("lidar-checker"),
 				dbCheckFactory,
 				engine,
 			),
-			10*time.Second,
+			cmd.LidarCheckerInterval,
 			bus,
 		)
 	} else {
@@ -904,7 +906,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbCheckFactory,
 				engine,
 			),
-			10*time.Second,
+			cmd.LidarCheckerInterval,
 			bus,
 		)
 	}

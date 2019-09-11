@@ -38,13 +38,19 @@ var _ = Describe("Check", func() {
 		resourceTypeConfigScope, err = defaultResourceType.SetResourceConfig(atc.Source{"some": "type-repository"}, atc.VersionedResourceTypes{})
 		Expect(err).NotTo(HaveOccurred())
 
+		metadata := db.CheckMetadata{
+			TeamID:             defaultTeam.ID(),
+			TeamName:           defaultTeam.Name(),
+			PipelineName:       defaultPipeline.Name(),
+			ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
+			BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		}
+
 		check, created, err = checkFactory.CreateCheck(
 			resourceConfigScope.ID(),
-			resourceConfigScope.ResourceConfig().ID(),
-			resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-			defaultTeam.ID(),
 			false,
 			atc.Plan{},
+			metadata,
 		)
 		Expect(created).To(BeTrue())
 		Expect(err).NotTo(HaveOccurred())
@@ -149,13 +155,20 @@ var _ = Describe("Check", func() {
 
 		Context("with resource types", func() {
 			BeforeEach(func() {
+
+				metadata := db.CheckMetadata{
+					TeamID:             defaultTeam.ID(),
+					TeamName:           defaultTeam.Name(),
+					PipelineName:       defaultPipeline.Name(),
+					ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
+					BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+				}
+
 				check, created, err = checkFactory.CreateCheck(
 					resourceTypeConfigScope.ID(),
-					resourceTypeConfigScope.ResourceConfig().ID(),
-					resourceTypeConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-					defaultTeam.ID(),
 					false,
 					atc.Plan{},
+					metadata,
 				)
 				Expect(created).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())

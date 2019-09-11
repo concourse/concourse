@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
@@ -63,7 +64,17 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		"step-name": step.plan.Name,
 	})
 
-	resourceTypes := step.plan.VersionedResourceTypes
+	variables := step.delegate.Variables()
+
+	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
+	if err != nil {
+		return err
+	}
+
+	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	if err != nil {
+		return err
+	}
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
@@ -133,7 +144,7 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 
 	checkable := step.resourceFactory.NewResourceForContainer(container)
 
-	versions, err := checkable.Check(deadline, step.plan.Source, step.plan.FromVersion)
+	versions, err := checkable.Check(deadline, source, step.plan.FromVersion)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			return fmt.Errorf("Timed out after %v while checking for new versions", timeout)

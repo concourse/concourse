@@ -16,6 +16,7 @@ var _ = Describe("CheckFactory", func() {
 	var (
 		err                 error
 		resourceConfigScope db.ResourceConfigScope
+		metadata            db.CheckMetadata
 	)
 
 	BeforeEach(func() {
@@ -32,6 +33,14 @@ var _ = Describe("CheckFactory", func() {
 
 		resourceConfigScope, err = defaultResource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 		Expect(err).NotTo(HaveOccurred())
+
+		metadata = db.CheckMetadata{
+			TeamID:             defaultTeam.ID(),
+			TeamName:           defaultTeam.Name(),
+			PipelineName:       defaultPipeline.Name(),
+			ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
+			BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		}
 	})
 
 	Describe("Check", func() {
@@ -41,11 +50,9 @@ var _ = Describe("CheckFactory", func() {
 		BeforeEach(func() {
 			check, created, err = checkFactory.CreateCheck(
 				resourceConfigScope.ID(),
-				resourceConfigScope.ResourceConfig().ID(),
-				resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-				defaultTeam.ID(),
 				false,
 				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
+				metadata,
 			)
 			Expect(created).To(BeTrue())
 			Expect(err).NotTo(HaveOccurred())
@@ -184,7 +191,7 @@ var _ = Describe("CheckFactory", func() {
 									Expect(check.Plan().Check.FromVersion).To(Equal(atc.Version{"version": "a"}))
 									Expect(check.Plan().Check.Name).To(Equal("some-name"))
 									Expect(check.Plan().Check.Type).To(Equal("base-type"))
-									Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "source"}))
+									Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "((secret))"}))
 									Expect(check.Plan().Check.Tags).To(ConsistOf("tag-a", "tag-b"))
 									Expect(check.Plan().Check.Timeout).To(Equal("10s"))
 								})
@@ -211,7 +218,7 @@ var _ = Describe("CheckFactory", func() {
 										Expect(check.Plan().Check.FromVersion).To(BeNil())
 										Expect(check.Plan().Check.Name).To(Equal("some-name"))
 										Expect(check.Plan().Check.Type).To(Equal("base-type"))
-										Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "source"}))
+										Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "((secret))"}))
 										Expect(check.Plan().Check.Tags).To(ConsistOf("tag-a", "tag-b"))
 										Expect(check.Plan().Check.Timeout).To(Equal("10s"))
 									})
@@ -234,7 +241,7 @@ var _ = Describe("CheckFactory", func() {
 										Expect(check.Plan().Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
 										Expect(check.Plan().Check.Name).To(Equal("some-name"))
 										Expect(check.Plan().Check.Type).To(Equal("base-type"))
-										Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "source"}))
+										Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "((secret))"}))
 										Expect(check.Plan().Check.Tags).To(ConsistOf("tag-a", "tag-b"))
 										Expect(check.Plan().Check.Timeout).To(Equal("10s"))
 									})
@@ -304,11 +311,9 @@ var _ = Describe("CheckFactory", func() {
 		JustBeforeEach(func() {
 			check, created, err = checkFactory.CreateCheck(
 				resourceConfigScope.ID(),
-				resourceConfigScope.ResourceConfig().ID(),
-				resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-				defaultTeam.ID(),
 				false,
 				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
+				metadata,
 			)
 		})
 
@@ -334,11 +339,9 @@ var _ = Describe("CheckFactory", func() {
 			BeforeEach(func() {
 				_, created, err := checkFactory.CreateCheck(
 					resourceConfigScope.ID(),
-					resourceConfigScope.ResourceConfig().ID(),
-					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-					defaultTeam.ID(),
 					false,
 					atc.Plan{},
+					metadata,
 				)
 				Expect(created).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())
@@ -397,11 +400,9 @@ var _ = Describe("CheckFactory", func() {
 				var created bool
 				check, created, err = checkFactory.CreateCheck(
 					resourceConfigScope.ID(),
-					resourceConfigScope.ResourceConfig().ID(),
-					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-					defaultTeam.ID(),
 					false,
 					atc.Plan{},
+					metadata,
 				)
 				Expect(created).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())

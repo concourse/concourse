@@ -31,7 +31,7 @@ type DelegateFactory interface {
 	GetDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.GetDelegate
 	PutDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.PutDelegate
 	TaskDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.TaskDelegate
-	CheckDelegate(db.Check, atc.PlanID) exec.CheckDelegate
+	CheckDelegate(db.Check, atc.PlanID, vars.CredVarsTracker) exec.CheckDelegate
 	BuildStepDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
 }
 
@@ -82,7 +82,8 @@ func (builder *stepBuilder) CheckStep(check db.Check) (exec.Step, error) {
 		return exec.IdentityStep{}, errors.New("Schema not supported")
 	}
 
-	return builder.buildCheckStep(check, check.Plan()), nil
+	credVarsTracker := vars.NewCredVarsTracker(creds.NewVariables(builder.secrets, check.TeamName(), check.PipelineName()), builder.redactSecrets)
+	return builder.buildCheckStep(check, check.Plan(), credVarsTracker), nil
 }
 
 func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, credVarsTracker vars.CredVarsTracker) exec.Step {
@@ -304,7 +305,7 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan, credVars
 	)
 }
 
-func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan) exec.Step {
+func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan, credVarsTracker vars.CredVarsTracker) exec.Step {
 
 	containerMetadata := db.ContainerMetadata{
 		Type: db.ContainerTypeCheck,
@@ -312,6 +313,8 @@ func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan) exec.S
 
 	stepMetadata := exec.StepMetadata{
 		TeamID:                check.TeamID(),
+		TeamName:              check.TeamName(),
+		PipelineName:          check.PipelineName(),
 		ResourceConfigScopeID: check.ResourceConfigScopeID(),
 		ResourceConfigID:      check.ResourceConfigID(),
 		BaseResourceTypeID:    check.BaseResourceTypeID(),
@@ -322,7 +325,7 @@ func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan) exec.S
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.CheckDelegate(check, plan.ID),
+		builder.delegateFactory.CheckDelegate(check, plan.ID, credVarsTracker),
 	)
 }
 
