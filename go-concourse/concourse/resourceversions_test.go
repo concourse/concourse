@@ -20,6 +20,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		var expectedVersions []atc.ResourceVersion
 
 		var page concourse.Page
+		var filter atc.Version
 
 		var versions []atc.ResourceVersion
 		var pagination concourse.Pagination
@@ -40,7 +41,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		})
 
 		JustBeforeEach(func() {
-			versions, pagination, found, clientErr = team.ResourceVersions("mypipeline", "myresource", page)
+			versions, pagination, found, clientErr = team.ResourceVersions("mypipeline", "myresource", page, filter)
 		})
 
 		Context("when since, until, and limit are 0", func() {
@@ -149,6 +150,25 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			})
 
 			It("sends both since and the until", func() {
+				Expect(clientErr).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(Equal(expectedVersions))
+			})
+		})
+
+		Context("when filter is specified", func() {
+			BeforeEach(func() {
+				filter = atc.Version{"some": "value", "some-other": "other-value"}
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "filter=some:value&filter=some-other:other-value"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
+					),
+				)
+			})
+
+			It("sends filters as url params", func() {
 				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(Equal(expectedVersions))
@@ -413,7 +433,6 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 				}).By(1))
 			})
 		})
-
 
 		Context("when the pin resource call fails", func() {
 			BeforeEach(func() {

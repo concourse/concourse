@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
@@ -15,7 +16,7 @@ import (
 )
 
 type ResourceVersionsCommand struct {
-	Count    int                      `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
+	Count    int                      `short:"c" long:"count" default:"50" description:"Number of versions you want to limit the return to"`
 	Resource flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to get versions for"`
 	Json     bool                     `long:"json" description:"Print command result as JSON"`
 }
@@ -35,7 +36,7 @@ func (command *ResourceVersionsCommand) Execute([]string) error {
 
 	team := target.Team()
 
-	versions, _, _, err := team.ResourceVersions(command.Resource.PipelineName, command.Resource.ResourceName, page)
+	versions, _, _, err := team.ResourceVersions(command.Resource.PipelineName, command.Resource.ResourceName, page, atc.Version{})
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package concourse
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.ResourceVersion, Pagination, bool, error) {
+func (team *team) ResourceVersions(pipelineName string, resourceName string, page Page, filter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
@@ -19,10 +20,15 @@ func (team *team) ResourceVersions(pipelineName string, resourceName string, pag
 	var resourceVersions []atc.ResourceVersion
 	headers := http.Header{}
 
+	queryParams := page.QueryParams()
+	for k, v := range filter {
+		queryParams.Add("filter", fmt.Sprintf("%s:%s", k, v))
+	}
+
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListResourceVersions,
 		Params:      params,
-		Query:       page.QueryParams(),
+		Query:       queryParams,
 	}, &internal.Response{
 		Result:  &resourceVersions,
 		Headers: &headers,
