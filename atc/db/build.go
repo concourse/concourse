@@ -925,7 +925,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	newVersion, err := saveResourceVersion(tx, resourceConfigScope, version, metadata)
+	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata)
 	if err != nil {
 		return err
 	}
@@ -938,7 +938,7 @@ func (b *build) SaveOutput(
 	versionJSON := string(versionBytes)
 
 	if newVersion {
-		err = incrementCheckOrder(tx, resourceConfigScope, versionJSON)
+		err = incrementCheckOrder(tx, resourceConfigScope.ID(), versionJSON)
 		if err != nil {
 			return err
 		}

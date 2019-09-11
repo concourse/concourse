@@ -5,6 +5,9 @@ import (
 	"io"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -14,18 +17,17 @@ import (
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("DelegateFactory", func() {
 	var (
-		logger       *lagertest.TestLogger
-		fakeBuild    *dbfakes.FakeBuild
-		fakePipeline *dbfakes.FakePipeline
-		fakeResource *dbfakes.FakeResource
-		fakeClock    *fakeclock.FakeClock
+		logger          *lagertest.TestLogger
+		fakeBuild       *dbfakes.FakeBuild
+		fakePipeline    *dbfakes.FakePipeline
+		fakeResource    *dbfakes.FakeResource
+		fakeClock       *fakeclock.FakeClock
+		credVarsTracker vars.CredVarsTracker
 	)
 
 	BeforeEach(func() {
@@ -35,6 +37,8 @@ var _ = Describe("DelegateFactory", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeResource = new(dbfakes.FakeResource)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
+		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
+		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 	})
 
 	Describe("GetDelegate", func() {
@@ -50,7 +54,7 @@ var _ = Describe("DelegateFactory", func() {
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}
 
-			delegate = builder.NewGetDelegate(fakeBuild, "some-plan-id", fakeClock)
+			delegate = builder.NewGetDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
 		})
 
 		Describe("Finished", func() {
@@ -160,7 +164,7 @@ var _ = Describe("DelegateFactory", func() {
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}
 
-			delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", fakeClock)
+			delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
 		})
 
 		Describe("Finished", func() {
@@ -219,7 +223,7 @@ var _ = Describe("DelegateFactory", func() {
 		)
 
 		BeforeEach(func() {
-			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", fakeClock)
+			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
 		})
 
 		Describe("Initializing", func() {
@@ -259,13 +263,40 @@ var _ = Describe("DelegateFactory", func() {
 		})
 	})
 
+	Describe("CheckDelegate", func() {
+		var (
+			delegate  exec.CheckDelegate
+			fakeCheck *dbfakes.FakeCheck
+			versions  []atc.Version
+		)
+
+		BeforeEach(func() {
+			fakeCheck = new(dbfakes.FakeCheck)
+
+			delegate = builder.NewCheckDelegate(fakeCheck, "some-plan-id", credVarsTracker, fakeClock)
+			versions = []atc.Version{{"some": "version"}}
+		})
+
+		Describe("SaveVersions", func() {
+			JustBeforeEach(func() {
+				Expect(delegate.SaveVersions(versions)).To(Succeed())
+			})
+
+			It("saves an event", func() {
+				Expect(fakeCheck.SaveVersionsCallCount()).To(Equal(1))
+				actualVersions := fakeCheck.SaveVersionsArgsForCall(0)
+				Expect(actualVersions).To(Equal(versions))
+			})
+		})
+	})
+
 	Describe("BuildStepDelegate", func() {
 		var (
 			delegate exec.BuildStepDelegate
 		)
 
 		BeforeEach(func() {
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", fakeClock)
+			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
 		})
 
 		Describe("ImageVersionDetermined", func() {
@@ -428,6 +459,61 @@ var _ = Describe("DelegateFactory", func() {
 					Expect(logs[0].Data).To(Equal(lager.Data{"error": "nope"}))
 				})
 			})
+		})
+
+		Describe("Secrets redacting", func() {
+			var (
+				writer       io.Writer
+				writtenBytes int
+				writeErr     error
+			)
+
+			BeforeEach(func() {
+				delegate.Variables().Get(vars.VariableDefinition{Name: "source-param"})
+			})
+
+			Context("Stdout", func() {
+				JustBeforeEach(func() {
+					writer = delegate.Stdout()
+					writtenBytes, writeErr = writer.Write([]byte("ok super-secret-source ok"))
+				})
+
+				It("should be redacted", func() {
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "ok [**redacted**] ok",
+						Origin: event.Origin{
+							Source: event.OriginSourceStdout,
+							ID:     "some-plan-id",
+						},
+					}))
+				})
+			})
+
+			Context("Stderr", func() {
+				JustBeforeEach(func() {
+					writer = delegate.Stderr()
+					writtenBytes, writeErr = writer.Write([]byte("ok super-secret-source ok"))
+				})
+
+				It("should be redacted", func() {
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "ok [**redacted**] ok",
+						Origin: event.Origin{
+							Source: event.OriginSourceStderr,
+							ID:     "some-plan-id",
+						},
+					}))
+				})
+			})
+
 		})
 	})
 })

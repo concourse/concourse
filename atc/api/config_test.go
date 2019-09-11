@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/rata"
 

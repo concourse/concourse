@@ -11,7 +11,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/ghodss/yaml"
 	"github.com/lib/pq"
 )
 
@@ -1051,7 +1050,7 @@ func scanJob(j *job, row scannable) error {
 	}
 
 	var config atc.JobConfig
-	err = yaml.Unmarshal(decryptedConfig, &config)
+	err = json.Unmarshal(decryptedConfig, &config)
 	if err != nil {
 		return err
 	}

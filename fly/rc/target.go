@@ -204,6 +204,34 @@ func NewUnauthenticatedTarget(
 	), nil
 }
 
+func NewAuthenticatedTarget(
+	name TargetName,
+	url string,
+	teamName string,
+	insecure bool,
+	token *TargetToken,
+	caCert string,
+	tracing bool,
+) (Target, error) {
+	caCertPool, err := loadCACertPool(caCert)
+	if err != nil {
+		return nil, err
+	}
+	httpClient := defaultHttpClient(token, insecure, caCertPool)
+	client := concourse.NewClient(url, httpClient, tracing)
+
+	return newTarget(
+		name,
+		teamName,
+		url,
+		token,
+		caCert,
+		caCertPool,
+		insecure,
+		client,
+	), nil
+}
+
 func NewBasicAuthTarget(
 	name TargetName,
 	url string,

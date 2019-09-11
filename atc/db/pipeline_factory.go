@@ -59,7 +59,7 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 
 func (f *pipelineFactory) AllPipelines() ([]Pipeline, error) {
 	rows, err := pipelinesQuery.
-		OrderBy("ordering").
+		OrderBy("team_id ASC", "ordering ASC").
 		RunWith(f.conn).
 		Query()
 	if err != nil {

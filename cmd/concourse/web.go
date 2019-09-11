@@ -88,5 +88,8 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.DefaultURL()}
 	}
 
+	cmd.TSACommand.ClusterName = cmd.RunCommand.Server.ClusterName
+	cmd.TSACommand.LogClusterName = cmd.RunCommand.LogClusterName
+
 	return nil
 }

@@ -368,6 +368,17 @@ var _ = Describe("Client", func() {
 					})
 				})
 
+				Context("when the task is aborted waiting for an available worker", func() {
+					BeforeEach(func() {
+						cancel()
+					})
+					It("exits releasing the lock", func() {
+						Expect(err).To(Equal(context.Canceled))
+						Expect(status).To(Equal(-1))
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
+					})
+				})
+
 				Context("when a container in worker returns an error", func() {
 					BeforeEach(func() {
 						fakePool.ContainerInWorkerReturns(false, errors.New("nope"))

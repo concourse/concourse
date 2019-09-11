@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/concourse/concourse/vars"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func evaluate(variablesResolver vars.Variables, in, out interface{}) error {

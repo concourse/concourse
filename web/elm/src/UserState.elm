@@ -24,14 +24,15 @@ isMember : { a | teamName : String, userState : UserState } -> Bool
 isMember { teamName, userState } =
     case userState of
         UserStateLoggedIn user ->
-            case Dict.get teamName user.teams of
-                Just roles ->
-                    List.member "pipeline-operator" roles
-                        || List.member "member" roles
-                        || List.member "owner" roles
+            if user.isAdmin then True
+            else
+                case Dict.get teamName user.teams of
+                    Just roles ->
+                        List.member "pipeline-operator" roles
+                            || List.member "member" roles
+                            || List.member "owner" roles
 
-                Nothing ->
-                    False
-
+                    Nothing ->
+                        False
         _ ->
             False

@@ -466,8 +466,6 @@ run:
 			Expect(err).NotTo(HaveOccurred())
 
 			setAndUnpausePipeline("fixtures/custom-resource-type.yml")
-
-			fly("check-resource", "-r", pipelineName+"/some-resource")
 		})
 
 		Context("when -j is specified", func() {

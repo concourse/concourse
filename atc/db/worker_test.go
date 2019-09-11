@@ -242,7 +242,11 @@ var _ = Describe("Worker", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			containerOwner = NewResourceConfigCheckSessionContainerOwner(resourceConfig, expiries)
+			containerOwner = NewResourceConfigCheckSessionContainerOwner(
+				resourceConfig.ID(),
+				resourceConfig.OriginBaseResourceType().ID,
+				expiries,
+			)
 		})
 
 		JustBeforeEach(func() {

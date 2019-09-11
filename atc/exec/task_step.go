@@ -68,7 +68,6 @@ type TaskStep struct {
 	defaultLimits     atc.ContainerLimits
 	metadata          StepMetadata
 	containerMetadata db.ContainerMetadata
-	secrets           creds.Secrets
 	strategy          worker.ContainerPlacementStrategy
 	workerClient      worker.Client
 	delegate          TaskDelegate
@@ -82,7 +81,6 @@ func NewTaskStep(
 	defaultLimits atc.ContainerLimits,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	secrets creds.Secrets,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
 	delegate TaskDelegate,
@@ -94,7 +92,6 @@ func NewTaskStep(
 		defaultLimits:     defaultLimits,
 		metadata:          metadata,
 		containerMetadata: containerMetadata,
-		secrets:           secrets,
 		strategy:          strategy,
 		workerClient:      workerClient,
 		delegate:          delegate,
@@ -124,7 +121,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	variables := creds.NewVariables(step.secrets, step.metadata.TeamName, step.metadata.PipelineName)
+	variables := step.delegate.Variables()
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
@@ -159,7 +156,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	repository := state.Artifacts()
 
-	config, err := taskConfigSource.FetchConfig(logger, repository)
+	config, err := taskConfigSource.FetchConfig(ctx, logger, repository)
 
 	for _, warning := range taskConfigSource.Warnings() {
 		fmt.Fprintln(step.delegate.Stderr(), "[WARNING]", warning)
@@ -450,18 +447,18 @@ func NewTaskArtifactSource(volume worker.Volume) *taskArtifactSource {
 	return &taskArtifactSource{volume}
 }
 
-func (src *taskArtifactSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
+func (src *taskArtifactSource) StreamTo(ctx context.Context, logger lager.Logger, destination worker.ArtifactDestination) error {
 	logger = logger.Session("task-artifact-streaming", lager.Data{
 		"src-volume": src.Handle(),
 		"src-worker": src.WorkerName(),
 	})
 
-	return streamToHelper(src, logger, destination)
+	return streamToHelper(ctx, src, logger, destination)
 }
 
-func (src *taskArtifactSource) StreamFile(logger lager.Logger, filename string) (io.ReadCloser, error) {
+func (src *taskArtifactSource) StreamFile(ctx context.Context, logger lager.Logger, filename string) (io.ReadCloser, error) {
 	logger.Debug("streaming-file-from-volume")
-	return streamFileHelper(src, logger, filename)
+	return streamFileHelper(ctx, src, logger, filename)
 }
 
 func (src *taskArtifactSource) VolumeOn(logger lager.Logger, w worker.Worker) (worker.Volume, bool, error) {
@@ -530,12 +527,12 @@ func newTaskCacheSource(
 	}
 }
 
-func (src *taskCacheSource) StreamTo(logger lager.Logger, destination worker.ArtifactDestination) error {
+func (src *taskCacheSource) StreamTo(ctx context.Context, logger lager.Logger, destination worker.ArtifactDestination) error {
 	// cache will be initialized every time on a new worker
 	return nil
 }
 
-func (src *taskCacheSource) StreamFile(logger lager.Logger, filename string) (io.ReadCloser, error) {
+func (src *taskCacheSource) StreamFile(ctx context.Context, logger lager.Logger, filename string) (io.ReadCloser, error) {
 	return nil, errors.New("taskCacheSource.StreamFile not implemented")
 }
 

@@ -9,22 +9,24 @@ import (
 	"io"
 	"io/ioutil"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("GetStep", func() {
@@ -36,9 +38,8 @@ var _ = Describe("GetStep", func() {
 		fakeWorker               *workerfakes.FakeWorker
 		fakePool                 *workerfakes.FakePool
 		fakeStrategy             *workerfakes.FakeContainerPlacementStrategy
-		fakeResourceFetcher      *resourcefakes.FakeFetcher
+		fakeResourceFetcher      *fetcherfakes.FakeFetcher
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeSecretManager        *credsfakes.FakeSecrets
 		fakeDelegate             *execfakes.FakeGetDelegate
 		getPlan                  *atc.GetPlan
 
@@ -50,6 +51,8 @@ var _ = Describe("GetStep", func() {
 
 		getStep exec.Step
 		stepErr error
+
+		credVarsTracker vars.CredVarsTracker
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: resource.ResourcesDir("get"),
@@ -75,13 +78,13 @@ var _ = Describe("GetStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeWorker = new(workerfakes.FakeWorker)
-		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
+		fakeResourceFetcher = new(fetcherfakes.FakeFetcher)
 		fakePool = new(workerfakes.FakePool)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
-		fakeSecretManager = new(credsfakes.FakeSecrets)
-		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
+		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
+		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 
 		artifactRepository = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -91,6 +94,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
+		fakeDelegate.VariablesReturns(credVarsTracker)
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -140,7 +144,6 @@ var _ = Describe("GetStep", func() {
 			*plan.Get,
 			stepMetadata,
 			containerMetadata,
-			fakeSecretManager,
 			fakeResourceFetcher,
 			fakeResourceCacheFactory,
 			fakeStrategy,
@@ -181,15 +184,13 @@ var _ = Describe("GetStep", func() {
 			Expect(stepErr).ToNot(HaveOccurred())
 
 			Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-			fctx, _, sid, actualWorker, actualContainerSpec, actualResourceTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+			fctx, _, actualContainerMetadata, actualWorker, actualContainerSpec, actualResourceTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
 			Expect(fctx).To(Equal(ctx))
-			Expect(sid).To(Equal(resource.Session{
-				Metadata: db.ContainerMetadata{
-					PipelineID:       4567,
-					Type:             db.ContainerTypeGet,
-					StepName:         "some-step",
-					WorkingDirectory: "/tmp/build/get",
-				},
+			Expect(actualContainerMetadata).To(Equal(db.ContainerMetadata{
+				PipelineID:       4567,
+				Type:             db.ContainerTypeGet,
+				StepName:         "some-step",
+				WorkingDirectory: "/tmp/build/get",
 			}))
 			Expect(actualWorker.Name()).To(Equal("some-worker"))
 			Expect(actualContainerSpec).To(Equal(worker.ContainerSpec{
@@ -217,6 +218,12 @@ var _ = Describe("GetStep", func() {
 			)
 
 			Expect(resourceInstance.LockName("fake-worker")).To(Equal(expectedLockName))
+		})
+
+		It("secrets are tracked", func() {
+			mapit := vars.NewMapCredVarsTrackerIterator()
+			credVarsTracker.IterateInterpolatedCreds(mapit)
+			Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		Context("when fetching resource succeeds", func() {
@@ -293,14 +300,15 @@ var _ = Describe("GetStep", func() {
 						})
 
 						It("streams the resource to the destination", func() {
-							err := artifactSource.StreamTo(testLogger, fakeDestination)
+							err := artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
-							Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("."))
+							_, path := fakeVersionedSource.StreamOutArgsForCall(0)
+							Expect(path).To(Equal("."))
 
 							Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-							dest, src := fakeDestination.StreamInArgsForCall(0)
+							_, dest, src := fakeDestination.StreamInArgsForCall(0)
 							Expect(dest).To(Equal("."))
 							Expect(src).To(Equal(streamedOut))
 						})
@@ -313,7 +321,7 @@ var _ = Describe("GetStep", func() {
 							})
 
 							It("returns the error", func() {
-								Expect(artifactSource.StreamTo(testLogger, fakeDestination)).To(Equal(disaster))
+								Expect(artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)).To(Equal(disaster))
 							})
 						})
 
@@ -325,7 +333,7 @@ var _ = Describe("GetStep", func() {
 							})
 
 							It("returns the error", func() {
-								Expect(artifactSource.StreamTo(testLogger, fakeDestination)).To(Equal(disaster))
+								Expect(artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)).To(Equal(disaster))
 							})
 						})
 					})
@@ -338,7 +346,7 @@ var _ = Describe("GetStep", func() {
 						})
 
 						It("returns the error", func() {
-							Expect(artifactSource.StreamTo(testLogger, fakeDestination)).To(Equal(disaster))
+							Expect(artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)).To(Equal(disaster))
 						})
 					})
 				})
@@ -376,17 +384,17 @@ var _ = Describe("GetStep", func() {
 							})
 
 							It("streams out the given path", func() {
-								reader, err := artifactSource.StreamFile(testLogger, "some-path")
+								reader, err := artifactSource.StreamFile(context.TODO(), testLogger, "some-path")
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
-
-								Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("some-path"))
+								_, path := fakeVersionedSource.StreamOutArgsForCall(0)
+								Expect(path).To(Equal("some-path"))
 							})
 
 							Describe("closing the stream", func() {
 								It("closes the stream from the versioned source", func() {
-									reader, err := artifactSource.StreamFile(testLogger, "some-path")
+									reader, err := artifactSource.StreamFile(context.TODO(), testLogger, "some-path")
 									Expect(err).NotTo(HaveOccurred())
 
 									Expect(tgzBuffer.Closed()).To(BeFalse())
@@ -401,7 +409,7 @@ var _ = Describe("GetStep", func() {
 
 						Context("but the stream is empty", func() {
 							It("returns ErrFileNotFound", func() {
-								_, err := artifactSource.StreamFile(testLogger, "some-path")
+								_, err := artifactSource.StreamFile(context.TODO(), testLogger, "some-path")
 								Expect(err).To(MatchError(exec.FileNotFoundError{Path: "some-path"}))
 							})
 						})
@@ -415,7 +423,7 @@ var _ = Describe("GetStep", func() {
 						})
 
 						It("returns the error", func() {
-							_, err := artifactSource.StreamFile(testLogger, "some-path")
+							_, err := artifactSource.StreamFile(context.TODO(), testLogger, "some-path")
 							Expect(err).To(Equal(disaster))
 						})
 					})

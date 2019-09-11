@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/vars"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 type YamlTemplateWithParams struct {

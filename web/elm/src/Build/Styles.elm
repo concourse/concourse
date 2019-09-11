@@ -212,8 +212,9 @@ stepStatusIcon =
 
 firstOccurrenceTooltip : List (Html.Attribute msg)
 firstOccurrenceTooltip =
-    [ style "position" "fixed"
-    , style "transform" "translate(0, -100%)"
+    [ style "position" "absolute"
+    , style "left" "0"
+    , style "bottom" "100%"
     , style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
@@ -238,8 +239,9 @@ firstOccurrenceTooltipArrow =
 
 durationTooltip : List (Html.Attribute msg)
 durationTooltip =
-    [ style "position" "fixed"
-    , style "transform" "translate(0, -100%)"
+    [ style "position" "absolute"
+    , style "right" "0"
+    , style "bottom" "100%"
     , style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"

@@ -16,7 +16,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
@@ -24,6 +23,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("TaskStep", func() {
@@ -40,9 +40,8 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory *lockfakes.FakeLockFactory
 
-		fakeSecretManager *credsfakes.FakeSecrets
-		fakeDelegate      *execfakes.FakeTaskDelegate
-		taskPlan          *atc.TaskPlan
+		fakeDelegate *execfakes.FakeTaskDelegate
+		taskPlan     *atc.TaskPlan
 
 		interpolatedResourceTypes atc.VersionedResourceTypes
 
@@ -51,6 +50,8 @@ var _ = Describe("TaskStep", func() {
 
 		taskStep exec.Step
 		stepErr  error
+
+		credVarsTracker vars.CredVarsTracker
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
@@ -79,10 +80,11 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
-		fakeSecretManager = new(credsfakes.FakeSecrets)
-		fakeSecretManager.GetReturns("super-secret-source", nil, true, nil)
+		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
+		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
+		fakeDelegate.VariablesReturns(credVarsTracker)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
@@ -135,7 +137,6 @@ var _ = Describe("TaskStep", func() {
 			atc.ContainerLimits{},
 			stepMetadata,
 			containerMetadata,
-			fakeSecretManager,
 			fakeStrategy,
 			fakeClient,
 			fakeDelegate,
@@ -220,6 +221,12 @@ var _ = Describe("TaskStep", func() {
 				})
 			})
 
+		})
+
+		It("secrets are tracked", func() {
+			mapit := vars.NewMapCredVarsTrackerIterator()
+			credVarsTracker.IterateInterpolatedCreds(mapit)
+			Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a containerSpec with the correct parameters", func() {
@@ -908,15 +915,15 @@ var _ = Describe("TaskStep", func() {
 						})
 
 						It("streams the data from the volumes to the destination", func() {
-							err := artifactSource1.StreamTo(logger, fakeDestination)
+							err := artifactSource1.StreamTo(context.TODO(), logger, fakeDestination)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(fakeVolume1.StreamOutCallCount()).To(Equal(1))
-							path := fakeVolume1.StreamOutArgsForCall(0)
+							_, path := fakeVolume1.StreamOutArgsForCall(0)
 							Expect(path).To(Equal("."))
 
 							Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-							dest, src := fakeDestination.StreamInArgsForCall(0)
+							_, dest, src := fakeDestination.StreamInArgsForCall(0)
 							Expect(dest).To(Equal("."))
 							Expect(src).To(Equal(streamedOut))
 						})
@@ -955,18 +962,18 @@ var _ = Describe("TaskStep", func() {
 								})
 
 								It("streams out the given path", func() {
-									reader, err := artifactSource1.StreamFile(logger, "some-path")
+									reader, err := artifactSource1.StreamFile(context.TODO(), logger, "some-path")
 									Expect(err).NotTo(HaveOccurred())
 
 									Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
 
-									path := fakeVolume1.StreamOutArgsForCall(0)
+									_, path := fakeVolume1.StreamOutArgsForCall(0)
 									Expect(path).To(Equal("some-path"))
 								})
 
 								Describe("closing the stream", func() {
 									It("closes the stream from the versioned source", func() {
-										reader, err := artifactSource1.StreamFile(logger, "some-path")
+										reader, err := artifactSource1.StreamFile(context.TODO(), logger, "some-path")
 										Expect(err).NotTo(HaveOccurred())
 
 										Expect(tgzBuffer.Closed()).To(BeFalse())
@@ -981,7 +988,7 @@ var _ = Describe("TaskStep", func() {
 
 							Context("but the stream is empty", func() {
 								It("returns ErrFileNotFound", func() {
-									_, err := artifactSource1.StreamFile(logger, "some-path")
+									_, err := artifactSource1.StreamFile(context.TODO(), logger, "some-path")
 									Expect(err).To(MatchError(exec.FileNotFoundError{Path: "some-path"}))
 								})
 							})
@@ -995,7 +1002,7 @@ var _ = Describe("TaskStep", func() {
 							})
 
 							It("returns the error", func() {
-								_, err := artifactSource1.StreamFile(logger, "some-path")
+								_, err := artifactSource1.StreamFile(context.TODO(), logger, "some-path")
 								Expect(err).To(Equal(disaster))
 							})
 						})

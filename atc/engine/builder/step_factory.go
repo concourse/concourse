@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/fetcher"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -17,25 +17,25 @@ import (
 type stepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
-	resourceFetcher       resource.Fetcher
+	resourceFetcher       fetcher.Fetcher
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
-	secretManager         creds.Secrets
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
 	resourceFactory       resource.ResourceFactory
+	lockFactory           lock.LockFactory
 }
 
 func NewStepFactory(
 	pool worker.Pool,
 	client worker.Client,
-	resourceFetcher resource.Fetcher,
+	resourceFetcher fetcher.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
-	secretManager creds.Secrets,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	resourceFactory resource.ResourceFactory,
+	lockFactory lock.LockFactory,
 ) *stepFactory {
 	return &stepFactory{
 		pool:                  pool,
@@ -43,10 +43,10 @@ func NewStepFactory(
 		resourceFetcher:       resourceFetcher,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
-		secretManager:         secretManager,
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		resourceFactory:       resourceFactory,
+		lockFactory:           lockFactory,
 	}
 }
 
@@ -63,7 +63,6 @@ func (factory *stepFactory) GetStep(
 		*plan.Get,
 		stepMetadata,
 		containerMetadata,
-		factory.secretManager,
 		factory.resourceFetcher,
 		factory.resourceCacheFactory,
 		factory.strategy,
@@ -87,7 +86,6 @@ func (factory *stepFactory) PutStep(
 		*plan.Put,
 		stepMetadata,
 		containerMetadata,
-		factory.secretManager,
 		factory.resourceFactory,
 		factory.resourceConfigFactory,
 		factory.strategy,
@@ -98,12 +96,33 @@ func (factory *stepFactory) PutStep(
 	return exec.LogError(putStep, delegate)
 }
 
+func (factory *stepFactory) CheckStep(
+	plan atc.Plan,
+	stepMetadata exec.StepMetadata,
+	containerMetadata db.ContainerMetadata,
+	delegate exec.CheckDelegate,
+) exec.Step {
+	containerMetadata.WorkingDirectory = resource.ResourcesDir("check")
+
+	checkStep := exec.NewCheckStep(
+		plan.ID,
+		*plan.Check,
+		stepMetadata,
+		containerMetadata,
+		factory.resourceFactory,
+		worker.NewRandomPlacementStrategy(),
+		factory.pool,
+		delegate,
+	)
+
+	return checkStep
+}
+
 func (factory *stepFactory) TaskStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.TaskDelegate,
-	lockFactory lock.LockFactory,
 ) exec.Step {
 	sum := sha1.Sum([]byte(plan.Task.Name))
 	containerMetadata.WorkingDirectory = filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
@@ -114,11 +133,10 @@ func (factory *stepFactory) TaskStep(
 		factory.defaultLimits,
 		stepMetadata,
 		containerMetadata,
-		factory.secretManager,
 		factory.strategy,
 		factory.client,
 		delegate,
-		lockFactory,
+		factory.lockFactory,
 	)
 
 	return exec.LogError(taskStep, delegate)

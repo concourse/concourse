@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
-	"github.com/concourse/concourse/atc/api/resourceserver/resourceserverfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
@@ -51,8 +50,8 @@ var (
 	build                   *dbfakes.FakeBuild
 	dbBuildFactory          *dbfakes.FakeBuildFactory
 	dbUserFactory           *dbfakes.FakeUserFactory
+	dbCheckFactory          *dbfakes.FakeCheckFactory
 	dbTeam                  *dbfakes.FakeTeam
-	fakeScannerFactory      *resourceserverfakes.FakeScannerFactory
 	fakeSecretManager       *credsfakes.FakeSecrets
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
@@ -96,6 +95,7 @@ var _ = BeforeEach(func() {
 	dbResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 	dbBuildFactory = new(dbfakes.FakeBuildFactory)
 	dbUserFactory = new(dbfakes.FakeUserFactory)
+	dbCheckFactory = new(dbfakes.FakeCheckFactory)
 
 	interceptTimeoutFactory = new(containerserverfakes.FakeInterceptTimeoutFactory)
 	interceptTimeout = new(containerserverfakes.FakeInterceptTimeout)
@@ -117,8 +117,6 @@ var _ = BeforeEach(func() {
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
 
 	fakeWorkerClient = new(workerfakes.FakeClient)
-
-	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
 
 	fakeVolumeRepository = new(dbfakes.FakeVolumeRepository)
 	fakeContainerRepository = new(dbfakes.FakeContainerRepository)
@@ -173,14 +171,13 @@ var _ = BeforeEach(func() {
 		fakeContainerRepository,
 		fakeDestroyer,
 		dbBuildFactory,
+		dbCheckFactory,
 		dbResourceConfigFactory,
 		dbUserFactory,
 
 		constructedEventHandler.Construct,
 
 		fakeWorkerClient,
-
-		fakeScannerFactory,
 
 		sink,
 

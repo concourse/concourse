@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/vars"
 )
 
 type FakeGetDelegate struct {
@@ -72,6 +73,16 @@ type FakeGetDelegate struct {
 		arg1 lager.Logger
 		arg2 atc.GetPlan
 		arg3 exec.VersionInfo
+	}
+	VariablesStub        func() vars.CredVarsTracker
+	variablesMutex       sync.RWMutex
+	variablesArgsForCall []struct {
+	}
+	variablesReturns struct {
+		result1 vars.CredVarsTracker
+	}
+	variablesReturnsOnCall map[int]struct {
+		result1 vars.CredVarsTracker
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -401,6 +412,58 @@ func (fake *FakeGetDelegate) UpdateVersionArgsForCall(i int) (lager.Logger, atc.
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
+func (fake *FakeGetDelegate) Variables() vars.CredVarsTracker {
+	fake.variablesMutex.Lock()
+	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
+	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Variables", []interface{}{})
+	fake.variablesMutex.Unlock()
+	if fake.VariablesStub != nil {
+		return fake.VariablesStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.variablesReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeGetDelegate) VariablesCallCount() int {
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
+	return len(fake.variablesArgsForCall)
+}
+
+func (fake *FakeGetDelegate) VariablesCalls(stub func() vars.CredVarsTracker) {
+	fake.variablesMutex.Lock()
+	defer fake.variablesMutex.Unlock()
+	fake.VariablesStub = stub
+}
+
+func (fake *FakeGetDelegate) VariablesReturns(result1 vars.CredVarsTracker) {
+	fake.variablesMutex.Lock()
+	defer fake.variablesMutex.Unlock()
+	fake.VariablesStub = nil
+	fake.variablesReturns = struct {
+		result1 vars.CredVarsTracker
+	}{result1}
+}
+
+func (fake *FakeGetDelegate) VariablesReturnsOnCall(i int, result1 vars.CredVarsTracker) {
+	fake.variablesMutex.Lock()
+	defer fake.variablesMutex.Unlock()
+	fake.VariablesStub = nil
+	if fake.variablesReturnsOnCall == nil {
+		fake.variablesReturnsOnCall = make(map[int]struct {
+			result1 vars.CredVarsTracker
+		})
+	}
+	fake.variablesReturnsOnCall[i] = struct {
+		result1 vars.CredVarsTracker
+	}{result1}
+}
+
 func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -420,6 +483,8 @@ func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stdoutMutex.RUnlock()
 	fake.updateVersionMutex.RLock()
 	defer fake.updateVersionMutex.RUnlock()
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

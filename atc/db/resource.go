@@ -22,6 +22,7 @@ type Resource interface {
 	Public() bool
 	PipelineID() int
 	PipelineName() string
+	TeamID() int
 	TeamName() string
 	Type() string
 	Source() atc.Source
@@ -61,7 +62,25 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.type, r.config, r.check_error, rs.last_check_start_time, rs.last_check_end_time, r.pipeline_id, r.nonce, r.resource_config_id, r.resource_config_scope_id, p.name, t.name, rs.check_error, rp.version, rp.comment_text").
+var resourcesQuery = psql.Select(
+	"r.id",
+	"r.name",
+	"r.type",
+	"r.config",
+	"r.check_error",
+	"rs.last_check_start_time",
+	"rs.last_check_end_time",
+	"r.pipeline_id",
+	"r.nonce",
+	"r.resource_config_id",
+	"r.resource_config_scope_id",
+	"p.name",
+	"t.id",
+	"t.name",
+	"rs.check_error",
+	"rp.version",
+	"rp.comment_text",
+).
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
@@ -75,6 +94,7 @@ type resource struct {
 	public                bool
 	pipelineID            int
 	pipelineName          string
+	teamID                int
 	teamName              string
 	type_                 string
 	source                atc.Source
@@ -142,6 +162,7 @@ func (r *resource) Name() string                     { return r.name }
 func (r *resource) Public() bool                     { return r.public }
 func (r *resource) PipelineID() int                  { return r.pipelineID }
 func (r *resource) PipelineName() string             { return r.pipelineName }
+func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
 func (r *resource) Type() string                     { return r.type_ }
 func (r *resource) Source() atc.Source               { return r.source }
@@ -253,15 +274,7 @@ func (r *resource) SetCheckSetupError(cause error) error {
 	return err
 }
 
-// SaveUncheckedVersion is used by the "get" and "put" step to find or create of a
-// resource config version. We want to do an upsert because there will be cases
-// where resource config versions can become outdated while the versions
-// associated to it are still valid. This will be special case where we save
-// the version with a check order of 0 in order to avoid using this version
-// until we do a proper check. Note that this method will not bump the cache
-// index for the pipeline because we want to ignore these versions until the
-// check orders get updated. The bumping of the index will be done in
-// SaveOutput for the put step.
+// XXX: only used for tests
 func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes atc.VersionedResourceTypes) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -275,7 +288,7 @@ func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceCo
 		return false, err
 	}
 
-	newVersion, err := saveResourceVersion(tx, resourceConfigScope, version, metadata)
+	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata)
 	if err != nil {
 		return false, err
 	}
@@ -633,7 +646,7 @@ func scanResource(r *resource, row scannable) error {
 		lastCheckStartTime, lastCheckEndTime                                        pq.NullTime
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamID, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
 	if err != nil {
 		return err
 	}

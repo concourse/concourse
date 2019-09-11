@@ -6,9 +6,14 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 )
+
+//go:generate counterfeiter . ResourceFactory
+
+type ResourceFactory interface {
+	NewResourceForContainer(container worker.Container) Resource
+}
 
 //go:generate counterfeiter . Resource
 
@@ -19,10 +24,6 @@ type Resource interface {
 }
 
 type ResourceType string
-
-type Session struct {
-	Metadata db.ContainerMetadata
-}
 
 type Metadata interface {
 	Env() []string
@@ -38,28 +39,24 @@ func ResourcesDir(suffix string) string {
 	return filepath.Join("/tmp", "build", suffix)
 }
 
+func NewResource(container worker.Container) *resource {
+	return &resource{
+		container: container,
+	}
+}
+
 type resource struct {
 	container worker.Container
 
 	ScriptFailure bool
 }
 
-//go:generate counterfeiter . ResourceFactory
-
-type ResourceFactory interface {
-	NewResourceForContainer(worker.Container) Resource
-}
-
-func NewResourceFactory() ResourceFactory {
+func NewResourceFactory() *resourceFactory {
 	return &resourceFactory{}
 }
 
-// TODO: This factory is purely used for testing and faking out the Resource
-// object. Please remove asap if possible.
 type resourceFactory struct{}
 
 func (rf *resourceFactory) NewResourceForContainer(container worker.Container) Resource {
-	return &resource{
-		container: container,
-	}
+	return NewResource(container)
 }

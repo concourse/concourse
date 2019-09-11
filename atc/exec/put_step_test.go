@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
@@ -15,9 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("PutStep", func() {
@@ -30,7 +31,6 @@ var _ = Describe("PutStep", func() {
 		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-		fakeSecretManager         *credsfakes.FakeSecrets
 		fakeDelegate              *execfakes.FakePutDelegate
 		putPlan                   *atc.PutPlan
 
@@ -57,6 +57,8 @@ var _ = Describe("PutStep", func() {
 		putStep *exec.PutStep
 		stepErr error
 
+		credVarsTracker vars.CredVarsTracker
+
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
@@ -74,15 +76,15 @@ var _ = Describe("PutStep", func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 
-		fakeSecretManager = new(credsfakes.FakeSecrets)
-		fakeSecretManager.GetReturnsOnCall(0, "super-secret-source", nil, true, nil)
-		fakeSecretManager.GetReturnsOnCall(1, "source", nil, true, nil)
+		credVars := vars.StaticVariables{"custom-param": "source", "source-param": "super-secret-source"}
+		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 
 		fakeDelegate = new(execfakes.FakePutDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+		fakeDelegate.VariablesReturns(vars.NewCredVarsTracker(credVarsTracker, false))
 
 		repo = artifact.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -136,7 +138,6 @@ var _ = Describe("PutStep", func() {
 			*plan.Put,
 			stepMetadata,
 			containerMetadata,
-			fakeSecretManager,
 			fakeResourceFactory,
 			fakeResourceConfigFactory,
 			fakeStrategy,
@@ -233,6 +234,13 @@ var _ = Describe("PutStep", func() {
 				))
 				Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 				Expect(delegate).To(Equal(fakeDelegate))
+			})
+
+			It("secrets are tracked", func() {
+				mapit := vars.NewMapCredVarsTrackerIterator()
+				credVarsTracker.IterateInterpolatedCreds(mapit)
+				Expect(mapit.Data["custom-param"]).To(Equal("source"))
+				Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
 			})
 
 			Context("when the inputs are specified", func() {

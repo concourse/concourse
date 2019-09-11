@@ -72,7 +72,6 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline) scheduler
 		BuildStarter: scheduler.NewBuildStarter(
 			pipeline,
 			factory.NewBuildFactory(
-				pipeline.ID(),
 				atc.NewPlanFactory(time.Now().Unix()),
 			),
 			alg,

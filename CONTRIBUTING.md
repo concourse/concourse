@@ -31,6 +31,10 @@ on.
   * All commits must have a signature certifying agreement to the [DCO][dco].
     For more information, see [Signing your work](#signing-your-work).
 
+  * Write release notes by adding onto the `latest.md` file in the
+    `release-notes/` directory! For formatting and style examples,
+    see previous release notes in the same directory.
+
   * *Optional: check out our [Go style guide][style-guide]!*
 
 * When you're ready, [submit a pull request][how-to-pr]!
@@ -114,7 +118,6 @@ silly air-traffic-themed names.
 | `/worker`       | The `concourse worker` library code for registering with the TSA, periodically reaping containers/volumes, etc. |
 | `/cmd`          | This is mainly glue code to wire the ATC, TSA, [BaggageClaim](https://github.com/concourse/baggageclaim), and Garden into the single `concourse` CLI. |
 | `/topgun`       | Another acceptance suite which covers operator-level features and technical aspects of the Concourse runtime. Deploys its own Concourse clusters, runs tests against them, and tears them down. |
-| `/ci`           | This folder contains all of our Concourse tasks, pipelines, and Docker images for the Concourse project itself. |
 
 ### Rebuilding to test your changes
 
@@ -216,7 +219,7 @@ $ docker-compose start
 ### Adding migrations
 
 Concourse database migrations live under `atc/db/migration/migrations`. They are
-generated using Concourse's own inbuilt migration library. The migration file 
+generated using Concourse's own inbuilt migration library. The migration file
 names are of the following format:
 ```
 <migration_version>_<migration_name>.(up|down).(sql|go)
@@ -224,7 +227,7 @@ names are of the following format:
 
 The migration version number is the timestamp of the time at which the migration
 files are created. This is to ensure that the migrations always run in order.
-There is a utility provided to generate migration files, located at 
+There is a utility provided to generate migration files, located at
 `atc/db/migration/cli`.
 
 To generate a migration:
@@ -235,7 +238,7 @@ To generate a migration:
 $ go build atc/db/migration/cli -o mig
 ```
 2. Run the `generate` command. It takes the migration name, file type (SQL or Go)
-and optionally, the directory in which to put the migration files (by default, 
+and optionally, the directory in which to put the migration files (by default,
 new migrations are placed in `./migrations`):
 
 ```sh
@@ -243,12 +246,12 @@ $ ./mig generate -n my_migration_name -t sql
 ```
 
 This should generate two files for you:
-``` 
+```
 1510262030_my_migration_name.down.sql
 1510262030_my_migration_name.up.sql
 ```
 
-Now that the migration files have been created in the right format, you can fill 
+Now that the migration files have been created in the right format, you can fill
 the database up and down migrations in these files. On startup, `concourse web`
 will look for any new migrations in `atc/db/migration/migrations` and will run
 them in order.
@@ -389,7 +392,7 @@ a screenshot taken at the moment of the failure will be at
 ### Running Kubernetes tests
 
 Kubernetes-related testing are all end-to-end, living under `topgun/k8s`. They
-require access to a real Kubernetes cluster with access granted through a 
+require access to a real Kubernetes cluster with access granted through a
 properly configured `~/.kube/config` file.
 
 The tests require a few environment variables to be set:
@@ -398,7 +401,7 @@ The tests require a few environment variables to be set:
 when deploying Concourse in the k8s cluster
 - `CONCOURSE_IMAGE_NAME`: the name of the image to use when deploying Concourse
 to the Kubernetes cluster
-- `CHARTS_DIR`: location in the filesystem where a copy of [`the Concourse Helm 
+- `CHARTS_DIR`: location in the filesystem where a copy of [`the Concourse Helm
 chart`][concourse-helm-chart] exists.
 
 With those set, go to `topgun/k8s` and run Ginkgo:

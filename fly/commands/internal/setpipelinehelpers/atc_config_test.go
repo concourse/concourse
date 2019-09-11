@@ -2,8 +2,9 @@ package setpipelinehelpers_test
 
 import (
 	"fmt"
-	. "github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
 	"os"
+
+	. "github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

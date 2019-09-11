@@ -34,7 +34,9 @@ import (
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/builder"
+	"github.com/concourse/concourse/atc/fetcher"
 	"github.com/concourse/concourse/atc/gc"
+	"github.com/concourse/concourse/atc/lidar"
 	"github.com/concourse/concourse/atc/lockrunner"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/pipelines"
@@ -113,7 +115,10 @@ type RunCommand struct {
 
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
-	EnableGlobalResources bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+	EnableGlobalResources bool          `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+	EnableLidar           bool          `long:"enable-lidar" description:"The Future™ of resource checking."`
+	LidarScannerInterval  time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
+	LidarCheckerInterval  time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
 	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -147,13 +152,15 @@ type RunCommand struct {
 		ClusterName   string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 	} `group:"Web Server"`
 
-	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
+	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
+	LogClusterName bool `long:"log-cluster-name" description:"Log cluster name."`
 
 	GC struct {
 		Interval time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
 
 		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Period after which one-off build containers will be garbage-collected."`
 		MissingGracePeriod     time.Duration `long:"missing-grace-period" default:"5m" description:"Period after which to reap containers and volumes that were created but went missing from the worker."`
+		CheckRecyclePeriod     time.Duration `long:"check-recycle-period" default:"6h" description:"Period after which to reap checks that are completed."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
@@ -193,6 +200,8 @@ type RunCommand struct {
 		AuthFlags     skycmd.AuthFlags
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
+
+	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 
 	closeDBConns []Closer
 }
@@ -371,6 +380,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	logger, reconfigurableSink := cmd.Logger.Logger("atc")
+	if cmd.LogClusterName {
+		logger = logger.WithData(lager.Data{
+			"cluster": cmd.Server.ClusterName,
+		})
+	}
 
 	commandSession := logger.Session("cmd")
 	startTime := time.Now()
@@ -547,8 +561,8 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	fetchSourceFactory := resource.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
-	resourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+	fetchSourceFactory := fetcher.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
+	resourceFetcher := fetcher.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		dbResourceCacheFactory,
@@ -586,19 +600,6 @@ func (cmd *RunCommand) constructAPIMembers(
 	pool := worker.NewPool(workerProvider)
 	workerClient := worker.NewClient(pool, workerProvider)
 
-	checkContainerStrategy := worker.NewRandomPlacementStrategy()
-
-	radarScannerFactory := radar.NewScannerFactory(
-		pool,
-		resourceFactory,
-		dbResourceConfigFactory,
-		cmd.ResourceTypeCheckingInterval,
-		cmd.ResourceCheckingInterval,
-		cmd.ExternalURL.String(),
-		secretManager,
-		checkContainerStrategy,
-	)
-
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
@@ -606,6 +607,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
 	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
 
 	apiHandler, err := cmd.constructAPIHandler(
@@ -620,10 +622,10 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbContainerRepository,
 		gcContainerDestroyer,
 		dbBuildFactory,
+		dbCheckFactory,
 		dbResourceConfigFactory,
 		userFactory,
 		workerClient,
-		radarScannerFactory,
 		secretManager,
 		credsManagers,
 		accessFactory,
@@ -726,8 +728,8 @@ func (cmd *RunCommand) constructBackendMembers(
 
 	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	fetchSourceFactory := resource.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
-	resourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+	fetchSourceFactory := fetcher.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
+	resourceFetcher := fetcher.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		dbResourceCacheFactory,
@@ -799,8 +801,11 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	bus := dbConn.Bus()
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+
+	bus := dbConn.Bus()
+
 	members := []grouper.Member{
 		{Name: "pipelines", Runner: pipelines.SyncRunner{
 			Syncer: cmd.constructPipelineSyncer(
@@ -845,7 +850,46 @@ func (cmd *RunCommand) constructBackendMembers(
 		)},
 	}
 
-	//Syslog Drainer Configuration
+	var lidarRunner ifrit.Runner
+
+	if cmd.EnableLidar {
+		lidarRunner = lidar.NewRunner(
+			logger.Session("lidar"),
+			clock.NewClock(),
+			lidar.NewScanner(
+				logger.Session("lidar-scanner"),
+				dbCheckFactory,
+				secretManager,
+				cmd.GlobalResourceCheckTimeout,
+				cmd.ResourceCheckingInterval,
+			),
+			cmd.LidarScannerInterval,
+			lidar.NewChecker(
+				logger.Session("lidar-checker"),
+				dbCheckFactory,
+				engine,
+			),
+			cmd.LidarCheckerInterval,
+			bus,
+		)
+	} else {
+		lidarRunner = lidar.NewCheckerRunner(
+			logger.Session("lidar"),
+			clock.NewClock(),
+			lidar.NewChecker(
+				logger.Session("lidar-checker"),
+				dbCheckFactory,
+				engine,
+			),
+			cmd.LidarCheckerInterval,
+			bus,
+		)
+	}
+
+	members = append(members, grouper.Member{
+		Name: "lidar", Runner: lidarRunner,
+	})
+
 	if syslogDrainConfigured {
 		members = append(members, grouper.Member{
 			Name: "syslog", Runner: lockrunner.NewRunner(
@@ -897,6 +941,7 @@ func (cmd *RunCommand) constructGCMembers(
 		"artifact-collector",
 		"volume-collector",
 		"container-collector",
+		"check-collector",
 	}
 
 	for _, name := range gcConns {
@@ -977,6 +1022,12 @@ func (cmd *RunCommand) constructGCMembers(
 					time.Minute,
 				),
 				cmd.GC.MissingGracePeriod,
+			)
+		case "check-collector":
+			checkLifecycle := db.NewCheckLifecycle(gcConn)
+			collector = gc.NewCheckCollector(
+				checkLifecycle,
+				cmd.GC.CheckRecyclePeriod,
 			)
 		default:
 			panic("garbage collector does not exist: " + name)
@@ -1355,7 +1406,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
 	workerClient worker.Client,
-	resourceFetcher resource.Fetcher,
+	resourceFetcher fetcher.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	secretManager creds.Secrets,
@@ -1371,17 +1422,18 @@ func (cmd *RunCommand) constructEngine(
 		resourceFetcher,
 		resourceCacheFactory,
 		resourceConfigFactory,
-		secretManager,
 		defaultLimits,
 		strategy,
 		resourceFactory,
+		lockFactory,
 	)
 
 	stepBuilder := builder.NewStepBuilder(
 		stepFactory,
 		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
-		lockFactory,
+		secretManager,
+		cmd.EnableRedactSecrets,
 	)
 
 	return engine.NewEngine(stepBuilder)
@@ -1430,10 +1482,10 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbContainerRepository db.ContainerRepository,
 	gcContainerDestroyer gc.Destroyer,
 	dbBuildFactory db.BuildFactory,
+	dbCheckFactory db.CheckFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
 	workerClient worker.Client,
-	radarScannerFactory radar.ScannerFactory,
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
@@ -1483,13 +1535,13 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbContainerRepository,
 		gcContainerDestroyer,
 		dbBuildFactory,
+		dbCheckFactory,
 		resourceConfigFactory,
 		dbUserFactory,
 
 		buildserver.NewEventHandler,
 
 		workerClient,
-		radarScannerFactory,
 
 		reconfigurableSink,
 
@@ -1545,7 +1597,7 @@ func (cmd *RunCommand) constructPipelineSyncer(
 							"team":     pipeline.TeamName(),
 							"pipeline": pipeline.Name(),
 						}),
-						cmd.Developer.Noop,
+						(cmd.Developer.Noop || cmd.EnableLidar),
 						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables, bus),
 						pipeline,
 						1*time.Minute,

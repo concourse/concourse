@@ -3,6 +3,7 @@ resources:
 - name: some-resource
   type: mock
   source:
+    no_initial_version: true
     create_files: {"task.yml":((task_content))}
 
 - name: some-image

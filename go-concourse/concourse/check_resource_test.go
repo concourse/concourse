@@ -14,21 +14,32 @@ import (
 
 var _ = Describe("CheckResource", func() {
 	Context("when ATC request succeeds", func() {
+		var expectedCheck atc.Check
+
 		BeforeEach(func() {
+			expectedCheck = atc.Check{
+				ID:         123,
+				Status:     "started",
+				CreateTime: 100000000000,
+				StartTime:  100000000000,
+				EndTime:    100000000000,
+			}
+
 			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
 					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedCheck),
 				),
 			)
 		})
 
 		It("sends check resource request to ATC", func() {
-			found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			check, found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
+			Expect(check).To(Equal(expectedCheck))
 
 			Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
 		})
@@ -47,7 +58,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("returns a ResourceNotFoundError", func() {
-			found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -57,27 +68,20 @@ var _ = Describe("CheckResource", func() {
 		BeforeEach(func() {
 			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
 
-			atcResponse := atc.CheckResponseBody{
-				ExitStatus: 1,
-				Stderr:     "bad version",
-			}
-
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
 					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
-					ghttp.RespondWithJSONEncoded(http.StatusBadRequest, atcResponse),
+					ghttp.RespondWith(http.StatusBadRequest, "bad request"),
 				),
 			)
 		})
 
 		It("returns an error", func() {
-			_, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, _, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).To(HaveOccurred())
 
-			cre, ok := err.(concourse.CommandFailedError)
-			Expect(ok).To(BeTrue())
-			Expect(cre.Error()).To(Equal("check failed with exit status '1':\nbad version\n"))
+			Expect(err.Error()).To(ContainSubstring("bad request"))
 		})
 	})
 
@@ -95,7 +99,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("returns an error with body", func() {
-			_, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, _, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).To(HaveOccurred())
 
 			cre, ok := err.(concourse.GenericError)

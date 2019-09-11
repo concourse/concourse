@@ -52,7 +52,8 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 				atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			owner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ownerExpiries)
+			resourceConfig := resourceConfigScope.ResourceConfig()
+			owner = db.NewResourceConfigCheckSessionContainerOwner(resourceConfig.ID(), resourceConfig.OriginBaseResourceType().ID, ownerExpiries)
 
 			workerFactory := db.NewWorkerFactory(dbConn)
 			defaultWorkerPayload := atc.Worker{

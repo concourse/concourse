@@ -586,6 +586,31 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 	)
 }
 
+type CheckFinished struct {
+	ResourceConfigScopeID string
+	CheckName             string
+	Success               bool
+}
+
+func (event CheckFinished) Emit(logger lager.Logger) {
+	state := EventStateOK
+	if !event.Success {
+		state = EventStateWarning
+	}
+	emit(
+		logger.Session("check-finished"),
+		Event{
+			Name:  "check finished",
+			Value: 1,
+			State: state,
+			Attributes: map[string]string{
+				"scope_id":   event.ResourceConfigScopeID,
+				"check_name": event.CheckName,
+			},
+		},
+	)
+}
+
 var lockTypeNames = map[int]string{
 	lock.LockTypeResourceConfigChecking: "ResourceConfigChecking",
 	lock.LockTypeBuildTracking:          "BuildTracking",

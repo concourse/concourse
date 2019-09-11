@@ -3,12 +3,12 @@ resources:
 - name: some-resource
   type: mock
   source:
-    initial_version: some-resource-version
+    no_initial_version: true
 
 - name: cached-resource
   type: mock
   source:
-    initial_version: cached-resource-version
+    no_initial_version: true
 
 jobs:
 - name: some-passing-job

@@ -250,7 +250,7 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 		return
 	}
 
-	err = s.config.TokenMiddleware.SetToken(w, token.TokenType + " " + token.AccessToken, token.Expiry)
+	err = s.config.TokenMiddleware.SetToken(w, token.TokenType+" "+token.AccessToken, token.Expiry)
 	if err != nil {
 		logger.Error("invalid-token", err)
 		w.WriteHeader(http.StatusInternalServerError)

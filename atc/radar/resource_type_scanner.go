@@ -255,7 +255,11 @@ func (scanner *resourceTypeScanner) check(
 		TeamID:        scanner.dbPipeline.TeamID(),
 	}
 
-	owner := db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries)
+	owner := db.NewResourceConfigCheckSessionContainerOwner(
+		resourceConfigScope.ResourceConfig().ID(),
+		resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		ContainerExpiries,
+	)
 
 	chosenWorker, err := scanner.pool.FindOrChooseWorkerForContainer(
 		context.Background(),
@@ -278,7 +282,11 @@ func (scanner *resourceTypeScanner) check(
 		context.Background(),
 		logger,
 		worker.NoopImageFetchingDelegate{},
-		db.NewResourceConfigCheckSessionContainerOwner(resourceConfigScope.ResourceConfig(), ContainerExpiries),
+		db.NewResourceConfigCheckSessionContainerOwner(
+			resourceConfigScope.ResourceConfig().ID(),
+			resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+			ContainerExpiries,
+		),
 		db.ContainerMetadata{
 			Type: db.ContainerTypeCheck,
 		},

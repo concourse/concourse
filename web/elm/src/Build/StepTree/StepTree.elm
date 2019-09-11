@@ -634,34 +634,30 @@ viewTimestampedLine { timestamps, highlight, id, lineNo, line, timeZone } =
                     hlId == id && lineNo >= hlLine1 && lineNo <= hlLine2
 
         ts =
-            Dict.get (lineNo - 1) timestamps
+            Dict.get lineNo timestamps
     in
-    case line of
-        ( [], _ ) ->
-            Html.text ""
-
-        _ ->
-            Html.tr
-                [ classList
-                    [ ( "timestamped-line", True )
-                    , ( "highlighted-line", highlighted )
-                    ]
-                , Html.Attributes.id <| id ++ ":" ++ String.fromInt lineNo
-                ]
-                [ viewTimestamp
-                    { id = id
-                    , line = lineNo
-                    , date = ts
-                    , timeZone = timeZone
-                    }
-                , viewLine line
-                ]
+    Html.tr
+        [ classList
+            [ ( "timestamped-line", True )
+            , ( "highlighted-line", highlighted )
+            ]
+        , Html.Attributes.id <| id ++ ":" ++ String.fromInt lineNo
+        ]
+        [ viewTimestamp
+            { id = id
+            , line = lineNo
+            , date = ts
+            , timeZone = timeZone
+            }
+        , viewLine line
+        ]
 
 
 viewLine : Ansi.Log.Line -> Html Message
 viewLine line =
     Html.td [ class "timestamped-content" ]
-        [ Ansi.Log.viewLine line ]
+        [ Ansi.Log.viewLine line
+        ]
 
 
 viewTimestamp :
@@ -856,8 +852,6 @@ viewDurationTooltip minit mstart mfinish tooltip =
                 [ Html.div
                     [ style "position" "inherit"
                     , style "margin-left" "-500px"
-                    , style "display" "flex"
-                    , style "justify-content" "flex-end"
                     ]
                     [ Html.div
                         Styles.durationTooltip

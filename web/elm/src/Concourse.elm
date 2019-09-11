@@ -799,6 +799,7 @@ type alias User =
     , userName : String
     , name : String
     , email : String
+    , isAdmin : Bool
     , teams : Dict String (List String)
     }
 
@@ -810,6 +811,7 @@ decodeUser =
         |> andMap (Json.Decode.field "user_name" Json.Decode.string)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.field "email" Json.Decode.string)
+        |> andMap (Json.Decode.field "is_admin" Json.Decode.bool)
         |> andMap (Json.Decode.field "teams" (Json.Decode.dict (Json.Decode.list Json.Decode.string)))
 
 

@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"context"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
@@ -84,6 +85,6 @@ type PutResourceSource struct {
 	worker.ArtifactSource
 }
 
-func (source PutResourceSource) StreamTo(logger lager.Logger, dest worker.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(logger, worker.ArtifactDestination(dest))
+func (source PutResourceSource) StreamTo(ctx context.Context, logger lager.Logger, dest worker.ArtifactDestination) error {
+	return source.ArtifactSource.StreamTo(ctx, logger, dest)
 }

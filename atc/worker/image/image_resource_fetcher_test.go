@@ -15,6 +15,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/fetcher"
+	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
@@ -28,7 +30,7 @@ import (
 
 var _ = Describe("Image", func() {
 	var fakeResourceFactory *resourcefakes.FakeResourceFactory
-	var fakeResourceFetcher *resourcefakes.FakeFetcher
+	var fakeResourceFetcher *fetcherfakes.FakeFetcher
 	var fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 	var fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 	var fakeCreatingContainer *dbfakes.FakeCreatingContainer
@@ -55,7 +57,7 @@ var _ = Describe("Image", func() {
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
-		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
+		fakeResourceFetcher = new(fetcherfakes.FakeFetcher)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		stderrBuf = gbytes.NewBuffer()
@@ -217,11 +219,11 @@ var _ = Describe("Image", func() {
 
 					Context("when fetching resource fails", func() {
 						BeforeEach(func() {
-							fakeResourceFetcher.FetchReturns(nil, resource.ErrInterrupted)
+							fakeResourceFetcher.FetchReturns(nil, fetcher.ErrInterrupted)
 						})
 
 						It("returns error", func() {
-							Expect(fetchErr).To(Equal(resource.ErrInterrupted))
+							Expect(fetchErr).To(Equal(fetcher.ErrInterrupted))
 						})
 					})
 
@@ -297,7 +299,8 @@ var _ = Describe("Image", func() {
 
 							It("calls StreamOut on the versioned source with the right metadata path", func() {
 								Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
-								Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("metadata.json"))
+								_, src := fakeVersionedSource.StreamOutArgsForCall(0)
+								Expect(src).To(Equal("metadata.json"))
 							})
 
 							It("returns a tar stream containing the contents of metadata.json", func() {
@@ -341,12 +344,12 @@ var _ = Describe("Image", func() {
 
 							It("fetches resource with correct session", func() {
 								Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-								_, _, session, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
-								Expect(session).To(Equal(resource.Session{
-									Metadata: db.ContainerMetadata{
+								_, _, actualContainerMetadata, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+								Expect(actualContainerMetadata).To(Equal(
+									db.ContainerMetadata{
 										Type: db.ContainerTypeGet,
 									},
-								}))
+								))
 								Expect(actualWorker.Name()).To(Equal("some-worker"))
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ResourceType: "docker",
@@ -483,11 +486,11 @@ var _ = Describe("Image", func() {
 
 			Context("when fetching resource fails", func() {
 				BeforeEach(func() {
-					fakeResourceFetcher.FetchReturns(nil, resource.ErrInterrupted)
+					fakeResourceFetcher.FetchReturns(nil, fetcher.ErrInterrupted)
 				})
 
 				It("returns error", func() {
-					Expect(fetchErr).To(Equal(resource.ErrInterrupted))
+					Expect(fetchErr).To(Equal(fetcher.ErrInterrupted))
 				})
 			})
 
@@ -543,7 +546,8 @@ var _ = Describe("Image", func() {
 
 					It("calls StreamOut on the versioned source with the right metadata path", func() {
 						Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
-						Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("metadata.json"))
+						_, src := fakeVersionedSource.StreamOutArgsForCall(0)
+						Expect(src).To(Equal("metadata.json"))
 					})
 
 					It("returns a tar stream containing the contents of metadata.json", func() {
@@ -561,12 +565,12 @@ var _ = Describe("Image", func() {
 
 					It("fetches resource with correct session", func() {
 						Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-						_, _, session, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
-						Expect(session).To(Equal(resource.Session{
-							Metadata: db.ContainerMetadata{
+						_, _, actualContainerMetadata, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
+						Expect(actualContainerMetadata).To(Equal(
+							db.ContainerMetadata{
 								Type: db.ContainerTypeGet,
 							},
-						}))
+						))
 						Expect(actualWorker.Name()).To(Equal("some-worker"))
 						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 							ResourceType: "docker",

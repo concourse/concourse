@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/hashicorp/go-multierror"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/fetcher"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -50,14 +53,14 @@ type ImageResourceFetcher interface {
 type imageResourceFetcherFactory struct {
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
-	resourceFetcher         resource.Fetcher
+	resourceFetcher         fetcher.Fetcher
 	resourceFactory         resource.ResourceFactory
 }
 
 func NewImageResourceFetcherFactory(
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
-	resourceFetcher resource.Fetcher,
+	resourceFetcher fetcher.Fetcher,
 	resourceFactory resource.ResourceFactory,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
@@ -94,7 +97,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 type imageResourceFetcher struct {
 	worker                  worker.Worker
 	resourceFactory         resource.ResourceFactory
-	resourceFetcher         resource.Fetcher
+	resourceFetcher         fetcher.Fetcher
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 
@@ -154,10 +157,8 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	getSess := resource.Session{
-		Metadata: db.ContainerMetadata{
-			Type: db.ContainerTypeGet,
-		},
+	containerMetadata := db.ContainerMetadata{
+		Type: db.ContainerTypeGet,
 	}
 
 	containerSpec := worker.ContainerSpec{
@@ -172,7 +173,7 @@ func (i *imageResourceFetcher) Fetch(
 	versionedSource, err := i.resourceFetcher.Fetch(
 		ctx,
 		logger.Session("init-image"),
-		getSess,
+		containerMetadata,
 		i.worker,
 		containerSpec,
 		i.customTypes,
@@ -189,7 +190,7 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
-	reader, err := versionedSource.StreamOut(ImageMetadataFile)
+	reader, err := versionedSource.StreamOut(ctx, ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -327,12 +328,14 @@ func (frc fileReadMultiCloser) Read(p []byte) (n int, err error) {
 }
 
 func (frc fileReadMultiCloser) Close() error {
+	var closeErrors error
+
 	for _, closer := range frc.closers {
 		err := closer.Close()
 		if err != nil {
-			return err
+			closeErrors = multierror.Append(closeErrors, err)
 		}
 	}
 
-	return nil
+	return closeErrors
 }

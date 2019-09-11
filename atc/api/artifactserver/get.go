@@ -48,7 +48,7 @@ func (s *Server) GetArtifact(team db.Team) http.Handler {
 			return
 		}
 
-		reader, err := workerVolume.StreamOut("/")
+		reader, err := workerVolume.StreamOut(r.Context(), "/")
 		if err != nil {
 			logger.Error("failed-to-stream-volume-contents", err)
 			w.WriteHeader(http.StatusInternalServerError)

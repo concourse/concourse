@@ -2,6 +2,7 @@
 package resourcefakes
 
 import (
+	"context"
 	"io"
 	"sync"
 
@@ -21,11 +22,12 @@ type FakeVersionedSource struct {
 	metadataReturnsOnCall map[int]struct {
 		result1 []atc.MetadataField
 	}
-	StreamInStub        func(string, io.Reader) error
+	StreamInStub        func(context.Context, string, io.Reader) error
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
-		arg1 string
-		arg2 io.Reader
+		arg1 context.Context
+		arg2 string
+		arg3 io.Reader
 	}
 	streamInReturns struct {
 		result1 error
@@ -33,10 +35,11 @@ type FakeVersionedSource struct {
 	streamInReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StreamOutStub        func(string) (io.ReadCloser, error)
+	StreamOutStub        func(context.Context, string) (io.ReadCloser, error)
 	streamOutMutex       sync.RWMutex
 	streamOutArgsForCall []struct {
-		arg1 string
+		arg1 context.Context
+		arg2 string
 	}
 	streamOutReturns struct {
 		result1 io.ReadCloser
@@ -122,17 +125,18 @@ func (fake *FakeVersionedSource) MetadataReturnsOnCall(i int, result1 []atc.Meta
 	}{result1}
 }
 
-func (fake *FakeVersionedSource) StreamIn(arg1 string, arg2 io.Reader) error {
+func (fake *FakeVersionedSource) StreamIn(arg1 context.Context, arg2 string, arg3 io.Reader) error {
 	fake.streamInMutex.Lock()
 	ret, specificReturn := fake.streamInReturnsOnCall[len(fake.streamInArgsForCall)]
 	fake.streamInArgsForCall = append(fake.streamInArgsForCall, struct {
-		arg1 string
-		arg2 io.Reader
-	}{arg1, arg2})
-	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2})
+		arg1 context.Context
+		arg2 string
+		arg3 io.Reader
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2, arg3})
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
-		return fake.StreamInStub(arg1, arg2)
+		return fake.StreamInStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -147,17 +151,17 @@ func (fake *FakeVersionedSource) StreamInCallCount() int {
 	return len(fake.streamInArgsForCall)
 }
 
-func (fake *FakeVersionedSource) StreamInCalls(stub func(string, io.Reader) error) {
+func (fake *FakeVersionedSource) StreamInCalls(stub func(context.Context, string, io.Reader) error) {
 	fake.streamInMutex.Lock()
 	defer fake.streamInMutex.Unlock()
 	fake.StreamInStub = stub
 }
 
-func (fake *FakeVersionedSource) StreamInArgsForCall(i int) (string, io.Reader) {
+func (fake *FakeVersionedSource) StreamInArgsForCall(i int) (context.Context, string, io.Reader) {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
 	argsForCall := fake.streamInArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeVersionedSource) StreamInReturns(result1 error) {
@@ -183,16 +187,17 @@ func (fake *FakeVersionedSource) StreamInReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVersionedSource) StreamOut(arg1 string) (io.ReadCloser, error) {
+func (fake *FakeVersionedSource) StreamOut(arg1 context.Context, arg2 string) (io.ReadCloser, error) {
 	fake.streamOutMutex.Lock()
 	ret, specificReturn := fake.streamOutReturnsOnCall[len(fake.streamOutArgsForCall)]
 	fake.streamOutArgsForCall = append(fake.streamOutArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("StreamOut", []interface{}{arg1})
+		arg1 context.Context
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("StreamOut", []interface{}{arg1, arg2})
 	fake.streamOutMutex.Unlock()
 	if fake.StreamOutStub != nil {
-		return fake.StreamOutStub(arg1)
+		return fake.StreamOutStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -207,17 +212,17 @@ func (fake *FakeVersionedSource) StreamOutCallCount() int {
 	return len(fake.streamOutArgsForCall)
 }
 
-func (fake *FakeVersionedSource) StreamOutCalls(stub func(string) (io.ReadCloser, error)) {
+func (fake *FakeVersionedSource) StreamOutCalls(stub func(context.Context, string) (io.ReadCloser, error)) {
 	fake.streamOutMutex.Lock()
 	defer fake.streamOutMutex.Unlock()
 	fake.StreamOutStub = stub
 }
 
-func (fake *FakeVersionedSource) StreamOutArgsForCall(i int) string {
+func (fake *FakeVersionedSource) StreamOutArgsForCall(i int) (context.Context, string) {
 	fake.streamOutMutex.RLock()
 	defer fake.streamOutMutex.RUnlock()
 	argsForCall := fake.streamOutArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeVersionedSource) StreamOutReturns(result1 io.ReadCloser, result2 error) {
