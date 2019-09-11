@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/flag"
@@ -41,8 +42,8 @@ type TeamAuthKeys struct {
 	AuthKeys []ssh.PublicKey
 }
 
-func (cmd *TSACommand) Runner(args []string, clusterName string, logClusterName bool) (ifrit.Runner, error) {
-	logger, _ := cmd.constructLogger(clusterName, logClusterName)
+func (cmd *TSACommand) Runner(args []string, webConfig concourse.WebConfig) (ifrit.Runner, error) {
+	logger, _ := cmd.constructLogger(webConfig)
 
 	atcEndpointPicker := tsa.NewRandomATCEndpointPicker(cmd.ATCURLs)
 
@@ -88,11 +89,11 @@ func (cmd *TSACommand) Runner(args []string, clusterName string, logClusterName 
 	return serverRunner{logger, server, listenAddr}, nil
 }
 
-func (cmd *TSACommand) constructLogger(clusterName string, logClusterName bool) (lager.Logger, *lager.ReconfigurableSink) {
+func (cmd *TSACommand) constructLogger(config concourse.WebConfig) (lager.Logger, *lager.ReconfigurableSink) {
 	logger, reconfigurableSink := cmd.Logger.Logger("tsa")
-	if logClusterName {
+	if config.LogClusterName {
 		logger = logger.WithData(lager.Data{
-			"cluster": clusterName,
+			"cluster": config.ClusterName,
 		})
 	}
 

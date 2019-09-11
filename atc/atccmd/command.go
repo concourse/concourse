@@ -343,7 +343,7 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
 }
 
-func (cmd *RunCommand) Runner(positionalArguments []string, clusterName string, logClusterName bool) (ifrit.Runner, error) {
+func (cmd *RunCommand) Runner(positionalArguments []string, config concourse.WebConfig) (ifrit.Runner, error) {
 	if cmd.ExternalURL.URL == nil {
 		cmd.ExternalURL = cmd.DefaultURL()
 	}
@@ -358,9 +358,9 @@ func (cmd *RunCommand) Runner(positionalArguments []string, clusterName string, 
 	}
 
 	logger, reconfigurableSink := cmd.Logger.Logger("atc")
-	if logClusterName {
+	if config.LogClusterName {
 		logger = logger.WithData(lager.Data{
-			"cluster": clusterName,
+			"cluster": config.ClusterName,
 		})
 	}
 
@@ -434,7 +434,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string, clusterName string, 
 		storage,
 		lockFactory,
 		secretManager,
-		clusterName,
+		config,
 	)
 	if err != nil {
 		return nil, err
@@ -478,7 +478,7 @@ func (cmd *RunCommand) constructMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
-	clusterName string,
+	config concourse.WebConfig,
 ) ([]grouper.Member, error) {
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
@@ -497,7 +497,7 @@ func (cmd *RunCommand) constructMembers(
 		storage,
 		lockFactory,
 		secretManager,
-		clusterName,
+		config,
 	)
 	if err != nil {
 		return nil, err
@@ -518,7 +518,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
-	clusterName string,
+	config concourse.WebConfig,
 ) ([]grouper.Member, error) {
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 	userFactory := db.NewUserFactory(dbConn)
@@ -620,7 +620,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		secretManager,
 		credsManagers,
 		accessFactory,
-		clusterName,
+		config,
 	)
 
 	if err != nil {
@@ -1386,7 +1386,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
-	clusterName string,
+	config concourse.WebConfig,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -1421,7 +1421,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	return api.NewHandler(
 		logger,
 		cmd.ExternalURL.String(),
-		clusterName,
+		config.ClusterName,
 		apiWrapper,
 
 		teamFactory,
