@@ -58,7 +58,6 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
-	"github.com/tedsuo/ifrit/sigmon"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 
@@ -342,15 +341,6 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 
 	skycmd.WireConnectors(authGroup)
 	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
-}
-
-func (cmd *RunCommand) Execute(args []string, clusterName string, logClusterName bool) error {
-	runner, err := cmd.Runner(args, clusterName, logClusterName)
-	if err != nil {
-		return err
-	}
-
-	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
 func (cmd *RunCommand) Runner(positionalArguments []string, clusterName string, logClusterName bool) (ifrit.Runner, error) {

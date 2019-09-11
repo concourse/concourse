@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -13,9 +12,6 @@ import (
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/grouper"
-	"github.com/tedsuo/ifrit/http_server"
-	"github.com/tedsuo/ifrit/sigmon"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -43,33 +39,6 @@ type TSACommand struct {
 type TeamAuthKeys struct {
 	Team     string
 	AuthKeys []ssh.PublicKey
-}
-
-func (cmd *TSACommand) Execute(args []string, clusterName string, logClusterName bool) error {
-	runner, err := cmd.Runner(args, clusterName, logClusterName)
-	if err != nil {
-		return err
-	}
-
-	tsaServerMember := grouper.Member{
-		Name:   "tsa-server",
-		Runner: sigmon.New(runner),
-	}
-
-	tsaDebugMember := grouper.Member{
-		Name: "debug-server",
-		Runner: http_server.New(
-			cmd.debugBindAddr(),
-			http.DefaultServeMux,
-		)}
-
-	members := []grouper.Member{
-		tsaDebugMember,
-		tsaServerMember,
-	}
-
-	group := grouper.NewParallel(os.Interrupt, members)
-	return <-ifrit.Invoke(group).Wait()
 }
 
 func (cmd *TSACommand) Runner(args []string, clusterName string, logClusterName bool) (ifrit.Runner, error) {
