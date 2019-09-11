@@ -17,6 +17,8 @@ import (
 
 type WebCommand struct {
 	PeerAddress string `long:"peer-address" default:"127.0.0.1" description:"Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses."`
+	ClusterName    string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
+	LogClusterName bool   `long:"log-cluster-name" description:"Log cluster name."`
 
 	*atccmd.RunCommand
 	*tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
@@ -46,12 +48,12 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	cmd.populateTSAFlagsFromATCFlags()
 
-	atcRunner, err := cmd.RunCommand.Runner(args)
+	atcRunner, err := cmd.RunCommand.Runner(args, cmd.ClusterName, cmd.LogClusterName)
 	if err != nil {
 		return nil, err
 	}
 
-	tsaRunner, err := cmd.TSACommand.Runner(args)
+	tsaRunner, err := cmd.TSACommand.Runner(args, cmd.ClusterName, cmd.LogClusterName)
 	if err != nil {
 		return nil, err
 	}
@@ -87,9 +89,6 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	if len(cmd.TSACommand.ATCURLs) == 0 {
 		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.DefaultURL()}
 	}
-
-	cmd.TSACommand.ClusterName = cmd.RunCommand.Server.ClusterName
-	cmd.TSACommand.LogClusterName = cmd.RunCommand.LogClusterName
 
 	return nil
 }

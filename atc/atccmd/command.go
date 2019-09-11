@@ -147,11 +147,9 @@ type RunCommand struct {
 
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
-		ClusterName   string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 	} `group:"Web Server"`
 
-	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
-	LogClusterName bool `long:"log-cluster-name" description:"Log cluster name."`
+	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 
 	GC struct {
 		Interval time.Duration `long:"interval" default:"30s" description:"Interval on which to perform garbage collection."`
@@ -346,8 +344,8 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
 }
 
-func (cmd *RunCommand) Execute(args []string) error {
-	runner, err := cmd.Runner(args)
+func (cmd *RunCommand) Execute(args []string, clusterName string, logClusterName bool) error {
+	runner, err := cmd.Runner(args, clusterName, logClusterName)
 	if err != nil {
 		return err
 	}
@@ -355,7 +353,7 @@ func (cmd *RunCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
+func (cmd *RunCommand) Runner(positionalArguments []string, clusterName string, logClusterName bool) (ifrit.Runner, error) {
 	if cmd.ExternalURL.URL == nil {
 		cmd.ExternalURL = cmd.DefaultURL()
 	}
@@ -370,9 +368,9 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	logger, reconfigurableSink := cmd.Logger.Logger("atc")
-	if cmd.LogClusterName {
+	if logClusterName {
 		logger = logger.WithData(lager.Data{
-			"cluster": cmd.Server.ClusterName,
+			"cluster": clusterName,
 		})
 	}
 
@@ -438,7 +436,16 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, secretManager)
+	members, err := cmd.constructMembers(
+		logger,
+		reconfigurableSink,
+		apiConn,
+		backendConn,
+		storage,
+		lockFactory,
+		secretManager,
+		clusterName,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -481,6 +488,7 @@ func (cmd *RunCommand) constructMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	clusterName string,
 ) ([]grouper.Member, error) {
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
@@ -492,7 +500,15 @@ func (cmd *RunCommand) constructMembers(
 		}()
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager)
+	apiMembers, err := cmd.constructAPIMembers(
+		logger,
+		reconfigurableSink,
+		apiConn,
+		storage,
+		lockFactory,
+		secretManager,
+		clusterName,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -512,6 +528,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	clusterName string,
 ) ([]grouper.Member, error) {
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 	userFactory := db.NewUserFactory(dbConn)
@@ -613,6 +630,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		secretManager,
 		credsManagers,
 		accessFactory,
+		clusterName,
 	)
 
 	if err != nil {
@@ -1378,6 +1396,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
+	clusterName string,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -1412,7 +1431,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	return api.NewHandler(
 		logger,
 		cmd.ExternalURL.String(),
-		cmd.Server.ClusterName,
+		clusterName,
 		apiWrapper,
 
 		teamFactory,

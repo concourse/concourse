@@ -38,9 +38,6 @@ type TSACommand struct {
 	SessionSigningKey *flag.PrivateKey `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
 
 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
-
-	ClusterName    string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
-	LogClusterName bool   `long:"log-cluster-name" description:"Log cluster name."`
 }
 
 type TeamAuthKeys struct {
@@ -48,8 +45,8 @@ type TeamAuthKeys struct {
 	AuthKeys []ssh.PublicKey
 }
 
-func (cmd *TSACommand) Execute(args []string) error {
-	runner, err := cmd.Runner(args)
+func (cmd *TSACommand) Execute(args []string, clusterName string, logClusterName bool) error {
+	runner, err := cmd.Runner(args, clusterName, logClusterName)
 	if err != nil {
 		return err
 	}
@@ -75,8 +72,8 @@ func (cmd *TSACommand) Execute(args []string) error {
 	return <-ifrit.Invoke(group).Wait()
 }
 
-func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
-	logger, _ := cmd.constructLogger()
+func (cmd *TSACommand) Runner(args []string, clusterName string, logClusterName bool) (ifrit.Runner, error) {
+	logger, _ := cmd.constructLogger(clusterName, logClusterName)
 
 	atcEndpointPicker := tsa.NewRandomATCEndpointPicker(cmd.ATCURLs)
 
@@ -122,11 +119,11 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	return serverRunner{logger, server, listenAddr}, nil
 }
 
-func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
+func (cmd *TSACommand) constructLogger(clusterName string, logClusterName bool) (lager.Logger, *lager.ReconfigurableSink) {
 	logger, reconfigurableSink := cmd.Logger.Logger("tsa")
-	if cmd.LogClusterName {
+	if logClusterName {
 		logger = logger.WithData(lager.Data{
-			"cluster": cmd.ClusterName,
+			"cluster": clusterName,
 		})
 	}
 
