@@ -47,11 +47,14 @@ type Team interface {
 	Resource(pipelineName string, resourceName string) (atc.Resource, bool, error)
 	ListResources(pipelineName string) ([]atc.Resource, error)
 	VersionedResourceTypes(pipelineName string) (atc.VersionedResourceTypes, bool, error)
-	ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.ResourceVersion, Pagination, bool, error)
+	ResourceVersions(pipelineName string, resourceName string, page Page, filter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
 	CheckResource(pipelineName string, resourceName string, version atc.Version) (atc.Check, bool, error)
 	CheckResourceType(pipelineName string, resourceTypeName string, version atc.Version) (atc.Check, bool, error)
 	DisableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
 	EnableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
+
+	PinResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
+	UnpinResource(pipelineName string, resourceName string) (bool, error)
 
 	BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 	BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)

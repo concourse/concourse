@@ -20,6 +20,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		var expectedVersions []atc.ResourceVersion
 
 		var page concourse.Page
+		var filter atc.Version
 
 		var versions []atc.ResourceVersion
 		var pagination concourse.Pagination
@@ -40,7 +41,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		})
 
 		JustBeforeEach(func() {
-			versions, pagination, found, clientErr = team.ResourceVersions("mypipeline", "myresource", page)
+			versions, pagination, found, clientErr = team.ResourceVersions("mypipeline", "myresource", page, filter)
 		})
 
 		Context("when since, until, and limit are 0", func() {
@@ -149,6 +150,25 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			})
 
 			It("sends both since and the until", func() {
+				Expect(clientErr).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(Equal(expectedVersions))
+			})
+		})
+
+		Context("when filter is specified", func() {
+			BeforeEach(func() {
+				filter = atc.Version{"some": "value", "some-other": "other-value"}
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "filter=some:value&filter=some-other:other-value"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
+					),
+				)
+			})
+
+			It("sends filters as url params", func() {
 				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(Equal(expectedVersions))
@@ -357,6 +377,139 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 					enabled, err := team.EnableResourceVersion(pipelineName, resourceName, resourceVersionID)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(enabled).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+	})
+
+	Describe("PinResourceVersion", func() {
+		var (
+			expectedStatus    int
+			pipelineName      = "banana"
+			resourceName      = "myresource"
+			resourceVersionID = 42
+			expectedURL       = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/versions/%s/pin", pipelineName, resourceName, strconv.Itoa(resourceVersionID))
+		)
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.RespondWith(expectedStatus, nil),
+				),
+			)
+		})
+
+		Context("When the resource exists and there are no issues", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusOK
+			})
+
+			It("calls the pin resource and returns no error", func() {
+				Expect(func() {
+					pinned, err := team.PinResourceVersion(pipelineName, resourceName, resourceVersionID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pinned).To(BeTrue())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the resource does not exist", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusNotFound
+			})
+
+			It("calls the pin resource and returns an error", func() {
+				Expect(func() {
+					pinned, err := team.PinResourceVersion(pipelineName, resourceName, resourceVersionID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pinned).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the pin resource call fails", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusInternalServerError
+			})
+
+			It("calls the pin resource and returns an error", func() {
+				Expect(func() {
+					pinned, err := team.PinResourceVersion(pipelineName, resourceName, resourceVersionID)
+					Expect(err).To(HaveOccurred())
+					Expect(pinned).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+	})
+
+	Describe("UnpinResource", func() {
+		var (
+			expectedStatus int
+			pipelineName   = "banana"
+			resourceName   = "myresource"
+			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/unpin", pipelineName, resourceName)
+		)
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.RespondWith(expectedStatus, nil),
+				),
+			)
+		})
+
+		Context("When the resource exists and there are no issues", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusOK
+			})
+
+			It("calls the unpin resource and returns no error", func() {
+				Expect(func() {
+					pinned, err := team.UnpinResource(pipelineName, resourceName)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pinned).To(BeTrue())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the resource does not exist", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusNotFound
+			})
+
+			It("calls the unpin resource and returns an error", func() {
+				Expect(func() {
+					pinned, err := team.UnpinResource(pipelineName, resourceName)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pinned).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the unpin resource call fails", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusInternalServerError
+			})
+
+			It("calls the unpin resource and returns an error", func() {
+				Expect(func() {
+					pinned, err := team.UnpinResource(pipelineName, resourceName)
+					Expect(err).To(HaveOccurred())
+					Expect(pinned).To(BeFalse())
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(1))
