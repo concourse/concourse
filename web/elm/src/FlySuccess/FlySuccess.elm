@@ -1,7 +1,8 @@
 module FlySuccess.FlySuccess exposing
     ( documentTitle
-    , handleCallback
+    , handleDelivery
     , init
+    , subscriptions
     , update
     , view
     )
@@ -17,12 +18,18 @@ import FlySuccess.Models
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, id, style, href)
+import Html.Attributes exposing (attribute, href, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
+import Message.Subscription
+    exposing
+        ( Delivery(..)
+        , RawHttpResponse(..)
+        , Subscription(..)
+        )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import Routes
@@ -30,6 +37,7 @@ import UserState exposing (UserState)
 import Views.Icon as Icon
 import Views.Styles
 import Views.TopBar as TopBar
+
 
 init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
 init { authToken, flyPort } =
@@ -54,14 +62,16 @@ init { authToken, flyPort } =
     )
 
 
-handleCallback : Callback -> ET Model
-handleCallback msg ( model, effects ) =
-    case msg of
-        TokenSentToFly (Ok ()) ->
+handleDelivery : Delivery -> ET Model
+handleDelivery delivery ( model, effects ) =
+    case delivery of
+        TokenSentToFly Success ->
             ( { model | tokenTransfer = RemoteData.Success () }, effects )
 
-        TokenSentToFly (Err err) ->
-            ( { model | tokenTransfer = RemoteData.Failure (NetworkTrouble err) }, effects )
+        TokenSentToFly (NetworkError err) ->
+            ( { model | tokenTransfer = RemoteData.Failure (NetworkTrouble err) }
+            , effects
+            )
 
         _ ->
             ( model, effects )
@@ -85,6 +95,11 @@ update msg ( model, effects ) =
 
         _ ->
             ( model, effects )
+
+
+subscriptions : List Subscription
+subscriptions =
+    [ OnTokenSentToFly ]
 
 
 documentTitle : String
@@ -168,7 +183,7 @@ body model =
                         }
                   , True
                   )
-                , (flyLoginLink model, True)
+                , ( flyLoginLink model, True )
                 ]
 
 
@@ -201,6 +216,7 @@ button { authToken, buttonState } =
         , Html.text <| Text.button buttonState
         ]
 
+
 flyLoginLink : Model -> Html Message
 flyLoginLink { flyPort, authToken } =
     case flyPort of
@@ -218,6 +234,4 @@ flyLoginLink { flyPort, authToken } =
                 ]
 
         Nothing ->
-            Html.div[][]
-
-
+            Html.div [] []

@@ -24,7 +24,9 @@ isMember : { a | teamName : String, userState : UserState } -> Bool
 isMember { teamName, userState } =
     case userState of
         UserStateLoggedIn user ->
-            if user.isAdmin then True
+            if user.isAdmin then
+                True
+
             else
                 case Dict.get teamName user.teams of
                     Just roles ->
@@ -34,5 +36,6 @@ isMember { teamName, userState } =
 
                     Nothing ->
                         False
+
         _ ->
             False

@@ -3,12 +3,12 @@ module FlySuccess.Text exposing
     , button
     , firstParagraphFailure
     , firstParagraphSuccess
+    , flyLoginLinkDescription
+    , flyLoginLinkText
     , pending
     , secondParagraphFailure
     , secondParagraphSuccess
     , title
-    , flyLoginLinkText
-    , flyLoginLinkDescription
     )
 
 import FlySuccess.Models as Models
@@ -79,6 +79,7 @@ button buttonState =
 flyLoginLinkDescription : Line
 flyLoginLinkDescription =
     "Or try manually sending the token to fly:"
+
 
 flyLoginLinkText : Line
 flyLoginLinkText =

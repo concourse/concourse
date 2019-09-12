@@ -35,6 +35,7 @@ import Network.Pipeline
 import Network.Resource
 import Network.User
 import Process
+import Routes
 import Task
 import Time
 import Views.Styles
@@ -74,6 +75,9 @@ port checkIsVisible : String -> Cmd msg
 
 
 port setFavicon : String -> Cmd msg
+
+
+port rawHttpRequest : String -> Cmd msg
 
 
 port renderSvgIcon : String -> Cmd msg
@@ -298,8 +302,7 @@ runEffect effect key csrfToken =
                 |> Task.attempt CommentSet
 
         SendTokenToFly authToken flyPort ->
-            Network.FlyToken.sendTokenToFly authToken flyPort
-                |> Task.attempt TokenSentToFly
+            rawHttpRequest <| Routes.tokenToFlyRoute authToken flyPort
 
         SendTogglePipelineRequest pipelineIdentifier isPaused ->
             Network.Pipeline.togglePause

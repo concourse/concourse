@@ -160,6 +160,29 @@ app.ports.setFavicon.subscribe(function(url) {
   document.head.appendChild(newIcon);
 });
 
+app.ports.rawHttpRequest.subscribe(function(url) {
+  var xhr = new XMLHttpRequest();
+
+  xhr.addEventListener('error', function(error) {
+    app.ports.rawHttpResponse({networkError: error});
+  });
+  xhr.addEventListener('timeout', function() {
+    app.ports.rawHttpResponse({timeout: true});
+  });
+  xhr.addEventListener('load', function() {
+    app.ports.rawHttpResponse();
+  });
+
+  try {
+    xhr.open("GET", url, true);
+  }
+  catch (e) {
+    return app.ports.rawHttpResponse({badUrl: url});
+  }
+
+  xhr.send();
+});
+
 app.ports.renderSvgIcon.subscribe(function(icon, id) {
   addIcon(icon, (typeof id !== 'undefined') ? id : icon);
 });

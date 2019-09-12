@@ -8,6 +8,7 @@ import Html.Attributes as Attr
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Message
+import Message.Subscription as Subscription
 import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Event as Event
@@ -129,8 +130,8 @@ tokenSendSuccess : Setup
 tokenSendSuccess =
     makeSetup "when token successfully sent to fly"
         (steps whenOnFlySuccessPage
-            >> Application.handleCallback
-                (TokenSentToFly (Ok ()))
+            >> Application.handleDelivery
+                (Subscription.TokenSentToFly Subscription.Success)
             >> Tuple.first
         )
 
@@ -139,8 +140,8 @@ tokenSendFailed : Setup
 tokenSendFailed =
     makeSetup "when token failed to send to fly"
         (steps whenOnFlySuccessPage
-            >> Application.handleCallback
-                (TokenSentToFly (Err Http.NetworkError))
+            >> Application.handleDelivery
+                (Subscription.TokenSentToFly (Subscription.NetworkError "connection refused"))
             >> Tuple.first
         )
 
@@ -238,6 +239,19 @@ property query description assertion setup =
         steps setup
             >> query
             >> assertion
+
+
+
+-- subscription
+
+
+listensForTokenResponse : Property
+listensForTokenResponse setup =
+    test (setupDesc setup ++ ", listens for token response") <|
+        steps setup
+            >> Application.subscriptions
+            >> List.member Subscription.OnTokenSentToFly
+            >> Expect.equal True
 
 
 
@@ -579,7 +593,9 @@ titleTests =
 all : Test
 all =
     describe "Fly login success page"
-        [ describe "top bar" <| tests allCases [ topBarProperty ]
+        [ describe "page load"
+            [ whenOnFlySuccessPage |> listensForTokenResponse ]
+        , describe "top bar" <| tests allCases [ topBarProperty ]
         , describe "card" cardTests
         , describe "title" titleTests
         , describe "body"
