@@ -1,4 +1,4 @@
-package main
+package workercmd
 
 import (
 	"encoding/json"
@@ -15,8 +15,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
+	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/flag"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
@@ -34,7 +35,7 @@ type GardenBackend struct {
 	DNS DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 }
 
-func (cmd WorkerCommand) lessenRequirements(prefix string, command *flags.Command) {
+func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Command) {
 	// configured as work-dir/volumes
 	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
 }
@@ -76,7 +77,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 }
 
 func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
-	if binDir := discoverAsset("bin"); binDir != "" {
+	if binDir := concourseCmd.DiscoverAsset("bin"); binDir != "" {
 		// ensure packaged 'gdn' executable is available in $PATH
 		err := os.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
 		if err != nil {
@@ -130,7 +131,7 @@ func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 
 		members = append(members, grouper.Member{
 			Name: "dns-proxy",
-			Runner: NewLoggingRunner(
+			Runner: concourseCmd.NewLoggingRunner(
 				logger.Session("dns-proxy-runner"),
 				dnsProxyRunner,
 			),
@@ -153,7 +154,7 @@ func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 
 	members = append(members, grouper.Member{
 		Name: "gdn",
-		Runner: NewLoggingRunner(
+		Runner: concourseCmd.NewLoggingRunner(
 			logger.Session("gdn-runner"),
 			cmdRunner{gdnCmd},
 		),

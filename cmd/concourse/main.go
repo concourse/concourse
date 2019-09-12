@@ -21,7 +21,7 @@ func main() {
 	parser := flags.NewParser(&cmd, flags.HelpFlag|flags.PassDoubleDash)
 	parser.NamespaceDelimiter = "-"
 
-	cmd.lessenRequirements(parser)
+	cmd.LessenRequirements(parser)
 
 	cmd.Web.WireDynamicFlags(parser.Command.Find("web"))
 	cmd.Quickstart.WebCommand.WireDynamicFlags(parser.Command.Find("quickstart"))
