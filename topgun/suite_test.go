@@ -92,6 +92,11 @@ var _ = BeforeEach(func() {
 		deploymentNamePrefix = "concourse-topgun"
 	}
 
+	suiteName := os.Getenv("SUITE")
+	if suiteName != "" {
+		deploymentNamePrefix += "-" + suiteName
+	}
+
 	concourseReleaseVersion = os.Getenv("CONCOURSE_RELEASE_VERSION")
 	if concourseReleaseVersion == "" {
 		concourseReleaseVersion = "latest"
