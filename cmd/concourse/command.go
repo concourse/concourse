@@ -4,15 +4,16 @@ import (
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/worker/land"
 	"github.com/concourse/concourse/worker/retire"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/concourse/concourse/worker/workercmd"
+	"github.com/jessevdk/go-flags"
 )
 
 type ConcourseCommand struct {
 	Version func() `short:"v" long:"version" description:"Print the version of Concourse and exit"`
 
-	Web     WebCommand       `command:"web"     description:"Run the web UI and build scheduler."`
-	Worker  WorkerCommand    `command:"worker"  description:"Run and register a worker."`
-	Migrate atccmd.Migration `command:"migrate" description:"Run database migrations."`
+	Web     WebCommand              `command:"web"     description:"Run the web UI and build scheduler."`
+	Worker  workercmd.WorkerCommand `command:"worker"  description:"Run and register a worker."`
+	Migrate atccmd.Migration        `command:"migrate" description:"Run database migrations."`
 
 	Quickstart QuickstartCommand `command:"quickstart" description:"Run both 'web' and 'worker' together, auto-wired. Not recommended for production."`
 
@@ -22,8 +23,8 @@ type ConcourseCommand struct {
 	GenerateKey GenerateKeyCommand `command:"generate-key" description:"Generate RSA key for use with Concourse components."`
 }
 
-func (cmd ConcourseCommand) lessenRequirements(parser *flags.Parser) {
-	cmd.Quickstart.lessenRequirements(parser.Find("quickstart"))
-	cmd.Web.lessenRequirements(parser.Find("web"))
-	cmd.Worker.lessenRequirements("", parser.Find("worker"))
+func (cmd ConcourseCommand) LessenRequirements(parser *flags.Parser) {
+	cmd.Quickstart.LessenRequirements(parser.Find("quickstart"))
+	cmd.Web.LessenRequirements(parser.Find("web"))
+	cmd.Worker.LessenRequirements("", parser.Find("worker"))
 }

@@ -1,11 +1,11 @@
-package main_test
+package cmd_test
 
 import (
 	"errors"
 	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/concourse/concourse/cmd/concourse"
+	. "github.com/concourse/concourse/cmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"

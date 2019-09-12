@@ -1,4 +1,4 @@
-package main
+package workercmd
 
 import (
 	"fmt"
@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse"
+	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
@@ -70,7 +71,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 
 func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	if cmd.ResourceTypes == "" {
-		cmd.ResourceTypes = flag.Dir(discoverAsset("resource-types"))
+		cmd.ResourceTypes = flag.Dir(concourseCmd.DiscoverAsset("resource-types"))
 	}
 
 	logger, _ := cmd.Logger.Logger("worker")
@@ -150,18 +151,18 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	if !cmd.gardenIsExternal() {
 		members = append(members, grouper.Member{
 			Name:   "garden",
-			Runner: NewLoggingRunner(logger.Session("garden-runner"), gardenRunner),
+			Runner: concourseCmd.NewLoggingRunner(logger.Session("garden-runner"), gardenRunner),
 		})
 	}
 
 	members = append(members, grouper.Members{
 		{
 			Name:   "baggageclaim",
-			Runner: NewLoggingRunner(logger.Session("baggageclaim-runner"), baggageclaimRunner),
+			Runner: concourseCmd.NewLoggingRunner(logger.Session("baggageclaim-runner"), baggageclaimRunner),
 		},
 		{
 			Name: "debug",
-			Runner: NewLoggingRunner(
+			Runner: concourseCmd.NewLoggingRunner(
 				logger.Session("debug-runner"),
 				http_server.New(
 					fmt.Sprintf("%s:%d", cmd.DebugBindIP.IP, cmd.DebugBindPort),
@@ -171,7 +172,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		},
 		{
 			Name: "healthcheck",
-			Runner: NewLoggingRunner(
+			Runner: concourseCmd.NewLoggingRunner(
 				logger.Session("healthcheck-runner"),
 				http_server.New(
 					fmt.Sprintf("%s:%d", cmd.HealthcheckBindIP.IP, cmd.HealthcheckBindPort),
@@ -181,21 +182,21 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		},
 		{
 			Name: "beacon",
-			Runner: NewLoggingRunner(
+			Runner: concourseCmd.NewLoggingRunner(
 				logger.Session("beacon-runner"),
 				beaconRunner,
 			),
 		},
 		{
 			Name: "container-sweeper",
-			Runner: NewLoggingRunner(
+			Runner: concourseCmd.NewLoggingRunner(
 				logger.Session("container-sweeper"),
 				containerSweeper,
 			),
 		},
 		{
 			Name: "volume-sweeper",
-			Runner: NewLoggingRunner(
+			Runner: concourseCmd.NewLoggingRunner(
 				logger.Session("volume-sweeper"),
 				volumeSweeper,
 			),
