@@ -33,14 +33,15 @@ port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
 port sideBarStateReceived : (Maybe String -> msg) -> Sub msg
 
 
-port rawHttpResponse : (Maybe Json.Encode.Value -> msg) -> Sub msg
+port rawHttpResponse : (Json.Encode.Value -> msg) -> Sub msg
 
 
 type RawHttpResponse
     = Success -- ()
     | BadUrl String -- ({"badUrl": "the-bad-url./com"})
     | Timeout -- ({"timeout": true})
-    | NetworkError String -- ({"networkError": "cannot load ... due to access checks"})
+    | NetworkError -- ({"networkError": true})
+    | BrowserError -- ({"browserError": true})
 
 
 type Subscription
@@ -139,7 +140,19 @@ runSubscription s =
             sideBarStateReceived SideBarStateReceived
 
         OnTokenSentToFly ->
-            rawHttpResponse (always <| TokenSentToFly Success)
+            rawHttpResponse (decodeHttpResponse >> TokenSentToFly)
+
+
+decodeHttpResponse : Json.Encode.Value -> RawHttpResponse
+decodeHttpResponse =
+    Json.Decode.decodeValue
+        (Json.Decode.oneOf
+            [ Json.Decode.field "networkError" (Json.Decode.succeed NetworkError)
+            , Json.Decode.field "browserError" (Json.Decode.succeed BrowserError)
+            , Json.Decode.field "timeout" (Json.Decode.succeed Timeout)
+            ]
+        )
+        >> Result.withDefault Success
 
 
 intervalToTime : Interval -> Float

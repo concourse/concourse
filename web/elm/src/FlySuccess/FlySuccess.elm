@@ -68,8 +68,13 @@ handleDelivery delivery ( model, effects ) =
         TokenSentToFly Success ->
             ( { model | tokenTransfer = RemoteData.Success () }, effects )
 
-        TokenSentToFly (NetworkError err) ->
-            ( { model | tokenTransfer = RemoteData.Failure (NetworkTrouble err) }
+        TokenSentToFly NetworkError ->
+            ( { model | tokenTransfer = RemoteData.Failure NetworkTrouble }
+            , effects
+            )
+
+        TokenSentToFly BrowserError ->
+            ( { model | tokenTransfer = RemoteData.Failure BlockedByBrowser }
             , effects
             )
 
@@ -168,6 +173,24 @@ body model =
                   )
                 ]
 
+        RemoteData.Failure BlockedByBrowser ->
+            elemList
+                [ ( paragraph
+                        { identifier = "first-paragraph"
+                        , lines = Text.firstParagraphFailure
+                        }
+                  , True
+                  )
+                , ( button model, False )
+                , ( paragraph
+                        { identifier = "second-paragraph"
+                        , lines = Text.secondParagraphFailure BlockedByBrowser
+                        }
+                  , True
+                  )
+                , ( flyLoginLink model, True )
+                ]
+
         RemoteData.Failure err ->
             elemList
                 [ ( paragraph
@@ -183,7 +206,6 @@ body model =
                         }
                   , True
                   )
-                , ( flyLoginLink model, True )
                 ]
 
 
@@ -221,17 +243,11 @@ flyLoginLink : Model -> Html Message
 flyLoginLink { flyPort, authToken } =
     case flyPort of
         Just fp ->
-            Html.div
-                [ id "fly-direct-link" ]
-                [ Html.p
-                    Styles.paragraph
-                    [ Html.text Text.flyLoginLinkDescription ]
-                , Html.a
-                    [ href (Routes.tokenToFlyRoute authToken fp)
-                    , style "text-decoration" "underline"
-                    ]
-                    [ Html.text Text.flyLoginLinkText ]
+            Html.a
+                [ href (Routes.tokenToFlyRoute authToken fp)
+                , style "text-decoration" "underline"
                 ]
+                [ Html.text Text.flyLoginLinkText ]
 
         Nothing ->
-            Html.div [] []
+            Html.text ""

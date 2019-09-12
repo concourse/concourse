@@ -141,7 +141,17 @@ tokenSendFailed =
     makeSetup "when token failed to send to fly"
         (steps whenOnFlySuccessPage
             >> Application.handleDelivery
-                (Subscription.TokenSentToFly (Subscription.NetworkError "connection refused"))
+                (Subscription.TokenSentToFly Subscription.NetworkError)
+            >> Tuple.first
+        )
+
+
+tokenSendBlocked : Setup
+tokenSendBlocked =
+    makeSetup "when token sending is blocked by the browser"
+        (steps whenOnFlySuccessPage
+            >> Application.handleDelivery
+                (Subscription.TokenSentToFly Subscription.BrowserError)
             >> Tuple.first
         )
 
@@ -407,6 +417,25 @@ secondParagraphErrorText =
 
 
 
+-- body on browser blocking token from sending
+
+
+secondParagraphBlockedText : Property
+secondParagraphBlockedText =
+    property secondParagraph "error message describes browser blocking" <|
+        Query.children []
+            >> Expect.all
+                [ Query.count (Expect.equal 3)
+                , Query.index 0
+                    >> Query.has
+                        [ text "your browser blocked the attempt." ]
+                , Query.index 2
+                    >> Query.has
+                        [ text "try clicking the link below:" ]
+                ]
+
+
+
 -- body on successfully sending token
 
 
@@ -608,6 +637,12 @@ all =
                     ]
             , invalidFlyPort |> firstParagraphFailureText
             , invalidFlyPort |> secondParagraphErrorText
+            , tokenSendBlocked |> secondParagraphBlockedText
+            , tokenSendBlocked |> bodyNoButton
+            , tokenSendFailed |> firstParagraphFailureText
+            , tokenSendFailed |> secondParagraphFailureText
+            , tokenCopied |> firstParagraphFailureText
+            , tokenCopied |> secondParagraphFailureText
             , whenOnFlySuccessPage |> bodyPendingText
             , whenOnFlySuccessPage |> bodyNoButton
             , tokenSendSuccess |> firstParagraphSuccessText
@@ -620,8 +655,6 @@ all =
                     , buttonPosition
                     , buttonLayout
                     , buttonClipboardAttr
-                    , firstParagraphFailureText
-                    , secondParagraphFailureText
                     ]
             , describe "when token sending failed" <|
                 tests [ tokenSendFailed ]
