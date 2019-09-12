@@ -8,6 +8,7 @@ module FlySuccess.Text exposing
     , pending
     , secondParagraphFailure
     , secondParagraphSuccess
+    , thirdParagraphBlocked
     , title
     )
 
@@ -70,6 +71,12 @@ secondParagraphFailure error =
             [ "could not find a valid fly port to send to."
             , "maybe your URL is broken?"
             ]
+
+
+thirdParagraphBlocked : Paragraph
+thirdParagraphBlocked =
+    [ "if that fails, click the button below:"
+    ]
 
 
 button : ButtonState -> String

@@ -219,6 +219,25 @@ secondParagraph =
         >> Query.find [ id "second-paragraph" ]
 
 
+link : Query
+link =
+    successCard >> Query.find [ id "link" ]
+
+
+thirdParagraph : Query
+thirdParagraph =
+    successCard
+        >> Query.find [ id "success-card-body" ]
+        >> Query.find [ id "third-paragraph" ]
+
+
+fourthParagraph : Query
+fourthParagraph =
+    successCard
+        >> Query.find [ id "success-card-body" ]
+        >> Query.find [ id "fourth-paragraph" ]
+
+
 button : Query
 button =
     body >> Query.find [ id "copy-token" ]
@@ -435,6 +454,23 @@ secondParagraphBlockedText =
                 ]
 
 
+thirdParagraphBlockedText : Property
+thirdParagraphBlockedText =
+    property thirdParagraph "presents option to copy token" <|
+        Query.children []
+            >> Expect.all
+                [ Query.count (Expect.equal 1)
+                , Query.index 0
+                    >> Query.has
+                        [ text "if that fails, click the button below:" ]
+                ]
+
+
+fourthParagraphBlockedText : Property
+fourthParagraphBlockedText =
+    pasteInstructions fourthParagraph
+
+
 
 -- body on successfully sending token
 
@@ -470,9 +506,9 @@ firstParagraphFailureText =
                 ]
 
 
-secondParagraphFailureText : Property
-secondParagraphFailureText =
-    property secondParagraph
+pasteInstructions : Query -> Property
+pasteInstructions query =
+    property query
         ("says 'after copying, return to fly and paste your token "
             ++ "into the prompt.'"
         )
@@ -487,6 +523,21 @@ secondParagraphFailureText =
                     >> Query.has
                         [ text "your token into the prompt." ]
                 ]
+
+
+secondParagraphFailureText : Property
+secondParagraphFailureText =
+    pasteInstructions secondParagraph
+
+
+
+-- link
+
+
+linkStyle : Property
+linkStyle =
+    property link "has spacing above and below" <|
+        Query.has [ style "line-height" "2" ]
 
 
 
@@ -638,7 +689,9 @@ all =
             , invalidFlyPort |> firstParagraphFailureText
             , invalidFlyPort |> secondParagraphErrorText
             , tokenSendBlocked |> secondParagraphBlockedText
-            , tokenSendBlocked |> bodyNoButton
+            , tokenSendBlocked |> thirdParagraphBlockedText
+            , tokenSendBlocked |> fourthParagraphBlockedText
+            , tokenSendBlocked |> linkStyle
             , tokenSendFailed |> firstParagraphFailureText
             , tokenSendFailed |> secondParagraphFailureText
             , tokenCopied |> firstParagraphFailureText
@@ -650,7 +703,7 @@ all =
             ]
         , describe "button"
             [ describe "always" <|
-                tests [ tokenSendFailed, tokenCopied ]
+                tests [ tokenSendFailed, tokenCopied, tokenSendBlocked ]
                     [ buttonSize
                     , buttonPosition
                     , buttonLayout
