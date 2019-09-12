@@ -18,7 +18,7 @@ type alias Model =
         { buttonState : ButtonState
         , authToken : String
         , tokenTransfer : TokenTransfer
-        , flyPort : (Maybe Int)
+        , flyPort : Maybe Int
         }
 
 
@@ -33,7 +33,7 @@ type alias TokenTransfer =
 
 
 type TransferFailure
-    = NetworkTrouble Http.Error
+    = NetworkTrouble String
     | NoFlyPort
 
 

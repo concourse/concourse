@@ -42,7 +42,6 @@ type Callback
     | VersionToggled VersionToggleAction VersionId (Fetched ())
     | Checked (Fetched ())
     | CommentSet (Fetched ())
-    | TokenSentToFly (Fetched ())
     | APIDataFetched (Fetched ( Time.Posix, Concourse.APIData ))
     | LoggedOut (Fetched ())
     | ScreenResized Browser.Dom.Viewport
