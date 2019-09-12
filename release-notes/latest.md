@@ -9,3 +9,7 @@
 #### <sub><sup><a name="note-cluster-log" href="#note-cluster-log">:link:</a></sup></sub> fix
 
 * The cluster name can now be added to each and every log line with the handy dandy `--log-cluster-name` flag, available on the `web` nodes. This can be used in a scenario where you have multiple Concourse clusters forwarding logs to a common sink and have no other way of categorizing the logs. Thanks again @evanchaoli! #4387
+
+#### <sub><sup><a name="note-version-string" href="#note-version-string">:link:</a></sup></sub> fix
+
+* To pin a version for a resource on `get` step, the `set-pipeline` command for fly will now take only string value in key-value pair of given version. #4371
