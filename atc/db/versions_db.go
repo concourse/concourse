@@ -163,7 +163,6 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersi
 		return c.([]AlgorithmVersion), nil
 	}
 
-	// TODO: prefer outputs over inputs for the same name
 	var outputsJSON string
 	err := psql.Select("outputs").
 		From("successful_build_outputs").

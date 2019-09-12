@@ -202,8 +202,6 @@ type RunCommand struct {
 	} `group:"Authentication"`
 
 	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
-
-	closeDBConns []Closer
 }
 
 //go:generate counterfeiter . Collector
@@ -438,6 +436,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 5, "gc", lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
 	storage, err := storage.NewPostgresStorage(logger, cmd.Postgres)
 	if err != nil {
 		return nil, err
@@ -448,7 +451,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, secretManager)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -475,8 +478,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	onExit := func() {
-		closeDBConns := append([]Closer{lockConn, storage}, cmd.closeDBConns...)
-		for _, closer := range closeDBConns {
+		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage} {
 			closer.Close()
 		}
 	}
@@ -489,6 +491,7 @@ func (cmd *RunCommand) constructMembers(
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
 	backendConn db.Conn,
+	gcConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
@@ -513,7 +516,7 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	gcMembers, err := cmd.constructGCMembers(logger, lockFactory)
+	gcMembers, err := cmd.constructGCMembers(logger, gcConn, lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -917,6 +920,7 @@ func (cmd *RunCommand) constructBackendMembers(
 
 func (cmd *RunCommand) constructGCMembers(
 	logger lager.Logger,
+	gcConn db.Conn,
 	lockFactory lock.LockFactory,
 ) ([]grouper.Member, error) {
 	// Each component of GC has it's own dedicated connection pool to make sure
@@ -930,109 +934,93 @@ func (cmd *RunCommand) constructGCMembers(
 		return nil, err
 	}
 
-	// A list of all the garbage collector components
-	gcConns := []string{
-		"build-collector",
-		"worker-collector",
-		"resource-cache-use-collector",
-		"resource-config-collector",
-		"resource-cache-collector",
-		"resource-config-check-session-collector",
-		"artifact-collector",
-		"volume-collector",
-		"container-collector",
-		"check-collector",
-	}
+	collectors := map[string]Collector{}
 
-	for _, name := range gcConns {
-		gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, name, lockFactory)
-		if err != nil {
-			return nil, err
-		}
+	// Construct build gc collector
+	buildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	collectors["build-collector"] = gc.NewBuildCollector(buildFactory)
 
-		var collector Collector
-		switch name {
-		case "build-collector":
-			buildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-			collector = gc.NewBuildCollector(buildFactory)
-		case "worker-collector":
-			workerLifecycle := db.NewWorkerLifecycle(gcConn)
-			collector = gc.NewWorkerCollector(workerLifecycle)
-		case "resource-cache-use-collector":
-			resourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
-			collector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
-		case "resource-config-collector":
-			resourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
-			collector = gc.NewResourceConfigCollector(resourceConfigFactory)
-		case "resource-cache-collector":
-			resourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
-			collector = gc.NewResourceCacheCollector(resourceCacheLifecycle)
-		case "resource-config-check-session-collector":
-			resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
-			collector = gc.NewResourceConfigCheckSessionCollector(
-				resourceConfigCheckSessionLifecycle,
-			)
-		case "artifact-collector":
-			artifactLifecycle := db.NewArtifactLifecycle(gcConn)
-			collector = gc.NewArtifactCollector(artifactLifecycle)
-		case "volume-collector":
-			volumeRepository := db.NewVolumeRepository(gcConn)
-			collector = gc.NewVolumeCollector(
-				volumeRepository,
-				cmd.GC.MissingGracePeriod,
-			)
-		case "container-collector":
-			containerRepository := db.NewContainerRepository(gcConn)
-			resourceCacheFactory := db.NewResourceCacheFactory(gcConn, lockFactory)
-			resourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
-			fetchSourceFactory := resource.NewFetchSourceFactory(resourceCacheFactory, resourceFactory)
-			resourceFetcher := resource.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
-			imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-				resourceCacheFactory,
-				resourceConfigFactory,
-				resourceFetcher,
-				resourceFactory,
-			)
-			workerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(gcConn)
-			taskCacheFactory := db.NewTaskCacheFactory(gcConn)
-			workerTaskCacheFactory := db.NewWorkerTaskCacheFactory(gcConn)
-			volumeRepository := db.NewVolumeRepository(gcConn)
-			teamFactory := db.NewTeamFactory(gcConn, lockFactory)
-			workerFactory := db.NewWorkerFactory(gcConn)
-			workerProvider := worker.NewDBWorkerProvider(
-				lockFactory,
-				retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-				image.NewImageFactory(imageResourceFetcherFactory),
-				resourceCacheFactory,
-				resourceConfigFactory,
-				workerBaseResourceTypeFactory,
-				taskCacheFactory,
-				workerTaskCacheFactory,
-				volumeRepository,
-				teamFactory,
-				workerFactory,
-				workerVersion,
-				cmd.BaggageclaimResponseHeaderTimeout,
-			)
-			collector = gc.NewContainerCollector(
-				containerRepository,
-				gc.NewWorkerJobRunner(
-					logger.Session(name+"-runner"),
-					workerProvider,
-					time.Minute,
-				),
-				cmd.GC.MissingGracePeriod,
-			)
-		case "check-collector":
-			checkLifecycle := db.NewCheckLifecycle(gcConn)
-			collector = gc.NewCheckCollector(
-				checkLifecycle,
-				cmd.GC.CheckRecyclePeriod,
-			)
-		default:
-			panic("garbage collector does not exist: " + name)
-		}
+	// Construct worker gc collector
+	workerLifecycle := db.NewWorkerLifecycle(gcConn)
+	collectors["worker-collector"] = gc.NewWorkerCollector(workerLifecycle)
 
+	// Construct resource cache use gc collector
+	resourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
+	collectors["resource-cache-use-collector"] = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
+
+	// Construct resource cache gc collector
+	collectors["resource-cache-collector"] = gc.NewResourceCacheCollector(resourceCacheLifecycle)
+
+	// Construct resource config gc collector
+	resourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
+	collectors["resource-config-collector"] = gc.NewResourceConfigCollector(resourceConfigFactory)
+
+	// Construct resource config check session gc collector
+	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
+	collectors["resource-config-check-session"] = gc.NewResourceConfigCheckSessionCollector(
+		resourceConfigCheckSessionLifecycle,
+	)
+
+	// Construct artifact gc collector
+	artifactLifecycle := db.NewArtifactLifecycle(gcConn)
+	collectors["artifact-collector"] = gc.NewArtifactCollector(artifactLifecycle)
+
+	// Construct volume gc collector
+	volumeRepository := db.NewVolumeRepository(gcConn)
+	collectors["volume-collector"] = gc.NewVolumeCollector(
+		volumeRepository,
+		cmd.GC.MissingGracePeriod,
+	)
+
+	// Construct container gc collector
+	containerRepository := db.NewContainerRepository(gcConn)
+	resourceCacheFactory := db.NewResourceCacheFactory(gcConn, lockFactory)
+	fetchSourceFactory := fetcher.NewFetchSourceFactory(resourceCacheFactory, resourceFactory)
+	resourceFetcher := fetcher.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+		resourceCacheFactory,
+		resourceConfigFactory,
+		resourceFetcher,
+		resourceFactory,
+	)
+	workerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(gcConn)
+	taskCacheFactory := db.NewTaskCacheFactory(gcConn)
+	workerTaskCacheFactory := db.NewWorkerTaskCacheFactory(gcConn)
+	teamFactory := db.NewTeamFactory(gcConn, lockFactory)
+	workerFactory := db.NewWorkerFactory(gcConn)
+	workerProvider := worker.NewDBWorkerProvider(
+		lockFactory,
+		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		image.NewImageFactory(imageResourceFetcherFactory),
+		resourceCacheFactory,
+		resourceConfigFactory,
+		workerBaseResourceTypeFactory,
+		taskCacheFactory,
+		workerTaskCacheFactory,
+		volumeRepository,
+		teamFactory,
+		workerFactory,
+		workerVersion,
+		cmd.BaggageclaimResponseHeaderTimeout,
+	)
+	collectors["container-collector"] = gc.NewContainerCollector(
+		containerRepository,
+		gc.NewWorkerJobRunner(
+			logger.Session("container-collector-runner"),
+			workerProvider,
+			time.Minute,
+		),
+		cmd.GC.MissingGracePeriod,
+	)
+
+	// Construct check gc collector
+	checkLifecycle := db.NewCheckLifecycle(gcConn)
+	collectors["check-collector"] = gc.NewCheckCollector(
+		checkLifecycle,
+		cmd.GC.CheckRecyclePeriod,
+	)
+
+	for name, collector := range collectors {
 		members = append(members, grouper.Member{
 			Name: name,
 			Runner: lockrunner.NewRunner(
@@ -1334,9 +1322,6 @@ func (cmd *RunCommand) constructDBConn(
 	// Prepare
 	dbConn.SetMaxOpenConns(maxConn)
 	dbConn.SetMaxIdleConns(maxConn / 2)
-
-	// Add connection to the connection pool list
-	cmd.closeDBConns = append(cmd.closeDBConns, dbConn)
 
 	return dbConn, nil
 }
