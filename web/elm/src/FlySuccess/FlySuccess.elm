@@ -189,6 +189,19 @@ body model =
                   , True
                   )
                 , ( flyLoginLink model, True )
+                , ( paragraph
+                        { identifier = "third-paragraph"
+                        , lines = Text.thirdParagraphBlocked
+                        }
+                  , True
+                  )
+                , ( button model, True )
+                , ( paragraph
+                        { identifier = "fourth-paragraph"
+                        , lines = Text.secondParagraphFailure NetworkTrouble
+                        }
+                  , True
+                  )
                 ]
 
         RemoteData.Failure err ->
@@ -245,7 +258,9 @@ flyLoginLink { flyPort, authToken } =
         Just fp ->
             Html.a
                 [ href (Routes.tokenToFlyRoute authToken fp)
+                , id "link"
                 , style "text-decoration" "underline"
+                , style "line-height" "2"
                 ]
                 [ Html.text Text.flyLoginLinkText ]
 
