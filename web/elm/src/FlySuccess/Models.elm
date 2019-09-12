@@ -8,7 +8,6 @@ module FlySuccess.Models exposing
     , isPending
     )
 
-import Http
 import Login.Login as Login
 import RemoteData
 
@@ -33,7 +32,8 @@ type alias TokenTransfer =
 
 
 type TransferFailure
-    = NetworkTrouble String
+    = NetworkTrouble
+    | BlockedByBrowser
     | NoFlyPort
 
 

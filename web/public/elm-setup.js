@@ -164,23 +164,25 @@ app.ports.rawHttpRequest.subscribe(function(url) {
   var xhr = new XMLHttpRequest();
 
   xhr.addEventListener('error', function(error) {
-    app.ports.rawHttpResponse({networkError: error});
+    app.ports.rawHttpResponse.send({networkError: true});
   });
   xhr.addEventListener('timeout', function() {
-    app.ports.rawHttpResponse({timeout: true});
+    app.ports.rawHttpResponse.send({timeout: true});
   });
   xhr.addEventListener('load', function() {
-    app.ports.rawHttpResponse();
+    app.ports.rawHttpResponse.send();
   });
 
-  try {
-    xhr.open("GET", url, true);
-  }
-  catch (e) {
-    return app.ports.rawHttpResponse({badUrl: url});
-  }
+  xhr.open("GET", url, false);
 
-  xhr.send();
+  try {
+    xhr.send();
+    if (xhr.readyState === 1) {
+      app.ports.rawHttpResponse.send({browserError: true});
+    }
+  } catch (error) {
+    app.ports.rawHttpResponse.send({networkError: true});
+  }
 });
 
 app.ports.renderSvgIcon.subscribe(function(icon, id) {

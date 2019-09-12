@@ -56,7 +56,12 @@ firstParagraphFailure =
 secondParagraphFailure : TransferFailure -> Paragraph
 secondParagraphFailure error =
     case error of
-        NetworkTrouble _ ->
+        BlockedByBrowser ->
+            [ "your browser blocked the attempt."
+            , "try clicking the link below:"
+            ]
+
+        NetworkTrouble ->
             [ "after copying, return to fly and paste"
             , "your token into the prompt."
             ]
