@@ -28,10 +28,8 @@ type checker struct {
 }
 
 func (c *checker) Run(ctx context.Context) error {
-	cLog := c.logger.Session("check")
-
-	cLog.Debug("start")
-	defer cLog.Debug("done")
+	c.logger.Info("start")
+	defer c.logger.Info("end")
 
 	checks, err := c.checkFactory.StartedChecks()
 	if err != nil {
@@ -40,7 +38,7 @@ func (c *checker) Run(ctx context.Context) error {
 	}
 
 	for _, check := range checks {
-		btLog := cLog.WithData(lager.Data{
+		btLog := c.logger.WithData(lager.Data{
 			"check": check.ID(),
 		})
 
