@@ -127,8 +127,11 @@ func (c *VersionConfig) UnmarshalJSON(version []byte) error {
 
 		for k, v := range actual {
 			if s, ok := v.(string); ok {
-				version[k] = strings.TrimSpace(s)
+				version[k] = s
+				continue
 			}
+
+			return fmt.Errorf("the value %v of %s is not a string", v, k)
 		}
 
 		c.Pinned = version
