@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -14,13 +15,13 @@ import (
 var _ = Describe("BBR", func() {
 
 	var (
-		atcs       []boshInstance
+		atcs       []BoshInstance
 		atc0URL    string
 		deployArgs = []string{}
 	)
 
 	BeforeEach(func() {
-		if !strings.Contains(string(bosh("releases").Out.Contents()), "backup-and-restore-sdk") {
+		if !strings.Contains(string(Bosh("releases").Out.Contents()), "backup-and-restore-sdk") {
 			Skip("backup-and-restore-sdk release not uploaded")
 		}
 	})
@@ -71,7 +72,7 @@ var _ = Describe("BBR", func() {
 		})
 
 		JustBeforeEach(func() {
-			waitForRunningWorker()
+			WaitForRunningWorker()
 		})
 
 		Context("restoring a deployment with data to a deployment with less data", func() {
@@ -113,15 +114,15 @@ var _ = Describe("BBR", func() {
 				Expect(entries).To(HaveLen(1))
 
 				By("deleting the deployment")
-				waitForDeploymentLock()
-				bosh("delete-deployment")
+				WaitForDeploymentLock()
+				Bosh("delete-deployment")
 
 				By("creating a new deployment")
 				Deploy(
 					"deployments/concourse.yml",
 					"-o", "operations/bbr-with-properties.yml",
 				)
-				waitForRunningWorker()
+				WaitForRunningWorker()
 
 				atcs = JobInstances("web")
 				atc0URL = "http://" + atcs[0].IP + ":8080"

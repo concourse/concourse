@@ -1,4 +1,4 @@
-package topgun_test
+package common
 
 import (
 	"bytes"
@@ -12,36 +12,36 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"testing"
 	"time"
 
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
+ 	sq "github.com/Masterminds/squirrel"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	sq "github.com/Masterminds/squirrel"
 	bclient "github.com/concourse/baggageclaim/client"
-	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/onsi/gomega/gexec"
 	"golang.org/x/oauth2"
 
+	"github.com/concourse/concourse/go-concourse/concourse"
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
+
 
 var (
 	deploymentNamePrefix string
 
 	fly                       = Fly{}
 	deploymentName, flyTarget string
-	instances                 map[string][]boshInstance
-	jobInstances              map[string][]boshInstance
+	instances                 map[string][]BoshInstance
+	jobInstances              map[string][]BoshInstance
 
-	dbInstance *boshInstance
+	dbInstance *BoshInstance
 	dbConn     *sql.DB
 
-	webInstance    *boshInstance
+	webInstance    *BoshInstance
 	atcExternalURL string
 	atcUsername    string
 	atcPassword    string
@@ -60,24 +60,6 @@ var (
 
 	tmp string
 )
-
-var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
-func TestTOPGUN(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "TOPGUN Suite")
-}
-
-var _ = SynchronizedBeforeSuite(func() []byte {
-	return []byte(BuildBinary())
-}, func(data []byte) {
-	fly.Bin = string(data)
-})
-
-var _ = SynchronizedAfterSuite(func() {
-}, func() {
-	gexec.CleanupBuildArtifacts()
-})
 
 var _ = BeforeEach(func() {
 	SetDefaultEventuallyTimeout(2 * time.Minute)
@@ -144,11 +126,11 @@ var _ = BeforeEach(func() {
 	err = os.Mkdir(fly.Home, 0755)
 	Expect(err).ToNot(HaveOccurred())
 
-	waitForDeploymentLock()
-	bosh("delete-deployment", "--force")
+	WaitForDeploymentLock()
+	Bosh("delete-deployment", "--force")
 
-	instances = map[string][]boshInstance{}
-	jobInstances = map[string][]boshInstance{}
+	instances = map[string][]BoshInstance{}
+	jobInstances = map[string][]BoshInstance{}
 
 	dbInstance = nil
 	dbConn = nil
@@ -167,21 +149,30 @@ var _ = AfterEach(func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		TimestampedBy("saving logs to " + dir + " due to test failure")
-		bosh("logs", "--dir", dir)
+		Bosh("logs", "--dir", dir)
 	}
 
-	deleteAllContainers()
+	DeleteAllContainers()
 
-	waitForDeploymentLock()
-	bosh("delete-deployment")
+	WaitForDeploymentLock()
+	Bosh("delete-deployment")
 
 	Expect(os.RemoveAll(tmp)).To(Succeed())
 })
 
-func StartDeploy(manifest string, args ...string) *gexec.Session {
-	waitForDeploymentLock()
+type BoshInstance struct {
+	Name  string
+	Group string
+	ID    string
+	IP    string
+	DNS   string
+}
 
-	return spawnBosh(
+
+func StartDeploy(manifest string, args ...string) *gexec.Session {
+	WaitForDeploymentLock()
+
+	return SpawnBosh(
 		append([]string{
 			"deploy", manifest,
 			"--vars-store", filepath.Join(tmp, deploymentName+"-vars.yml"),
@@ -217,16 +208,16 @@ func Deploy(manifest string, args ...string) {
 		break
 	}
 
-	instances, jobInstances = loadJobInstances()
+	instances, jobInstances = LoadJobInstances()
 
 	webInstance = JobInstance("web")
 	if webInstance != nil {
 		atcExternalURL = fmt.Sprintf("http://%s:8080", webInstance.IP)
 		fly.Login(atcUsername, atcPassword, atcExternalURL)
 
-		waitForWorkersToBeRunning(len(JobInstances("worker")) + len(JobInstances("other_worker")))
+		WaitForWorkersToBeRunning(len(JobInstances("worker")) + len(JobInstances("other_worker")))
 
-		workers := flyTable("workers", "-d")
+		workers := FlyTable("workers", "-d")
 		if len(workers) > 0 {
 			worker := workers[0]
 			workerGardenClient = gclient.New(gconn.New("tcp", worker["garden address"]))
@@ -246,7 +237,7 @@ func Deploy(manifest string, args ...string) {
 	}
 }
 
-func Instance(name string) *boshInstance {
+func Instance(name string) *BoshInstance {
 	is := instances[name]
 	if len(is) == 0 {
 		return nil
@@ -255,7 +246,7 @@ func Instance(name string) *boshInstance {
 	return &is[0]
 }
 
-func JobInstance(job string) *boshInstance {
+func JobInstance(job string) *BoshInstance {
 	is := jobInstances[job]
 	if len(is) == 0 {
 		return nil
@@ -264,40 +255,30 @@ func JobInstance(job string) *boshInstance {
 	return &is[0]
 }
 
-func JobInstances(job string) []boshInstance {
+func JobInstances(job string) []BoshInstance {
 	return jobInstances[job]
 }
 
-type boshInstance struct {
-	Name  string
-	Group string
-	ID    string
-	IP    string
-	DNS   string
-}
 
-var instanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([^\s]+)\s*$`)
-var jobRow = regexp.MustCompile(`^([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s+-\s*$`)
-
-func loadJobInstances() (map[string][]boshInstance, map[string][]boshInstance) {
-	session := spawnBosh("instances", "-p", "--dns")
+func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
+	session := SpawnBosh("instances", "-p", "--dns")
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
 
 	output := string(session.Out.Contents())
 
-	instances := map[string][]boshInstance{}
-	jobInstances := map[string][]boshInstance{}
+	instances := map[string][]BoshInstance{}
+	jobInstances := map[string][]BoshInstance{}
 
 	lines := strings.Split(output, "\n")
-	var instance boshInstance
+	var instance BoshInstance
 	for _, line := range lines {
 		instanceMatch := instanceRow.FindStringSubmatch(line)
 		if len(instanceMatch) > 0 {
 			group := instanceMatch[1]
 			id := instanceMatch[2]
 
-			instance = boshInstance{
+			instance = BoshInstance{
 				Name:  group + "/" + id,
 				Group: group,
 				ID:    id,
@@ -320,17 +301,17 @@ func loadJobInstances() (map[string][]boshInstance, map[string][]boshInstance) {
 	return instances, jobInstances
 }
 
-func bosh(argv ...string) *gexec.Session {
-	session := spawnBosh(argv...)
+func Bosh(argv ...string) *gexec.Session {
+	session := SpawnBosh(argv...)
 	Wait(session)
 	return session
 }
 
-func spawnBosh(argv ...string) *gexec.Session {
+func SpawnBosh(argv ...string) *gexec.Session {
 	return Start(nil, "bosh", append([]string{"-n", "-d", deploymentName}, argv...)...)
 }
 
-func concourseClient() concourse.Client {
+func ConcourseClient() concourse.Client {
 	token, err := FetchToken(atcExternalURL, atcUsername, atcPassword)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -346,8 +327,8 @@ func concourseClient() concourse.Client {
 	return concourse.NewClient(atcExternalURL, httpClient, false)
 }
 
-func deleteAllContainers() {
-	client := concourseClient()
+func DeleteAllContainers() {
+	client := ConcourseClient()
 	workers, err := client.ListWorkers()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -373,20 +354,20 @@ func deleteAllContainers() {
 	}
 }
 
-func waitForLandedWorker() string {
-	return waitForWorkerInState("landed")
+func WaitForLandedWorker() string {
+	return WaitForWorkerInState("landed")
 }
 
-func waitForRunningWorker() string {
-	return waitForWorkerInState("running")
+func WaitForRunningWorker() string {
+	return WaitForWorkerInState("running")
 }
 
-func waitForStalledWorker() string {
-	return waitForWorkerInState("stalled")
+func WaitForStalledWorker() string {
+	return WaitForWorkerInState("stalled")
 }
 
-func workerState(name string) string {
-	workers := flyTable("workers")
+func WorkerState(name string) string {
+	workers := FlyTable("workers")
 
 	for _, w := range workers {
 		if w["name"] == name {
@@ -397,11 +378,11 @@ func workerState(name string) string {
 	return ""
 }
 
-func waitForWorkerInState(desiredStates ...string) string {
+func WaitForWorkerInState(desiredStates ...string) string {
 	var workerName string
 
 	Eventually(func() string {
-		workers := flyTable("workers")
+		workers := FlyTable("workers")
 
 		for _, worker := range workers {
 			name := worker["name"]
@@ -431,7 +412,7 @@ func waitForWorkerInState(desiredStates ...string) string {
 	return workerName
 }
 
-func flyTable(argv ...string) []map[string]string {
+func FlyTable(argv ...string) []map[string]string {
 	session := fly.Start(append([]string{"--print-table-headers"}, argv...)...)
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
@@ -439,7 +420,7 @@ func flyTable(argv ...string) []map[string]string {
 	result := []map[string]string{}
 
 	var headers []string
-	for i, cols := range parseTable(string(session.Out.Contents())) {
+	for i, cols := range ParseTable(string(session.Out.Contents())) {
 		if i == 0 {
 			headers = cols
 			continue
@@ -459,7 +440,7 @@ func flyTable(argv ...string) []map[string]string {
 	return result
 }
 
-func parseTable(content string) [][]string {
+func ParseTable(content string) [][]string {
 	result := [][]string{}
 
 	var expectedColumns int
@@ -469,7 +450,7 @@ func parseTable(content string) [][]string {
 			continue
 		}
 
-		columns := splitTableColumns(row)
+		columns := SplitTableColumns(row)
 		if i == 0 {
 			expectedColumns = len(columns)
 		} else {
@@ -482,13 +463,13 @@ func parseTable(content string) [][]string {
 	return result
 }
 
-func splitTableColumns(row string) []string {
+func SplitTableColumns(row string) []string {
 	return regexp.MustCompile(`(\s{2,}|\t)`).Split(strings.TrimSpace(row), -1)
 }
 
-func waitForWorkersToBeRunning(expected int) {
+func WaitForWorkersToBeRunning(expected int) {
 	Eventually(func() interface{} {
-		workers := flyTable("workers")
+		workers := FlyTable("workers")
 
 		runningWorkers := []map[string]string{}
 		for _, worker := range workers {
@@ -501,8 +482,8 @@ func waitForWorkersToBeRunning(expected int) {
 	}).Should(HaveLen(expected), "expected all workers to be running")
 }
 
-func workersWithContainers() []string {
-	mainTeam := concourseClient().Team("main")
+func WorkersWithContainers() []string {
+	mainTeam := ConcourseClient().Team("main")
 	containers, err := mainTeam.ListContainers(map[string]string{})
 	Expect(err).NotTo(HaveOccurred())
 
@@ -520,8 +501,8 @@ func workersWithContainers() []string {
 	return workerNames
 }
 
-func containersBy(condition, value string) []string {
-	containers := flyTable("containers")
+func ContainersBy(condition, value string) []string {
+	containers := FlyTable("containers")
 
 	var handles []string
 	for _, c := range containers {
@@ -533,8 +514,8 @@ func containersBy(condition, value string) []string {
 	return handles
 }
 
-func volumesByResourceType(name string) []string {
-	volumes := flyTable("volumes", "-d")
+func VolumesByResourceType(name string) []string {
+	volumes := FlyTable("volumes", "-d")
 
 	var handles []string
 	for _, v := range volumes {
@@ -546,12 +527,12 @@ func volumesByResourceType(name string) []string {
 	return handles
 }
 
-func waitForDeploymentLock() {
+func WaitForDeploymentLock() {
 dance:
 	for {
-		locks := bosh("locks", "--column", "type", "--column", "resource", "--column", "task id")
+		locks := Bosh("locks", "--column", "type", "--column", "resource", "--column", "task id")
 
-		for _, lock := range parseTable(string(locks.Out.Contents())) {
+		for _, lock := range ParseTable(string(locks.Out.Contents())) {
 			if lock[0] == "deployment" && lock[1] == deploymentName {
 				fmt.Fprintf(GinkgoWriter, "waiting for deployment lock (task id %s)...\n", lock[2])
 				time.Sleep(5 * time.Second)
@@ -563,7 +544,7 @@ dance:
 	}
 }
 
-func pgDump() *gexec.Session {
+func PgDump() *gexec.Session {
 	dump := exec.Command("pg_dump", "-U", "atc", "-h", dbInstance.IP, "atc")
 	dump.Env = append(os.Environ(), "PGPASSWORD=dummy-password")
 	dump.Stdin = bytes.NewBufferString("dummy-password\n")
@@ -573,3 +554,21 @@ func pgDump() *gexec.Session {
 	Expect(session.ExitCode()).To(Equal(0))
 	return session
 }
+
+
+var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+var _ = SynchronizedBeforeSuite(func() []byte {
+	return []byte(BuildBinary())
+}, func(data []byte) {
+	fly.Bin = string(data)
+})
+
+var _ = SynchronizedAfterSuite(func() {
+}, func() {
+	gexec.CleanupBuildArtifacts()
+})
+
+var instanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([^\s]+)\s*$`)
+var jobRow = regexp.MustCompile(`^([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s+-\s*$`)
+
