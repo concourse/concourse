@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -575,6 +576,57 @@ var _ = Describe("Jobs API", func() {
 				Expect(response.Header.Get("Content-Type")).To(Equal("image/svg+xml"))
 				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
 				Expect(response.Header.Get("Expires")).To(Equal("0"))
+			})
+
+			Context("when generates bagde title", func() {
+				It("uses url `title` parameter", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=cov")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(strings.Contains(string(body), `
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">cov</text>
+      <text x="18.5" y="14">cov</text>
+`)).Should(BeTrue())
+				})
+				It("uses default `build` title if not specified", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(strings.Contains(string(body), `
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+`)).Should(BeTrue())
+				})
+				It("uses default `build` title if url `title` parameter is falsy", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(strings.Contains(string(body), `
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+`)).Should(BeTrue())
+				})
+				It("html escapes title", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=%24cov")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(strings.Contains(string(body), `
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">$cov</text>
+      <text x="18.5" y="14">$cov</text>
+`)).Should(BeTrue())
+				})
 			})
 
 			Context("when the finished build is successful", func() {
