@@ -1,15 +1,18 @@
 module Build.Header.Views exposing
     ( BackgroundShade(..)
+    , BuildDuration(..)
     , ButtonType(..)
     , Header
     , History(..)
+    , Timespan(..)
+    , Timestamp(..)
     , Widget(..)
     , viewHeader
     )
 
 import Build.Styles as Styles
 import Colors
-import Concourse exposing (BuildDuration)
+import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Html exposing (Html)
 import Html.Attributes
@@ -20,14 +23,13 @@ import Html.Attributes
         , href
         , id
         , style
+        , title
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Message.Message exposing (DomID(..), Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick, onMouseWheel)
-import Time
-import Views.BuildDuration as BuildDuration
 import Views.Icon as Icon
 
 
@@ -47,7 +49,30 @@ type alias Header =
 type Widget
     = Button (Maybe ButtonView)
     | Title String (Maybe Concourse.JobIdentifier)
-    | Duration Time.Zone BuildDuration (Maybe Time.Posix) -- TODO this type should not depend on time zone or current time, it should just contain timestamps
+    | Duration BuildDuration
+
+
+type BuildDuration
+    = Pending
+    | Running Timestamp
+    | Cancelled Timestamp
+    | Finished
+        { started : Timestamp
+        , finished : Timestamp
+        , duration : Timespan
+        }
+
+
+type Timestamp
+    = Absolute String (Maybe Timespan)
+    | Relative Timespan String
+
+
+type Timespan
+    = JustSeconds Int
+    | MinutesAndSeconds Int Int
+    | HoursAndMinutes Int Int
+    | DaysAndHours Int Int
 
 
 type History
@@ -98,9 +123,85 @@ viewWidget widget =
         Title name jobId ->
             Html.h1 [] [ viewTitle name jobId ]
 
-        Duration timeZone duration now ->
-            Maybe.map (BuildDuration.view timeZone duration) now
-                |> Maybe.withDefault (Html.text "")
+        Duration duration ->
+            viewDuration duration
+
+
+viewDuration : BuildDuration -> Html Message
+viewDuration duration =
+    Html.table [ class "dictionary build-duration" ] <|
+        case duration of
+            Pending ->
+                [ Html.tr []
+                    [ Html.td [ class "dict-key" ] [ Html.text "pending" ]
+                    , Html.td [ class "dict-value" ] []
+                    ]
+                ]
+
+            Running timestamp ->
+                [ Html.tr []
+                    [ Html.td [ class "dict-key" ] [ Html.text "started" ]
+                    , viewTimestamp timestamp
+                    ]
+                ]
+
+            Cancelled timestamp ->
+                [ Html.tr []
+                    [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
+                    , viewTimestamp timestamp
+                    ]
+                ]
+
+            Finished { started, finished } ->
+                [ Html.tr []
+                    [ Html.td [ class "dict-key" ] [ Html.text "started" ]
+                    , viewTimestamp started
+                    ]
+                , Html.tr []
+                    [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
+                    , viewTimestamp finished
+                    ]
+                ]
+
+
+viewTimestamp : Timestamp -> Html Message
+viewTimestamp timestamp =
+    case timestamp of
+        Relative timespan formatted ->
+            Html.td
+                [ class "dict-value"
+                , title formatted
+                ]
+                [ Html.span [] [ Html.text <| viewTimespan timespan ++ " ago" ] ]
+
+        Absolute formatted (Just timespan) ->
+            Html.td
+                [ class "dict-value"
+                , title <| viewTimespan timespan
+                ]
+                [ Html.span [] [ Html.text formatted ] ]
+
+        Absolute formatted Nothing ->
+            Html.td
+                [ class "dict-value"
+                ]
+                [ Html.span [] [ Html.text formatted ] ]
+
+
+viewTimespan : Timespan -> String
+viewTimespan timespan =
+    case timespan of
+        JustSeconds s ->
+            String.fromInt s ++ "s"
+
+        MinutesAndSeconds m s ->
+            String.fromInt m ++ "m" ++ String.fromInt s ++ "s"
+
+        HoursAndMinutes h m ->
+            String.fromInt h ++ "h" ++ String.fromInt m ++ "m"
+
+        DaysAndHours d h ->
+            String.fromInt d ++ "d" ++ String.fromInt h ++ "h"
 
 
 lazyViewHistory : History -> Html Message

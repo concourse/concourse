@@ -27,6 +27,23 @@ all =
                         |> List.member (Views.Title build.name Nothing)
                         |> Expect.equal True
             ]
+        , test "cancelled build has cancelled duration" <|
+            \_ ->
+                Header.header session
+                    { model
+                        | duration =
+                            { startedAt = Nothing
+                            , finishedAt = Just <| Time.millisToPosix 0
+                            }
+                    }
+                    build
+                    |> .leftWidgets
+                    |> List.member
+                        (Views.Duration <|
+                            Views.Cancelled <|
+                                Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
+                        )
+                    |> Expect.equal True
         ]
 
 

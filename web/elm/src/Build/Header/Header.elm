@@ -14,6 +14,8 @@ import Build.StepTree.Models as STModels
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Paginated)
+import DateFormat
+import Duration exposing (Duration)
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
@@ -30,6 +32,7 @@ import Message.Subscription
         )
 import RemoteData
 import Routes
+import Time
 
 
 historyId : String
@@ -41,7 +44,7 @@ header : Session -> Model r -> Concourse.Build -> Views.Header
 header session model build =
     { leftWidgets =
         [ Views.Title (name model) (currentJob model)
-        , Views.Duration session.timeZone model.duration model.now
+        , Views.Duration (duration session model)
         ]
     , rightWidgets =
         [ Views.Button
@@ -94,6 +97,104 @@ header session model build =
     , backgroundColor = model.status
     , history = Views.History build model.history
     }
+
+
+duration : Session -> Model r -> Views.BuildDuration
+duration session model =
+    case ( model.duration.startedAt, model.duration.finishedAt ) of
+        ( Nothing, Nothing ) ->
+            Views.Pending
+
+        ( Nothing, Just finished ) ->
+            Views.Cancelled (timestamp session.timeZone model.now finished)
+
+        ( Just started, Nothing ) ->
+            Views.Running (timestamp session.timeZone model.now started)
+
+        ( Just started, Just finished ) ->
+            Views.Finished
+                { started = timestamp session.timeZone model.now started
+                , finished = timestamp session.timeZone model.now finished
+                , duration = timespan <| Duration.between started finished
+                }
+
+
+timestamp : Time.Zone -> Maybe Time.Posix -> Time.Posix -> Views.Timestamp
+timestamp timeZone now time =
+    let
+        ago =
+            Maybe.map (Duration.between time) now
+
+        formatted =
+            format timeZone time
+    in
+    case ago of
+        Just a ->
+            if a < 24 * 60 * 60 * 1000 then
+                Views.Relative (timespan a) formatted
+
+            else
+                Views.Absolute formatted (Just <| timespan a)
+
+        Nothing ->
+            Views.Absolute formatted Nothing
+
+
+format : Time.Zone -> Time.Posix -> String
+format =
+    DateFormat.format
+        [ DateFormat.monthNameAbbreviated
+        , DateFormat.text " "
+        , DateFormat.dayOfMonthNumber
+        , DateFormat.text " "
+        , DateFormat.yearNumber
+        , DateFormat.text " "
+        , DateFormat.hourFixed
+        , DateFormat.text ":"
+        , DateFormat.minuteFixed
+        , DateFormat.text ":"
+        , DateFormat.secondFixed
+        , DateFormat.text " "
+        , DateFormat.amPmUppercase
+        ]
+
+
+timespan : Duration -> Views.Timespan
+timespan dur =
+    let
+        seconds =
+            dur // 1000
+
+        remainingSeconds =
+            remainderBy 60 seconds
+
+        minutes =
+            seconds // 60
+
+        remainingMinutes =
+            remainderBy 60 minutes
+
+        hours =
+            minutes // 60
+
+        remainingHours =
+            remainderBy 24 hours
+
+        days =
+            hours // 24
+    in
+    case ( ( days, remainingHours ), remainingMinutes, remainingSeconds ) of
+        ( ( 0, 0 ), 0, s ) ->
+            Views.JustSeconds s
+
+        ( ( 0, 0 ), m, s ) ->
+            Views.MinutesAndSeconds m s
+
+        ( ( 0, h ), m, _ ) ->
+            Views.HoursAndMinutes h m
+
+        ( ( d, h ), _, _ ) ->
+            Views.DaysAndHours d h
 
 
 name : Model r -> String
