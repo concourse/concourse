@@ -174,7 +174,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 
 	return SpawnBosh(
 		append([]string{
-			"deploy", manifest,
+			"deploy", "../" + manifest,
 			"--vars-store", filepath.Join(tmp, deploymentName+"-vars.yml"),
 			"-v", "deployment_name='" + deploymentName + "'",
 			"-v", "concourse_release_version='" + concourseReleaseVersion + "'",
