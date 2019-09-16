@@ -48,7 +48,12 @@ func newGardenWorkerContainer(
 	volumeClient VolumeClient,
 	workerName string,
 ) (Container, error) {
-	logger = logger.WithData(lager.Data{"container": container.Handle()})
+	logger = logger.WithData(
+		lager.Data{
+			"container": container.Handle(),
+			"worker":    workerName,
+		},
+	)
 
 	workerContainer := &gardenWorkerContainer{
 		Container:   container,
