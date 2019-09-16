@@ -1,9 +1,9 @@
 package topgun_test
 
 import (
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/concourse/concourse/topgun/common"
 	"github.com/onsi/gomega/gbytes"
 )
 

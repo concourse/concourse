@@ -13,8 +13,8 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
-	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

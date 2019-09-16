@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/concourse/flag"
-	"sigs.k8s.io/yaml"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/mitchellh/mapstructure"
+	"sigs.k8s.io/yaml"
 )
 
 var ErrAuthNotConfiguredFromFlags = errors.New("ErrAuthNotConfiguredFromFlags")

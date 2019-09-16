@@ -52,5 +52,3 @@ func TestTOPGUN(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "TOPGUN Suite")
 }
-
-

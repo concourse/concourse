@@ -1,10 +1,10 @@
 package topgun_test
 
 import (
+	. "github.com/concourse/concourse/topgun/common"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/concourse/concourse/topgun/common"
 )
 
 var _ = Describe("Ephemeral Workers", func() {

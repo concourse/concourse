@@ -509,7 +509,7 @@ var _ = Describe("login Command", func() {
 					Expect(corsHeader).To(Equal(loginATCServer.URL()))
 				})
 
-				FIt("redirects back to noop fly success page", func() {
+				It("redirects back to noop fly success page", func() {
 					Expect(resp.StatusCode).To(Equal(http.StatusFound))
 					locationHeader := resp.Header.Get("Location")
 					Expect(locationHeader).To(Equal(fmt.Sprintf("%s/fly_success?noop=true", loginATCServer.URL())))
