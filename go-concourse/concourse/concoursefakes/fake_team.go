@@ -615,6 +615,21 @@ type FakeTeam struct {
 		result3 bool
 		result4 error
 	}
+	SetPinCommentStub        func(string, string, string) (bool, error)
+	setPinCommentMutex       sync.RWMutex
+	setPinCommentArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 string
+	}
+	setPinCommentReturns struct {
+		result1 bool
+		result2 error
+	}
+	setPinCommentReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	TeamStub        func(string) (atc.Team, bool, error)
 	teamMutex       sync.RWMutex
 	teamArgsForCall []struct {
@@ -3353,6 +3368,71 @@ func (fake *FakeTeam) ResourceVersionsReturnsOnCall(i int, result1 []atc.Resourc
 	}{result1, result2, result3, result4}
 }
 
+func (fake *FakeTeam) SetPinComment(arg1 string, arg2 string, arg3 string) (bool, error) {
+	fake.setPinCommentMutex.Lock()
+	ret, specificReturn := fake.setPinCommentReturnsOnCall[len(fake.setPinCommentArgsForCall)]
+	fake.setPinCommentArgsForCall = append(fake.setPinCommentArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SetPinComment", []interface{}{arg1, arg2, arg3})
+	fake.setPinCommentMutex.Unlock()
+	if fake.SetPinCommentStub != nil {
+		return fake.SetPinCommentStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.setPinCommentReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) SetPinCommentCallCount() int {
+	fake.setPinCommentMutex.RLock()
+	defer fake.setPinCommentMutex.RUnlock()
+	return len(fake.setPinCommentArgsForCall)
+}
+
+func (fake *FakeTeam) SetPinCommentCalls(stub func(string, string, string) (bool, error)) {
+	fake.setPinCommentMutex.Lock()
+	defer fake.setPinCommentMutex.Unlock()
+	fake.SetPinCommentStub = stub
+}
+
+func (fake *FakeTeam) SetPinCommentArgsForCall(i int) (string, string, string) {
+	fake.setPinCommentMutex.RLock()
+	defer fake.setPinCommentMutex.RUnlock()
+	argsForCall := fake.setPinCommentArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeTeam) SetPinCommentReturns(result1 bool, result2 error) {
+	fake.setPinCommentMutex.Lock()
+	defer fake.setPinCommentMutex.Unlock()
+	fake.SetPinCommentStub = nil
+	fake.setPinCommentReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) SetPinCommentReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.setPinCommentMutex.Lock()
+	defer fake.setPinCommentMutex.Unlock()
+	fake.SetPinCommentStub = nil
+	if fake.setPinCommentReturnsOnCall == nil {
+		fake.setPinCommentReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.setPinCommentReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) Team(arg1 string) (atc.Team, bool, error) {
 	fake.teamMutex.Lock()
 	ret, specificReturn := fake.teamReturnsOnCall[len(fake.teamArgsForCall)]
@@ -3761,6 +3841,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.resourceMutex.RUnlock()
 	fake.resourceVersionsMutex.RLock()
 	defer fake.resourceVersionsMutex.RUnlock()
+	fake.setPinCommentMutex.RLock()
+	defer fake.setPinCommentMutex.RUnlock()
 	fake.teamMutex.RLock()
 	defer fake.teamMutex.RUnlock()
 	fake.unpauseJobMutex.RLock()

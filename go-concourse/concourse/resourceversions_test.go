@@ -387,6 +387,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 	Describe("PinResourceVersion", func() {
 		var (
 			expectedStatus    int
+			expectedBody      []byte
 			pipelineName      = "banana"
 			resourceName      = "myresource"
 			resourceVersionID = 42
@@ -397,6 +398,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.VerifyBody(expectedBody),
 					ghttp.RespondWith(expectedStatus, nil),
 				),
 			)
@@ -510,6 +512,63 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 					pinned, err := team.UnpinResource(pipelineName, resourceName)
 					Expect(err).To(HaveOccurred())
 					Expect(pinned).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+	})
+
+	Describe("SetPinComment", func() {
+		var (
+			expectedStatus     int
+			expectedPinComment = atc.SetPinCommentRequestBody{PinComment: "some comment"}
+			pipelineName       = "banana"
+			resourceName       = "myresource"
+			expectedURL        = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/pin_comment", pipelineName, resourceName)
+		)
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.VerifyJSONRepresenting(expectedPinComment),
+					ghttp.RespondWith(expectedStatus, nil),
+				),
+			)
+		})
+
+		Context("When the resource exists and there are no issues", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusOK
+			})
+
+			Context("when setting pin comment", func() {
+				BeforeEach(func() {
+				})
+
+				It("calls set pin comment and returns no error", func() {
+					Expect(func() {
+						setComment, err := team.SetPinComment(pipelineName, resourceName, "some comment")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(setComment).To(BeTrue())
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(1))
+				})
+			})
+		})
+
+		Context("when the resource does not exist", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusNotFound
+			})
+
+			It("calls the pin comment and returns an error", func() {
+				Expect(func() {
+					setComment, err := team.SetPinComment(pipelineName, resourceName, "some comment")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(setComment).To(BeFalse())
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(1))

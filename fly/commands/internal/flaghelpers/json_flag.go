@@ -2,24 +2,20 @@ package flaghelpers
 
 import (
 	"encoding/json"
-
-	"github.com/concourse/concourse/atc"
 )
 
 type JsonFlag struct {
-	JsonString string
-	Version    atc.Version
+	Raw   string
+	Value map[string]string
 }
 
 func (v *JsonFlag) UnmarshalFlag(value string) error {
-	var version atc.Version
-	err := json.Unmarshal([]byte(value), &version)
+	err := json.Unmarshal([]byte(value), &v.Value)
 	if err != nil {
 		return err
 	}
 
-	v.Version = version
-	v.JsonString = value
+	v.Raw = value
 
 	return nil
 }

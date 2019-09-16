@@ -55,6 +55,7 @@ type Team interface {
 
 	PinResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
 	UnpinResource(pipelineName string, resourceName string) (bool, error)
+	SetPinComment(pipelineName string, resourceName string, comment string) (bool, error)
 
 	BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 	BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)

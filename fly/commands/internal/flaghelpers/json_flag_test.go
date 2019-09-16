@@ -1,7 +1,6 @@
 package flaghelpers_test
 
 import (
-	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 
 	. "github.com/onsi/ginkgo"
@@ -24,8 +23,8 @@ var _ = Describe("JsonFlag", func() {
 
 			err := jsonFlag.UnmarshalFlag(`{"some":"value"}`)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(jsonFlag.Version).To(Equal(atc.Version{"some": "value"}))
-			Expect(jsonFlag.JsonString).To(Equal(`{"some":"value"}`))
+			Expect(jsonFlag.Value).To(Equal(map[string]string{"some": "value"}))
+			Expect(jsonFlag.Raw).To(Equal(`{"some":"value"}`))
 		})
 	})
 })
