@@ -44,7 +44,7 @@ type Route
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
     | Dashboard SearchType
-    | FlySuccess (Maybe Int)
+    | FlySuccess Bool (Maybe Int)
 
 
 type SearchType
@@ -201,7 +201,11 @@ dashboard =
 
 flySuccess : Parser (Route -> a) a
 flySuccess =
-    map FlySuccess (s "fly_success" <?> Query.int "fly_port")
+    map (\s -> FlySuccess (s == Just "true"))
+        (s "fly_success"
+            <?> Query.string "noop"
+            <?> Query.int "fly_port"
+        )
 
 
 
@@ -412,11 +416,24 @@ toString route =
         Dashboard HighDensity ->
             "/hd"
 
-        FlySuccess (Just flyPort) ->
-            "/fly_success?fly_port=" ++ String.fromInt flyPort
+        FlySuccess noop (Just flyPort) ->
+            "/fly_success?fly_port="
+                ++ String.fromInt flyPort
+                ++ (if noop then
+                        "&noop=true"
 
-        FlySuccess Nothing ->
+                    else
+                        ""
+                   )
+
+        FlySuccess noop Nothing ->
             "/fly_success"
+                ++ (if noop then
+                        "?noop=true"
+
+                    else
+                        ""
+                   )
 
 
 parsePath : Url.Url -> Maybe Route

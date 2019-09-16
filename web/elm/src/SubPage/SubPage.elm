@@ -94,10 +94,11 @@ init session route =
                 }
                 |> Tuple.mapFirst DashboardModel
 
-        Routes.FlySuccess flyPort ->
+        Routes.FlySuccess noop flyPort ->
             FlySuccess.init
                 { authToken = session.authToken
                 , flyPort = flyPort
+                , noop = noop
                 }
                 |> Tuple.mapFirst FlySuccessModel
 

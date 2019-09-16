@@ -39,25 +39,33 @@ import Views.Styles
 import Views.TopBar as TopBar
 
 
-init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
-init { authToken, flyPort } =
+init :
+    { authToken : String
+    , flyPort : Maybe Int
+    , noop : Bool
+    }
+    -> ( Model, List Effect )
+init { authToken, flyPort, noop } =
     ( { buttonState = Unhovered
       , authToken = authToken
       , tokenTransfer =
-            case flyPort of
-                Just _ ->
+            case ( noop, flyPort ) of
+                ( False, Just _ ) ->
                     RemoteData.Loading
 
-                Nothing ->
+                ( False, Nothing ) ->
                     RemoteData.Failure NoFlyPort
+
+                ( True, _ ) ->
+                    RemoteData.Success ()
       , isUserMenuExpanded = False
       , flyPort = flyPort
       }
-    , case flyPort of
-        Just fp ->
+    , case ( noop, flyPort ) of
+        ( False, Just fp ) ->
             [ SendTokenToFly authToken fp ]
 
-        Nothing ->
+        _ ->
             []
     )
 
@@ -125,7 +133,7 @@ view userState model =
             , Html.div
                 (id "page-below-top-bar"
                     :: (Views.Styles.pageBelowTopBar <|
-                            Routes.FlySuccess Nothing
+                            Routes.FlySuccess False Nothing
                        )
                 )
                 [ Html.div

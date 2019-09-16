@@ -6,6 +6,7 @@ module Common exposing
     , init
     , isColorWithStripes
     , myBrowserFetchedTheBuild
+    , notContains
     , pipelineRunningKeyframes
     , queryView
     , then_
@@ -47,6 +48,19 @@ contains x xs =
                 ++ Debug.toString xs
                 ++ " to contain "
                 ++ Debug.toString x
+
+
+notContains : a -> List a -> Expect.Expectation
+notContains x xs =
+    if List.member x xs then
+        Expect.fail <|
+            "Expected "
+                ++ Debug.toString xs
+                ++ "not to contain "
+                ++ Debug.toString x
+
+    else
+        Expect.pass
 
 
 isColorWithStripes :
