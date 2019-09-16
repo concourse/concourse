@@ -279,8 +279,7 @@ listensForTokenResponse setup =
     test (setupDesc setup ++ ", listens for token response") <|
         steps setup
             >> Application.subscriptions
-            >> List.member Subscription.OnTokenSentToFly
-            >> Expect.equal True
+            >> Common.contains Subscription.OnTokenSentToFly
 
 
 
