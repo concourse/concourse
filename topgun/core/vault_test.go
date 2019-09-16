@@ -13,6 +13,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,7 +23,7 @@ var _ = Describe("Vault", func() {
 	var tokenDuration = 30 * time.Second
 
 	BeforeEach(func() {
-		if !strings.Contains(string(bosh("releases").Out.Contents()), "vault") {
+		if !strings.Contains(string(Bosh("releases").Out.Contents()), "vault") {
 			Skip("vault release not uploaded")
 		}
 	})
@@ -31,7 +32,7 @@ var _ = Describe("Vault", func() {
 		var (
 			v             *vault
 			varsStore     *os.File
-			vaultInstance *boshInstance
+			vaultInstance *BoshInstance
 		)
 
 		BeforeEach(func() {
@@ -168,7 +169,7 @@ var _ = Describe("Vault", func() {
 
 				vaultCACert := vaultCACertFile.Name()
 
-				session := bosh("interpolate", "--path", "/vault_ca/certificate", varsStore.Name())
+				session := Bosh("interpolate", "--path", "/vault_ca/certificate", varsStore.Name())
 				_, err = fmt.Fprintf(vaultCACertFile, "%s", session.Out.Contents())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(vaultCACertFile.Close()).To(Succeed())

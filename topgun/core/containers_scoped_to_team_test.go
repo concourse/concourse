@@ -1,13 +1,12 @@
 package topgun_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"bytes"
-
 	"strconv"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/concourse/concourse/topgun/common"
 	"github.com/onsi/gomega/gbytes"
 )
 
@@ -27,7 +26,7 @@ var _ = Describe("Container scope", func() {
 			Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 			By("demonstrating we can hijack into all of the containers")
-			buildContainers := containersBy("build #", "1")
+			buildContainers := ContainersBy("build #", "1")
 			for i := 1; i <= len(buildContainers); i++ {
 				hijackSession := fly.SpawnInteractive(
 					bytes.NewBufferString(strconv.Itoa(i)+"\n"),

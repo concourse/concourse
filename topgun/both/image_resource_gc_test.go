@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -21,7 +22,7 @@ var _ = Describe("A build using an image_resource", func() {
 
 			By("verifying that the image cache sticks around")
 			Consistently(func() []string {
-				volumes := flyTable("volumes")
+				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
 					// there is going to be one for image resource
@@ -48,7 +49,7 @@ var _ = Describe("A build using an image_resource", func() {
 			Eventually(watchSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 			By("getting the resource cache volumes")
-			volumes := flyTable("volumes")
+			volumes := FlyTable("volumes")
 			originalResourceVolumeHandles := []string{}
 			for _, volume := range volumes {
 				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "digest:") {
@@ -65,7 +66,7 @@ var _ = Describe("A build using an image_resource", func() {
 
 			By("verifying that both image caches stick around")
 			Consistently(func() []string {
-				volumes := flyTable("volumes")
+				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
 					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "digest:") {
@@ -95,7 +96,7 @@ var _ = Describe("A build using an image_resource", func() {
 			By("eventually expiring the previous build's resource cache volume")
 			var remainingHandles []string
 			Eventually(func() []string {
-				volumes := flyTable("volumes")
+				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
 					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "digest:") {

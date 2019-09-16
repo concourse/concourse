@@ -4,6 +4,8 @@ import (
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/concourse/concourse/topgun/common"
+
 )
 
 var _ = Describe("Resource checking", func() {
@@ -28,7 +30,7 @@ var _ = Describe("Resource checking", func() {
 				fly.Run("check-resource", "-r", "tagged-resource/some-resource")
 
 				By("getting the worker name")
-				workersTable := flyTable("workers")
+				workersTable := FlyTable("workers")
 				var taggedWorkerName string
 				for _, w := range workersTable {
 					if w["tags"] == "tagged" {
@@ -38,7 +40,7 @@ var _ = Describe("Resource checking", func() {
 				Expect(taggedWorkerName).ToNot(BeEmpty())
 
 				By("checking that the container is on the tagged worker")
-				containerTable := flyTable("containers")
+				containerTable := FlyTable("containers")
 				Expect(containerTable).To(HaveLen(1))
 				Expect(containerTable[0]["type"]).To(Equal("check"))
 				Expect(containerTable[0]["worker"]).To(Equal(taggedWorkerName))
@@ -47,7 +49,7 @@ var _ = Describe("Resource checking", func() {
 				fly.Run("check-resource", "-r", "tagged-resource/some-resource")
 
 				By("checking that the container is on the tagged worker")
-				containerTable = flyTable("containers")
+				containerTable = FlyTable("containers")
 				Expect(containerTable).To(HaveLen(1))
 				Expect(containerTable[0]["type"]).To(Equal("check"))
 				Expect(containerTable[0]["worker"]).To(Equal(taggedWorkerName))
@@ -67,7 +69,7 @@ var _ = Describe("Resource checking", func() {
 			)
 
 			Eventually(func() []map[string]string {
-				workersTable := flyTable("workers")
+				workersTable := FlyTable("workers")
 
 				for _, w := range workersTable {
 					if w["team"] == "main" {
@@ -97,7 +99,7 @@ var _ = Describe("Resource checking", func() {
 			})
 
 			It("places the check container on the team worker", func() {
-				containerTable := flyTable("containers")
+				containerTable := FlyTable("containers")
 				Expect(containerTable).To(HaveLen(1))
 				Expect(containerTable[0]["type"]).To(Equal("check"))
 				Expect(containerTable[0]["worker"]).To(Equal(teamWorkerName))
@@ -128,7 +130,7 @@ var _ = Describe("Resource checking", func() {
 					fly.Run("check-resource", "-r", "get-resource/some-resource")
 
 					By("checking that the container is on the global worker")
-					containerTable := flyTable("containers")
+					containerTable := FlyTable("containers")
 					Expect(containerTable).To(HaveLen(1))
 					Expect(containerTable[0]["type"]).To(Equal("check"))
 					Expect(containerTable[0]["worker"]).To(Equal(globalWorkerName))
@@ -160,7 +162,7 @@ var _ = Describe("Resource checking", func() {
 			})
 
 			It("places the check container on the global worker", func() {
-				containerTable := flyTable("containers")
+				containerTable := FlyTable("containers")
 				Expect(containerTable).To(HaveLen(1))
 				Expect(containerTable[0]["type"]).To(Equal("check"))
 				Expect(containerTable[0]["worker"]).To(Equal(globalWorkerName))
@@ -170,7 +172,7 @@ var _ = Describe("Resource checking", func() {
 				var globalHandle string
 
 				BeforeEach(func() {
-					containerTable := flyTable("containers")
+					containerTable := FlyTable("containers")
 					Expect(containerTable).To(HaveLen(1))
 					Expect(containerTable[0]["type"]).To(Equal("check"))
 					Expect(containerTable[0]["worker"]).To(Equal(globalWorkerName))
@@ -192,7 +194,7 @@ var _ = Describe("Resource checking", func() {
 					fly.Run("check-resource", "-r", "get-resource/some-resource")
 
 					By("having created a new container on the team worker")
-					containerTable := flyTable("containers")
+					containerTable := FlyTable("containers")
 					Expect(containerTable).To(HaveLen(2))
 					for _, c := range containerTable {
 						if c["handle"] == globalHandle {

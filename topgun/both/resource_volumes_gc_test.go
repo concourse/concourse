@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/concourse/concourse/topgun/common"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,14 +28,14 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting the resource cache volumes")
-			Expect(volumesByResourceType("time")).To(HaveLen(1))
+			Expect(VolumesByResourceType("time")).To(HaveLen(1))
 
 			By("updating pipeline and removing resource")
 			fly.Run("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "volume-gc-test")
 
 			By("eventually expiring the resource cache volumes")
 			Eventually(func() int {
-				return len(volumesByResourceType("time"))
+				return len(VolumesByResourceType("time"))
 			}, 5*time.Minute, 10*time.Second).Should(BeZero())
 		})
 	})
@@ -55,7 +56,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting the resource cache volumes")
-			volumes := flyTable("volumes")
+			volumes := FlyTable("volumes")
 			originalResourceVolumeHandles := []string{}
 			for _, volume := range volumes {
 				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
@@ -69,7 +70,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 			By("eventually expiring the resource cache volumes")
 			Eventually(func() []string {
-				return volumesByResourceType("time")
+				return VolumesByResourceType("time")
 			}, 5*time.Minute, 10*time.Second).ShouldNot(ContainElement(originalResourceVolumeHandles[0]))
 		})
 	})
@@ -90,7 +91,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting the resource cache volumes")
-			volumes := flyTable("volumes")
+			volumes := FlyTable("volumes")
 			resourceVolumeHandles := []string{}
 			for _, volume := range volumes {
 				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
@@ -104,7 +105,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 			By("eventually expiring the resource cache volumes")
 			Eventually(func() int {
-				return len(volumesByResourceType("time"))
+				return len(VolumesByResourceType("time"))
 			}, 5*time.Minute, 10*time.Second).Should(BeZero())
 		})
 	})
@@ -125,7 +126,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("locating the cache")
-			volumes := flyTable("volumes")
+			volumes := FlyTable("volumes")
 			var firstCacheHandle string
 			for _, volume := range volumes {
 				if volume["type"] == "resource" && volume["identifier"] == "version:first-version" {
@@ -142,7 +143,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 			By("eventually expiring the resource cache volume")
 			Eventually(func() []string {
-				volumes := flyTable("volumes")
+				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
 					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:") {
@@ -171,7 +172,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 			Eventually(watchSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 			By("locating the cache")
-			volumes := flyTable("volumes")
+			volumes := FlyTable("volumes")
 			var firstCacheHandle string
 			for _, volume := range volumes {
 				if volume["type"] == "resource" && volume["identifier"] == "version:first-version" {
@@ -185,7 +186,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 			By("not expiring the resource cache volume for the ongoing build")
 			Consistently(func() []string {
-				volumes := flyTable("volumes")
+				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
 					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:") {
@@ -210,7 +211,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 			By("eventually expiring the resource cache volume")
 			Eventually(func() []string {
-				volumes := flyTable("volumes")
+				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
 					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:") {

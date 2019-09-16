@@ -4,6 +4,7 @@ import (
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/concourse/concourse/topgun/common"
 )
 
 var _ = Describe("Ephemeral Workers", func() {
@@ -19,16 +20,16 @@ var _ = Describe("Ephemeral Workers", func() {
 
 		Context("when the worker goes away", func() {
 			BeforeEach(func() {
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
+				Bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
 			})
 
 			AfterEach(func() {
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
+				Bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
 			})
 
 			It("disappears without stalling", func() {
 				Eventually(func() int {
-					workers := flyTable("workers")
+					workers := FlyTable("workers")
 					return len(workers)
 				}).Should(Equal(1))
 			})

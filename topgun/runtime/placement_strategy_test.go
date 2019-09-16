@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/concourse/concourse/topgun/common"
 )
 
 var _ = XDescribe("Fewest Build Containers Found Placement Strategy", func() {
@@ -26,7 +27,7 @@ var _ = XDescribe("Fewest Build Containers Found Placement Strategy", func() {
 			firstWorkerName = strings.Split(strings.TrimPrefix(workers[0].Name, "worker/"), "-")[0]
 			secondWorkerName = strings.Split(strings.TrimPrefix(workers[1].Name, "worker/"), "-")[0]
 
-			bosh("stop", fmt.Sprintf("worker/%s", workers[0].ID))
+			Bosh("stop", fmt.Sprintf("worker/%s", workers[0].ID))
 
 			By("setting a pipeline with many containers")
 			fly.Run("set-pipeline", "-n", "main", "-c", "pipelines/lots-ata-time.yml", "-p", "many-containers-pipeline")
@@ -36,7 +37,7 @@ var _ = XDescribe("Fewest Build Containers Found Placement Strategy", func() {
 
 			By("waiting a few minutes before re-starting the worker instance")
 			time.Sleep(1 * time.Minute)
-			bosh("start", fmt.Sprintf("worker/%s", workers[0].ID))
+			Bosh("start", fmt.Sprintf("worker/%s", workers[0].ID))
 			time.Sleep(2 * time.Minute)
 
 			By("setting the second pipeline with many containers")
@@ -47,7 +48,7 @@ var _ = XDescribe("Fewest Build Containers Found Placement Strategy", func() {
 
 			By("getting the container count on the workers")
 			time.Sleep(1 * time.Minute)
-			containersTable := flyTable("containers")
+			containersTable := FlyTable("containers")
 			containersOnFirstWorker := 0
 			containersOnSecondWorker := 0
 			for _, c := range containersTable {

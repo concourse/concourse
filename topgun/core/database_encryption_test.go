@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	. "github.com/concourse/concourse/topgun/common"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 )
@@ -48,7 +49,7 @@ var _ = Describe("Database secrets encryption", func() {
 			configurePipelineAndTeamAndTriggerJob()
 
 			By("taking a dump")
-			session := pgDump()
+			session := PgDump()
 			Expect(session).ToNot(gbytes.Say("resource_secret"))
 			Expect(session).ToNot(gbytes.Say("resource_type_secret"))
 			Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -65,7 +66,7 @@ var _ = Describe("Database secrets encryption", func() {
 				configurePipelineAndTeamAndTriggerJob()
 
 				By("taking a dump")
-				session := pgDump()
+				session := PgDump()
 				Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
 				Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
 				Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))
@@ -78,7 +79,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 				It("encrypts pipeline credentials", func() {
 					By("taking a dump")
-					session := pgDump()
+					session := PgDump()
 					Expect(session).ToNot(gbytes.Say("resource_secret"))
 					Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 					Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -98,7 +99,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 					It("can still get and set pipelines", func() {
 						By("taking a dump")
-						session := pgDump()
+						session := PgDump()
 						Expect(session).ToNot(gbytes.Say("resource_secret"))
 						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 						Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -129,7 +130,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 					It("can still get and set pipelines", func() {
 						By("taking a dump")
-						session := pgDump()
+						session := PgDump()
 						Expect(session).ToNot(gbytes.Say("resource_secret"))
 						Expect(session).ToNot(gbytes.Say("concourse/time-resource"))
 						Expect(session).ToNot(gbytes.Say("job_secret"))
@@ -158,7 +159,7 @@ var _ = Describe("Database secrets encryption", func() {
 					var boshLogs *gexec.Session
 
 					BeforeEach(func() {
-						boshLogs = spawnBosh("logs", "-f")
+						boshLogs = SpawnBosh("logs", "-f")
 
 						deploy = StartDeploy("deployments/concourse.yml", "-o", "operations/encryption-bogus.yml")
 						<-deploy.Exited
@@ -187,7 +188,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 					It("decrypts pipeline credentials", func() {
 						By("taking a dump")
-						session := pgDump()
+						session := PgDump()
 						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_secret"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("resource_type_secret"))
 						Expect(string(session.Out.Contents())).To(ContainSubstring("job_secret"))

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -29,7 +30,7 @@ var _ = Describe("An ATC with syslog draining set", func() {
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))
 
-		bosh("scp", "web/0:/var/vcap/store/syslog_storer/syslog.log", "/tmp/syslog.log")
+		Bosh("scp", "web/0:/var/vcap/store/syslog_storer/syslog.log", "/tmp/syslog.log")
 		found, err := checkContent("/tmp/syslog.log", "shhhh")
 
 		Expect(err).NotTo(HaveOccurred())

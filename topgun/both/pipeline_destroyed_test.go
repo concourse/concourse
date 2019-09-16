@@ -1,12 +1,12 @@
 package topgun_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"time"
 
+	. "github.com/concourse/concourse/topgun/common"
 	"code.cloudfoundry.org/garden"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Garbage collecting containers for destroyed pipelines", func() {
@@ -26,7 +26,7 @@ var _ = Describe("Garbage collecting containers for destroyed pipelines", func()
 		Expect(buildSession.ExitCode()).To(Equal(0))
 
 		By("verifying that containers exist")
-		containerTable := flyTable("containers")
+		containerTable := FlyTable("containers")
 		Expect(containerTable).To(HaveLen(7))
 
 		var (
@@ -42,7 +42,7 @@ var _ = Describe("Garbage collecting containers for destroyed pipelines", func()
 
 		By("verifying the containers don't exist")
 		Eventually(func() int {
-			return len(flyTable("containers"))
+			return len(FlyTable("containers"))
 		}, 5*time.Minute, 30*time.Second).Should(BeZero())
 
 		Eventually(func() []garden.Container {

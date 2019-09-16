@@ -10,13 +10,14 @@ import (
 	_ "github.com/lib/pq"
 
 	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Multiple ATCs Login Session Test", func() {
 	Context("with two atcs available", func() {
-		var atcs []boshInstance
+		var atcs []BoshInstance
 		var atc0URL string
 		var atc1URL string
 
@@ -50,11 +51,11 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("stopping the first atc")
-				bosh("stop", atcs[0].Name)
+				Bosh("stop", atcs[0].Name)
 			})
 
 			AfterEach(func() {
-				bosh("start", atcs[0].Name)
+				Bosh("start", atcs[0].Name)
 			})
 
 			It("request successfully", func() {

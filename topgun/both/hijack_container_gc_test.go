@@ -3,6 +3,7 @@ package topgun_test
 import (
 	"time"
 
+	. "github.com/concourse/concourse/topgun/common"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,7 +17,7 @@ var _ = Describe("Hijacked containers", func() {
 
 	getContainer := func(condition, value string) func() hijackedContainerResult {
 		return func() (h hijackedContainerResult) {
-			containers := flyTable("containers")
+			containers := FlyTable("containers")
 
 			var containerHandle string
 			for _, c := range containers {
@@ -126,7 +127,7 @@ var _ = Describe("Hijacked containers", func() {
 		By("checking resource")
 		fly.Run("check-resource", "-r", "hijacked-resource-test/tick-tock")
 
-		containers := flyTable("containers")
+		containers := FlyTable("containers")
 		var checkContainerHandle string
 		for _, c := range containers {
 			if c["type"] == "check" {

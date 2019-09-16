@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/concourse/concourse/topgun/common"
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
