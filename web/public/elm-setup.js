@@ -164,24 +164,24 @@ app.ports.rawHttpRequest.subscribe(function(url) {
   var xhr = new XMLHttpRequest();
 
   xhr.addEventListener('error', function(error) {
-    app.ports.rawHttpResponse.send({networkError: true});
+    app.ports.rawHttpResponse.send('networkError');
   });
   xhr.addEventListener('timeout', function() {
-    app.ports.rawHttpResponse.send({timeout: true});
+    app.ports.rawHttpResponse.send('timeout');
   });
   xhr.addEventListener('load', function() {
-    app.ports.rawHttpResponse.send();
+    app.ports.rawHttpResponse.send('success');
   });
 
-  xhr.open("GET", url, false);
+  xhr.open('GET', url, false);
 
   try {
     xhr.send();
     if (xhr.readyState === 1) {
-      app.ports.rawHttpResponse.send({browserError: true});
+      app.ports.rawHttpResponse.send('browserError');
     }
   } catch (error) {
-    app.ports.rawHttpResponse.send({networkError: true});
+    app.ports.rawHttpResponse.send('networkError');
   }
 });
 
