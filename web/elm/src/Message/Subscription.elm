@@ -3,6 +3,7 @@ port module Message.Subscription exposing
     , Interval(..)
     , RawHttpResponse(..)
     , Subscription(..)
+    , decodeHttpResponse
     , runSubscription
     )
 
@@ -33,15 +34,14 @@ port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
 port sideBarStateReceived : (Maybe String -> msg) -> Sub msg
 
 
-port rawHttpResponse : (Json.Encode.Value -> msg) -> Sub msg
+port rawHttpResponse : (String -> msg) -> Sub msg
 
 
 type RawHttpResponse
-    = Success -- ()
-    | BadUrl String -- ({"badUrl": "the-bad-url./com"})
-    | Timeout -- ({"timeout": true})
-    | NetworkError -- ({"networkError": true})
-    | BrowserError -- ({"browserError": true})
+    = Success
+    | Timeout
+    | NetworkError
+    | BrowserError
 
 
 type Subscription
@@ -143,16 +143,20 @@ runSubscription s =
             rawHttpResponse (decodeHttpResponse >> TokenSentToFly)
 
 
-decodeHttpResponse : Json.Encode.Value -> RawHttpResponse
-decodeHttpResponse =
-    Json.Decode.decodeValue
-        (Json.Decode.oneOf
-            [ Json.Decode.field "networkError" (Json.Decode.succeed NetworkError)
-            , Json.Decode.field "browserError" (Json.Decode.succeed BrowserError)
-            , Json.Decode.field "timeout" (Json.Decode.succeed Timeout)
-            ]
-        )
-        >> Result.withDefault Success
+decodeHttpResponse : String -> RawHttpResponse
+decodeHttpResponse value =
+    case value of
+        "networkError" ->
+            NetworkError
+
+        "browserError" ->
+            BrowserError
+
+        "timeout" ->
+            Timeout
+
+        _ ->
+            Success
 
 
 intervalToTime : Interval -> Float
