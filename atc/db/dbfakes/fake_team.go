@@ -379,18 +379,6 @@ type FakeTeam struct {
 	updateProviderAuthReturnsOnCall map[int]struct {
 		result1 error
 	}
-	VisiblePipelinesStub        func() ([]db.Pipeline, error)
-	visiblePipelinesMutex       sync.RWMutex
-	visiblePipelinesArgsForCall []struct {
-	}
-	visiblePipelinesReturns struct {
-		result1 []db.Pipeline
-		result2 error
-	}
-	visiblePipelinesReturnsOnCall map[int]struct {
-		result1 []db.Pipeline
-		result2 error
-	}
 	WorkersStub        func() ([]db.Worker, error)
 	workersMutex       sync.RWMutex
 	workersArgsForCall []struct {
@@ -2120,61 +2108,6 @@ func (fake *FakeTeam) UpdateProviderAuthReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) VisiblePipelines() ([]db.Pipeline, error) {
-	fake.visiblePipelinesMutex.Lock()
-	ret, specificReturn := fake.visiblePipelinesReturnsOnCall[len(fake.visiblePipelinesArgsForCall)]
-	fake.visiblePipelinesArgsForCall = append(fake.visiblePipelinesArgsForCall, struct {
-	}{})
-	fake.recordInvocation("VisiblePipelines", []interface{}{})
-	fake.visiblePipelinesMutex.Unlock()
-	if fake.VisiblePipelinesStub != nil {
-		return fake.VisiblePipelinesStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.visiblePipelinesReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeTeam) VisiblePipelinesCallCount() int {
-	fake.visiblePipelinesMutex.RLock()
-	defer fake.visiblePipelinesMutex.RUnlock()
-	return len(fake.visiblePipelinesArgsForCall)
-}
-
-func (fake *FakeTeam) VisiblePipelinesCalls(stub func() ([]db.Pipeline, error)) {
-	fake.visiblePipelinesMutex.Lock()
-	defer fake.visiblePipelinesMutex.Unlock()
-	fake.VisiblePipelinesStub = stub
-}
-
-func (fake *FakeTeam) VisiblePipelinesReturns(result1 []db.Pipeline, result2 error) {
-	fake.visiblePipelinesMutex.Lock()
-	defer fake.visiblePipelinesMutex.Unlock()
-	fake.VisiblePipelinesStub = nil
-	fake.visiblePipelinesReturns = struct {
-		result1 []db.Pipeline
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeTeam) VisiblePipelinesReturnsOnCall(i int, result1 []db.Pipeline, result2 error) {
-	fake.visiblePipelinesMutex.Lock()
-	defer fake.visiblePipelinesMutex.Unlock()
-	fake.VisiblePipelinesStub = nil
-	if fake.visiblePipelinesReturnsOnCall == nil {
-		fake.visiblePipelinesReturnsOnCall = make(map[int]struct {
-			result1 []db.Pipeline
-			result2 error
-		})
-	}
-	fake.visiblePipelinesReturnsOnCall[i] = struct {
-		result1 []db.Pipeline
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeTeam) Workers() ([]db.Worker, error) {
 	fake.workersMutex.Lock()
 	ret, specificReturn := fake.workersReturnsOnCall[len(fake.workersArgsForCall)]
@@ -2289,8 +2222,6 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.updateProviderAuthMutex.RLock()
 	defer fake.updateProviderAuthMutex.RUnlock()
-	fake.visiblePipelinesMutex.RLock()
-	defer fake.visiblePipelinesMutex.RUnlock()
 	fake.workersMutex.RLock()
 	defer fake.workersMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
