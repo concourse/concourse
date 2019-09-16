@@ -1,6 +1,8 @@
 package integration_test
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
@@ -8,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -465,6 +468,53 @@ var _ = Describe("login Command", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 			})
+
+			Context("token callback listener", func() {
+				var resp *http.Response
+
+				BeforeEach(func() {
+					loginATCServer.AppendHandlers(ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/fly_success"),
+						ghttp.RespondWith(200, ""),
+					))
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
+					_, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
+					scanner := bufio.NewScanner(bytes.NewBuffer(sess.Out.Contents()))
+					var match []string
+					for scanner.Scan() {
+						re := regexp.MustCompile("fly_port=(\\d+)")
+						match = re.FindStringSubmatch(scanner.Text())
+						if len(match) > 0 {
+							break
+						}
+					}
+					flyPort := match[1]
+					client := &http.Client{
+						CheckRedirect: func(req *http.Request, via []*http.Request) error {
+							return http.ErrUseLastResponse
+						},
+					}
+					resp, err = client.Get(fmt.Sprintf("http://127.0.0.1:%s?token=Bearer%%20some-token", flyPort))
+					Expect(err).NotTo(HaveOccurred())
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+
+				It("sets a CORS header for the ATC being logged in to", func() {
+					corsHeader := resp.Header.Get("Access-Control-Allow-Origin")
+					Expect(corsHeader).To(Equal(loginATCServer.URL()))
+				})
+
+				FIt("redirects back to noop fly success page", func() {
+					Expect(resp.StatusCode).To(Equal(http.StatusFound))
+					locationHeader := resp.Header.Get("Location")
+					Expect(locationHeader).To(Equal(fmt.Sprintf("%s/fly_success?noop=true", loginATCServer.URL())))
+				})
+			})
 		})
 
 		Context("with password grant", func() {
@@ -729,9 +779,6 @@ var _ = Describe("login Command", func() {
 				Expect(sess.ExitCode()).To(Equal(0))
 				Expect(sess.Out.Contents()).To(ContainSubstring("target saved"))
 			})
-		})
-
-		Context("with the ATC Url specified", func() {
 		})
 	})
 })
