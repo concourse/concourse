@@ -1,5 +1,6 @@
 module Common exposing
-    ( defineHoverBehaviour
+    ( contains
+    , defineHoverBehaviour
     , given
     , iOpenTheBuildPage
     , init
@@ -33,6 +34,19 @@ queryView =
         >> List.head
         >> Maybe.withDefault (Html.text "")
         >> Query.fromHtml
+
+
+contains : a -> List a -> Expect.Expectation
+contains x xs =
+    if List.member x xs then
+        Expect.pass
+
+    else
+        Expect.fail <|
+            "Expected "
+                ++ Debug.toString xs
+                ++ " to contain "
+                ++ Debug.toString x
 
 
 isColorWithStripes :
