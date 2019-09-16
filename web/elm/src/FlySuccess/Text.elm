@@ -12,11 +12,7 @@ module FlySuccess.Text exposing
     , title
     )
 
-import FlySuccess.Models as Models
-    exposing
-        ( ButtonState
-        , TransferFailure(..)
-        )
+import FlySuccess.Models as Models exposing (ButtonState)
 
 
 title : String
@@ -54,23 +50,26 @@ firstParagraphFailure =
     ]
 
 
-secondParagraphFailure : TransferFailure -> Paragraph
+secondParagraphFailure : Models.TokenTransfer -> Paragraph
 secondParagraphFailure error =
     case error of
-        BlockedByBrowser ->
+        Models.BlockedByBrowser ->
             [ "your browser blocked the attempt."
             , "try clicking the link below:"
             ]
 
-        NetworkTrouble ->
+        Models.NetworkTrouble ->
             [ "after copying, return to fly and paste"
             , "your token into the prompt."
             ]
 
-        NoFlyPort ->
+        Models.NoFlyPort ->
             [ "could not find a valid fly port to send to."
             , "maybe your URL is broken?"
             ]
+
+        _ ->
+            []
 
 
 thirdParagraphBlocked : Paragraph

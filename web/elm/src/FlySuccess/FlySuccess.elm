@@ -8,13 +8,7 @@ module FlySuccess.FlySuccess exposing
     )
 
 import EffectTransformer exposing (ET)
-import FlySuccess.Models
-    exposing
-        ( ButtonState(..)
-        , Model
-        , TransferFailure(..)
-        , hover
-        )
+import FlySuccess.Models as Models exposing (ButtonState(..), Model, hover)
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
@@ -24,14 +18,12 @@ import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
-import Message.Subscription
+import Message.Subscription as Subscription
     exposing
         ( Delivery(..)
-        , RawHttpResponse(..)
         , Subscription(..)
         )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
-import RemoteData
 import Routes
 import UserState exposing (UserState)
 import Views.Icon as Icon
@@ -51,13 +43,13 @@ init { authToken, flyPort, noop } =
       , tokenTransfer =
             case ( noop, flyPort ) of
                 ( False, Just _ ) ->
-                    RemoteData.Loading
+                    Models.Pending
 
                 ( False, Nothing ) ->
-                    RemoteData.Failure NoFlyPort
+                    Models.NoFlyPort
 
                 ( True, _ ) ->
-                    RemoteData.Success ()
+                    Models.Success
       , isUserMenuExpanded = False
       , flyPort = flyPort
       }
@@ -73,16 +65,16 @@ init { authToken, flyPort, noop } =
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        TokenSentToFly Success ->
-            ( { model | tokenTransfer = RemoteData.Success () }, effects )
+        TokenSentToFly Subscription.Success ->
+            ( { model | tokenTransfer = Models.Success }, effects )
 
-        TokenSentToFly NetworkError ->
-            ( { model | tokenTransfer = RemoteData.Failure NetworkTrouble }
+        TokenSentToFly Subscription.NetworkError ->
+            ( { model | tokenTransfer = Models.NetworkTrouble }
             , effects
             )
 
-        TokenSentToFly BrowserError ->
-            ( { model | tokenTransfer = RemoteData.Failure BlockedByBrowser }
+        TokenSentToFly Subscription.BrowserError ->
+            ( { model | tokenTransfer = Models.BlockedByBrowser }
             , effects
             )
 
@@ -158,13 +150,10 @@ body model =
             List.filter Tuple.second >> List.map Tuple.first
     in
     case model.tokenTransfer of
-        RemoteData.Loading ->
+        Models.Pending ->
             [ Html.text Text.pending ]
 
-        RemoteData.NotAsked ->
-            [ Html.text Text.pending ]
-
-        RemoteData.Success () ->
+        Models.Success ->
             elemList
                 [ ( paragraph
                         { identifier = "first-paragraph"
@@ -181,7 +170,7 @@ body model =
                   )
                 ]
 
-        RemoteData.Failure BlockedByBrowser ->
+        Models.BlockedByBrowser ->
             elemList
                 [ ( paragraph
                         { identifier = "first-paragraph"
@@ -192,7 +181,7 @@ body model =
                 , ( button model, False )
                 , ( paragraph
                         { identifier = "second-paragraph"
-                        , lines = Text.secondParagraphFailure BlockedByBrowser
+                        , lines = Text.secondParagraphFailure Models.BlockedByBrowser
                         }
                   , True
                   )
@@ -206,13 +195,13 @@ body model =
                 , ( button model, True )
                 , ( paragraph
                         { identifier = "fourth-paragraph"
-                        , lines = Text.secondParagraphFailure NetworkTrouble
+                        , lines = Text.secondParagraphFailure Models.NetworkTrouble
                         }
                   , True
                   )
                 ]
 
-        RemoteData.Failure err ->
+        err ->
             elemList
                 [ ( paragraph
                         { identifier = "first-paragraph"
