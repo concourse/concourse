@@ -37,6 +37,8 @@ type scanner struct {
 }
 
 func (s *scanner) Run(ctx context.Context) error {
+	s.logger.Info("start")
+	defer s.logger.Info("end")
 
 	lock, acquired, err := s.checkFactory.AcquireScanningLock(s.logger)
 	if err != nil {
@@ -120,7 +122,7 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 	}
 
 	if !created {
-		s.logger.Info("check-already-exists")
+		s.logger.Debug("check-already-exists")
 	}
 
 	return nil
