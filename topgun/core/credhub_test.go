@@ -21,13 +21,14 @@ import (
 	"sigs.k8s.io/yaml"
 
 	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Credhub", func() {
 	BeforeEach(func() {
-		if !strings.Contains(string(bosh("releases").Out.Contents()), "credhub") {
+		if !strings.Contains(string(Bosh("releases").Out.Contents()), "credhub") {
 			Skip("credhub release not uploaded")
 		}
 	})
@@ -35,7 +36,7 @@ var _ = Describe("Credhub", func() {
 	Describe("A deployment with credhub", func() {
 		var (
 			credhubClient   *credhub.CredHub
-			credhubInstance *boshInstance
+			credhubInstance *BoshInstance
 		)
 
 		BeforeEach(func() {

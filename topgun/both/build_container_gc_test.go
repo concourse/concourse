@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/concourse/concourse/topgun/common"
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
@@ -17,7 +18,7 @@ var _ = Describe("Garbage collecting build containers", func() {
 	})
 
 	getContainers := func(condition, value string) []string {
-		containers := flyTable("containers")
+		containers := FlyTable("containers")
 
 		var handles []string
 		for _, c := range containers {

@@ -15,7 +15,6 @@ import (
 	. "github.com/concourse/concourse/topgun/common"
 )
 
-
 var (
 	deploymentNamePrefix string
 
@@ -53,4 +52,5 @@ func TestTOPGUN(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "TOPGUN Suite")
 }
+
 

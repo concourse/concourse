@@ -1,6 +1,7 @@
 package topgun_test
 
 import (
+	. "github.com/concourse/concourse/topgun/common"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,7 +11,7 @@ var _ = Describe("Unique Version History", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml",
 			"-o", "operations/enable-global-resources.yml")
-		_ = waitForRunningWorker()
+		_ = WaitForRunningWorker()
 	})
 
 	Context("with a time resource", func() {

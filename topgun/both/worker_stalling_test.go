@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"time"
 
+	. "github.com/concourse/concourse/topgun/common"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,7 +28,7 @@ var _ = Describe("Worker stalling", func() {
 			usedWorkers := map[string]struct{}{}
 			Eventually(func() map[string]struct{} {
 				fly.Run("execute", "-c", "tasks/tiny.yml")
-				workerNames := workersWithContainers()
+				workerNames := WorkersWithContainers()
 				for _, w := range workerNames {
 					usedWorkers[w] = struct{}{}
 				}
@@ -39,19 +40,19 @@ var _ = Describe("Worker stalling", func() {
 			var stalledWorkerName string
 
 			BeforeEach(func() {
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
-				stalledWorkerName = waitForStalledWorker()
+				Bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
+				stalledWorkerName = WaitForStalledWorker()
 			})
 
 			AfterEach(func() {
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
-				waitForWorkersToBeRunning(2)
+				Bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
+				WaitForWorkersToBeRunning(2)
 			})
 
 			It("enters 'stalled' state and is no longer used for new containers", func() {
 				for i := 0; i < 10; i++ {
 					fly.Run("execute", "-c", "tasks/tiny.yml")
-					usedWorkers := workersWithContainers()
+					usedWorkers := WorkersWithContainers()
 					Expect(usedWorkers).To(HaveLen(1))
 					Expect(usedWorkers).ToNot(ContainElement(stalledWorkerName))
 				}
@@ -59,7 +60,7 @@ var _ = Describe("Worker stalling", func() {
 
 			It("can be pruned while in stalled state", func() {
 				fly.Run("prune-worker", "-w", stalledWorkerName)
-				waitForWorkersToBeRunning(1)
+				WaitForWorkersToBeRunning(1)
 			})
 		})
 	})
@@ -84,15 +85,15 @@ var _ = Describe("Worker stalling", func() {
 				Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 				By("stopping the worker without draining")
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
+				Bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
 
 				By("waiting for it to stall")
-				_ = waitForStalledWorker()
+				_ = WaitForStalledWorker()
 			})
 
 			AfterEach(func() {
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
-				waitForWorkersToBeRunning(1)
+				Bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
+				WaitForWorkersToBeRunning(1)
 
 				buildSession.Signal(os.Interrupt)
 				<-buildSession.Exited
@@ -106,8 +107,8 @@ var _ = Describe("Worker stalling", func() {
 
 			Context("when the worker comes back", func() {
 				BeforeEach(func() {
-					bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
-					waitForWorkersToBeRunning(1)
+					Bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start worker")
+					WaitForWorkersToBeRunning(1)
 				})
 
 				It("resumes the build", func() {

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/concourse/concourse/topgun/common"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,15 +15,15 @@ import (
 )
 
 var _ = Describe("Worker landing", func() {
-	landWorker := func() (string, boshInstance) {
-		workerToLand := flyTable("workers")[0]["name"]
+	landWorker := func() (string, BoshInstance) {
+		workerToLand := FlyTable("workers")[0]["name"]
 
 		// the bosh release ensures the first guid segment matches the first guid
 		// segment of the instance ID, so that they can be correlated
 		guidSegments := strings.Split(workerToLand, "-")
 		prefix := guidSegments[0]
 
-		var instance boshInstance
+		var instance BoshInstance
 		for _, i := range JobInstances("worker") {
 			if strings.HasPrefix(i.ID, prefix) {
 				instance = i
@@ -33,7 +34,7 @@ var _ = Describe("Worker landing", func() {
 		Expect(instance.ID).ToNot(BeEmpty(), "should have found a corresponding bosh instance")
 
 		// unmonitor worker, otherwise monit will just restart it once it's landed
-		bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit unmonitor worker")
+		Bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit unmonitor worker")
 
 		// land worker via fly; this will cause the worker process to exit
 		fly.Run("land-worker", "-w", workerToLand)
@@ -41,9 +42,9 @@ var _ = Describe("Worker landing", func() {
 		return workerToLand, instance
 	}
 
-	startLandedWorker := func(instance boshInstance) {
-		bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit monitor worker")
-		bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit start worker")
+	startLandedWorker := func(instance BoshInstance) {
+		Bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit monitor worker")
+		Bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit start worker")
 	}
 
 	Context("with two workers available", func() {
@@ -57,7 +58,7 @@ var _ = Describe("Worker landing", func() {
 
 		Describe("landing the worker", func() {
 			var landingWorkerName string
-			var landingWorkerInstance boshInstance
+			var landingWorkerInstance BoshInstance
 
 			JustBeforeEach(func() {
 				landingWorkerName, landingWorkerInstance = landWorker()
@@ -71,7 +72,7 @@ var _ = Describe("Worker landing", func() {
 				It("is not used for new workloads", func() {
 					for i := 0; i < 10; i++ {
 						fly.Run("execute", "-c", "tasks/tiny.yml")
-						usedWorkers := workersWithContainers()
+						usedWorkers := WorkersWithContainers()
 						Expect(usedWorkers).To(HaveLen(1))
 						Expect(usedWorkers).ToNot(ContainElement(landingWorkerName))
 					}
@@ -79,7 +80,7 @@ var _ = Describe("Worker landing", func() {
 
 				It("can be pruned", func() {
 					fly.Run("prune-worker", "-w", landingWorkerName)
-					waitForWorkersToBeRunning(1)
+					WaitForWorkersToBeRunning(1)
 				})
 			})
 		})
@@ -88,7 +89,7 @@ var _ = Describe("Worker landing", func() {
 	describeLandingTheWorker := func() {
 		Describe("landing the worker", func() {
 			var landingWorkerName string
-			var landingWorkerInstance boshInstance
+			var landingWorkerInstance BoshInstance
 
 			JustBeforeEach(func() {
 				landingWorkerName, landingWorkerInstance = landWorker()
@@ -124,9 +125,9 @@ var _ = Describe("Worker landing", func() {
 
 				It("keeps volumes and containers after restart", func() {
 					By("starting the worker back up")
-					waitForLandedWorker()
+					WaitForLandedWorker()
 					startLandedWorker(landingWorkerInstance)
-					waitForWorkersToBeRunning(1)
+					WaitForWorkersToBeRunning(1)
 
 					By("retaining cached image resource in second job build")
 					buildSession := fly.Start("trigger-job", "-w", "-j", "topgun/simple-job")
@@ -161,7 +162,7 @@ var _ = Describe("Worker landing", func() {
 
 				It("does not wait for the build", func() {
 					By("landing without the drain timeout kicking in")
-					waitForLandedWorker()
+					WaitForLandedWorker()
 				})
 			})
 
@@ -187,7 +188,7 @@ var _ = Describe("Worker landing", func() {
 
 				It("waits for the build", func() {
 					Consistently(func() string {
-						return workerState(landingWorkerName)
+						return WorkerState(landingWorkerName)
 					}, 5*time.Minute).Should(Equal("landing"))
 				})
 
@@ -201,7 +202,7 @@ var _ = Describe("Worker landing", func() {
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
 					By("successfully landing")
-					waitForLandedWorker()
+					WaitForLandedWorker()
 				})
 			})
 		})
@@ -210,7 +211,7 @@ var _ = Describe("Worker landing", func() {
 	Context("with one worker", func() {
 		BeforeEach(func() {
 			Deploy("deployments/concourse.yml")
-			waitForRunningWorker()
+			WaitForRunningWorker()
 		})
 
 		describeLandingTheWorker()
@@ -237,7 +238,7 @@ var _ = Describe("Worker landing", func() {
 			fly.Run("login", "-c", atcExternalURL, "-n", "team-a", "-u", atcUsername, "-p", atcPassword)
 
 			// wait for the team's worker to arrive now that team exists
-			waitForRunningWorker()
+			WaitForRunningWorker()
 		})
 
 		describeLandingTheWorker()

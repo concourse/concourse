@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	. "github.com/concourse/concourse/topgun/common"
 )
 
 var _ = Describe("A pipeline-provided resource type", func() {
@@ -22,11 +23,11 @@ var _ = Describe("A pipeline-provided resource type", func() {
 		Expect(buildSession.ExitCode()).To(Equal(1))
 
 		By("expecting a container for the resource check, resource type check, and task image check")
-		Expect(containersBy("type", "check")).To(HaveLen(3))
+		Expect(ContainersBy("type", "check")).To(HaveLen(3))
 
 		By("expecting a container for the resource check, resource type check, build resource image get, build get, build task image check, build task image get, and build task")
 		expectedContainersBefore := 7
-		Expect(flyTable("containers")).Should(HaveLen(expectedContainersBefore))
+		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore))
 
 		By("triggering the build again")
 		buildSession = fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
@@ -34,10 +35,10 @@ var _ = Describe("A pipeline-provided resource type", func() {
 		Expect(buildSession.ExitCode()).To(Equal(1))
 
 		By("expecting only one additional check container for the task's image check")
-		Expect(containersBy("type", "check")).To(HaveLen(4))
+		Expect(ContainersBy("type", "check")).To(HaveLen(4))
 
 		By("expecting to only have new containers for build task image check and build task")
-		Expect(flyTable("containers")).Should(HaveLen(expectedContainersBefore + 2))
+		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore + 2))
 	})
 })
 

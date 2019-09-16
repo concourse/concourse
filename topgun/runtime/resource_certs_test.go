@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	. "github.com/concourse/concourse/topgun/common"
 )
 
 var _ = Describe("Resource Certs", func() {
@@ -48,7 +49,7 @@ var _ = Describe("Resource Certs", func() {
 			<-trigger.Exited
 
 			Eventually(func() string {
-				builds := flyTable("builds", "-j", "resources/use-em")
+				builds := FlyTable("builds", "-j", "resources/use-em")
 				return builds[0]["status"]
 			}).Should(Equal("failed"))
 
@@ -63,7 +64,7 @@ var _ = Describe("Resource Certs", func() {
 			<-trigger.Exited
 
 			Eventually(func() string {
-				builds := flyTable("builds", "-j", "resources/use-em")
+				builds := FlyTable("builds", "-j", "resources/use-em")
 				return builds[0]["status"]
 			}).Should(Equal("failed"))
 

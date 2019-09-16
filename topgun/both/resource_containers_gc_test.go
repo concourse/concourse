@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+
+	. "github.com/concourse/concourse/topgun/common"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,7 +32,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 			fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
 
 			By("getting the resource config container")
-			containers := flyTable("containers")
+			containers := FlyTable("containers")
 			var checkContainerHandle string
 			for _, container := range containers {
 				if container["type"] == "check" {
@@ -42,7 +44,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 			By(fmt.Sprintf("eventually expiring the resource config container: %s", checkContainerHandle))
 			Eventually(func() bool {
-				containers := flyTable("containers")
+				containers := FlyTable("containers")
 				for _, container := range containers {
 					if container["type"] == "check" && container["handle"] == checkContainerHandle {
 						return true
@@ -55,7 +57,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 			fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
 
 			By("getting the resource config container")
-			containers = flyTable("containers")
+			containers = FlyTable("containers")
 			var newCheckContainerHandle string
 			for _, container := range containers {
 				if container["type"] == "check" {
@@ -90,7 +92,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 			Expect(resourceConfigsNum).To(Equal(1))
 
 			By("getting the resource config container")
-			containers := flyTable("containers")
+			containers := FlyTable("containers")
 			var checkContainerHandle string
 			for _, container := range containers {
 				if container["type"] == "check" {
@@ -114,7 +116,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 			By(fmt.Sprintf("eventually expiring the resource config container: %s", checkContainerHandle))
 			Eventually(func() bool {
-				containers := flyTable("containers")
+				containers := FlyTable("containers")
 				for _, container := range containers {
 					if container["type"] == "check" && container["handle"] == checkContainerHandle {
 						return true
@@ -148,7 +150,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 			Expect(originalResourceConfigID).NotTo(BeZero())
 
 			By("getting the resource config container")
-			containers := flyTable("containers")
+			containers := FlyTable("containers")
 			var originalCheckContainerHandle string
 			for _, container := range containers {
 				if container["type"] == "check" {
@@ -172,7 +174,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 			By(fmt.Sprintf("eventually expiring the resource config container: %s", originalCheckContainerHandle))
 			Eventually(func() bool {
-				containers := flyTable("containers")
+				containers := FlyTable("containers")
 				for _, container := range containers {
 					if container["type"] == "check" && container["handle"] == originalCheckContainerHandle {
 						return true
@@ -200,7 +202,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 			Consistently(func() string {
 				By("getting the resource config container")
-				containers := flyTable("containers")
+				containers := FlyTable("containers")
 				for _, container := range containers {
 					if container["type"] == "check" {
 						return container["handle"]
@@ -240,7 +242,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 					fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 				}
 
-				otherTeamCheckCount := len(flyTable("containers"))
+				otherTeamCheckCount := len(FlyTable("containers"))
 				Expect(otherTeamCheckCount).To(Equal(1))
 
 				By("checking resource excessively")
@@ -249,7 +251,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 					fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 				}
 
-				mainTeamCheckCount := len(flyTable("containers"))
+				mainTeamCheckCount := len(FlyTable("containers"))
 				Expect(mainTeamCheckCount).To(Equal(1))
 			})
 		})

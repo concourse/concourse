@@ -4,6 +4,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 
 	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -64,7 +65,7 @@ func testCredentialManagement(
 			Expect(watch).To(gbytes.Say("all credentials matched expected values"))
 
 			By("taking a dump")
-			session := pgDump()
+			session := PgDump()
 			Expect(session).ToNot(gbytes.Say("some_resource_type_secret"))
 			Expect(session).ToNot(gbytes.Say("some_resource_secret"))
 			Expect(session).ToNot(gbytes.Say("some_username"))
@@ -96,7 +97,7 @@ func testCredentialManagement(
 				Expect(watch).To(gbytes.Say("all credentials matched expected values"))
 
 				By("taking a dump")
-				session := pgDump()
+				session := PgDump()
 				Expect(session).ToNot(gbytes.Say("some_resource_secret"))
 
 				// versions aren't protected
@@ -120,7 +121,7 @@ func testCredentialManagement(
 			Expect(watch).To(gbytes.Say("all credentials matched expected values"))
 
 			By("taking a dump")
-			session := pgDump()
+			session := PgDump()
 			Expect(session).ToNot(gbytes.Say("some_team_secret"))
 
 			// versions aren't protected

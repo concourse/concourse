@@ -15,7 +15,6 @@ import (
 	. "github.com/concourse/concourse/topgun/common"
 )
 
-
 var (
 	deploymentNamePrefix string
 
@@ -49,8 +48,7 @@ var (
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-func TestTOPGUN(t *testing.T) {
+func TestCore(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "TOPGUN Suite")
+	RunSpecs(t, "Core Suite")
 }
-

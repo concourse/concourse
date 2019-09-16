@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"time"
 
+	. "github.com/concourse/concourse/topgun/common"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,7 +14,7 @@ import (
 
 var _ = Describe("ATC Shutting down", func() {
 	Context("with two atcs available", func() {
-		var atcs []boshInstance
+		var atcs []BoshInstance
 		var atc0URL string
 		var atc1URL string
 
@@ -24,7 +25,7 @@ var _ = Describe("ATC Shutting down", func() {
 				"-v", "web_instances=2",
 			)
 
-			waitForRunningWorker()
+			WaitForRunningWorker()
 
 			atcs = JobInstances("web")
 			atc0URL = "http://" + atcs[0].IP + ":8080"
@@ -38,26 +39,26 @@ var _ = Describe("ATC Shutting down", func() {
 
 			BeforeEach(func() {
 				By("stopping one of the web instances")
-				stopSession = spawnBosh("stop", atcs[1].Name)
+				stopSession = SpawnBosh("stop", atcs[1].Name)
 				Eventually(stopSession).Should(gexec.Exit(0))
 			})
 
 			AfterEach(func() {
-				restartSession := spawnBosh("start", atcs[0].Name)
+				restartSession := SpawnBosh("start", atcs[0].Name)
 				<-restartSession.Exited
 				Eventually(restartSession).Should(gexec.Exit(0))
 			})
 
 			Describe("workers registering with random TSA address", func() {
 				It("recovers from the TSA going down by registering with a random TSA", func() {
-					waitForRunningWorker()
+					WaitForRunningWorker()
 
 					By("stopping the other web instance")
-					stopSession = spawnBosh("stop", atcs[0].Name)
+					stopSession = SpawnBosh("stop", atcs[0].Name)
 					Eventually(stopSession).Should(gexec.Exit(0))
 
 					By("starting the stopped web instance")
-					startSession := spawnBosh("start", atcs[1].Name)
+					startSession := SpawnBosh("start", atcs[1].Name)
 					Eventually(startSession).Should(gexec.Exit(0))
 
 					atcs = JobInstances("web")
@@ -66,7 +67,7 @@ var _ = Describe("ATC Shutting down", func() {
 
 					fly.Login(atcUsername, atcPassword, atc1URL)
 
-					waitForRunningWorker()
+					WaitForRunningWorker()
 				})
 			})
 		})
@@ -89,7 +90,7 @@ var _ = Describe("ATC Shutting down", func() {
 			Context("when the web node tracking the build shuts down", func() {
 				JustBeforeEach(func() {
 					By("restarting both web nodes")
-					bosh("restart", atcs[0].Group)
+					Bosh("restart", atcs[0].Group)
 				})
 
 				It("continues tracking the build progress", func() {

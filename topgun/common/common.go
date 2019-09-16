@@ -273,7 +273,7 @@ func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
 	lines := strings.Split(output, "\n")
 	var instance BoshInstance
 	for _, line := range lines {
-		instanceMatch := instanceRow.FindStringSubmatch(line)
+		instanceMatch := InstanceRow.FindStringSubmatch(line)
 		if len(instanceMatch) > 0 {
 			group := instanceMatch[1]
 			id := instanceMatch[2]
@@ -291,7 +291,7 @@ func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
 			continue
 		}
 
-		jobMatch := jobRow.FindStringSubmatch(line)
+		jobMatch := JobRow.FindStringSubmatch(line)
 		if len(jobMatch) > 0 {
 			jobName := jobMatch[2]
 			jobInstances[jobName] = append(jobInstances[jobName], instance)
@@ -569,6 +569,6 @@ var _ = SynchronizedAfterSuite(func() {
 	gexec.CleanupBuildArtifacts()
 })
 
-var instanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([^\s]+)\s*$`)
-var jobRow = regexp.MustCompile(`^([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s+-\s*$`)
+var InstanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([^\s]+)\s*$`)
+var JobRow = regexp.MustCompile(`^([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s+-\s*$`)
 
