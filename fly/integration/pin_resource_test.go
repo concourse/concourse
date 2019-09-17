@@ -212,23 +212,5 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 		})
-
-		Context("when the resource is not specified", func() {
-			It("errors", func() {
-				Expect(func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "pin-resource")
-
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
-
-					Eventually(sess.Err).Should(gbytes.Say("error:.*-r, --resource.*not specified"))
-
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-				}).To(Change(func() int {
-					return len(atcServer.ReceivedRequests())
-				}).By(0))
-			})
-		})
 	})
 })
