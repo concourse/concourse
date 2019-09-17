@@ -73,7 +73,7 @@ var _ = Describe("Vault", func() {
 				})
 
 				It("renews the token", func() {
-					watch := fly.StartWithEnv(
+					watch := Fly.StartWithEnv(
 						[]string{
 							"EXPECTED_TEAM_SECRET=some_team_secret",
 							"EXPECTED_RESOURCE_VERSION_SECRET=some_exposed_version_secret",

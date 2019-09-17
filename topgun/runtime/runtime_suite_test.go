@@ -50,7 +50,5 @@ var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 func TestTOPGUN(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "TOPGUN Suite")
+	RunSpecs(t, "Runtime Suite")
 }
-
-

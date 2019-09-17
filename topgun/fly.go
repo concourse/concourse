@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type Fly struct {
+type FlyCli struct {
 	Bin    string
 	Target string
 	Home   string
@@ -48,7 +48,7 @@ type Version struct {
 	Enabled bool              `json:"enabled"`
 }
 
-func (f *Fly) Login(user, password, endpoint string) {
+func (f *FlyCli) Login(user, password, endpoint string) {
 	Eventually(func() *gexec.Session {
 		sess := f.Start(
 			"login",
@@ -63,23 +63,23 @@ func (f *Fly) Login(user, password, endpoint string) {
 		Should(gexec.Exit(0), "Fly should have been able to log in")
 }
 
-func (f *Fly) Run(argv ...string) {
+func (f *FlyCli) Run(argv ...string) {
 	Wait(f.Start(argv...))
 }
 
-func (f *Fly) Start(argv ...string) *gexec.Session {
+func (f *FlyCli) Start(argv ...string) *gexec.Session {
 	return Start([]string{"HOME=" + f.Home}, f.Bin, append([]string{"-t", f.Target}, argv...)...)
 }
 
-func (f *Fly) StartWithEnv(env []string, argv ...string) *gexec.Session {
+func (f *FlyCli) StartWithEnv(env []string, argv ...string) *gexec.Session {
 	return Start(append([]string{"HOME=" + f.Home}, env...), f.Bin, append([]string{"-t", f.Target}, argv...)...)
 }
 
-func (f *Fly) SpawnInteractive(stdin io.Reader, argv ...string) *gexec.Session {
+func (f *FlyCli) SpawnInteractive(stdin io.Reader, argv ...string) *gexec.Session {
 	return SpawnInteractive(stdin, []string{"HOME=" + f.Home}, f.Bin, append([]string{"-t", f.Target}, argv...)...)
 }
 
-func (f *Fly) GetContainers() []Container {
+func (f *FlyCli) GetContainers() []Container {
 	var containers = []Container{}
 
 	sess := f.Start("containers", "--json")
@@ -92,7 +92,7 @@ func (f *Fly) GetContainers() []Container {
 	return containers
 }
 
-func (f *Fly) GetWorkers() []Worker {
+func (f *FlyCli) GetWorkers() []Worker {
 	var workers = []Worker{}
 
 	sess := f.Start("workers", "--json")
@@ -105,7 +105,7 @@ func (f *Fly) GetWorkers() []Worker {
 	return workers
 }
 
-func (f *Fly) GetPipelines() []Pipeline {
+func (f *FlyCli) GetPipelines() []Pipeline {
 	var pipelines = []Pipeline{}
 
 	sess := f.Start("pipelines", "--json")
@@ -118,7 +118,7 @@ func (f *Fly) GetPipelines() []Pipeline {
 	return pipelines
 }
 
-func (f *Fly) GetVersions(pipeline string, resource string) []Version {
+func (f *FlyCli) GetVersions(pipeline string, resource string) []Version {
 	var versions = []Version{}
 
 	sess := f.Start("resource-versions", "-r", pipeline+"/"+resource, "--json")
@@ -131,7 +131,7 @@ func (f *Fly) GetVersions(pipeline string, resource string) []Version {
 	return versions
 }
 
-func (f *Fly) GetUserRole(teamName string) []string {
+func (f *FlyCli) GetUserRole(teamName string) []string {
 
 	type RoleInfo struct {
 		Teams map[string][]string `json:"teams"`
