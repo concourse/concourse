@@ -8,6 +8,8 @@ import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Expect
 import HoverState
+import Message.Callback as Callback
+import Message.Effects as Effects
 import RemoteData
 import ScreenSize
 import Set
@@ -22,9 +24,9 @@ all =
         [ describe "title"
             [ test "is 'build' on a one-off build page" <|
                 \_ ->
-                    Header.header session model build
+                    Header.header session model
                         |> .leftWidgets
-                        |> List.member (Views.Title build.name Nothing)
+                        |> List.member (Views.Title "0" Nothing)
                         |> Expect.equal True
             ]
         , test "cancelled build has cancelled duration" <|
@@ -36,7 +38,6 @@ all =
                             , finishedAt = Just <| Time.millisToPosix 0
                             }
                     }
-                    build
                     |> .leftWidgets
                     |> List.member
                         (Views.Duration <|
@@ -44,6 +45,61 @@ all =
                                 Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
                         )
                     |> Expect.equal True
+        , test "finished build has duration" <|
+            \_ ->
+                Header.header session
+                    { model
+                        | duration =
+                            { startedAt = Just <| Time.millisToPosix 0
+                            , finishedAt = Just <| Time.millisToPosix 1000
+                            }
+                    }
+                    |> .leftWidgets
+                    |> List.member
+                        (Views.Duration <|
+                            Views.Finished
+                                { started =
+                                    Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
+                                , finished =
+                                    Views.Absolute "Jan 1 1970 12:00:01 AM" Nothing
+                                , duration = Views.JustSeconds 1
+                                }
+                        )
+                    |> Expect.equal True
+        , test "stops fetching history once current build appears" <|
+            \_ ->
+                let
+                    jobId =
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "job"
+                        }
+
+                    build =
+                        { id = 0
+                        , name = "4"
+                        , job = Just jobId
+                        , status = model.status
+                        , duration = model.duration
+                        , reapTime = Nothing
+                        }
+                in
+                ( model, [] )
+                    |> Header.handleCallback
+                        (Callback.BuildFetched <| Ok ( 0, build ))
+                    |> Header.handleCallback
+                        (Callback.BuildHistoryFetched <|
+                            Ok
+                                { content = [ build ]
+                                , pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                }
+                        )
+                    |> Tuple.second
+                    |> List.member (Effects.FetchBuildHistory jobId Nothing)
+                    |> Expect.equal False
         ]
 
 
@@ -65,23 +121,13 @@ session =
     }
 
 
-build : Concourse.Build
-build =
+model : Models.Model {}
+model =
     { id = 0
     , name = "0"
     , job = Nothing
-    , status = BuildStatusPending
-    , duration = { startedAt = Nothing, finishedAt = Nothing }
-    , reapTime = Nothing
-    }
-
-
-model : Models.Model {}
-model =
-    { page = Models.OneOffBuildPage 0
     , scrolledToCurrentBuild = False
     , history = []
-    , build = RemoteData.Success build -- TODO remove duplication
     , duration = { startedAt = Nothing, finishedAt = Nothing }
     , status = BuildStatusPending
     , disableManualTrigger = False

@@ -678,8 +678,12 @@ viewBuildHeader : Concourse.Build -> Html Message
 viewBuildHeader b =
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
-        , StrictEvents.onLeftClick <| GoToRoute <| Routes.buildRoute b
-        , href <| Routes.toString <| Routes.buildRoute b
+        , StrictEvents.onLeftClick <|
+            GoToRoute <|
+                Routes.buildRoute b.id b.name b.job
+        , href <|
+            Routes.toString <|
+                Routes.buildRoute b.id b.name b.job
         ]
         [ Html.text ("#" ++ b.name)
         ]

@@ -88,7 +88,16 @@ init flags =
     changeToBuild
         flags
         ( { page = flags.pageType
+          , id = 0
+          , name =
+                case flags.pageType of
+                    OneOffBuildPage id ->
+                        String.fromInt id
+
+                    JobBuildPage { buildName } ->
+                        buildName
           , now = Nothing
+          , job = Nothing
           , disableManualTrigger = False
           , history = []
           , nextPage = Nothing
@@ -398,10 +407,13 @@ handleDelivery session delivery ( model, effects ) =
 update : { a | hovered : HoverState.HoverState } -> Message -> ET Model
 update session msg ( model, effects ) =
     (case msg of
-        Click (BuildTab build) ->
+        Click (BuildTab id name) ->
             ( model
             , effects
-                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                ++ [ NavigateTo <|
+                        Routes.toString <|
+                            Routes.buildRoute id name model.job
+                   ]
             )
 
         Hover _ ->
@@ -747,7 +759,7 @@ viewBuildPage session model =
                 , style "flex-direction" "column"
                 , style "overflow" "hidden"
                 ]
-                [ Header.view session model build
+                [ Header.view session model
                 , body
                     session
                     { prep = model.prep

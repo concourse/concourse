@@ -7,9 +7,8 @@ module Build.Header.Header exposing
     )
 
 import Application.Models exposing (Session)
-import Build.Header.Models exposing (BuildPageType(..), Model)
+import Build.Header.Models exposing (BuildPageType(..), HistoryItem, Model)
 import Build.Header.Views as Views
-import Build.Models exposing (toMaybe)
 import Build.StepTree.Models as STModels
 import Concourse
 import Concourse.BuildStatus
@@ -30,7 +29,6 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import RemoteData
 import Routes
 import Time
 
@@ -40,10 +38,10 @@ historyId =
     "builds"
 
 
-header : Session -> Model r -> Concourse.Build -> Views.Header
-header session model build =
+header : Session -> Model r -> Views.Header
+header session model =
     { leftWidgets =
-        [ Views.Title (name model) (currentJob model)
+        [ Views.Title model.name model.job
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
@@ -70,7 +68,7 @@ header session model build =
                 Nothing
             )
         , Views.Button
-            (if currentJob model /= Nothing then
+            (if model.job /= Nothing then
                 let
                     isHovered =
                         HoverState.isHovered
@@ -95,7 +93,29 @@ header session model build =
             )
         ]
     , backgroundColor = model.status
-    , history = Views.History build model.history
+    , tabs = tabs model
+    }
+
+
+tabs : Model r -> List Views.BuildTab
+tabs model =
+    model.history
+        |> List.map
+            (\b ->
+                { id = b.id
+                , name = b.name
+                , background = b.status
+                , href = Routes.buildRoute b.id b.name model.job
+                , isCurrent = b.id == model.id
+                }
+            )
+
+
+historyItem : Model r -> HistoryItem
+historyItem model =
+    { id = model.id
+    , name = model.name
+    , status = model.status
     }
 
 
@@ -197,26 +217,9 @@ timespan dur =
             Views.DaysAndHours d h
 
 
-name : Model r -> String
-name { page } =
-    case page of
-        OneOffBuildPage id ->
-            String.fromInt id
-
-        JobBuildPage { buildName } ->
-            buildName
-
-
-view : Session -> Model r -> Concourse.Build -> Html Message
-view session model build =
-    header session model build |> Views.viewHeader
-
-
-currentJob : Model r -> Maybe Concourse.JobIdentifier
-currentJob =
-    .build
-        >> RemoteData.toMaybe
-        >> Maybe.andThen .job
+view : Session -> Model r -> Html Message
+view session model =
+    header session model |> Views.viewHeader
 
 
 handleDelivery : Delivery -> ET (Model r)
@@ -249,7 +252,7 @@ handleDelivery delivery ( model, effects ) =
                 needsToFetchMorePages =
                     not model.fetchingHistory && lastBuildVisible && hasNextPage
             in
-            case currentJob model of
+            case model.job of
                 Just job ->
                     if needsToFetchMorePages then
                         ( { model | fetchingHistory = True }
@@ -265,11 +268,7 @@ handleDelivery delivery ( model, effects ) =
         ElementVisible ( id, False ) ->
             let
                 currentBuildInvisible =
-                    model.build
-                        |> RemoteData.toMaybe
-                        |> Maybe.map (.id >> String.fromInt)
-                        |> Maybe.map ((==) id)
-                        |> Maybe.withDefault False
+                    String.fromInt model.id == id
 
                 shouldScroll =
                     currentBuildInvisible && not model.scrolledToCurrentBuild
@@ -285,8 +284,8 @@ handleDelivery delivery ( model, effects ) =
             )
 
         EventsReceived result ->
-            case ( model.build, result ) of
-                ( RemoteData.Success build, Ok envelopes ) ->
+            case result of
+                Ok envelopes ->
                     case
                         envelopes
                             |> List.filterMap
@@ -301,15 +300,33 @@ handleDelivery delivery ( model, effects ) =
                             |> List.Extra.last
                     of
                         Just ( status, date ) ->
-                            ( let
-                                newBuild =
-                                    Concourse.receiveStatus status date build
-                              in
-                              { model
+                            let
+                                newStatus =
+                                    if Concourse.BuildStatus.isRunning model.status then
+                                        status
+
+                                    else
+                                        model.status
+                            in
+                            ( { model
                                 | history =
-                                    updateHistory newBuild model.history
-                                , duration = newBuild.duration
-                                , status = newBuild.status
+                                    List.Extra.updateIf (.id >> (==) model.id)
+                                        (\item -> { item | status = newStatus })
+                                        model.history
+                                , duration =
+                                    let
+                                        dur =
+                                            model.duration
+                                    in
+                                    { dur
+                                        | finishedAt =
+                                            if Concourse.BuildStatus.isRunning status then
+                                                dur.finishedAt
+
+                                            else
+                                                Just date
+                                    }
+                                , status = newStatus
                               }
                             , effects
                             )
@@ -326,34 +343,40 @@ handleDelivery delivery ( model, effects ) =
 
 handleKeyPressed : Keyboard.KeyEvent -> ET (Model r)
 handleKeyPressed keyEvent ( model, effects ) =
-    let
-        currentBuild =
-            model.build |> RemoteData.toMaybe
-    in
     if Keyboard.hasControlModifier keyEvent then
         ( model, effects )
 
     else
         case ( keyEvent.code, keyEvent.shiftKey ) of
             ( Keyboard.H, False ) ->
-                case Maybe.andThen (nextBuild model.history) currentBuild of
-                    Just build ->
+                case nextHistoryItem model.history (historyItem model) of
+                    Just item ->
                         ( model
                         , effects
-                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                            ++ [ NavigateTo <|
+                                    Routes.toString <|
+                                        Routes.buildRoute
+                                            item.id
+                                            item.name
+                                            model.job
+                               ]
                         )
 
                     Nothing ->
                         ( model, effects )
 
             ( Keyboard.L, False ) ->
-                case
-                    Maybe.andThen (prevBuild model.history) currentBuild
-                of
-                    Just build ->
+                case prevHistoryItem model.history (historyItem model) of
+                    Just item ->
                         ( model
                         , effects
-                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                            ++ [ NavigateTo <|
+                                    Routes.toString <|
+                                        Routes.buildRoute
+                                            item.id
+                                            item.name
+                                            model.job
+                               ]
                         )
 
                     Nothing ->
@@ -361,7 +384,7 @@ handleKeyPressed keyEvent ( model, effects ) =
 
             ( Keyboard.T, True ) ->
                 if not model.previousTriggerBuildByKey then
-                    (currentJob model
+                    (model.job
                         |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
                         |> Maybe.withDefault identity
                     )
@@ -371,19 +394,8 @@ handleKeyPressed keyEvent ( model, effects ) =
                     ( model, effects )
 
             ( Keyboard.A, True ) ->
-                if currentBuild == List.head model.history then
-                    case currentBuild of
-                        Just _ ->
-                            (model.build
-                                |> RemoteData.toMaybe
-                                |> Maybe.map
-                                    (.id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
-                                |> Maybe.withDefault identity
-                            )
-                                ( model, effects )
-
-                        Nothing ->
-                            ( model, effects )
+                if Just (historyItem model) == List.head model.history then
+                    ( model, DoAbortBuild model.id :: effects )
 
                 else
                     ( model, effects )
@@ -392,29 +404,29 @@ handleKeyPressed keyEvent ( model, effects ) =
                 ( model, effects )
 
 
-prevBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
-prevBuild builds build =
+prevHistoryItem : List HistoryItem -> HistoryItem -> Maybe HistoryItem
+prevHistoryItem builds b =
     case builds of
         first :: second :: rest ->
-            if first == build then
+            if first == b then
                 Just second
 
             else
-                prevBuild (second :: rest) build
+                prevHistoryItem (second :: rest) b
 
         _ ->
             Nothing
 
 
-nextBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
-nextBuild builds build =
+nextHistoryItem : List HistoryItem -> HistoryItem -> Maybe HistoryItem
+nextHistoryItem builds b =
     case builds of
         first :: second :: rest ->
-            if second == build then
+            if second == b then
                 Just first
 
             else
-                nextBuild (second :: rest) build
+                nextHistoryItem (second :: rest) b
 
         _ ->
             Nothing
@@ -434,8 +446,8 @@ update msg ( model, effects ) =
 
                 checkVisibility =
                     case model.history |> List.Extra.last of
-                        Just build ->
-                            [ Effects.CheckIsVisible <| String.fromInt build.id ]
+                        Just b ->
+                            [ Effects.CheckIsVisible <| String.fromInt b.id ]
 
                         Nothing ->
                             []
@@ -449,13 +461,20 @@ update msg ( model, effects ) =
 handleCallback : Callback -> ET (Model r)
 handleCallback callback ( model, effects ) =
     case callback of
-        BuildFetched (Ok ( browsingIndex, build )) ->
-            handleBuildFetched browsingIndex build ( model, effects )
+        BuildFetched (Ok ( browsingIndex, b )) ->
+            handleBuildFetched browsingIndex b ( model, effects )
 
-        BuildTriggered (Ok build) ->
-            ( { model | history = build :: model.history }
+        BuildTriggered (Ok b) ->
+            ( { model
+                | history =
+                    { id = b.id
+                    , name = b.name
+                    , status = b.status
+                    }
+                        :: model.history
+              }
             , effects
-                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute b.id b.name model.job ]
             )
 
         BuildHistoryFetched (Ok history) ->
@@ -470,11 +489,20 @@ handleCallback callback ( model, effects ) =
 
 
 handleBuildFetched : Int -> Concourse.Build -> ET (Model r)
-handleBuildFetched browsingIndex build ( model, effects ) =
+handleBuildFetched browsingIndex b ( model, effects ) =
     if browsingIndex == model.browsingIndex then
         ( { model
-            | history = updateHistory build model.history
+            | history =
+                List.Extra.setIf (.id >> (==) b.id)
+                    { id = b.id
+                    , name = b.name
+                    , status = b.status
+                    }
+                    model.history
             , fetchingHistory = True
+            , job = b.job
+            , id = b.id
+            , name = b.name
           }
         , effects
         )
@@ -488,29 +516,32 @@ handleHistoryFetched history ( model, effects ) =
     let
         newModel =
             { model
-                | history = List.append model.history history.content
+                | history =
+                    model.history
+                        ++ (history.content
+                                |> List.map
+                                    (\b ->
+                                        { id = b.id
+                                        , name = b.name
+                                        , status = b.status
+                                        }
+                                    )
+                           )
                 , nextPage = history.pagination.nextPage
                 , fetchingHistory = False
             }
     in
-    case ( model.build, currentJob model ) of
-        ( RemoteData.Success build, Just job ) ->
-            if List.member build newModel.history then
-                ( newModel, effects ++ [ CheckIsVisible <| String.fromInt build.id ] )
+    case model.job of
+        Just job ->
+            if List.member (historyItem model) newModel.history then
+                ( newModel
+                , effects ++ [ CheckIsVisible <| String.fromInt <| model.id ]
+                )
 
             else
-                ( { newModel | fetchingHistory = True }, effects ++ [ FetchBuildHistory job history.pagination.nextPage ] )
+                ( { newModel | fetchingHistory = True }
+                , effects ++ [ FetchBuildHistory job history.pagination.nextPage ]
+                )
 
         _ ->
             ( newModel, effects )
-
-
-updateHistory : Concourse.Build -> List Concourse.Build -> List Concourse.Build
-updateHistory newBuild =
-    List.map <|
-        \build ->
-            if build.id == newBuild.id then
-                newBuild
-
-            else
-                build

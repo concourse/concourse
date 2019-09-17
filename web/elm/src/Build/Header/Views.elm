@@ -1,9 +1,9 @@
 module Build.Header.Views exposing
     ( BackgroundShade(..)
     , BuildDuration(..)
+    , BuildTab
     , ButtonType(..)
     , Header
-    , History(..)
     , Timespan(..)
     , Timestamp(..)
     , Widget(..)
@@ -27,7 +27,7 @@ import Html.Attributes
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message as Message exposing (Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick, onMouseWheel)
 import Views.Icon as Icon
@@ -42,7 +42,7 @@ type alias Header =
     { leftWidgets : List Widget
     , rightWidgets : List Widget
     , backgroundColor : BuildStatus
-    , history : History
+    , tabs : List BuildTab
     }
 
 
@@ -75,8 +75,13 @@ type Timespan
     | DaysAndHours Int Int
 
 
-type History
-    = History Concourse.Build (List Concourse.Build)
+type alias BuildTab =
+    { id : Int
+    , name : String
+    , background : BuildStatus
+    , href : Routes.Route
+    , isCurrent : Bool
+    }
 
 
 type alias ButtonView =
@@ -110,7 +115,7 @@ viewHeader header =
             [ Html.div [] (List.map viewWidget header.leftWidgets)
             , Html.div [ style "display" "flex" ] (List.map viewWidget header.rightWidgets)
             ]
-        , viewHistory header.history
+        , viewHistory header.tabs
         ]
 
 
@@ -128,9 +133,9 @@ viewWidget widget =
 
 
 viewDuration : BuildDuration -> Html Message
-viewDuration duration =
+viewDuration buildDuration =
     Html.table [ class "dictionary build-duration" ] <|
-        case duration of
+        case buildDuration of
             Pending ->
                 [ Html.tr []
                     [ Html.td [ class "dict-key" ] [ Html.text "pending" ]
@@ -152,7 +157,7 @@ viewDuration duration =
                     ]
                 ]
 
-            Finished { started, finished } ->
+            Finished { started, finished, duration } ->
                 [ Html.tr []
                     [ Html.td [ class "dict-key" ] [ Html.text "started" ]
                     , viewTimestamp started
@@ -160,6 +165,10 @@ viewDuration duration =
                 , Html.tr []
                     [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
                     , viewTimestamp finished
+                    ]
+                , Html.tr []
+                    [ Html.td [ class "dict-key" ] [ Html.text "duration" ]
+                    , Html.td [ class "dict-value" ] [ Html.text <| viewTimespan duration ]
                     ]
                 ]
 
@@ -204,30 +213,29 @@ viewTimespan timespan =
             String.fromInt d ++ "d" ++ String.fromInt h ++ "h"
 
 
-lazyViewHistory : History -> Html Message
-lazyViewHistory history =
-    Html.Lazy.lazy viewHistoryItems history
+lazyViewHistory : List BuildTab -> Html Message
+lazyViewHistory =
+    Html.Lazy.lazy viewBuildTabs
 
 
-viewHistoryItems : History -> Html Message
-viewHistoryItems (History currentBuild builds) =
-    Html.ul [ id historyId ]
-        (List.map (viewHistoryItem currentBuild) builds)
+viewBuildTabs : List BuildTab -> Html Message
+viewBuildTabs =
+    List.map viewBuildTab >> Html.ul [ id historyId ]
 
 
-viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Message
-viewHistoryItem currentBuild build =
+viewBuildTab : BuildTab -> Html Message
+viewBuildTab tab =
     Html.li
-        ([ classList [ ( "current", build.id == currentBuild.id ) ]
-         , id <| String.fromInt build.id
+        ([ classList [ ( "current", tab.isCurrent ) ]
+         , id <| String.fromInt tab.id
          ]
-            ++ Styles.historyItem build.status
+            ++ Styles.historyItem tab.background
         )
         [ Html.a
-            [ onLeftClick <| Click <| BuildTab build
-            , href <| Routes.toString <| Routes.buildRoute build
+            [ onLeftClick <| Click <| Message.BuildTab tab.id tab.name
+            , href <| Routes.toString tab.href
             ]
-            [ Html.text build.name ]
+            [ Html.text tab.name ]
         ]
 
 
@@ -253,10 +261,10 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
         domID =
             case type_ of
                 Abort ->
-                    AbortBuildButton
+                    Message.AbortBuildButton
 
                 Trigger ->
-                    TriggerBuildButton
+                    Message.TriggerBuildButton
 
         styles =
             [ style "padding" "10px"
@@ -331,8 +339,6 @@ viewTitle name jobID =
             Html.text ("build #" ++ name)
 
 
-viewHistory : History -> Html Message
-viewHistory history =
-    Html.div
-        [ onMouseWheel ScrollBuilds ]
-        [ lazyViewHistory history ]
+viewHistory : List BuildTab -> Html Message
+viewHistory =
+    lazyViewHistory >> List.singleton >> Html.div [ onMouseWheel ScrollBuilds ]
