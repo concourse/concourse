@@ -2,6 +2,9 @@ package integration_test
 
 import (
 	"fmt"
+	"net/http"
+	"os/exec"
+
 	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -9,8 +12,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/rata"
-	"net/http"
-	"os/exec"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -98,25 +99,6 @@ var _ = Describe("Fly CLI", func() {
 						return len(atcServer.ReceivedRequests())
 					}).By(2))
 				})
-			})
-
-		})
-
-		Context("when the resource is not specified", func() {
-			It("errors", func() {
-				Expect(func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "unpin-resource")
-
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
-
-					Eventually(sess.Err).Should(gbytes.Say("error:.*-r, --resource.*not specified"))
-
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-				}).To(Change(func() int {
-					return len(atcServer.ReceivedRequests())
-				}).By(0))
 			})
 		})
 	})
