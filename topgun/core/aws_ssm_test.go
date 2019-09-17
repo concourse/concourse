@@ -74,7 +74,7 @@ var _ = Describe("AWS SSM", func() {
 			})
 
 			JustBeforeEach(func() {
-				token, err := FetchToken(atcURL, atcUsername, atcPassword)
+				token, err := FetchToken(atcURL, AtcUsername, AtcPassword)
 				Expect(err).ToNot(HaveOccurred())
 
 				body, err := RequestCredsInfo(atcURL, token.AccessToken)

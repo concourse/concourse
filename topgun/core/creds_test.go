@@ -40,10 +40,10 @@ func testCredentialManagement(
 			pipelineSetup()
 
 			By("setting a pipeline that uses vars for secrets")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "pipeline-creds-test")
+			Fly.Run("set-pipeline", "-n", "-c", "../pipelines/credential-management.yml", "-p", "pipeline-creds-test")
 
 			By("getting the pipeline config")
-			session := fly.Start("get-pipeline", "-p", "pipeline-creds-test")
+			session := Fly.Start("get-pipeline", "-p", "pipeline-creds-test")
 			<-session.Exited
 			Expect(session.ExitCode()).To(Equal(0))
 			Expect(string(session.Out.Contents())).ToNot(ContainSubstring("some_canary"))
@@ -55,12 +55,12 @@ func testCredentialManagement(
 			Expect(string(session.Out.Contents())).To(ContainSubstring("((team_secret))"))
 
 			By("unpausing the pipeline")
-			fly.Run("unpause-pipeline", "-p", "pipeline-creds-test")
+			Fly.Run("unpause-pipeline", "-p", "pipeline-creds-test")
 		})
 
 		It("parameterizes via Vault and leaves the pipeline uninterpolated", func() {
 			By("triggering job")
-			watch := fly.Start("trigger-job", "-w", "-j", "pipeline-creds-test/some-job")
+			watch := Fly.Start("trigger-job", "-w", "-j", "pipeline-creds-test/some-job")
 			Wait(watch)
 			Expect(watch).To(gbytes.Say("all credentials matched expected values"))
 
@@ -79,12 +79,12 @@ func testCredentialManagement(
 		Context("when the job's inputs are used for a one-off build", func() {
 			It("parameterizes the values using the job's pipeline scope", func() {
 				By("triggering job to populate its inputs")
-				watch := fly.Start("trigger-job", "-w", "-j", "pipeline-creds-test/some-job")
+				watch := Fly.Start("trigger-job", "-w", "-j", "pipeline-creds-test/some-job")
 				Wait(watch)
 				Expect(watch).To(gbytes.Say("all credentials matched expected values"))
 
 				By("executing a task that parameterizes image_resource and uses a pipeline resource with credentials")
-				watch = fly.StartWithEnv(
+				watch = Fly.StartWithEnv(
 					[]string{
 						"EXPECTED_RESOURCE_SECRET=some_resource_secret",
 						"EXPECTED_RESOURCE_VERSION_SECRET=some_exposed_version_secret",
@@ -110,7 +110,7 @@ func testCredentialManagement(
 		BeforeEach(oneOffSetup)
 
 		It("parameterizes image_resource and params in a task config", func() {
-			watch := fly.StartWithEnv(
+			watch := Fly.StartWithEnv(
 				[]string{
 					"EXPECTED_TEAM_SECRET=some_team_secret",
 					"EXPECTED_RESOURCE_VERSION_SECRET=some_exposed_version_secret",

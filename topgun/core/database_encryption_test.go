@@ -15,11 +15,11 @@ import (
 var _ = Describe("Database secrets encryption", func() {
 	configurePipelineAndTeamAndTriggerJob := func() {
 		By("setting a pipeline that contains secrets")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "pipeline-secrets-test")
-		fly.Run("unpause-pipeline", "-p", "pipeline-secrets-test")
+		Fly.Run("set-pipeline", "-n", "-c", "../pipelines/secrets.yml", "-p", "pipeline-secrets-test")
+		Fly.Run("unpause-pipeline", "-p", "pipeline-secrets-test")
 
 		By("creating a team with auth")
-		setTeamSession := fly.SpawnInteractive(
+		setTeamSession := Fly.SpawnInteractive(
 			bytes.NewBufferString("y\n"),
 			"set-team",
 			"--team-name", "victoria",
@@ -28,13 +28,13 @@ var _ = Describe("Database secrets encryption", func() {
 		)
 		<-setTeamSession.Exited
 
-		buildSession := fly.Start("trigger-job", "-w", "-j", "pipeline-secrets-test/simple-job")
+		buildSession := Fly.Start("trigger-job", "-w", "-j", "pipeline-secrets-test/simple-job")
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))
 	}
 
 	getPipeline := func() *gexec.Session {
-		session := fly.Start("get-pipeline", "-p", "pipeline-secrets-test")
+		session := Fly.Start("get-pipeline", "-p", "pipeline-secrets-test")
 		<-session.Exited
 		Expect(session.ExitCode()).To(Equal(0))
 		return session
@@ -112,7 +112,7 @@ var _ = Describe("Database secrets encryption", func() {
 						Expect(string(session.Out.Contents())).To(ContainSubstring("image_resource_secret"))
 
 						By("setting the pipeline again")
-						fly.Run("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "pipeline-secrets-test")
+						Fly.Run("set-pipeline", "-n", "-c", "../pipelines/secrets.yml", "-p", "pipeline-secrets-test")
 
 						By("getting the pipeline config again")
 						session = getPipeline()
@@ -143,7 +143,7 @@ var _ = Describe("Database secrets encryption", func() {
 						Expect(string(session.Out.Contents())).To(ContainSubstring("image_resource_secret"))
 
 						By("setting the pipeline again")
-						fly.Run("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "pipeline-secrets-test")
+						Fly.Run("set-pipeline", "-n", "-c", "../pipelines/secrets.yml", "-p", "pipeline-secrets-test")
 
 						By("getting the pipeline config again")
 						session = getPipeline()
