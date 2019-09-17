@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/concourse/concourse/atc"
 )
@@ -21,9 +22,10 @@ func (resource *resource) Put(
 
 	vr := &VersionResult{}
 
+	path := "/opt/resource/out"
 	err := resource.runScript(
 		ctx,
-		"/opt/resource/out",
+		path,
 		[]string{resourceDir},
 		putRequest{
 			Params: params,
@@ -35,6 +37,9 @@ func (resource *resource) Put(
 	)
 	if err != nil {
 		return VersionResult{}, err
+	}
+	if vr == nil {
+		return VersionResult{}, fmt.Errorf("resource script (%s %s) output a null version", path, resourceDir)
 	}
 
 	return *vr, nil
