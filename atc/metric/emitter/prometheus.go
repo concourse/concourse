@@ -671,14 +671,13 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 		now := time.Now()
 		for worker, lastSeen := range emitter.workerLastSeen {
 			if now.Sub(lastSeen) > 5*time.Minute {
-				// This is a little stupid but we don't know the platform here,
-				// but DeleteLabelValues requires an exact match on the label set.
-				// As a workaround we try all known values for  the "platform" label
-				for _, platform := range []string{"linux", "windows", "darwin"} {
-					emitter.workerContainers.DeleteLabelValues(worker, platform)
-					emitter.workerVolumes.DeleteLabelValues(worker, platform)
-					emitter.workerTasks.DeleteLabelValues(worker, platform)
-				}
+				emitter.workerContainers.Delete(emitter.workerContainersLabels[worker])
+				emitter.workerVolumes.Delete(emitter.workerVolumesLabels[worker])
+				emitter.workerTasks.Delete(emitter.workerVolumesLabels[worker])
+
+				delete(emitter.workerContainersLabels, worker)
+				delete(emitter.workerVolumesLabels, worker)
+				delete(emitter.workerTasksLabels, worker)
 				delete(emitter.workerLastSeen, worker)
 			}
 		}
