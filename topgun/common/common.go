@@ -14,11 +14,13 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/lib/pq"
+
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
- 	sq "github.com/Masterminds/squirrel"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	sq "github.com/Masterminds/squirrel"
 	bclient "github.com/concourse/baggageclaim/client"
 	"golang.org/x/oauth2"
 
@@ -28,7 +30,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 )
-
 
 var (
 	deploymentNamePrefix string
@@ -168,7 +169,6 @@ type BoshInstance struct {
 	DNS   string
 }
 
-
 func StartDeploy(manifest string, args ...string) *gexec.Session {
 	WaitForDeploymentLock()
 
@@ -258,7 +258,6 @@ func JobInstance(job string) *BoshInstance {
 func JobInstances(job string) []BoshInstance {
 	return jobInstances[job]
 }
-
 
 func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
 	session := SpawnBosh("instances", "-p", "--dns")
@@ -555,7 +554,6 @@ func PgDump() *gexec.Session {
 	return session
 }
 
-
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -571,4 +569,3 @@ var _ = SynchronizedAfterSuite(func() {
 
 var InstanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([^\s]+)\s*$`)
 var JobRow = regexp.MustCompile(`^([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s+-\s*$`)
-

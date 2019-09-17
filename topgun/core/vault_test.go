@@ -44,7 +44,7 @@ var _ = Describe("Vault", func() {
 
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "operations/add-vault.yml",
+				"-o", "../operations/add-vault.yml",
 				"-v", "web_instances=0",
 				"-v", "vault_url=dontcare",
 				"-v", "vault_client_token=dontcare",
@@ -122,7 +122,7 @@ var _ = Describe("Vault", func() {
 				By("deploying concourse with the token")
 				Deploy(
 					"deployments/concourse.yml",
-					"-o", "operations/add-vault.yml",
+					"-o", "../operations/add-vault.yml",
 					"--vars-store", varsStore.Name(),
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
@@ -153,9 +153,9 @@ var _ = Describe("Vault", func() {
 			BeforeEach(func() {
 				Deploy(
 					"deployments/concourse.yml",
-					"-o", "operations/add-vault.yml",
+					"-o", "../operations/add-vault.yml",
 					"--vars-store", varsStore.Name(),
-					"-o", "operations/enable-vault-tls.yml",
+					"-o", "../operations/enable-vault-tls.yml",
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
 					"-v", "vault_client_token=dontcare",
@@ -189,9 +189,9 @@ var _ = Describe("Vault", func() {
 
 				Deploy(
 					"deployments/concourse.yml",
-					"-o", "operations/add-vault.yml",
+					"-o", "../operations/add-vault.yml",
 					"--vars-store", varsStore.Name(),
-					"-o", "operations/enable-vault-tls.yml",
+					"-o", "../operations/enable-vault-tls.yml",
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),
 					"-v", "web_instances=1",
@@ -225,7 +225,7 @@ var _ = Describe("Vault", func() {
 
 				Deploy(
 					"deployments/concourse.yml",
-					"-o", "operations/add-vault.yml",
+					"-o", "../operations/add-vault.yml",
 					"--vars-store", varsStore.Name(),
 					"-v", "vault_url="+v.URI(),
 					"-v", "vault_ip="+v.IP(),

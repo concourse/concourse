@@ -42,7 +42,7 @@ var _ = Describe("Credhub", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "operations/add-empty-credhub.yml",
+				"-o", "../operations/add-empty-credhub.yml",
 			)
 
 			credhubInstance = Instance("credhub")
@@ -59,7 +59,7 @@ var _ = Describe("Credhub", func() {
 
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "operations/add-credhub.yml",
+				"-o", "../operations/add-credhub.yml",
 				"--vars-store", varsStore,
 				"-v", "credhub_ip="+credhubInstance.IP,
 				"-v", "postgres_ip="+postgresInstance.IP,

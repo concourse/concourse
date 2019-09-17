@@ -51,7 +51,7 @@ var _ = Describe("Worker landing", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "operations/worker-instances.yml",
+				"-o", "../operations/worker-instances.yml",
 				"-v", "worker_instances=2",
 			)
 		})
@@ -224,7 +224,7 @@ var _ = Describe("Worker landing", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "operations/worker-instances.yml",
+				"-o", "../operations/worker-instances.yml",
 				"-v", "worker_instances=0",
 			)
 
@@ -232,7 +232,7 @@ var _ = Describe("Worker landing", func() {
 
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "operations/worker-team.yml",
+				"-o", "../operations/worker-team.yml",
 			)
 
 			fly.Run("login", "-c", atcExternalURL, "-n", "team-a", "-u", atcUsername, "-p", atcPassword)

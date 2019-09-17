@@ -42,7 +42,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 	Describe("A deployment with encryption enabled immediately", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse.yml", "-o", "operations/encryption.yml")
+			Deploy("deployments/concourse.yml", "-o", "../operations/encryption.yml")
 		})
 
 		It("encrypts pipeline credentials", func() {
@@ -74,7 +74,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 			Context("when redeployed with encryption enabled", func() {
 				BeforeEach(func() {
-					Deploy("deployments/concourse.yml", "-o", "operations/encryption.yml")
+					Deploy("deployments/concourse.yml", "-o", "../operations/encryption.yml")
 				})
 
 				It("encrypts pipeline credentials", func() {
@@ -94,7 +94,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 				Context("when the encryption key is rotated", func() {
 					BeforeEach(func() {
-						Deploy("deployments/concourse.yml", "-o", "operations/encryption-rotated.yml")
+						Deploy("deployments/concourse.yml", "-o", "../operations/encryption-rotated.yml")
 					})
 
 					It("can still get and set pipelines", func() {
@@ -125,7 +125,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 				Context("when an old key is given but all the data is already using the new key", func() {
 					BeforeEach(func() {
-						Deploy("deployments/concourse.yml", "-o", "operations/encryption-already-rotated.yml")
+						Deploy("deployments/concourse.yml", "-o", "../operations/encryption-already-rotated.yml")
 					})
 
 					It("can still get and set pipelines", func() {
@@ -161,7 +161,7 @@ var _ = Describe("Database secrets encryption", func() {
 					BeforeEach(func() {
 						boshLogs = SpawnBosh("logs", "-f")
 
-						deploy = StartDeploy("deployments/concourse.yml", "-o", "operations/encryption-bogus.yml")
+						deploy = StartDeploy("deployments/concourse.yml", "-o", "../operations/encryption-bogus.yml")
 						<-deploy.Exited
 						Expect(deploy.ExitCode()).To(Equal(1))
 					})
@@ -172,7 +172,7 @@ var _ = Describe("Database secrets encryption", func() {
 					})
 
 					AfterEach(func() {
-						Deploy("deployments/concourse.yml", "-o", "operations/encryption.yml")
+						Deploy("deployments/concourse.yml", "-o", "../operations/encryption.yml")
 					})
 
 					It("fails to deploy with a useful message", func() {
@@ -183,7 +183,7 @@ var _ = Describe("Database secrets encryption", func() {
 
 				Context("when the encryption key is removed", func() {
 					BeforeEach(func() {
-						Deploy("deployments/concourse.yml", "-o", "operations/encryption-removed.yml")
+						Deploy("deployments/concourse.yml", "-o", "../operations/encryption-removed.yml")
 					})
 
 					It("decrypts pipeline credentials", func() {

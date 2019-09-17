@@ -157,7 +157,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 	Describe("resource cache is not reaped when being used by a build", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse.yml", "-o", "operations/fast-gc.yml")
+			Deploy("deployments/concourse.yml", "-o", "../operations/fast-gc.yml")
 		})
 
 		It("finds the resource cache volumes throughout duration of build", func() {

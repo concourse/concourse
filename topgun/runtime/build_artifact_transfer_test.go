@@ -11,8 +11,8 @@ var _ = Describe("Passing artifacts between build steps", func() {
 	BeforeEach(func() {
 		Deploy(
 			"deployments/concourse.yml",
-			"-o", "operations/add-other-worker.yml",
-			"-o", "operations/distinct-worker-tags.yml",
+			"-o", "../operations/add-other-worker.yml",
+			"-o", "../operations/distinct-worker-tags.yml",
 		)
 	})
 
