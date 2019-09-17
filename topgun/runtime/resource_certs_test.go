@@ -12,8 +12,8 @@ var _ = Describe("Resource Certs", func() {
 	BeforeEach(func() {
 		Deploy(
 			"deployments/concourse.yml",
-			"-o", "operations/add-other-worker.yml",
-			"-o", "operations/other-worker-no-certs.yml",
+			"-o", "../operations/add-other-worker.yml",
+			"-o", "../operations/other-worker-no-certs.yml",
 		)
 	})
 

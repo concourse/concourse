@@ -11,9 +11,9 @@ var _ = Describe("Worker failing", func() {
 	BeforeEach(func() {
 		Deploy(
 			"deployments/concourse.yml",
-			"-o", "operations/add-other-worker.yml",
-			"-o", "operations/other-worker-doomed.yml",
-			"-o", "operations/fast-gc.yml",
+			"-o", "../operations/add-other-worker.yml",
+			"-o", "../operations/other-worker-doomed.yml",
+			"-o", "../operations/fast-gc.yml",
 		)
 	})
 

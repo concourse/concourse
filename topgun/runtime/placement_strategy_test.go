@@ -16,7 +16,7 @@ var _ = XDescribe("Fewest Build Containers Found Placement Strategy", func() {
 	var firstWorkerName string
 	var secondWorkerName string
 	BeforeEach(func() {
-		Deploy("deployments/concourse.yml", "-o", "operations/worker-instances.yml", "-v", "worker_instances=2", "-o", "operations/add-placement-strategy.yml")
+		Deploy("deployments/concourse.yml", "-o", "../operations/worker-instances.yml", "-v", "worker_instances=2", "-o", "operations/add-placement-strategy.yml")
 	})
 
 	Context("when there is a deployment the worker with the fewest containers is assigned the task to execute", func() {

@@ -19,7 +19,7 @@ var _ = Describe("Worker stalling", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "operations/worker-instances.yml",
+				"-o", "../operations/worker-instances.yml",
 				"-v", "worker_instances=2",
 			)
 		})

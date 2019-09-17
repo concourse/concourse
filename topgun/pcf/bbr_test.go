@@ -49,7 +49,7 @@ var _ = Describe("BBR", func() {
 
 		Context("consuming concourse_db links", func() {
 			BeforeEach(func() {
-				deployArgs = append(deployArgs, "-o", "operations/bbr-concourse-link.yml")
+				deployArgs = append(deployArgs, "-o", "../operations/bbr-concourse-link.yml")
 			})
 
 			successfullyExecutesBackup()
@@ -57,7 +57,7 @@ var _ = Describe("BBR", func() {
 
 		Context("passing properties", func() {
 			BeforeEach(func() {
-				deployArgs = append(deployArgs, "-o", "operations/bbr-with-properties.yml")
+				deployArgs = append(deployArgs, "-o", "../operations/bbr-with-properties.yml")
 			})
 
 			successfullyExecutesBackup()
@@ -68,7 +68,7 @@ var _ = Describe("BBR", func() {
 	Context("regardless of property provider", func() {
 
 		BeforeEach(func() {
-			deployArgs = append(deployArgs, "-o", "operations/bbr-with-properties.yml")
+			deployArgs = append(deployArgs, "-o", "../operations/bbr-with-properties.yml")
 		})
 
 		JustBeforeEach(func() {
@@ -120,7 +120,7 @@ var _ = Describe("BBR", func() {
 				By("creating a new deployment")
 				Deploy(
 					"deployments/concourse.yml",
-					"-o", "operations/bbr-with-properties.yml",
+					"-o", "../operations/bbr-with-properties.yml",
 				)
 				WaitForRunningWorker()
 
