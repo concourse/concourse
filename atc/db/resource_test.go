@@ -650,7 +650,7 @@ var _ = Describe("Resource", func() {
 				resourceScope         db.ResourceConfigScope
 			)
 
-			BeforeEach(func() {
+			saveVersion := func(version atc.Version) {
 				setupTx, err := dbConn.Begin()
 				Expect(err).ToNot(HaveOccurred())
 
@@ -672,16 +672,52 @@ var _ = Describe("Resource", func() {
 				resourceConfigVersion, found, err = resourceScope.FindVersion(version)
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
+			}
+
+			Context("when the version is exact matched", func() {
+				BeforeEach(func() {
+					saveVersion(atc.Version{"version": "12345"})
+				})
+
+				It("returns resource config version and true", func() {
+					Expect(resourceConfigVersionFound).To(BeTrue())
+					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+					Expect(foundErr).ToNot(HaveOccurred())
+				})
 			})
 
-			It("returns resource config version and true", func() {
-				Expect(resourceConfigVersionFound).To(BeTrue())
-				Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
-				Expect(foundErr).ToNot(HaveOccurred())
+			Context("when the version is partially matched", func() {
+				BeforeEach(func() {
+					saveVersion(atc.Version{"version": "12345", "tag": "1.0.0"})
+				})
+
+				It("returns resource config version and true", func() {
+					Expect(resourceConfigVersionFound).To(BeTrue())
+					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+					Expect(foundErr).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when there are multiple versions partially matched", func() {
+				BeforeEach(func() {
+					version1 := atc.Version{"version": "12345", "tag": "1.0.0"}
+					saveVersion(version1)
+
+					version2 := atc.Version{"version": "12345", "tag": "2.0.0"}
+					saveVersion(version2)
+				})
+
+				It("returns resource config version with highest order and true", func() {
+					Expect(resourceConfigVersionFound).To(BeTrue())
+					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+					Expect(foundErr).ToNot(HaveOccurred())
+				})
 			})
 
 			Context("when the check order is 0", func() {
 				BeforeEach(func() {
+					saveVersion(atc.Version{"version": "12345"})
+
 					version = atc.Version{"version": "2"}
 					created, err := resource.SaveUncheckedVersion(version, nil, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
