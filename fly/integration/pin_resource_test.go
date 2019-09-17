@@ -27,7 +27,7 @@ var _ = Describe("Fly CLI", func() {
 			pipelineName                  = "pipeline"
 			resourceName                  = "resource"
 			resourceVersionID             = "42"
-			resourceVersionJsonString     = `{"some":"value"}`
+			pinVersion                    = "some:value"
 			pipelineResource              = fmt.Sprintf("%s/%s", pipelineName, resourceName)
 			expectedPinVersion            = atc.ResourceVersion{
 				ID:      42,
@@ -87,7 +87,7 @@ var _ = Describe("Fly CLI", func() {
 
 					It("pins the resource version", func() {
 						Expect(func() {
-							flyCmd := exec.Command(flyPath, "-t", targetName, "pin-resource", "-r", pipelineResource, "-v", resourceVersionJsonString)
+							flyCmd := exec.Command(flyPath, "-t", targetName, "pin-resource", "-r", pipelineResource, "-v", pinVersion)
 
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
@@ -110,12 +110,12 @@ var _ = Describe("Fly CLI", func() {
 
 					It("errors", func() {
 						Expect(func() {
-							flyCmd := exec.Command(flyPath, "-t", targetName, "pin-resource", "-r", pipelineResource, "-v", resourceVersionJsonString)
+							flyCmd := exec.Command(flyPath, "-t", targetName, "pin-resource", "-r", pipelineResource, "-v", pinVersion)
 
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
-							Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not find version matching %s", resourceVersionJsonString)))
+							Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not find version matching {\"some\":\"value\"}\n")))
 
 							<-sess.Exited
 							Expect(sess.ExitCode()).To(Equal(1))
@@ -133,7 +133,7 @@ var _ = Describe("Fly CLI", func() {
 
 					It("fails to pin", func() {
 						Expect(func() {
-							flyCmd := exec.Command(flyPath, "-t", targetName, "pin-resource", "-r", pipelineResource, "-v", resourceVersionJsonString)
+							flyCmd := exec.Command(flyPath, "-t", targetName, "pin-resource", "-r", pipelineResource, "-v", pinVersion)
 
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())

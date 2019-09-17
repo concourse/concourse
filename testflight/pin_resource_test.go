@@ -27,7 +27,7 @@ var _ = Describe("Pin a resource", func() {
 			Expect(watch).To(gbytes.Say("fetching.*" + someResourceV2))
 			Expect(watch).To(gbytes.Say("succeeded"))
 
-			watch = fly("pin-resource", "-r", inPipeline("some-resource"), "-v", fmt.Sprintf(`{"version":"%s"}`, someResourceV1), "-c", "some comment")
+			watch = fly("pin-resource", "-r", inPipeline("some-resource"), "-v", fmt.Sprintf(`version:%s`, someResourceV1), "-c", "some comment")
 			Expect(watch).To(gbytes.Say(fmt.Sprintf("pinned '%s' with version {\"version\":\"%s\"}\n", inPipeline("some-resource"), someResourceV1)))
 			Expect(watch).To(gbytes.Say("pin comment 'some comment' is saved"))
 
