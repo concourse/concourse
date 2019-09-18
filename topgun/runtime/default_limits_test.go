@@ -11,7 +11,7 @@ var _ = Describe("An ATC with default resource limits set", func() {
 	BeforeEach(func() {
 		Deploy(
 			"deployments/concourse.yml",
-			"-o", "../operations/default_limits.yml",
+			"-o", "operations/default_limits.yml",
 			"-v", "default_task_cpu_limit=512",
 			"-v", "default_task_memory_limit=1GB",
 		)

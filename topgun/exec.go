@@ -3,7 +3,9 @@ package topgun
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,6 +19,9 @@ func Start(env []string, command string, argv ...string) *gexec.Session {
 	TimestampedBy("running: " + command + " " + strings.Join(argv, " "))
 
 	cmd := exec.Command(command, argv...)
+	cwd, err := os.Getwd()
+	Expect(err).ToNot(HaveOccurred())
+	cmd.Dir = filepath.Join(cwd, "..")
 	cmd.Env = env
 
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
@@ -29,6 +34,9 @@ func SpawnInteractive(stdin io.Reader, env []string, command string, argv ...str
 	TimestampedBy("interactively running: " + command + " " + strings.Join(argv, " "))
 
 	cmd := exec.Command(command, argv...)
+	cwd, err := os.Getwd()
+	Expect(err).ToNot(HaveOccurred())
+	cmd.Dir = filepath.Join(cwd, "..")
 	cmd.Stdin = stdin
 	cmd.Env = env
 

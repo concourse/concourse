@@ -214,7 +214,7 @@ func runsBuildWithCredentialsResolved(normalSecret string, specialKeySecret stri
 	createCredentialSecret(releaseName, specialKeySecret, "main", map[string]string{"baz": "zaz"})
 
 	fly.Run("set-pipeline", "-n",
-		"-c", "../pipelines/minimal-credential-management.yml",
+		"-c", "pipelines/minimal-credential-management.yml",
 		"-p", "pipeline",
 	)
 

@@ -41,7 +41,7 @@ var _ = Describe("AWS SSM", func() {
 			}
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "../operations/configure-ssm.yml",
+				"-o", "operations/configure-ssm.yml",
 				"-v", "aws_region="+awsRegion,
 				"-v", "aws_access_key="+awsCreds.AccessKeyID,
 				"-v", "aws_secret_key="+awsCreds.SecretAccessKey,

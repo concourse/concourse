@@ -24,7 +24,7 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "../operations/web-instances.yml",
+				"-o", "operations/web-instances.yml",
 				"-v", "web_instances=2",
 			)
 
@@ -81,9 +81,9 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 			deploy := func() {
 				Deploy(
 					"deployments/concourse.yml",
-					"-o", "../operations/web-instances.yml",
+					"-o", "operations/web-instances.yml",
 					"-v", "web_instances=2",
-					"-o", "../operations/external-url.yml",
+					"-o", "operations/external-url.yml",
 					"-v", "external_url="+atc0URL,
 				)
 			}

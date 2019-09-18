@@ -16,7 +16,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "../operations/worker-instances.yml",
+				"-o", "operations/worker-instances.yml",
 				"-v", "worker_instances=2",
 			)
 		})
@@ -187,7 +187,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 	Describe("container for resource checking", func() {
 		BeforeEach(func() {
-			Deploy("deployments/concourse.yml", "-o", "../operations/fast-gc.yml")
+			Deploy("deployments/concourse.yml", "-o", "operations/fast-gc.yml")
 		})
 
 		It("is not immediately removed", func() {

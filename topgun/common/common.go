@@ -34,7 +34,7 @@ import (
 var (
 	deploymentNamePrefix string
 
-	Fly                     = FlyCli{}
+	Fly                       = FlyCli{}
 	DeploymentName, flyTarget string
 	instances                 map[string][]BoshInstance
 	jobInstances              map[string][]BoshInstance
@@ -174,7 +174,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 
 	return SpawnBosh(
 		append([]string{
-			"deploy", "../" + manifest,
+			"deploy", manifest,
 			"--vars-store", filepath.Join(tmp, DeploymentName+"-vars.yml"),
 			"-v", "deployment_name='" + DeploymentName + "'",
 			"-v", "concourse_release_version='" + concourseReleaseVersion + "'",

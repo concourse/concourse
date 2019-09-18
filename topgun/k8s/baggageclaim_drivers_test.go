@@ -61,7 +61,7 @@ func baggageclaimWorks(driver string, selectorFlags ...string) {
 				ShouldNot(HaveLen(0))
 
 			By("Setting and triggering a dumb pipeline")
-			fly.Run("set-pipeline", "-n", "-c", "../pipelines/get-task.yml", "-p", "some-pipeline")
+			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "some-pipeline")
 			fly.Run("unpause-pipeline", "-p", "some-pipeline")
 			fly.Run("trigger-job", "-w", "-j", "some-pipeline/simple-job")
 		})

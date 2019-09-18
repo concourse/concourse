@@ -12,9 +12,9 @@ var _ = Describe("Ephemeral Workers", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "../operations/worker-instances.yml",
+				"-o", "operations/worker-instances.yml",
 				"-v", "worker_instances=2",
-				"-o", "../operations/ephemeral-worker.yml",
+				"-o", "operations/ephemeral-worker.yml",
 			)
 		})
 

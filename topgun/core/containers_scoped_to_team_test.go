@@ -18,7 +18,7 @@ var _ = Describe("Container scope", func() {
 
 		It("is only hijackable by someone in that team", func() {
 			By("setting a pipeline for team `main`")
-			Fly.Run("set-pipeline", "-n", "-c", "../pipelines/get-task-put-waiting.yml", "-p", "container-scope-test")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put-waiting.yml", "-p", "container-scope-test")
 
 			By("triggering the build")
 			Fly.Run("unpause-pipeline", "-p", "container-scope-test")

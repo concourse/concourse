@@ -31,7 +31,7 @@ var _ = Describe("Worker retiring", func() {
 		Expect(volumesBefore).ToNot(BeEmpty())
 
 		By("retiring the worker")
-		Deploy("deployments/concourse.yml", "-o", "../operations/retire-worker.yml")
+		Deploy("deployments/concourse.yml", "-o", "operations/retire-worker.yml")
 
 		By("getting the worker containers")
 		containersAfter := FlyTable("containers")
