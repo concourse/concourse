@@ -170,13 +170,13 @@ var _ = Describe("Kubernetes credential management", func() {
 
 			By("successfully running the one-off build")
 			fly.Run("execute",
-				"-c", "../tasks/simple-secret.yml")
+				"-c", "tasks/simple-secret.yml")
 		})
 
 		It("one-off build fails", func() {
 			By("not creating the secret")
 			sess := fly.Start("execute",
-				"-c", "../tasks/simple-secret.yml")
+				"-c", "tasks/simple-secret.yml")
 			<-sess.Exited
 			Expect(sess.ExitCode()).NotTo(Equal(0))
 		})
