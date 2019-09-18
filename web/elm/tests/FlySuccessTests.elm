@@ -219,11 +219,6 @@ secondParagraph =
         >> Query.find [ id "second-paragraph" ]
 
 
-link : Query
-link =
-    successCard >> Query.find [ id "link" ]
-
-
 thirdParagraph : Query
 thirdParagraph =
     successCard
@@ -238,13 +233,18 @@ fourthParagraph =
         >> Query.find [ id "fourth-paragraph" ]
 
 
-button : Query
-button =
+copyTokenButton : Query
+copyTokenButton =
     body >> Query.find [ id "copy-token" ]
 
 
-buttonIcon : Query
-buttonIcon =
+sendTokenButton : Query
+sendTokenButton =
+    body >> Query.find [ id "send-token" ]
+
+
+copyTokenButtonIcon : Query
+copyTokenButtonIcon =
     body
         >> Query.find [ id "copy-token" ]
         >> Query.find [ id "copy-icon" ]
@@ -438,36 +438,45 @@ secondParagraphErrorText =
 -- body on browser blocking token from sending
 
 
-secondParagraphBlockedText : Property
-secondParagraphBlockedText =
-    property secondParagraph "error message describes browser blocking" <|
+firstParagraphBlockedText : Property
+firstParagraphBlockedText =
+    property firstParagraph
+        "explains that your browser blocked the token from sending"
+    <|
         Query.children []
             >> Expect.all
-                [ Query.count (Expect.equal 3)
+                [ Query.count (Expect.equal 5)
                 , Query.index 0
                     >> Query.has
-                        [ text "your browser blocked the attempt." ]
+                        [ text "however, your token could not be sent" ]
                 , Query.index 2
                     >> Query.has
-                        [ text "try clicking the link below:" ]
+                        [ text "to fly because your browser blocked" ]
+                , Query.index 4
+                    >> Query.has
+                        [ text "the attempt." ]
                 ]
 
 
-thirdParagraphBlockedText : Property
-thirdParagraphBlockedText =
-    property thirdParagraph "presents option to copy token" <|
+secondParagraphBlockedText : Property
+secondParagraphBlockedText =
+    property secondParagraph "describes copy-pasting option" <|
         Query.children []
             >> Expect.all
-                [ Query.count (Expect.equal 1)
+                [ Query.count (Expect.equal 7)
                 , Query.index 0
                     >> Query.has
-                        [ text "if that fails, click the button below:" ]
+                        [ text "if that fails, you will need to copy" ]
+                , Query.index 2
+                    >> Query.has
+                        [ text "the token to your clipboard, return" ]
+                , Query.index 4
+                    >> Query.has
+                        [ text "to fly, and paste your token into" ]
+                , Query.index 6
+                    >> Query.has
+                        [ text "the prompt." ]
                 ]
-
-
-fourthParagraphBlockedText : Property
-fourthParagraphBlockedText =
-    pasteInstructions fourthParagraph
 
 
 
@@ -530,31 +539,30 @@ secondParagraphFailureText =
 
 
 
--- link
+-- buttons
 
 
-linkStyle : Property
-linkStyle =
-    property link "has spacing above and below" <|
-        Query.has [ style "line-height" "2" ]
-
-
-
--- button
-
-
-buttonStyleUnclicked : Property
-buttonStyleUnclicked =
-    property button "display inline and has almost-white border" <|
+copyTokenButtonStyleUnclicked : Property
+copyTokenButtonStyleUnclicked =
+    property copyTokenButton "display inline and has almost-white border" <|
         Query.has
             [ tag "span"
             , style "border" <| "1px solid " ++ almostWhite
             ]
 
 
+sendTokenButtonStyle : Property
+sendTokenButtonStyle =
+    property sendTokenButton "display inline and has almost-white border" <|
+        Query.has
+            [ tag "a"
+            , style "border" <| "1px solid " ++ almostWhite
+            ]
+
+
 buttonStyleClicked : Property
 buttonStyleClicked =
-    property button "has blue border and background" <|
+    property copyTokenButton "has blue border and background" <|
         Query.has
             [ style "background-color" blue
             , style "border" <| "1px solid " ++ blue
@@ -563,7 +571,7 @@ buttonStyleClicked =
 
 buttonSize : Property
 buttonSize =
-    property button "is 212px wide with 10px padding above and below" <|
+    property copyTokenButton "is 212px wide with 10px padding above and below" <|
         Query.has
             [ style "width" "212px"
             , style "padding" "10px 0"
@@ -572,13 +580,13 @@ buttonSize =
 
 buttonPosition : Property
 buttonPosition =
-    property button "has 15px margin above and below" <|
+    property copyTokenButton "has 15px margin above and below" <|
         Query.has [ style "margin" "15px 0" ]
 
 
 buttonLayout : Property
 buttonLayout =
-    property button "lays out contents horizontally, centering" <|
+    property copyTokenButton "lays out contents horizontally, centering" <|
         Query.has
             [ style "display" "flex"
             , style "justify-content" "center"
@@ -586,33 +594,39 @@ buttonLayout =
             ]
 
 
-buttonTextPrompt : Property
-buttonTextPrompt =
-    property button "says 'copy token to clipboard'" <|
+sendTokenButtonText : Property
+sendTokenButtonText =
+    property sendTokenButton "says 'send token to fly directly'" <|
+        Query.has [ text "send token to fly directly" ]
+
+
+copyTokenButtonTextPrompt : Property
+copyTokenButtonTextPrompt =
+    property copyTokenButton "says 'copy token to clipboard'" <|
         Query.has [ text "copy token to clipboard" ]
 
 
-buttonTextClicked : Property
-buttonTextClicked =
-    property button "says 'token copied'" <|
+copyTokenButtonTextClicked : Property
+copyTokenButtonTextClicked =
+    property copyTokenButton "says 'token copied'" <|
         Query.has [ text "token copied" ]
 
 
 buttonCursorUnclicked : Property
 buttonCursorUnclicked =
-    property button "has pointer cursor" <|
+    property copyTokenButton "has pointer cursor" <|
         Query.has [ style "cursor" "pointer" ]
 
 
 buttonCursorClicked : Property
 buttonCursorClicked =
-    property button "has default cursor" <|
+    property copyTokenButton "has default cursor" <|
         Query.has [ style "cursor" "default" ]
 
 
 buttonClipboardAttr : Property
 buttonClipboardAttr =
-    property button "has attribute that is readable by clipboard.js" <|
+    property copyTokenButton "has attribute that is readable by clipboard.js" <|
         Query.has
             [ attribute <|
                 Attr.attribute
@@ -621,14 +635,25 @@ buttonClipboardAttr =
             ]
 
 
-buttonClickHandler : Property
-buttonClickHandler =
-    property button "sends CopyToken on click" <|
+copyTokenButtonClickHandler : Property
+copyTokenButtonClickHandler =
+    property copyTokenButton "sends CopyToken on click" <|
         Event.simulate Event.click
             >> Event.expect
                 (Msgs.Update <|
                     Message.Message.Click Message.Message.CopyTokenButton
                 )
+
+
+sendTokenButtonClickHandler : Property
+sendTokenButtonClickHandler =
+    property sendTokenButton "is a link to fly" <|
+        Query.has
+            [ attribute <|
+                Attr.href <|
+                    "http://127.0.0.1:1234/?token="
+                        ++ authToken
+            ]
 
 
 
@@ -637,14 +662,14 @@ buttonClickHandler =
 
 iconStyle : Property
 iconStyle =
-    property buttonIcon "has clipboard icon" <|
+    property copyTokenButtonIcon "has clipboard icon" <|
         Query.has <|
             iconSelector { size = "20px", image = "clippy.svg" }
 
 
 iconPosition : Property
 iconPosition =
-    property buttonIcon "has margin on the right" <|
+    property copyTokenButtonIcon "has margin on the right" <|
         Query.has [ style "margin-right" "5px" ]
 
 
@@ -687,10 +712,8 @@ all =
                     ]
             , invalidFlyPort |> firstParagraphFailureText
             , invalidFlyPort |> secondParagraphErrorText
+            , tokenSendBlocked |> firstParagraphBlockedText
             , tokenSendBlocked |> secondParagraphBlockedText
-            , tokenSendBlocked |> thirdParagraphBlockedText
-            , tokenSendBlocked |> fourthParagraphBlockedText
-            , tokenSendBlocked |> linkStyle
             , tokenSendFailed |> firstParagraphFailureText
             , tokenSendFailed |> secondParagraphFailureText
             , tokenCopied |> firstParagraphFailureText
@@ -700,7 +723,7 @@ all =
             , tokenSendSuccess |> firstParagraphSuccessText
             , tokenSendSuccess |> secondParagraphSuccessText
             ]
-        , describe "button"
+        , describe "copy token button"
             [ describe "always" <|
                 tests [ tokenSendFailed, tokenCopied, tokenSendBlocked ]
                     [ buttonSize
@@ -710,9 +733,9 @@ all =
                     ]
             , describe "when token sending failed" <|
                 tests [ tokenSendFailed ]
-                    [ buttonStyleUnclicked
-                    , buttonClickHandler
-                    , buttonTextPrompt
+                    [ copyTokenButtonStyleUnclicked
+                    , copyTokenButtonClickHandler
+                    , copyTokenButtonTextPrompt
                     , iconStyle
                     , iconPosition
                     , buttonCursorUnclicked
@@ -720,7 +743,7 @@ all =
             , describe "after copying token" <|
                 tests [ tokenCopied ]
                     [ buttonStyleClicked
-                    , buttonTextClicked
+                    , copyTokenButtonTextClicked
                     , iconStyle
                     , iconPosition
                     , buttonCursorClicked
@@ -728,7 +751,7 @@ all =
             , defineHoverBehaviour
                 { name = "copy token button"
                 , setup = steps tokenSendFailed ()
-                , query = button
+                , query = copyTokenButton
                 , unhoveredSelector =
                     { description =
                         "same background as card"
@@ -736,6 +759,28 @@ all =
                     }
                 , hoverable =
                     Message.Message.CopyTokenButton
+                , hoveredSelector =
+                    { description = "darker background"
+                    , selector =
+                        [ style "background-color" darkerGrey ]
+                    }
+                }
+            ]
+        , describe "send token button"
+            [ tokenSendBlocked |> sendTokenButtonStyle
+            , tokenSendBlocked |> sendTokenButtonText
+            , tokenSendBlocked |> sendTokenButtonClickHandler
+            , defineHoverBehaviour
+                { name = "send token button"
+                , setup = steps tokenSendBlocked ()
+                , query = sendTokenButton
+                , unhoveredSelector =
+                    { description =
+                        "same background as card"
+                    , selector = [ style "background-color" darkGrey ]
+                    }
+                , hoverable =
+                    Message.Message.SendTokenButton
                 , hoveredSelector =
                     { description = "darker background"
                     , selector =

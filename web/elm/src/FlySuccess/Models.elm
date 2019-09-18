@@ -14,7 +14,8 @@ import RemoteData
 
 type alias Model =
     Login.Model
-        { buttonState : ButtonState
+        { copyTokenButtonState : ButtonState
+        , sendTokenButtonState : ButtonState
         , authToken : String
         , tokenTransfer : TokenTransfer
         , flyPort : Maybe Int

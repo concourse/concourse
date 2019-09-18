@@ -61,6 +61,7 @@ type DomID
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
+    | SendTokenButton
     | JobGroup Int
     | StepTab String Int
     | StepHeader String

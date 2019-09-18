@@ -1,6 +1,7 @@
 module FlySuccess.Text exposing
     ( Paragraph
-    , button
+    , copyTokenButton
+    , firstParagraphBlocked
     , firstParagraphFailure
     , firstParagraphSuccess
     , flyLoginLinkDescription
@@ -8,6 +9,7 @@ module FlySuccess.Text exposing
     , pending
     , secondParagraphFailure
     , secondParagraphSuccess
+    , sendTokenButton
     , thirdParagraphBlocked
     , title
     )
@@ -54,12 +56,22 @@ firstParagraphFailure =
     ]
 
 
+firstParagraphBlocked : Paragraph
+firstParagraphBlocked =
+    [ "however, your token could not be sent"
+    , "to fly because your browser blocked"
+    , "the attempt."
+    ]
+
+
 secondParagraphFailure : TransferFailure -> Paragraph
 secondParagraphFailure error =
     case error of
         BlockedByBrowser ->
-            [ "your browser blocked the attempt."
-            , "try clicking the link below:"
+            [ "if that fails, you will need to copy"
+            , "the token to your clipboard, return"
+            , "to fly, and paste your token into"
+            , "the prompt."
             ]
 
         NetworkTrouble ->
@@ -79,13 +91,18 @@ thirdParagraphBlocked =
     ]
 
 
-button : ButtonState -> String
-button buttonState =
+copyTokenButton : ButtonState -> String
+copyTokenButton buttonState =
     if Models.isClicked buttonState then
         "token copied"
 
     else
         "copy token to clipboard"
+
+
+sendTokenButton : String
+sendTokenButton =
+    "send token to fly directly"
 
 
 flyLoginLinkDescription : Line
