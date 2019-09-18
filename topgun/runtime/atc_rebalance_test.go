@@ -56,7 +56,7 @@ var _ = Describe("Rebalancing workers", func() {
 			var boshStopSession *gexec.Session
 
 			BeforeEach(func() {
-				buildSession = fly.Start("execute", "-c", "tasks/wait.yml")
+				buildSession = Fly.Start("execute", "-c", "tasks/wait.yml")
 				Eventually(buildSession).Should(gbytes.Say("executing build"))
 				Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
