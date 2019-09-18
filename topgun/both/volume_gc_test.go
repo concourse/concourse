@@ -19,10 +19,10 @@ var _ = Describe("Garbage-collecting volumes", func() {
 	Describe("A volume that belonged to a container that is now gone", func() {
 		It("is removed from the database and worker [#129726011]", func() {
 			By("running a task with container having a rootfs, input, and output volume")
-			fly.Run("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
+			Fly.Run("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
 
 			By("collecting the build containers")
-			rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"build_id": 1}).RunWith(dbConn).Query()
+			rows, err := Psql.Select("id, handle").From("containers").Where(sq.Eq{"build_id": 1}).RunWith(DbConn).Query()
 			Expect(err).ToNot(HaveOccurred())
 
 			buildContainers := map[int]string{}
@@ -38,7 +38,7 @@ var _ = Describe("Garbage-collecting volumes", func() {
 			}
 
 			By("collecting the container volumes")
-			rows, err = psql.Select("id, handle").From("volumes").Where(sq.Eq{"container_id": containerIDs}).RunWith(dbConn).Query()
+			rows, err = Psql.Select("id, handle").From("volumes").Where(sq.Eq{"container_id": containerIDs}).RunWith(DbConn).Query()
 			Expect(err).ToNot(HaveOccurred())
 
 			containerVolumes := map[int]string{}
@@ -56,11 +56,11 @@ var _ = Describe("Garbage-collecting volumes", func() {
 			By(fmt.Sprintf("eventually expiring the build containers: %v", containerIDs))
 			Eventually(func() int {
 				var volNum int
-				err := psql.Select("COUNT(id)").From("volumes").Where(sq.Eq{"id": volumeIDs}).RunWith(dbConn).QueryRow().Scan(&volNum)
+				err := Psql.Select("COUNT(id)").From("volumes").Where(sq.Eq{"id": volumeIDs}).RunWith(DbConn).QueryRow().Scan(&volNum)
 				Expect(err).ToNot(HaveOccurred())
 
 				var containerNum int
-				err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": containerIDs}).RunWith(dbConn).QueryRow().Scan(&containerNum)
+				err = Psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": containerIDs}).RunWith(DbConn).QueryRow().Scan(&containerNum)
 				Expect(err).ToNot(HaveOccurred())
 
 				if containerNum == len(containerIDs) {
@@ -72,7 +72,7 @@ var _ = Describe("Garbage-collecting volumes", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the containers from the worker")
-			containers, err := workerGardenClient.Containers(nil)
+			containers, err := WorkerGardenClient.Containers(nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles := []string{}
@@ -87,13 +87,13 @@ var _ = Describe("Garbage-collecting volumes", func() {
 			By(fmt.Sprintf("eventually expiring the container volumes: %v", volumeIDs))
 			Eventually(func() int {
 				var num int
-				err := psql.Select("COUNT(id)").From("volumes").Where(sq.Eq{"id": volumeIDs}).RunWith(dbConn).QueryRow().Scan(&num)
+				err := Psql.Select("COUNT(id)").From("volumes").Where(sq.Eq{"id": volumeIDs}).RunWith(DbConn).QueryRow().Scan(&num)
 				Expect(err).ToNot(HaveOccurred())
 				return num
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			volumes, err := workerBaggageclaimClient.ListVolumes(logger, nil)
+			volumes, err := WorkerBaggageclaimClient.ListVolumes(Logger, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles = []string{}
@@ -110,48 +110,48 @@ var _ = Describe("Garbage-collecting volumes", func() {
 	Describe("A volume that belonged to a resource cache that is no longer in use", func() {
 		It("is removed from the database and worker [#129726933]", func() {
 			By("setting pipeline that creates resource cache")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
-			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
+			Fly.Run("unpause-pipeline", "-p", "volume-gc-test")
 
 			By("triggering job")
-			fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+			Fly.Run("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting resource cache")
 			var resourceCacheID int
-			err := psql.Select("rch.id").
+			err := Psql.Select("rch.id").
 				From("resource_caches rch").
 				LeftJoin("resource_configs rcf ON rch.resource_config_id = rcf.id").
 				LeftJoin("base_resource_types brt ON rcf.base_resource_type_id = brt.id").
 				Where("brt.name = 'time'").
-				RunWith(dbConn).
+				RunWith(DbConn).
 				QueryRow().Scan(&resourceCacheID)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("getting volume for resource cache")
 			var volumeID int
 			var volumeHandle string
-			err = psql.Select("v.id, v.handle").
+			err = Psql.Select("v.id, v.handle").
 				From("volumes v").
 				LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 				Where(sq.Eq{"wrc.resource_cache_id": resourceCacheID}).
-				RunWith(dbConn).
+				RunWith(DbConn).
 				QueryRow().
 				Scan(&volumeID, &volumeHandle)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("creating a new version of resource")
-			fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
+			Fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
 
 			By(fmt.Sprintf("eventually expiring the resource cache: %d", resourceCacheID))
 			Eventually(func() int {
 				var resourceCacheNum int
-				err := psql.Select("COUNT(id)").From("resource_caches").Where(sq.Eq{"id": resourceCacheID}).RunWith(dbConn).QueryRow().Scan(&resourceCacheNum)
+				err := Psql.Select("COUNT(id)").From("resource_caches").Where(sq.Eq{"id": resourceCacheID}).RunWith(DbConn).QueryRow().Scan(&resourceCacheNum)
 				Expect(err).ToNot(HaveOccurred())
 
 				var volumeNum int
-				err = psql.Select("COUNT(id)").From("volumes").Where(sq.Eq{"id": volumeID}).RunWith(dbConn).QueryRow().Scan(&volumeNum)
+				err = Psql.Select("COUNT(id)").From("volumes").Where(sq.Eq{"id": volumeID}).RunWith(DbConn).QueryRow().Scan(&volumeNum)
 				Expect(err).ToNot(HaveOccurred())
 
 				if resourceCacheNum == 1 {
@@ -165,13 +165,13 @@ var _ = Describe("Garbage-collecting volumes", func() {
 			By(fmt.Sprintf("eventually expiring the resource cache volumes: %d", resourceCacheID))
 			Eventually(func() int {
 				var volumeNum int
-				err := psql.Select("COUNT(id)").From("volumes").Where(sq.Eq{"id": volumeID}).RunWith(dbConn).QueryRow().Scan(&volumeNum)
+				err := Psql.Select("COUNT(id)").From("volumes").Where(sq.Eq{"id": volumeID}).RunWith(DbConn).QueryRow().Scan(&volumeNum)
 				Expect(err).ToNot(HaveOccurred())
 				return volumeNum
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			volumes, err := workerBaggageclaimClient.ListVolumes(logger, nil)
+			volumes, err := WorkerBaggageclaimClient.ListVolumes(Logger, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles := []string{}

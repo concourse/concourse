@@ -43,12 +43,12 @@ var (
 	DbConn     *sql.DB
 
 	webInstance    *BoshInstance
-	atcExternalURL string
+	AtcExternalURL string
 	AtcUsername    string
 	AtcPassword    string
 
-	workerGardenClient       gclient.Client
-	workerBaggageclaimClient bclient.Client
+	WorkerGardenClient       gclient.Client
+	WorkerBaggageclaimClient bclient.Client
 
 	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion string
 	vaultReleaseVersion, credhubReleaseVersion                         string
@@ -57,7 +57,7 @@ var (
 
 	pipelineName string
 
-	logger *lagertest.TestLogger
+	Logger *lagertest.TestLogger
 
 	tmp string
 )
@@ -68,7 +68,7 @@ var _ = BeforeEach(func() {
 	SetDefaultConsistentlyDuration(time.Minute)
 	SetDefaultConsistentlyPollingInterval(time.Second)
 
-	logger = lagertest.NewTestLogger("test")
+	Logger = lagertest.NewTestLogger("test")
 
 	deploymentNamePrefix = os.Getenv("DEPLOYMENT_NAME_PREFIX")
 	if deploymentNamePrefix == "" {
@@ -136,7 +136,7 @@ var _ = BeforeEach(func() {
 	dbInstance = nil
 	DbConn = nil
 	webInstance = nil
-	atcExternalURL = ""
+	AtcExternalURL = ""
 	AtcUsername = "test"
 	AtcPassword = "test"
 })
@@ -212,19 +212,19 @@ func Deploy(manifest string, args ...string) {
 
 	webInstance = JobInstance("web")
 	if webInstance != nil {
-		atcExternalURL = fmt.Sprintf("http://%s:8080", webInstance.IP)
-		Fly.Login(AtcUsername, AtcPassword, atcExternalURL)
+		AtcExternalURL = fmt.Sprintf("http://%s:8080", webInstance.IP)
+		Fly.Login(AtcUsername, AtcPassword, AtcExternalURL)
 
 		WaitForWorkersToBeRunning(len(JobInstances("worker")) + len(JobInstances("other_worker")))
 
 		workers := FlyTable("workers", "-d")
 		if len(workers) > 0 {
 			worker := workers[0]
-			workerGardenClient = gclient.New(gconn.New("tcp", worker["garden address"]))
-			workerBaggageclaimClient = bclient.NewWithHTTPClient(worker["baggageclaim url"], http.DefaultClient)
+			WorkerGardenClient = gclient.New(gconn.New("tcp", worker["garden address"]))
+			WorkerBaggageclaimClient = bclient.NewWithHTTPClient(worker["baggageclaim url"], http.DefaultClient)
 		} else {
-			workerGardenClient = nil
-			workerBaggageclaimClient = nil
+			WorkerGardenClient = nil
+			WorkerBaggageclaimClient = nil
 		}
 	}
 
@@ -311,7 +311,7 @@ func SpawnBosh(argv ...string) *gexec.Session {
 }
 
 func ConcourseClient() concourse.Client {
-	token, err := FetchToken(atcExternalURL, AtcUsername, AtcPassword)
+	token, err := FetchToken(AtcExternalURL, AtcUsername, AtcPassword)
 	Expect(err).NotTo(HaveOccurred())
 
 	httpClient := &http.Client{
@@ -323,7 +323,7 @@ func ConcourseClient() concourse.Client {
 		},
 	}
 
-	return concourse.NewClient(atcExternalURL, httpClient, false)
+	return concourse.NewClient(AtcExternalURL, httpClient, false)
 }
 
 func DeleteAllContainers() {
@@ -346,7 +346,7 @@ func DeleteAllContainers() {
 			if container.WorkerName == worker.Name {
 				err = gardenClient.Destroy(container.ID)
 				if err != nil {
-					logger.Error("failed-to-delete-container", err, lager.Data{"handle": container.ID})
+					Logger.Error("failed-to-delete-container", err, lager.Data{"handle": container.ID})
 				}
 			}
 		}

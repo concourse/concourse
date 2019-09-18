@@ -16,11 +16,11 @@ var _ = Describe("Garbage collecting containers for destroyed pipelines", func()
 
 	It("should be removed", func() {
 		By("setting a pipeline")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "pipeline-destroyed-test")
+		Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "pipeline-destroyed-test")
 
 		By("kicking off a build")
-		fly.Run("unpause-pipeline", "-p", "pipeline-destroyed-test")
-		buildSession := fly.Start("trigger-job", "-w", "-j", "pipeline-destroyed-test/simple-job")
+		Fly.Run("unpause-pipeline", "-p", "pipeline-destroyed-test")
+		buildSession := Fly.Start("trigger-job", "-w", "-j", "pipeline-destroyed-test/simple-job")
 
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))
@@ -33,12 +33,12 @@ var _ = Describe("Garbage collecting containers for destroyed pipelines", func()
 			err error
 		)
 		for _, c := range containerTable {
-			_, err = workerGardenClient.Lookup(c["handle"])
+			_, err = WorkerGardenClient.Lookup(c["handle"])
 			Expect(err).NotTo(HaveOccurred())
 		}
 
 		By("destroying the pipeline")
-		fly.Run("destroy-pipeline", "-n", "-p", "pipeline-destroyed-test")
+		Fly.Run("destroy-pipeline", "-n", "-p", "pipeline-destroyed-test")
 
 		By("verifying the containers don't exist")
 		Eventually(func() int {
@@ -46,7 +46,7 @@ var _ = Describe("Garbage collecting containers for destroyed pipelines", func()
 		}, 5*time.Minute, 30*time.Second).Should(BeZero())
 
 		Eventually(func() []garden.Container {
-			containers, err := workerGardenClient.Containers(nil)
+			containers, err := WorkerGardenClient.Containers(nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			return containers

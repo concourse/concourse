@@ -37,7 +37,7 @@ var _ = Describe("Worker landing", func() {
 		Bosh("ssh", instance.Name, "-c", "sudo /var/vcap/bosh/bin/monit unmonitor worker")
 
 		// land worker via fly; this will cause the worker process to exit
-		fly.Run("land-worker", "-w", workerToLand)
+		Fly.Run("land-worker", "-w", workerToLand)
 
 		return workerToLand, instance
 	}
@@ -71,7 +71,7 @@ var _ = Describe("Worker landing", func() {
 			Context("while in landing or landed state", func() {
 				It("is not used for new workloads", func() {
 					for i := 0; i < 10; i++ {
-						fly.Run("execute", "-c", "tasks/tiny.yml")
+						Fly.Run("execute", "-c", "tasks/tiny.yml")
 						usedWorkers := WorkersWithContainers()
 						Expect(usedWorkers).To(HaveLen(1))
 						Expect(usedWorkers).ToNot(ContainElement(landingWorkerName))
@@ -79,7 +79,7 @@ var _ = Describe("Worker landing", func() {
 				})
 
 				It("can be pruned", func() {
-					fly.Run("prune-worker", "-w", landingWorkerName)
+					Fly.Run("prune-worker", "-w", landingWorkerName)
 					WaitForWorkersToBeRunning(1)
 				})
 			})
@@ -104,19 +104,19 @@ var _ = Describe("Worker landing", func() {
 
 				BeforeEach(func() {
 					By("setting pipeline that creates volumes for image")
-					fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "topgun")
+					Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "topgun")
 
 					By("unpausing the pipeline")
-					fly.Run("unpause-pipeline", "-p", "topgun")
+					Fly.Run("unpause-pipeline", "-p", "topgun")
 
 					By("triggering a job")
-					buildSession := fly.Start("trigger-job", "-w", "-j", "topgun/simple-job")
+					buildSession := Fly.Start("trigger-job", "-w", "-j", "topgun/simple-job")
 					Eventually(buildSession).Should(gbytes.Say("fetching .*busybox.*"))
 					<-buildSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
 					By("getting identifier for check container")
-					hijackSession := fly.Start("hijack", "-c", "topgun/tick-tock", "--", "hostname")
+					hijackSession := Fly.Start("hijack", "-c", "topgun/tick-tock", "--", "hostname")
 					<-hijackSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
@@ -130,13 +130,13 @@ var _ = Describe("Worker landing", func() {
 					WaitForWorkersToBeRunning(1)
 
 					By("retaining cached image resource in second job build")
-					buildSession := fly.Start("trigger-job", "-w", "-j", "topgun/simple-job")
+					buildSession := Fly.Start("trigger-job", "-w", "-j", "topgun/simple-job")
 					<-buildSession.Exited
 					Expect(buildSession).NotTo(gbytes.Say("fetching .*busybox.*"))
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
 					By("retaining check containers")
-					hijackSession := fly.Start("hijack", "-c", "topgun/tick-tock", "--", "hostname")
+					hijackSession := Fly.Start("hijack", "-c", "topgun/tick-tock", "--", "hostname")
 					<-hijackSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
@@ -150,13 +150,13 @@ var _ = Describe("Worker landing", func() {
 
 				BeforeEach(func() {
 					By("setting pipeline that has an infinite but interruptible job")
-					fly.Run("set-pipeline", "-n", "-c", "pipelines/interruptible.yml", "-p", "topgun")
+					Fly.Run("set-pipeline", "-n", "-c", "pipelines/interruptible.yml", "-p", "topgun")
 
 					By("unpausing the pipeline")
-					fly.Run("unpause-pipeline", "-p", "topgun")
+					Fly.Run("unpause-pipeline", "-p", "topgun")
 
 					By("triggering a job")
-					buildSession = fly.Start("trigger-job", "-w", "-j", "topgun/interruptible-job")
+					buildSession = Fly.Start("trigger-job", "-w", "-j", "topgun/interruptible-job")
 					Eventually(buildSession).Should(gbytes.Say("waiting forever"))
 				})
 
@@ -171,7 +171,7 @@ var _ = Describe("Worker landing", func() {
 				var buildID string
 
 				BeforeEach(func() {
-					buildSession = fly.Start("execute", "-c", "tasks/wait.yml")
+					buildSession = Fly.Start("execute", "-c", "tasks/wait.yml")
 					Eventually(buildSession).Should(gbytes.Say("executing build"))
 
 					buildRegex := regexp.MustCompile(`executing build (\d+)`)
@@ -194,7 +194,7 @@ var _ = Describe("Worker landing", func() {
 
 				It("finishes landing once the build is done", func() {
 					By("hijacking the build to tell it to finish")
-					fly.Run("hijack", "-b", buildID, "-s", "one-off", "--", "touch", "/tmp/stop-waiting")
+					Fly.Run("hijack", "-b", buildID, "-s", "one-off", "--", "touch", "/tmp/stop-waiting")
 
 					By("waiting for the build to exit")
 					Eventually(buildSession).Should(gbytes.Say("done"))
@@ -228,14 +228,14 @@ var _ = Describe("Worker landing", func() {
 				"-v", "worker_instances=0",
 			)
 
-			fly.Run("set-team", "--non-interactive", "-n", "team-a", "--local-user", atcUsername)
+			Fly.Run("set-team", "--non-interactive", "-n", "team-a", "--local-user", AtcUsername)
 
 			Deploy(
 				"deployments/concourse.yml",
 				"-o", "operations/worker-team.yml",
 			)
 
-			fly.Run("login", "-c", atcExternalURL, "-n", "team-a", "-u", atcUsername, "-p", atcPassword)
+			Fly.Run("login", "-c", AtcExternalURL, "-n", "team-a", "-u", AtcUsername, "-p", AtcPassword)
 
 			// wait for the team's worker to arrive now that team exists
 			WaitForRunningWorker()
