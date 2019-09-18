@@ -23,13 +23,13 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 		It("is recreated in database and worker", func() {
 			By("setting pipeline that creates resource cache")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
-			fly.Run("unpause-pipeline", "-p", "volume-gc-test")
+			Fly.Run("unpause-pipeline", "-p", "volume-gc-test")
 
 			By("checking resource")
-			fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
+			Fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
 
 			By("getting the resource config container")
 			containers := FlyTable("containers")
@@ -54,7 +54,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 			}, 10*time.Minute, 10*time.Second).Should(BeFalse())
 
 			By("checking resource again")
-			fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
+			Fly.Run("check-resource", "-r", "volume-gc-test/tick-tock")
 
 			By("getting the resource config container")
 			containers = FlyTable("containers")
@@ -76,17 +76,17 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 		It("has its resource config, resource config uses and container removed", func() {
 			By("setting pipeline that creates resource config")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
 
 			By("unpausing the pipeline")
-			fly.Run("unpause-pipeline", "-p", "resource-gc-test")
+			Fly.Run("unpause-pipeline", "-p", "resource-gc-test")
 
 			By("checking resource")
-			fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
+			Fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 
 			By("getting the resource config")
 			var resourceConfigsNum int
-			err := psql.Select("COUNT(id)").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&resourceConfigsNum)
+			err := Psql.Select("COUNT(id)").From("resource_configs").RunWith(DbConn).QueryRow().Scan(&resourceConfigsNum)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resourceConfigsNum).To(Equal(1))
@@ -103,12 +103,12 @@ var _ = Describe("Garbage collecting resource containers", func() {
 			Expect(checkContainerHandle).NotTo(BeEmpty())
 
 			By("updating pipeline and removing resource")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "resource-gc-test")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "resource-gc-test")
 
 			By("eventually expiring the resource config")
 			Eventually(func() int {
 				var resourceConfigsNum int
-				err := psql.Select("COUNT(id)").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&resourceConfigsNum)
+				err := Psql.Select("COUNT(id)").From("resource_configs").RunWith(DbConn).QueryRow().Scan(&resourceConfigsNum)
 				Expect(err).ToNot(HaveOccurred())
 
 				return resourceConfigsNum
@@ -134,17 +134,17 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 		It("has its resource config, resource config uses and container removed", func() {
 			By("setting pipeline that creates resource config")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
 
 			By("unpausing the pipeline")
-			fly.Run("unpause-pipeline", "-p", "resource-gc-test")
+			Fly.Run("unpause-pipeline", "-p", "resource-gc-test")
 
 			By("checking resource")
-			fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
+			Fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 
 			By("getting the resource config")
 			var originalResourceConfigID int
-			err := psql.Select("id").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&originalResourceConfigID)
+			err := Psql.Select("id").From("resource_configs").RunWith(DbConn).QueryRow().Scan(&originalResourceConfigID)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(originalResourceConfigID).NotTo(BeZero())
@@ -161,12 +161,12 @@ var _ = Describe("Garbage collecting resource containers", func() {
 			Expect(originalCheckContainerHandle).NotTo(BeEmpty())
 
 			By("updating pipeline with new resource configuration")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
 
 			By("eventually expiring the resource config")
 			Eventually(func() int {
 				var resourceConfigsNum int
-				err := psql.Select("COUNT(id)").From("resource_configs").Where("id = $1", originalResourceConfigID).RunWith(dbConn).QueryRow().Scan(&resourceConfigsNum)
+				err := Psql.Select("COUNT(id)").From("resource_configs").Where("id = $1", originalResourceConfigID).RunWith(DbConn).QueryRow().Scan(&resourceConfigsNum)
 				Expect(err).ToNot(HaveOccurred())
 
 				return resourceConfigsNum
@@ -192,13 +192,13 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 		It("is not immediately removed", func() {
 			By("setting pipeline that creates resource config")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
 
 			By("unpausing the pipeline")
-			fly.Run("unpause-pipeline", "-p", "resource-gc-test")
+			Fly.Run("unpause-pipeline", "-p", "resource-gc-test")
 
 			By("checking resource")
-			fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
+			Fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 
 			Consistently(func() string {
 				By("getting the resource config container")
@@ -218,37 +218,37 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 			It("doesn't create many containers for one resource check", func() {
 				By("setting pipeline that creates resource config")
-				fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
+				Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
 
 				By("unpausing the pipeline")
-				fly.Run("unpause-pipeline", "-p", "resource-gc-test")
+				Fly.Run("unpause-pipeline", "-p", "resource-gc-test")
 
 				By("checking resource")
-				fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
+				Fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 
 				By("creating another team")
-				fly.Run("set-team", "--non-interactive", "--team-name", teamName, "--local-user", atcUsername)
+				Fly.Run("set-team", "--non-interactive", "--team-name", teamName, "--local-user", AtcUsername)
 
-				fly.Run("login", "-c", atcExternalURL, "-n", teamName, "-u", atcUsername, "-p", atcPassword)
+				Fly.Run("login", "-c", AtcExternalURL, "-n", teamName, "-u", AtcUsername, "-p", AtcPassword)
 
 				By("setting pipeline that creates an identical resource config")
-				fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
+				Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
 
 				By("unpausing the pipeline")
-				fly.Run("unpause-pipeline", "-p", "resource-gc-test")
+				Fly.Run("unpause-pipeline", "-p", "resource-gc-test")
 
 				By("checking resource excessively")
 				for i := 0; i < 20; i++ {
-					fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
+					Fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 				}
 
 				otherTeamCheckCount := len(FlyTable("containers"))
 				Expect(otherTeamCheckCount).To(Equal(1))
 
 				By("checking resource excessively")
-				fly.Run("login", "-c", atcExternalURL, "-n", "main", "-u", atcUsername, "-p", atcPassword)
+				Fly.Run("login", "-c", AtcExternalURL, "-n", "main", "-u", AtcUsername, "-p", AtcPassword)
 				for i := 0; i < 20; i++ {
-					fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
+					Fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 				}
 
 				mainTeamCheckCount := len(FlyTable("containers"))

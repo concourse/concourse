@@ -27,7 +27,7 @@ var _ = Describe("Worker stalling", func() {
 		It("initially runs tasks across all workers", func() {
 			usedWorkers := map[string]struct{}{}
 			Eventually(func() map[string]struct{} {
-				fly.Run("execute", "-c", "tasks/tiny.yml")
+				Fly.Run("execute", "-c", "tasks/tiny.yml")
 				workerNames := WorkersWithContainers()
 				for _, w := range workerNames {
 					usedWorkers[w] = struct{}{}
@@ -51,7 +51,7 @@ var _ = Describe("Worker stalling", func() {
 
 			It("enters 'stalled' state and is no longer used for new containers", func() {
 				for i := 0; i < 10; i++ {
-					fly.Run("execute", "-c", "tasks/tiny.yml")
+					Fly.Run("execute", "-c", "tasks/tiny.yml")
 					usedWorkers := WorkersWithContainers()
 					Expect(usedWorkers).To(HaveLen(1))
 					Expect(usedWorkers).ToNot(ContainElement(stalledWorkerName))
@@ -59,7 +59,7 @@ var _ = Describe("Worker stalling", func() {
 			})
 
 			It("can be pruned while in stalled state", func() {
-				fly.Run("prune-worker", "-w", stalledWorkerName)
+				Fly.Run("prune-worker", "-w", stalledWorkerName)
 				WaitForWorkersToBeRunning(1)
 			})
 		})
@@ -75,7 +75,7 @@ var _ = Describe("Worker stalling", func() {
 			var buildID string
 
 			BeforeEach(func() {
-				buildSession = fly.Start("execute", "-c", "tasks/wait.yml")
+				buildSession = Fly.Start("execute", "-c", "tasks/wait.yml")
 				Eventually(buildSession).Should(gbytes.Say("executing build"))
 
 				buildRegex := regexp.MustCompile(`executing build (\d+)`)
@@ -122,7 +122,7 @@ var _ = Describe("Worker stalling", func() {
 
 					By("hijacking the build to tell it to finish")
 					Eventually(func() int {
-						session := fly.Start(
+						session := Fly.Start(
 							"hijack",
 							"-b", buildID,
 							"-s", "one-off",

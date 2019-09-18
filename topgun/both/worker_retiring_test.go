@@ -14,13 +14,13 @@ var _ = Describe("Worker retiring", func() {
 
 	It("deletes all containers and volumes when worker is gone", func() {
 		By("setting pipeline that creates resource cache")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "worker-retiring-test")
+		Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "worker-retiring-test")
 
 		By("unpausing the pipeline")
-		fly.Run("unpause-pipeline", "-p", "worker-retiring-test")
+		Fly.Run("unpause-pipeline", "-p", "worker-retiring-test")
 
 		By("checking resource")
-		fly.Run("check-resource", "-r", "worker-retiring-test/tick-tock")
+		Fly.Run("check-resource", "-r", "worker-retiring-test/tick-tock")
 
 		By("getting the worker containers")
 		containersBefore := FlyTable("containers")
