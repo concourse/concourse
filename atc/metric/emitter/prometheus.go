@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,9 +48,9 @@ type PrometheusEmitter struct {
 	workerTasks       *prometheus.GaugeVec
 	workersRegistered *prometheus.GaugeVec
 
-	workerContainersLabels map[string]prometheus.Labels
-	workerVolumesLabels    map[string]prometheus.Labels
-	workerTasksLabels      map[string]prometheus.Labels
+	workerContainersLabels map[string]map[string]prometheus.Labels
+	workerVolumesLabels    map[string]map[string]prometheus.Labels
+	workerTasksLabels      map[string]map[string]prometheus.Labels
 	workerLastSeen         map[string]time.Time
 	mu                     sync.Mutex
 }
@@ -56,6 +58,20 @@ type PrometheusEmitter struct {
 type PrometheusConfig struct {
 	BindIP   string `long:"prometheus-bind-ip" description:"IP to listen on to expose Prometheus metrics."`
 	BindPort string `long:"prometheus-bind-port" description:"Port to listen on to expose Prometheus metrics."`
+}
+
+func serializeLabels(labels *prometheus.Labels) string {
+	var (
+		key   string
+		names []string
+	)
+	for _, v := range *labels {
+		names = append(names, v)
+	}
+	sort.Strings(names)
+	key = strings.Join(names, "_")
+
+	return key
 }
 
 func init() {
@@ -319,9 +335,9 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 		workerContainers:       workerContainers,
 		workersRegistered:      workersRegistered,
-		workerContainersLabels: map[string]prometheus.Labels{},
-		workerVolumesLabels:    map[string]prometheus.Labels{},
-		workerTasksLabels:      map[string]prometheus.Labels{},
+		workerContainersLabels: map[string]map[string]prometheus.Labels{},
+		workerVolumesLabels:    map[string]map[string]prometheus.Labels{},
+		workerTasksLabels:      map[string]map[string]prometheus.Labels{},
 		workerLastSeen:         map[string]time.Time{},
 		workerVolumes:          workerVolumes,
 		workerTasks:            workerTasks,
@@ -482,13 +498,18 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		return
 	}
 
-	emitter.workerContainersLabels[worker] = prometheus.Labels{
+	labels := prometheus.Labels{
 		"worker":   worker,
 		"platform": platform,
 		"team":     team,
 		"tags":     tags,
 	}
-	emitter.workerContainers.With(emitter.workerContainersLabels[worker]).Set(float64(containers))
+	key := serializeLabels(&labels)
+	if emitter.workerContainersLabels[worker] == nil {
+		emitter.workerContainersLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerContainersLabels[worker][key] = labels
+	emitter.workerContainers.With(emitter.workerContainersLabels[worker][key]).Set(float64(containers))
 }
 
 func (emitter *PrometheusEmitter) workersRegisteredMetric(logger lager.Logger, event metric.Event) {
@@ -531,13 +552,18 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		return
 	}
 
-	emitter.workerVolumesLabels[worker] = prometheus.Labels{
+	labels := prometheus.Labels{
 		"worker":   worker,
 		"platform": platform,
 		"team":     team,
 		"tags":     tags,
 	}
-	emitter.workerVolumes.With(emitter.workerVolumesLabels[worker]).Set(float64(volumes))
+	key := serializeLabels(&labels)
+	if emitter.workerVolumesLabels[worker] == nil {
+		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerVolumesLabels[worker][key] = labels
+	emitter.workerVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(volumes))
 }
 
 func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event metric.Event) {
@@ -558,11 +584,16 @@ func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event m
 		return
 	}
 
-	emitter.workerTasksLabels[worker] = prometheus.Labels{
+	labels := prometheus.Labels{
 		"worker":   worker,
 		"platform": platform,
 	}
-	emitter.workerTasks.With(emitter.workerTasksLabels[worker]).Set(float64(tasks))
+	key := serializeLabels(&labels)
+	if emitter.workerTasksLabels[worker] == nil {
+		emitter.workerTasksLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerTasksLabels[worker][key] = labels
+	emitter.workerTasks.With(emitter.workerTasksLabels[worker][key]).Set(float64(tasks))
 }
 
 func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, event metric.Event) {
@@ -671,9 +702,17 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 		now := time.Now()
 		for worker, lastSeen := range emitter.workerLastSeen {
 			if now.Sub(lastSeen) > 5*time.Minute {
-				emitter.workerContainers.Delete(emitter.workerContainersLabels[worker])
-				emitter.workerVolumes.Delete(emitter.workerVolumesLabels[worker])
-				emitter.workerTasks.Delete(emitter.workerVolumesLabels[worker])
+				for _, labels := range emitter.workerContainersLabels[worker] {
+					emitter.workerContainers.Delete(labels)
+				}
+
+				for _, labels := range emitter.workerVolumesLabels[worker] {
+					emitter.workerVolumes.Delete(labels)
+				}
+
+				for _, labels := range emitter.workerTasksLabels[worker] {
+					emitter.workerTasks.Delete(labels)
+				}
 
 				delete(emitter.workerContainersLabels, worker)
 				delete(emitter.workerVolumesLabels, worker)
@@ -682,6 +721,6 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 			}
 		}
 		emitter.mu.Unlock()
-		time.Sleep(60 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
