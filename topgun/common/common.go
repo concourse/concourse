@@ -33,6 +33,7 @@ import (
 
 var (
 	deploymentNamePrefix string
+	suiteName            string
 
 	Fly                       = FlyCli{}
 	DeploymentName, flyTarget string
@@ -75,7 +76,7 @@ var _ = BeforeEach(func() {
 		deploymentNamePrefix = "concourse-topgun"
 	}
 
-	suiteName := os.Getenv("SUITE")
+	suiteName = os.Getenv("SUITE")
 	if suiteName != "" {
 		deploymentNamePrefix += "-" + suiteName
 	}
@@ -176,6 +177,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 		append([]string{
 			"deploy", manifest,
 			"--vars-store", filepath.Join(tmp, DeploymentName+"-vars.yml"),
+			"-v", "suite='" + suiteName + "'",
 			"-v", "deployment_name='" + DeploymentName + "'",
 			"-v", "concourse_release_version='" + concourseReleaseVersion + "'",
 			"-v", "bpm_release_version='" + bpmReleaseVersion + "'",
