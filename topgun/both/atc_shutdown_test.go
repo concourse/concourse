@@ -21,7 +21,7 @@ var _ = Describe("ATC Shutting down", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "../operations/web-instances.yml",
+				"-o", "operations/web-instances.yml",
 				"-v", "web_instances=2",
 			)
 

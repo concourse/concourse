@@ -12,8 +12,8 @@ var _ = Describe("Resource checking", func() {
 	Context("with a global worker and a tagged", func() {
 		BeforeEach(func() {
 			Deploy("deployments/concourse.yml",
-				"-o", "../operations/add-other-worker.yml",
-				"-o", "../operations/tagged-worker.yml")
+				"-o", "operations/add-other-worker.yml",
+				"-o", "operations/tagged-worker.yml")
 		})
 
 		Describe("tagged resources", func() {
@@ -64,8 +64,8 @@ var _ = Describe("Resource checking", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "../operations/add-other-worker.yml",
-				"-o", "../operations/other-worker-team.yml",
+				"-o", "operations/add-other-worker.yml",
+				"-o", "operations/other-worker-team.yml",
 			)
 
 			Eventually(func() []map[string]string {

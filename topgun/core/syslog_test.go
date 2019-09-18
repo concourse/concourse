@@ -13,7 +13,7 @@ import (
 var _ = Describe("An ATC with syslog draining set", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml",
-			"-o", "../operations/syslog_configurations.yml",
+			"-o", "operations/syslog_configurations.yml",
 			"-v", "syslog.address=localhost:8081",
 			"-v", "syslog.hostname=atc1",
 			"-v", "syslog.transport=tcp",
@@ -22,7 +22,7 @@ var _ = Describe("An ATC with syslog draining set", func() {
 	})
 
 	It("sends the build logs to the syslog server.", func() {
-		Fly.Run("set-pipeline", "-n", "-c", "../pipelines/secrets.yml", "-p", "syslog-pipeline")
+		Fly.Run("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "syslog-pipeline")
 
 		Fly.Run("unpause-pipeline", "-p", "syslog-pipeline")
 		buildSession := Fly.Start("trigger-job", "-w", "-j", "syslog-pipeline/simple-job")

@@ -50,7 +50,7 @@ var _ = Describe("BBR", func() {
 
 		Context("consuming concourse_db links", func() {
 			BeforeEach(func() {
-				deployArgs = append(deployArgs, "-o", "../operations/bbr-concourse-link.yml")
+				deployArgs = append(deployArgs, "-o", "operations/bbr-concourse-link.yml")
 			})
 
 			successfullyExecutesBackup()
@@ -58,7 +58,7 @@ var _ = Describe("BBR", func() {
 
 		Context("passing properties", func() {
 			BeforeEach(func() {
-				deployArgs = append(deployArgs, "-o", "../operations/bbr-with-properties.yml")
+				deployArgs = append(deployArgs, "-o", "operations/bbr-with-properties.yml")
 			})
 
 			successfullyExecutesBackup()
@@ -69,7 +69,7 @@ var _ = Describe("BBR", func() {
 	Context("regardless of property provider", func() {
 
 		BeforeEach(func() {
-			deployArgs = append(deployArgs, "-o", "../operations/bbr-with-properties.yml")
+			deployArgs = append(deployArgs, "-o", "operations/bbr-with-properties.yml")
 		})
 
 		JustBeforeEach(func() {
@@ -91,7 +91,7 @@ var _ = Describe("BBR", func() {
 
 			It("backups and restores", func() {
 				By("creating a new pipeline")
-				Fly.Run("set-pipeline", "-n", "-p", "pipeline", "-c", "../pipelines/get-task.yml")
+				Fly.Run("set-pipeline", "-n", "-p", "pipeline", "-c", "pipelines/get-task.yml")
 				pipelines := Fly.GetPipelines()
 				Expect(pipelines).ToNot(BeEmpty())
 				Expect(pipelines[0].Name).To(Equal("pipeline"))
@@ -121,7 +121,7 @@ var _ = Describe("BBR", func() {
 				By("creating a new deployment")
 				Deploy(
 					"deployments/concourse.yml",
-					"-o", "../operations/bbr-with-properties.yml",
+					"-o", "operations/bbr-with-properties.yml",
 				)
 				WaitForRunningWorker()
 
@@ -159,7 +159,7 @@ var _ = Describe("BBR", func() {
 
 			It("rolls back the partial restore", func() {
 				By("creating new pipeline")
-				Fly.Run("set-pipeline", "-n", "-p", "pipeline", "-c", "../pipelines/get-task.yml")
+				Fly.Run("set-pipeline", "-n", "-p", "pipeline", "-c", "pipelines/get-task.yml")
 				pipelines := Fly.GetPipelines()
 				Expect(pipelines).ToNot(BeEmpty())
 				Expect(pipelines[0].Name).To(Equal("pipeline"))
@@ -184,7 +184,7 @@ var _ = Describe("BBR", func() {
 
 				By("creating new pipeline and triggering the new pipeling (this will fail the restore)")
 
-				Fly.Run("set-pipeline", "-n", "-p", "pipeline-2", "-c", "../pipelines/get-task.yml")
+				Fly.Run("set-pipeline", "-n", "-p", "pipeline-2", "-c", "pipelines/get-task.yml")
 				pipelines = Fly.GetPipelines()
 				Expect(pipelines).ToNot(BeEmpty())
 				Expect(pipelines[1].Name).To(Equal("pipeline-2"))

@@ -22,9 +22,9 @@ var _ = Describe("Rebalancing workers", func() {
 		BeforeEach(func() {
 			Deploy(
 				"deployments/concourse.yml",
-				"-o", "../operations/web-instances.yml",
+				"-o", "operations/web-instances.yml",
 				"-v", "web_instances=2",
-				"-o", "../operations/worker-rebalancing.yml",
+				"-o", "operations/worker-rebalancing.yml",
 				"-v", "rebalance_interval="+rebalanceInterval.String(),
 			)
 

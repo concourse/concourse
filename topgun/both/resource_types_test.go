@@ -9,7 +9,7 @@ import (
 
 var _ = Describe("A pipeline-provided resource type", func() {
 	BeforeEach(func() {
-		Deploy("deployments/concourse.yml", "-o", "../operations/no-gc.yml")
+		Deploy("deployments/concourse.yml", "-o", "operations/no-gc.yml")
 	})
 
 	It("does not result in redundant containers when running resource actions", func() {
@@ -44,7 +44,7 @@ var _ = Describe("A pipeline-provided resource type", func() {
 
 var _ = Describe("Tagged resource types", func() {
 	BeforeEach(func() {
-		Deploy("deployments/concourse.yml", "-o", "../operations/tagged-worker.yml")
+		Deploy("deployments/concourse.yml", "-o", "operations/tagged-worker.yml")
 
 		By("setting a pipeline with tagged custom types")
 		fly.Run("set-pipeline", "-n", "-c", "pipelines/tagged-custom-types.yml", "-p", "pipe")

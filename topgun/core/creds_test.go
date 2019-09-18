@@ -40,7 +40,7 @@ func testCredentialManagement(
 			pipelineSetup()
 
 			By("setting a pipeline that uses vars for secrets")
-			Fly.Run("set-pipeline", "-n", "-c", "../pipelines/credential-management.yml", "-p", "pipeline-creds-test")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "pipeline-creds-test")
 
 			By("getting the pipeline config")
 			session := Fly.Start("get-pipeline", "-p", "pipeline-creds-test")

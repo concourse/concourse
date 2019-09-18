@@ -10,20 +10,20 @@ import (
 var _ = Describe("Unique Version History", func() {
 	BeforeEach(func() {
 		Deploy("deployments/concourse.yml",
-			"-o", "../operations/enable-global-resources.yml")
+			"-o", "operations/enable-global-resources.yml")
 		_ = WaitForRunningWorker()
 	})
 
 	Context("with a time resource", func() {
 		BeforeEach(func() {
 			By("setting a pipeline with a time resource")
-			Fly.Run("set-pipeline", "-n", "-c", "../pipelines/time-resource.yml", "-p", "time-resource-1")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/time-resource.yml", "-p", "time-resource-1")
 
 			By("unpausing the pipeline")
 			Fly.Run("unpause-pipeline", "-p", "time-resource-1")
 
 			By("setting another pipeline with a time resource")
-			Fly.Run("set-pipeline", "-n", "-c", "../pipelines/time-resource.yml", "-p", "time-resource-2")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/time-resource.yml", "-p", "time-resource-2")
 
 			By("unpausing the pipeline")
 			Fly.Run("unpause-pipeline", "-p", "time-resource-2")
@@ -49,13 +49,13 @@ var _ = Describe("Unique Version History", func() {
 	Context("when a resource is specified to have a unique version history from the pipeline", func() {
 		BeforeEach(func() {
 			By("setting a pipeline with a unique version history resource")
-			Fly.Run("set-pipeline", "-n", "-c", "../pipelines/custom-unique-type.yml", "-p", "unique-resource-1")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/custom-unique-type.yml", "-p", "unique-resource-1")
 
 			By("unpausing the pipeline")
 			Fly.Run("unpause-pipeline", "-p", "unique-resource-1")
 
 			By("setting another pipeline with a unique version history resource")
-			Fly.Run("set-pipeline", "-n", "-c", "../pipelines/custom-unique-type.yml", "-p", "unique-resource-2")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/custom-unique-type.yml", "-p", "unique-resource-2")
 
 			By("unpausing the pipeline")
 			Fly.Run("unpause-pipeline", "-p", "unique-resource-2")
