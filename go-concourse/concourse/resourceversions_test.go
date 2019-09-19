@@ -158,11 +158,11 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 		Context("when filter is specified", func() {
 			BeforeEach(func() {
-				filter = atc.Version{"some": "value", "some-other": "other-value"}
+				filter = atc.Version{"some": "value"}
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "filter=some:value&filter=some-other:other-value"),
+						ghttp.VerifyRequest("GET", expectedURL, "filter=some:value"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
 					),
 				)
