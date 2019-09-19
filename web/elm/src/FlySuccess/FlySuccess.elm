@@ -21,6 +21,7 @@ import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription
     exposing
         ( Delivery(..)
+        , RawHttpResponse(..)
         , Subscription(..)
         )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
@@ -38,7 +39,8 @@ init :
     }
     -> ( Model, List Effect )
 init { authToken, flyPort, noop } =
-    ( { buttonState = Unhovered
+    ( { copyTokenButtonState = Unhovered
+      , sendTokenButtonState = Unhovered
       , authToken = authToken
       , tokenTransfer =
             case ( noop, flyPort ) of
@@ -69,14 +71,10 @@ handleDelivery delivery ( model, effects ) =
             ( { model | tokenTransfer = Models.Success }, effects )
 
         TokenSentToFly Subscription.NetworkError ->
-            ( { model | tokenTransfer = Models.NetworkTrouble }
-            , effects
-            )
+            ( { model | tokenTransfer = Models.NetworkTrouble }, effects )
 
         TokenSentToFly Subscription.BrowserError ->
-            ( { model | tokenTransfer = Models.BlockedByBrowser }
-            , effects
-            )
+            ( { model | tokenTransfer = Models.BlockedByBrowser }, effects )
 
         _ ->
             ( model, effects )
@@ -86,17 +84,25 @@ update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
         Hover (Just CopyTokenButton) ->
-            ( { model | buttonState = hover True model.buttonState }
+            ( { model | copyTokenButtonState = hover True model.copyTokenButtonState }
+            , effects
+            )
+
+        Hover (Just SendTokenButton) ->
+            ( { model | sendTokenButtonState = hover True model.sendTokenButtonState }
             , effects
             )
 
         Hover Nothing ->
-            ( { model | buttonState = hover False model.buttonState }
+            ( { model
+                | copyTokenButtonState = hover False model.copyTokenButtonState
+                , sendTokenButtonState = hover False model.sendTokenButtonState
+              }
             , effects
             )
 
         Click CopyTokenButton ->
-            ( { model | buttonState = Clicked }, effects )
+            ( { model | copyTokenButtonState = Clicked }, effects )
 
         _ ->
             ( model, effects )
@@ -161,7 +167,7 @@ body model =
                         }
                   , True
                   )
-                , ( button model, False )
+                , ( copyTokenButton model, False )
                 , ( paragraph
                         { identifier = "second-paragraph"
                         , lines = Text.secondParagraphSuccess
@@ -174,31 +180,18 @@ body model =
             elemList
                 [ ( paragraph
                         { identifier = "first-paragraph"
-                        , lines = Text.firstParagraphFailure
+                        , lines = Text.firstParagraphBlocked
                         }
                   , True
                   )
-                , ( button model, False )
+                , ( sendTokenButton model, True )
                 , ( paragraph
                         { identifier = "second-paragraph"
                         , lines = Text.secondParagraphFailure Models.BlockedByBrowser
                         }
                   , True
                   )
-                , ( flyLoginLink model, True )
-                , ( paragraph
-                        { identifier = "third-paragraph"
-                        , lines = Text.thirdParagraphBlocked
-                        }
-                  , True
-                  )
-                , ( button model, True )
-                , ( paragraph
-                        { identifier = "fourth-paragraph"
-                        , lines = Text.secondParagraphFailure Models.NetworkTrouble
-                        }
-                  , True
-                  )
+                , ( copyTokenButton model, True )
                 ]
 
         err ->
@@ -209,7 +202,7 @@ body model =
                         }
                   , True
                   )
-                , ( button model, True )
+                , ( copyTokenButton model, True )
                 , ( paragraph
                         { identifier = "second-paragraph"
                         , lines = Text.secondParagraphFailure err
@@ -227,8 +220,8 @@ paragraph { identifier, lines } =
         |> Html.p (id identifier :: Styles.paragraph)
 
 
-button : Model -> Html Message
-button { authToken, buttonState } =
+copyTokenButton : Model -> Html Message
+copyTokenButton { authToken, copyTokenButtonState } =
     Html.span
         ([ id "copy-token"
          , onMouseEnter <| Hover <| Just CopyTokenButton
@@ -236,7 +229,7 @@ button { authToken, buttonState } =
          , onClick <| Click CopyTokenButton
          , attribute "data-clipboard-text" authToken
          ]
-            ++ Styles.button buttonState
+            ++ Styles.button copyTokenButtonState
         )
         [ Icon.icon
             { sizePx = 20
@@ -245,21 +238,21 @@ button { authToken, buttonState } =
             [ id "copy-icon"
             , style "margin-right" "5px"
             ]
-        , Html.text <| Text.button buttonState
+        , Html.text <| Text.copyTokenButton copyTokenButtonState
         ]
 
 
-flyLoginLink : Model -> Html Message
-flyLoginLink { flyPort, authToken } =
-    case flyPort of
-        Just fp ->
-            Html.a
-                [ href (Routes.tokenToFlyRoute authToken fp)
-                , id "link"
-                , style "text-decoration" "underline"
-                , style "line-height" "2"
-                ]
-                [ Html.text Text.flyLoginLinkText ]
-
-        Nothing ->
-            Html.text ""
+sendTokenButton : Model -> Html Message
+sendTokenButton { sendTokenButtonState, flyPort, authToken } =
+    Html.a
+        ([ id "send-token"
+         , onMouseEnter <| Hover <| Just SendTokenButton
+         , onMouseLeave <| Hover Nothing
+         , href
+            (Maybe.map (Routes.tokenToFlyRoute authToken) flyPort
+                |> Maybe.withDefault ""
+            )
+         ]
+            ++ Styles.button sendTokenButtonState
+        )
+        [ Html.text <| Text.sendTokenButton ]

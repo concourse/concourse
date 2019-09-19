@@ -36,7 +36,7 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 		Describe("using database storage for dex", func() {
 			It("uses the same client for multiple ATCs", func() {
 				var numClient int
-				err := psql.Select("COUNT(*)").From("client").RunWith(dbConn).QueryRow().Scan(&numClient)
+				err := Psql.Select("COUNT(*)").From("client").RunWith(DbConn).QueryRow().Scan(&numClient)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(numClient).To(Equal(1))
 			})
@@ -47,7 +47,7 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 
 			BeforeEach(func() {
 				var err error
-				token, err = FetchToken(atc0URL, atcUsername, atcPassword)
+				token, err = FetchToken(atc0URL, AtcUsername, AtcPassword)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("stopping the first atc")
@@ -91,14 +91,14 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 			BeforeEach(deploy)
 
 			It("should be able to login to both ATCs", func() {
-				fly.Login(atcUsername, atcPassword, atc1URL)
-				fly.Login(atcUsername, atcPassword, atc0URL)
+				Fly.Login(AtcUsername, AtcPassword, atc1URL)
+				Fly.Login(AtcUsername, AtcPassword, atc0URL)
 
 				By("deploying a second time (with a different token signing key)")
 				deploy()
 
-				fly.Login(atcUsername, atcPassword, atc0URL)
-				fly.Login(atcUsername, atcPassword, atc1URL)
+				Fly.Login(AtcUsername, AtcPassword, atc0URL)
+				Fly.Login(AtcUsername, AtcPassword, atc1URL)
 			})
 		})
 	})

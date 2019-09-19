@@ -650,7 +650,7 @@ var _ = Describe("Resource", func() {
 				resourceScope         db.ResourceConfigScope
 			)
 
-			BeforeEach(func() {
+			saveVersion := func(version atc.Version) {
 				setupTx, err := dbConn.Begin()
 				Expect(err).ToNot(HaveOccurred())
 
@@ -672,16 +672,52 @@ var _ = Describe("Resource", func() {
 				resourceConfigVersion, found, err = resourceScope.FindVersion(version)
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
+			}
+
+			Context("when the version is exact matched", func() {
+				BeforeEach(func() {
+					saveVersion(atc.Version{"version": "12345"})
+				})
+
+				It("returns resource config version and true", func() {
+					Expect(resourceConfigVersionFound).To(BeTrue())
+					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+					Expect(foundErr).ToNot(HaveOccurred())
+				})
 			})
 
-			It("returns resource config version and true", func() {
-				Expect(resourceConfigVersionFound).To(BeTrue())
-				Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
-				Expect(foundErr).ToNot(HaveOccurred())
+			Context("when the version is partially matched", func() {
+				BeforeEach(func() {
+					saveVersion(atc.Version{"version": "12345", "tag": "1.0.0"})
+				})
+
+				It("returns resource config version and true", func() {
+					Expect(resourceConfigVersionFound).To(BeTrue())
+					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+					Expect(foundErr).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when there are multiple versions partially matched", func() {
+				BeforeEach(func() {
+					version1 := atc.Version{"version": "12345", "tag": "1.0.0"}
+					saveVersion(version1)
+
+					version2 := atc.Version{"version": "12345", "tag": "2.0.0"}
+					saveVersion(version2)
+				})
+
+				It("returns resource config version with highest order and true", func() {
+					Expect(resourceConfigVersionFound).To(BeTrue())
+					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+					Expect(foundErr).ToNot(HaveOccurred())
+				})
 			})
 
 			Context("when the check order is 0", func() {
 				BeforeEach(func() {
+					saveVersion(atc.Version{"version": "12345"})
+
 					version = atc.Version{"version": "2"}
 					created, err := resource.SaveUncheckedVersion(version, nil, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
@@ -1266,12 +1302,39 @@ var _ = Describe("Resource", func() {
 			resID = resConf.ID()
 		})
 
-		Context("when we pin a resource to a version", func() {
+		Context("when we use an invalid version id (does not exist)", func() {
+			var (
+				pinnedVersion atc.Version
+			)
 			BeforeEach(func() {
-				err := resource.PinVersion(resID)
+				found, err := resource.PinVersion(resID)
+				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				found, err := resource.Reload()
+				found, err = resource.Reload()
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
+				pinnedVersion = resource.APIPinnedVersion()
+			})
+
+			It("returns not found and does not update anything", func() {
+				found, err := resource.PinVersion(-1)
+				Expect(found).To(BeFalse())
+				Expect(err).To(HaveOccurred())
+
+				Expect(resource.APIPinnedVersion()).To(Equal(pinnedVersion))
+			})
+		})
+
+		Context("when we pin a resource to a version", func() {
+			BeforeEach(func() {
+				found, err := resource.PinVersion(resID)
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				found, err = resource.Reload()
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -1285,32 +1348,33 @@ var _ = Describe("Resource", func() {
 				BeforeEach(func() {
 					err := resource.SetPinComment("foo")
 					Expect(err).ToNot(HaveOccurred())
-					resource, _, err = pipeline.Resource("some-other-resource")
+					reload, err := resource.Reload()
+					Expect(reload).To(BeTrue())
 					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("should set the pin comment", func() {
 					Expect(resource.PinComment()).To(Equal("foo"))
 				})
+			})
 
-				Context("when we unpin a resource to a version", func() {
-					BeforeEach(func() {
-						err := resource.UnpinVersion()
-						Expect(err).ToNot(HaveOccurred())
+			Context("when we unpin a resource to a version", func() {
+				BeforeEach(func() {
+					err := resource.UnpinVersion()
+					Expect(err).ToNot(HaveOccurred())
 
-						found, err := resource.Reload()
-						Expect(found).To(BeTrue())
-						Expect(err).ToNot(HaveOccurred())
-					})
+					found, err := resource.Reload()
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+				})
 
-					It("sets the api pinned version to nil", func() {
-						Expect(resource.APIPinnedVersion()).To(BeNil())
-						Expect(resource.CurrentPinnedVersion()).To(BeNil())
-					})
+				It("sets the api pinned version to nil", func() {
+					Expect(resource.APIPinnedVersion()).To(BeNil())
+					Expect(resource.CurrentPinnedVersion()).To(BeNil())
+				})
 
-					It("unsets the pin comment", func() {
-						Expect(resource.PinComment()).To(BeEmpty())
-					})
+				It("unsets the pin comment", func() {
+					Expect(resource.PinComment()).To(BeEmpty())
 				})
 			})
 		})
@@ -1348,7 +1412,8 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				err = resource.PinVersion(resConf.ID())
+				found, err = resource.PinVersion(resConf.ID())
+				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
 				found, err = resource.Reload()

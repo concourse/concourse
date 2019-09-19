@@ -30,10 +30,10 @@ var _ = XDescribe("Fewest Build Containers Found Placement Strategy", func() {
 			Bosh("stop", fmt.Sprintf("worker/%s", workers[0].ID))
 
 			By("setting a pipeline with many containers")
-			fly.Run("set-pipeline", "-n", "main", "-c", "pipelines/lots-ata-time.yml", "-p", "many-containers-pipeline")
+			Fly.Run("set-pipeline", "-n", "main", "-c", "pipelines/lots-ata-time.yml", "-p", "many-containers-pipeline")
 
 			By("unpausing the pipeline")
-			fly.Run("unpause-pipeline", "-p", "many-containers-pipeline")
+			Fly.Run("unpause-pipeline", "-p", "many-containers-pipeline")
 
 			By("waiting a few minutes before re-starting the worker instance")
 			time.Sleep(1 * time.Minute)
@@ -41,10 +41,10 @@ var _ = XDescribe("Fewest Build Containers Found Placement Strategy", func() {
 			time.Sleep(2 * time.Minute)
 
 			By("setting the second pipeline with many containers")
-			fly.Run("set-pipeline", "-n", "main", "-c", "pipelines/lots-ata-time-2.yml", "-p", "many-containers-pipeline-2")
+			Fly.Run("set-pipeline", "-n", "main", "-c", "pipelines/lots-ata-time-2.yml", "-p", "many-containers-pipeline-2")
 
 			By("unpausing the second pipeline")
-			fly.Run("unpause-pipeline", "-p", "many-containers-pipeline-2")
+			Fly.Run("unpause-pipeline", "-p", "many-containers-pipeline-2")
 
 			By("getting the container count on the workers")
 			time.Sleep(1 * time.Minute)

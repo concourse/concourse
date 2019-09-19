@@ -45,7 +45,7 @@ var _ = Describe("Worker lifecycle", func() {
 			ShouldNot(HaveLen(0))
 
 		fly.Run("set-pipeline", "-n",
-			"-c", "../pipelines/task-waiting.yml",
+			"-c", "pipelines/task-waiting.yml",
 			"-p", "some-pipeline",
 		)
 

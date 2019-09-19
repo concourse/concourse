@@ -17,13 +17,14 @@ var _ = Describe("BBR", func() {
 	var (
 		atcs       []BoshInstance
 		atc0URL    string
-		deployArgs = []string{}
+		deployArgs []string
 	)
 
 	BeforeEach(func() {
 		if !strings.Contains(string(Bosh("releases").Out.Contents()), "backup-and-restore-sdk") {
 			Skip("backup-and-restore-sdk release not uploaded")
 		}
+		deployArgs = []string{}
 	})
 
 	JustBeforeEach(func() {
@@ -32,7 +33,7 @@ var _ = Describe("BBR", func() {
 		atcs = JobInstances("web")
 		atc0URL = "http://" + atcs[0].IP + ":8080"
 
-		fly.Login(atcUsername, atcPassword, atc0URL)
+		Fly.Login(AtcUsername, AtcPassword, atc0URL)
 	})
 
 	Context("using different property providers", func() {
@@ -43,7 +44,7 @@ var _ = Describe("BBR", func() {
 
 		var successfullyExecutesBackup = func() {
 			It("successfully executes backup", func() {
-				Run(nil, "bbr", "deployment", "-d", deploymentName, "backup")
+				Run(nil, "bbr", "deployment", "-d", DeploymentName, "backup")
 			})
 		}
 
@@ -90,21 +91,21 @@ var _ = Describe("BBR", func() {
 
 			It("backups and restores", func() {
 				By("creating a new pipeline")
-				fly.Run("set-pipeline", "-n", "-p", "pipeline", "-c", "./pipelines/get-task.yml")
-				pipelines := fly.GetPipelines()
+				Fly.Run("set-pipeline", "-n", "-p", "pipeline", "-c", "pipelines/get-task.yml")
+				pipelines := Fly.GetPipelines()
 				Expect(pipelines).ToNot(BeEmpty())
 				Expect(pipelines[0].Name).To(Equal("pipeline"))
 
 				By("unpausing the pipeline")
-				fly.Run("unpause-pipeline", "-p", "pipeline")
+				Fly.Run("unpause-pipeline", "-p", "pipeline")
 
 				By("triggering a build")
-				fly.Run("trigger-job", "-w", "-j", "pipeline/simple-job")
+				Fly.Run("trigger-job", "-w", "-j", "pipeline/simple-job")
 
 				By("creating a database backup")
 				backupArgs := []string{
 					"deployment",
-					"-d", deploymentName,
+					"-d", DeploymentName,
 					"backup",
 					"--artifact-path", tmpDir,
 				}
@@ -127,17 +128,17 @@ var _ = Describe("BBR", func() {
 				atcs = JobInstances("web")
 				atc0URL = "http://" + atcs[0].IP + ":8080"
 
-				fly.Login(atcUsername, atcPassword, atc0URL)
+				Fly.Login(AtcUsername, AtcPassword, atc0URL)
 
 				By("restoring the backup")
 				restoreArgs := []string{
 					"deployment",
-					"-d", deploymentName,
+					"-d", DeploymentName,
 					"restore",
 					"--artifact-path", path.Join(tmpDir, entries[0].Name()),
 				}
 				Run(nil, "bbr", restoreArgs...)
-				pipelines = fly.GetPipelines()
+				pipelines = Fly.GetPipelines()
 				Expect(pipelines).ToNot(BeEmpty())
 				Expect(pipelines[0].Name).To(Equal("pipeline"))
 			})
@@ -158,21 +159,21 @@ var _ = Describe("BBR", func() {
 
 			It("rolls back the partial restore", func() {
 				By("creating new pipeline")
-				fly.Run("set-pipeline", "-n", "-p", "pipeline", "-c", "./pipelines/get-task.yml")
-				pipelines := fly.GetPipelines()
+				Fly.Run("set-pipeline", "-n", "-p", "pipeline", "-c", "pipelines/get-task.yml")
+				pipelines := Fly.GetPipelines()
 				Expect(pipelines).ToNot(BeEmpty())
 				Expect(pipelines[0].Name).To(Equal("pipeline"))
 
 				By("unpausing the pipeline")
-				fly.Run("unpause-pipeline", "-p", "pipeline")
+				Fly.Run("unpause-pipeline", "-p", "pipeline")
 
 				By("triggering a build")
-				fly.Run("trigger-job", "-w", "-j", "pipeline/simple-job")
+				Fly.Run("trigger-job", "-w", "-j", "pipeline/simple-job")
 
 				By("creating a database backup")
 				backupArgs := []string{
 					"deployment",
-					"-d", deploymentName,
+					"-d", DeploymentName,
 					"backup",
 					"--artifact-path", tmpDir,
 				}
@@ -183,22 +184,22 @@ var _ = Describe("BBR", func() {
 
 				By("creating new pipeline and triggering the new pipeling (this will fail the restore)")
 
-				fly.Run("set-pipeline", "-n", "-p", "pipeline-2", "-c", "./pipelines/get-task.yml")
-				pipelines = fly.GetPipelines()
+				Fly.Run("set-pipeline", "-n", "-p", "pipeline-2", "-c", "pipelines/get-task.yml")
+				pipelines = Fly.GetPipelines()
 				Expect(pipelines).ToNot(BeEmpty())
 				Expect(pipelines[1].Name).To(Equal("pipeline-2"))
 
 				By("unpausing the pipeline")
-				fly.Run("unpause-pipeline", "-p", "pipeline-2")
+				Fly.Run("unpause-pipeline", "-p", "pipeline-2")
 
 				By("triggering a build")
-				fly.Run("trigger-job", "-w", "-j", "pipeline-2/simple-job")
+				Fly.Run("trigger-job", "-w", "-j", "pipeline-2/simple-job")
 
 				By("restoring concourse")
 
 				restoreArgs := []string{
 					"deployment",
-					"-d", deploymentName,
+					"-d", DeploymentName,
 					"restore",
 					"--artifact-path", path.Join(tmpDir, entries[0].Name()),
 				}
@@ -207,7 +208,7 @@ var _ = Describe("BBR", func() {
 				Expect(session.ExitCode()).To(Equal(1))
 
 				By("checking pipeline")
-				pipelines = fly.GetPipelines()
+				pipelines = Fly.GetPipelines()
 				Expect(pipelines).ToNot(BeEmpty())
 				Expect(len(pipelines)).To(Equal(2))
 			})

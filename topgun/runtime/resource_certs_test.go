@@ -20,24 +20,24 @@ var _ = Describe("Resource Certs", func() {
 	Context("with a certs path configured on the resource", func() {
 		BeforeEach(func() {
 			By("setting a pipeline that has a tagged resource")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/certs-tagged-resources.yml", "-p", "resources")
+			Fly.Run("set-pipeline", "-n", "-c", "pipelines/certs-tagged-resources.yml", "-p", "resources")
 
 			By("unpausing the pipeline pipeline")
-			fly.Run("unpause-pipeline", "-p", "resources")
+			Fly.Run("unpause-pipeline", "-p", "resources")
 		})
 
 		It("bind mounts the certs volume if the worker has one", func() {
 			By("running the checks")
-			fly.Run("check-resource", "-r", "resources/no-certs")
-			fly.Run("check-resource", "-r", "resources/certs")
+			Fly.Run("check-resource", "-r", "resources/no-certs")
+			Fly.Run("check-resource", "-r", "resources/certs")
 
-			hijackSession := fly.Start("hijack", "-c", "resources/no-certs", "--", "ls", "/etc/ssl/certs")
+			hijackSession := Fly.Start("hijack", "-c", "resources/no-certs", "--", "ls", "/etc/ssl/certs")
 			<-hijackSession.Exited
 
 			certsContent := string(hijackSession.Out.Contents())
 			Expect(certsContent).To(HaveLen(0))
 
-			hijackSession = fly.Start("hijack", "-c", "resources/certs", "--", "ls", "/etc/ssl/certs")
+			hijackSession = Fly.Start("hijack", "-c", "resources/certs", "--", "ls", "/etc/ssl/certs")
 			<-hijackSession.Exited
 
 			certsContent = string(hijackSession.Out.Contents())
@@ -45,7 +45,7 @@ var _ = Describe("Resource Certs", func() {
 		})
 
 		It("bind mounts the certs volume to resource get containers", func() {
-			trigger := fly.Start("trigger-job", "-j", "resources/use-em")
+			trigger := Fly.Start("trigger-job", "-j", "resources/use-em")
 			<-trigger.Exited
 
 			Eventually(func() string {
@@ -53,14 +53,14 @@ var _ = Describe("Resource Certs", func() {
 				return builds[0]["status"]
 			}).Should(Equal("failed"))
 
-			hijackSession := fly.Start("hijack", "-j", "resources/use-em", "-s", "certs", "--", "ls", "/etc/ssl/certs")
+			hijackSession := Fly.Start("hijack", "-j", "resources/use-em", "-s", "certs", "--", "ls", "/etc/ssl/certs")
 			<-hijackSession.Exited
 			certsContent := string(hijackSession.Out.Contents())
 			Expect(certsContent).ToNot(HaveLen(0))
 		})
 
 		It("bind mounts the certs volume to resource put containers", func() {
-			trigger := fly.Start("trigger-job", "-j", "resources/use-em")
+			trigger := Fly.Start("trigger-job", "-j", "resources/use-em")
 			<-trigger.Exited
 
 			Eventually(func() string {
@@ -68,7 +68,7 @@ var _ = Describe("Resource Certs", func() {
 				return builds[0]["status"]
 			}).Should(Equal("failed"))
 
-			hijackSession := fly.Start("hijack", "-j", "resources/use-em", "-s", "put-certs", "--", "ls", "/etc/ssl/certs")
+			hijackSession := Fly.Start("hijack", "-j", "resources/use-em", "-s", "put-certs", "--", "ls", "/etc/ssl/certs")
 			Eventually(hijackSession).Should(gexec.Exit(0))
 
 			certsContent := string(hijackSession.Out.Contents())

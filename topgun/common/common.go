@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/lib/pq"
+
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
@@ -31,22 +33,23 @@ import (
 
 var (
 	deploymentNamePrefix string
+	suiteName            string
 
-	fly                       = Fly{}
-	deploymentName, flyTarget string
+	Fly                       = FlyCli{}
+	DeploymentName, flyTarget string
 	instances                 map[string][]BoshInstance
 	jobInstances              map[string][]BoshInstance
 
 	dbInstance *BoshInstance
-	dbConn     *sql.DB
+	DbConn     *sql.DB
 
 	webInstance    *BoshInstance
-	atcExternalURL string
-	atcUsername    string
-	atcPassword    string
+	AtcExternalURL string
+	AtcUsername    string
+	AtcPassword    string
 
-	workerGardenClient       gclient.Client
-	workerBaggageclaimClient bclient.Client
+	WorkerGardenClient       gclient.Client
+	WorkerBaggageclaimClient bclient.Client
 
 	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion string
 	vaultReleaseVersion, credhubReleaseVersion                         string
@@ -55,7 +58,7 @@ var (
 
 	pipelineName string
 
-	logger *lagertest.TestLogger
+	Logger *lagertest.TestLogger
 
 	tmp string
 )
@@ -66,14 +69,14 @@ var _ = BeforeEach(func() {
 	SetDefaultConsistentlyDuration(time.Minute)
 	SetDefaultConsistentlyPollingInterval(time.Second)
 
-	logger = lagertest.NewTestLogger("test")
+	Logger = lagertest.NewTestLogger("test")
 
 	deploymentNamePrefix = os.Getenv("DEPLOYMENT_NAME_PREFIX")
 	if deploymentNamePrefix == "" {
 		deploymentNamePrefix = "concourse-topgun"
 	}
 
-	suiteName := os.Getenv("SUITE")
+	suiteName = os.Getenv("SUITE")
 	if suiteName != "" {
 		deploymentNamePrefix += "-" + suiteName
 	}
@@ -114,15 +117,15 @@ var _ = BeforeEach(func() {
 
 	deploymentNumber := GinkgoParallelNode()
 
-	deploymentName = fmt.Sprintf("%s-%d", deploymentNamePrefix, deploymentNumber)
-	fly.Target = deploymentName
+	DeploymentName = fmt.Sprintf("%s-%d", deploymentNamePrefix, deploymentNumber)
+	Fly.Target = DeploymentName
 
 	var err error
 	tmp, err = ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
-	fly.Home = filepath.Join(tmp, "fly-home")
-	err = os.Mkdir(fly.Home, 0755)
+	Fly.Home = filepath.Join(tmp, "fly-home")
+	err = os.Mkdir(Fly.Home, 0755)
 	Expect(err).ToNot(HaveOccurred())
 
 	WaitForDeploymentLock()
@@ -132,11 +135,11 @@ var _ = BeforeEach(func() {
 	jobInstances = map[string][]BoshInstance{}
 
 	dbInstance = nil
-	dbConn = nil
+	DbConn = nil
 	webInstance = nil
-	atcExternalURL = ""
-	atcUsername = "test"
-	atcPassword = "test"
+	AtcExternalURL = ""
+	AtcUsername = "test"
+	AtcPassword = "test"
 })
 
 var _ = AfterEach(func() {
@@ -173,8 +176,9 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 	return SpawnBosh(
 		append([]string{
 			"deploy", manifest,
-			"--vars-store", filepath.Join(tmp, deploymentName+"-vars.yml"),
-			"-v", "deployment_name='" + deploymentName + "'",
+			"--vars-store", filepath.Join(tmp, DeploymentName+"-vars.yml"),
+			"-v", "suite='" + suiteName + "'",
+			"-v", "deployment_name='" + DeploymentName + "'",
 			"-v", "concourse_release_version='" + concourseReleaseVersion + "'",
 			"-v", "bpm_release_version='" + bpmReleaseVersion + "'",
 			"-v", "postgres_release_version='" + postgresReleaseVersion + "'",
@@ -187,8 +191,8 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 }
 
 func Deploy(manifest string, args ...string) {
-	if dbConn != nil {
-		Expect(dbConn.Close()).To(Succeed())
+	if DbConn != nil {
+		Expect(DbConn.Close()).To(Succeed())
 	}
 
 	for {
@@ -210,19 +214,19 @@ func Deploy(manifest string, args ...string) {
 
 	webInstance = JobInstance("web")
 	if webInstance != nil {
-		atcExternalURL = fmt.Sprintf("http://%s:8080", webInstance.IP)
-		fly.Login(atcUsername, atcPassword, atcExternalURL)
+		AtcExternalURL = fmt.Sprintf("http://%s:8080", webInstance.IP)
+		Fly.Login(AtcUsername, AtcPassword, AtcExternalURL)
 
 		WaitForWorkersToBeRunning(len(JobInstances("worker")) + len(JobInstances("other_worker")))
 
 		workers := FlyTable("workers", "-d")
 		if len(workers) > 0 {
 			worker := workers[0]
-			workerGardenClient = gclient.New(gconn.New("tcp", worker["garden address"]))
-			workerBaggageclaimClient = bclient.NewWithHTTPClient(worker["baggageclaim url"], http.DefaultClient)
+			WorkerGardenClient = gclient.New(gconn.New("tcp", worker["garden address"]))
+			WorkerBaggageclaimClient = bclient.NewWithHTTPClient(worker["baggageclaim url"], http.DefaultClient)
 		} else {
-			workerGardenClient = nil
-			workerBaggageclaimClient = nil
+			WorkerGardenClient = nil
+			WorkerBaggageclaimClient = nil
 		}
 	}
 
@@ -230,7 +234,7 @@ func Deploy(manifest string, args ...string) {
 
 	if dbInstance != nil {
 		var err error
-		dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
+		DbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
 		Expect(err).ToNot(HaveOccurred())
 	}
 }
@@ -305,11 +309,11 @@ func Bosh(argv ...string) *gexec.Session {
 }
 
 func SpawnBosh(argv ...string) *gexec.Session {
-	return Start(nil, "bosh", append([]string{"-n", "-d", deploymentName}, argv...)...)
+	return Start(nil, "bosh", append([]string{"-n", "-d", DeploymentName}, argv...)...)
 }
 
 func ConcourseClient() concourse.Client {
-	token, err := FetchToken(atcExternalURL, atcUsername, atcPassword)
+	token, err := FetchToken(AtcExternalURL, AtcUsername, AtcPassword)
 	Expect(err).NotTo(HaveOccurred())
 
 	httpClient := &http.Client{
@@ -321,7 +325,7 @@ func ConcourseClient() concourse.Client {
 		},
 	}
 
-	return concourse.NewClient(atcExternalURL, httpClient, false)
+	return concourse.NewClient(AtcExternalURL, httpClient, false)
 }
 
 func DeleteAllContainers() {
@@ -344,7 +348,7 @@ func DeleteAllContainers() {
 			if container.WorkerName == worker.Name {
 				err = gardenClient.Destroy(container.ID)
 				if err != nil {
-					logger.Error("failed-to-delete-container", err, lager.Data{"handle": container.ID})
+					Logger.Error("failed-to-delete-container", err, lager.Data{"handle": container.ID})
 				}
 			}
 		}
@@ -410,7 +414,7 @@ func WaitForWorkerInState(desiredStates ...string) string {
 }
 
 func FlyTable(argv ...string) []map[string]string {
-	session := fly.Start(append([]string{"--print-table-headers"}, argv...)...)
+	session := Fly.Start(append([]string{"--print-table-headers"}, argv...)...)
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
 
@@ -530,7 +534,7 @@ dance:
 		locks := Bosh("locks", "--column", "type", "--column", "resource", "--column", "task id")
 
 		for _, lock := range ParseTable(string(locks.Out.Contents())) {
-			if lock[0] == "deployment" && lock[1] == deploymentName {
+			if lock[0] == "deployment" && lock[1] == DeploymentName {
 				fmt.Fprintf(GinkgoWriter, "waiting for deployment lock (task id %s)...\n", lock[2])
 				time.Sleep(5 * time.Second)
 				continue dance
@@ -552,12 +556,12 @@ func PgDump() *gexec.Session {
 	return session
 }
 
-var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+var Psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	return []byte(BuildBinary())
 }, func(data []byte) {
-	fly.Bin = string(data)
+	Fly.Bin = string(data)
 })
 
 var _ = SynchronizedAfterSuite(func() {

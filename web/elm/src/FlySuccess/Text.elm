@@ -1,6 +1,7 @@
 module FlySuccess.Text exposing
     ( Paragraph
-    , button
+    , copyTokenButton
+    , firstParagraphBlocked
     , firstParagraphFailure
     , firstParagraphSuccess
     , flyLoginLinkDescription
@@ -8,7 +9,7 @@ module FlySuccess.Text exposing
     , pending
     , secondParagraphFailure
     , secondParagraphSuccess
-    , thirdParagraphBlocked
+    , sendTokenButton
     , title
     )
 
@@ -38,11 +39,6 @@ firstParagraphSuccess =
     [ "your token has been transferred to fly." ]
 
 
-secondParagraphSuccess : Paragraph
-secondParagraphSuccess =
-    [ "you may now close this window." ]
-
-
 firstParagraphFailure : Paragraph
 firstParagraphFailure =
     [ "however, your token could not be"
@@ -50,12 +46,27 @@ firstParagraphFailure =
     ]
 
 
+firstParagraphBlocked : Paragraph
+firstParagraphBlocked =
+    [ "however, your token could not be sent"
+    , "to fly because your browser blocked"
+    , "the attempt."
+    ]
+
+
+secondParagraphSuccess : Paragraph
+secondParagraphSuccess =
+    [ "you may now close this window." ]
+
+
 secondParagraphFailure : Models.TokenTransfer -> Paragraph
 secondParagraphFailure error =
     case error of
         Models.BlockedByBrowser ->
-            [ "your browser blocked the attempt."
-            , "try clicking the link below:"
+            [ "if that fails, you will need to copy"
+            , "the token to your clipboard, return"
+            , "to fly, and paste your token into"
+            , "the prompt."
             ]
 
         Models.NetworkTrouble ->
@@ -72,19 +83,18 @@ secondParagraphFailure error =
             []
 
 
-thirdParagraphBlocked : Paragraph
-thirdParagraphBlocked =
-    [ "if that fails, click the button below:"
-    ]
-
-
-button : ButtonState -> String
-button buttonState =
+copyTokenButton : ButtonState -> String
+copyTokenButton buttonState =
     if Models.isClicked buttonState then
         "token copied"
 
     else
         "copy token to clipboard"
+
+
+sendTokenButton : String
+sendTokenButton =
+    "send token to fly directly"
 
 
 flyLoginLinkDescription : Line

@@ -29,7 +29,7 @@ var _ = Describe("Hijacked containers", func() {
 				}
 			}
 
-			_, err := workerGardenClient.Lookup(containerHandle)
+			_, err := WorkerGardenClient.Lookup(containerHandle)
 			if err == nil {
 				h.gardenContainerExists = true
 			}
@@ -40,15 +40,15 @@ var _ = Describe("Hijacked containers", func() {
 
 	It("does not delete hijacked build containers from the database, and sets a 5 minute TTL on the container in garden", func() {
 		By("setting the pipeline that has a build")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "hijacked-containers-test")
+		Fly.Run("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "hijacked-containers-test")
 
 		By("triggering the build")
-		fly.Run("unpause-pipeline", "-p", "hijacked-containers-test")
-		buildSession := fly.Start("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
+		Fly.Run("unpause-pipeline", "-p", "hijacked-containers-test")
+		buildSession := Fly.Start("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 		By("hijacking into the build container")
-		hijackSession := fly.Start(
+		hijackSession := Fly.Start(
 			"hijack",
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "1",
@@ -57,7 +57,7 @@ var _ = Describe("Hijacked containers", func() {
 		)
 
 		By("finishing the build")
-		<-fly.Start(
+		<-Fly.Start(
 			"hijack",
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "1",
@@ -67,9 +67,9 @@ var _ = Describe("Hijacked containers", func() {
 		<-buildSession.Exited
 
 		By("triggering a new build")
-		buildSession = fly.Start("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
+		buildSession = Fly.Start("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
-		<-fly.Start(
+		<-Fly.Start(
 			"hijack",
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "2",
@@ -90,11 +90,11 @@ var _ = Describe("Hijacked containers", func() {
 
 	It("does not delete hijacked one-off build containers from the database, and sets a 5 minute TTL on the container in garden", func() {
 		By("triggering a one-off build")
-		buildSession := fly.Start("execute", "-c", "tasks/wait.yml")
+		buildSession := Fly.Start("execute", "-c", "tasks/wait.yml")
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 		By("hijacking into the build container")
-		hijackSession := fly.Start(
+		hijackSession := Fly.Start(
 			"hijack",
 			"-b", "1",
 			"--",
@@ -102,7 +102,7 @@ var _ = Describe("Hijacked containers", func() {
 		)
 
 		By("waiting for build to finish")
-		<-fly.Start(
+		<-Fly.Start(
 			"hijack",
 			"-b", "1",
 			"touch", "/tmp/stop-waiting",
@@ -121,11 +121,11 @@ var _ = Describe("Hijacked containers", func() {
 
 	It("does not delete hijacked resource containers from the database, and sets a 5 minute TTL on the container in garden", func() {
 		By("setting the pipeline that has a build")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "hijacked-resource-test")
-		fly.Run("unpause-pipeline", "-p", "hijacked-resource-test")
+		Fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "hijacked-resource-test")
+		Fly.Run("unpause-pipeline", "-p", "hijacked-resource-test")
 
 		By("checking resource")
-		fly.Run("check-resource", "-r", "hijacked-resource-test/tick-tock")
+		Fly.Run("check-resource", "-r", "hijacked-resource-test/tick-tock")
 
 		containers := FlyTable("containers")
 		var checkContainerHandle string
@@ -138,17 +138,17 @@ var _ = Describe("Hijacked containers", func() {
 		Expect(checkContainerHandle).ToNot(BeEmpty())
 
 		By("hijacking into the resource container")
-		hijackSession := fly.Start(
+		hijackSession := Fly.Start(
 			"hijack",
 			"-c", "hijacked-resource-test/tick-tock",
 			"sleep", "120",
 		)
 
 		By("reconfiguring pipeline without resource")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "hijacked-resource-test")
+		Fly.Run("set-pipeline", "-n", "-c", "pipelines/task-waiting.yml", "-p", "hijacked-resource-test")
 
 		By("verifying the hijacked container exists via Garden")
-		_, err := workerGardenClient.Lookup(checkContainerHandle)
+		_, err := WorkerGardenClient.Lookup(checkContainerHandle)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")

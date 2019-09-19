@@ -16,8 +16,8 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 			"-o", "operations/other-worker-tagged.yml",
 		)
 
-		fly.Run("set-pipeline", "-n", "-p", "image-artifact", "-c", "pipelines/image-artifact.yml")
-		fly.Run("unpause-pipeline", "-p", "image-artifact")
+		Fly.Run("set-pipeline", "-n", "-p", "image-artifact", "-c", "pipelines/image-artifact.yml")
+		Fly.Run("unpause-pipeline", "-p", "image-artifact")
 	})
 
 	Describe("running the job", func() {
@@ -29,7 +29,7 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 		})
 
 		JustBeforeEach(func() {
-			jobSession = fly.Start("trigger-job", "-w", "-j", "image-artifact/"+jobName)
+			jobSession = Fly.Start("trigger-job", "-w", "-j", "image-artifact/"+jobName)
 			<-jobSession.Exited
 		})
 

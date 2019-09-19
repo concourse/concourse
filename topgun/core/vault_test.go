@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 	"sync"
@@ -73,7 +72,7 @@ var _ = Describe("Vault", func() {
 				})
 
 				It("renews the token", func() {
-					watch := fly.StartWithEnv(
+					watch := Fly.StartWithEnv(
 						[]string{
 							"EXPECTED_TEAM_SECRET=some_team_secret",
 							"EXPECTED_RESOURCE_VERSION_SECRET=some_exposed_version_secret",
@@ -268,23 +267,19 @@ func (v *vault) URI() string {
 }
 
 func (v *vault) Run(command string, args ...string) *gexec.Session {
-	cmd := exec.Command("vault", append([]string{command}, args...)...)
-	cmd.Env = append(
+	env := append(
 		os.Environ(),
 		"VAULT_ADDR="+v.URI(),
 		"VAULT_TOKEN="+v.token,
 	)
-
 	if v.caCert != "" {
-		cmd.Env = append(
-			cmd.Env,
+		env = append(
+			env,
 			"VAULT_CACERT="+v.caCert,
 			"VAULT_SKIP_VERIFY=true",
 		)
 	}
-
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
+	session := Start(env, "vault", append([]string{command}, args...)...)
 	Wait(session)
 	return session
 }

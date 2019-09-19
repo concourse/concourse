@@ -22,10 +22,10 @@ var _ = Describe("An ATC with syslog draining set", func() {
 	})
 
 	It("sends the build logs to the syslog server.", func() {
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "syslog-pipeline")
+		Fly.Run("set-pipeline", "-n", "-c", "pipelines/secrets.yml", "-p", "syslog-pipeline")
 
-		fly.Run("unpause-pipeline", "-p", "syslog-pipeline")
-		buildSession := fly.Start("trigger-job", "-w", "-j", "syslog-pipeline/simple-job")
+		Fly.Run("unpause-pipeline", "-p", "syslog-pipeline")
+		buildSession := Fly.Start("trigger-job", "-w", "-j", "syslog-pipeline/simple-job")
 
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))

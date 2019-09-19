@@ -41,7 +41,7 @@ type environment struct {
 
 var (
 	Environment environment
-	fly         Fly
+	fly         FlyCli
 	namespace   string
 	releaseName string
 )
@@ -85,7 +85,7 @@ var _ = BeforeEach(func() {
 	tmp, err := ioutil.TempDir("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
-	fly = Fly{
+	fly = FlyCli{
 		Bin:    Environment.FlyPath,
 		Target: "concourse-topgun-k8s-" + strconv.Itoa(GinkgoParallelNode()),
 		Home:   filepath.Join(tmp, "fly-home-"+strconv.Itoa(GinkgoParallelNode())),

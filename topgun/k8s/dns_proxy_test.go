@@ -74,7 +74,7 @@ var _ = Describe("DNS Resolution", func() {
 		func(c Case) {
 			setupDeployment(c.enableDnsProxy, c.dnsServer)
 
-			sess := fly.Start("execute", "-c", "../tasks/dns-proxy-task.yml", "-v", "url="+c.addressFunction())
+			sess := fly.Start("execute", "-c", "tasks/dns-proxy-task.yml", "-v", "url="+c.addressFunction())
 			<-sess.Exited
 
 			if !c.shouldWork {

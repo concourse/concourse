@@ -31,7 +31,7 @@ var _ = Describe("ATC Shutting down", func() {
 			atc0URL = "http://" + atcs[0].IP + ":8080"
 			atc1URL = "http://" + atcs[1].IP + ":8080"
 
-			fly.Login(atcUsername, atcPassword, atc0URL)
+			Fly.Login(AtcUsername, AtcPassword, atc0URL)
 		})
 
 		Context("when one of the ATCS is stopped", func() {
@@ -65,7 +65,7 @@ var _ = Describe("ATC Shutting down", func() {
 					atc0URL = "http://" + atcs[0].IP + ":8080"
 					atc1URL = "http://" + atcs[1].IP + ":8080"
 
-					fly.Login(atcUsername, atcPassword, atc1URL)
+					Fly.Login(AtcUsername, AtcPassword, atc1URL)
 
 					WaitForRunningWorker()
 				})
@@ -77,7 +77,7 @@ var _ = Describe("ATC Shutting down", func() {
 
 			BeforeEach(func() {
 				By("executing a task")
-				buildSession := fly.Start("execute", "-c", "tasks/wait.yml")
+				buildSession := Fly.Start("execute", "-c", "tasks/wait.yml")
 				Eventually(buildSession).Should(gbytes.Say("executing build"))
 
 				buildRegex := regexp.MustCompile(`executing build (\d+)`)
@@ -95,12 +95,12 @@ var _ = Describe("ATC Shutting down", func() {
 
 				It("continues tracking the build progress", func() {
 					By("waiting for another web node to attach to process")
-					watchSession := fly.Start("watch", "-b", buildID)
+					watchSession := Fly.Start("watch", "-b", buildID)
 					Eventually(watchSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 					time.Sleep(10 * time.Second)
 
 					By("hijacking the build to tell it to finish")
-					hijackSession := fly.Start(
+					hijackSession := Fly.Start(
 						"hijack",
 						"-b", buildID,
 						"-s", "one-off",

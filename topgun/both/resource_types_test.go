@@ -14,11 +14,11 @@ var _ = Describe("A pipeline-provided resource type", func() {
 
 	It("does not result in redundant containers when running resource actions", func() {
 		By("setting a pipeline")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/custom-types.yml", "-p", "pipe")
-		fly.Run("unpause-pipeline", "-p", "pipe")
+		Fly.Run("set-pipeline", "-n", "-c", "pipelines/custom-types.yml", "-p", "pipe")
+		Fly.Run("unpause-pipeline", "-p", "pipe")
 
 		By("triggering the build")
-		buildSession := fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
+		buildSession := Fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(1))
 
@@ -30,7 +30,7 @@ var _ = Describe("A pipeline-provided resource type", func() {
 		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore))
 
 		By("triggering the build again")
-		buildSession = fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
+		buildSession = Fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(1))
 
@@ -47,16 +47,16 @@ var _ = Describe("Tagged resource types", func() {
 		Deploy("deployments/concourse.yml", "-o", "operations/tagged-worker.yml")
 
 		By("setting a pipeline with tagged custom types")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/tagged-custom-types.yml", "-p", "pipe")
-		fly.Run("unpause-pipeline", "-p", "pipe")
+		Fly.Run("set-pipeline", "-n", "-c", "pipelines/tagged-custom-types.yml", "-p", "pipe")
+		Fly.Run("unpause-pipeline", "-p", "pipe")
 	})
 
 	It("is able to be used with tagged workers", func() {
 		By("running a check which uses the tagged custom resource")
-		Eventually(fly.Start("check-resource", "-r", "pipe/10m")).Should(gexec.Exit(0))
+		Eventually(Fly.Start("check-resource", "-r", "pipe/10m")).Should(gexec.Exit(0))
 
 		By("triggering a build which uses the tagged custom resource")
-		buildSession := fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
+		buildSession := Fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))
 	})
