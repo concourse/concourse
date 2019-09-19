@@ -84,12 +84,16 @@ update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
         Hover (Just CopyTokenButton) ->
-            ( { model | copyTokenButtonState = hover True model.copyTokenButtonState }
+            ( { model
+                | copyTokenButtonState = hover True model.copyTokenButtonState
+              }
             , effects
             )
 
         Hover (Just SendTokenButton) ->
-            ( { model | sendTokenButtonState = hover True model.sendTokenButtonState }
+            ( { model
+                | sendTokenButtonState = hover True model.sendTokenButtonState
+              }
             , effects
             )
 
@@ -152,64 +156,33 @@ view userState model =
 body : Model -> List (Html Message)
 body model =
     let
-        elemList =
-            List.filter Tuple.second >> List.map Tuple.first
+        p1 =
+            paragraph
+                { identifier = "first-paragraph"
+                , lines = Text.firstParagraph model.tokenTransfer
+                }
+
+        p2 =
+            paragraph
+                { identifier = "second-paragraph"
+                , lines = Text.secondParagraph model.tokenTransfer
+                }
     in
     case model.tokenTransfer of
         Models.Pending ->
             [ Html.text Text.pending ]
 
         Models.Success ->
-            elemList
-                [ ( paragraph
-                        { identifier = "first-paragraph"
-                        , lines = Text.firstParagraphSuccess
-                        }
-                  , True
-                  )
-                , ( copyTokenButton model, False )
-                , ( paragraph
-                        { identifier = "second-paragraph"
-                        , lines = Text.secondParagraphSuccess
-                        }
-                  , True
-                  )
-                ]
+            [ p1, p2 ]
+
+        Models.NetworkTrouble ->
+            [ p1, copyTokenButton model, p2 ]
 
         Models.BlockedByBrowser ->
-            elemList
-                [ ( paragraph
-                        { identifier = "first-paragraph"
-                        , lines = Text.firstParagraphBlocked
-                        }
-                  , True
-                  )
-                , ( sendTokenButton model, True )
-                , ( paragraph
-                        { identifier = "second-paragraph"
-                        , lines = Text.secondParagraphFailure Models.BlockedByBrowser
-                        }
-                  , True
-                  )
-                , ( copyTokenButton model, True )
-                ]
+            [ p1, sendTokenButton model, p2, copyTokenButton model ]
 
-        err ->
-            elemList
-                [ ( paragraph
-                        { identifier = "first-paragraph"
-                        , lines = Text.firstParagraphFailure
-                        }
-                  , True
-                  )
-                , ( copyTokenButton model, True )
-                , ( paragraph
-                        { identifier = "second-paragraph"
-                        , lines = Text.secondParagraphFailure err
-                        }
-                  , True
-                  )
-                ]
+        Models.NoFlyPort ->
+            [ p1, copyTokenButton model, p2 ]
 
 
 paragraph : { identifier : String, lines : Text.Paragraph } -> Html Message
