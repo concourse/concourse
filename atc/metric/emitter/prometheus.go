@@ -60,6 +60,11 @@ type PrometheusConfig struct {
 	BindPort string `long:"prometheus-bind-port" description:"Port to listen on to expose Prometheus metrics."`
 }
 
+// The most natural data type to hold the labels is a set because each worker can have multiple but
+// unique sets of labels. A set in Go is represented by a map[T]struct{}. Unfortunately, we cannot
+// put prometheus.Labels inside a map[prometheus.Labels]struct{} because prometheus.Labels are not
+// hashable. To work around this, we compute a string from the labels and use this as the keys of
+// the map.
 func serializeLabels(labels *prometheus.Labels) string {
 	var (
 		key   string
@@ -702,25 +707,65 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 		now := time.Now()
 		for worker, lastSeen := range emitter.workerLastSeen {
 			if now.Sub(lastSeen) > 5*time.Minute {
-				for _, labels := range emitter.workerContainersLabels[worker] {
-					emitter.workerContainers.Delete(labels)
-				}
-
-				for _, labels := range emitter.workerVolumesLabels[worker] {
-					emitter.workerVolumes.Delete(labels)
-				}
-
-				for _, labels := range emitter.workerTasksLabels[worker] {
-					emitter.workerTasks.Delete(labels)
-				}
-
-				delete(emitter.workerContainersLabels, worker)
-				delete(emitter.workerVolumesLabels, worker)
-				delete(emitter.workerTasksLabels, worker)
+				DoGarbageCollection(emitter, worker)
 				delete(emitter.workerLastSeen, worker)
 			}
 		}
 		emitter.mu.Unlock()
-		time.Sleep(5 * time.Second)
+		time.Sleep(60 * time.Second)
 	}
+}
+
+// DoGarbageCollection retrieves and deletes stale metrics by their labels.
+func DoGarbageCollection(emitter PrometheusGarbageCollectable, worker string) {
+	for _, labels := range emitter.WorkerContainersLabels()[worker] {
+		emitter.WorkerContainers().Delete(labels)
+	}
+
+	for _, labels := range emitter.WorkerVolumesLabels()[worker] {
+		emitter.WorkerVolumes().Delete(labels)
+	}
+
+	for _, labels := range emitter.WorkerTasksLabels()[worker] {
+		emitter.WorkerTasks().Delete(labels)
+	}
+
+	delete(emitter.WorkerContainersLabels(), worker)
+	delete(emitter.WorkerVolumesLabels(), worker)
+	delete(emitter.WorkerTasksLabels(), worker)
+}
+
+//go:generate counterfeiter . PrometheusGarbageCollectable
+type PrometheusGarbageCollectable interface {
+	WorkerContainers() *prometheus.GaugeVec
+	WorkerVolumes() *prometheus.GaugeVec
+	WorkerTasks() *prometheus.GaugeVec
+
+	WorkerContainersLabels() map[string]map[string]prometheus.Labels
+	WorkerVolumesLabels() map[string]map[string]prometheus.Labels
+	WorkerTasksLabels() map[string]map[string]prometheus.Labels
+}
+
+func (emitter *PrometheusEmitter) WorkerContainers() *prometheus.GaugeVec {
+	return emitter.workerContainers
+}
+
+func (emitter *PrometheusEmitter) WorkerVolumes() *prometheus.GaugeVec {
+	return emitter.workerVolumes
+}
+
+func (emitter *PrometheusEmitter) WorkerTasks() *prometheus.GaugeVec {
+	return emitter.workerTasks
+}
+
+func (emitter *PrometheusEmitter) WorkerContainersLabels() map[string]map[string]prometheus.Labels {
+	return emitter.workerContainersLabels
+}
+
+func (emitter *PrometheusEmitter) WorkerVolumesLabels() map[string]map[string]prometheus.Labels {
+	return emitter.workerVolumesLabels
+}
+
+func (emitter *PrometheusEmitter) WorkerTasksLabels() map[string]map[string]prometheus.Labels {
+	return emitter.workerTasksLabels
 }
