@@ -230,14 +230,12 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> List.member Effects.GetCurrentTimeZone
-                    |> Expect.true "should get timezone"
+                    |> Common.contains Effects.GetCurrentTimeZone
         , test "subscribes to the five second interval" <|
             \_ ->
                 init
                     |> Application.subscriptions
-                    |> List.member (Subscription.OnClockTick FiveSeconds)
-                    |> Expect.true "not subscribed to the five second interval?"
+                    |> Common.contains (Subscription.OnClockTick FiveSeconds)
         , test "autorefreshes resource and versions every 5 seconds" <|
             \_ ->
                 init
@@ -249,15 +247,14 @@ all =
                         )
                     |> Tuple.second
                     |> Expect.all
-                        [ List.member
+                        [ Common.contains
                             (Effects.FetchResource
                                 { resourceName = resourceName
                                 , pipelineName = pipelineName
                                 , teamName = teamName
                                 }
                             )
-                            >> Expect.true "should fetch resource"
-                        , List.member
+                        , Common.contains
                             (Effects.FetchVersionedResources
                                 { resourceName = resourceName
                                 , pipelineName = pipelineName
@@ -265,7 +262,6 @@ all =
                                 }
                                 Nothing
                             )
-                            >> Expect.true "should fetch versions"
                         ]
         , test "autorefresh respects expanded state" <|
             \_ ->
@@ -1755,8 +1751,7 @@ all =
                                         |> givenResourcePinnedWithComment
                                         |> givenTextareaFocused
                                         |> Application.subscriptions
-                                        |> List.member Subscription.OnKeyDown
-                                        |> Expect.true "why are we not subscribed to keydowns!?"
+                                        |> Common.contains Subscription.OnKeyDown
                             , test
                                 ("keyup subscription active when "
                                     ++ "textarea is focused"
@@ -1768,8 +1763,7 @@ all =
                                         |> givenResourcePinnedWithComment
                                         |> givenTextareaFocused
                                         |> Application.subscriptions
-                                        |> List.member Subscription.OnKeyUp
-                                        |> Expect.true "why are we not subscribed to keyups!?"
+                                        |> Common.contains Subscription.OnKeyUp
                             , test "Ctrl-Enter sends SaveComment msg" <|
                                 \_ ->
                                     init

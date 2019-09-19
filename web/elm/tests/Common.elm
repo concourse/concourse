@@ -56,7 +56,7 @@ notContains x xs =
         Expect.fail <|
             "Expected "
                 ++ Debug.toString xs
-                ++ "not to contain "
+                ++ " not to contain "
                 ++ Debug.toString x
 
     else

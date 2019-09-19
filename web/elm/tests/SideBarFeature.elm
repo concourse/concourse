@@ -1115,8 +1115,7 @@ fiveSecondsPass =
 
 myBrowserFetchesPipelines =
     Tuple.second
-        >> List.member Effects.FetchPipelines
-        >> Expect.true "should fetch pipelines"
+        >> Common.contains Effects.FetchPipelines
 
 
 iHaveAnOpenSideBar =
@@ -1610,8 +1609,7 @@ iAmLookingAtThePipelineWithTheSameName =
 myBrowserNotifiesEveryFiveSeconds =
     Tuple.first
         >> Application.subscriptions
-        >> List.member (Subscription.OnClockTick Subscription.FiveSeconds)
-        >> Expect.true "should tick every five seconds"
+        >> Common.contains (Subscription.OnClockTick Subscription.FiveSeconds)
 
 
 iOpenTheJobBuildPage =
@@ -1686,8 +1684,7 @@ iSeeAHamburgerMenu =
 
 myBrowserFetchesScreenSize =
     Tuple.second
-        >> List.member Effects.GetScreenSize
-        >> Expect.true "should fetch screen size"
+        >> Common.contains Effects.GetScreenSize
 
 
 iOpenTheJobPage _ =
@@ -1761,8 +1758,7 @@ iSeeThreeChildrenDivs =
 myBrowserListensForSideBarStates =
     Tuple.first
         >> Application.subscriptions
-        >> List.member Subscription.OnSideBarStateReceived
-        >> Expect.true "should listen for sidebar states"
+        >> Common.contains Subscription.OnSideBarStateReceived
 
 
 myBrowserReadSideBarState =
@@ -1773,14 +1769,12 @@ myBrowserReadSideBarState =
 
 myBrowserFetchesSideBarState =
     Tuple.second
-        >> List.member Effects.LoadSideBarState
-        >> Expect.true "should get sidebar state"
+        >> Common.contains Effects.LoadSideBarState
 
 
 myBrowserSavesSideBarState isOpen =
     Tuple.second
-        >> List.member (Effects.SaveSideBarState isOpen)
-        >> Expect.true "should save sidebar state"
+        >> Common.contains (Effects.SaveSideBarState isOpen)
 
 
 myBrowserChecksAViewport =

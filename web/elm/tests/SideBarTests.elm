@@ -1,6 +1,7 @@
 module SideBarTests exposing (all)
 
 import Browser.Dom
+import Common
 import Expect
 import HoverState
 import Message.Callback as Callback
@@ -22,8 +23,7 @@ all =
                     model
                         |> SideBar.update (Hover <| Just domID)
                         |> Tuple.second
-                        |> List.member (Effects.GetViewportOf domID)
-                        |> Expect.true "should check viewport of pipeline"
+                        |> Common.contains (Effects.GetViewportOf domID)
             , test "does not ask browser for viewport otherwise" <|
                 \_ ->
                     model
@@ -73,8 +73,7 @@ all =
                             (Callback.GotViewport <| Ok overflowingViewport)
                             RemoteData.NotAsked
                         |> Tuple.second
-                        |> List.member (Effects.GetElement domID)
-                        |> Expect.true "should get element position"
+                        |> Common.contains (Effects.GetElement domID)
             , test "callback with non-overflowing does nothing" <|
                 \_ ->
                     ( { model

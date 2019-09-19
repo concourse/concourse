@@ -287,14 +287,12 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> List.member Effects.GetScreenSize
-                    |> Expect.true "should get screen size"
+                    |> Common.contains Effects.GetScreenSize
         , test "subscribes to screen resizes" <|
             \_ ->
                 Common.init "/teams/team/pipelines/pipelineName"
                     |> Application.subscriptions
-                    |> List.member Subscription.OnWindowResize
-                    |> Expect.true "should subscribe to window resizes"
+                    |> Common.contains Subscription.OnWindowResize
         , test "title should include the pipeline name" <|
             \_ ->
                 Common.init "/teams/team/pipelines/pipelineName"
@@ -358,9 +356,9 @@ all =
                     Common.init "/teams/team/pipelines/pipeline"
                         |> Application.subscriptions
                         |> Expect.all
-                            [ List.member (Subscription.OnClockTick OneSecond) >> Expect.true "not on one second?"
-                            , List.member (Subscription.OnClockTick FiveSeconds) >> Expect.true "not on five seconds?"
-                            , List.member (Subscription.OnClockTick OneMinute) >> Expect.true "not on one minute?"
+                            [ Common.contains (Subscription.OnClockTick OneSecond)
+                            , Common.contains (Subscription.OnClockTick FiveSeconds)
+                            , Common.contains (Subscription.OnClockTick OneMinute)
                             ]
             , test "on five second timer, refreshes pipeline" <|
                 \_ ->
@@ -372,13 +370,12 @@ all =
                                 )
                             )
                         |> Tuple.second
-                        |> List.member
+                        |> Common.contains
                             (Effects.FetchPipeline
                                 { teamName = "team"
                                 , pipelineName = "pipeline"
                                 }
                             )
-                        |> Expect.true "should refresh pipeline"
             , test "on one minute timer, refreshes version" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"

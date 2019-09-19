@@ -151,8 +151,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> List.member Effects.GetScreenSize
-                    |> Expect.true "should request screen size"
+                    |> Common.contains Effects.GetScreenSize
         , test "requests cluster info on page load" <|
             \_ ->
                 Application.init
@@ -170,8 +169,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> List.member Effects.FetchClusterInfo
-                    |> Expect.true "should request cluster info"
+                    |> Common.contains Effects.FetchClusterInfo
         , test "redirects to login if any data call gives a 401" <|
             \_ ->
                 Common.init "/"
@@ -3475,17 +3473,14 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Application.subscriptions
                     |> Expect.all
-                        [ List.member (Subscription.OnClockTick OneSecond)
-                            >> Expect.true "doesn't have one second timer"
-                        , List.member (Subscription.OnClockTick FiveSeconds)
-                            >> Expect.true "doesn't have five second timer"
+                        [ Common.contains (Subscription.OnClockTick OneSecond)
+                        , Common.contains (Subscription.OnClockTick FiveSeconds)
                         ]
         , test "subscribes to keyups" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Application.subscriptions
-                    |> List.member Subscription.OnKeyUp
-                    |> Expect.true "doesn't subscribe to keyups?"
+                    |> Common.contains Subscription.OnKeyUp
         , test "auto refreshes data every five seconds" <|
             \_ ->
                 Common.init "/"
@@ -3495,8 +3490,7 @@ all =
                                 Time.millisToPosix 0
                         )
                     |> Tuple.second
-                    |> List.member Effects.FetchData
-                    |> Expect.true "should refresh data"
+                    |> Common.contains Effects.FetchData
         ]
 
 

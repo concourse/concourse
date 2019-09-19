@@ -286,8 +286,7 @@ sendsToken setup =
     test (setupDesc setup ++ ", sends token to fly") <|
         steps setup
             >> Tuple.second
-            >> List.member (Effects.SendTokenToFly authToken flyPort)
-            >> Expect.equal True
+            >> Common.contains (Effects.SendTokenToFly authToken flyPort)
 
 
 doesNotSendToken : Property
@@ -295,8 +294,7 @@ doesNotSendToken setup =
     test (setupDesc setup ++ ", does not send token to fly") <|
         steps setup
             >> Tuple.second
-            >> List.member (Effects.SendTokenToFly authToken flyPort)
-            >> Expect.equal False
+            >> Common.notContains (Effects.SendTokenToFly authToken flyPort)
 
 
 
