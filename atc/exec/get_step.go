@@ -207,17 +207,25 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 
 	resourceDir := resource.ResourcesDir("get")
 
+	resourceInstanceSignature, err := resourceInstance.Signature()
+	if err != nil {
+		return err
+	}
+
 	// start of workerClient.RunGetStep?
 	getResult, err := step.workerClient.RunGetStep(
 		ctx,
 		logger,
-		resourceInstance.ContainerOwner(),
+		db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID),
 		containerSpec,
 		workerSpec,
 		step.strategy,
 		step.containerMetadata,
 		resourceTypes,
-		resourceInstance,
+		source,
+		params,
+		resourceDir,
+		resourceInstanceSignature,
 		step.resourceFetcher,
 		step.delegate,
 		resourceCache,

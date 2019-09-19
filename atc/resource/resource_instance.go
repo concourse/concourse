@@ -1,6 +1,9 @@
 package resource
 
 import (
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -18,6 +21,7 @@ type ResourceInstance interface {
 	ContainerOwner() db.ContainerOwner
 
 	//LockName(string) (string, error)
+	Signature() (string, error)
 
 	//FindOn(lager.Logger, worker.Worker) (worker.Volume, bool, error)
 }
@@ -95,6 +99,21 @@ func (instance resourceInstance) ResourceType() ResourceType {
 //	}
 //	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
 //}
+
+func (instance resourceInstance) Signature() (string, error){
+	id := &resourceInstanceLockID{
+		Type:       instance.resourceTypeName,
+		Version:    instance.version,
+		Source:     instance.source,
+		Params:     instance.params,
+	}
+
+	taskNameJSON, err := json.Marshal(id)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
+}
 
 //func (instance resourceInstance) FindOn(logger lager.Logger, w worker.Worker) (worker.Volume, bool, error) {
 //	return w.FindVolumeForResourceCache(

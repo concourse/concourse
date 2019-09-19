@@ -5,13 +5,11 @@ package worker
 
 import (
 	"context"
-
 	"github.com/concourse/concourse/atc/runtime"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource"
 )
 
 //go:generate counterfeiter . FetchSource
@@ -28,7 +26,10 @@ type FetchSourceFactory interface {
 	NewFetchSource(
 		logger lager.Logger,
 		worker Worker,
-		resourceInstance resource.ResourceInstance,
+		source atc.Source,
+		params atc.Params,
+		owner db.ContainerOwner,
+		resourceDir string,
 		cache db.UsedResourceCache,
 		resourceTypes atc.VersionedResourceTypes,
 		containerSpec ContainerSpec,
@@ -40,23 +41,23 @@ type FetchSourceFactory interface {
 
 type fetchSourceFactory struct {
 	resourceCacheFactory db.ResourceCacheFactory
-	resourceFactory      resource.ResourceFactory
 }
 
 func NewFetchSourceFactory(
 	resourceCacheFactory db.ResourceCacheFactory,
-	resourceFactory resource.ResourceFactory,
 ) FetchSourceFactory {
 	return &fetchSourceFactory{
 		resourceCacheFactory: resourceCacheFactory,
-		resourceFactory:      resourceFactory,
 	}
 }
 
 func (r *fetchSourceFactory) NewFetchSource(
 	logger lager.Logger,
 	worker Worker,
-	resourceInstance resource.ResourceInstance,
+	source atc.Source,
+	params atc.Params,
+	owner db.ContainerOwner,
+	resourceDir string,
 	cache db.UsedResourceCache,
 	resourceTypes atc.VersionedResourceTypes,
 	containerSpec ContainerSpec,
@@ -67,7 +68,10 @@ func (r *fetchSourceFactory) NewFetchSource(
 	return &resourceInstanceFetchSource{
 		logger:                 logger,
 		worker:                 worker,
-		resourceInstance:       resourceInstance,
+		source: source,
+		params: params,
+		owner: owner,
+		resourceDir: resourceDir,
 		cache:                  cache,
 		resourceTypes:          resourceTypes,
 		containerSpec:          containerSpec,
@@ -75,14 +79,16 @@ func (r *fetchSourceFactory) NewFetchSource(
 		containerMetadata:      containerMetadata,
 		imageFetchingDelegate:  imageFetchingDelegate,
 		dbResourceCacheFactory: r.resourceCacheFactory,
-		resourceFactory:        r.resourceFactory,
 	}
 }
 
 type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
 	worker                 Worker
-	resourceInstance       resource.ResourceInstance
+	source atc.Source
+	params atc.Params
+	owner db.ContainerOwner
+	resourceDir string
 	cache                  db.UsedResourceCache
 	resourceTypes          atc.VersionedResourceTypes
 	containerSpec          ContainerSpec
@@ -90,12 +96,7 @@ type resourceInstanceFetchSource struct {
 	containerMetadata      db.ContainerMetadata
 	imageFetchingDelegate  ImageFetchingDelegate
 	dbResourceCacheFactory db.ResourceCacheFactory
-	resourceFactory        resource.ResourceFactory
 }
-
-//func (s *resourceInstanceFetchSource) LockName() (string, error) {
-//	return s.resourceInstance.LockName(s.worker.Name())
-//}
 
 func findOn(logger lager.Logger, w Worker, cache db.UsedResourceCache) (volume Volume, found bool, err error) {
 	return w.FindVolumeForResourceCache(
@@ -117,6 +118,7 @@ func (s *resourceInstanceFetchSource) Find() (Volume, bool, error) {
 		return nil, false, nil
 	}
 
+	// TODO use the method below to get the resource metadata and change the Find() signature to return a GetResult rather than volume
 	//metadata, err := s.dbResourceCacheFactory.ResourceCacheMetadata(s.resourceInstance.ResourceCache())
 	//if err != nil {
 	//	sLog.Error("failed-to-get-resource-cache-metadata", err)
@@ -159,7 +161,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, er
 		ctx,
 		s.logger,
 		s.imageFetchingDelegate,
-		s.resourceInstance.ContainerOwner(),
+		s.owner,
 		s.containerMetadata,
 		s.containerSpec,
 		s.resourceTypes,
@@ -177,7 +179,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, er
 		return result, err
 	}
 
-	mountPath := resource.ResourcesDir("get")
+	mountPath := s.resourceDir
 	for _, mount := range container.VolumeMounts() {
 		if mount.MountPath == mountPath {
 			volume = mount.Volume
@@ -212,8 +214,8 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, er
 		s.processSpec.Path,
 		s.processSpec.Args,
 		runtime.GetRequest{
-			Params: s.resourceInstance.Params(),
-			Source: s.resourceInstance.Source(),
+			Params: s.params,
+			Source: s.source,
 		},
 		&vr,
 		s.processSpec.StderrWriter,
@@ -241,7 +243,6 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, er
 
 	// TODO this should happen get_step exec rather than here
 	// seems like core logic
-
 	//err = volume.InitializeResourceCache(s.resourceInstance.ResourceCache())
 	//if err != nil {
 	//	sLog.Error("failed-to-initialize-cache", err)

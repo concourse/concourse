@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
 	"time"
 
 	"github.com/concourse/concourse/atc/runtime"
@@ -17,7 +16,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/resource"
 )
 
 const GetResourceLockInterval = 5 * time.Second
@@ -36,7 +34,11 @@ type Fetcher interface {
 		containerSpec ContainerSpec,
 		processSpec ProcessSpec,
 		resourceTypes atc.VersionedResourceTypes,
-		resourceInstance resource.ResourceInstance,
+		source atc.Source,
+		params atc.Params,
+		owner db.ContainerOwner,
+		resourceDir string,
+		resourceInstanceSignature string,
 		imageFetchingDelegate ImageFetchingDelegate,
 		cache db.UsedResourceCache,
 	) (GetResult, error)
@@ -60,9 +62,7 @@ type fetcher struct {
 	fetchSourceFactory FetchSourceFactory
 }
 
-func ResourcesDir(suffix string) string {
-	return filepath.Join("/tmp", "build", suffix)
-}
+// TODO: end of the above TODO
 
 func (f *fetcher) Fetch(
 	ctx context.Context,
@@ -72,31 +72,30 @@ func (f *fetcher) Fetch(
 	containerSpec ContainerSpec,
 	processSpec ProcessSpec,
 	resourceTypes atc.VersionedResourceTypes,
-	resourceInstance resource.ResourceInstance, // can we not use resource package here?
+	source atc.Source,
+	params atc.Params,
+	owner db.ContainerOwner,
+	resourceDir string,
+	resourceInstanceSignature string,
 	imageFetchingDelegate ImageFetchingDelegate,
 	cache db.UsedResourceCache,
-	//) (resource.VersionedSource, error) {
 ) (GetResult, error) {
 	containerSpec.Outputs = map[string]string{
-		"resource": ResourcesDir("get"),
+		"resource": resourceDir,
 	}
 
-	source := f.fetchSourceFactory.NewFetchSource(logger, gardenWorker, resourceInstance, cache, resourceTypes, containerSpec, processSpec, containerMetadata, imageFetchingDelegate)
+	fetchSource := f.fetchSourceFactory.NewFetchSource(logger, gardenWorker, source, params, owner, resourceDir, cache, resourceTypes, containerSpec, processSpec, containerMetadata, imageFetchingDelegate)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
 	// figure out the lockname earlier, because we have all the info
-	lockName, err := lockName(string(resourceInstance.ResourceType()),
-		resourceInstance.Version(),
-		resourceInstance.Source(),
-		resourceInstance.Params(),
-		gardenWorker.Name())
+	lockName, err := lockName(resourceInstanceSignature, gardenWorker.Name())
 	if err != nil {
 		return GetResult{}, err
 	}
 
-	versionedSource, err := f.fetchWithLock(ctx, logger, source, imageFetchingDelegate.Stdout(), cache, lockName)
+	versionedSource, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
 	if err != ErrFailedToGetLock {
 		return versionedSource, err
 	}
@@ -105,7 +104,7 @@ func (f *fetcher) Fetch(
 		select {
 		case <-ticker.C():
 			//TODO this is called redundantly?
-			result, err := f.fetchWithLock(ctx, logger, source, imageFetchingDelegate.Stdout(), cache, lockName)
+			result, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break
@@ -122,19 +121,13 @@ func (f *fetcher) Fetch(
 }
 
 type lockID struct {
-	Type       string      `json:"type,omitempty"`
-	Version    atc.Version `json:"version,omitempty"`
-	Source     atc.Source  `json:"source,omitempty"`
-	Params     atc.Params  `json:"params,omitempty"`
+	ResourceInstanceSignature string `json:"resource_instance_signature,omitempty"`
 	WorkerName string      `json:"worker_name,omitempty"`
 }
 
-func lockName(resourceType string, version atc.Version, source atc.Source, params atc.Params, workerName string) (string, error) {
+func lockName(resourceInstanceSignature string, workerName string) (string, error) {
 	id := &lockID{
-		Type:       resourceType,
-		Version:    version,
-		Source:     source,
-		Params:     params,
+		ResourceInstanceSignature: resourceInstanceSignature,
 		WorkerName: workerName,
 	}
 
