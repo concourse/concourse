@@ -115,7 +115,7 @@ var _ = Describe("BBR", func() {
 				Expect(entries).To(HaveLen(1))
 
 				By("deleting the deployment")
-				WaitForDeploymentLock()
+				WaitForDeploymentAndCompileLocks()
 				Bosh("delete-deployment")
 
 				By("creating a new deployment")

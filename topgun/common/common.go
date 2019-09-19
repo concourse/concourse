@@ -128,7 +128,7 @@ var _ = BeforeEach(func() {
 	err = os.Mkdir(Fly.Home, 0755)
 	Expect(err).ToNot(HaveOccurred())
 
-	WaitForDeploymentLock()
+	WaitForDeploymentAndCompileLocks()
 	Bosh("delete-deployment", "--force")
 
 	instances = map[string][]BoshInstance{}
@@ -156,7 +156,7 @@ var _ = AfterEach(func() {
 
 	DeleteAllContainers()
 
-	WaitForDeploymentLock()
+	WaitForDeploymentAndCompileLocks()
 	Bosh("delete-deployment")
 
 	Expect(os.RemoveAll(tmp)).To(Succeed())
@@ -171,7 +171,7 @@ type BoshInstance struct {
 }
 
 func StartDeploy(manifest string, args ...string) *gexec.Session {
-	WaitForDeploymentLock()
+	WaitForDeploymentAndCompileLocks()
 
 	return SpawnBosh(
 		append([]string{
@@ -528,20 +528,26 @@ func VolumesByResourceType(name string) []string {
 	return handles
 }
 
-func WaitForDeploymentLock() {
-dance:
+func WaitForDeploymentAndCompileLocks() {
 	for {
 		locks := Bosh("locks", "--column", "type", "--column", "resource", "--column", "task id")
+		shouldWait := false
 
 		for _, lock := range ParseTable(string(locks.Out.Contents())) {
 			if lock[0] == "deployment" && lock[1] == DeploymentName {
 				fmt.Fprintf(GinkgoWriter, "waiting for deployment lock (task id %s)...\n", lock[2])
-				time.Sleep(5 * time.Second)
-				continue dance
+				shouldWait = true
+			} else if lock[0] == "compile" {
+				fmt.Fprintf(GinkgoWriter, "waiting for compile lock (task id %s)...\n", lock[2])
+				shouldWait = true
 			}
 		}
 
-		break dance
+		if shouldWait {
+			time.Sleep(5 * time.Second)
+		} else {
+			break
+		}
 	}
 }
 
