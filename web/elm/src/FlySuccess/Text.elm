@@ -1,14 +1,17 @@
 module FlySuccess.Text exposing
     ( Paragraph
-    , button
+    , copyTokenButton
+    , firstParagraphBlocked
     , firstParagraphFailure
     , firstParagraphSuccess
+    , flyLoginLinkDescription
+    , flyLoginLinkText
     , pending
     , secondParagraphFailure
     , secondParagraphSuccess
+    , sendTokenButton
+    , thirdParagraphBlocked
     , title
-    , flyLoginLinkText
-    , flyLoginLinkDescription
     )
 
 import FlySuccess.Models as Models
@@ -53,10 +56,25 @@ firstParagraphFailure =
     ]
 
 
+firstParagraphBlocked : Paragraph
+firstParagraphBlocked =
+    [ "however, your token could not be sent"
+    , "to fly because your browser blocked"
+    , "the attempt."
+    ]
+
+
 secondParagraphFailure : TransferFailure -> Paragraph
 secondParagraphFailure error =
     case error of
-        NetworkTrouble _ ->
+        BlockedByBrowser ->
+            [ "if that fails, you will need to copy"
+            , "the token to your clipboard, return"
+            , "to fly, and paste your token into"
+            , "the prompt."
+            ]
+
+        NetworkTrouble ->
             [ "after copying, return to fly and paste"
             , "your token into the prompt."
             ]
@@ -67,8 +85,14 @@ secondParagraphFailure error =
             ]
 
 
-button : ButtonState -> String
-button buttonState =
+thirdParagraphBlocked : Paragraph
+thirdParagraphBlocked =
+    [ "if that fails, click the button below:"
+    ]
+
+
+copyTokenButton : ButtonState -> String
+copyTokenButton buttonState =
     if Models.isClicked buttonState then
         "token copied"
 
@@ -76,9 +100,15 @@ button buttonState =
         "copy token to clipboard"
 
 
+sendTokenButton : String
+sendTokenButton =
+    "send token to fly directly"
+
+
 flyLoginLinkDescription : Line
 flyLoginLinkDescription =
     "Or try manually sending the token to fly:"
+
 
 flyLoginLinkText : Line
 flyLoginLinkText =

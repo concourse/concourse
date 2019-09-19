@@ -8,17 +8,17 @@ module FlySuccess.Models exposing
     , isPending
     )
 
-import Http
 import Login.Login as Login
 import RemoteData
 
 
 type alias Model =
     Login.Model
-        { buttonState : ButtonState
+        { copyTokenButtonState : ButtonState
+        , sendTokenButtonState : ButtonState
         , authToken : String
         , tokenTransfer : TokenTransfer
-        , flyPort : (Maybe Int)
+        , flyPort : Maybe Int
         }
 
 
@@ -33,7 +33,8 @@ type alias TokenTransfer =
 
 
 type TransferFailure
-    = NetworkTrouble Http.Error
+    = NetworkTrouble
+    | BlockedByBrowser
     | NoFlyPort
 
 

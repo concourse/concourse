@@ -1,7 +1,8 @@
 module FlySuccess.FlySuccess exposing
     ( documentTitle
-    , handleCallback
+    , handleDelivery
     , init
+    , subscriptions
     , update
     , view
     )
@@ -17,12 +18,18 @@ import FlySuccess.Models
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, id, style, href)
+import Html.Attributes exposing (attribute, href, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
+import Message.Subscription
+    exposing
+        ( Delivery(..)
+        , RawHttpResponse(..)
+        , Subscription(..)
+        )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import Routes
@@ -31,9 +38,11 @@ import Views.Icon as Icon
 import Views.Styles
 import Views.TopBar as TopBar
 
+
 init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
 init { authToken, flyPort } =
-    ( { buttonState = Unhovered
+    ( { copyTokenButtonState = Unhovered
+      , sendTokenButtonState = Unhovered
       , authToken = authToken
       , tokenTransfer =
             case flyPort of
@@ -54,14 +63,21 @@ init { authToken, flyPort } =
     )
 
 
-handleCallback : Callback -> ET Model
-handleCallback msg ( model, effects ) =
-    case msg of
-        TokenSentToFly (Ok ()) ->
+handleDelivery : Delivery -> ET Model
+handleDelivery delivery ( model, effects ) =
+    case delivery of
+        TokenSentToFly Success ->
             ( { model | tokenTransfer = RemoteData.Success () }, effects )
 
-        TokenSentToFly (Err err) ->
-            ( { model | tokenTransfer = RemoteData.Failure (NetworkTrouble err) }, effects )
+        TokenSentToFly NetworkError ->
+            ( { model | tokenTransfer = RemoteData.Failure NetworkTrouble }
+            , effects
+            )
+
+        TokenSentToFly BrowserError ->
+            ( { model | tokenTransfer = RemoteData.Failure BlockedByBrowser }
+            , effects
+            )
 
         _ ->
             ( model, effects )
@@ -71,20 +87,33 @@ update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
         Hover (Just CopyTokenButton) ->
-            ( { model | buttonState = hover True model.buttonState }
+            ( { model | copyTokenButtonState = hover True model.copyTokenButtonState }
+            , effects
+            )
+
+        Hover (Just SendTokenButton) ->
+            ( { model | sendTokenButtonState = hover True model.sendTokenButtonState }
             , effects
             )
 
         Hover Nothing ->
-            ( { model | buttonState = hover False model.buttonState }
+            ( { model
+                | copyTokenButtonState = hover False model.copyTokenButtonState
+                , sendTokenButtonState = hover False model.sendTokenButtonState
+              }
             , effects
             )
 
         Click CopyTokenButton ->
-            ( { model | buttonState = Clicked }, effects )
+            ( { model | copyTokenButtonState = Clicked }, effects )
 
         _ ->
             ( model, effects )
+
+
+subscriptions : List Subscription
+subscriptions =
+    [ OnTokenSentToFly ]
 
 
 documentTitle : String
@@ -144,13 +173,31 @@ body model =
                         }
                   , True
                   )
-                , ( button model, False )
+                , ( copyTokenButton model, False )
                 , ( paragraph
                         { identifier = "second-paragraph"
                         , lines = Text.secondParagraphSuccess
                         }
                   , True
                   )
+                ]
+
+        RemoteData.Failure BlockedByBrowser ->
+            elemList
+                [ ( paragraph
+                        { identifier = "first-paragraph"
+                        , lines = Text.firstParagraphBlocked
+                        }
+                  , True
+                  )
+                , ( sendTokenButton model, True )
+                , ( paragraph
+                        { identifier = "second-paragraph"
+                        , lines = Text.secondParagraphFailure BlockedByBrowser
+                        }
+                  , True
+                  )
+                , ( copyTokenButton model, True )
                 ]
 
         RemoteData.Failure err ->
@@ -161,14 +208,13 @@ body model =
                         }
                   , True
                   )
-                , ( button model, True )
+                , ( copyTokenButton model, True )
                 , ( paragraph
                         { identifier = "second-paragraph"
                         , lines = Text.secondParagraphFailure err
                         }
                   , True
                   )
-                , (flyLoginLink model, True)
                 ]
 
 
@@ -180,8 +226,8 @@ paragraph { identifier, lines } =
         |> Html.p (id identifier :: Styles.paragraph)
 
 
-button : Model -> Html Message
-button { authToken, buttonState } =
+copyTokenButton : Model -> Html Message
+copyTokenButton { authToken, copyTokenButtonState } =
     Html.span
         ([ id "copy-token"
          , onMouseEnter <| Hover <| Just CopyTokenButton
@@ -189,7 +235,7 @@ button { authToken, buttonState } =
          , onClick <| Click CopyTokenButton
          , attribute "data-clipboard-text" authToken
          ]
-            ++ Styles.button buttonState
+            ++ Styles.button copyTokenButtonState
         )
         [ Icon.icon
             { sizePx = 20
@@ -198,26 +244,21 @@ button { authToken, buttonState } =
             [ id "copy-icon"
             , style "margin-right" "5px"
             ]
-        , Html.text <| Text.button buttonState
+        , Html.text <| Text.copyTokenButton copyTokenButtonState
         ]
 
-flyLoginLink : Model -> Html Message
-flyLoginLink { flyPort, authToken } =
-    case flyPort of
-        Just fp ->
-            Html.div
-                [ id "fly-direct-link" ]
-                [ Html.p
-                    Styles.paragraph
-                    [ Html.text Text.flyLoginLinkDescription ]
-                , Html.a
-                    [ href (Routes.tokenToFlyRoute authToken fp)
-                    , style "text-decoration" "underline"
-                    ]
-                    [ Html.text Text.flyLoginLinkText ]
-                ]
 
-        Nothing ->
-            Html.div[][]
-
-
+sendTokenButton : Model -> Html Message
+sendTokenButton { sendTokenButtonState, flyPort, authToken } =
+    Html.a
+        ([ id "send-token"
+         , onMouseEnter <| Hover <| Just SendTokenButton
+         , onMouseLeave <| Hover Nothing
+         , href
+            (Maybe.map (Routes.tokenToFlyRoute authToken) flyPort
+                |> Maybe.withDefault ""
+            )
+         ]
+            ++ Styles.button sendTokenButtonState
+        )
+        [ Html.text <| Text.sendTokenButton ]
