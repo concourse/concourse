@@ -471,16 +471,14 @@ var _ = Describe("login Command", func() {
 
 			Context("token callback listener", func() {
 				var resp *http.Response
+				var req *http.Request
+				var sess *gexec.Session
 
 				BeforeEach(func() {
-					loginATCServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/fly_success"),
-						ghttp.RespondWith(200, ""),
-					))
 					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
 					_, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
 					scanner := bufio.NewScanner(bytes.NewBuffer(sess.Out.Contents()))
@@ -493,12 +491,23 @@ var _ = Describe("login Command", func() {
 						}
 					}
 					flyPort := match[1]
+					listenerURL := fmt.Sprintf("http://127.0.0.1:%s?token=Bearer%%20some-token", flyPort)
+					req, err = http.NewRequest("GET", listenerURL, nil)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				JustBeforeEach(func() {
+					loginATCServer.AppendHandlers(ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/fly_success"),
+						ghttp.RespondWith(200, ""),
+					))
 					client := &http.Client{
 						CheckRedirect: func(req *http.Request, via []*http.Request) error {
 							return http.ErrUseLastResponse
 						},
 					}
-					resp, err = client.Get(fmt.Sprintf("http://127.0.0.1:%s?token=Bearer%%20some-token", flyPort))
+					var err error
+					resp, err = client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
@@ -509,10 +518,20 @@ var _ = Describe("login Command", func() {
 					Expect(corsHeader).To(Equal(loginATCServer.URL()))
 				})
 
-				It("redirects back to noop fly success page", func() {
-					Expect(resp.StatusCode).To(Equal(http.StatusFound))
-					locationHeader := resp.Header.Get("Location")
-					Expect(locationHeader).To(Equal(fmt.Sprintf("%s/fly_success?noop=true", loginATCServer.URL())))
+				It("responds successfully", func() {
+					Expect(resp.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				Context("when the request comes from a human operating a browser", func() {
+					BeforeEach(func() {
+						req.Header.Add("Upgrade-Insecure-Requests", "1")
+					})
+
+					It("redirects back to noop fly success page", func() {
+						Expect(resp.StatusCode).To(Equal(http.StatusFound))
+						locationHeader := resp.Header.Get("Location")
+						Expect(locationHeader).To(Equal(fmt.Sprintf("%s/fly_success?noop=true", loginATCServer.URL())))
+					})
 				})
 			})
 		})
