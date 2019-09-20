@@ -706,7 +706,7 @@ viewMetadata : List MetadataField -> Html Message
 viewMetadata =
     List.map
         (\{ name, value } ->
-            ( name
+            ( Html.text name
             , Html.pre []
                 [ case fromString value of
                     Just _ ->
@@ -722,8 +722,31 @@ viewMetadata =
                 ]
             )
         )
-        >> Dict.fromList
-        >> DictView.view []
+        >> List.map
+            (\( key, value ) ->
+                Html.tr []
+                    [ Html.td
+                        [ style "text-align" "left"
+                        , style "vertical-align" "top"
+                        , style "background-color" "rgb(45,45,45)"
+                        , style "border-bottom" "5px solid rgb(45,45,45)"
+                        , style "padding" "5px"
+                        ]
+                        [ key ]
+                    , Html.td
+                        [ style "text-align" "left"
+                        , style "vertical-align" "top"
+                        , style "background-color" "rgb(35,35,35)"
+                        , style "border-bottom" "5px solid rgb(45,45,45)"
+                        , style "padding" "5px"
+                        ]
+                        [ value ]
+                    ]
+            )
+        >> Html.table
+            [ style "border-collapse" "collapse"
+            , style "margin-bottom" "5px"
+            ]
 
 
 viewStepState : StepState -> StepID -> List (Html Message) -> Html Message
