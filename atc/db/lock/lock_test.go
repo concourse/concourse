@@ -114,7 +114,7 @@ var _ = Describe("Locks", func() {
 
 			fakeLockDB.AcquireStub = func(id lock.LockID) (bool, error) {
 				select {
-				case <-time.After(time.Minute):
+				case <-time.After(2 * time.Second):
 				case <-done:
 				}
 				return true, nil
