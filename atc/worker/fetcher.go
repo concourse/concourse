@@ -39,7 +39,7 @@ type Fetcher interface {
 		resourceInstanceSignature string,
 		imageFetchingDelegate ImageFetchingDelegate,
 		cache db.UsedResourceCache,
-	) (GetResult, error)
+	) (getResultWithVolume, error)
 }
 
 func NewFetcher(
@@ -77,7 +77,8 @@ func (f *fetcher) Fetch(
 	resourceInstanceSignature string,
 	imageFetchingDelegate ImageFetchingDelegate,
 	cache db.UsedResourceCache,
-) (GetResult, error) {
+) (getResultWithVolume, error) {
+	resultWithVolume := getResultWithVolume{}
 	containerSpec.Outputs = map[string]string{
 		"resource": resourceDir,
 	}
@@ -90,30 +91,30 @@ func (f *fetcher) Fetch(
 	// figure out the lockname earlier, because we have all the info
 	lockName, err := lockName(resourceInstanceSignature, gardenWorker.Name())
 	if err != nil {
-		return GetResult{}, err
+		return resultWithVolume, err
 	}
 
-	versionedSource, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
+	resultWithVolume, err = f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
 	if err != ErrFailedToGetLock {
-		return versionedSource, err
+		return getResultWithVolume{}, err
 	}
 
 	for {
 		select {
 		case <-ticker.C():
 			//TODO this is called redundantly?
-			result, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
+			resultWithVolume, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break
 				}
-				return GetResult{}, err
+				return resultWithVolume, err
 			}
 
-			return result, nil
+			return resultWithVolume, nil
 
 		case <-ctx.Done():
-			return GetResult{}, ctx.Err()
+			return resultWithVolume, ctx.Err()
 		}
 	}
 }
@@ -143,10 +144,11 @@ func (f *fetcher) fetchWithLock(
 	stdout io.Writer,
 	cache db.UsedResourceCache,
 	lockName string,
-) (GetResult, error) {
+) (getResultWithVolume, error) {
+	resultWithVolume := getResultWithVolume{}
 	findResult, found, err := source.Find()
 	if err != nil {
-		return GetResult{}, err
+		return resultWithVolume, err
 	}
 
 	if found {
@@ -158,12 +160,12 @@ func (f *fetcher) fetchWithLock(
 	lock, acquired, err := f.lockFactory.Acquire(lockLogger, lock.NewTaskLockID(lockName))
 	if err != nil {
 		lockLogger.Error("failed-to-get-lock", err)
-		return GetResult{}, ErrFailedToGetLock
+		return resultWithVolume, ErrFailedToGetLock
 	}
 
 	if !acquired {
 		lockLogger.Debug("did-not-get-lock")
-		return GetResult{}, ErrFailedToGetLock
+		return resultWithVolume, ErrFailedToGetLock
 	}
 
 	defer lock.Release()

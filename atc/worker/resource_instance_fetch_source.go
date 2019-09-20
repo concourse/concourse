@@ -16,8 +16,8 @@ import (
 
 type FetchSource interface {
 	//LockName() (string, error)
-	Find() (GetResult, bool, error)
-	Create(context.Context) (GetResult, error)
+	Find() (getResultWithVolume, bool, error)
+	Create(context.Context) (getResultWithVolume, error)
 }
 
 //go:generate counterfeiter . FetchSourceFactory
@@ -105,9 +105,9 @@ func findOn(logger lager.Logger, w Worker, cache db.UsedResourceCache) (volume V
 	)
 }
 
-func (s *resourceInstanceFetchSource) Find() (GetResult, bool, error) {
+func (s *resourceInstanceFetchSource) Find() (getResultWithVolume, bool, error) {
 	sLog := s.logger.Session("find")
-	result := GetResult{}
+	result := getResultWithVolume{}
 
 
 	volume, found, err := findOn(s.logger, s.worker, s.cache)
@@ -138,7 +138,7 @@ func (s *resourceInstanceFetchSource) Find() (GetResult, bool, error) {
 	}
 
 
-	return GetResult{
+	return getResultWithVolume{
 		0,
 		// todo: figure out what logically should be returned for VersionResult
 		runtime.VersionResult{
@@ -146,15 +146,16 @@ func (s *resourceInstanceFetchSource) Find() (GetResult, bool, error) {
 		},
 		runtime.GetArtifact{VolumeHandle: volume.Handle()},
 		nil,
+		volume,
 	},
 	true, nil
 }
 
 // Create runs under the lock but we need to make sure volume does not exist
 // yet before creating it under the lock
-func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, error) {
+func (s *resourceInstanceFetchSource) Create(ctx context.Context) (getResultWithVolume, error) {
 	sLog := s.logger.Session("create")
-	result := GetResult{}
+	result := getResultWithVolume{}
 	var volume Volume
 
 	findResult, found, err := s.Find()
@@ -182,12 +183,13 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, er
 
 	if err != nil {
 		sLog.Error("failed-to-construct-resource", err)
-		result = GetResult{
+		result = getResultWithVolume{
 			1,
 			// todo: figure out what logically should be returned for VersionResult
 			runtime.VersionResult{},
 			runtime.GetArtifact{VolumeHandle: volume.Handle()},
 			err,
+			volume,
 		}
 		return result, err
 	}
@@ -242,7 +244,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, er
 
 		// if error returned from running the actual script
 		if failErr, ok := err.(ErrResourceScriptFailed); ok {
-			result = GetResult{failErr.ExitStatus, runtime.VersionResult{}, runtime.GetArtifact{}, failErr}
+			result = getResultWithVolume{failErr.ExitStatus, runtime.VersionResult{}, runtime.GetArtifact{}, failErr, volume}
 			return result, nil
 		}
 		return result, err
@@ -268,7 +270,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, er
 	//	return nil, err
 	//}
 
-	return GetResult{
+	return getResultWithVolume{
 		VersionResult: vr,
 		GetArtifact: runtime.GetArtifact{
 			VolumeHandle: volume.Handle(),

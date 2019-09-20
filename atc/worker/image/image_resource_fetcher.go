@@ -167,29 +167,45 @@ func (i *imageResourceFetcher) Fetch(
 		TeamID: i.teamID,
 	}
 
+	resourceInstanceSignature, err := resourceInstance.Signature()
+	if err != nil {
+		logger.Error("failed-to-get-resource-instance-signature", err)
+		return nil, nil, nil, err
+	}
 	// The random placement strategy is not really used because the image
 	// resource will always find the same worker as the container that owns it
-	versionedSource, err := i.resourceFetcher.Fetch(
+	getResultWithVolume, err := i.resourceFetcher.Fetch(
 		ctx,
 		logger.Session("init-image"),
 		containerMetadata,
 		i.worker,
 		containerSpec,
+		worker.ProcessSpec{
+			Path:         "/opt/resource/out",
+			Args:         []string{resource.ResourcesDir("get")},
+			StdoutWriter: i.imageFetchingDelegate.Stdout(),
+			StderrWriter: i.imageFetchingDelegate.Stderr(),
+		},
 		i.customTypes,
-		resourceInstance,
+		resourceInstance.Source(),
+		resourceInstance.Params(),
+		resourceInstance.ContainerOwner(),
+		resource.ResourcesDir("get"),
+		resourceInstanceSignature,
 		i.imageFetchingDelegate,
+		resourceInstance.ResourceCache(),
 	)
+
 	if err != nil {
 		logger.Error("failed-to-fetch-image", err)
 		return nil, nil, nil, err
 	}
 
-	volume := versionedSource.Volume()
-	if volume == nil {
+	if getResultWithVolume.Volume == nil {
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
-	reader, err := versionedSource.StreamOut(ctx, ImageMetadataFile)
+	reader, err := getResultWithVolume.Volume.StreamOut(ctx, ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -210,7 +226,7 @@ func (i *imageResourceFetcher) Fetch(
 		},
 	}
 
-	return volume, releasingReader, version, nil
+	return getResultWithVolume.Volume, releasingReader, version, nil
 }
 
 func (i *imageResourceFetcher) ensureVersionOfType(

@@ -109,6 +109,14 @@ type GetResult struct {
 	Err           error
 }
 
+type getResultWithVolume struct {
+	Status        int
+	VersionResult runtime.VersionResult
+	GetArtifact   runtime.GetArtifact
+	Err           error
+	Volume		  Volume
+}
+
 type ProcessSpec struct {
 	Path         string
 	Args         []string
@@ -334,7 +342,7 @@ func (client *client) RunGetStep(
 	}
 
 	// start of dependency on resource -> worker
-	getResult, err := resourceFetcher.Fetch(
+	getResultWithVolume, err := resourceFetcher.Fetch(
 		ctx,
 		logger,
 		containerMetadata,
@@ -364,10 +372,15 @@ func (client *client) RunGetStep(
 
 	events <- runtime.Event{
 		EventType:     runtime.FinishedEvent,
-		ExitStatus:    getResult.Status,
-		VersionResult: getResult.VersionResult,
+		ExitStatus:    getResultWithVolume.Status,
+		VersionResult: getResultWithVolume.VersionResult,
 	}
-	return getResult, nil
+	return GetResult{
+		getResultWithVolume.Status,
+		getResultWithVolume.VersionResult,
+		getResultWithVolume.GetArtifact,
+		getResultWithVolume.Err,
+	}, nil
 }
 func (client *client) chooseTaskWorker(
 	ctx context.Context,
