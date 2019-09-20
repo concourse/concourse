@@ -83,7 +83,7 @@ func (t credVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) 
 // DummyCredVarsTracker do nothing,
 
 type dummyCredVarsTracker struct {
-	credVars          Variables
+	credVars Variables
 }
 
 func (t dummyCredVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
@@ -105,7 +105,7 @@ type MapCredVarsTrackerIterator struct {
 	Data map[string]interface{}
 }
 
-func NewMapCredVarsTrackerIterator() (*MapCredVarsTrackerIterator) {
+func NewMapCredVarsTrackerIterator() *MapCredVarsTrackerIterator {
 	return &MapCredVarsTrackerIterator{
 		Data: map[string]interface{}{},
 	}

@@ -1,24 +1,16 @@
 module FlySuccess.Text exposing
     ( Paragraph
     , copyTokenButton
-    , firstParagraphBlocked
-    , firstParagraphFailure
-    , firstParagraphSuccess
+    , firstParagraph
     , flyLoginLinkDescription
     , flyLoginLinkText
     , pending
-    , secondParagraphFailure
-    , secondParagraphSuccess
+    , secondParagraph
     , sendTokenButton
-    , thirdParagraphBlocked
     , title
     )
 
-import FlySuccess.Models as Models
-    exposing
-        ( ButtonState
-        , TransferFailure(..)
-        )
+import FlySuccess.Models as Models exposing (ButtonState)
 
 
 title : String
@@ -39,56 +31,57 @@ type alias Paragraph =
     List Line
 
 
-firstParagraphSuccess : Paragraph
-firstParagraphSuccess =
-    [ "your token has been transferred to fly." ]
+firstParagraph : Models.TokenTransfer -> Paragraph
+firstParagraph tokenTransfer =
+    case tokenTransfer of
+        Models.Pending ->
+            []
+
+        Models.Success ->
+            [ "your token has been transferred to fly." ]
+
+        Models.NetworkTrouble ->
+            [ "however, your token could not be"
+            , "sent to fly."
+            ]
+
+        Models.BlockedByBrowser ->
+            [ "however, your token could not be sent"
+            , "to fly because your browser blocked"
+            , "the attempt."
+            ]
+
+        Models.NoFlyPort ->
+            [ "however, your token could not be"
+            , "sent to fly."
+            ]
 
 
-secondParagraphSuccess : Paragraph
-secondParagraphSuccess =
-    [ "you may now close this window." ]
-
-
-firstParagraphFailure : Paragraph
-firstParagraphFailure =
-    [ "however, your token could not be"
-    , "sent to fly."
-    ]
-
-
-firstParagraphBlocked : Paragraph
-firstParagraphBlocked =
-    [ "however, your token could not be sent"
-    , "to fly because your browser blocked"
-    , "the attempt."
-    ]
-
-
-secondParagraphFailure : TransferFailure -> Paragraph
-secondParagraphFailure error =
+secondParagraph : Models.TokenTransfer -> Paragraph
+secondParagraph error =
     case error of
-        BlockedByBrowser ->
+        Models.Pending ->
+            []
+
+        Models.Success ->
+            [ "you may now close this window." ]
+
+        Models.NetworkTrouble ->
+            [ "after copying, return to fly and paste"
+            , "your token into the prompt."
+            ]
+
+        Models.BlockedByBrowser ->
             [ "if that fails, you will need to copy"
             , "the token to your clipboard, return"
             , "to fly, and paste your token into"
             , "the prompt."
             ]
 
-        NetworkTrouble ->
-            [ "after copying, return to fly and paste"
-            , "your token into the prompt."
-            ]
-
-        NoFlyPort ->
+        Models.NoFlyPort ->
             [ "could not find a valid fly port to send to."
             , "maybe your URL is broken?"
             ]
-
-
-thirdParagraphBlocked : Paragraph
-thirdParagraphBlocked =
-    [ "if that fails, click the button below:"
-    ]
 
 
 copyTokenButton : ButtonState -> String

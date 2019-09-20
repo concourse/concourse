@@ -80,7 +80,7 @@ func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lag
 		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
 	}
 
-	// This context is not passed down yet because it would pollute the 
+	// This context is not passed down yet because it would pollute the
 	// TaskConfigSource Interface as all the FetchConfigs will be need to have this passed in.
 	stream, err := source.StreamFile(ctx, logger, filePath)
 	if err != nil {

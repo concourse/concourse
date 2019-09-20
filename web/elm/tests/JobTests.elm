@@ -166,8 +166,7 @@ all =
                             , fragment = Nothing
                             }
                             |> Tuple.second
-                            |> List.member Effects.GetCurrentTimeZone
-                            |> Expect.true "should get current timezone"
+                            |> Common.contains Effects.GetCurrentTimeZone
                 , test "fetches pipelines" <|
                     \_ ->
                         Application.init
@@ -185,8 +184,7 @@ all =
                             , fragment = Nothing
                             }
                             |> Tuple.second
-                            |> List.member Effects.FetchPipelines
-                            |> Expect.true "should fetch pipelines"
+                            |> Common.contains Effects.FetchPipelines
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
                         Common.init "/teams/team/pipelines/pipeline/jobs/job"
@@ -990,10 +988,8 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.subscriptions
                     >> Expect.all
-                        [ List.member (Subscription.OnClockTick OneSecond)
-                            >> Expect.true "not on one second?"
-                        , List.member (Subscription.OnClockTick FiveSeconds)
-                            >> Expect.true "not on five seconds?"
+                        [ Common.contains (Subscription.OnClockTick OneSecond)
+                        , Common.contains (Subscription.OnClockTick FiveSeconds)
                         ]
             , test "on five-second timer, refreshes job and builds" <|
                 init { disabled = False, paused = False }
@@ -1004,10 +1000,8 @@ all =
                         )
                     >> Tuple.second
                     >> Expect.all
-                        [ List.member (Effects.FetchJobBuilds jobInfo Nothing)
-                            >> Expect.true "should refresh builds"
-                        , List.member (Effects.FetchJob jobInfo)
-                            >> Expect.true "should refresh job"
+                        [ Common.contains (Effects.FetchJobBuilds jobInfo Nothing)
+                        , Common.contains (Effects.FetchJob jobInfo)
                         ]
             , test "on one-second timer, updates build timestamps" <|
                 init { disabled = False, paused = False }

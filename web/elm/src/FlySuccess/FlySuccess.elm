@@ -8,13 +8,7 @@ module FlySuccess.FlySuccess exposing
     )
 
 import EffectTransformer exposing (ET)
-import FlySuccess.Models
-    exposing
-        ( ButtonState(..)
-        , Model
-        , TransferFailure(..)
-        , hover
-        )
+import FlySuccess.Models as Models exposing (ButtonState(..), Model, hover)
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
@@ -24,14 +18,13 @@ import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
-import Message.Subscription
+import Message.Subscription as Subscription
     exposing
         ( Delivery(..)
         , RawHttpResponse(..)
         , Subscription(..)
         )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
-import RemoteData
 import Routes
 import UserState exposing (UserState)
 import Views.Icon as Icon
@@ -39,26 +32,34 @@ import Views.Styles
 import Views.TopBar as TopBar
 
 
-init : { authToken : String, flyPort : Maybe Int } -> ( Model, List Effect )
-init { authToken, flyPort } =
+init :
+    { authToken : String
+    , flyPort : Maybe Int
+    , noop : Bool
+    }
+    -> ( Model, List Effect )
+init { authToken, flyPort, noop } =
     ( { copyTokenButtonState = Unhovered
       , sendTokenButtonState = Unhovered
       , authToken = authToken
       , tokenTransfer =
-            case flyPort of
-                Just _ ->
-                    RemoteData.Loading
+            case ( noop, flyPort ) of
+                ( False, Just _ ) ->
+                    Models.Pending
 
-                Nothing ->
-                    RemoteData.Failure NoFlyPort
+                ( False, Nothing ) ->
+                    Models.NoFlyPort
+
+                ( True, _ ) ->
+                    Models.Success
       , isUserMenuExpanded = False
       , flyPort = flyPort
       }
-    , case flyPort of
-        Just fp ->
+    , case ( noop, flyPort ) of
+        ( False, Just fp ) ->
             [ SendTokenToFly authToken fp ]
 
-        Nothing ->
+        _ ->
             []
     )
 
@@ -66,18 +67,14 @@ init { authToken, flyPort } =
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        TokenSentToFly Success ->
-            ( { model | tokenTransfer = RemoteData.Success () }, effects )
+        TokenSentToFly Subscription.Success ->
+            ( { model | tokenTransfer = Models.Success }, effects )
 
-        TokenSentToFly NetworkError ->
-            ( { model | tokenTransfer = RemoteData.Failure NetworkTrouble }
-            , effects
-            )
+        TokenSentToFly Subscription.NetworkError ->
+            ( { model | tokenTransfer = Models.NetworkTrouble }, effects )
 
-        TokenSentToFly BrowserError ->
-            ( { model | tokenTransfer = RemoteData.Failure BlockedByBrowser }
-            , effects
-            )
+        TokenSentToFly Subscription.BrowserError ->
+            ( { model | tokenTransfer = Models.BlockedByBrowser }, effects )
 
         _ ->
             ( model, effects )
@@ -87,12 +84,16 @@ update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
         Hover (Just CopyTokenButton) ->
-            ( { model | copyTokenButtonState = hover True model.copyTokenButtonState }
+            ( { model
+                | copyTokenButtonState = hover True model.copyTokenButtonState
+              }
             , effects
             )
 
         Hover (Just SendTokenButton) ->
-            ( { model | sendTokenButtonState = hover True model.sendTokenButtonState }
+            ( { model
+                | sendTokenButtonState = hover True model.sendTokenButtonState
+              }
             , effects
             )
 
@@ -134,7 +135,7 @@ view userState model =
             , Html.div
                 (id "page-below-top-bar"
                     :: (Views.Styles.pageBelowTopBar <|
-                            Routes.FlySuccess Nothing
+                            Routes.FlySuccess False Nothing
                        )
                 )
                 [ Html.div
@@ -155,67 +156,33 @@ view userState model =
 body : Model -> List (Html Message)
 body model =
     let
-        elemList =
-            List.filter Tuple.second >> List.map Tuple.first
+        p1 =
+            paragraph
+                { identifier = "first-paragraph"
+                , lines = Text.firstParagraph model.tokenTransfer
+                }
+
+        p2 =
+            paragraph
+                { identifier = "second-paragraph"
+                , lines = Text.secondParagraph model.tokenTransfer
+                }
     in
     case model.tokenTransfer of
-        RemoteData.Loading ->
+        Models.Pending ->
             [ Html.text Text.pending ]
 
-        RemoteData.NotAsked ->
-            [ Html.text Text.pending ]
+        Models.Success ->
+            [ p1, p2 ]
 
-        RemoteData.Success () ->
-            elemList
-                [ ( paragraph
-                        { identifier = "first-paragraph"
-                        , lines = Text.firstParagraphSuccess
-                        }
-                  , True
-                  )
-                , ( copyTokenButton model, False )
-                , ( paragraph
-                        { identifier = "second-paragraph"
-                        , lines = Text.secondParagraphSuccess
-                        }
-                  , True
-                  )
-                ]
+        Models.NetworkTrouble ->
+            [ p1, copyTokenButton model, p2 ]
 
-        RemoteData.Failure BlockedByBrowser ->
-            elemList
-                [ ( paragraph
-                        { identifier = "first-paragraph"
-                        , lines = Text.firstParagraphBlocked
-                        }
-                  , True
-                  )
-                , ( sendTokenButton model, True )
-                , ( paragraph
-                        { identifier = "second-paragraph"
-                        , lines = Text.secondParagraphFailure BlockedByBrowser
-                        }
-                  , True
-                  )
-                , ( copyTokenButton model, True )
-                ]
+        Models.BlockedByBrowser ->
+            [ p1, sendTokenButton model, p2, copyTokenButton model ]
 
-        RemoteData.Failure err ->
-            elemList
-                [ ( paragraph
-                        { identifier = "first-paragraph"
-                        , lines = Text.firstParagraphFailure
-                        }
-                  , True
-                  )
-                , ( copyTokenButton model, True )
-                , ( paragraph
-                        { identifier = "second-paragraph"
-                        , lines = Text.secondParagraphFailure err
-                        }
-                  , True
-                  )
-                ]
+        Models.NoFlyPort ->
+            [ p1, copyTokenButton model, p2 ]
 
 
 paragraph : { identifier : String, lines : Text.Paragraph } -> Html Message
