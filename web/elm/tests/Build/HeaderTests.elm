@@ -4,6 +4,7 @@ import Application.Models exposing (Session)
 import Build.Header.Header as Header
 import Build.Header.Models as Models
 import Build.Header.Views as Views
+import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Expect
@@ -26,8 +27,7 @@ all =
                 \_ ->
                     Header.header session model
                         |> .leftWidgets
-                        |> List.member (Views.Title "0" Nothing)
-                        |> Expect.equal True
+                        |> Common.contains (Views.Title "0" Nothing)
             ]
         , test "cancelled build has cancelled duration" <|
             \_ ->
@@ -39,12 +39,11 @@ all =
                             }
                     }
                     |> .leftWidgets
-                    |> List.member
+                    |> Common.contains
                         (Views.Duration <|
                             Views.Cancelled <|
                                 Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
                         )
-                    |> Expect.equal True
         , test "finished build has duration" <|
             \_ ->
                 Header.header session
@@ -55,7 +54,7 @@ all =
                             }
                     }
                     |> .leftWidgets
-                    |> List.member
+                    |> Common.contains
                         (Views.Duration <|
                             Views.Finished
                                 { started =
@@ -65,7 +64,6 @@ all =
                                 , duration = Views.JustSeconds 1
                                 }
                         )
-                    |> Expect.equal True
         , test "stops fetching history once current build appears" <|
             \_ ->
                 let
@@ -98,8 +96,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> List.member (Effects.FetchBuildHistory jobId Nothing)
-                    |> Expect.equal False
+                    |> Common.notContains (Effects.FetchBuildHistory jobId Nothing)
         ]
 
 
