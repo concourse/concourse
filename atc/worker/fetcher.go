@@ -9,8 +9,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/concourse/concourse/atc/runtime"
-
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -146,20 +144,13 @@ func (f *fetcher) fetchWithLock(
 	cache db.UsedResourceCache,
 	lockName string,
 ) (GetResult, error) {
-	volume, found, err := source.Find()
+	findResult, found, err := source.Find()
 	if err != nil {
 		return GetResult{}, err
 	}
 
 	if found {
-		result := GetResult{
-			0,
-			// todo: figure out what logically should be returned for VersionResult
-			runtime.VersionResult{},
-			runtime.GetArtifact{VolumeHandle: volume.Handle()},
-			nil,
-		}
-		return result, nil
+		return findResult, nil
 	}
 
 	lockLogger := logger.Session("lock-task", lager.Data{"lock-name": lockName})

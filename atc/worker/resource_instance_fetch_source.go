@@ -16,7 +16,7 @@ import (
 
 type FetchSource interface {
 	//LockName() (string, error)
-	Find() (Volume, bool, error)
+	Find() (GetResult, bool, error)
 	Create(context.Context) (GetResult, error)
 }
 
@@ -105,30 +105,49 @@ func findOn(logger lager.Logger, w Worker, cache db.UsedResourceCache) (volume V
 	)
 }
 
-func (s *resourceInstanceFetchSource) Find() (Volume, bool, error) {
+func (s *resourceInstanceFetchSource) Find() (GetResult, bool, error) {
 	sLog := s.logger.Session("find")
+	result := GetResult{}
+
 
 	volume, found, err := findOn(s.logger, s.worker, s.cache)
 	if err != nil {
 		sLog.Error("failed-to-find-initialized-on", err)
-		return nil, false, err
+		return result, false, err
 	}
 
 	if !found {
-		return nil, false, nil
+		return result, false, nil
 	}
 
-	// TODO use the method below to get the resource metadata and change the Find() signature to return a GetResult rather than volume
-	//metadata, err := s.dbResourceCacheFactory.ResourceCacheMetadata(s.resourceInstance.ResourceCache())
-	//if err != nil {
-	//	sLog.Error("failed-to-get-resource-cache-metadata", err)
-	//	return nil, false, err
-	//}
-	//
+	metadata, err := s.dbResourceCacheFactory.ResourceCacheMetadata(s.cache)
+	if err != nil {
+		sLog.Error("failed-to-get-resource-cache-metadata", err)
+		return result, false, err
+	}
+
+	// TODO pass version down so it can be used in the log statement.
 	//s.logger.Debug("found-initialized-versioned-source", lager.Data{"version": s.resourceInstance.Version(), "metadata": metadata.ToATCMetadata()})
 
-	return volume,
-		true, nil
+	atcMetaData := []atc.MetadataField{}
+	for _, m := range metadata {
+		atcMetaData = append(atcMetaData, atc.MetadataField{
+			Name: m.Name,
+			Value: m.Value,
+		})
+	}
+
+
+	return GetResult{
+		0,
+		// todo: figure out what logically should be returned for VersionResult
+		runtime.VersionResult{
+			Metadata: atcMetaData,
+		},
+		runtime.GetArtifact{VolumeHandle: volume.Handle()},
+		nil,
+	},
+	true, nil
 }
 
 // Create runs under the lock but we need to make sure volume does not exist
@@ -136,21 +155,15 @@ func (s *resourceInstanceFetchSource) Find() (Volume, bool, error) {
 func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, error) {
 	sLog := s.logger.Session("create")
 	result := GetResult{}
+	var volume Volume
 
-	volume, found, err := s.Find()
+	findResult, found, err := s.Find()
 	if err != nil {
 		return result, err
 	}
 
 	if found {
-		result = GetResult{
-			0,
-			// todo: figure out what logically should be returned for VersionResult
-			runtime.VersionResult{},
-			runtime.GetArtifact{VolumeHandle: volume.Handle()},
-			nil,
-		}
-		return result, nil
+		return findResult, nil
 	}
 
 	s.containerSpec.BindMounts = []BindMountSource{
