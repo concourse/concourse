@@ -677,11 +677,18 @@ func (p *pipeline) Destroy() error {
 }
 
 func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
 	var cacheIndex int
-	err := psql.Select("cache_index").
+	err = psql.Select("cache_index").
 		From("pipelines").
 		Where(sq.Eq{"id": p.id}).
-		RunWith(p.conn).
+		RunWith(tx).
 		QueryRow().
 		Scan(&cacheIndex)
 	if err != nil {
@@ -714,7 +721,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -747,7 +754,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -790,7 +797,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 			"d.resource_id": nil,
 			"d.version_md5": nil,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -811,7 +818,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err = psql.Select("j.name, j.id").
 		From("jobs j").
 		Where(sq.Eq{"j.pipeline_id": p.id}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -833,7 +840,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err = psql.Select("r.name, r.id").
 		From("resources r").
 		Where(sq.Eq{"r.pipeline_id": p.id}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -850,6 +857,11 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		}
 
 		db.ResourceIDs[name] = id
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	p.versionsDB = db

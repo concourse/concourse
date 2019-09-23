@@ -52,22 +52,7 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 		return nil, err
 	}
 
-	var jobIDs []int
-	for _, job := range jobs {
-		jobIDs = append(jobIDs, job.ID())
-	}
-
-	nextBuilds, err := j.getBuildsFrom(tx, "next_build_id", jobIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	finishedBuilds, err := j.getBuildsFrom(tx, "latest_completed_build_id", jobIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	transitionBuilds, err := j.getBuildsFrom(tx, "transition_build_id", jobIDs)
+	dashboard, err := j.buildDashboard(tx, jobs)
 	if err != nil {
 		return nil, err
 	}
@@ -75,25 +60,6 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	dashboard := Dashboard{}
-	for _, job := range jobs {
-		dashboardJob := DashboardJob{Job: job}
-
-		if nextBuild, found := nextBuilds[job.ID()]; found {
-			dashboardJob.NextBuild = nextBuild
-		}
-
-		if finishedBuild, found := finishedBuilds[job.ID()]; found {
-			dashboardJob.FinishedBuild = finishedBuild
-		}
-
-		if transitionBuild, found := transitionBuilds[job.ID()]; found {
-			dashboardJob.TransitionBuild = transitionBuild
-		}
-
-		dashboard = append(dashboard, dashboardJob)
 	}
 
 	return dashboard, nil
@@ -123,7 +89,17 @@ func (j *jobFactory) AllActiveJobs() (Dashboard, error) {
 		return nil, err
 	}
 
-	return j.buildDashboard(tx, jobs)
+	dashboard, err := j.buildDashboard(tx, jobs)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return dashboard, nil
 }
 
 func (j *jobFactory) buildDashboard(tx Tx, jobs Jobs) (Dashboard, error) {
@@ -174,7 +150,8 @@ func (j *jobFactory) getBuildsFrom(tx Tx, col string, jobIDs []int) (map[int]Bui
 	rows, err := buildsQuery.
 		Where(sq.Eq{"j.id": jobIDs}).
 		Where(sq.Expr("j." + col + " = b.id")).
-		RunWith(tx).Query()
+		RunWith(tx).
+		Query()
 	if err != nil {
 		return nil, err
 	}

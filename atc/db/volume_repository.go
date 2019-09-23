@@ -56,13 +56,13 @@ func NewVolumeRepository(conn Conn) VolumeRepository {
 	}
 }
 
-func (repository *volumeRepository) queryVolumeHandles(cond sq.Eq) ([]string, error) {
+func (repository *volumeRepository) queryVolumeHandles(tx Tx, cond sq.Eq) ([]string, error) {
 	query, args, err := psql.Select("handle").From("volumes").Where(cond).ToSql()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := repository.conn.Query(query, args...)
+	rows, err := tx.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -89,31 +89,33 @@ func (repository *volumeRepository) UpdateVolumesMissingSince(workerName string,
 	// clear out missing_since for reported volumes
 	query, args, err := psql.Update("volumes").
 		Set("missing_since", nil).
-		Where(
-			sq.And{
-				sq.NotEq{
-					"missing_since": nil,
-				},
-				sq.Eq{
-					"handle": reportedHandles,
-				},
-			},
+		Where(sq.And{
+			sq.Eq{"handle": reportedHandles},
+			sq.NotEq{"missing_since": nil},
+		},
 		).ToSql()
 	if err != nil {
 		return err
 	}
 
-	rows, err := repository.conn.Query(query, args...)
+	tx, err := repository.conn.Begin()
 	if err != nil {
 		return err
 	}
 
-	Close(rows)
+	defer Rollback(tx)
 
-	dbHandles, err := repository.queryVolumeHandles(sq.Eq{
-		"worker_name":   workerName,
-		"missing_since": nil,
-	})
+	_, err = tx.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	dbHandles, err := repository.queryVolumeHandles(
+		tx,
+		sq.Eq{
+			"worker_name":   workerName,
+			"missing_since": nil,
+		})
 	if err != nil {
 		return err
 	}
@@ -130,14 +132,12 @@ func (repository *volumeRepository) UpdateVolumesMissingSince(workerName string,
 		return err
 	}
 
-	rows, err = repository.conn.Query(query, args...)
+	_, err = tx.Exec(query, args...)
 	if err != nil {
 		return err
 	}
 
-	defer Close(rows)
-
-	return nil
+	return tx.Commit()
 }
 
 func (repository *volumeRepository) RemoveMissingVolumes(gracePeriod time.Duration) (int, error) {
@@ -532,12 +532,30 @@ func (repository *volumeRepository) DestroyFailedVolumes() (int, error) {
 }
 
 func (repository *volumeRepository) GetDestroyingVolumes(workerName string) ([]string, error) {
-	return repository.queryVolumeHandles(
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	volumes, err := repository.queryVolumeHandles(
+		tx,
 		sq.Eq{
 			"state":       string(VolumeStateDestroying),
 			"worker_name": workerName,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return volumes, nil
 }
 
 // 1. open tx

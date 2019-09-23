@@ -45,13 +45,13 @@ func diff(a, b []string) (diff []string) {
 	return
 }
 
-func (repository *containerRepository) queryContainerHandles(cond sq.Eq) ([]string, error) {
+func (repository *containerRepository) queryContainerHandles(tx Tx, cond sq.Eq) ([]string, error) {
 	query, args, err := psql.Select("handle").From("containers").Where(cond).ToSql()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := repository.conn.Query(query, args...)
+	rows, err := tx.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -92,14 +92,21 @@ func (repository *containerRepository) UpdateContainersMissingSince(workerName s
 		return err
 	}
 
-	rows, err := repository.conn.Query(query, args...)
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	rows, err := tx.Query(query, args...)
 	if err != nil {
 		return err
 	}
 
 	Close(rows)
 
-	dbHandles, err := repository.queryContainerHandles(sq.Eq{
+	dbHandles, err := repository.queryContainerHandles(tx, sq.Eq{
 		"worker_name":   workerName,
 		"missing_since": nil,
 	})
@@ -119,24 +126,42 @@ func (repository *containerRepository) UpdateContainersMissingSince(workerName s
 		return err
 	}
 
-	rows, err = repository.conn.Query(query, args...)
+	_, err = tx.Exec(query, args...)
 	if err != nil {
 		return err
 	}
 
-	defer Close(rows)
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (repository *containerRepository) FindDestroyingContainers(workerName string) ([]string, error) {
-	return repository.queryContainerHandles(
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	destroyingContainers, err := repository.queryContainerHandles(
+		tx,
 		sq.Eq{
 			"state":        atc.ContainerStateDestroying,
 			"worker_name":  workerName,
 			"discontinued": false,
 		},
 	)
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return destroyingContainers, err
 }
 
 func (repository *containerRepository) RemoveMissingContainers(gracePeriod time.Duration) (int, error) {
