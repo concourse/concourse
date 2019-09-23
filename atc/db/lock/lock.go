@@ -27,8 +27,6 @@ const (
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
 
-const lockTimeout = time.Second
-
 func NewBuildTrackingLockID(buildID int) LockID {
 	return LockID{LockTypeBuildTracking, buildID}
 }
@@ -160,7 +158,7 @@ type lock struct {
 }
 
 func (l *lock) Acquire() (bool, error) {
-	if l.mutex.Lock(lockTimeout) {
+	if l.mutex.Lock(time.Second) {
 		defer l.mutex.Unlock()
 
 		logger := l.logger.Session("acquire", lager.Data{"id": l.id})
