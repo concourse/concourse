@@ -10,8 +10,8 @@ import (
 	"runtime"
 
 	"github.com/concourse/concourse/fly/rc"
-	"sigs.k8s.io/yaml"
 	"golang.org/x/oauth2"
+	"sigs.k8s.io/yaml"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

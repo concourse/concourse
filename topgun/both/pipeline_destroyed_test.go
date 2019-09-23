@@ -3,8 +3,8 @@ package topgun_test
 import (
 	"time"
 
-	. "github.com/concourse/concourse/topgun/common"
 	"code.cloudfoundry.org/garden"
+	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

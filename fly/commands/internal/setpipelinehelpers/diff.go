@@ -9,9 +9,9 @@ import (
 
 	"github.com/aryann/difflib"
 	"github.com/concourse/concourse/atc"
-	"sigs.k8s.io/yaml"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gexec"
+	"sigs.k8s.io/yaml"
 )
 
 type Index interface {

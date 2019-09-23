@@ -36,7 +36,7 @@ pageBelowTopBar : Routes.Route -> List (Html.Attribute msg)
 pageBelowTopBar route =
     style "padding-top" "54px"
         :: (case route of
-                Routes.FlySuccess _ ->
+                Routes.FlySuccess _ _ ->
                     [ style "height" "100%" ]
 
                 Routes.Resource _ ->

@@ -45,10 +45,8 @@ all =
                 Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
                     |> Expect.all
-                        [ List.member Subscription.OnNonHrefLinkClicked
-                            >> Expect.true "not subscribed to the weird pipeline links?"
-                        , List.member Subscription.OnTokenReceived
-                            >> Expect.true "not subscribed to token callback?"
+                        [ Common.contains Subscription.OnNonHrefLinkClicked
+                        , Common.contains Subscription.OnTokenReceived
                         ]
         , test "clicking a not-automatically-linked box in the pipeline redirects" <|
             \_ ->

@@ -1,11 +1,11 @@
 package configserver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"context"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -13,9 +13,9 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/vars"
-	"sigs.k8s.io/yaml"
 	"github.com/hashicorp/go-multierror"
 	"github.com/tedsuo/rata"
+	"sigs.k8s.io/yaml"
 )
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
