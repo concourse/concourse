@@ -27,7 +27,7 @@ const (
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
 
-const lockTimeout = 10 * time.Second
+const lockTimeout = time.Second
 
 func NewBuildTrackingLockID(buildID int) LockID {
 	return LockID{LockTypeBuildTracking, buildID}
@@ -187,8 +187,6 @@ func (l *lock) Acquire() (bool, error) {
 
 		return true, nil
 	}
-
-	l.logger.Debug("timed-out-acquiring-lock")
 	return false, nil
 }
 
