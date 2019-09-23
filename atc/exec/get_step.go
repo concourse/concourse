@@ -77,6 +77,7 @@ func NewGetStep(
 	strategy worker.ContainerPlacementStrategy,
 	workerPool worker.Pool,
 	delegate GetDelegate,
+	client worker.Client,
 ) Step {
 	return &GetStep{
 		planID:               planID,
@@ -88,6 +89,7 @@ func NewGetStep(
 		strategy:             strategy,
 		workerPool:           workerPool,
 		delegate:             delegate,
+		workerClient:         client,
 	}
 }
 
@@ -261,6 +263,8 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		if step.plan.Resource != "" {
 			step.delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
 		}
+
+		step.delegate.Finished(logger, 0, getResult.VersionResult)
 
 		step.succeeded = true
 	} else {

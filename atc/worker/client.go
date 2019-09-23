@@ -114,7 +114,7 @@ type getResultWithVolume struct {
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
 	Err           error
-	Volume		  Volume
+	Volume        Volume
 }
 
 type ProcessSpec struct {
@@ -337,9 +337,9 @@ func (client *client) RunGetStep(
 		return GetResult{}, err
 	}
 
-	events <- runtime.Event{
-		EventType: runtime.StartingEvent,
-	}
+	//events <- runtime.Event{
+	//	EventType: runtime.StartingEvent,
+	//}
 
 	// start of dependency on resource -> worker
 	getResultWithVolume, err := resourceFetcher.Fetch(

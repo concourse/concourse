@@ -60,8 +60,6 @@ type fetcher struct {
 	fetchSourceFactory FetchSourceFactory
 }
 
-// TODO: end of the above TODO
-
 func (f *fetcher) Fetch(
 	ctx context.Context,
 	logger lager.Logger,
@@ -96,7 +94,9 @@ func (f *fetcher) Fetch(
 
 	resultWithVolume, err = f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
 	if err != ErrFailedToGetLock {
-		return getResultWithVolume{}, err
+		fmt.Printf("=== fetcher->Fetch: got error but not ErrFailedToGetLock ==== err: %#v\n\n", err)
+		//return getResultWithVolume{}, err
+		return resultWithVolume, err
 	}
 
 	for {
@@ -104,30 +104,33 @@ func (f *fetcher) Fetch(
 		case <-ticker.C():
 			//TODO this is called redundantly?
 			resultWithVolume, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
+			fmt.Printf("OMG fetcher->Fetch fetchWithLock #2 in FOR LOOP resultWithVolume %#v, err: %#v", resultWithVolume, err)
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break
 				}
-				return resultWithVolume, err
+				fmt.Printf("=== fetcher->Fetch: got error but not ErrFailedToGetLock ==== resultWithVolume: %#v, err: %#v\n\n", resultWithVolume, err)
+				return getResultWithVolume{}, err
 			}
 
+			fmt.Printf("=== fetcher->Fetch: got NO err\n")
 			return resultWithVolume, nil
 
 		case <-ctx.Done():
-			return resultWithVolume, ctx.Err()
+			return getResultWithVolume{}, ctx.Err()
 		}
 	}
 }
 
 type lockID struct {
 	ResourceInstanceSignature string `json:"resource_instance_signature,omitempty"`
-	WorkerName string      `json:"worker_name,omitempty"`
+	WorkerName                string `json:"worker_name,omitempty"`
 }
 
 func lockName(resourceInstanceSignature string, workerName string) (string, error) {
 	id := &lockID{
 		ResourceInstanceSignature: resourceInstanceSignature,
-		WorkerName: workerName,
+		WorkerName:                workerName,
 	}
 
 	taskNameJSON, err := json.Marshal(id)

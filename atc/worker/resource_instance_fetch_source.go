@@ -5,6 +5,8 @@ package worker
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/concourse/concourse/atc/runtime"
 
 	"code.cloudfoundry.org/lager"
@@ -68,10 +70,10 @@ func (r *fetchSourceFactory) NewFetchSource(
 	return &resourceInstanceFetchSource{
 		logger:                 logger,
 		worker:                 worker,
-		source: source,
-		params: params,
-		owner: owner,
-		resourceDir: resourceDir,
+		source:                 source,
+		params:                 params,
+		owner:                  owner,
+		resourceDir:            resourceDir,
 		cache:                  cache,
 		resourceTypes:          resourceTypes,
 		containerSpec:          containerSpec,
@@ -85,10 +87,10 @@ func (r *fetchSourceFactory) NewFetchSource(
 type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
 	worker                 Worker
-	source atc.Source
-	params atc.Params
-	owner db.ContainerOwner
-	resourceDir string
+	source                 atc.Source
+	params                 atc.Params
+	owner                  db.ContainerOwner
+	resourceDir            string
 	cache                  db.UsedResourceCache
 	resourceTypes          atc.VersionedResourceTypes
 	containerSpec          ContainerSpec
@@ -108,7 +110,6 @@ func findOn(logger lager.Logger, w Worker, cache db.UsedResourceCache) (volume V
 func (s *resourceInstanceFetchSource) Find() (getResultWithVolume, bool, error) {
 	sLog := s.logger.Session("find")
 	result := getResultWithVolume{}
-
 
 	volume, found, err := findOn(s.logger, s.worker, s.cache)
 	if err != nil {
@@ -132,23 +133,22 @@ func (s *resourceInstanceFetchSource) Find() (getResultWithVolume, bool, error) 
 	atcMetaData := []atc.MetadataField{}
 	for _, m := range metadata {
 		atcMetaData = append(atcMetaData, atc.MetadataField{
-			Name: m.Name,
+			Name:  m.Name,
 			Value: m.Value,
 		})
 	}
 
-
 	return getResultWithVolume{
-		0,
-		// todo: figure out what logically should be returned for VersionResult
-		runtime.VersionResult{
-			Metadata: atcMetaData,
+			0,
+			// todo: figure out what logically should be returned for VersionResult
+			runtime.VersionResult{
+				Metadata: atcMetaData,
+			},
+			runtime.GetArtifact{VolumeHandle: volume.Handle()},
+			nil,
+			volume,
 		},
-		runtime.GetArtifact{VolumeHandle: volume.Handle()},
-		nil,
-		volume,
-	},
-	true, nil
+		true, nil
 }
 
 // Create runs under the lock but we need to make sure volume does not exist
@@ -187,7 +187,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (getResultWith
 			1,
 			// todo: figure out what logically should be returned for VersionResult
 			runtime.VersionResult{},
-			runtime.GetArtifact{VolumeHandle: volume.Handle()},
+			runtime.GetArtifact{},
 			err,
 			volume,
 		}
@@ -203,7 +203,8 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (getResultWith
 	}
 
 	vr := runtime.VersionResult{}
-	events := make(chan runtime.Event)
+	// TODO This is pure EVIL
+	events := make(chan runtime.Event, 100)
 
 	// todo: we want to decouple this resource from the container
 	//res := s.resourceFactory.NewResourceForContainer(container)
