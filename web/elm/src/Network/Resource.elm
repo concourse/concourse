@@ -3,6 +3,7 @@ module Network.Resource exposing
     , enableDisableVersionedResource
     , fetchAllResources
     , fetchCausality
+    , fetchCheck
     , fetchInputTo
     , fetchOutputOf
     , fetchResource
@@ -208,7 +209,7 @@ unpinVersion rid csrfToken =
 check :
     Concourse.ResourceIdentifier
     -> Concourse.CSRFToken
-    -> Task Http.Error ()
+    -> Task Http.Error Concourse.Check
 check rid csrfToken =
     Http.toTask <|
         Http.request
@@ -225,10 +226,27 @@ check rid csrfToken =
             , body =
                 Http.jsonBody <|
                     Json.Encode.object [ ( "from", Json.Encode.null ) ]
-            , expect = Http.expectStringResponse (\_ -> Ok ())
+            , expect = Http.expectJson Concourse.decodeCheck
             , timeout = Nothing
             , withCredentials = False
             }
+
+
+fetchCheck :
+    Concourse.CheckIdentifier
+    -> Task Http.Error Concourse.Check
+fetchCheck cid =
+    Http.toTask
+        << (\a -> Http.get a Concourse.decodeCheck)
+    <|
+        "/api/v1/teams/"
+            ++ cid.teamName
+            ++ "/pipelines/"
+            ++ cid.pipelineName
+            ++ "/resources/"
+            ++ cid.resourceName
+            ++ "/check/"
+            ++ String.fromInt cid.checkID
 
 
 setPinComment :
