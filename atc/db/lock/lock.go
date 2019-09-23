@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 )
@@ -66,9 +65,9 @@ type LockFactory interface {
 }
 
 type lockFactory struct {
-	db    LockDB
-	locks lockRepo
-	mutex *mutex
+	db           LockDB
+	locks        lockRepo
+	acquireMutex *sync.Mutex
 
 	acquireFunc LogFunc
 	releaseFunc LogFunc
@@ -92,7 +91,7 @@ func NewLockFactory(
 			locks: map[string]bool{},
 			mutex: &sync.Mutex{},
 		},
-		mutex: &mutex{make(chan struct{}, 1)},
+		acquireMutex: &sync.Mutex{},
 	}
 }
 
@@ -103,21 +102,21 @@ func NewTestLockFactory(db LockDB) LockFactory {
 			locks: map[string]bool{},
 			mutex: &sync.Mutex{},
 		},
-		mutex:       &mutex{make(chan struct{}, 1)},
-		acquireFunc: func(logger lager.Logger, id LockID) {},
-		releaseFunc: func(logger lager.Logger, id LockID) {},
+		acquireMutex: &sync.Mutex{},
+		acquireFunc:  func(logger lager.Logger, id LockID) {},
+		releaseFunc:  func(logger lager.Logger, id LockID) {},
 	}
 }
 
 func (f *lockFactory) Acquire(logger lager.Logger, id LockID) (Lock, bool, error) {
 	l := &lock{
-		logger:   logger,
-		db:       f.db,
-		id:       id,
-		locks:    f.locks,
-		mutex:    f.mutex,
-		acquired: f.acquireFunc,
-		released: f.releaseFunc,
+		logger:       logger,
+		db:           f.db,
+		id:           id,
+		locks:        f.locks,
+		acquireMutex: f.acquireMutex,
+		acquired:     f.acquireFunc,
+		released:     f.releaseFunc,
 	}
 
 	acquired, err := l.Acquire()
@@ -148,44 +147,42 @@ type LockDB interface {
 type lock struct {
 	id LockID
 
-	logger lager.Logger
-	db     LockDB
-	locks  lockRepo
-	mutex  *mutex
+	logger       lager.Logger
+	db           LockDB
+	locks        lockRepo
+	acquireMutex *sync.Mutex
 
 	acquired LogFunc
 	released LogFunc
 }
 
 func (l *lock) Acquire() (bool, error) {
-	if l.mutex.Lock(time.Second) {
-		defer l.mutex.Unlock()
+	l.acquireMutex.Lock()
+	defer l.acquireMutex.Unlock()
 
-		logger := l.logger.Session("acquire", lager.Data{"id": l.id})
+	logger := l.logger.Session("acquire", lager.Data{"id": l.id})
 
-		if l.locks.IsRegistered(l.id) {
-			logger.Debug("not-acquired-already-held-locally")
-			return false, nil
-		}
-
-		acquired, err := l.db.Acquire(l.id)
-		if err != nil {
-			logger.Error("failed-to-register-in-db", err)
-			return false, err
-		}
-
-		if !acquired {
-			logger.Debug("not-acquired-already-held-in-db")
-			return false, nil
-		}
-
-		l.locks.Register(l.id)
-
-		l.acquired(logger, l.id)
-
-		return true, nil
+	if l.locks.IsRegistered(l.id) {
+		logger.Debug("not-acquired-already-held-locally")
+		return false, nil
 	}
-	return false, nil
+
+	acquired, err := l.db.Acquire(l.id)
+	if err != nil {
+		logger.Error("failed-to-register-in-db", err)
+		return false, err
+	}
+
+	if !acquired {
+		logger.Debug("not-acquired-already-held-in-db")
+		return false, nil
+	}
+
+	l.locks.Register(l.id)
+
+	l.acquired(logger, l.id)
+
+	return true, nil
 }
 
 func (l *lock) Release() error {
@@ -206,23 +203,6 @@ func (l *lock) Release() error {
 	l.released(logger, l.id)
 
 	return nil
-}
-
-type mutex struct {
-	c chan struct{}
-}
-
-func (m *mutex) Lock(timeout time.Duration) bool {
-	select {
-	case m.c <- struct{}{}:
-		return true
-	case <-time.After(timeout):
-	}
-	return false
-}
-
-func (m *mutex) Unlock() {
-	<-m.c
 }
 
 type lockDB struct {

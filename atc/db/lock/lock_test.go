@@ -104,36 +104,6 @@ var _ = Describe("Locks", func() {
 			Expect(acquired).To(BeFalse())
 		})
 
-		It("Acquire times out acquiring the mutex lock", func() {
-
-			done := make(chan struct{})
-			readyToAcquire := make(chan struct{})
-
-			fakeLockDB := new(lockfakes.FakeLockDB)
-			factory := lock.NewTestLockFactory(fakeLockDB)
-
-			fakeLockDB.AcquireStub = func(id lock.LockID) (bool, error) {
-				select {
-				case <-time.After(time.Minute):
-				case <-done:
-				}
-				return true, nil
-			}
-
-			go func() {
-				close(readyToAcquire)
-				_, acquired, err := factory.Acquire(logger, lock.LockID{42})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-			}()
-
-			<-readyToAcquire
-			_, acquired, err := factory.Acquire(logger, lock.LockID{420000})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(acquired).To(BeFalse())
-			close(done)
-		})
-
 		It("Acquire accepts list of ids", func() {
 			var acquired bool
 			var err error
