@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
@@ -122,6 +123,7 @@ func (command *WorkersCommand) tableFor(workers []worker) ui.Table {
 		{Contents: "team", Color: color.New(color.Bold)},
 		{Contents: "state", Color: color.New(color.Bold)},
 		{Contents: "version", Color: color.New(color.Bold)},
+		{Contents: "age", Color: color.New(color.Bold)},
 	}
 
 	if command.Details {
@@ -143,7 +145,8 @@ func (command *WorkersCommand) tableFor(workers []worker) ui.Table {
 			stringOrDefault(strings.Join(w.Tags, ", ")),
 			stringOrDefault(w.Team),
 			{Contents: w.State},
-			w.VersionCell(),
+			w.versionCell(),
+			w.ageCell(),
 		}
 
 		if command.Details {
@@ -176,7 +179,7 @@ type worker struct {
 	outdated bool
 }
 
-func (w *worker) VersionCell() ui.TableCell {
+func (w *worker) versionCell() ui.TableCell {
 	var column ui.TableCell
 	if w.Version != "" {
 		column.Contents = w.Version
@@ -187,6 +190,32 @@ func (w *worker) VersionCell() ui.TableCell {
 
 	if w.outdated {
 		column.Color = color.New(color.FgRed)
+	}
+
+	return column
+}
+
+func (w *worker) ageCell() ui.TableCell {
+	var column ui.TableCell
+
+	const minute = 60
+	const hour = minute * 60
+	const day = hour * 24
+
+	age := time.Now().Unix() - w.StartTime
+	if w.StartTime <= 0 || age < 0 {
+		column.Contents = "n/a"
+		column.Color = color.New(color.Faint)
+	} else {
+		if age/day > 0 {
+			column.Contents = fmt.Sprintf("%dd", age/day)
+		} else if age/hour > 0 {
+			column.Contents = fmt.Sprintf("%dh%dm", age/hour, (age%hour)/minute)
+		} else if age/minute > 0 {
+			column.Contents = fmt.Sprintf("%dh%dm", age/minute, age%minute)
+		} else {
+			column.Contents = fmt.Sprintf("%ds", age)
+		}
 	}
 
 	return column
