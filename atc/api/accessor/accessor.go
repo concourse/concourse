@@ -66,8 +66,10 @@ func (a *access) hasPermission(role string) bool {
 		return role == "owner" || role == "member"
 	case "pipeline-operator":
 		return role == "owner" || role == "member" || role == "pipeline-operator"
+	case "user":
+		return role == "owner" || role == "member" || role == "pipeline-operator" || role == "user"
 	case "viewer":
-		return role == "owner" || role == "member" || role == "pipeline-operator" || role == "viewer"
+		return role == "owner" || role == "member" || role == "pipeline-operator" || role == "user" || role == "viewer"
 	default:
 		return false
 	}
@@ -152,10 +154,10 @@ var requiredRoles = map[string]string{
 	atc.ListBuilds:                    "viewer",
 	atc.BuildEvents:                   "viewer",
 	atc.BuildResources:                "viewer",
-	atc.AbortBuild:                    "pipeline-operator",
+	atc.AbortBuild:                    "user",
 	atc.GetBuildPreparation:           "viewer",
 	atc.GetJob:                        "viewer",
-	atc.CreateJobBuild:                "pipeline-operator",
+	atc.CreateJobBuild:                "user",
 	atc.ListAllJobs:                   "viewer",
 	atc.ListJobs:                      "viewer",
 	atc.ListJobBuilds:                 "viewer",
@@ -173,7 +175,7 @@ var requiredRoles = map[string]string{
 	atc.GetResource:                   "viewer",
 	atc.UnpinResource:                 "pipeline-operator",
 	atc.SetPinCommentOnResource:       "pipeline-operator",
-	atc.CheckResource:                 "pipeline-operator",
+	atc.CheckResource:                 "user",
 	atc.CheckResourceWebHook:          "pipeline-operator",
 	atc.CheckResourceType:             "pipeline-operator",
 	atc.ListResourceVersions:          "viewer",
@@ -211,7 +213,7 @@ var requiredRoles = map[string]string{
 	atc.GetInfoCreds:                  "viewer",
 	atc.ListContainers:                "viewer",
 	atc.GetContainer:                  "viewer",
-	atc.HijackContainer:               "member",
+	atc.HijackContainer:               "user",
 	atc.ListDestroyingContainers:      "viewer",
 	atc.ReportWorkerContainers:        "member",
 	atc.ListVolumes:                   "viewer",
