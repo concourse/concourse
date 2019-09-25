@@ -19,6 +19,10 @@
 
 * All API payloads are now gzipped. This should help save bandwidth and make the web UI load faster. #4470
 
+#### <sub><sup><a name="4494" href="#4494">:link:</a></sup></sub> feature
+
+* Optimize certain API requests to use single transaction of DB, instead of making DB connection for each sub-query. #4494
+
 #### <sub><sup><a name="4448-4588" href="#4448-4588">:link:</a></sup></sub> feature
 
 * You can now pin a resource to different version without unpinning it first #4448, #4588.
