@@ -11,12 +11,14 @@ import (
 
 var _ = Describe("ValidateConfig", func() {
 	var (
-		config Config
+		config       Config
+		pipelineName string
 
 		errorMessages []string
 	)
 
 	BeforeEach(func() {
+		pipelineName = "some-pipeline"
 		config = Config{
 			Groups: GroupConfigs{
 				{
@@ -84,7 +86,7 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		_, errorMessages = config.Validate()
+		_, errorMessages = config.Validate(pipelineName)
 	})
 
 	Context("when the config is valid", func() {
@@ -93,7 +95,34 @@ var _ = Describe("ValidateConfig", func() {
 		})
 	})
 
+	Describe("invalid pipeline name", func() {
+		BeforeEach(func() {
+			pipelineName = "some/invalid/pipeline"
+		})
+
+		It("returns error", func() {
+			Expect(errorMessages).To(HaveLen(1))
+			Expect(errorMessages[0]).To(ContainSubstring("pipeline some/invalid/pipeline name has invalid character(s)"))
+		})
+	})
+
 	Describe("invalid groups", func() {
+
+		Context("when the group name has underscore", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, GroupConfig{
+					Name:      "bog_us",
+					Resources: []string{"bogus-resource"},
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorMessages[0]).To(ContainSubstring("group bog_us name has invalid character(s)"))
+			})
+		})
+
 		Context("when the groups reference a bogus resource", func() {
 			BeforeEach(func() {
 				config.Groups = append(config.Groups, GroupConfig{
@@ -191,6 +220,20 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid resources:"))
 				Expect(errorMessages[0]).To(ContainSubstring("resources[1] has no name"))
+			})
+		})
+
+		Context("when a resource name has colon", func() {
+			BeforeEach(func() {
+				config.Resources = append(config.Resources, ResourceConfig{
+					Name: "bogus:resource",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resources:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resources.bogus:resource name has invalid character(s)"))
 			})
 		})
 
@@ -440,6 +483,20 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
+		Context("when a resource type name has space", func() {
+			BeforeEach(func() {
+				config.ResourceTypes = append(config.ResourceTypes, ResourceType{
+					Name: "bogus resource type",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resource types:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resource_types.bogus resource type name has invalid character(s)"))
+			})
+		})
+
 		Context("when a resource has no type", func() {
 			BeforeEach(func() {
 				config.ResourceTypes = append(config.ResourceTypes, ResourceType{
@@ -504,6 +561,19 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 				Expect(errorMessages[0]).To(ContainSubstring("jobs[2] has no name"))
+			})
+		})
+
+		Context("when a job name has upper case character", func() {
+			BeforeEach(func() {
+				job.Name = "some-other-Job"
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-Job name has invalid character(s)"))
 			})
 		})
 
@@ -671,6 +741,35 @@ var _ = Describe("ValidateConfig", func() {
 						Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 						Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has multiple actions specified (get, put)"))
 					})
+				})
+			})
+
+			Context("when there are invalid character in steps", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan,
+						PlanConfig{
+							Get:      "some=resource",
+							Resource: "some-resource",
+						},
+						PlanConfig{
+							Put:      "some&resource",
+							Resource: "some-resource",
+						},
+						PlanConfig{
+							Task:           "some?resource",
+							TaskConfigPath: "some/config/path.yml",
+						},
+					)
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns errors", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some=resource name has invalid character(s)"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[1].put.some&resource name has invalid character(s)"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[2].task.some?resource name has invalid character(s)"))
 				})
 			})
 

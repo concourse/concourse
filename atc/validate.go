@@ -3,6 +3,7 @@ package atc
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -24,9 +25,11 @@ type ConfigWarning struct {
 	Message string `json:"message"`
 }
 
-func (c Config) Validate() ([]ConfigWarning, []string) {
+func (c Config) Validate(pipelineName string) ([]ConfigWarning, []string) {
 	warnings := []ConfigWarning{}
 	errorMessages := []string{}
+
+	errorMessages = validateName(pipelineName, errorMessages, "pipeline "+pipelineName)
 
 	groupsErr := validateGroups(c)
 	if groupsErr != nil {
@@ -63,6 +66,8 @@ func validateGroups(c Config) error {
 	}
 
 	for _, group := range c.Groups {
+
+		errorMessages = validateName(group.Name, errorMessages, "group "+group.Name)
 
 		if val, ok := groupNames[group.Name]; ok {
 			groupNames[group.Name] = val + 1
@@ -121,6 +126,8 @@ func validateResources(c Config) error {
 			identifier = fmt.Sprintf("resources.%s", resource.Name)
 		}
 
+		errorMessages = validateName(resource.Name, errorMessages, identifier)
+
 		if other, exists := names[resource.Name]; exists {
 			errorMessages = append(errorMessages,
 				fmt.Sprintf(
@@ -156,6 +163,8 @@ func validateResourceTypes(c Config) error {
 		} else {
 			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
 		}
+
+		errorMessages = validateName(resourceType.Name, errorMessages, identifier)
 
 		if other, exists := names[resourceType.Name]; exists {
 			errorMessages = append(errorMessages,
@@ -220,6 +229,8 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 		} else {
 			identifier = fmt.Sprintf("jobs.%s", job.Name)
 		}
+
+		errorMessages = validateName(job.Name, errorMessages, identifier)
 
 		if other, exists := names[job.Name]; exists {
 			errorMessages = append(errorMessages,
@@ -379,12 +390,12 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		foundTypes.Find("try")
 	}
 
-	if valid, message := foundTypes.IsValid(); !valid {
-		return []ConfigWarning{}, []string{message}
-	}
-
 	errorMessages := []string{}
 	warnings := []ConfigWarning{}
+
+	if valid, message := foundTypes.IsValid(); !valid {
+		return warnings, append(errorMessages, message)
+	}
 
 	switch {
 	case plan.Do != nil:
@@ -416,7 +427,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		}
 
 	case plan.Get != "":
+
 		identifier = fmt.Sprintf("%s.get.%s", identifier, plan.Get)
+
+		errorMessages = validateName(plan.Get, errorMessages, identifier)
 
 		errorMessages = append(errorMessages, validateInapplicableFields(
 			[]string{"privileged", "config", "file"},
@@ -491,7 +505,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		}
 
 	case plan.Put != "":
+
 		identifier = fmt.Sprintf("%s.put.%s", identifier, plan.Put)
+
+		errorMessages = validateName(plan.Put, errorMessages, identifier)
 
 		errorMessages = append(errorMessages, validateInapplicableFields(
 			[]string{"passed", "trigger", "privileged", "config", "file"},
@@ -526,6 +543,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	case plan.Task != "":
 		identifier = fmt.Sprintf("%s.task.%s", identifier, plan.Task)
 
+		errorMessages = validateName(plan.Task, errorMessages, identifier)
 		if plan.TaskConfig == nil && plan.TaskConfigPath == "" {
 			errorMessages = append(errorMessages, identifier+" does not specify any task configuration")
 		}
@@ -666,4 +684,14 @@ func compositeErr(errorMessages []string) error {
 	}
 
 	return errors.New(strings.Join(errorMessages, "\n"))
+}
+
+func validateName(name string, errorMessages []string, identifier string) []string {
+	valid := regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(name)
+
+	if !valid {
+		return append(errorMessages, fmt.Sprintln(identifier, "name has invalid character(s). Only lower case alphanumeric and '-' allowed."))
+	}
+
+	return errorMessages
 }

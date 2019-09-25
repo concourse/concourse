@@ -84,15 +84,15 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	warnings, errorMessages := config.Validate()
+	pipelineName := rata.Param(r, "pipeline_name")
+	teamName := rata.Param(r, "team_name")
+
+	warnings, errorMessages := config.Validate(pipelineName)
 	if len(errorMessages) > 0 {
 		session.Info("ignoring-invalid-config")
 		s.handleBadRequest(w, errorMessages...)
 		return
 	}
-
-	pipelineName := rata.Param(r, "pipeline_name")
-	teamName := rata.Param(r, "team_name")
 
 	if checkCredentials {
 		variables := creds.NewVariables(s.secretManager, teamName, pipelineName)
