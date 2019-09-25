@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/yaml"
+
 	_ "github.com/lib/pq"
 
 	gclient "code.cloudfoundry.org/garden/client"
