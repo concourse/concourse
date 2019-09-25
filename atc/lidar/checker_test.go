@@ -3,6 +3,7 @@ package lidar_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
@@ -59,21 +60,24 @@ var _ = Describe("Checker", func() {
 		})
 
 		Context("when retrieving checks succeeds", func() {
-			var engineChecks []*enginefakes.FakeRunnable
 
 			BeforeEach(func() {
+				fakeCheck1 := new(dbfakes.FakeCheck)
+				fakeCheck1.IDReturns(1)
+				fakeCheck2 := new(dbfakes.FakeCheck)
+				fakeCheck2.IDReturns(2)
+				fakeCheck3 := new(dbfakes.FakeCheck)
+				fakeCheck3.IDReturns(3)
 
 				fakeCheckFactory.StartedChecksReturns([]db.Check{
-					new(dbfakes.FakeCheck),
-					new(dbfakes.FakeCheck),
-					new(dbfakes.FakeCheck),
+					fakeCheck1,
+					fakeCheck2,
+					fakeCheck3,
 				}, nil)
 
-				engineChecks = []*enginefakes.FakeRunnable{}
 				fakeEngine.NewCheckStub = func(build db.Check) engine.Runnable {
-					engineCheck := new(enginefakes.FakeRunnable)
-					engineChecks = append(engineChecks, engineCheck)
-					return engineCheck
+					time.Sleep(time.Second)
+					return new(enginefakes.FakeRunnable)
 				}
 			})
 
@@ -81,10 +85,34 @@ var _ = Describe("Checker", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("runs all pendingg checks", func() {
-				Eventually(engineChecks[0].RunCallCount).Should(Equal(1))
-				Eventually(engineChecks[1].RunCallCount).Should(Equal(1))
-				Eventually(engineChecks[2].RunCallCount).Should(Equal(1))
+			It("runs all pending checks", func() {
+				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(3))
+			})
+		})
+
+		Context("when a check is already running", func() {
+
+			BeforeEach(func() {
+				fakeCheck := new(dbfakes.FakeCheck)
+				fakeCheck.IDReturns(1)
+
+				fakeEngine.NewCheckStub = func(build db.Check) engine.Runnable {
+					time.Sleep(time.Second)
+					return new(enginefakes.FakeRunnable)
+				}
+
+				fakeCheckFactory.StartedChecksReturns([]db.Check{
+					fakeCheck,
+					fakeCheck,
+				}, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("runs only one pending check", func() {
+				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(1))
 			})
 		})
 	})
