@@ -140,10 +140,10 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				worker1StartTime = time.Now().Unix() - 2*day - 90*second
 				worker2StartTime = time.Now().Unix() - 1*day - 90*second
-				worker3StartTime = time.Now().Unix() - 10*hour - 3*minute - 5*second
-				worker4StartTime = time.Now().Unix() - 8*hour - 30*minute - 5*second
-				worker5StartTime = time.Now().Unix() - 33*minute - 5*second
-				worker6StartTime = time.Now().Unix() - 17*second
+				worker3StartTime = time.Now().Unix() - 10*hour - 3*minute - 50*second
+				worker4StartTime = time.Now().Unix() - 8*hour - 30*minute - 50*second
+				worker5StartTime = 0
+				worker6StartTime = 0
 				worker7StartTime = time.Now().Unix() + 700*second
 			})
 
@@ -167,8 +167,8 @@ var _ = Describe("Fly CLI", func() {
 						{{Contents: "worker-1"}, {Contents: "1"}, {Contents: "platform1"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "landing"}, {Contents: "4.5.6"}, {Contents: "2d"}},
 						{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag2, tag3"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "4.5.6"}, {Contents: "1d"}},
 						{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "landed"}, {Contents: "4.5.6"}, {Contents: "10h3m"}},
-						{{Contents: "worker-5"}, {Contents: "5"}, {Contents: "platform5"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}, {Contents: "4.5.6"}, {Contents: "33h5m"}},
-						{{Contents: "worker-6"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "1.2.3", Color: color.New(color.FgRed)}, {Contents: "17s"}},
+						{{Contents: "worker-5"}, {Contents: "5"}, {Contents: "platform5"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}, {Contents: "4.5.6"}, {Contents: "n/a", Color: color.New(color.Faint)}},
+						{{Contents: "worker-6"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "1.2.3", Color: color.New(color.FgRed)}, {Contents: "n/a", Color: color.New(color.Faint)}},
 						{{Contents: "worker-7"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "none", Color: color.New(color.FgRed)}, {Contents: "n/a", Color: color.New(color.Faint)}},
 						{{Contents: "worker-4"}, {Contents: "7"}, {Contents: "platform4"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "stalled"}, {Contents: "4.5.6"}, {Contents: "8h30m"}},
 					},
