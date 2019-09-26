@@ -140,16 +140,6 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	//resourceInstance := resource.NewResourceInstance(
-	//	resource.ResourceType(i.imageResource.Type),
-	//	version,
-	//	i.imageResource.Source,
-	//	params,
-	//	i.customTypes,
-	//	resourceCache,
-	//	db.NewImageGetContainerOwner(container, i.teamID),
-	//)
-
 	err = i.imageFetchingDelegate.ImageVersionDetermined(resourceCache)
 	if err != nil {
 		return nil, nil, nil, err
@@ -166,14 +156,6 @@ func (i *imageResourceFetcher) Fetch(
 		TeamID: i.teamID,
 	}
 
-	//resourceInstanceSignature, err := resourceInstance.Signature()
-	//if err != nil {
-	//	logger.Error("failed-to-get-resource-instance-signature", err)
-	//	return nil, nil, nil, err
-	//}
-	// The random placement strategy is not really used because the image
-	// resource will always find the same worker as the container that owns it
-
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/out",
 		Args:         []string{resource.ResourcesDir("get")},
@@ -181,13 +163,11 @@ func (i *imageResourceFetcher) Fetch(
 		StderrWriter: i.imageFetchingDelegate.Stderr(),
 	}
 	res := resource.NewResource(
-		processSpec,
-		resource.Params{
-			Source:  i.imageResource.Source,
-			Params:  params,
-			Version: version,
-		},
+		i.imageResource.Source,
+		params,
+		version,
 	)
+
 	_, volume, err := i.resourceFetcher.Fetch(
 		ctx,
 		logger.Session("init-image"),
@@ -197,12 +177,12 @@ func (i *imageResourceFetcher) Fetch(
 		processSpec,
 		res,
 		i.customTypes,
-		i.imageResource.Source,
-		params,
 		db.NewImageGetContainerOwner(container, i.teamID),
 		resource.ResourcesDir("get"),
 		i.imageFetchingDelegate,
 		resourceCache,
+		// TODO: whats the lock name here???
+		"TODO",
 	)
 
 	if err != nil {
@@ -274,11 +254,8 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	params := resource.Params{
-		Source: resourceType.Source,
-	}
-	checkResourceType := resource.NewResource(processSpec, params)
-	versions, err := checkResourceType.Check(context.TODO(), resourceTypeContainer)
+	checkResourceType := resource.NewResource(resourceType.Source, resourceType.Params, resourceType.Version)
+	versions, err := checkResourceType.Check(context.TODO(), processSpec, resourceTypeContainer)
 	if err != nil {
 		return err
 	}
@@ -338,11 +315,8 @@ func (i *imageResourceFetcher) getLatestVersion(
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	params := resource.Params{
-		Source: i.imageResource.Source,
-	}
-	checkingResource := resource.NewResource(processSpec, params)
-	versions, err := checkingResource.Check(context.TODO(), imageContainer)
+	checkingResource := resource.NewResource(i.imageResource.Source, *i.imageResource.Params, *i.imageResource.Version)
+	versions, err := checkingResource.Check(context.TODO(), processSpec, imageContainer)
 	if err != nil {
 		return nil, err
 	}

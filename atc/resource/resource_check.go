@@ -3,24 +3,21 @@ package resource
 import (
 	"context"
 
-	"github.com/concourse/concourse/atc/runtime"
-
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
-type checkRequest struct {
-	Source  atc.Source  `json:"source"`
-	Version atc.Version `json:"version"`
-}
-
-func (resource *resource) Check(ctx context.Context, runnable runtime.Runnable) ([]atc.Version, error) {
+func (resource *resource) Check(
+	ctx context.Context,
+	spec runtime.ProcessSpec,
+	runnable runtime.Runnable) ([]atc.Version, error) {
 	var versions []atc.Version
 
 	err := runnable.RunScript(
 		ctx,
-		resource.processSpec.Path,
+		spec.Path,
 		nil,
-		resource.params,
+		resource,
 		&versions,
 		nil,
 		false,

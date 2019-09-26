@@ -182,11 +182,8 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		StdoutWriter: step.delegate.Stdout(),
 		StderrWriter: step.delegate.Stderr(),
 	}
-	resourceParams := resource.Params{
-		Source: source,
-		Params: params,
-	}
-	res := resource.NewResource(processSpec, resourceParams)
+
+	res := resource.NewResource(source, params, nil)
 	result := step.workerClient.RunPutStep(
 		ctx,
 		logger,

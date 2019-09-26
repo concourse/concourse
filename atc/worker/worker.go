@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse/atc/resource"
-
 	"github.com/concourse/concourse/atc/runtime"
+
+	"github.com/concourse/concourse/atc/resource"
 
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/metric"
@@ -66,12 +66,11 @@ type Worker interface {
 		processSpec runtime.ProcessSpec,
 		resource resource.Resource,
 		resourceTypes atc.VersionedResourceTypes,
-		source atc.Source,
-		params atc.Params,
 		owner db.ContainerOwner,
 		resourceDir string,
 		imageFetchingDelegate ImageFetchingDelegate,
 		cache db.UsedResourceCache,
+		lockName string,
 	) (GetResult, Volume, error)
 
 	CertsVolume(lager.Logger) (volume Volume, found bool, err error)
@@ -204,12 +203,11 @@ func (worker *gardenWorker) Fetch(
 	processSpec runtime.ProcessSpec,
 	resource resource.Resource,
 	resourceTypes atc.VersionedResourceTypes,
-	source atc.Source,
-	params atc.Params,
 	owner db.ContainerOwner,
 	resourceDir string,
 	imageFetchingDelegate ImageFetchingDelegate,
 	cache db.UsedResourceCache,
+	lockName string,
 ) (GetResult, Volume, error) {
 	return worker.fetcher.Fetch(
 		ctx,
@@ -220,12 +218,11 @@ func (worker *gardenWorker) Fetch(
 		processSpec,
 		resource,
 		resourceTypes,
-		source,
-		params,
 		owner,
 		resourceDir,
 		imageFetchingDelegate,
 		cache,
+		lockName,
 	)
 }
 

@@ -2,6 +2,8 @@ package worker
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -68,8 +70,8 @@ type Client interface {
 		ContainerPlacementStrategy,
 		db.ContainerMetadata,
 		atc.VersionedResourceTypes,
-		atc.Source,
-		atc.Params,
+		//atc.Source,
+		//atc.Params,
 		resource.Resource,
 		string,
 		ImageFetchingDelegate,
@@ -109,14 +111,6 @@ type GetResult struct {
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
 	Err           error
-}
-
-type GetResultWithVolume struct {
-	Status        int
-	VersionResult runtime.VersionResult
-	GetArtifact   runtime.GetArtifact
-	Err           error
-	Volume        Volume
 }
 
 type ImageFetcherSpec struct {
@@ -308,8 +302,8 @@ func (client *client) RunGetStep(
 	strategy ContainerPlacementStrategy,
 	containerMetadata db.ContainerMetadata,
 	resourceTypes atc.VersionedResourceTypes,
-	source atc.Source,
-	params atc.Params,
+	//source atc.Source,
+	//params atc.Params,
 	resource resource.Resource,
 	resourceDir string,
 	delegate ImageFetchingDelegate,
@@ -331,6 +325,19 @@ func (client *client) RunGetStep(
 		return GetResult{}, err
 	}
 
+	// figure out the lockname earlier, because we have all the info
+	lockType := resourceInstanceLockID{
+		Type:       containerSpec.ImageSpec.ResourceType,
+		Version:    cache.Version(),
+		Source:     resource.Source(),
+		Params:     resource.Params(),
+		WorkerName: chosenWorker.Name(),
+	}
+	lockName, err := lockName(lockType)
+	if err != nil {
+		return GetResult{}, err
+	}
+
 	//events <- runtime.Event{
 	//	EventType: runtime.StartingEvent,
 	//}
@@ -345,12 +352,11 @@ func (client *client) RunGetStep(
 		processSpec,
 		resource,
 		resourceTypes,
-		source,
-		params,
 		owner,
 		resourceDir,
 		delegate,
 		cache,
+		lockName,
 	)
 	if err != nil {
 		logger.Error("failed-to-fetch-resource", err)
@@ -547,14 +553,14 @@ func (client *client) RunPutStep(
 
 	var result PutResult
 	// TODO: pass in events to resource.Put?
-	vr, err = resource.Put(ctx, container)
+	vr, err = resource.Put(ctx, spec, container)
 	//err = RunScript(
 	//	ctx,
 	//	container,
 	//	spec.Path,
 	//	spec.Args,
 	//	runtime.PutRequest{
-	//		Params: params,
+	//		ConfigParams: params,
 	//		Source: source,
 	//	},
 	//	&vr,
@@ -596,4 +602,20 @@ func (client *client) StreamFileFromArtifact(ctx context.Context, logger lager.L
 		volume:   artifactVolume,
 	}
 	return source.StreamFile(ctx, logger, filePath)
+}
+
+type resourceInstanceLockID struct {
+	Type       string      `json:"type,omitempty"`
+	Version    atc.Version `json:"version,omitempty"`
+	Source     atc.Source  `json:"source,omitempty"`
+	Params     atc.Params  `json:"params,omitempty"`
+	WorkerName string      `json:"worker_name,omitempty"`
+}
+
+func lockName(id resourceInstanceLockID) (string, error) {
+	taskNameJSON, err := json.Marshal(id)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
 }

@@ -29,8 +29,6 @@ type FetchSourceFactory interface {
 	NewFetchSource(
 		logger lager.Logger,
 		worker Worker,
-		source atc.Source,
-		params atc.Params,
 		owner db.ContainerOwner,
 		resourceDir string,
 		cache db.UsedResourceCache,
@@ -58,8 +56,6 @@ func NewFetchSourceFactory(
 func (r *fetchSourceFactory) NewFetchSource(
 	logger lager.Logger,
 	worker Worker,
-	source atc.Source,
-	params atc.Params,
 	owner db.ContainerOwner,
 	resourceDir string,
 	cache db.UsedResourceCache,
@@ -73,8 +69,6 @@ func (r *fetchSourceFactory) NewFetchSource(
 	return &resourceInstanceFetchSource{
 		logger:                 logger,
 		worker:                 worker,
-		source:                 source,
-		params:                 params,
 		owner:                  owner,
 		resourceDir:            resourceDir,
 		cache:                  cache,
@@ -91,8 +85,6 @@ func (r *fetchSourceFactory) NewFetchSource(
 type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
 	worker                 Worker
-	source                 atc.Source
-	params                 atc.Params
 	owner                  db.ContainerOwner
 	resourceDir            string
 	cache                  db.UsedResourceCache
@@ -209,39 +201,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 	// TODO This is pure EVIL
 	//events := make(chan runtime.Event, 100)
 
-	// todo: we want to decouple this resource from the container
-	//res := s.resourceFactory.NewResourceForContainer(container)
-	//versionedSource, err = res.Get(
-	//	ctx,
-	//	volume,
-	//	runtime.IOConfig{
-	//		Stdout: s.imageFetchingDelegate.Stdout(),
-	//		Stderr: s.imageFetchingDelegate.Stderr(),
-	//	},
-	//	s.resourceInstance.Source(),
-	//	s.resourceInstance.Params(),
-	//	s.resourceInstance.Version(),
-	//)
-	//if err != nil {
-	//	sLog.Error("failed-to-fetch-resource", err)
-	//	return nil, err
-	//}
-
-	vr, err = s.resource.Get(ctx, container)
-	//err = RunScript(
-	//	ctx,
-	//	container,
-	//	s.processSpec.Path,
-	//	s.processSpec.Args,
-	//	runtime.GetRequest{
-	//		Params: s.params,
-	//		Source: s.source,
-	//	},
-	//	&vr,
-	//	s.processSpec.StderrWriter,
-	//	true,
-	//	events,
-	//)
+	vr, err = s.resource.Get(ctx, s.processSpec, container)
 
 	if err != nil {
 		sLog.Error("failed-to-fetch-resource", err)

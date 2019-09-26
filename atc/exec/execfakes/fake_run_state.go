@@ -10,14 +10,14 @@ import (
 )
 
 type FakeRunState struct {
-	ArtifactsStub        func() *build.Repository
-	artifactsMutex       sync.RWMutex
-	artifactsArgsForCall []struct {
+	ArtifactRepositoryStub        func() *build.Repository
+	artifactRepositoryMutex       sync.RWMutex
+	artifactRepositoryArgsForCall []struct {
 	}
-	artifactsReturns struct {
+	artifactRepositoryReturns struct {
 		result1 *build.Repository
 	}
-	artifactsReturnsOnCall map[int]struct {
+	artifactRepositoryReturnsOnCall map[int]struct {
 		result1 *build.Repository
 	}
 	ResultStub        func(atc.PlanID, interface{}) bool
@@ -43,53 +43,53 @@ type FakeRunState struct {
 }
 
 func (fake *FakeRunState) ArtifactRepository() *build.Repository {
-	fake.artifactsMutex.Lock()
-	ret, specificReturn := fake.artifactsReturnsOnCall[len(fake.artifactsArgsForCall)]
-	fake.artifactsArgsForCall = append(fake.artifactsArgsForCall, struct {
+	fake.artifactRepositoryMutex.Lock()
+	ret, specificReturn := fake.artifactRepositoryReturnsOnCall[len(fake.artifactRepositoryArgsForCall)]
+	fake.artifactRepositoryArgsForCall = append(fake.artifactRepositoryArgsForCall, struct {
 	}{})
 	fake.recordInvocation("ArtifactRepository", []interface{}{})
-	fake.artifactsMutex.Unlock()
-	if fake.ArtifactsStub != nil {
-		return fake.ArtifactsStub()
+	fake.artifactRepositoryMutex.Unlock()
+	if fake.ArtifactRepositoryStub != nil {
+		return fake.ArtifactRepositoryStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.artifactsReturns
+	fakeReturns := fake.artifactRepositoryReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeRunState) ArtifactsCallCount() int {
-	fake.artifactsMutex.RLock()
-	defer fake.artifactsMutex.RUnlock()
-	return len(fake.artifactsArgsForCall)
+func (fake *FakeRunState) ArtifactRepositoryCallCount() int {
+	fake.artifactRepositoryMutex.RLock()
+	defer fake.artifactRepositoryMutex.RUnlock()
+	return len(fake.artifactRepositoryArgsForCall)
 }
 
-func (fake *FakeRunState) ArtifactsCalls(stub func() *build.Repository) {
-	fake.artifactsMutex.Lock()
-	defer fake.artifactsMutex.Unlock()
-	fake.ArtifactsStub = stub
+func (fake *FakeRunState) ArtifactRepositoryCalls(stub func() *build.Repository) {
+	fake.artifactRepositoryMutex.Lock()
+	defer fake.artifactRepositoryMutex.Unlock()
+	fake.ArtifactRepositoryStub = stub
 }
 
-func (fake *FakeRunState) ArtifactsReturns(result1 *build.Repository) {
-	fake.artifactsMutex.Lock()
-	defer fake.artifactsMutex.Unlock()
-	fake.ArtifactsStub = nil
-	fake.artifactsReturns = struct {
+func (fake *FakeRunState) ArtifactRepositoryReturns(result1 *build.Repository) {
+	fake.artifactRepositoryMutex.Lock()
+	defer fake.artifactRepositoryMutex.Unlock()
+	fake.ArtifactRepositoryStub = nil
+	fake.artifactRepositoryReturns = struct {
 		result1 *build.Repository
 	}{result1}
 }
 
-func (fake *FakeRunState) ArtifactsReturnsOnCall(i int, result1 *build.Repository) {
-	fake.artifactsMutex.Lock()
-	defer fake.artifactsMutex.Unlock()
-	fake.ArtifactsStub = nil
-	if fake.artifactsReturnsOnCall == nil {
-		fake.artifactsReturnsOnCall = make(map[int]struct {
+func (fake *FakeRunState) ArtifactRepositoryReturnsOnCall(i int, result1 *build.Repository) {
+	fake.artifactRepositoryMutex.Lock()
+	defer fake.artifactRepositoryMutex.Unlock()
+	fake.ArtifactRepositoryStub = nil
+	if fake.artifactRepositoryReturnsOnCall == nil {
+		fake.artifactRepositoryReturnsOnCall = make(map[int]struct {
 			result1 *build.Repository
 		})
 	}
-	fake.artifactsReturnsOnCall[i] = struct {
+	fake.artifactRepositoryReturnsOnCall[i] = struct {
 		result1 *build.Repository
 	}{result1}
 }
@@ -190,8 +190,8 @@ func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, interface{}
 func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.artifactsMutex.RLock()
-	defer fake.artifactsMutex.RUnlock()
+	fake.artifactRepositoryMutex.RLock()
+	defer fake.artifactRepositoryMutex.RUnlock()
 	fake.resultMutex.RLock()
 	defer fake.resultMutex.RUnlock()
 	fake.storeResultMutex.RLock()

@@ -2,16 +2,14 @@ package worker
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"time"
 
-	"github.com/concourse/concourse/atc/resource"
-
 	"github.com/concourse/concourse/atc/runtime"
+
+	"github.com/concourse/concourse/atc/resource"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -37,12 +35,11 @@ type Fetcher interface {
 		processSpec runtime.ProcessSpec,
 		resource resource.Resource,
 		resourceTypes atc.VersionedResourceTypes,
-		source atc.Source,
-		params atc.Params,
 		owner db.ContainerOwner,
 		resourceDir string,
 		imageFetchingDelegate ImageFetchingDelegate,
 		cache db.UsedResourceCache,
+		lockName string,
 	) (GetResult, Volume, error)
 }
 
@@ -73,12 +70,11 @@ func (f *fetcher) Fetch(
 	processSpec runtime.ProcessSpec,
 	resource resource.Resource,
 	resourceTypes atc.VersionedResourceTypes,
-	source atc.Source,
-	params atc.Params,
 	owner db.ContainerOwner,
 	resourceDir string,
 	imageFetchingDelegate ImageFetchingDelegate,
 	cache db.UsedResourceCache,
+	lockName string,
 ) (GetResult, Volume, error) {
 	result := GetResult{}
 	var volume Volume
@@ -86,26 +82,19 @@ func (f *fetcher) Fetch(
 		"resource": resourceDir,
 	}
 
-	fetchSource := f.fetchSourceFactory.NewFetchSource(logger, gardenWorker, source, params, owner, resourceDir, cache, resource, resourceTypes, containerSpec, processSpec, containerMetadata, imageFetchingDelegate)
+	fetchSource := f.fetchSourceFactory.NewFetchSource(logger, gardenWorker, owner,
+		resourceDir, cache, resource, resourceTypes, containerSpec, processSpec,
+		containerMetadata, imageFetchingDelegate)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
-	// figure out the lockname earlier, because we have all the info
-	lockType := resourceInstanceLockID{
-		Type:       containerSpec.ImageSpec.ResourceType,
-		Version:    cache.Version(),
-		Source:     source,
-		Params:     params,
-		WorkerName: gardenWorker.Name(),
-	}
-
-	lockName, err := lockName(lockType)
-	if err != nil {
-		return result, nil, err
-	}
-
-	result, volume, err = f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
+	//lockName, err := lockName(lockType)
+	//if err != nil {
+	//	return result, nil, err
+	//}
+	//
+	result, volume, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
 	if err != ErrFailedToGetLock {
 		fmt.Printf("=== fetcher->Fetch: got error but not ErrFailedToGetLock ==== err: %#v\n\n", err)
 		return result, nil, err
@@ -166,20 +155,4 @@ func (f *fetcher) fetchWithLock(
 	defer lock.Release()
 
 	return source.Create(ctx)
-}
-
-type resourceInstanceLockID struct {
-	Type       string      `json:"type,omitempty"`
-	Version    atc.Version `json:"version,omitempty"`
-	Source     atc.Source  `json:"source,omitempty"`
-	Params     atc.Params  `json:"params,omitempty"`
-	WorkerName string      `json:"worker_name,omitempty"`
-}
-
-func lockName(id resourceInstanceLockID) (string, error) {
-	taskNameJSON, err := json.Marshal(id)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
 }

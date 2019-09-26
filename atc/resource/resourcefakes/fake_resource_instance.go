@@ -4,11 +4,9 @@ package resourcefakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeResourceInstance struct {
@@ -21,35 +19,6 @@ type FakeResourceInstance struct {
 	}
 	containerOwnerReturnsOnCall map[int]struct {
 		result1 db.ContainerOwner
-	}
-	FindOnStub        func(lager.Logger, worker.Worker) (worker.Volume, bool, error)
-	findOnMutex       sync.RWMutex
-	findOnArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 worker.Worker
-	}
-	findOnReturns struct {
-		result1 worker.Volume
-		result2 bool
-		result3 error
-	}
-	findOnReturnsOnCall map[int]struct {
-		result1 worker.Volume
-		result2 bool
-		result3 error
-	}
-	LockNameStub        func(string) (string, error)
-	lockNameMutex       sync.RWMutex
-	lockNameArgsForCall []struct {
-		arg1 string
-	}
-	lockNameReturns struct {
-		result1 string
-		result2 error
-	}
-	lockNameReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
 	}
 	ParamsStub        func() atc.Params
 	paramsMutex       sync.RWMutex
@@ -157,142 +126,12 @@ func (fake *FakeResourceInstance) ContainerOwnerReturnsOnCall(i int, result1 db.
 	}{result1}
 }
 
-func (fake *FakeResourceInstance) FindOn(arg1 lager.Logger, arg2 worker.Worker) (worker.Volume, bool, error) {
-	fake.findOnMutex.Lock()
-	ret, specificReturn := fake.findOnReturnsOnCall[len(fake.findOnArgsForCall)]
-	fake.findOnArgsForCall = append(fake.findOnArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 worker.Worker
-	}{arg1, arg2})
-	fake.recordInvocation("FindOn", []interface{}{arg1, arg2})
-	fake.findOnMutex.Unlock()
-	if fake.FindOnStub != nil {
-		return fake.FindOnStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.findOnReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeResourceInstance) FindOnCallCount() int {
-	fake.findOnMutex.RLock()
-	defer fake.findOnMutex.RUnlock()
-	return len(fake.findOnArgsForCall)
-}
-
-func (fake *FakeResourceInstance) FindOnCalls(stub func(lager.Logger, worker.Worker) (worker.Volume, bool, error)) {
-	fake.findOnMutex.Lock()
-	defer fake.findOnMutex.Unlock()
-	fake.FindOnStub = stub
-}
-
-func (fake *FakeResourceInstance) FindOnArgsForCall(i int) (lager.Logger, worker.Worker) {
-	fake.findOnMutex.RLock()
-	defer fake.findOnMutex.RUnlock()
-	argsForCall := fake.findOnArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakeResourceInstance) FindOnReturns(result1 worker.Volume, result2 bool, result3 error) {
-	fake.findOnMutex.Lock()
-	defer fake.findOnMutex.Unlock()
-	fake.FindOnStub = nil
-	fake.findOnReturns = struct {
-		result1 worker.Volume
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeResourceInstance) FindOnReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
-	fake.findOnMutex.Lock()
-	defer fake.findOnMutex.Unlock()
-	fake.FindOnStub = nil
-	if fake.findOnReturnsOnCall == nil {
-		fake.findOnReturnsOnCall = make(map[int]struct {
-			result1 worker.Volume
-			result2 bool
-			result3 error
-		})
-	}
-	fake.findOnReturnsOnCall[i] = struct {
-		result1 worker.Volume
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeResourceInstance) LockName(arg1 string) (string, error) {
-	fake.lockNameMutex.Lock()
-	ret, specificReturn := fake.lockNameReturnsOnCall[len(fake.lockNameArgsForCall)]
-	fake.lockNameArgsForCall = append(fake.lockNameArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("LockName", []interface{}{arg1})
-	fake.lockNameMutex.Unlock()
-	if fake.LockNameStub != nil {
-		return fake.LockNameStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.lockNameReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeResourceInstance) LockNameCallCount() int {
-	fake.lockNameMutex.RLock()
-	defer fake.lockNameMutex.RUnlock()
-	return len(fake.lockNameArgsForCall)
-}
-
-func (fake *FakeResourceInstance) LockNameCalls(stub func(string) (string, error)) {
-	fake.lockNameMutex.Lock()
-	defer fake.lockNameMutex.Unlock()
-	fake.LockNameStub = stub
-}
-
-func (fake *FakeResourceInstance) LockNameArgsForCall(i int) string {
-	fake.lockNameMutex.RLock()
-	defer fake.lockNameMutex.RUnlock()
-	argsForCall := fake.lockNameArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeResourceInstance) LockNameReturns(result1 string, result2 error) {
-	fake.lockNameMutex.Lock()
-	defer fake.lockNameMutex.Unlock()
-	fake.LockNameStub = nil
-	fake.lockNameReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeResourceInstance) LockNameReturnsOnCall(i int, result1 string, result2 error) {
-	fake.lockNameMutex.Lock()
-	defer fake.lockNameMutex.Unlock()
-	fake.LockNameStub = nil
-	if fake.lockNameReturnsOnCall == nil {
-		fake.lockNameReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
-		})
-	}
-	fake.lockNameReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeResourceInstance) Params() atc.Params {
 	fake.paramsMutex.Lock()
 	ret, specificReturn := fake.paramsReturnsOnCall[len(fake.paramsArgsForCall)]
 	fake.paramsArgsForCall = append(fake.paramsArgsForCall, struct {
 	}{})
-	fake.recordInvocation("Params", []interface{}{})
+	fake.recordInvocation("ConfigParams", []interface{}{})
 	fake.paramsMutex.Unlock()
 	if fake.ParamsStub != nil {
 		return fake.ParamsStub()
@@ -552,10 +391,6 @@ func (fake *FakeResourceInstance) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.containerOwnerMutex.RLock()
 	defer fake.containerOwnerMutex.RUnlock()
-	fake.findOnMutex.RLock()
-	defer fake.findOnMutex.RUnlock()
-	fake.lockNameMutex.RLock()
-	defer fake.lockNameMutex.RUnlock()
 	fake.paramsMutex.RLock()
 	defer fake.paramsMutex.RUnlock()
 	fake.resourceCacheMutex.RLock()

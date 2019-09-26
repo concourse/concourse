@@ -143,12 +143,8 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	params := resource.Params{
-		Source:  source,
-		Version: step.plan.FromVersion,
-	}
-	checkable := resource.NewResource(processSpec, params)
-	versions, err := checkable.Check(deadline, container)
+	checkable := resource.NewResource(source, nil, step.plan.FromVersion)
+	versions, err := checkable.Check(deadline, processSpec, container)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			return fmt.Errorf("Timed out after %v while checking for new versions", timeout)

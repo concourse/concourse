@@ -218,6 +218,23 @@ type FakeContainer struct {
 		result1 garden.Process
 		result2 error
 	}
+	RunScriptStub        func(context.Context, string, []string, interface{}, interface{}, io.Writer, bool) error
+	runScriptMutex       sync.RWMutex
+	runScriptArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 []string
+		arg4 interface{}
+		arg5 interface{}
+		arg6 io.Writer
+		arg7 bool
+	}
+	runScriptReturns struct {
+		result1 error
+	}
+	runScriptReturnsOnCall map[int]struct {
+		result1 error
+	}
 	SetGraceTimeStub        func(time.Duration) error
 	setGraceTimeMutex       sync.RWMutex
 	setGraceTimeArgsForCall []struct {
@@ -1286,6 +1303,77 @@ func (fake *FakeContainer) RunReturnsOnCall(i int, result1 garden.Process, resul
 	}{result1, result2}
 }
 
+func (fake *FakeContainer) RunScript(arg1 context.Context, arg2 string, arg3 []string, arg4 interface{}, arg5 interface{}, arg6 io.Writer, arg7 bool) error {
+	var arg3Copy []string
+	if arg3 != nil {
+		arg3Copy = make([]string, len(arg3))
+		copy(arg3Copy, arg3)
+	}
+	fake.runScriptMutex.Lock()
+	ret, specificReturn := fake.runScriptReturnsOnCall[len(fake.runScriptArgsForCall)]
+	fake.runScriptArgsForCall = append(fake.runScriptArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 []string
+		arg4 interface{}
+		arg5 interface{}
+		arg6 io.Writer
+		arg7 bool
+	}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("RunScript", []interface{}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
+	fake.runScriptMutex.Unlock()
+	if fake.RunScriptStub != nil {
+		return fake.RunScriptStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.runScriptReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeContainer) RunScriptCallCount() int {
+	fake.runScriptMutex.RLock()
+	defer fake.runScriptMutex.RUnlock()
+	return len(fake.runScriptArgsForCall)
+}
+
+func (fake *FakeContainer) RunScriptCalls(stub func(context.Context, string, []string, interface{}, interface{}, io.Writer, bool) error) {
+	fake.runScriptMutex.Lock()
+	defer fake.runScriptMutex.Unlock()
+	fake.RunScriptStub = stub
+}
+
+func (fake *FakeContainer) RunScriptArgsForCall(i int) (context.Context, string, []string, interface{}, interface{}, io.Writer, bool) {
+	fake.runScriptMutex.RLock()
+	defer fake.runScriptMutex.RUnlock()
+	argsForCall := fake.runScriptArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+}
+
+func (fake *FakeContainer) RunScriptReturns(result1 error) {
+	fake.runScriptMutex.Lock()
+	defer fake.runScriptMutex.Unlock()
+	fake.RunScriptStub = nil
+	fake.runScriptReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeContainer) RunScriptReturnsOnCall(i int, result1 error) {
+	fake.runScriptMutex.Lock()
+	defer fake.runScriptMutex.Unlock()
+	fake.RunScriptStub = nil
+	if fake.runScriptReturnsOnCall == nil {
+		fake.runScriptReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.runScriptReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeContainer) SetGraceTime(arg1 time.Duration) error {
 	fake.setGraceTimeMutex.Lock()
 	ret, specificReturn := fake.setGraceTimeReturnsOnCall[len(fake.setGraceTimeArgsForCall)]
@@ -1731,6 +1819,8 @@ func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	defer fake.removePropertyMutex.RUnlock()
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
+	fake.runScriptMutex.RLock()
+	defer fake.runScriptMutex.RUnlock()
 	fake.setGraceTimeMutex.RLock()
 	defer fake.setGraceTimeMutex.RUnlock()
 	fake.setPropertyMutex.RLock()
