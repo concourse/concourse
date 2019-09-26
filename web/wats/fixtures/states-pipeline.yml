@@ -33,9 +33,9 @@ jobs:
           echo i failed
           exit 1
 
-- name: passing_or_failing
+- name: passing-or-failing
   plan:
-  - task: pass_or_fail
+  - task: pass-or-fail
     config:
       platform: linux
 
