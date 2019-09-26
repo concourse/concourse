@@ -25,11 +25,13 @@ type ConfigWarning struct {
 	Message string `json:"message"`
 }
 
-func (c Config) Validate(pipelineName string) ([]ConfigWarning, []string) {
+func (c Config) Validate(pipelineName ...string) ([]ConfigWarning, []string) {
 	warnings := []ConfigWarning{}
 	errorMessages := []string{}
 
-	errorMessages = validateName(pipelineName, errorMessages, "pipeline "+pipelineName)
+	if len(pipelineName) != 0 {
+		errorMessages = validateName(pipelineName[0], errorMessages, "pipeline "+pipelineName[0])
+	}
 
 	groupsErr := validateGroups(c)
 	if groupsErr != nil {
