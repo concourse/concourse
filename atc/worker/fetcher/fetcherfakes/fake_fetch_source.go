@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 
 	"github.com/concourse/concourse/atc/resource"
 )
@@ -258,4 +258,4 @@ func (fake *FakeFetchSource) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ worker.FetchSource = new(FakeFetchSource)
+var _ runtime.FetchSource = new(FakeFetchSource)

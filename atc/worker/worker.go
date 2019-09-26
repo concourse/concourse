@@ -9,6 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/concourse/concourse/atc/resource"
+
+	"github.com/concourse/concourse/atc/runtime"
+
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/worker/gclient"
@@ -53,6 +57,22 @@ type Worker interface {
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
+	Fetch(
+		ctx context.Context,
+		logger lager.Logger,
+		containerMetadata db.ContainerMetadata,
+		gardenWorker Worker,
+		containerSpec ContainerSpec,
+		processSpec runtime.ProcessSpec,
+		resource resource.Resource,
+		resourceTypes atc.VersionedResourceTypes,
+		source atc.Source,
+		params atc.Params,
+		owner db.ContainerOwner,
+		resourceDir string,
+		imageFetchingDelegate ImageFetchingDelegate,
+		cache db.UsedResourceCache,
+	) (GetResult, Volume, error)
 
 	CertsVolume(lager.Logger) (volume Volume, found bool, err error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
@@ -68,6 +88,7 @@ type gardenWorker struct {
 	gardenClient    gclient.Client
 	volumeClient    VolumeClient
 	imageFactory    ImageFactory
+	fetcher         Fetcher
 	dbWorker        db.Worker
 	buildContainers int
 	helper          workerHelper
@@ -81,6 +102,7 @@ func NewGardenWorker(
 	volumeRepository db.VolumeRepository,
 	volumeClient VolumeClient,
 	imageFactory ImageFactory,
+	fetcher Fetcher,
 	dbTeamFactory db.TeamFactory,
 	dbWorker db.Worker,
 	numBuildContainers int,
@@ -100,6 +122,7 @@ func NewGardenWorker(
 		gardenClient:    gardenClient,
 		volumeClient:    volumeClient,
 		imageFactory:    imageFactory,
+		fetcher:         fetcher,
 		dbWorker:        dbWorker,
 		buildContainers: numBuildContainers,
 		helper:          workerHelper,
@@ -170,6 +193,40 @@ func (worker *gardenWorker) CreateVolume(logger lager.Logger, spec VolumeSpec, t
 
 func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
 	return worker.volumeClient.LookupVolume(logger, handle)
+}
+
+func (worker *gardenWorker) Fetch(
+	ctx context.Context,
+	logger lager.Logger,
+	containerMetadata db.ContainerMetadata,
+	gardenWorker Worker,
+	containerSpec ContainerSpec,
+	processSpec runtime.ProcessSpec,
+	resource resource.Resource,
+	resourceTypes atc.VersionedResourceTypes,
+	source atc.Source,
+	params atc.Params,
+	owner db.ContainerOwner,
+	resourceDir string,
+	imageFetchingDelegate ImageFetchingDelegate,
+	cache db.UsedResourceCache,
+) (GetResult, Volume, error) {
+	return worker.fetcher.Fetch(
+		ctx,
+		logger,
+		containerMetadata,
+		gardenWorker,
+		containerSpec,
+		processSpec,
+		resource,
+		resourceTypes,
+		source,
+		params,
+		owner,
+		resourceDir,
+		imageFetchingDelegate,
+		cache,
+	)
 }
 
 func (worker *gardenWorker) FindOrCreateContainer(

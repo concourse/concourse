@@ -19,6 +19,7 @@ import (
 type dbWorkerProvider struct {
 	lockFactory                       lock.LockFactory
 	retryBackOffFactory               retryhttp.BackOffFactory
+	resourceFetcher                   Fetcher
 	imageFactory                      ImageFactory
 	dbResourceCacheFactory            db.ResourceCacheFactory
 	dbResourceConfigFactory           db.ResourceConfigFactory
@@ -207,6 +208,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, savedWork
 		provider.dbVolumeRepository,
 		volumeClient,
 		provider.imageFactory,
+		provider.resourceFetcher,
 		provider.dbTeamFactory,
 		savedWorker,
 		buildContainersCount,

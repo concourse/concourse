@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -8,20 +9,17 @@ import (
 )
 
 const (
-	InitializingEvent = "Initializing"
-	StartingEvent     = "Starting"
-	FinishedEvent     = "Finished"
+	InitializingEvent          = "Initializing"
+	StartingEvent              = "Starting"
+	FinishedEvent              = "Finished"
+	ResourceResultPropertyName = "concourse:resource-result"
+	ResourceProcessID          = "resource"
 )
 
 type Event struct {
 	EventType     string
 	ExitStatus    int
 	VersionResult VersionResult
-}
-
-type IOConfig struct {
-	Stdout io.Writer
-	Stderr io.Writer
 }
 
 type VersionResult struct {
@@ -69,12 +67,23 @@ func (art *TaskArtifact) ID() string {
 	return art.VolumeHandle
 }
 
-//type Runnable interface {
-//	Destroy() error
-//
-//	VolumeMounts() []VolumeMount
-//
-//	WorkerName() string
-//
-//	MarkAsHijacked() error
-//}
+type Runnable interface {
+	RunScript(
+		context.Context,
+		string,
+		[]string,
+		interface{},
+		interface{},
+		io.Writer,
+		bool,
+	) error
+}
+
+type ProcessSpec struct {
+	Path         string
+	Args         []string
+	Dir          string
+	User         string
+	StdoutWriter io.Writer
+	StderrWriter io.Writer
+}

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/concourse/concourse/atc/runtime"
+
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
@@ -19,7 +21,6 @@ type CheckStep struct {
 	plan              atc.CheckPlan
 	metadata          StepMetadata
 	containerMetadata db.ContainerMetadata
-	resourceFactory   resource.ResourceFactory
 	strategy          worker.ContainerPlacementStrategy
 	pool              worker.Pool
 	delegate          CheckDelegate
@@ -39,7 +40,6 @@ func NewCheckStep(
 	plan atc.CheckPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	resourceFactory resource.ResourceFactory,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
 	delegate CheckDelegate,
@@ -49,7 +49,6 @@ func NewCheckStep(
 		plan:              plan,
 		metadata:          metadata,
 		containerMetadata: containerMetadata,
-		resourceFactory:   resourceFactory,
 		pool:              pool,
 		strategy:          strategy,
 		delegate:          delegate,
@@ -140,9 +139,16 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 	deadline, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	checkable := step.resourceFactory.NewResourceForContainer(container)
-
-	versions, err := checkable.Check(deadline, source, step.plan.FromVersion)
+	//TODO: Check if we need to add anything else to this processSpec
+	processSpec := runtime.ProcessSpec{
+		Path: "/opt/resource/check",
+	}
+	params := resource.Params{
+		Source:  source,
+		Version: step.plan.FromVersion,
+	}
+	checkable := resource.NewResource(processSpec, params)
+	versions, err := checkable.Check(deadline, container)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			return fmt.Errorf("Timed out after %v while checking for new versions", timeout)

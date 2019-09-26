@@ -65,7 +65,7 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	RunPutStepStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, atc.Source, atc.Params, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, string, worker.ProcessSpec, chan runtime.Event) worker.PutResult
+	RunPutStepStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, atc.Source, atc.Params, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, string, runtime.ProcessSpec, chan runtime.Event) worker.PutResult
 	runPutStepMutex       sync.RWMutex
 	runPutStepArgsForCall []struct {
 		arg1  context.Context
@@ -79,7 +79,7 @@ type FakeClient struct {
 		arg9  db.ContainerMetadata
 		arg10 worker.ImageFetcherSpec
 		arg11 string
-		arg12 worker.ProcessSpec
+		arg12 runtime.ProcessSpec
 		arg13 chan runtime.Event
 	}
 	runPutStepReturns struct {
@@ -88,7 +88,7 @@ type FakeClient struct {
 	runPutStepReturnsOnCall map[int]struct {
 		result1 worker.PutResult
 	}
-	RunTaskStepStub        func(context.Context, lager.Logger, lock.LockFactory, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, worker.ProcessSpec, chan runtime.Event) worker.TaskResult
+	RunTaskStepStub        func(context.Context, lager.Logger, lock.LockFactory, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, runtime.ProcessSpec, chan runtime.Event) worker.TaskResult
 	runTaskStepMutex       sync.RWMutex
 	runTaskStepArgsForCall []struct {
 		arg1  context.Context
@@ -100,7 +100,7 @@ type FakeClient struct {
 		arg7  worker.ContainerPlacementStrategy
 		arg8  db.ContainerMetadata
 		arg9  worker.ImageFetcherSpec
-		arg10 worker.ProcessSpec
+		arg10 runtime.ProcessSpec
 		arg11 chan runtime.Event
 	}
 	runTaskStepReturns struct {
@@ -331,7 +331,7 @@ func (fake *FakeClient) FindVolumeReturnsOnCall(i int, result1 worker.Volume, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) RunPutStep(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 worker.WorkerSpec, arg6 atc.Source, arg7 atc.Params, arg8 worker.ContainerPlacementStrategy, arg9 db.ContainerMetadata, arg10 worker.ImageFetcherSpec, arg11 string, arg12 worker.ProcessSpec, arg13 chan runtime.Event) worker.PutResult {
+func (fake *FakeClient) RunPutStep(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 worker.WorkerSpec, arg6 atc.Source, arg7 atc.Params, arg8 worker.ContainerPlacementStrategy, arg9 db.ContainerMetadata, arg10 worker.ImageFetcherSpec, arg11 string, arg12 runtime.ProcessSpec, arg13 chan runtime.Event) worker.PutResult {
 	fake.runPutStepMutex.Lock()
 	ret, specificReturn := fake.runPutStepReturnsOnCall[len(fake.runPutStepArgsForCall)]
 	fake.runPutStepArgsForCall = append(fake.runPutStepArgsForCall, struct {
@@ -346,7 +346,7 @@ func (fake *FakeClient) RunPutStep(arg1 context.Context, arg2 lager.Logger, arg3
 		arg9  db.ContainerMetadata
 		arg10 worker.ImageFetcherSpec
 		arg11 string
-		arg12 worker.ProcessSpec
+		arg12 runtime.ProcessSpec
 		arg13 chan runtime.Event
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13})
 	fake.recordInvocation("RunPutStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13})
@@ -367,13 +367,13 @@ func (fake *FakeClient) RunPutStepCallCount() int {
 	return len(fake.runPutStepArgsForCall)
 }
 
-func (fake *FakeClient) RunPutStepCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, atc.Source, atc.Params, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, string, worker.ProcessSpec, chan runtime.Event) worker.PutResult) {
+func (fake *FakeClient) RunPutStepCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, atc.Source, atc.Params, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, string, runtime.ProcessSpec, chan runtime.Event) worker.PutResult) {
 	fake.runPutStepMutex.Lock()
 	defer fake.runPutStepMutex.Unlock()
 	fake.RunPutStepStub = stub
 }
 
-func (fake *FakeClient) RunPutStepArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, atc.Source, atc.Params, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, string, worker.ProcessSpec, chan runtime.Event) {
+func (fake *FakeClient) RunPutStepArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, atc.Source, atc.Params, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, string, runtime.ProcessSpec, chan runtime.Event) {
 	fake.runPutStepMutex.RLock()
 	defer fake.runPutStepMutex.RUnlock()
 	argsForCall := fake.runPutStepArgsForCall[i]
@@ -403,7 +403,7 @@ func (fake *FakeClient) RunPutStepReturnsOnCall(i int, result1 worker.PutResult)
 	}{result1}
 }
 
-func (fake *FakeClient) RunTaskStep(arg1 context.Context, arg2 lager.Logger, arg3 lock.LockFactory, arg4 db.ContainerOwner, arg5 worker.ContainerSpec, arg6 worker.WorkerSpec, arg7 worker.ContainerPlacementStrategy, arg8 db.ContainerMetadata, arg9 worker.ImageFetcherSpec, arg10 worker.ProcessSpec, arg11 chan runtime.Event) worker.TaskResult {
+func (fake *FakeClient) RunTaskStep(arg1 context.Context, arg2 lager.Logger, arg3 lock.LockFactory, arg4 db.ContainerOwner, arg5 worker.ContainerSpec, arg6 worker.WorkerSpec, arg7 worker.ContainerPlacementStrategy, arg8 db.ContainerMetadata, arg9 worker.ImageFetcherSpec, arg10 runtime.ProcessSpec, arg11 chan runtime.Event) worker.TaskResult {
 	fake.runTaskStepMutex.Lock()
 	ret, specificReturn := fake.runTaskStepReturnsOnCall[len(fake.runTaskStepArgsForCall)]
 	fake.runTaskStepArgsForCall = append(fake.runTaskStepArgsForCall, struct {
@@ -416,7 +416,7 @@ func (fake *FakeClient) RunTaskStep(arg1 context.Context, arg2 lager.Logger, arg
 		arg7  worker.ContainerPlacementStrategy
 		arg8  db.ContainerMetadata
 		arg9  worker.ImageFetcherSpec
-		arg10 worker.ProcessSpec
+		arg10 runtime.ProcessSpec
 		arg11 chan runtime.Event
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11})
 	fake.recordInvocation("RunTaskStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11})
@@ -437,13 +437,13 @@ func (fake *FakeClient) RunTaskStepCallCount() int {
 	return len(fake.runTaskStepArgsForCall)
 }
 
-func (fake *FakeClient) RunTaskStepCalls(stub func(context.Context, lager.Logger, lock.LockFactory, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, worker.ProcessSpec, chan runtime.Event) worker.TaskResult) {
+func (fake *FakeClient) RunTaskStepCalls(stub func(context.Context, lager.Logger, lock.LockFactory, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, runtime.ProcessSpec, chan runtime.Event) worker.TaskResult) {
 	fake.runTaskStepMutex.Lock()
 	defer fake.runTaskStepMutex.Unlock()
 	fake.RunTaskStepStub = stub
 }
 
-func (fake *FakeClient) RunTaskStepArgsForCall(i int) (context.Context, lager.Logger, lock.LockFactory, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, worker.ProcessSpec, chan runtime.Event) {
+func (fake *FakeClient) RunTaskStepArgsForCall(i int) (context.Context, lager.Logger, lock.LockFactory, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, runtime.ProcessSpec, chan runtime.Event) {
 	fake.runTaskStepMutex.RLock()
 	defer fake.runTaskStepMutex.RUnlock()
 	argsForCall := fake.runTaskStepArgsForCall[i]

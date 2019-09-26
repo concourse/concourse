@@ -7,13 +7,17 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/concourse/concourse/atc/runtime"
+
+	"github.com/concourse/concourse/atc/resource"
+
 	"github.com/hashicorp/go-multierror"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource"
+
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -53,20 +57,17 @@ type imageResourceFetcherFactory struct {
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 	resourceFetcher         worker.Fetcher
-	resourceFactory         resource.ResourceFactory
 }
 
 func NewImageResourceFetcherFactory(
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	resourceFetcher worker.Fetcher,
-	resourceFactory resource.ResourceFactory,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
 		resourceFetcher:         resourceFetcher,
-		resourceFactory:         resourceFactory,
 	}
 }
 
@@ -80,7 +81,6 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 ) ImageResourceFetcher {
 	return &imageResourceFetcher{
 		worker:                  worker,
-		resourceFactory:         f.resourceFactory,
 		resourceFetcher:         f.resourceFetcher,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
@@ -95,7 +95,6 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 
 type imageResourceFetcher struct {
 	worker                  worker.Worker
-	resourceFactory         resource.ResourceFactory
 	resourceFetcher         worker.Fetcher
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
@@ -141,15 +140,15 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	resourceInstance := resource.NewResourceInstance(
-		resource.ResourceType(i.imageResource.Type),
-		version,
-		i.imageResource.Source,
-		params,
-		i.customTypes,
-		resourceCache,
-		db.NewImageGetContainerOwner(container, i.teamID),
-	)
+	//resourceInstance := resource.NewResourceInstance(
+	//	resource.ResourceType(i.imageResource.Type),
+	//	version,
+	//	i.imageResource.Source,
+	//	params,
+	//	i.customTypes,
+	//	resourceCache,
+	//	db.NewImageGetContainerOwner(container, i.teamID),
+	//)
 
 	err = i.imageFetchingDelegate.ImageVersionDetermined(resourceCache)
 	if err != nil {
@@ -162,38 +161,48 @@ func (i *imageResourceFetcher) Fetch(
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: string(resourceInstance.ResourceType()),
+			ResourceType: i.imageResource.Type,
 		},
 		TeamID: i.teamID,
 	}
 
-	resourceInstanceSignature, err := resourceInstance.Signature()
-	if err != nil {
-		logger.Error("failed-to-get-resource-instance-signature", err)
-		return nil, nil, nil, err
-	}
+	//resourceInstanceSignature, err := resourceInstance.Signature()
+	//if err != nil {
+	//	logger.Error("failed-to-get-resource-instance-signature", err)
+	//	return nil, nil, nil, err
+	//}
 	// The random placement strategy is not really used because the image
 	// resource will always find the same worker as the container that owns it
-	getResultWithVolume, err := i.resourceFetcher.Fetch(
+
+	processSpec := runtime.ProcessSpec{
+		Path:         "/opt/resource/out",
+		Args:         []string{resource.ResourcesDir("get")},
+		StdoutWriter: i.imageFetchingDelegate.Stdout(),
+		StderrWriter: i.imageFetchingDelegate.Stderr(),
+	}
+	res := resource.NewResource(
+		processSpec,
+		resource.Params{
+			Source:  i.imageResource.Source,
+			Params:  params,
+			Version: version,
+		},
+	)
+	_, volume, err := i.resourceFetcher.Fetch(
 		ctx,
 		logger.Session("init-image"),
 		containerMetadata,
 		i.worker,
 		containerSpec,
-		worker.ProcessSpec{
-			Path:         "/opt/resource/out",
-			Args:         []string{resource.ResourcesDir("get")},
-			StdoutWriter: i.imageFetchingDelegate.Stdout(),
-			StderrWriter: i.imageFetchingDelegate.Stderr(),
-		},
+		processSpec,
+		res,
 		i.customTypes,
-		resourceInstance.Source(),
-		resourceInstance.Params(),
-		resourceInstance.ContainerOwner(),
+		i.imageResource.Source,
+		params,
+		db.NewImageGetContainerOwner(container, i.teamID),
 		resource.ResourcesDir("get"),
-		resourceInstanceSignature,
 		i.imageFetchingDelegate,
-		resourceInstance.ResourceCache(),
+		resourceCache,
 	)
 
 	if err != nil {
@@ -201,11 +210,11 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	if getResultWithVolume.Volume == nil {
+	if volume == nil {
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
-	reader, err := getResultWithVolume.Volume.StreamOut(ctx, ImageMetadataFile)
+	reader, err := volume.StreamOut(ctx, ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -226,7 +235,7 @@ func (i *imageResourceFetcher) Fetch(
 		},
 	}
 
-	return getResultWithVolume.Volume, releasingReader, version, nil
+	return volume, releasingReader, version, nil
 }
 
 func (i *imageResourceFetcher) ensureVersionOfType(
@@ -262,8 +271,14 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		return err
 	}
 
-	checkResourceType := i.resourceFactory.NewResourceForContainer(resourceTypeContainer)
-	versions, err := checkResourceType.Check(context.TODO(), resourceType.Source, nil)
+	processSpec := runtime.ProcessSpec{
+		Path: "/opt/resource/check",
+	}
+	params := resource.Params{
+		Source: resourceType.Source,
+	}
+	checkResourceType := resource.NewResource(processSpec, params)
+	versions, err := checkResourceType.Check(context.TODO(), resourceTypeContainer)
 	if err != nil {
 		return err
 	}
@@ -320,8 +335,14 @@ func (i *imageResourceFetcher) getLatestVersion(
 		return nil, err
 	}
 
-	checkingResource := i.resourceFactory.NewResourceForContainer(imageContainer)
-	versions, err := checkingResource.Check(context.TODO(), i.imageResource.Source, nil)
+	processSpec := runtime.ProcessSpec{
+		Path: "/opt/resource/check",
+	}
+	params := resource.Params{
+		Source: i.imageResource.Source,
+	}
+	checkingResource := resource.NewResource(processSpec, params)
+	versions, err := checkingResource.Check(context.TODO(), imageContainer)
 	if err != nil {
 		return nil, err
 	}

@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/concourse/concourse/atc/resource"
+
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
@@ -38,7 +40,7 @@ type Client interface {
 		ContainerPlacementStrategy,
 		db.ContainerMetadata,
 		ImageFetcherSpec,
-		ProcessSpec,
+		runtime.ProcessSpec,
 		chan runtime.Event,
 	) TaskResult
 	RunPutStep(
@@ -49,11 +51,12 @@ type Client interface {
 		WorkerSpec,
 		atc.Source,
 		atc.Params,
+		resource.Resource,
 		ContainerPlacementStrategy,
 		db.ContainerMetadata,
 		ImageFetcherSpec,
 		string,
-		ProcessSpec,
+		runtime.ProcessSpec,
 		chan runtime.Event,
 	) PutResult
 	RunGetStep(
@@ -67,12 +70,11 @@ type Client interface {
 		atc.VersionedResourceTypes,
 		atc.Source,
 		atc.Params,
+		resource.Resource,
 		string,
-		string,
-		Fetcher,
 		ImageFetchingDelegate,
 		db.UsedResourceCache,
-		ProcessSpec,
+		runtime.ProcessSpec,
 		chan runtime.Event,
 	) (GetResult, error)
 	StreamFileFromArtifact(ctx context.Context, logger lager.Logger, artifact runtime.Artifact, filePath string) (io.ReadCloser, error)
@@ -109,21 +111,12 @@ type GetResult struct {
 	Err           error
 }
 
-type getResultWithVolume struct {
+type GetResultWithVolume struct {
 	Status        int
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
 	Err           error
 	Volume        Volume
-}
-
-type ProcessSpec struct {
-	Path         string
-	Args         []string
-	Dir          string
-	User         string
-	StdoutWriter io.Writer
-	StderrWriter io.Writer
 }
 
 type ImageFetcherSpec struct {
@@ -184,7 +177,7 @@ func (client *client) RunTaskStep(
 	strategy ContainerPlacementStrategy,
 	metadata db.ContainerMetadata,
 	imageFetcherSpec ImageFetcherSpec,
-	processSpec ProcessSpec,
+	processSpec runtime.ProcessSpec,
 	events chan runtime.Event,
 ) TaskResult {
 	chosenWorker, err := client.chooseTaskWorker(
@@ -305,6 +298,7 @@ func (client *client) RunTaskStep(
 		return TaskResult{Status: status.processStatus, VolumeMounts: container.VolumeMounts(), Err: nil}
 	}
 }
+
 func (client *client) RunGetStep(
 	ctx context.Context,
 	logger lager.Logger,
@@ -316,14 +310,14 @@ func (client *client) RunGetStep(
 	resourceTypes atc.VersionedResourceTypes,
 	source atc.Source,
 	params atc.Params,
+	resource resource.Resource,
 	resourceDir string,
-	resourceInstanceSignature string,
-	resourceFetcher Fetcher,
 	delegate ImageFetchingDelegate,
 	cache db.UsedResourceCache,
-	processSpec ProcessSpec,
+	processSpec runtime.ProcessSpec,
 	events chan runtime.Event,
 ) (GetResult, error) {
+	// TODO where should we publish the InitializeEvent ??
 	vr := runtime.VersionResult{}
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
@@ -342,19 +336,19 @@ func (client *client) RunGetStep(
 	//}
 
 	// start of dependency on resource -> worker
-	getResultWithVolume, err := resourceFetcher.Fetch(
+	getResult, _, err := chosenWorker.Fetch(
 		ctx,
 		logger,
 		containerMetadata,
 		chosenWorker,
 		containerSpec,
 		processSpec,
+		resource,
 		resourceTypes,
 		source,
 		params,
 		owner,
 		resourceDir,
-		resourceInstanceSignature,
 		delegate,
 		cache,
 	)
@@ -372,15 +366,10 @@ func (client *client) RunGetStep(
 
 	events <- runtime.Event{
 		EventType:     runtime.FinishedEvent,
-		ExitStatus:    getResultWithVolume.Status,
-		VersionResult: getResultWithVolume.VersionResult,
+		ExitStatus:    getResult.Status,
+		VersionResult: getResult.VersionResult,
 	}
-	return GetResult{
-		getResultWithVolume.Status,
-		getResultWithVolume.VersionResult,
-		getResultWithVolume.GetArtifact,
-		getResultWithVolume.Err,
-	}, nil
+	return getResult, nil
 }
 func (client *client) chooseTaskWorker(
 	ctx context.Context,
@@ -513,11 +502,12 @@ func (client *client) RunPutStep(
 	workerSpec WorkerSpec,
 	source atc.Source,
 	params atc.Params,
+	resource resource.Resource,
 	strategy ContainerPlacementStrategy,
 	metadata db.ContainerMetadata,
 	imageFetcherSpec ImageFetcherSpec,
 	resourceDir string,
-	spec ProcessSpec,
+	spec runtime.ProcessSpec,
 	events chan runtime.Event,
 ) PutResult {
 
@@ -556,23 +546,25 @@ func (client *client) RunPutStep(
 	}
 
 	var result PutResult
-	err = RunScript(
-		ctx,
-		container,
-		spec.Path,
-		spec.Args,
-		runtime.PutRequest{
-			Params: params,
-			Source: source,
-		},
-		&vr,
-		spec.StderrWriter,
-		true,
-		events,
-	)
+	// TODO: pass in events to resource.Put?
+	vr, err = resource.Put(ctx, container)
+	//err = RunScript(
+	//	ctx,
+	//	container,
+	//	spec.Path,
+	//	spec.Args,
+	//	runtime.PutRequest{
+	//		Params: params,
+	//		Source: source,
+	//	},
+	//	&vr,
+	//	spec.StderrWriter,
+	//	true,
+	//	events,
+	//)
 
 	if err != nil {
-		if failErr, ok := err.(ErrResourceScriptFailed); ok {
+		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
 			result = PutResult{failErr.ExitStatus, runtime.VersionResult{}, failErr}
 		} else {
 			result = PutResult{-1, runtime.VersionResult{}, err}

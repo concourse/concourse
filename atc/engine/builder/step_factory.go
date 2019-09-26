@@ -16,38 +16,32 @@ import (
 type stepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
-	resourceFetcher       worker.Fetcher
 	teamFactory           db.TeamFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
-	resourceFactory       resource.ResourceFactory
 	lockFactory           lock.LockFactory
 }
 
 func NewStepFactory(
 	pool worker.Pool,
 	client worker.Client,
-	resourceFetcher worker.Fetcher,
 	teamFactory db.TeamFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
-	resourceFactory resource.ResourceFactory,
 	lockFactory lock.LockFactory,
 ) *stepFactory {
 	return &stepFactory{
 		pool:                  pool,
 		client:                client,
-		resourceFetcher:       resourceFetcher,
 		teamFactory:           teamFactory,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
-		resourceFactory:       resourceFactory,
 		lockFactory:           lockFactory,
 	}
 }
@@ -65,7 +59,6 @@ func (factory *stepFactory) GetStep(
 		*plan.Get,
 		stepMetadata,
 		containerMetadata,
-		factory.resourceFetcher,
 		factory.resourceCacheFactory,
 		factory.strategy,
 		factory.pool,
@@ -89,7 +82,6 @@ func (factory *stepFactory) PutStep(
 		*plan.Put,
 		stepMetadata,
 		containerMetadata,
-		factory.resourceFactory,
 		factory.resourceConfigFactory,
 		factory.strategy,
 		factory.client,
@@ -112,7 +104,6 @@ func (factory *stepFactory) CheckStep(
 		*plan.Check,
 		stepMetadata,
 		containerMetadata,
-		factory.resourceFactory,
 		worker.NewRandomPlacementStrategy(),
 		factory.pool,
 		delegate,

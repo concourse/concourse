@@ -228,7 +228,7 @@ var _ = Describe("Client", func() {
 			fakeMetadata         db.ContainerMetadata
 			fakeDelegate         *execfakes.FakeTaskDelegate
 			fakeImageFetcherSpec worker.ImageFetcherSpec
-			fakeTaskProcessSpec  worker.ProcessSpec
+			fakeTaskProcessSpec  runtime.ProcessSpec
 			fakeContainer        *workerfakes.FakeContainer
 			eventChan            chan runtime.Event
 			ctx                  context.Context
@@ -299,7 +299,7 @@ var _ = Describe("Client", func() {
 				Delegate:      fakeDelegate,
 				ResourceTypes: atc.VersionedResourceTypes{},
 			}
-			fakeTaskProcessSpec = worker.ProcessSpec{
+			fakeTaskProcessSpec = runtime.ProcessSpec{
 				Path: "/some/path",
 				Args: []string{"some", "args"},
 				Dir:  "/some/dir",
@@ -547,7 +547,7 @@ var _ = Describe("Client", func() {
 
 					stdoutBuf = new(gbytes.Buffer)
 					stderrBuf = new(gbytes.Buffer)
-					fakeTaskProcessSpec = worker.ProcessSpec{
+					fakeTaskProcessSpec = runtime.ProcessSpec{
 						StdoutWriter: stdoutBuf,
 						StderrWriter: stderrBuf,
 					}
@@ -697,14 +697,14 @@ var _ = Describe("Client", func() {
 
 					stdoutBuf = new(gbytes.Buffer)
 					stderrBuf = new(gbytes.Buffer)
-					fakeTaskProcessSpec = worker.ProcessSpec{
+					fakeTaskProcessSpec = runtime.ProcessSpec{
 						StdoutWriter: stdoutBuf,
 						StderrWriter: stderrBuf,
 					}
 				})
 
 				It("sends a Starting event", func() {
-					Expect(eventChan).To(Receive(Equal(runtime.Event{EventType: "Starting",ExitStatus: 0})))
+					Expect(eventChan).To(Receive(Equal(runtime.Event{EventType: "Starting", ExitStatus: 0})))
 				})
 
 				It("runs a new process in the container", func() {
@@ -992,10 +992,10 @@ var _ = Describe("Client", func() {
 			fakeDelegate      *workerfakes.FakeImageFetchingDelegate
 			fakeResourceTypes atc.VersionedResourceTypes
 			fakeContainer     *workerfakes.FakeContainer
-			fakeProcessSpec	  worker.ProcessSpec
+			fakeProcessSpec   runtime.ProcessSpec
 
 			versionResult runtime.VersionResult
-			status int
+			status        int
 			err           error
 
 			disasterErr error
@@ -1019,8 +1019,8 @@ var _ = Describe("Client", func() {
 			disasterErr = errors.New("oh no")
 			stdout := new(gbytes.Buffer)
 			stderr := new(gbytes.Buffer)
-				fakeProcessSpec = worker.ProcessSpec{
-				Path: "/opt/resource/out",
+			fakeProcessSpec = runtime.ProcessSpec{
+				Path:         "/opt/resource/out",
 				StdoutWriter: stdout,
 				StderrWriter: stderr,
 			}
@@ -1125,7 +1125,6 @@ var _ = Describe("Client", func() {
 
 				stdoutBuf *gbytes.Buffer
 				stderrBuf *gbytes.Buffer
-
 			)
 
 			BeforeEach(func() {
@@ -1138,12 +1137,12 @@ var _ = Describe("Client", func() {
 			Context("found container that is already running", func() {
 				var expectedVersionResult runtime.VersionResult
 				BeforeEach(func() {
-					fakeContainer.AttachStub = func(arg1 context.Context, arg2 string, arg3 garden.ProcessIO) (garden.Process, error){
+					fakeContainer.AttachStub = func(arg1 context.Context, arg2 string, arg3 garden.ProcessIO) (garden.Process, error) {
 						_, _ = arg3.Stdout.Write([]byte(`{"version": { "foo": "bar" }}`))
 						return fakeProcess, nil
 					}
 					expectedVersionResult = runtime.VersionResult{
-						Version: atc.Version(map[string]string{"foo": "bar"}),
+						Version:  atc.Version(map[string]string{"foo": "bar"}),
 						Metadata: nil,
 					}
 				})
@@ -1264,20 +1263,20 @@ var _ = Describe("Client", func() {
 
 					stdoutBuf = new(gbytes.Buffer)
 					stderrBuf = new(gbytes.Buffer)
-					fakeProcessSpec = worker.ProcessSpec{
-						Path: "/opt/resource/out",
-						Args: []string{"/tmp/build/put"},
+					fakeProcessSpec = runtime.ProcessSpec{
+						Path:         "/opt/resource/out",
+						Args:         []string{"/tmp/build/put"},
 						StdoutWriter: stdoutBuf,
 						StderrWriter: stderrBuf,
 					}
-					fakeContainer.RunStub = func(arg1 context.Context, arg2 garden.ProcessSpec, arg3 garden.ProcessIO) (garden.Process, error){
+					fakeContainer.RunStub = func(arg1 context.Context, arg2 garden.ProcessSpec, arg3 garden.ProcessIO) (garden.Process, error) {
 						_, _ = arg3.Stdout.Write([]byte(`{"version": { "foo": "bar" }}`))
 						return fakeProcess, nil
 					}
 				})
 
 				It("sends a Starting event", func() {
-					Expect(events).To(Receive(Equal(runtime.Event{EventType: "Starting",ExitStatus: 0})))
+					Expect(events).To(Receive(Equal(runtime.Event{EventType: "Starting", ExitStatus: 0})))
 				})
 
 				It("runs a new process in the container", func() {

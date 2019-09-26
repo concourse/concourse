@@ -41,7 +41,6 @@ type PutStep struct {
 	plan                  atc.PutPlan
 	metadata              StepMetadata
 	containerMetadata     db.ContainerMetadata
-	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
 	workerClient          worker.Client
@@ -54,7 +53,6 @@ func NewPutStep(
 	plan atc.PutPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
@@ -65,7 +63,6 @@ func NewPutStep(
 		plan:                  plan,
 		metadata:              metadata,
 		containerMetadata:     containerMetadata,
-		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		workerClient:          workerClient,
 		strategy:              strategy,
@@ -179,6 +176,17 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 	resourceDir := resource.ResourcesDir("put")
 
+	processSpec := runtime.ProcessSpec{
+		Path:         "/opt/resource/out",
+		Args:         []string{resourceDir},
+		StdoutWriter: step.delegate.Stdout(),
+		StderrWriter: step.delegate.Stderr(),
+	}
+	resourceParams := resource.Params{
+		Source: source,
+		Params: params,
+	}
+	res := resource.NewResource(processSpec, resourceParams)
 	result := step.workerClient.RunPutStep(
 		ctx,
 		logger,
@@ -187,16 +195,12 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		workerSpec,
 		source,
 		params,
+		res,
 		step.strategy,
 		step.containerMetadata,
 		imageSpec,
 		resourceDir,
-		worker.ProcessSpec{
-			Path:         "/opt/resource/out",
-			Args:         []string{resourceDir},
-			StdoutWriter: step.delegate.Stdout(),
-			StderrWriter: step.delegate.Stderr(),
-		},
+		processSpec,
 		events,
 	)
 
@@ -218,7 +222,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	if err != nil {
 		logger.Error("failed-to-put-resource", err)
 
-		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
+		if err, ok := err.(runtime.ErrResourceScriptFailed); ok {
 			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), runtime.VersionResult{})
 			return nil
 		}

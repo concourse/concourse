@@ -5,7 +5,8 @@ package worker
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/concourse/concourse/atc/resource"
 
 	"github.com/concourse/concourse/atc/runtime"
 
@@ -18,8 +19,8 @@ import (
 
 type FetchSource interface {
 	//LockName() (string, error)
-	Find() (getResultWithVolume, bool, error)
-	Create(context.Context) (getResultWithVolume, error)
+	Find() (GetResult, Volume, bool, error)
+	Create(context.Context) (GetResult, Volume, error)
 }
 
 //go:generate counterfeiter . FetchSourceFactory
@@ -33,9 +34,10 @@ type FetchSourceFactory interface {
 		owner db.ContainerOwner,
 		resourceDir string,
 		cache db.UsedResourceCache,
+		resource resource.Resource,
 		resourceTypes atc.VersionedResourceTypes,
 		containerSpec ContainerSpec,
-		processSpec ProcessSpec,
+		processSpec runtime.ProcessSpec,
 		containerMetadata db.ContainerMetadata,
 		imageFetchingDelegate ImageFetchingDelegate,
 	) FetchSource
@@ -61,9 +63,10 @@ func (r *fetchSourceFactory) NewFetchSource(
 	owner db.ContainerOwner,
 	resourceDir string,
 	cache db.UsedResourceCache,
+	resource resource.Resource,
 	resourceTypes atc.VersionedResourceTypes,
 	containerSpec ContainerSpec,
-	processSpec ProcessSpec,
+	processSpec runtime.ProcessSpec,
 	containerMetadata db.ContainerMetadata,
 	imageFetchingDelegate ImageFetchingDelegate,
 ) FetchSource {
@@ -75,6 +78,7 @@ func (r *fetchSourceFactory) NewFetchSource(
 		owner:                  owner,
 		resourceDir:            resourceDir,
 		cache:                  cache,
+		resource:               resource,
 		resourceTypes:          resourceTypes,
 		containerSpec:          containerSpec,
 		processSpec:            processSpec,
@@ -92,9 +96,10 @@ type resourceInstanceFetchSource struct {
 	owner                  db.ContainerOwner
 	resourceDir            string
 	cache                  db.UsedResourceCache
+	resource               resource.Resource
 	resourceTypes          atc.VersionedResourceTypes
 	containerSpec          ContainerSpec
-	processSpec            ProcessSpec
+	processSpec            runtime.ProcessSpec
 	containerMetadata      db.ContainerMetadata
 	imageFetchingDelegate  ImageFetchingDelegate
 	dbResourceCacheFactory db.ResourceCacheFactory
@@ -107,24 +112,24 @@ func findOn(logger lager.Logger, w Worker, cache db.UsedResourceCache) (volume V
 	)
 }
 
-func (s *resourceInstanceFetchSource) Find() (getResultWithVolume, bool, error) {
+func (s *resourceInstanceFetchSource) Find() (GetResult, Volume, bool, error) {
 	sLog := s.logger.Session("find")
-	result := getResultWithVolume{}
+	result := GetResult{}
 
 	volume, found, err := findOn(s.logger, s.worker, s.cache)
 	if err != nil {
 		sLog.Error("failed-to-find-initialized-on", err)
-		return result, false, err
+		return result, nil, false, err
 	}
 
 	if !found {
-		return result, false, nil
+		return result, nil, false, nil
 	}
 
 	metadata, err := s.dbResourceCacheFactory.ResourceCacheMetadata(s.cache)
 	if err != nil {
 		sLog.Error("failed-to-get-resource-cache-metadata", err)
-		return result, false, err
+		return result, nil, false, err
 	}
 
 	// TODO pass version down so it can be used in the log statement.
@@ -138,7 +143,7 @@ func (s *resourceInstanceFetchSource) Find() (getResultWithVolume, bool, error) 
 		})
 	}
 
-	return getResultWithVolume{
+	return GetResult{
 			0,
 			// todo: figure out what logically should be returned for VersionResult
 			runtime.VersionResult{
@@ -146,25 +151,24 @@ func (s *resourceInstanceFetchSource) Find() (getResultWithVolume, bool, error) 
 			},
 			runtime.GetArtifact{VolumeHandle: volume.Handle()},
 			nil,
-			volume,
 		},
-		true, nil
+		volume, true, nil
 }
 
 // Create runs under the lock but we need to make sure volume does not exist
 // yet before creating it under the lock
-func (s *resourceInstanceFetchSource) Create(ctx context.Context) (getResultWithVolume, error) {
+func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 	sLog := s.logger.Session("create")
-	result := getResultWithVolume{}
+	result := GetResult{}
 	var volume Volume
 
-	findResult, found, err := s.Find()
+	findResult, volume, found, err := s.Find()
 	if err != nil {
-		return result, err
+		return result, nil, err
 	}
 
 	if found {
-		return findResult, nil
+		return findResult, nil, nil
 	}
 
 	s.containerSpec.BindMounts = []BindMountSource{
@@ -183,15 +187,14 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (getResultWith
 
 	if err != nil {
 		sLog.Error("failed-to-construct-resource", err)
-		result = getResultWithVolume{
+		result = GetResult{
 			1,
 			// todo: figure out what logically should be returned for VersionResult
 			runtime.VersionResult{},
 			runtime.GetArtifact{},
 			err,
-			volume,
 		}
-		return result, err
+		return result, volume, err
 	}
 
 	mountPath := s.resourceDir
@@ -204,7 +207,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (getResultWith
 
 	vr := runtime.VersionResult{}
 	// TODO This is pure EVIL
-	events := make(chan runtime.Event, 100)
+	//events := make(chan runtime.Event, 100)
 
 	// todo: we want to decouple this resource from the container
 	//res := s.resourceFactory.NewResourceForContainer(container)
@@ -224,37 +227,38 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (getResultWith
 	//	return nil, err
 	//}
 
-	err = RunScript(
-		ctx,
-		container,
-		s.processSpec.Path,
-		s.processSpec.Args,
-		runtime.GetRequest{
-			Params: s.params,
-			Source: s.source,
-		},
-		&vr,
-		s.processSpec.StderrWriter,
-		true,
-		events,
-	)
+	vr, err = s.resource.Get(ctx, container)
+	//err = RunScript(
+	//	ctx,
+	//	container,
+	//	s.processSpec.Path,
+	//	s.processSpec.Args,
+	//	runtime.GetRequest{
+	//		Params: s.params,
+	//		Source: s.source,
+	//	},
+	//	&vr,
+	//	s.processSpec.StderrWriter,
+	//	true,
+	//	events,
+	//)
 
 	if err != nil {
 		sLog.Error("failed-to-fetch-resource", err)
 		// TODO Is this compatible with previous behaviour of returning a nil when error type is NOT ErrResourceScriptFailed
 
 		// if error returned from running the actual script
-		if failErr, ok := err.(ErrResourceScriptFailed); ok {
-			result = getResultWithVolume{failErr.ExitStatus, runtime.VersionResult{}, runtime.GetArtifact{}, failErr, volume}
-			return result, nil
+		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
+			result = GetResult{failErr.ExitStatus, runtime.VersionResult{}, runtime.GetArtifact{}, failErr}
+			return result, volume, nil
 		}
-		return result, err
+		return result, volume, err
 	}
 
 	err = volume.SetPrivileged(false)
 	if err != nil {
 		sLog.Error("failed-to-set-volume-unprivileged", err)
-		return result, err
+		return result, nil, err
 	}
 
 	// TODO this should happen get_step exec rather than here
@@ -271,10 +275,10 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (getResultWith
 	//	return nil, err
 	//}
 
-	return getResultWithVolume{
+	return GetResult{
 		VersionResult: vr,
 		GetArtifact: runtime.GetArtifact{
 			VolumeHandle: volume.Handle(),
 		},
-	}, nil
+	}, volume, nil
 }

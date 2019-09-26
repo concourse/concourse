@@ -5,6 +5,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/concourse/concourse/atc/runtime"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -131,4 +133,4 @@ func (fake *FakeFetcher) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ worker.Fetcher = new(FakeFetcher)
+var _ runtime.Fetcher = new(FakeFetcher)

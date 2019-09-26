@@ -58,7 +58,6 @@ type GetStep struct {
 	plan                 atc.GetPlan
 	metadata             StepMetadata
 	containerMetadata    db.ContainerMetadata
-	resourceFetcher      worker.Fetcher
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
@@ -72,7 +71,6 @@ func NewGetStep(
 	plan atc.GetPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	resourceFetcher worker.Fetcher,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerPool worker.Pool,
@@ -84,7 +82,6 @@ func NewGetStep(
 		plan:                 plan,
 		metadata:             metadata,
 		containerMetadata:    containerMetadata,
-		resourceFetcher:      resourceFetcher,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
 		workerPool:           workerPool,
@@ -176,15 +173,15 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	// TODO containerOwner accepts workerName and this should be extracted out
-	resourceInstance := resource.NewResourceInstance(
-		resource.ResourceType(step.plan.Type),
-		version,
-		source,
-		params,
-		resourceTypes,
-		resourceCache,
-		db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID),
-	)
+	//resourceInstance := resource.NewResourceInstance(
+	//	resource.ResourceType(step.plan.Type),
+	//	version,
+	//	source,
+	//	params,
+	//	resourceTypes,
+	//	resourceCache,
+	//	db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID),
+	//)
 	// Stuff above is all part of Concourse CORE
 
 	events := make(chan runtime.Event, 1)
@@ -208,11 +205,19 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	}(logger, events, step.delegate)
 
 	resourceDir := resource.ResourcesDir("get")
-
-	resourceInstanceSignature, err := resourceInstance.Signature()
-	if err != nil {
-		return err
+	processSpec := runtime.ProcessSpec{
+		Path:         "/opt/resource/out",
+		Args:         []string{resourceDir},
+		StdoutWriter: step.delegate.Stdout(),
+		StderrWriter: step.delegate.Stderr(),
 	}
+
+	resourceParams := resource.Params{
+		Source:  source,
+		Params:  params,
+		Version: version,
+	}
+	res := resource.NewResource(processSpec, resourceParams)
 
 	// start of workerClient.RunGetStep?
 	getResult, err := step.workerClient.RunGetStep(
@@ -226,17 +231,11 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		resourceTypes,
 		source,
 		params,
+		res,
 		resourceDir,
-		resourceInstanceSignature,
-		step.resourceFetcher,
 		step.delegate,
 		resourceCache,
-		worker.ProcessSpec{
-			Path:         "/opt/resource/out",
-			Args:         []string{resourceDir},
-			StdoutWriter: step.delegate.Stdout(),
-			StderrWriter: step.delegate.Stderr(),
-		},
+		processSpec,
 		events,
 	)
 
@@ -258,6 +257,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		//	return nil, err
 		//}
 
+		fmt.Printf("OMG get_step getResult \n\n %#v \n\n", getResult)
 		state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.Name), &getResult.GetArtifact)
 
 		if step.plan.Resource != "" {
@@ -269,6 +269,8 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		step.succeeded = true
 	} else {
 		// TODO  have a way of bubbling up the error message from getResult.Err
+		fmt.Printf("\n\n-------------------------- get_step Run getResult.Status !=0, GetResult: %#v", getResult)
+		step.delegate.Finished(logger, ExitStatus(getResult.Status), getResult.VersionResult)
 	}
 
 	return nil
@@ -278,11 +280,3 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 func (step *GetStep) Succeeded() bool {
 	return step.succeeded
 }
-
-//type GetArtifact struct {
-//	volumeHandle string
-//}
-//
-//func (art *GetArtifact) ID() string {
-//	return art.volumeHandle
-//}

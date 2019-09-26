@@ -9,16 +9,18 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/concourse/concourse/atc/runtime"
+
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -218,11 +220,11 @@ var _ = Describe("Image", func() {
 
 					Context("when fetching resource fails", func() {
 						BeforeEach(func() {
-							fakeResourceFetcher.FetchReturns(nil, worker.ErrInterrupted)
+							fakeResourceFetcher.FetchReturns(nil, runtime.ErrInterrupted)
 						})
 
 						It("returns error", func() {
-							Expect(fetchErr).To(Equal(worker.ErrInterrupted))
+							Expect(fetchErr).To(Equal(runtime.ErrInterrupted))
 						})
 					})
 
@@ -485,11 +487,11 @@ var _ = Describe("Image", func() {
 
 			Context("when fetching resource fails", func() {
 				BeforeEach(func() {
-					fakeResourceFetcher.FetchReturns(nil, worker.ErrInterrupted)
+					fakeResourceFetcher.FetchReturns(nil, runtime.ErrInterrupted)
 				})
 
 				It("returns error", func() {
-					Expect(fetchErr).To(Equal(worker.ErrInterrupted))
+					Expect(fetchErr).To(Equal(runtime.ErrInterrupted))
 				})
 			})
 

@@ -1,12 +1,16 @@
 package worker
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gclient"
 )
 
@@ -24,6 +28,16 @@ type Container interface {
 	WorkerName() string
 
 	MarkAsHijacked() error
+
+	RunScript(
+		context.Context,
+		string,
+		[]string,
+		interface{},
+		interface{},
+		io.Writer,
+		bool,
+	) error
 }
 
 type gardenWorkerContainer struct {
@@ -137,4 +151,109 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	container.volumeMounts = volumeMounts
 
 	return nil
+}
+
+func (container *gardenWorkerContainer) RunScript(
+	ctx context.Context,
+	path string,
+	args []string,
+	input interface{},
+	output interface{},
+	logDest io.Writer,
+	recoverable bool,
+) error {
+
+	request, err := json.Marshal(input)
+	if err != nil {
+		return err
+	}
+
+	if recoverable {
+		result, _ := container.Properties()
+		code := result[runtime.ResourceResultPropertyName]
+		if code != "" {
+			return json.Unmarshal([]byte(code), &output)
+		}
+	}
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
+	processIO := garden.ProcessIO{
+		Stdin:  bytes.NewBuffer(request),
+		Stdout: stdout,
+	}
+
+	if logDest != nil {
+		processIO.Stderr = logDest
+	} else {
+		processIO.Stderr = stderr
+	}
+
+	var process garden.Process
+
+	if recoverable {
+		process, err = container.Attach(ctx, runtime.ResourceProcessID, processIO)
+		if err != nil {
+			process, err = container.Run(
+				ctx,
+				garden.ProcessSpec{
+					ID:   runtime.ResourceProcessID,
+					Path: path,
+					Args: args,
+				}, processIO)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		process, err = container.Run(ctx, garden.ProcessSpec{
+			Path: path,
+			Args: args,
+		}, processIO)
+		if err != nil {
+			return err
+		}
+	}
+
+	processExited := make(chan struct{})
+
+	var processStatus int
+	var processErr error
+
+	go func() {
+		processStatus, processErr = process.Wait()
+		close(processExited)
+	}()
+
+	select {
+	case <-processExited:
+		if processErr != nil {
+			return processErr
+		}
+
+		if processStatus != 0 {
+			return runtime.ErrResourceScriptFailed{
+				Path:       path,
+				Args:       args,
+				ExitStatus: processStatus,
+
+				Stderr: stderr.String(),
+			}
+		}
+
+		if recoverable {
+			err := container.SetProperty(runtime.ResourceResultPropertyName, stdout.String())
+			if err != nil {
+				return err
+			}
+		}
+
+		return json.Unmarshal(stdout.Bytes(), output)
+
+	case <-ctx.Done():
+		container.Stop(false)
+		<-processExited
+		return ctx.Err()
+	}
 }
