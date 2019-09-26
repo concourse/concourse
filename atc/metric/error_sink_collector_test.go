@@ -16,8 +16,6 @@ var _ = Describe("ErrorSinkCollector", func() {
 	)
 
 	BeforeEach(func() {
-		testLogger := lager.NewLogger("test")
-
 		errorSinkCollector = metric.NewErrorSinkCollector(testLogger)
 
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
