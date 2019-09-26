@@ -40,7 +40,7 @@ type Callback
     | VersionPinned (Fetched ())
     | VersionUnpinned (Fetched ())
     | VersionToggled VersionToggleAction VersionId (Fetched ())
-    | Checked (Fetched ())
+    | Checked (Fetched Concourse.Check)
     | CommentSet (Fetched ())
     | APIDataFetched (Fetched ( Time.Posix, Concourse.APIData ))
     | LoggedOut (Fetched ())
