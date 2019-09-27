@@ -127,6 +127,10 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				// sweeping too much
 				ResponseHeaderTimeout: 1 * time.Minute,
 			},
+			// we've seen destroy calls to baggageclaim hang and lock gc
+			// gc is periodic so we don't need to retry here, we can rely
+			// on the next sweeper tick.
+			Timeout: 5*time.Minute,
 		},
 	)
 
