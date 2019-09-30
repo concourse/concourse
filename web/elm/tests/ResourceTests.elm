@@ -2865,14 +2865,7 @@ all =
                                     Time.millisToPosix 1000
                                 )
                             |> Tuple.second
-                            |> Common.contains
-                                (Effects.FetchCheck
-                                    { teamName = teamName
-                                    , pipelineName = pipelineName
-                                    , resourceName = resourceName
-                                    , checkID = 0
-                                    }
-                                )
+                            |> Common.contains (Effects.FetchCheck 0)
                 , test "when check resolves successfully, resource and versions refresh" <|
                     \_ ->
                         init

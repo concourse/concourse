@@ -112,7 +112,7 @@ type Effect
     | FetchJobs Concourse.PipelineIdentifier
     | FetchJobBuilds Concourse.JobIdentifier (Maybe Page)
     | FetchResource Concourse.ResourceIdentifier
-    | FetchCheck Concourse.CheckIdentifier
+    | FetchCheck Int
     | FetchVersionedResources Concourse.ResourceIdentifier (Maybe Page)
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId

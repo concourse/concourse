@@ -494,14 +494,7 @@ handleDelivery delivery ( model, effects ) =
             ( { model | now = Just time }
             , case model.checkStatus of
                 Models.CurrentlyChecking id ->
-                    effects
-                        ++ [ FetchCheck
-                                { teamName = model.resourceIdentifier.teamName
-                                , pipelineName = model.resourceIdentifier.pipelineName
-                                , resourceName = model.resourceIdentifier.resourceName
-                                , checkID = id
-                                }
-                           ]
+                    effects ++ [ FetchCheck id ]
 
                 _ ->
                     effects
