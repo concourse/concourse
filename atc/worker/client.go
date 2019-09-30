@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/runtime"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 const taskProcessID = "task"
@@ -142,6 +142,7 @@ func (client *client) RunTaskStep(
 	if err != nil {
 		return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
 	}
+	processSpec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s: %s\n", chosenWorker.Name(), chosenWorker.Description())))
 
 	if strategy.ModifiesActiveTasks() {
 		defer decreaseActiveTasks(logger.Session("decrease-active-tasks"), chosenWorker)

@@ -234,6 +234,8 @@ var _ = Describe("PutStep", func() {
 				))
 				Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 				Expect(delegate).To(Equal(fakeDelegate))
+
+				Expect(string(stderrBuf.Contents())).To(MatchRegexp("Chosen worker some-worker"))
 			})
 
 			It("secrets are tracked", func() {

@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"fmt"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -148,6 +149,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	if err != nil {
 		return err
 	}
+	step.delegate.Stderr().Write([]byte(fmt.Sprintf("Chosen worker %s: %s\n", chosenWorker.Name(), chosenWorker.Description())))
 
 	containerSpec.BindMounts = []worker.BindMountSource{
 		&worker.CertsVolumeMount{Logger: logger},

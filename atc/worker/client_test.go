@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -8,15 +9,13 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
+	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/onsi/gomega/gbytes"
-
-	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -32,6 +31,8 @@ var _ = Describe("Client", func() {
 		client          worker.Client
 		fakeLock        *lockfakes.FakeLock
 		fakeLockFactory *lockfakes.FakeLockFactory
+		stdoutBuf       *bytes.Buffer
+		stderrBuf       *bytes.Buffer
 	)
 
 	BeforeEach(func() {
@@ -84,6 +85,7 @@ var _ = Describe("Client", func() {
 
 			BeforeEach(func() {
 				fakeWorker = new(workerfakes.FakeWorker)
+				fakeWorker.NameReturns("some-worker")
 				fakeProvider.FindWorkerForContainerReturns(fakeWorker, true, nil)
 
 				fakeContainer = new(workerfakes.FakeContainer)
@@ -298,10 +300,14 @@ var _ = Describe("Client", func() {
 				Delegate:      fakeDelegate,
 				ResourceTypes: atc.VersionedResourceTypes{},
 			}
+			stdoutBuf = &bytes.Buffer{}
+			stderrBuf = &bytes.Buffer{}
 			fakeTaskProcessSpec = worker.TaskProcessSpec{
-				Path: "/some/path",
-				Args: []string{"some", "args"},
-				Dir:  "/some/dir",
+				Path:         "/some/path",
+				Args:         []string{"some", "args"},
+				Dir:          "/some/dir",
+				StdoutWriter: stdoutBuf,
+				StderrWriter: stderrBuf,
 			}
 			fakeContainer = new(workerfakes.FakeContainer)
 			fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
@@ -339,6 +345,7 @@ var _ = Describe("Client", func() {
 			It("chooses a worker", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+				Expect(stderrBuf.String()).To(MatchRegexp("Chosen worker some-worker"))
 			})
 
 			Context("when 'limit-active-tasks' strategy is chosen", func() {
@@ -507,9 +514,6 @@ var _ = Describe("Client", func() {
 				fakeVolume1 *workerfakes.FakeVolume
 				fakeVolume2 *workerfakes.FakeVolume
 				fakeVolume3 *workerfakes.FakeVolume
-
-				stdoutBuf *gbytes.Buffer
-				stderrBuf *gbytes.Buffer
 			)
 
 			BeforeEach(func() {
@@ -544,8 +548,8 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					fakeContainer.AttachReturns(fakeProcess, nil)
 
-					stdoutBuf = new(gbytes.Buffer)
-					stderrBuf = new(gbytes.Buffer)
+					stdoutBuf = &bytes.Buffer{}
+					stderrBuf = &bytes.Buffer{}
 					fakeTaskProcessSpec = worker.TaskProcessSpec{
 						StdoutWriter: stdoutBuf,
 						StderrWriter: stderrBuf,
@@ -694,8 +698,8 @@ var _ = Describe("Client", func() {
 					fakeContainer.AttachReturns(nil, errors.New("container not running"))
 					fakeContainer.RunReturns(fakeProcess, nil)
 
-					stdoutBuf = new(gbytes.Buffer)
-					stderrBuf = new(gbytes.Buffer)
+					stdoutBuf = &bytes.Buffer{}
+					stderrBuf = &bytes.Buffer{}
 					fakeTaskProcessSpec = worker.TaskProcessSpec{
 						StdoutWriter: stdoutBuf,
 						StderrWriter: stderrBuf,

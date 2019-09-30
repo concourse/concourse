@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"archive/tar"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -42,6 +43,8 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeDelegate             *execfakes.FakeGetDelegate
 		getPlan                  *atc.GetPlan
+		stdoutBuf                *bytes.Buffer
+		stderrBuf                *bytes.Buffer
 
 		fakeVersionedSource       *resourcefakes.FakeVersionedSource
 		interpolatedResourceTypes atc.VersionedResourceTypes
@@ -95,6 +98,10 @@ var _ = Describe("GetStep", func() {
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 		fakeDelegate.VariablesReturns(credVarsTracker)
+		stdoutBuf = &bytes.Buffer{}
+		stderrBuf = &bytes.Buffer{}
+		fakeDelegate.StdoutReturns(stdoutBuf)
+		fakeDelegate.StderrReturns(stderrBuf)
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -154,24 +161,31 @@ var _ = Describe("GetStep", func() {
 		stepErr = getStep.Run(ctx, state)
 	})
 
-	It("finds or chooses a worker", func() {
-		Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-		_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
-		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, atc.PlanID(planID), stepMetadata.TeamID)))
-		Expect(actualContainerSpec).To(Equal(worker.ContainerSpec{
-			ImageSpec: worker.ImageSpec{
-				ResourceType: "some-resource-type",
-			},
-			TeamID: stepMetadata.TeamID,
-			Env:    stepMetadata.Env(),
-		}))
-		Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
-			ResourceType:  "some-resource-type",
-			Tags:          atc.Tags{"some", "tags"},
-			TeamID:        stepMetadata.TeamID,
-			ResourceTypes: interpolatedResourceTypes,
-		}))
-		Expect(strategy).To(Equal(fakeStrategy))
+	Context("init", func() {
+		BeforeEach(func() {
+			fakeWorker.NameReturns("some-worker")
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
+		})
+
+		It("finds or chooses a worker", func() {
+			Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+			_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+			Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(stepMetadata.BuildID, atc.PlanID(planID), stepMetadata.TeamID)))
+			Expect(actualContainerSpec).To(Equal(worker.ContainerSpec{
+				ImageSpec: worker.ImageSpec{
+					ResourceType: "some-resource-type",
+				},
+				TeamID: stepMetadata.TeamID,
+				Env:    stepMetadata.Env(),
+			}))
+			Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
+				ResourceType:  "some-resource-type",
+				Tags:          atc.Tags{"some", "tags"},
+				TeamID:        stepMetadata.TeamID,
+				ResourceTypes: interpolatedResourceTypes,
+			}))
+			Expect(strategy).To(Equal(fakeStrategy))
+		})
 	})
 
 	Context("when find or choosing worker succeeds", func() {
@@ -218,6 +232,7 @@ var _ = Describe("GetStep", func() {
 			)
 
 			Expect(resourceInstance.LockName("fake-worker")).To(Equal(expectedLockName))
+			Expect(stderrBuf.String()).To(MatchRegexp("Chosen worker some-worker"))
 		})
 
 		It("secrets are tracked", func() {

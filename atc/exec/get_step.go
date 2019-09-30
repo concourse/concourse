@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/go-multierror"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/DataDog/zstd"
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -189,6 +189,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	if err != nil {
 		return err
 	}
+	step.delegate.Stderr().Write([]byte(fmt.Sprintf("Chosen worker %s: %s\n", chosenWorker.Name(), chosenWorker.Description())))
 
 	step.delegate.Starting(logger)
 
