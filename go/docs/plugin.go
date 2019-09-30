@@ -78,6 +78,10 @@ func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
 }
 
 func (p *Plugin) DownloadLinks() (booklit.Content, error) {
+	if os.Getenv("GITHUB_TOKEN") == "" {
+		return booklit.Empty, nil
+	}
+
 	ctx := context.Background()
 
 	ts := oauth2.StaticTokenSource(

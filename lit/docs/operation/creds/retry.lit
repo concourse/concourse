@@ -1,0 +1,18 @@
+\title{Retrying failed fetches}{creds-retry-logic}
+
+\use-plugin{concourse-docs}
+
+When a request to the credential manager fails due to an intermittent error
+(e.g. a timeout or \code{connection refused}), Concourse will automatically try
+the request again up to 5 times before giving up. After all attempts fail, the
+error will be surfaced in the UI for the resource check or build step that
+initiated the request.
+
+The retry logic can be configured by specifying the following env on the
+\reference{web-node}:
+
+\codeblock{bash}{{{
+CONCOURSE_SECRET_RETRY_ATTEMPTS=5   # how many times to try
+CONCOURSE_SECRET_RETRY_INTERVAL=10s # how long to wait between attempts
+}}}
+
