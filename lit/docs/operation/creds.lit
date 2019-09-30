@@ -37,50 +37,12 @@ Where these values are looked up and how the credential manager is configured
 depends on the backend. Consult the relevant section below for whichever
 backend you want to use.
 
-Concourse currently supports the following credential managers:
-
 \table-of-contents
 \include-section{creds/vault.lit}
 \include-section{creds/credhub.lit}
 \include-section{creds/aws-ssm.lit}
 \include-section{creds/aws-secretsmanager.lit}
 \include-section{creds/kubernetes.lit}
-
-\inline-header{Common Configuration Parameters}
-
-When a request to the credential manager fails due to an intermittent error
-(e.g. a timeout or \code{connection refused}), Concourse will automatically try
-the request again up to 5 times before giving up. After all attempts fail, the
-error will be surfaced in the UI for the resource check or build step that
-initiated the request.
-
-The retry logic can be configured by specifying the following env on the
-\reference{web-node}:
-
-\codeblock{bash}{{{
-CONCOURSE_SECRET_RETRY_ATTEMPTS=5   # how many times to try
-CONCOURSE_SECRET_RETRY_INTERVAL=10s # how long to wait between attempts
-}}}
-
-By default, credentials are fetched each time they're used. This can add up when
-many pipelines are configured, resulting in a ton of requests to the credential
-manager.
-
-To reduce load on your credential server you may want to enable caching by
-setting the following env on the \reference{web-node}:
-
-\codeblock{bash}{{{
-CONCOURSE_SECRET_CACHE_ENABLED=true
-}}}
-
-By default, credentials will be cached for one minute at a time. This value can
-be increased to further reduce load on the server like so:
-
-\codeblock{bash}{{{
-CONCOURSE_SECRET_CACHE_DURATION=5m # increase from 1m default
-}}}
-
-Credential cache duration can also determined by the credential manager itself -
-for example, if Vault returns a lease duration for a credential, the shorter
-value between the configured cache duration and the credential's lease duration
-will be used.
+\include-section{creds/caching.lit}
+\include-section{creds/redacting.lit}
+\include-section{creds/retry.lit}
