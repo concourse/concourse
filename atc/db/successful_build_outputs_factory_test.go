@@ -19,13 +19,13 @@ var _ = Describe("SuccessfulBuildOutputsMigrator", func() {
 		)
 
 		BeforeEach(func() {
-			postgresRunner.MigrateToVersion(1567800389)
+			postgresRunner.MigrateToVersion(1569858555)
 
 			migrator = db.NewSuccessfulBuildOutputsMigrator(dbConn, lockFactory, 2)
 		})
 
 		JustBeforeEach(func() {
-			postgresRunner.MigrateToVersion(1568753120)
+			postgresRunner.MigrateToVersion(1569858557)
 			migrateErr = migrator.Migrate(logger)
 		})
 

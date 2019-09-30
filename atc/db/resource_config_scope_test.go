@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("Resource Config Scope", func() {
-	var pipeline db.Pipeline
 	var resourceScope db.ResourceConfigScope
 	var resource db.Resource
 	var pipeline db.Pipeline
@@ -90,20 +89,6 @@ var _ = Describe("Resource Config Scope", func() {
 			Expect(latestVR.CheckOrder()).To(Equal(4))
 		})
 
-		It("bumps the cache index", func() {
-			var cacheIndex int
-			err := dbConn.QueryRow(`SELECT cache_index FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&cacheIndex)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cacheIndex).To(Equal(2))
-
-			err = resourceScope.SaveVersions(originalVersionSlice)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = dbConn.QueryRow(`SELECT cache_index FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&cacheIndex)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cacheIndex).To(Equal(3))
-		})
-
 		Context("when the versions already exists", func() {
 			var newVersionSlice []atc.Version
 
@@ -124,23 +109,6 @@ var _ = Describe("Resource Config Scope", func() {
 
 				Expect(latestVR.Version()).To(Equal(db.Version{"ref": "v3"}))
 				Expect(latestVR.CheckOrder()).To(Equal(2))
-			})
-
-			It("does not bump the cache index", func() {
-				err := resourceScope.SaveVersions(newVersionSlice)
-				Expect(err).ToNot(HaveOccurred())
-
-				var cacheIndex int
-				err = dbConn.QueryRow(`SELECT cache_index FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&cacheIndex)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(cacheIndex).To(Equal(3))
-
-				err = resourceScope.SaveVersions(newVersionSlice)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = dbConn.QueryRow(`SELECT cache_index FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&cacheIndex)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(cacheIndex).To(Equal(3))
 			})
 		})
 	})
