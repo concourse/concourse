@@ -22,7 +22,8 @@ func (config DNSConfig) Server() (*dns.Server, error) {
 		for _, server := range resolvConf.Servers {
 			response, _, err := client.Exchange(r, fmt.Sprintf("%s:%s", server, resolvConf.Port))
 			if err == nil {
-				w.WriteMsg(response)
+				response.Compress = true
+				_ = w.WriteMsg(response)
 				break
 			}
 		}
