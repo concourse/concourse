@@ -500,7 +500,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok [**redacted**] ok",
+							Payload: "ok ((redacted)) ok",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
 								ID:     "some-plan-id",
@@ -525,7 +525,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok[**redacted**]ok\nok[**redacted**]ok\nok[**redacted**]ok\n",
+							Payload: "ok((redacted))ok\nok((redacted))ok\nok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
 								ID:     "some-plan-id",
@@ -546,7 +546,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok[**redacted**]ok\n",
+							Payload: "ok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
 								ID:     "some-plan-id",
@@ -554,7 +554,7 @@ var _ = Describe("DelegateFactory", func() {
 						}))
 						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok[**redacted**]ok\nok[**redacted**]ok\n",
+							Payload: "ok((redacted))ok\nok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
 								ID:     "some-plan-id",
@@ -578,7 +578,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok [**redacted**] ok",
+							Payload: "ok ((redacted)) ok",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
 								ID:     "some-plan-id",
@@ -603,7 +603,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok[**redacted**]ok\nok[**redacted**]ok\nok[**redacted**]ok\n",
+							Payload: "ok((redacted))ok\nok((redacted))ok\nok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
 								ID:     "some-plan-id",
@@ -624,7 +624,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok[**redacted**]ok\n",
+							Payload: "ok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
 								ID:     "some-plan-id",
@@ -632,7 +632,7 @@ var _ = Describe("DelegateFactory", func() {
 						}))
 						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok[**redacted**]ok\nok[**redacted**]ok\n",
+							Payload: "ok((redacted))ok\nok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
 								ID:     "some-plan-id",
