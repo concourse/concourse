@@ -45,7 +45,7 @@ on.
 You'll need a few things installed in order to build, test and run Concourse during
 development:
 
-* [`go`](https://golang.org/dl/) v1.11.4+
+* [`go`](https://golang.org/dl/) v1.13+
 * [`git`](https://git-scm.com/) v2.11+
 * [`yarn`](https://yarnpkg.com/en/docs/install)
 * [`docker-compose`](https://docs.docker.com/compose/install/)

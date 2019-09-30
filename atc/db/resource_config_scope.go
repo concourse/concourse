@@ -78,8 +78,10 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 
 	defer Rollback(tx)
 
+	var bumpCache bool
+
 	for _, version := range versions {
-		_, err = saveResourceVersion(tx, rcsID, version, nil)
+		newVersion, err := saveResourceVersion(tx, rcsID, version, nil)
 		if err != nil {
 			return err
 		}
@@ -93,6 +95,8 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 		if err != nil {
 			return err
 		}
+
+		bumpCache = bumpCache || newVersion
 	}
 
 	err = tx.Commit()

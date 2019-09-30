@@ -94,10 +94,11 @@ init session route =
                 }
                 |> Tuple.mapFirst DashboardModel
 
-        Routes.FlySuccess flyPort ->
+        Routes.FlySuccess noop flyPort ->
             FlySuccess.init
                 { authToken = session.authToken
                 , flyPort = flyPort
+                , noop = noop
                 }
                 |> Tuple.mapFirst FlySuccessModel
 
@@ -184,7 +185,7 @@ handleCallback callback session =
         (Pipeline.handleCallback callback)
         (Dashboard.handleCallback callback)
         identity
-        (FlySuccess.handleCallback callback)
+        identity
         >> (case callback of
                 LoggedOut (Ok ()) ->
                     genericUpdate
@@ -217,7 +218,7 @@ handleDelivery session delivery =
         (Pipeline.handleDelivery delivery)
         (Dashboard.handleDelivery delivery)
         (NotFound.handleDelivery delivery)
-        identity
+        (FlySuccess.handleDelivery delivery)
 
 
 update : Session -> Message -> ET Model
@@ -358,4 +359,4 @@ subscriptions mdl =
             NotFound.subscriptions
 
         FlySuccessModel _ ->
-            []
+            FlySuccess.subscriptions

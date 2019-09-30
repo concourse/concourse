@@ -52,7 +52,7 @@ type Resource interface {
 	EnableVersion(rcvID int) error
 	DisableVersion(rcvID int) error
 
-	PinVersion(rcvID int) error
+	PinVersion(rcvID int) (bool, error)
 	UnpinVersion() error
 
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
@@ -334,14 +334,18 @@ func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, erro
 	}
 
 	var id int
+
 	err = psql.Select("rcv.id").
 		From("resource_config_versions rcv").
 		Join("resources r ON rcv.resource_config_scope_id = r.resource_config_scope_id").
-		Where(sq.Eq{"r.id": r.ID(), "version": requestedVersion}).
+		Where(sq.Eq{"r.id": r.ID()}).
+		Where(sq.Expr("version @> ?", requestedVersion)).
 		Where(sq.NotEq{"rcv.check_order": 0}).
+		OrderBy("rcv.check_order DESC").
 		RunWith(r.conn).
 		QueryRow().
 		Scan(&id)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, false, nil
@@ -551,7 +555,7 @@ func (r *resource) DisableVersion(rcvID int) error {
 	return r.toggleVersion(rcvID, false)
 }
 
-func (r *resource) PinVersion(rcvID int) error {
+func (r *resource) PinVersion(rcvID int) (bool, error) {
 	results, err := r.conn.Exec(`
 	    INSERT INTO resource_pins(resource_id, version, comment_text)
 			VALUES ($1,
@@ -560,19 +564,22 @@ func (r *resource) PinVersion(rcvID int) error {
 				WHERE rcv.id = $2 ),
 				'')`, r.id, rcvID)
 	if err != nil {
-		return err
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
 	}
 
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
 func (r *resource) UnpinVersion() error {

@@ -444,7 +444,7 @@ var _ = Describe("Fly CLI", func() {
 					It("returns an error", func() {
 						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 						Expect(err).ToNot(HaveOccurred())
-						Eventually(sess.Err).Should(gbytes.Say("You have not provided a list of users and groups for the specified team."))
+						Eventually(sess.Err).Should(gbytes.Say("You have not provided users and groups for the specified team."))
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})
@@ -457,7 +457,7 @@ var _ = Describe("Fly CLI", func() {
 					It("returns an error", func() {
 						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 						Expect(err).ToNot(HaveOccurred())
-						Eventually(sess.Err).Should(gbytes.Say("You have not provided a list of users and groups for the specified team."))
+						Eventually(sess.Err).Should(gbytes.Say("You have not provided users and groups for the specified team."))
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})

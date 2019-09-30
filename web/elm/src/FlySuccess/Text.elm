@@ -1,21 +1,16 @@
 module FlySuccess.Text exposing
     ( Paragraph
-    , button
-    , firstParagraphFailure
-    , firstParagraphSuccess
-    , pending
-    , secondParagraphFailure
-    , secondParagraphSuccess
-    , title
-    , flyLoginLinkText
+    , copyTokenButton
+    , firstParagraph
     , flyLoginLinkDescription
+    , flyLoginLinkText
+    , pending
+    , secondParagraph
+    , sendTokenButton
+    , title
     )
 
-import FlySuccess.Models as Models
-    exposing
-        ( ButtonState
-        , TransferFailure(..)
-        )
+import FlySuccess.Models as Models exposing (ButtonState)
 
 
 title : String
@@ -36,39 +31,61 @@ type alias Paragraph =
     List Line
 
 
-firstParagraphSuccess : Paragraph
-firstParagraphSuccess =
-    [ "your token has been transferred to fly." ]
+firstParagraph : Models.TokenTransfer -> Paragraph
+firstParagraph tokenTransfer =
+    case tokenTransfer of
+        Models.Pending ->
+            []
+
+        Models.Success ->
+            [ "your token has been transferred to fly." ]
+
+        Models.NetworkTrouble ->
+            [ "however, your token could not be"
+            , "sent to fly."
+            ]
+
+        Models.BlockedByBrowser ->
+            [ "however, your token could not be sent"
+            , "to fly because your browser blocked"
+            , "the attempt."
+            ]
+
+        Models.NoFlyPort ->
+            [ "however, your token could not be"
+            , "sent to fly."
+            ]
 
 
-secondParagraphSuccess : Paragraph
-secondParagraphSuccess =
-    [ "you may now close this window." ]
-
-
-firstParagraphFailure : Paragraph
-firstParagraphFailure =
-    [ "however, your token could not be"
-    , "sent to fly."
-    ]
-
-
-secondParagraphFailure : TransferFailure -> Paragraph
-secondParagraphFailure error =
+secondParagraph : Models.TokenTransfer -> Paragraph
+secondParagraph error =
     case error of
-        NetworkTrouble _ ->
+        Models.Pending ->
+            []
+
+        Models.Success ->
+            [ "you may now close this window." ]
+
+        Models.NetworkTrouble ->
             [ "after copying, return to fly and paste"
             , "your token into the prompt."
             ]
 
-        NoFlyPort ->
+        Models.BlockedByBrowser ->
+            [ "if that fails, you will need to copy"
+            , "the token to your clipboard, return"
+            , "to fly, and paste your token into"
+            , "the prompt."
+            ]
+
+        Models.NoFlyPort ->
             [ "could not find a valid fly port to send to."
             , "maybe your URL is broken?"
             ]
 
 
-button : ButtonState -> String
-button buttonState =
+copyTokenButton : ButtonState -> String
+copyTokenButton buttonState =
     if Models.isClicked buttonState then
         "token copied"
 
@@ -76,9 +93,15 @@ button buttonState =
         "copy token to clipboard"
 
 
+sendTokenButton : String
+sendTokenButton =
+    "send token to fly directly"
+
+
 flyLoginLinkDescription : Line
 flyLoginLinkDescription =
     "Or try manually sending the token to fly:"
+
 
 flyLoginLinkText : Line
 flyLoginLinkText =

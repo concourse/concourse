@@ -713,7 +713,7 @@ var _ = Describe("Versions API", func() {
 
 					Context("when pinning the resource succeeds", func() {
 						BeforeEach(func() {
-							fakeResource.PinVersionReturns(nil)
+							fakeResource.PinVersionReturns(true, nil)
 						})
 
 						It("returns 200", func() {
@@ -721,9 +721,19 @@ var _ = Describe("Versions API", func() {
 						})
 					})
 
-					Context("when pinning the resource fails", func() {
+					Context("when pinning the resource fails by resource not exist", func() {
 						BeforeEach(func() {
-							fakeResource.PinVersionReturns(errors.New("welp"))
+							fakeResource.PinVersionReturns(false, nil)
+						})
+
+						It("returns 404", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						})
+					})
+
+					Context("when pinning the resource fails by error", func() {
+						BeforeEach(func() {
+							fakeResource.PinVersionReturns(false, errors.New("welp"))
 						})
 
 						It("returns 500", func() {

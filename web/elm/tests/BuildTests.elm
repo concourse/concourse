@@ -386,11 +386,7 @@ all =
                                     ]
                         )
                     |> Tuple.second
-                    |> List.member (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
-                    |> Expect.true
-                        ("should scroll to highlighted line"
-                            ++ " as soon as it is rendered"
-                        )
+                    |> Common.contains (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
         , test "scrolls to top of highlighted range" <|
             \_ ->
                 Application.init
@@ -461,11 +457,7 @@ all =
                                     ]
                         )
                     |> Tuple.second
-                    |> List.member (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
-                    |> Expect.true
-                        ("should scroll to highlighted line"
-                            ++ " as soon as it is rendered"
-                        )
+                    |> Common.contains (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
         , test "does not scroll to an invalid range" <|
             \_ ->
                 Application.init
@@ -545,8 +537,7 @@ all =
                                     ]
                         )
                     |> Tuple.second
-                    |> List.member (Effects.Scroll (Effects.ToId "stepid:2") "build-body")
-                    |> Expect.false "should not scroll"
+                    |> Common.notContains (Effects.Scroll (Effects.ToId "stepid:2") "build-body")
         , describe "page title"
             [ test "with a job build" <|
                 \_ ->
@@ -752,8 +743,7 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok ( 1, theBuild ))
                     |> Tuple.second
-                    |> List.member (Effects.Focus Build.bodyId)
-                    |> Expect.true "should focus build body"
+                    |> Common.contains (Effects.Focus Build.bodyId)
         , test "events from a different build are discarded" <|
             \_ ->
                 Application.init
@@ -904,8 +894,7 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
-                    |> List.member (Effects.Scroll Effects.ToBottom "build-body")
-                    |> Expect.true "should scroll to bottom"
+                    |> Common.contains (Effects.Scroll Effects.ToBottom "build-body")
         , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 initFromApplication
@@ -1163,7 +1152,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> List.member
+                    |> Common.contains
                         (Effects.FetchJobBuild 1
                             { teamName = "team"
                             , pipelineName = "pipeline"
@@ -1171,7 +1160,6 @@ all =
                             , buildName = "1"
                             }
                         )
-                    |> Expect.true "should fetch build"
         , test "gets current timezone on page load" <|
             \_ ->
                 Application.init
@@ -1189,8 +1177,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> List.member Effects.GetCurrentTimeZone
-                    |> Expect.true "should get timezone"
+                    |> Common.contains Effects.GetCurrentTimeZone
         , describe "top bar" <|
             [ test "has a top bar" <|
                 \_ ->
@@ -1278,7 +1265,7 @@ all =
                 givenBuildFetched
                     >> Tuple.second
                     >> Expect.all
-                        [ List.member
+                        [ Common.contains
                             (Effects.FetchBuildHistory
                                 { teamName = "team"
                                 , pipelineName = "pipeline"
@@ -1286,17 +1273,13 @@ all =
                                 }
                                 Nothing
                             )
-                            >> Expect.true
-                                "expected effect was not in the list"
-                        , List.member
+                        , Common.contains
                             (Effects.FetchBuildJobDetails
                                 { teamName = "team"
                                 , pipelineName = "pipeline"
                                 , jobName = "job"
                                 }
                             )
-                            >> Expect.true
-                                "expected effect was not in the list"
                         ]
             , test "header is 60px tall" <|
                 givenBuildFetched
@@ -1666,14 +1649,12 @@ all =
                                     { deltaX = 0, deltaY = 0 }
                             )
                         >> Tuple.second
-                        >> List.member (Effects.CheckIsVisible "1")
-                        >> Expect.true "should check if last build is visible"
+                        >> Common.contains (Effects.CheckIsVisible "1")
                 , test "subscribes to element visibility" <|
                     givenBuildFetched
                         >> Tuple.first
                         >> Application.subscriptions
-                        >> List.member Subscription.OnElementVisible
-                        >> Expect.true "should be subscribed to visibility"
+                        >> Common.contains Subscription.OnElementVisible
                 , test "scrolling to last build fetches more if possible" <|
                     givenBuildFetched
                         >> Tuple.first
@@ -1788,7 +1769,7 @@ all =
                                 )
                             )
                         >> Tuple.second
-                        >> List.member
+                        >> Common.notContains
                             (Effects.FetchBuildHistory
                                 { teamName = "team"
                                 , pipelineName = "pipeline"
@@ -1796,7 +1777,6 @@ all =
                                 }
                                 (Just { direction = Until 2, limit = 100 })
                             )
-                        >> Expect.false "should not fetch more builds"
                 , test "if build is present in history, checks its visibility" <|
                     givenBuildFetched
                         >> Tuple.first
@@ -1816,8 +1796,7 @@ all =
                                 )
                             )
                         >> Tuple.second
-                        >> List.member (Effects.CheckIsVisible "1")
-                        >> Expect.true "should check visibility of current build"
+                        >> Common.contains (Effects.CheckIsVisible "1")
                 , test "if build is present and invisible, scrolls to it" <|
                     givenBuildFetched
                         >> Tuple.first
@@ -2288,14 +2267,12 @@ all =
                                     ]
                             , Tuple.first
                                 >> Application.subscriptions
-                                >> List.member
+                                >> Common.contains
                                     (Subscription.FromEventSource
                                         ( "/api/v1/builds/1/events"
                                         , [ "end", "event" ]
                                         )
                                     )
-                                >> Expect.true
-                                    "why aren't we listening for build events!?"
                             ]
                 , test "if build plan request fails, no event stream" <|
                     preBuildPlanReceived
@@ -2316,14 +2293,12 @@ all =
                             [ Tuple.second >> Expect.equal []
                             , Tuple.first
                                 >> Application.subscriptions
-                                >> List.member
+                                >> Common.notContains
                                     (Subscription.FromEventSource
                                         ( "/api/v1/builds/1/events"
                                         , [ "end", "event" ]
                                         )
                                     )
-                                >> Expect.false
-                                    "should not listen for build events"
                             ]
                 ]
             , describe "step header" <|

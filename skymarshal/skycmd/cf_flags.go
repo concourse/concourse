@@ -68,10 +68,10 @@ func (flag *CFFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type CFTeamFlags struct {
-	Users      []string `long:"user" description:"List of whitelisted CloudFoundry users." value-name:"USERNAME"`
-	Orgs       []string `long:"org" description:"List of whitelisted CloudFoundry orgs" value-name:"ORG_NAME"`
-	Spaces     []string `long:"space" description:"List of whitelisted CloudFoundry spaces" value-name:"ORG_NAME:SPACE_NAME"`
-	SpaceGuids []string `long:"space-guid" description:"(Deprecated) List of whitelisted CloudFoundry space guids" value-name:"SPACE_GUID"`
+	Users      []string `long:"user" description:"A whitelisted CloudFoundry user" value-name:"USERNAME"`
+	Orgs       []string `long:"org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME"`
+	Spaces     []string `long:"space" description:"A whitelisted CloudFoundry space" value-name:"ORG_NAME:SPACE_NAME"`
+	SpaceGuids []string `long:"space-guid" description:"(Deprecated) A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID"`
 }
 
 func (flag *CFTeamFlags) GetUsers() []string {

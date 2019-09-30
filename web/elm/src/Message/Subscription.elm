@@ -1,7 +1,9 @@
 port module Message.Subscription exposing
     ( Delivery(..)
     , Interval(..)
+    , RawHttpResponse(..)
     , Subscription(..)
+    , decodeHttpResponse
     , runSubscription
     )
 
@@ -32,6 +34,16 @@ port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
 port sideBarStateReceived : (Maybe String -> msg) -> Sub msg
 
 
+port rawHttpResponse : (String -> msg) -> Sub msg
+
+
+type RawHttpResponse
+    = Success
+    | Timeout
+    | NetworkError
+    | BrowserError
+
+
 type Subscription
     = OnClockTick Interval
     | OnMouse
@@ -43,6 +55,7 @@ type Subscription
     | OnTokenReceived
     | OnElementVisible
     | OnSideBarStateReceived
+    | OnTokenSentToFly
 
 
 type Delivery
@@ -58,6 +71,7 @@ type Delivery
     | UrlRequest Browser.UrlRequest
     | ElementVisible ( String, Bool )
     | SideBarStateReceived (Maybe String)
+    | TokenSentToFly RawHttpResponse
 
 
 type Interval
@@ -124,6 +138,25 @@ runSubscription s =
 
         OnSideBarStateReceived ->
             sideBarStateReceived SideBarStateReceived
+
+        OnTokenSentToFly ->
+            rawHttpResponse (decodeHttpResponse >> TokenSentToFly)
+
+
+decodeHttpResponse : String -> RawHttpResponse
+decodeHttpResponse value =
+    case value of
+        "networkError" ->
+            NetworkError
+
+        "browserError" ->
+            BrowserError
+
+        "timeout" ->
+            Timeout
+
+        _ ->
+            Success
 
 
 intervalToTime : Interval -> Float

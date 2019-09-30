@@ -186,6 +186,17 @@ var _ = Describe("Resource Put", func() {
 				})
 			})
 
+			Context("when /out outputs null", func() {
+				BeforeEach(func() {
+					outScriptStdout = `null`
+				})
+
+				It("emits an error", func() {
+					Expect(putErr).To(HaveOccurred())
+					Expect(putErr).To(Equal(errors.New("resource script (/opt/resource/out /tmp/build/put) output a null version")))
+				})
+			})
+
 			Context("when /out outputs to stderr", func() {
 				BeforeEach(func() {
 					outScriptStderr = "some stderr data"

@@ -24,8 +24,6 @@ var _ = Describe("Periodic emission of metrics", func() {
 	)
 
 	BeforeEach(func() {
-		testLogger := lager.NewLogger("test")
-
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitter = &metricfakes.FakeEmitter{}
 

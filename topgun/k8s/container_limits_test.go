@@ -67,7 +67,7 @@ func containerLimitsWork(selectorFlags ...string) {
 		It("returns the configure default container limit", func() {
 			deployWithSelectors(selectorFlags...)
 			waitAndLogin()
-			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
+			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(0))
 
@@ -90,7 +90,7 @@ func containerLimitsFail(selectorFlags ...string) {
 		It("fails to set the memory limit", func() {
 			deployWithSelectors(selectorFlags...)
 			waitAndLogin()
-			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
+			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(2))
 

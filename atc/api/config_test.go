@@ -13,9 +13,9 @@ import (
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"sigs.k8s.io/yaml"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/rata"
+	"sigs.k8s.io/yaml"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

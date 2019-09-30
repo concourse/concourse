@@ -11,6 +11,7 @@ import DashboardTests
         , iconSelector
         , middleGrey
         )
+import Data
 import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
@@ -230,14 +231,12 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> List.member Effects.GetCurrentTimeZone
-                    |> Expect.true "should get timezone"
+                    |> Common.contains Effects.GetCurrentTimeZone
         , test "subscribes to the five second interval" <|
             \_ ->
                 init
                     |> Application.subscriptions
-                    |> List.member (Subscription.OnClockTick FiveSeconds)
-                    |> Expect.true "not subscribed to the five second interval?"
+                    |> Common.contains (Subscription.OnClockTick FiveSeconds)
         , test "autorefreshes resource and versions every 5 seconds" <|
             \_ ->
                 init
@@ -249,15 +248,14 @@ all =
                         )
                     |> Tuple.second
                     |> Expect.all
-                        [ List.member
+                        [ Common.contains
                             (Effects.FetchResource
                                 { resourceName = resourceName
                                 , pipelineName = pipelineName
                                 , teamName = teamName
                                 }
                             )
-                            >> Expect.true "should fetch resource"
-                        , List.member
+                        , Common.contains
                             (Effects.FetchVersionedResources
                                 { resourceName = resourceName
                                 , pipelineName = pipelineName
@@ -265,7 +263,6 @@ all =
                                 }
                                 Nothing
                             )
-                            >> Expect.true "should fetch versions"
                         ]
         , test "autorefresh respects expanded state" <|
             \_ ->
@@ -1755,8 +1752,7 @@ all =
                                         |> givenResourcePinnedWithComment
                                         |> givenTextareaFocused
                                         |> Application.subscriptions
-                                        |> List.member Subscription.OnKeyDown
-                                        |> Expect.true "why are we not subscribed to keydowns!?"
+                                        |> Common.contains Subscription.OnKeyDown
                             , test
                                 ("keyup subscription active when "
                                     ++ "textarea is focused"
@@ -1768,8 +1764,7 @@ all =
                                         |> givenResourcePinnedWithComment
                                         |> givenTextareaFocused
                                         |> Application.subscriptions
-                                        |> List.member Subscription.OnKeyUp
-                                        |> Expect.true "why are we not subscribed to keyups!?"
+                                        |> Common.contains Subscription.OnKeyUp
                             , test "Ctrl-Enter sends SaveComment msg" <|
                                 \_ ->
                                     init
@@ -2733,7 +2728,7 @@ all =
                                     , teamName = teamName
                                     }
                                 ]
-                , describe "while check in progress" <|
+                , describe "while check is pending" <|
                     let
                         givenCheckInProgress : Application.Model -> Application.Model
                         givenCheckInProgress =
@@ -2745,13 +2740,13 @@ all =
                                     )
                                 >> Tuple.first
                     in
-                    [ test "check bar text says 'currently checking'" <|
+                    [ test "check bar text says 'check pending'" <|
                         \_ ->
                             init
                                 |> givenCheckInProgress
                                 |> checkBar (UserStateLoggedIn sampleUser)
                                 |> Query.find [ tag "h3" ]
-                                |> Query.has [ text "currently checking" ]
+                                |> Query.has [ text "check pending" ]
                     , test "clicking check button does nothing" <|
                         \_ ->
                             init
@@ -2823,7 +2818,7 @@ all =
                             }
                         }
                     ]
-                , test "when check resolves successfully, status is check" <|
+                , test "when check resolves successfully, shows checkmark" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
@@ -2833,7 +2828,11 @@ all =
                                     Message.Message.CheckButton True
                                 )
                             |> Tuple.first
-                            |> Application.handleCallback (Callback.Checked <| Ok ())
+                            |> Application.handleCallback
+                                (Callback.Checked <|
+                                    Ok <|
+                                        Data.check Concourse.Succeeded
+                                )
                             |> Tuple.first
                             |> checkBar (UserStateLoggedIn sampleUser)
                             |> Query.children []
@@ -2845,6 +2844,35 @@ all =
                                     }
                                     ++ [ style "background-size" "14px 14px" ]
                                 )
+                , test "when check returns 'started', refreshes on 1s tick" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenUserIsAuthorized
+                            |> update
+                                (Message.Message.Click <|
+                                    Message.Message.CheckButton True
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.Checked <|
+                                    Ok <|
+                                        Data.check Concourse.Started
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (ClockTicked OneSecond <|
+                                    Time.millisToPosix 1000
+                                )
+                            |> Tuple.second
+                            |> Common.contains
+                                (Effects.FetchCheck
+                                    { teamName = teamName
+                                    , pipelineName = pipelineName
+                                    , resourceName = resourceName
+                                    , checkID = 0
+                                    }
+                                )
                 , test "when check resolves successfully, resource and versions refresh" <|
                     \_ ->
                         init
@@ -2855,7 +2883,11 @@ all =
                                     Message.Message.CheckButton True
                                 )
                             |> Tuple.first
-                            |> Application.handleCallback (Callback.Checked <| Ok ())
+                            |> Application.handleCallback
+                                (Callback.Checked <|
+                                    Ok <|
+                                        Data.check Concourse.Succeeded
+                                )
                             |> Tuple.second
                             |> Expect.equal
                                 [ Effects.FetchResource
@@ -2882,16 +2914,8 @@ all =
                             |> Tuple.first
                             |> Application.handleCallback
                                 (Callback.Checked <|
-                                    Err <|
-                                        Http.BadStatus
-                                            { url = ""
-                                            , status =
-                                                { code = 400
-                                                , message = "bad request"
-                                                }
-                                            , headers = Dict.empty
-                                            , body = ""
-                                            }
+                                    Ok <|
+                                        Data.check Concourse.Errored
                                 )
                             |> Tuple.first
                             |> checkBar (UserStateLoggedIn sampleUser)
@@ -2916,16 +2940,8 @@ all =
                             |> Tuple.first
                             |> Application.handleCallback
                                 (Callback.Checked <|
-                                    Err <|
-                                        Http.BadStatus
-                                            { url = ""
-                                            , status =
-                                                { code = 400
-                                                , message = "bad request"
-                                                }
-                                            , headers = Dict.empty
-                                            , body = ""
-                                            }
+                                    Ok <|
+                                        Data.check Concourse.Errored
                                 )
                             |> Tuple.second
                             |> Expect.equal

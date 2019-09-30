@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"os"
 
+	concourseCmd "github.com/concourse/concourse/cmd"
+
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/tsa/tsacmd"
 	"github.com/concourse/flag"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
@@ -22,7 +24,7 @@ type WebCommand struct {
 	*tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
 }
 
-func (WebCommand) lessenRequirements(command *flags.Command) {
+func (WebCommand) LessenRequirements(command *flags.Command) {
 	// defaults to atc external URL
 	command.FindOptionByLongName("tsa-atc-url").Required = false
 
@@ -41,7 +43,7 @@ func (cmd *WebCommand) Execute(args []string) error {
 
 func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 	if cmd.RunCommand.CLIArtifactsDir == "" {
-		cmd.RunCommand.CLIArtifactsDir = flag.Dir(discoverAsset("fly-assets"))
+		cmd.RunCommand.CLIArtifactsDir = flag.Dir(concourseCmd.DiscoverAsset("fly-assets"))
 	}
 
 	cmd.populateTSAFlagsFromATCFlags()
@@ -60,11 +62,11 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 	return grouper.NewParallel(os.Interrupt, grouper.Members{
 		{
 			Name:   "atc",
-			Runner: NewLoggingRunner(logger.Session("atc-runner"), atcRunner),
+			Runner: concourseCmd.NewLoggingRunner(logger.Session("atc-runner"), atcRunner),
 		},
 		{
 			Name:   "tsa",
-			Runner: NewLoggingRunner(logger.Session("tsa-runner"), tsaRunner),
+			Runner: concourseCmd.NewLoggingRunner(logger.Session("tsa-runner"), tsaRunner),
 		},
 	}), nil
 }

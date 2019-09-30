@@ -49,6 +49,7 @@ test('can fly login with browser and reuse same browser without CSRF issues', as
   await flyPromise;
   let currentUrl = t.context.web.page.url();
   t.true(currentUrl.includes(`${t.context.url}/fly_success`));
+  await t.context.web.waitForText('your token has been transferred');
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.web.page.goto(t.context.web.route('/'));
   let pipelineSelector = '.card[data-pipeline-name=some-pipeline]';

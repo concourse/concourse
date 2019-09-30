@@ -1,8 +1,8 @@
 package exec_test
 
 import (
-	"errors"
 	"context"
+	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
@@ -12,10 +12,10 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
-	"sigs.k8s.io/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"sigs.k8s.io/yaml"
 )
 
 var _ = Describe("TaskConfigSource", func() {

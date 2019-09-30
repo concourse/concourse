@@ -37,7 +37,10 @@ var _ = Describe("DelegateFactory", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeResource = new(dbfakes.FakeResource)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
+		credVars := vars.StaticVariables{
+			"source-param": "super-secret-source",
+			"git-key":      "123\n456\n789",
+		}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 	})
 
@@ -329,7 +332,8 @@ var _ = Describe("DelegateFactory", func() {
 				var writeErr error
 
 				JustBeforeEach(func() {
-					writtenBytes, writeErr = writer.Write([]byte("hello"))
+					writtenBytes, writeErr = writer.Write([]byte("hello\nworld"))
+					writer.(io.Closer).Close()
 				})
 
 				Context("when saving the event succeeds", func() {
@@ -338,15 +342,23 @@ var _ = Describe("DelegateFactory", func() {
 					})
 
 					It("returns the length of the string, and no error", func() {
-						Expect(writtenBytes).To(Equal(len("hello")))
+						Expect(writtenBytes).To(Equal(len("hello\nworld")))
 						Expect(writeErr).ToNot(HaveOccurred())
 					})
 
 					It("saves a log event", func() {
-						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "hello",
+							Payload: "hello\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+							Time:    123456789,
+							Payload: "world",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
 								ID:     "some-plan-id",
@@ -355,7 +367,7 @@ var _ = Describe("DelegateFactory", func() {
 					})
 				})
 
-				Context("when saving the event succeeds", func() {
+				Context("when saving the event fails", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
@@ -382,7 +394,8 @@ var _ = Describe("DelegateFactory", func() {
 				var writeErr error
 
 				JustBeforeEach(func() {
-					writtenBytes, writeErr = writer.Write([]byte("hello"))
+					writtenBytes, writeErr = writer.Write([]byte("hello\n"))
+					writer.(io.Closer).Close()
 				})
 
 				Context("when saving the event succeeds", func() {
@@ -391,7 +404,7 @@ var _ = Describe("DelegateFactory", func() {
 					})
 
 					It("returns the length of the string, and no error", func() {
-						Expect(writtenBytes).To(Equal(len("hello")))
+						Expect(writtenBytes).To(Equal(len("hello\n")))
 						Expect(writeErr).ToNot(HaveOccurred())
 					})
 
@@ -399,7 +412,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "hello",
+							Payload: "hello\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
 								ID:     "some-plan-id",
@@ -461,7 +474,7 @@ var _ = Describe("DelegateFactory", func() {
 			})
 		})
 
-		Describe("Secrets redacting", func() {
+		Describe("Secrets redaction", func() {
 			var (
 				writer       io.Writer
 				writtenBytes int
@@ -470,50 +483,164 @@ var _ = Describe("DelegateFactory", func() {
 
 			BeforeEach(func() {
 				delegate.Variables().Get(vars.VariableDefinition{Name: "source-param"})
+				delegate.Variables().Get(vars.VariableDefinition{Name: "git-key"})
 			})
 
 			Context("Stdout", func() {
-				JustBeforeEach(func() {
-					writer = delegate.Stdout()
-					writtenBytes, writeErr = writer.Write([]byte("ok super-secret-source ok"))
+				Context("single-line secret", func() {
+					JustBeforeEach(func() {
+						writer = delegate.Stdout()
+						writtenBytes, writeErr = writer.Write([]byte("ok super-secret-source ok"))
+						writer.(io.Closer).Close()
+					})
+
+					It("should be redacted", func() {
+						Expect(writeErr).To(BeNil())
+						Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    123456789,
+							Payload: "ok [**redacted**] ok",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
 				})
 
-				It("should be redacted", func() {
-					Expect(writeErr).To(BeNil())
-					Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
-					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
-					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-						Time:    123456789,
-						Payload: "ok [**redacted**] ok",
-						Origin: event.Origin{
-							Source: event.OriginSourceStdout,
-							ID:     "some-plan-id",
-						},
-					}))
+				Context("multi-line secret", func() {
+					var logLines string
+
+					JustBeforeEach(func() {
+						logLines = "ok123ok\nok456ok\nok789ok\n"
+						writer = delegate.Stdout()
+						writtenBytes, writeErr = writer.Write([]byte(logLines))
+						writer.(io.Closer).Close()
+					})
+
+					It("should be redacted", func() {
+						Expect(writeErr).To(BeNil())
+						Expect(writtenBytes).To(Equal(len(logLines)))
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    123456789,
+							Payload: "ok[**redacted**]ok\nok[**redacted**]ok\nok[**redacted**]ok\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
+				})
+
+				Context("multi-line secret with random log chunk", func() {
+					JustBeforeEach(func() {
+						writer = delegate.Stdout()
+						writtenBytes, writeErr = writer.Write([]byte("ok123ok\nok4"))
+						writtenBytes, writeErr = writer.Write([]byte("56ok\nok789ok\n"))
+						writer.(io.Closer).Close()
+					})
+
+					It("should be redacted", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    123456789,
+							Payload: "ok[**redacted**]ok\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+							Time:    123456789,
+							Payload: "ok[**redacted**]ok\nok[**redacted**]ok\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
 				})
 			})
 
 			Context("Stderr", func() {
-				JustBeforeEach(func() {
-					writer = delegate.Stderr()
-					writtenBytes, writeErr = writer.Write([]byte("ok super-secret-source ok"))
+				Context("single-line secret", func() {
+					JustBeforeEach(func() {
+						writer = delegate.Stderr()
+						writtenBytes, writeErr = writer.Write([]byte("ok super-secret-source ok"))
+						writer.(io.Closer).Close()
+					})
+
+					It("should be redacted", func() {
+						Expect(writeErr).To(BeNil())
+						Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    123456789,
+							Payload: "ok [**redacted**] ok",
+							Origin: event.Origin{
+								Source: event.OriginSourceStderr,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
 				})
 
-				It("should be redacted", func() {
-					Expect(writeErr).To(BeNil())
-					Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
-					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
-					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-						Time:    123456789,
-						Payload: "ok [**redacted**] ok",
-						Origin: event.Origin{
-							Source: event.OriginSourceStderr,
-							ID:     "some-plan-id",
-						},
-					}))
+				Context("multi-line secret", func() {
+					var logLines string
+
+					JustBeforeEach(func() {
+						logLines = "ok123ok\nok456ok\nok789ok\n"
+						writer = delegate.Stderr()
+						writtenBytes, writeErr = writer.Write([]byte(logLines))
+						writer.(io.Closer).Close()
+					})
+
+					It("should be redacted", func() {
+						Expect(writeErr).To(BeNil())
+						Expect(writtenBytes).To(Equal(len(logLines)))
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    123456789,
+							Payload: "ok[**redacted**]ok\nok[**redacted**]ok\nok[**redacted**]ok\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStderr,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
+				})
+
+				Context("multi-line secret with random log chunk", func() {
+					JustBeforeEach(func() {
+						writer = delegate.Stderr()
+						writtenBytes, writeErr = writer.Write([]byte("ok123ok\nok4"))
+						writtenBytes, writeErr = writer.Write([]byte("56ok\nok789ok\n"))
+						writer.(io.Closer).Close()
+					})
+
+					It("should be redacted", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    123456789,
+							Payload: "ok[**redacted**]ok\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStderr,
+								ID:     "some-plan-id",
+							},
+						}))
+						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+							Time:    123456789,
+							Payload: "ok[**redacted**]ok\nok[**redacted**]ok\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStderr,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
 				})
 			})
-
 		})
 	})
 })
