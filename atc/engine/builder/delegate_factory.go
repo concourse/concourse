@@ -88,6 +88,10 @@ func (d *getDelegate) Starting(logger lager.Logger) {
 }
 
 func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info exec.VersionInfo) {
+	// PR#4398: close to flush stdout and stderr
+	d.Stdout().(io.Closer).Close()
+	d.Stderr().(io.Closer).Close()
+
 	err := d.build.SaveEvent(event.FinishGet{
 		Origin:          d.eventOrigin,
 		Time:            d.clock.Now().Unix(),
@@ -186,6 +190,10 @@ func (d *putDelegate) Starting(logger lager.Logger) {
 }
 
 func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info exec.VersionInfo) {
+	// PR#4398: close to flush stdout and stderr
+	d.Stdout().(io.Closer).Close()
+	d.Stderr().(io.Closer).Close()
+
 	err := d.build.SaveEvent(event.FinishPut{
 		Origin:          d.eventOrigin,
 		Time:            d.clock.Now().Unix(),
@@ -269,6 +277,10 @@ func (d *taskDelegate) Starting(logger lager.Logger, taskConfig atc.TaskConfig) 
 }
 
 func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus) {
+	// PR#4398: close to flush stdout and stderr
+	d.Stdout().(io.Closer).Close()
+	d.Stderr().(io.Closer).Close()
+
 	err := d.build.SaveEvent(event.FinishTask{
 		ExitStatus: int(exitStatus),
 		Time:       time.Now().Unix(),
@@ -320,6 +332,8 @@ func NewBuildStepDelegate(
 		planID:          planID,
 		clock:           clock,
 		credVarsTracker: credVarsTracker,
+		stdout:          nil,
+		stderr:          nil,
 	}
 }
 
@@ -328,6 +342,8 @@ type buildStepDelegate struct {
 	planID          atc.PlanID
 	clock           clock.Clock
 	credVarsTracker vars.CredVarsTracker
+	stderr          io.Writer
+	stdout          io.Writer
 }
 
 func (delegate *buildStepDelegate) Variables() vars.CredVarsTracker {
@@ -342,8 +358,10 @@ type credVarsIterator struct {
 	line string
 }
 
-func (it *credVarsIterator) YieldCred(k, v string) {
-	it.line = strings.Replace(it.line, v, "[**redacted**]", -1)
+func (it *credVarsIterator) YieldCred(name, value string) {
+	for _, lineValue := range strings.Split(value, "\n") {
+		it.line = strings.Replace(it.line, lineValue, "[**redacted**]", -1)
+	}
 }
 
 func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
@@ -353,27 +371,33 @@ func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
 }
 
 func (delegate *buildStepDelegate) Stdout() io.Writer {
-	return newDBEventWriter(
-		delegate.build,
-		event.Origin{
-			Source: event.OriginSourceStdout,
-			ID:     event.OriginID(delegate.planID),
-		},
-		delegate.clock,
-		delegate.buildOutputFilter,
-	)
+	if delegate.stdout == nil {
+		delegate.stdout = newDBEventWriterWithSecretRedaction(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStdout,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+			delegate.buildOutputFilter,
+		)
+	}
+	return delegate.stdout
 }
 
 func (delegate *buildStepDelegate) Stderr() io.Writer {
-	return newDBEventWriter(
-		delegate.build,
-		event.Origin{
-			Source: event.OriginSourceStderr,
-			ID:     event.OriginID(delegate.planID),
-		},
-		delegate.clock,
-		delegate.buildOutputFilter,
-	)
+	if delegate.stderr == nil {
+		delegate.stderr = newDBEventWriterWithSecretRedaction(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStderr,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+			delegate.buildOutputFilter,
+		)
+	}
+	return delegate.stderr
 }
 
 func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) {
@@ -389,11 +413,21 @@ func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) 
 	}
 }
 
-func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.Writer {
+func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock) io.Writer {
 	return &dbEventWriter{
 		build:  build,
 		origin: origin,
 		clock:  clock,
+	}
+}
+
+func newDBEventWriterWithSecretRedaction(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.WriteCloser {
+	return &dbEventWriterWithSecretRedaction{
+		dbEventWriter: dbEventWriter{
+			build:  build,
+			origin: origin,
+			clock:  clock,
+		},
 		filter: filter,
 	}
 }
@@ -403,33 +437,88 @@ type dbEventWriter struct {
 	origin   event.Origin
 	clock    clock.Clock
 	dangling []byte
-	filter   exec.BuildOutputFilter
 }
 
 func (writer *dbEventWriter) Write(data []byte) (int, error) {
-	text := append(writer.dangling, data...)
-
-	checkEncoding, _ := utf8.DecodeLastRune(text)
-	if checkEncoding == utf8.RuneError {
-		writer.dangling = text
+	text := writer.writeDangling(data)
+	if text == nil {
 		return len(data), nil
 	}
 
-	writer.dangling = nil
-
-	payload := string(text)
-	if writer.filter != nil {
-		payload = writer.filter(payload)
-	}
-
-	err := writer.build.SaveEvent(event.Log{
-		Time:    writer.clock.Now().Unix(),
-		Payload: payload,
-		Origin:  writer.origin,
-	})
+	err := writer.saveLog(string(text))
 	if err != nil {
 		return 0, err
 	}
 
 	return len(data), nil
+}
+
+func (writer *dbEventWriter) writeDangling(data []byte) []byte {
+	text := append(writer.dangling, data...)
+
+	checkEncoding, _ := utf8.DecodeLastRune(text)
+	if checkEncoding == utf8.RuneError {
+		writer.dangling = text
+		return nil
+	}
+
+	writer.dangling = nil
+	return text
+}
+
+func (writer *dbEventWriter) saveLog(text string) error {
+	return writer.build.SaveEvent(event.Log{
+		Time:    writer.clock.Now().Unix(),
+		Payload: text,
+		Origin:  writer.origin,
+	})
+}
+
+type dbEventWriterWithSecretRedaction struct {
+	dbEventWriter
+	filter exec.BuildOutputFilter
+}
+
+func (writer *dbEventWriterWithSecretRedaction) Write(data []byte) (int, error) {
+	var text []byte
+
+	if data != nil {
+		text = writer.writeDangling(data)
+		if text == nil {
+			return len(data), nil
+		}
+	} else {
+		if writer.dangling == nil || len(writer.dangling) == 0 {
+			return 0, nil
+		}
+		text = writer.dangling
+	}
+
+	payload := string(text)
+	if data != nil {
+		idx := strings.LastIndex(payload, "\n")
+		if idx >= 0 && idx < len(payload) {
+			// Cache content after the last new-line, and proceed contents
+			// before the last new-line.
+			writer.dangling = ([]byte)(payload[idx+1:])
+			payload = payload[:idx+1]
+		} else {
+			// No new-line found, then cache the log.
+			writer.dangling = text
+			return len(data), nil
+		}
+	}
+
+	payload = writer.filter(payload)
+	err := writer.saveLog(payload)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(data), nil
+}
+
+func (writer *dbEventWriterWithSecretRedaction) Close() error {
+	writer.Write(nil)
+	return nil
 }
